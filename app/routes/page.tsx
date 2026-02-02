@@ -1,8 +1,19 @@
+"use client";
+
 import { PrimaryNav } from "../components/nav";
 import { BulletList, SectionHeader, SurfaceCard, Tag } from "../components/ui";
+import RouteVisualizer, {
+  VisualizerTheme,
+} from "../components/route-visualizer";
+import { useState } from "react";
 
 export default function RoutesPage() {
-  const elevationProfile = [120, 180, 140, 210, 260, 220, 280, 240, 300, 260, 320, 280];
+  const [currentTheme, setCurrentTheme] = useState<"neon" | "alpine" | "mars">(
+    "neon",
+  );
+  const elevationProfile = [
+    120, 180, 140, 210, 260, 220, 280, 240, 300, 260, 320, 280,
+  ];
   const worldModes = [
     "GPX route ingestion → elevation + turns",
     "Prompt-driven worlds from instructors",
@@ -11,7 +22,10 @@ export default function RoutesPage() {
   ];
 
   const upcoming = [
-    { title: "Coastal Climb", description: "52 km • 800m gain • sunset palette" },
+    {
+      title: "Coastal Climb",
+      description: "52 km • 800m gain • sunset palette",
+    },
     { title: "Neo-Grid Sprint", description: "Intervals • synthwave skyline" },
     { title: "Alpine Dawn", description: "40 min endurance • alpine sunrise" },
   ];
@@ -26,13 +40,22 @@ export default function RoutesPage() {
         <SurfaceCard
           eyebrow="Route Worlds"
           title="Turn GPX routes into immersive class worlds"
-          description="Every class can ship with a cinematic narrative world driven by real elevation or creative prompts."
+          description="Every class can ship with a cinematic narrative world driven by real elevation or creative prompts. Choose a theme below."
           className="bg-[color:var(--surface-strong)]"
         >
           <div className="mt-6 flex flex-wrap gap-3">
-            <Tag>GPX ingest</Tag>
-            <Tag>Prompt-to-world</Tag>
-            <Tag>Replay ready</Tag>
+            {["neon", "alpine", "mars"].map((theme) => (
+              <button
+                key={theme}
+                onClick={() => setCurrentTheme(theme as VisualizerTheme)}
+                className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${currentTheme === theme
+                    ? "bg-white text-black"
+                    : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+                  }`}
+              >
+                {theme.charAt(0).toUpperCase() + theme.slice(1)}
+              </button>
+            ))}
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <BulletList items={worldModes} />
@@ -50,43 +73,24 @@ export default function RoutesPage() {
         >
           <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-              <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
-                Route Profile
-              </p>
-              <div className="mt-4 h-36 w-full">
-                <svg viewBox="0 0 300 120" className="h-full w-full">
-                  <defs>
-                    <linearGradient id="elevGlow" x1="0" x2="1" y1="0" y2="0">
-                      <stop offset="0%" stopColor="#6d7cff" stopOpacity="0.8" />
-                      <stop offset="100%" stopColor="#9b7bff" stopOpacity="0.8" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d={`M0 ${120 - elevationProfile[0]}
-                    ${elevationProfile
-                      .map((point, index) => {
-                        const x = (index / (elevationProfile.length - 1)) * 300;
-                        const y = 120 - point / 3;
-                        return `L ${x} ${y}`;
-                      })
-                      .join(" ")} L 300 120 L 0 120 Z`}
-                    fill="url(#elevGlow)"
-                    opacity="0.25"
-                  />
-                  <path
-                    d={`M0 ${120 - elevationProfile[0]}
-                    ${elevationProfile
-                      .map((point, index) => {
-                        const x = (index / (elevationProfile.length - 1)) * 300;
-                        const y = 120 - point / 3;
-                        return `L ${x} ${y}`;
-                      })
-                      .join(" ")}`}
-                    fill="none"
-                    stroke="url(#elevGlow)"
-                    strokeWidth="2.5"
-                  />
-                </svg>
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
+                  Route Profile
+                </p>
+                <div className="rounded-full bg-white/5 px-2 py-1 text-[10px] uppercase text-white/50">
+                  {currentTheme} mode
+                </div>
+              </div>
+              <div className="mt-4 h-80 w-full overflow-hidden rounded-xl border border-white/10">
+                <RouteVisualizer
+                  elevationProfile={elevationProfile}
+                  theme={currentTheme}
+                  storyBeats={[
+                    { progress: 0.2, label: "Coastline Drag", type: "sprint" },
+                    { progress: 0.6, label: "Skyline Climb", type: "climb" },
+                  ]}
+                  className="h-full"
+                />
               </div>
               <div className="mt-4 flex flex-wrap gap-3 text-xs text-white/70">
                 <Tag>52 km</Tag>
@@ -125,7 +129,9 @@ export default function RoutesPage() {
                 <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
                   {world.title}
                 </p>
-                <p className="mt-3 text-sm text-white/80">{world.description}</p>
+                <p className="mt-3 text-sm text-white/80">
+                  {world.description}
+                </p>
               </div>
             ))}
           </div>

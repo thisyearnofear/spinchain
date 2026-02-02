@@ -5,42 +5,44 @@ Last updated: February 2, 2026
 ## North Star
 Privacy-first fitness DeFi OS that turns instructor-led classes into programmable financial events with verifiable, user-controlled proof of effort.
 
-## MVP (HackMoney 2026 — Feb 11, 2026)
-- [x] Contracts scaffold (ClassFactory, SpinClass, IncentiveEngine, SpinToken, TreasurySplitter)
-- [x] Core UI routes: landing, rider, instructor, routes, builders
-- [ ] Rider flow: ticket → ride → proof card (interactive)
-- [ ] Instructor flow: class builder → deploy (mocked)
-- [ ] GPX uploader + parsing (basic)
-- [ ] Shareable proof card component
-- [ ] Demo script + 90s walkthrough
+## MVP Scope for HackMoney (Feb 11 Deadline)
 
-## Phase 1 — Private Beta (Q1 2026)
-- [ ] Wallet abstraction (Privy) + account linking
-- [ ] Ticket purchase + attendance check-in wired to contracts
-- [ ] Attestation signing service (MVP proof)
-- [ ] Reward minting from attestations
-- [ ] Instructor revenue analytics dashboard
+### Must Ship:
+- [x] Wallet Integration (RainbowKit + Wagmi)
+- [ ] Create class (instructor deploys SpinClass contract)
+- [ ] Sell tickets (riders mint attendance NFT)
+- [ ] Track attendance (check-in mechanism)
+- [ ] Issue rewards (basic ERC-20 or badge mint)
+- [ ] Generate share card (automated stats + verification link)
 
-## Phase 2 — Privacy Upgrade (Q2 2026)
-- [ ] Client-side ZK proofs (thresholds)
-- [ ] Optional Aztec integration for private mints
-- [ ] Comparative proofs (percentile/relative)
-- [ ] Consent & privacy controls UI
+### Stub/Simulate:
+- [ ] Advanced glucose/insulin tracking (show UI, fake data)
+- [ ] Full ZK circuits (use signed attestations, design for upgrade)
+- [ ] Multi-chain deployment (launch on Base only)
+- [ ] Complex music integration (manual playlist selection)
 
-## Phase 3 — Route Worlds (Q3 2026)
-- [ ] GPX to elevation + story beats
-- [ ] Three.js runtime scenes + adaptive pacing
-- [ ] World builder templates
-- [ ] Replay + proof card embeds
+## Post-Hackathon Roadmap
 
-## Phase 4 — Ecosystem Scale (Q4 2026)
-- [ ] Multi-chain deployment (Optimism, Arbitrum)
-- [ ] Instructor DAO + governance
-- [ ] Sponsor SDK + marketplace
-- [ ] Studio partnerships + platform integrations
+### Phase 1 (Q1 2026) - MVP Launch
+- [ ] Deploy on Base testnet → mainnet
+- [ ] Onboard 5-10 pilot instructors
+- [ ] Proof of concept with real classes
+- [ ] Community feedback loop
 
-## Product Design Principles
-- Privacy-first: proofs only, no raw health data
-- Instructor autonomy: economics + rewards owned by creator
-- Composable incentives: tokens, badges, discounts, sponsors
-- Clean UX: no wallet prompts mid-ride
+### Phase 2 (Q2 2026) - Privacy Upgrade
+- [ ] Migrate to full ZK circuits (Aztec contracts)
+- [ ] Add glucose/insulin tracking (with privacy)
+- [ ] Enhanced proof types (comparative, not just threshold)
+- [ ] Mobile app launch (iOS/Android)
+
+### Phase 3 (Q3 2026) - Ecosystem Growth
+- [ ] Integrate with existing fitness platforms (Mindbody, ClassPass)
+- [ ] Launch instructor DAO for governance
+- [ ] Sponsor integration SDK (brands fund reward pools)
+- [ ] Multi-sport expansion (yoga, boxing, running clubs)
+
+### Phase 4 (Q4 2026) - Scale
+- [ ] Launch on additional L2s (Optimism, Arbitrum)
+- [ ] Enterprise partnerships (studio chains)
+- [ ] Advanced analytics (privacy-preserving)
+- [ ] Wellness vertical expansion

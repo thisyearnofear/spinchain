@@ -19,9 +19,13 @@ export function SectionHeader({
         <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
           {eyebrow}
         </p>
-        <h2 className="mt-3 text-2xl font-semibold text-white md:text-3xl">{title}</h2>
+        <h2 className="mt-3 text-2xl font-semibold text-white md:text-3xl">
+          {title}
+        </h2>
         {description ? (
-          <p className="mt-2 text-sm text-[color:var(--muted)]">{description}</p>
+          <p className="mt-2 text-sm text-[color:var(--muted)]">
+            {description}
+          </p>
         ) : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
@@ -105,6 +109,91 @@ type TagProps = {
 export function Tag({ children }: TagProps) {
   return (
     <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/70">
+      {children}
+    </span>
+  );
+}
+
+type ProgressRingProps = {
+  progress: number; // 0 to 100
+  size?: number;
+  strokeWidth?: number;
+  children?: React.ReactNode;
+  color?: string;
+};
+
+export function ProgressRing({
+  progress,
+  size = 120,
+  strokeWidth = 8,
+  children,
+  color = "var(--accent)",
+}: ProgressRingProps) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <div
+      className="relative grid place-items-center"
+      style={{ width: size, height: size }}
+    >
+      <svg
+        className="absolute inset-0 -rotate-90 transform"
+        width={size}
+        height={size}
+      >
+        <circle
+          stroke="var(--surface)"
+          fill="transparent"
+          strokeWidth={strokeWidth}
+          r={radius}
+          cx={size / 2}
+          cy={size / 2}
+        />
+        <circle
+          stroke={color}
+          fill="transparent"
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          r={radius}
+          cx={size / 2}
+          cy={size / 2}
+          className="transition-all duration-500 ease-in-out"
+        />
+      </svg>
+      <div className="relative z-10 text-center">{children}</div>
+    </div>
+  );
+}
+
+type GlassCardProps = {
+  children: React.ReactNode;
+  className?: string;
+};
+
+export function GlassCard({ children, className = "" }: GlassCardProps) {
+  return (
+    <div
+      className={`rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+type GradientTextProps = {
+  children: React.ReactNode;
+  className?: string;
+};
+
+export function GradientText({ children, className = "" }: GradientTextProps) {
+  return (
+    <span
+      className={`bg-gradient-to-r from-white via-white/80 to-white/60 bg-clip-text text-transparent ${className}`}
+    >
       {children}
     </span>
   );

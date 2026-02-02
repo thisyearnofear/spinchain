@@ -1,14 +1,39 @@
+"use client";
+
+import { useState } from "react";
 import { PrimaryNav } from "../../components/nav";
-import { BulletList, SectionHeader, SurfaceCard, Tag } from "../../components/ui";
-import { GpxUploader } from "./gpx-uploader";
+import {
+  BulletList,
+  SectionHeader,
+  SurfaceCard,
+  Tag,
+} from "../../components/ui";
+import { GpxUploader, type GpxSummary } from "./gpx-uploader";
+import RouteVisualizer, {
+  type VisualizerTheme,
+} from "../../components/route-visualizer";
 
 export default function RouteBuilderPage() {
+  const [gpxData, setGpxData] = useState<GpxSummary | null>(null);
+  const [currentTheme, setCurrentTheme] = useState<VisualizerTheme>("neon");
+
   const steps = [
     "Upload GPX or paste route URL",
     "Set narrative prompt + mood",
     "Map effort zones to segments",
     "Preview + publish to class",
   ];
+
+  // Default demo profile if no GPX uploaded
+  const defaultProfile = [
+    120, 140, 160, 150, 180, 210, 240, 220, 200, 230, 250, 280, 300, 280, 260,
+    240, 270, 290, 310,
+  ];
+
+  const elevationProfile =
+    gpxData && gpxData.elevationProfile.length > 0
+      ? gpxData.elevationProfile
+      : defaultProfile;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,#1a2550,transparent_55%),radial-gradient(circle_at_80%_20%,#2a1d5a,transparent_40%)]">
@@ -28,80 +53,174 @@ export default function RouteBuilderPage() {
             <Tag>Prompt engine</Tag>
             <Tag>Effort sync</Tag>
           </div>
-          <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        </SurfaceCard>
+
+        <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+          {/* Left Column: Visualization */}
+          <div className="flex flex-col gap-6">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black shadow-2xl">
+              <div className="absolute left-6 top-6 z-10 flex gap-2">
+                <span className="rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur border border-white/10">
+                  {gpxData ? "Custom Route Loaded" : "Demo Preview"}
+                </span>
+              </div>
+
+              <RouteVisualizer
+                elevationProfile={elevationProfile}
+                theme={currentTheme}
+                storyBeats={gpxData?.storyBeats || []}
+                className="h-[450px] w-full"
+              />
+
+              <div className="absolute bottom-6 left-6 right-6 z-10 flex flex-wrap justify-center gap-2 rounded-2xl bg-black/60 p-2 backdrop-blur border border-white/10">
+                {["neon", "alpine", "mars"].map((theme) => (
+                  <button
+                    key={theme}
+                    onClick={() => setCurrentTheme(theme as VisualizerTheme)}
+                    className={`rounded-xl px-4 py-2 text-xs font-medium transition-all ${currentTheme === theme
+                        ? "bg-white text-black shadow-lg scale-105"
+                        : "bg-transparent text-white/60 hover:bg-white/10 hover:text-white"
+                      }`}
+                  >
+                    {theme.charAt(0).toUpperCase() + theme.slice(1)} Mode
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {gpxData && gpxData.storyBeats.length > 0 && (
+              <SurfaceCard
+                eyebrow="Automated Discovery"
+                title="GPX Story Beats"
+                description="We've analyzed your route and found these key narrative moments."
+              >
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {gpxData.storyBeats.map((beat, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`h-2 w-2 rounded-full ${beat.type === "climb"
+                              ? "bg-yellow-400"
+                              : beat.type === "drop"
+                                ? "bg-blue-400"
+                                : "bg-red-400"
+                            }`}
+                        />
+                        <div>
+                          <p className="text-sm font-semibold text-white">
+                            {beat.label}
+                          </p>
+                          <p className="text-[10px] uppercase tracking-wider text-white/40">
+                            {beat.type}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-medium text-white/60">
+                        {Math.round(beat.progress * 100)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </SurfaceCard>
+            )}
+
+            {gpxData && (
+              <SurfaceCard
+                eyebrow="Effort Mapping"
+                title="Zones derived from elevation"
+                description="Our algorithm has auto-tagged these segments based on gradient."
+              >
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {gpxData.segments.map((segment, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl border border-white/10 bg-white/5 p-4"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span
+                          className={`h-2 w-2 rounded-full ${segment.zone === "Zone 5"
+                              ? "bg-red-500"
+                              : segment.zone === "Zone 4"
+                                ? "bg-orange-500"
+                                : "bg-blue-500"
+                            }`}
+                        />
+                        <p className="text-xs uppercase tracking-wider text-[color:var(--muted)]">
+                          {segment.label}
+                        </p>
+                      </div>
+                      <p className="text-lg font-semibold text-white">
+                        {segment.minutes} min
+                      </p>
+                      <p className="text-xs text-white/50">{segment.zone}</p>
+                    </div>
+                  ))}
+                </div>
+              </SurfaceCard>
+            )}
+          </div>
+
+          {/* Right Column: Controls */}
+          <div className="flex flex-col gap-6">
             <SurfaceCard
               eyebrow="Step 1"
               title="Route source"
-              description="Drag & drop GPX or import from Strava/Komoot."
-              className="bg-transparent"
+              description="Drag & drop GPX file."
+              className="bg-[color:var(--surface)]"
             >
               <div className="mt-4">
-                <GpxUploader />
+                <GpxUploader onUpload={setGpxData} />
               </div>
             </SurfaceCard>
+
             <SurfaceCard
               eyebrow="Step 2"
               title="Narrative prompt"
-              description="Describe the world, lighting, and pacing cues."
-              className="bg-transparent"
+              description="Describe the atmosphere."
+              className="bg-[color:var(--surface)]"
             >
-              <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70">
-                “Midnight Tokyo sprint, neon skyline, thunderstorm at peak climb.”
+              <div className="mt-4 space-y-3">
+                <textarea
+                  className="w-full h-24 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-white placeholder:text-white/30 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="e.g. A cyberpunk city sprint at midnight, neon lights reflecting on wet pavement..."
+                />
+                <div className="flex gap-2">
+                  <button className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2 text-xs text-white/70 hover:bg-white/10">
+                    Generate
+                  </button>
+                  <button className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2 text-xs text-white/70 hover:bg-white/10">
+                    Randomize
+                  </button>
+                </div>
               </div>
             </SurfaceCard>
-          </div>
-        </SurfaceCard>
 
-        <SurfaceCard
-          eyebrow="Step 3"
-          title="Effort mapping"
-          description="Translate HR zones to route segments and story beats."
-        >
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {[
-              { label: "Warm-up", detail: "Zone 2 • 8 min" },
-              { label: "Climb", detail: "Zone 4 • 12 min" },
-              { label: "Sprint", detail: "Zone 5 • 4 min" },
-            ].map((segment) => (
-              <div
-                key={segment.label}
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/80"
-              >
-                <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
-                  {segment.label}
-                </p>
-                <p className="mt-2 text-base font-semibold text-white">
-                  {segment.detail}
-                </p>
-              </div>
-            ))}
+            <SurfaceCard
+              eyebrow="Step 3"
+              title="Publish"
+              className="bg-transparent border-dashed"
+            >
+              <SectionHeader
+                eyebrow=""
+                title="Ready?"
+                actions={
+                  <div className="flex flex-col w-full gap-3">
+                    <button
+                      className="w-full rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={!gpxData}
+                    >
+                      Save World
+                    </button>
+                    <BulletList items={steps} />
+                  </div>
+                }
+              />
+            </SurfaceCard>
           </div>
-        </SurfaceCard>
-
-        <SurfaceCard
-          eyebrow="Step 4"
-          title="Publish to class"
-          description="Attach the world to a SpinClass and sync reward targets."
-        >
-          <SectionHeader
-            eyebrow="Publish"
-            title="Ready for instructor approval"
-            description="Save the world and attach it to your next class."
-            actions={
-              <>
-                <button className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white/70 transition hover:text-white">
-                  Save draft
-                </button>
-                <button className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20">
-                  Publish world
-                </button>
-              </>
-            }
-          />
-          <div className="mt-6">
-            <BulletList items={steps} />
-          </div>
-        </SurfaceCard>
+        </div>
       </main>
     </div>
   );
