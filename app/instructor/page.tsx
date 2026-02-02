@@ -82,6 +82,12 @@ export default function InstructorPage() {
             description="Last class • settled on Base"
             actions={
               <>
+                <a
+                  href="/instructor/builder"
+                  className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white/70 transition hover:text-white"
+                >
+                  Open class builder
+                </a>
                 <button className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white/70 transition hover:text-white">
                   View splits
                 </button>

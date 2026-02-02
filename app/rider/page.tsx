@@ -105,6 +105,17 @@ export default function RiderPage() {
               <BulletList items={milestones} />
             </SurfaceCard>
           </div>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <a
+              href="/rider/journey"
+              className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white/70 transition hover:text-white"
+            >
+              View rider journey
+            </a>
+            <button className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20">
+              Generate proof card
+            </button>
+          </div>
         </SurfaceCard>
       </main>
     </div>
