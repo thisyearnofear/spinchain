@@ -1,48 +1,57 @@
 # SpinChain Roadmap
 
-Last updated: February 2, 2026
+Last updated: February 3, 2026
 
 ## North Star
 Privacy-first fitness DeFi OS that turns instructor-led classes into programmable financial events with verifiable, user-controlled proof of effort.
 
-## MVP Scope for HackMoney (Feb 11 Deadline)
+## Phase 1: HackMoney MVP (COMPLETED ✅)
+Focus: Core protocol logic, immersive visualization, and live session mechanics.
 
-### Must Ship:
+### Protocol Layer
 - [x] Wallet Integration (RainbowKit + Wagmi)
-- [ ] Create class (instructor deploys SpinClass contract)
-- [ ] Sell tickets (riders mint attendance NFT)
-- [ ] Track attendance (check-in mechanism)
-- [ ] Issue rewards (basic ERC-20 or badge mint)
-- [ ] Generate share card (automated stats + verification link)
+- [x] **Smart Contract Factory**: Instructors can deploy session-specific contracts.
+- [x] **Dynamic Ticketing**: ERC-721 based access with bonding curve pricing.
+- [x] **Attendance Check-in**: Onchain verification of participation.
+- [x] **Incentive Engine**: Automated SPIN token rewards for effort.
 
-### Stub/Simulate:
-- [ ] Advanced glucose/insulin tracking (show UI, fake data)
-- [ ] Full ZK circuits (use signed attestations, design for upgrade)
-- [ ] Multi-chain deployment (launch on Base only)
-- [ ] Complex music integration (manual playlist selection)
+### Immersive Layer (Route Worlds)
+- [x] **3D Visualization**: Interactive WebGL route rendering from GPX.
+- [x] **Story Sync**: Automated detection of climbs and descents as "Story Beats".
+- [x] **Social Presence**: Ghost riders for shared class energy.
+- [x] **Acoustic Feedback**: Synchronized audio triggers for performance cues.
 
-## Post-Hackathon Roadmap
+### UX & Social
+- [x] **Instructor Dashboard**: Class builder with economic controls.
+- [x] **Rider HUD**: Real-time glassmorphic overlay for HR/Power/Cadence.
+- [x] **Social Proof**: One-click generation of shareable effort cards.
 
-### Phase 1 (Q1 2026) - MVP Launch
-- [ ] Deploy on Base testnet → mainnet
-- [ ] Onboard 5-10 pilot instructors
-- [ ] Proof of concept with real classes
-- [ ] Community feedback loop
+---
 
-### Phase 2 (Q2 2026) - Privacy Upgrade
-- [ ] Migrate to full ZK circuits (Aztec contracts)
-- [ ] Add glucose/insulin tracking (with privacy)
-- [ ] Enhanced proof types (comparative, not just threshold)
-- [ ] Mobile app launch (iOS/Android)
+## Phase 2: Privacy Upgrade (Q2 2026)
+Focus: Replacing signed attestations with cryptographic Zero-Knowledge Proofs.
 
-### Phase 3 (Q3 2026) - Ecosystem Growth
-- [ ] Integrate with existing fitness platforms (Mindbody, ClassPass)
-- [ ] Launch instructor DAO for governance
-- [ ] Sponsor integration SDK (brands fund reward pools)
-- [ ] Multi-sport expansion (yoga, boxing, running clubs)
+- [ ] **Noir/SP1 Integration**: Move from signed claims to true ZK circuits.
+- [ ] **Selective Disclosure**: Prove thresholds (e.g., HR > 150) without revealing raw data.
+- [ ] **Native Aztec/ZKSync**: Deployment on privacy-centric L2s.
+- [ ] **Local Oracle**: Mobile agent that generates proofs on-device (< 1s).
 
-### Phase 4 (Q4 2026) - Scale
-- [ ] Launch on additional L2s (Optimism, Arbitrum)
-- [ ] Enterprise partnerships (studio chains)
-- [ ] Advanced analytics (privacy-preserving)
-- [ ] Wellness vertical expansion
+---
+
+## Phase 3: Ecosystem Growth (Q3 2026)
+Focus: Scaling the business model and onboarding the fitness industry.
+
+- [ ] **Sponsor SDK**: Allow wellness brands to fund reward pools for specific routes.
+- [ ] **Mindbody/ClassPass Bridge**: Connect legacy fitness booking to onchain tickets.
+- [ ] **Instructor DAO**: Self-governing body for protocol fees and route standards.
+- [ ] **Multi-Sport Vertical**: Expand logic to yoga, rowing, and outdoor running clubs.
+
+---
+
+## Phase 4: Enterprise Scale (Q4 2026)
+Focus: Institutional partnerships and planetary scale.
+
+- [ ] **Studio Chain Integration**: White-label infrastructure for global boutique chains.
+- [ ] **Privacy-Preserving Analytics**: Aggregate fitness trends for research without user exposure.
+- [ ] **Cross-Chain Rewards**: Composable SPIN utility across the Superchain.
+- [ ] **Wellness Vertical**: Insurance-integrated effort verification.
