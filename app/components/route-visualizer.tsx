@@ -9,7 +9,7 @@ import {
   ExtrudeGeometry,
   Group,
 } from "three";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import {
   OrbitControls,
   Environment,
@@ -430,6 +430,7 @@ export default function RouteVisualizer({
   storyBeats = [],
   ghosts = [],
   className = "",
+  onStatsUpdate,
 }: {
   elevationProfile?: number[];
   theme?: VisualizerTheme;
@@ -438,8 +439,25 @@ export default function RouteVisualizer({
   storyBeats?: StoryBeat[];
   ghosts?: number[];
   className?: string;
+  onStatsUpdate?: (stats: RiderStats) => void;
 }) {
   const styles = THEMES[theme];
+
+  // Simulation loop for stats if progress is live
+  useEffect(() => {
+    if (progress > 0 && onStatsUpdate) {
+      const interval = setInterval(() => {
+        // Subtle randomization around the current stats
+        const newStats = {
+          hr: Math.round(stats.hr + (Math.random() - 0.5) * 4),
+          power: Math.round(stats.power + (Math.random() - 0.5) * 10),
+          cadence: Math.round(stats.cadence + (Math.random() - 0.5) * 2),
+        };
+        onStatsUpdate(newStats);
+      }, 2000); // 2 seconds update for Sui telemetry
+      return () => clearInterval(interval);
+    }
+  }, [progress, stats, onStatsUpdate]);
 
   return (
     <div

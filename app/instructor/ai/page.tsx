@@ -10,14 +10,23 @@ import {
   GradientText,
   BulletList,
 } from "../../components/ui";
+import { useAiInstructor } from "../../hooks/use-ai-instructor";
+import { useAccount } from "wagmi";
 
 export default function AiInstructorPage() {
   const [agentName, setAgentName] = useState("Coach Atlas");
   const [personality, setPersonality] = useState("drill-sergeant");
   const [suiEnabled, setSuiEnabled] = useState(true);
+  const [sessionObjectId, setSessionObjectId] = useState<string | null>(null);
+
+  const { logs, isActive, setIsActive, addLog } = useAiInstructor(
+    agentName,
+    personality as any,
+    sessionObjectId
+  );
 
   const capabilities = [
-    "Autonomous class scheduling on Avalanche",
+    "Autonomous class scheduling on Base",
     "Real-time pacing adjustments via Sui Move",
     "Liquidity management on Uniswap v4",
     "Cross-chain reputation bridging (Yellow)",
@@ -89,11 +98,10 @@ export default function AiInstructorPage() {
                       <button
                         key={p.id}
                         onClick={() => setPersonality(p.id)}
-                        className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${
-                          personality === p.id
-                            ? "border-indigo-500 bg-indigo-500/20 text-white"
-                            : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
-                        }`}
+                        className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${personality === p.id
+                          ? "border-indigo-500 bg-indigo-500/20 text-white"
+                          : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+                          }`}
                       >
                         <span className="text-2xl">{p.icon}</span>
                         <span className="text-xs font-medium">{p.label}</span>
@@ -123,7 +131,7 @@ export default function AiInstructorPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-white">
-                      Avalanche (Settlement Layer)
+                      Base (Settlement Layer)
                     </h4>
                     <p className="text-sm text-white/60">
                       Handles high-value assets: Tickets (NFTs), $SPIN rewards,
@@ -133,11 +141,10 @@ export default function AiInstructorPage() {
                 </div>
 
                 <div
-                  className={`flex items-start gap-4 rounded-xl border p-4 transition-all ${
-                    suiEnabled
-                      ? "border-cyan-500/30 bg-cyan-500/10"
-                      : "border-white/10 bg-white/5 opacity-50"
-                  }`}
+                  className={`flex items-start gap-4 rounded-xl border p-4 transition-all ${suiEnabled
+                    ? "border-cyan-500/30 bg-cyan-500/10"
+                    : "border-white/10 bg-white/5 opacity-50"
+                    }`}
                 >
                   <div className="mt-1 grid h-8 w-8 place-items-center rounded-full bg-cyan-500/20 text-cyan-300">
                     <span className="font-bold text-xs">💧</span>
@@ -164,6 +171,44 @@ export default function AiInstructorPage() {
                 </div>
               </div>
             </SurfaceCard>
+
+            {isActive && (
+              <GlassCard className="p-8 border-cyan-500/20 bg-cyan-500/5">
+                <SectionHeader
+                  eyebrow="Agent Live"
+                  title="Autonomous Activity Log"
+                  description="Real-time decisions being pushed to Sui."
+                />
+                <div className="mt-6 flex flex-col gap-3 font-mono text-[10px]">
+                  {logs.length === 0 && (
+                    <p className="text-white/20 italic">
+                      Waiting for telemetry signals...
+                    </p>
+                  )}
+                  {logs.map((log, i) => (
+                    <div
+                      key={i}
+                      className="flex gap-2 border-l border-white/10 pl-3"
+                    >
+                      <span className="text-white/30">
+                        [{new Date(log.timestamp).toLocaleTimeString()}]
+                      </span>
+                      <span
+                        className={
+                          log.type === "action"
+                            ? "text-cyan-400 font-bold"
+                            : log.type === "alert"
+                              ? "text-red-400"
+                              : "text-white/60"
+                        }
+                      >
+                        {log.message}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
           </div>
 
           {/* Preview Column */}
@@ -203,9 +248,37 @@ export default function AiInstructorPage() {
                   </div>
                 </div>
 
-                <button className="mt-6 w-full rounded-full bg-white py-3 text-sm font-bold text-black transition hover:bg-gray-200">
-                  Deploy Agent (0.05 ETH)
-                </button>
+                <div className="mt-6 flex flex-col gap-3">
+                  {!isActive ? (
+                    <button
+                      onClick={() => {
+                        setSessionObjectId("0xSESSION_MOCK");
+                        setIsActive(true);
+                        addLog(`Agent initialized on Sui Performance Layer.`, "info");
+                      }}
+                      className="w-full rounded-full bg-white py-3 text-sm font-bold text-black transition hover:bg-gray-200"
+                    >
+                      Deploy & Start Agent (0.05 ETH)
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setIsActive(false)}
+                      className="w-full rounded-full bg-red-500/20 border border-red-500/30 py-3 text-sm font-bold text-red-400 transition hover:bg-red-500/30"
+                    >
+                      Pause Agent
+                    </button>
+                  )}
+
+                  {suiEnabled && !isActive && (
+                    <div className="flex flex-col gap-2">
+                      <div className="h-px bg-white/10 w-full my-1" />
+                      <p className="text-[10px] text-white/40 uppercase tracking-widest text-center">Sui Integration</p>
+                      <button className="w-full rounded-full border border-cyan-500/30 bg-cyan-500/10 py-3 text-sm font-bold text-cyan-300 transition hover:bg-cyan-500/20">
+                        Connect Sui for Telemetry
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </GlassCard>
 

@@ -13,8 +13,10 @@ import {
   Tag,
 } from "../components/ui";
 import { useRiderSession, useClaimRewards } from "../hooks/use-rider-session";
+import { useSuiTelemetry } from "../hooks/use-sui-telemetry";
 import { useAccount } from "wagmi";
 import { keccak256, encodePacked } from "viem";
+import { useState } from "react";
 
 export default function RiderPage() {
   const { address } = useAccount();
@@ -32,6 +34,10 @@ export default function RiderPage() {
     isSuccess: claimSuccess,
     error: claimError,
   } = useClaimRewards();
+
+  // Sui Telemetry Bridge
+  const [suiStatsId, setSuiStatsId] = useState<string | null>(null);
+  const { updateTelemetry } = useSuiTelemetry(suiStatsId);
 
   const highlights = [
     { label: "Effort Proof", value: "145+ HR", detail: "28 min sustained" },
@@ -84,11 +90,37 @@ export default function RiderPage() {
                 { progress: 0.45, label: "The Wall", type: "climb" },
                 { progress: 0.7, label: "Peak Interval", type: "sprint" },
               ]}
+              onStatsUpdate={(stats) => {
+                if (suiStatsId) {
+                  updateTelemetry(stats.hr, stats.power, stats.cadence);
+                }
+              }}
               className="h-[400px] w-full"
             />
           </div>
 
           <div className="flex flex-col gap-6">
+            <GlassCard className="flex flex-1 flex-col items-center justify-center p-8 text-center bg-cyan-500/5 border-cyan-500/20">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold">Sui Performance Node</span>
+                <div className={`h-1.5 w-1.5 rounded-full ${suiStatsId ? 'bg-cyan-400 animate-pulse' : 'bg-white/20'}`} />
+              </div>
+
+              {!suiStatsId ? (
+                <button
+                  onClick={() => setSuiStatsId("0xTELEMETRY_MOCK")} // Mock ID for telemetry
+                  className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-xs font-bold text-cyan-300 transition hover:bg-cyan-500/20"
+                >
+                  Enable Sui Telemetry
+                </button>
+              ) : (
+                <div className="text-center">
+                  <p className="text-[10px] font-mono text-cyan-400/60 mb-2 truncate max-w-[120px]">Stats ID: {suiStatsId}</p>
+                  <p className="text-xs text-cyan-200">Live Telemetry Active</p>
+                </div>
+              )}
+            </GlassCard>
+
             <GlassCard className="flex flex-1 flex-col items-center justify-center p-8 text-center">
               <p className="mb-4 text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
                 Effort Zone

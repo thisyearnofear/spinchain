@@ -22,6 +22,7 @@ type ClassFormData = {
   curveType: "linear" | "exponential";
   rewardThreshold: number;
   rewardAmount: number;
+  suiPerformance: boolean;
 };
 
 function PricingCurveVisualizer({
@@ -150,6 +151,7 @@ export default function InstructorBuilderPage() {
     curveType: "linear",
     rewardThreshold: 150,
     rewardAmount: 20,
+    suiPerformance: true,
   });
 
   const steps = [
@@ -189,10 +191,10 @@ export default function InstructorBuilderPage() {
               <div
                 key={s.number}
                 className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${step === s.number
-                    ? "bg-indigo-500 text-white"
-                    : step > s.number
-                      ? "bg-indigo-500/20 text-indigo-300"
-                      : "bg-white/5 text-white/40"
+                  ? "bg-indigo-500 text-white"
+                  : step > s.number
+                    ? "bg-indigo-500/20 text-indigo-300"
+                    : "bg-white/5 text-white/40"
                   }`}
               >
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/20 text-xs">
@@ -350,6 +352,25 @@ export default function InstructorBuilderPage() {
                       className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-white focus:border-indigo-500 focus:outline-none"
                     />
                   </div>
+                </div>
+
+                {/* Sui Toggle */}
+                <div className="flex items-center justify-between rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+                  <div className="flex gap-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-full bg-cyan-500/20 text-cyan-400">
+                      💧
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-white">Enable Sui Performance Node</h4>
+                      <p className="text-xs text-white/50">High-frequency telemetry & live leaderboards.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setFormData(prev => ({ ...prev, suiPerformance: !prev.suiPerformance }))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.suiPerformance ? 'bg-cyan-500' : 'bg-white/10'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.suiPerformance ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
                 </div>
               </GlassCard>
             )}

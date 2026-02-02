@@ -1,6 +1,6 @@
-# SpinChain: Privacy-First Fitness DeFi Protocol
+# SpinChain: The Dual-Engine Fitness Protocol
 
-SpinChain is an onchain operating system for fitness instructors that turns spin classes into programmable financial events. It handles ticketing, dynamic pricing, health-based incentives, and shareable performance proofs with privacy-preserving technology.
+SpinChain is a hybrid fitness protocol that combines the liquidity depth of **Avalanche** with the parallel execution speed of **Sui**. It enables **AI Agents** to run autonomous spin classes with real-time biometric telemetry, turning fitness into programmable financial events.
 
 ---
 
@@ -12,18 +12,22 @@ SpinChain is an onchain operating system for fitness instructors that turns spin
 - **Ghost Riders**: Real-time social presence without compromising individual privacy.
 - **Audio Triggers**: Synchronized acoustic cues for high-intensity intervals.
 
-### 2. Onchain Class Engine
-- **Class Factory**: Effortless deployment of session-specific smart contracts.
-- **Dynamic Pricing**: Bonding-curve-inspired ticket sales to reward early supporters.
-- **Attendance Proofs**: Onchain check-in system for verified participation.
-- **Revenue Settlement**: Trustless payouts to instructors and studio treasuries.
+### 2. AI Instructor Studio
+- **Agentic Finance**: Deploy autonomous AI instructors (e.g., "Coach Atlas") that manage their own schedules and P&L.
+- **Dual-Chain Logic**: Agents coordinate settlement on Avalanche and performance tuning on Sui.
+- **Liquidity Hooks**: Automated management of class token liquidity via Uniswap v4 hooks.
 
-### 3. Progressive Privacy
+### 3. The Hybrid Architecture
+- **Settlement Layer (Avalanche)**: Handling tickets, rewards, and identity (ENS).
+- **Performance Layer (Sui)**: Processing high-frequency biometric data (10Hz) via parallel Move objects.
+- **Storage Layer (Walrus)**: Decentralized hosting for 3D worlds and raw session logs.
+
+### 4. Progressive Privacy
 - **Sovereign Health Data**: Metrics never leave the rider's device.
 - **Verifiable Proofs**: Signed attestations (MVP) upgradeable to full Zero-Knowledge Proofs.
 - **Selective Disclosure**: Prove "Effort > 150" without revealing raw heart rate or biometric data.
 
-### 4. Incentive Layer
+### 5. Incentive Layer
 - **Performance Rewards**: Automatic minting of SPIN tokens for hitting effort thresholds.
 - **Shareable Proof Cards**: Dynamic social assets linked to onchain verification.
 - **Sponsor Integration**: Reward pools funded by wellness brands and protocols.
@@ -33,9 +37,10 @@ SpinChain is an onchain operating system for fitness instructors that turns spin
 ## 🏗️ Technical Architecture
 
 ### Blockchain Stack
-- **L2**: Base (Mainnet & Testnet)
-- **Contracts**: Solidity 0.8.24+ (Foundry)
-- **Identity/Wallet**: RainbowKit + Wagmi + Viem
+- **Settlement**: Avalanche C-Chain (EVM)
+- **Execution**: Sui (Move)
+- **Contracts**: Solidity 0.8.24+ & Sui Move
+- **Identity/Wallet**: RainbowKit (EVM) + Sui dApp Kit
 
 ### Frontend & Visualization
 - **Framework**: Next.js 14 (App Router)
@@ -74,6 +79,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the protocol dashboa
 
 ## 📚 Documentation
 - [**HackMoney 2026 Submission**](./docs/HACKMONEY.md): Detailed hackathon-specific brief.
+- [**Architecture**](./docs/ARCHITECTURE.md): Deep dive into the Dual-Engine design.
 - [**Roadmap**](./docs/ROADMAP.md): Future phases for privacy and scale.
 - [**Contracts**](./contracts/README.md): Details on the smart contract layer.
 

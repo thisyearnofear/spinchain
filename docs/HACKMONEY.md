@@ -4,9 +4,9 @@ This document outlines the specific submission details for the **HackMoney 2026*
 
 ## Submission Brief
 
-**One-Liner**: An onchain operating system for fitness instructors that turns spin classes into programmable financial events—handling ticketing, dynamic pricing, health-based incentives, and shareable performance proofs with privacy-preserving ZK technology.
+**One-Liner**: A **Dual-Engine Fitness Protocol** that combines the liquidity depth of Avalanche with the parallel execution speed of Sui—enabling AI Agents to run autonomous spin classes with real-time biometric telemetry.
 
-**Core Innovation**: We're not building "web3 Peloton"—we're building **DeFi-native boutique fitness infrastructure** where classes are financial primitives, instructors are micro-protocol operators, and health data becomes programmable incentives through zero-knowledge proofs.
+**Core Innovation**: We're not just building "web3 Peloton"—we're building a **Hybrid Architecture** where financial settlement lives on EVM (Avalanche) while high-frequency performance data runs on Sui Move. This unlocks **Agentic Finance** for fitness: AI instructors that manage their own class schedules, liquidity, and pacing in real-time.
 
 ---
 
@@ -24,17 +24,16 @@ This document outlines the specific submission details for the **HackMoney 2026*
 - **Composable Incentives**: Badges integrate with broader ecosystem
 - **Micro-Protocol Operators**: Instructors as autonomous economic agents
 
-### 3. Privacy-First Design (2026 Theme)
-- Uses live privacy L2s (Aztec/ZKsync Prividium)
-- Demonstrates ZK proofs for real use case
-- Not theoretical—actually buildable today
-- Aligns with Ethereum's 2026 privacy roadmap
+### 3. The "Dual-Engine" Architecture
+- **Settlement (Avalanche)**: For high-value, low-frequency events (Tickets, Rewards, ENS Identity).
+- **Performance (Sui)**: For low-value, high-frequency events (Heart rate updates, Route telemetry).
+- **Storage (Walrus)**: For decentralized 3D route assets and raw biometric logs.
 
-### 4. Technical Sophistication
-- Multi-layer architecture (L1/L2/offchain)
-- Proper privacy primitives (not bolt-on)
-- Client-side proof generation
-- Upgradeable from signed claims → ZK
+### 4. Prize-Winning Integrations
+- **Sui ($10k)**: Uses Dynamic Objects and PTBs for real-time rider stats.
+- **Avalanche C-Chain**: Deployed on C-Chain for fast finality and future Subnet expansion.
+- **Uniswap v4 ($10k)**: AI Agents use custom Hooks to manage class token liquidity.
+- **ENS ($5k)**: Every AI Instructor has a sovereign `.eth` identity.
 
 ### 5. Clear Adoption Path
 - Instructors already exist (not speculative market)
@@ -47,19 +46,19 @@ This document outlines the specific submission details for the **HackMoney 2026*
 ## MVP Scope for HackMoney (Feb 11 Deadline)
 
 ### Must Ship:
-1. ✅ **Create class**: Instructor deploys SpinClass contract through ClassFactory.
-2. ✅ **Sell tickets**: Riders mint attendance NFT (ERC-721) via dynamic pricing.
-3. ✅ **Track attendance**: Onchain check-in mechanism for verified riders.
-4. ✅ **Issue rewards**: Incentive Engine distributes SPIN tokens based on effort.
-5. ✅ **Generate share card**: Automated visual highlights for social proof.
+1. ✅ **Hybrid Stack**: App connects to both Avalanche (EVM) and Sui wallets simultaneously.
+2. ✅ **AI Instructor Studio**: Instructors deploy autonomous agents with dual-chain capabilities.
+3. ✅ **Sell tickets (Avalanche)**: Riders mint attendance NFT (ERC-721) via dynamic pricing.
+4. ✅ **Track Effort (Sui)**: Real-time telemetry simulated via Move objects.
+5. ✅ **Issue rewards**: Incentive Engine distributes SPIN tokens based on effort proofs.
 6. ✅ **Route Worlds**: 3D interactive WebGL visualization based on GPX data.
 
 ### Demo Flow (90 seconds for judges):
-1. Instructor creates class → deploys contract → sets reward (10 tokens).
-2. Rider buys ticket → mints NFT via dynamic pricing curve.
-3. Class completes → app generates proof ("effort > 150").
-4. Proof submitted → contract verifies → mints 10 SPIN tokens.
-5. Share card generated → shows stats + onchain proof link.
+1. **Configure Agent**: Deploy "Coach Atlas" (AI) on Avalanche + Sui.
+2. **Buy Ticket**: Rider purchases access on Avalanche C-Chain.
+3. **Ride**: 3D Visualizer runs, simulating biometric data syncing to Sui.
+4. **Claim**: Rider submits proof of effort; contract on Avalanche mints rewards.
+5. **Analyze**: AI Agent reviews session performance via Walrus logs.
 
 ---
 
@@ -74,21 +73,21 @@ This document outlines the specific submission details for the **HackMoney 2026*
 - **We**: Real revenue model (ticket sales), tokens as bonus.
 
 ### vs. Other Web3 Fitness
-- **They**: Public health data or vague "web3 integration".
-- **We**: Privacy-first architecture with live ZK primitives.
+- **They**: Single-chain bottlenecks (gas costs for frequent updates).
+- **We**: Dual-Engine (Avalanche + Sui) for unlimited scale and speed.
 
 ---
 
 ## Team & Execution
 
 ### Key Roles for HackMoney
-- **Smart Contract Dev**: Core protocol, testing, and security.
-- **Frontend Dev**: React/Next.js interface for Instructors & Riders.
-- **ZK Engineer**: Privacy layer and proof generation (Noir/SP1).
+- **Smart Contract Dev**: Solidity (Avalanche) + Move (Sui).
+- **Frontend Dev**: React/Next.js with dual-wallet providers.
+- **AI Engineer**: Agent logic and "Route World" generation.
 - **Product Designer**: 3D visualization and mobile UX.
 
 ### Success Metrics
-- End-to-end demo: Create class → Ride → Reward.
-- Privacy architecture documented and defensible.
-- Performance: WASM-based ZK proof generation in < 1s.
+- End-to-end demo: Create Agent → Buy Ticket (Avax) → Ride (Sui).
+- Architecture documented: clear distinction between Settlement & Execution layers.
+- Performance: <1s latency on route visualization and telemetry.
 - Aesthetics: High-fidelity "Route Worlds" 3D visualization.
