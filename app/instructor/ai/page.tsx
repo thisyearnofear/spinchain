@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PrimaryNav } from "../../components/nav";
 import {
   GlassCard,
@@ -10,8 +10,51 @@ import {
   GradientText,
   BulletList,
 } from "../../components/ui";
-import { useAiInstructor } from "../../hooks/use-ai-instructor";
 import { useAccount } from "wagmi";
+import { HookVisualizer } from "../../agent/hook-visualizer";
+
+// Internal mock hook to keep the page functional without external dependencies
+function useAiInstructor(
+  agentName: string,
+  personality: string,
+  sessionObjectId: string | null,
+) {
+  const [isActive, setIsActive] = useState(false);
+  const [logs, setLogs] = useState<
+    Array<{
+      timestamp: number;
+      message: string;
+      type: "info" | "action" | "alert";
+    }>
+  >([]);
+
+  const addLog = (
+    message: string,
+    type: "info" | "action" | "alert" = "info",
+  ) => {
+    setLogs((prev) => [...prev, { timestamp: Date.now(), message, type }]);
+  };
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    const interval = setInterval(() => {
+      const actions = [
+        "Scanning mempool for arbitrage...",
+        "Rider fatigue detected: lowering difficulty.",
+        "Adjusting Uniswap v4 Hook fee -> 0.05%",
+        "Sui Move Object sync: 480ms latency",
+        "Distributing SPIN rewards to top performers",
+      ];
+      const randomAction = actions[Math.floor(Math.random() * actions.length)];
+      addLog(randomAction, Math.random() > 0.7 ? "action" : "info");
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  return { logs, isActive, setIsActive, addLog };
+}
 
 export default function AiInstructorPage() {
   const [agentName, setAgentName] = useState("Coach Atlas");
@@ -21,12 +64,12 @@ export default function AiInstructorPage() {
 
   const { logs, isActive, setIsActive, addLog } = useAiInstructor(
     agentName,
-    personality as any,
-    sessionObjectId
+    personality,
+    sessionObjectId,
   );
 
   const capabilities = [
-    "Autonomous class scheduling on Base",
+    "Autonomous class scheduling on Avalanche",
     "Real-time pacing adjustments via Sui Move",
     "Liquidity management on Uniswap v4",
     "Cross-chain reputation bridging (Yellow)",
@@ -98,10 +141,11 @@ export default function AiInstructorPage() {
                       <button
                         key={p.id}
                         onClick={() => setPersonality(p.id)}
-                        className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${personality === p.id
-                          ? "border-indigo-500 bg-indigo-500/20 text-white"
-                          : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
-                          }`}
+                        className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${
+                          personality === p.id
+                            ? "border-indigo-500 bg-indigo-500/20 text-white"
+                            : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+                        }`}
                       >
                         <span className="text-2xl">{p.icon}</span>
                         <span className="text-xs font-medium">{p.label}</span>
@@ -131,7 +175,7 @@ export default function AiInstructorPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-white">
-                      Base (Settlement Layer)
+                      Avalanche (Settlement Layer)
                     </h4>
                     <p className="text-sm text-white/60">
                       Handles high-value assets: Tickets (NFTs), $SPIN rewards,
@@ -141,10 +185,11 @@ export default function AiInstructorPage() {
                 </div>
 
                 <div
-                  className={`flex items-start gap-4 rounded-xl border p-4 transition-all ${suiEnabled
-                    ? "border-cyan-500/30 bg-cyan-500/10"
-                    : "border-white/10 bg-white/5 opacity-50"
-                    }`}
+                  className={`flex items-start gap-4 rounded-xl border p-4 transition-all ${
+                    suiEnabled
+                      ? "border-cyan-500/30 bg-cyan-500/10"
+                      : "border-white/10 bg-white/5 opacity-50"
+                  }`}
                 >
                   <div className="mt-1 grid h-8 w-8 place-items-center rounded-full bg-cyan-500/20 text-cyan-300">
                     <span className="font-bold text-xs">💧</span>
@@ -254,7 +299,10 @@ export default function AiInstructorPage() {
                       onClick={() => {
                         setSessionObjectId("0xSESSION_MOCK");
                         setIsActive(true);
-                        addLog(`Agent initialized on Sui Performance Layer.`, "info");
+                        addLog(
+                          `Agent initialized on Sui Performance Layer.`,
+                          "info",
+                        );
                       }}
                       className="w-full rounded-full bg-white py-3 text-sm font-bold text-black transition hover:bg-gray-200"
                     >
@@ -272,7 +320,9 @@ export default function AiInstructorPage() {
                   {suiEnabled && !isActive && (
                     <div className="flex flex-col gap-2">
                       <div className="h-px bg-white/10 w-full my-1" />
-                      <p className="text-[10px] text-white/40 uppercase tracking-widest text-center">Sui Integration</p>
+                      <p className="text-[10px] text-white/40 uppercase tracking-widest text-center">
+                        Sui Integration
+                      </p>
                       <button className="w-full rounded-full border border-cyan-500/30 bg-cyan-500/10 py-3 text-sm font-bold text-cyan-300 transition hover:bg-cyan-500/20">
                         Connect Sui for Telemetry
                       </button>
@@ -282,17 +332,7 @@ export default function AiInstructorPage() {
               </div>
             </GlassCard>
 
-            <SurfaceCard
-              eyebrow="Integration"
-              title="Uniswap v4 Hooks"
-              className="border-dashed bg-transparent"
-            >
-              <p className="mb-4 text-sm text-white/60">
-                This agent can automatically manage liquidity for your class
-                tokens based on attendance demand.
-              </p>
-              <Tag>Liquidity Agent</Tag>
-            </SurfaceCard>
+            <HookVisualizer />
           </div>
         </div>
       </main>

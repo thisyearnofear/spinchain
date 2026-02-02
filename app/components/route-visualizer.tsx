@@ -8,6 +8,7 @@ import {
   Shape,
   ExtrudeGeometry,
   Group,
+  PointLight,
 } from "three";
 import { useMemo, useRef, useState, useEffect } from "react";
 import {
@@ -17,6 +18,8 @@ import {
   Float,
   Html,
   PerspectiveCamera,
+  Sparkles,
+  Trail,
 } from "@react-three/drei";
 
 const THEMES = {
@@ -140,15 +143,27 @@ function Road({
   }, [curve]);
 
   return (
-    <mesh ref={meshRef} geometry={geometry} receiveShadow castShadow>
-      <meshStandardMaterial
-        color={styles.roadColor}
-        emissive={styles.roadEmissive}
-        emissiveIntensity={styles.roadEmissiveIntensity}
-        roughness={0.4}
-        metalness={0.8}
-      />
-    </mesh>
+    <group>
+      <mesh ref={meshRef} geometry={geometry} receiveShadow castShadow>
+        <meshStandardMaterial
+          color={styles.roadColor}
+          emissive={styles.roadEmissive}
+          emissiveIntensity={styles.roadEmissiveIntensity}
+          roughness={0.2}
+          metalness={0.9}
+        />
+      </mesh>
+      {theme === "neon" && (
+        <mesh geometry={geometry}>
+          <meshBasicMaterial
+            color={styles.lineColor}
+            wireframe
+            transparent
+            opacity={0.1}
+          />
+        </mesh>
+      )}
+    </group>
   );
 }
 
@@ -156,15 +171,20 @@ function RiderMarker({
   curve,
   progress,
   theme = "neon",
+  stats = { hr: 120, power: 150, cadence: 80 },
 }: {
   curve: CatmullRomCurve3;
   progress: number;
   theme?: VisualizerTheme;
+  stats?: RiderStats;
 }) {
   const groupRef = useRef<Group>(null);
   const styles = THEMES[theme];
 
-  useFrame(() => {
+  const auraRef = useRef<Mesh>(null);
+  const lightRef = useRef<PointLight>(null);
+
+  useFrame((state) => {
     if (!groupRef.current) return;
 
     // Get position on curve
@@ -179,35 +199,123 @@ function RiderMarker({
     // Update rotation to face forward
     const lookAt = point.clone().add(tangent);
     groupRef.current.lookAt(lookAt);
+
+    // Reactive pulsing
+    if (auraRef.current) {
+      // Pulse scale based on cadence
+      const pulse =
+        1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.2;
+      auraRef.current.scale.set(pulse, pulse, pulse);
+    }
+
+    if (lightRef.current) {
+      // Intensity based on heart rate
+      lightRef.current.intensity = 5 + (stats.hr / 40) * 5;
+    }
   });
 
   return (
     <group ref={groupRef}>
-      <Float speed={5} rotationIntensity={0.2} floatIntensity={0.5}>
-        {/* Rider Avatar / Cone */}
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <coneGeometry args={[0.8, 2, 8]} />
-          <meshStandardMaterial
-            color={styles.riderColor}
-            emissive={styles.riderColor}
-            emissiveIntensity={2}
-            toneMapped={false}
-          />
-        </mesh>
+      <Trail
+        width={2}
+        length={10}
+        color={styles.riderColor}
+        attenuation={(t) => t * t}
+      >
+        <Float speed={5} rotationIntensity={0.2} floatIntensity={0.5}>
+          {/* Main Body */}
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.8, 2, 8]} />
+            <meshStandardMaterial
+              color={styles.riderColor}
+              emissive={styles.riderColor}
+              emissiveIntensity={4}
+              toneMapped={false}
+            />
+          </mesh>
 
-        {/* Glow effect */}
-        <pointLight distance={15} intensity={5} color={styles.riderColor} />
-      </Float>
+          {/* Pulsing Aura */}
+          <mesh ref={auraRef} rotation={[Math.PI / 2, 0, 0]}>
+            <sphereGeometry args={[1.5, 32, 32]} />
+            <meshBasicMaterial
+              color={styles.riderColor}
+              transparent
+              opacity={0.1}
+            />
+          </mesh>
+
+          <pointLight
+            ref={lightRef}
+            distance={20}
+            intensity={10}
+            color={styles.riderColor}
+          />
+        </Float>
+      </Trail>
 
       {/* Label */}
-      <Html position={[0, 2.5, 0]} center transform sprite>
+      <Html position={[0, 3, 0]} center transform sprite distanceFactor={20}>
         <div className="flex flex-col items-center gap-1">
-          <div className="whitespace-nowrap rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm border border-white/20">
+          <div className="whitespace-nowrap rounded-full bg-black/80 px-3 py-1 text-[12px] font-black text-white backdrop-blur-md border border-white/30 shadow-2xl">
             YOU
           </div>
+          <div className="h-4 w-px bg-gradient-to-b from-white to-transparent" />
         </div>
       </Html>
     </group>
+  );
+}
+
+type SpeedLineData = {
+  position: [number, number, number];
+  speed: number;
+  scale: number;
+};
+
+function SpeedLines({
+  count = 20,
+  theme = "neon",
+}: {
+  count?: number;
+  theme?: VisualizerTheme;
+}) {
+  const styles = THEMES[theme];
+  const [allLines] = useState<SpeedLineData[]>(() =>
+    Array.from({ length: 50 }).map(() => ({
+      position: [
+        (Math.random() - 0.5) * 40,
+        Math.random() * 20,
+        (Math.random() - 0.5) * 100,
+      ] as [number, number, number],
+      speed: 0.5 + Math.random() * 2,
+      scale: 0.1 + Math.random() * 0.5,
+    })),
+  );
+
+  const visibleLines = allLines.slice(0, Math.min(count, 50));
+
+  return (
+    <group>
+      {visibleLines.map((line, i) => (
+        <LineInstance key={i} line={line} color={styles.lineColor} />
+      ))}
+    </group>
+  );
+}
+
+function LineInstance({ line, color }: { line: SpeedLineData; color: string }) {
+  const ref = useRef<Mesh>(null);
+  useFrame((state, delta) => {
+    if (!ref.current) return;
+    ref.current.position.z += line.speed * 200 * delta;
+    if (ref.current.position.z > 50) ref.current.position.z = -150;
+  });
+
+  return (
+    <mesh ref={ref} position={line.position} rotation={[0, 0, 0]}>
+      <boxGeometry args={[0.05, 0.05, 10 * line.scale]} />
+      <meshBasicMaterial color={color} transparent opacity={0.3} />
+    </mesh>
   );
 }
 
@@ -316,12 +424,14 @@ function Scene({
   progress = 0,
   storyBeats = [],
   ghosts = [],
+  stats = { hr: 0, power: 0, cadence: 0 },
 }: {
   elevationProfile: number[];
   theme?: VisualizerTheme;
   progress?: number;
   storyBeats?: StoryBeat[];
   ghosts?: number[];
+  stats?: RiderStats;
 }) {
   const curve = useRouteCurve(elevationProfile);
   const styles = THEMES[theme];
@@ -372,12 +482,26 @@ function Scene({
 
     // Reset loop ref if progress resets
     if (nextProgress < 0.01) lastBeatRef.current = -1;
+
+    // Camera follow logic
+    if (progress > 0) {
+      const riderPos = curve.getPointAt(nextProgress);
+      const tangent = curve.getTangentAt(nextProgress);
+      const offset = tangent
+        .clone()
+        .multiplyScalar(-30)
+        .add(new Vector3(0, 15, 0));
+      const targetCamPos = riderPos.clone().add(offset);
+
+      state.camera.position.lerp(targetCamPos, 0.05);
+      state.camera.lookAt(riderPos);
+    }
   });
 
   return (
     <>
-      <PerspectiveCamera makeDefault position={[50, 40, 80]} fov={45} />
-      <ambientLight intensity={0.2} />
+      <PerspectiveCamera makeDefault position={[50, 40, 80]} fov={55} />
+      <ambientLight intensity={0.5} />
       <pointLight
         position={[10, 50, 10]}
         intensity={1}
@@ -387,10 +511,30 @@ function Scene({
 
       <Environment preset={styles.envPreset} />
       <FloatingParticles theme={theme} />
+      {progress > 0 && (
+        <SpeedLines
+          count={Math.min(50, Math.floor(stats.power / 5))}
+          theme={theme}
+        />
+      )}
+
+      <Sparkles
+        count={50}
+        scale={100}
+        size={2}
+        speed={0.5}
+        color={styles.particleColor}
+        opacity={0.2}
+      />
 
       <group position={[0, -10, 0]}>
         <Road curve={curve} theme={theme} />
-        <RiderMarker curve={curve} progress={activeProgress} theme={theme} />
+        <RiderMarker
+          curve={curve}
+          progress={activeProgress}
+          theme={theme}
+          stats={stats}
+        />
 
         {ghosts.map((g, i) => (
           <GhostRider key={i} curve={curve} progress={g} theme={theme} />
@@ -471,6 +615,7 @@ export default function RouteVisualizer({
           progress={progress}
           storyBeats={storyBeats}
           ghosts={ghosts}
+          stats={stats}
         />
       </Canvas>
 
