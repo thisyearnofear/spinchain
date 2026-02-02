@@ -9,7 +9,7 @@ Privacy-first fitness DeFi OS that turns instructor-led classes into programmabl
 Focus: Core protocol logic, immersive visualization, and live session mechanics.
 
 ### Protocol Layer
-- [x] Wallet Integration (RainbowKit + Wagmi)
+- [x] Wallet Integration (RainbowKit + Wagmi) on Avalanche C-Chain.
 - [x] **Smart Contract Factory**: Instructors can deploy session-specific contracts.
 - [x] **Dynamic Ticketing**: ERC-721 based access with bonding curve pricing.
 - [x] **Attendance Check-in**: Onchain verification of participation.
@@ -33,7 +33,8 @@ Focus: Replacing signed attestations with cryptographic Zero-Knowledge Proofs.
 
 - [ ] **Noir/SP1 Integration**: Move from signed claims to true ZK circuits.
 - [ ] **Selective Disclosure**: Prove thresholds (e.g., HR > 150) without revealing raw data.
-- [ ] **Native Aztec/ZKSync**: Deployment on privacy-centric L2s.
+- [ ] **Walrus Storage**: Decentralized blob storage for raw biometric logs and 3D assets.
+- [ ] **Privacy Subnet**: Dedicated regulatory-compliant subnet for health data.
 - [ ] **Local Oracle**: Mobile agent that generates proofs on-device (< 1s).
 
 ---
@@ -41,6 +42,7 @@ Focus: Replacing signed attestations with cryptographic Zero-Knowledge Proofs.
 ## Phase 3: Ecosystem Growth (Q3 2026)
 Focus: Scaling the business model and onboarding the fitness industry.
 
+- [ ] **DeepBook Integration**: AI Agents execute limit orders for class token liquidity on Sui.
 - [ ] **Sponsor SDK**: Allow wellness brands to fund reward pools for specific routes.
 - [ ] **Mindbody/ClassPass Bridge**: Connect legacy fitness booking to onchain tickets.
 - [ ] **Instructor DAO**: Self-governing body for protocol fees and route standards.
@@ -53,5 +55,6 @@ Focus: Institutional partnerships and planetary scale.
 
 - [ ] **Studio Chain Integration**: White-label infrastructure for global boutique chains.
 - [ ] **Privacy-Preserving Analytics**: Aggregate fitness trends for research without user exposure.
-- [ ] **Cross-Chain Rewards**: Composable SPIN utility across the Superchain.
+- [ ] **Dedicated Subnets**: Launch high-performance AppChains for biometric throughput.
+- [ ] **Cross-Chain Rewards**: Composable SPIN utility via Avalanche Warp Messaging.
 - [ ] **Wellness Vertical**: Insurance-integrated effort verification.

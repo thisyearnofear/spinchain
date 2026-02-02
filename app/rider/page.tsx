@@ -20,8 +20,18 @@ export default function RiderPage() {
   const { address } = useAccount();
   const mockClassAddress = "0x0000000000000000000000000000000000000000"; // Dynamic in production
 
-  const { purchaseTicket, attended, isPending: sessionPending, hash: sessionHash } = useRiderSession(mockClassAddress as `0x${string}`);
-  const { claimReward, isPending: claimPending, isSuccess: claimSuccess, error: claimError } = useClaimRewards();
+  const {
+    purchaseTicket,
+    attended,
+    isPending: sessionPending,
+    hash: sessionHash,
+  } = useRiderSession(mockClassAddress as `0x${string}`);
+  const {
+    claimReward,
+    isPending: claimPending,
+    isSuccess: claimSuccess,
+    error: claimError,
+  } = useClaimRewards();
 
   const highlights = [
     { label: "Effort Proof", value: "145+ HR", detail: "28 min sustained" },
@@ -108,7 +118,8 @@ export default function RiderPage() {
               {!attended ? (
                 <div className="space-y-4">
                   <p className="text-sm text-white/60">
-                    You haven't joined this session yet. Purchase a ticket to start tracking effort.
+                    You haven&apos;t joined this session yet. Purchase a ticket
+                    to start tracking effort.
                   </p>
                   <button
                     onClick={() => purchaseTicket("0.02")}
@@ -122,9 +133,13 @@ export default function RiderPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-green-400">
                     <span className="text-lg">✓</span>
-                    <span className="text-sm font-bold uppercase tracking-wider">Ticket Verified</span>
+                    <span className="text-sm font-bold uppercase tracking-wider">
+                      Ticket Verified
+                    </span>
                   </div>
-                  <p className="text-xs text-white/50">Your session is being tracked onchain.</p>
+                  <p className="text-xs text-white/50">
+                    Your session is being tracked onchain.
+                  </p>
                 </div>
               )}
             </SurfaceCard>
@@ -214,7 +229,9 @@ export default function RiderPage() {
             </button>
             <button
               onClick={() => {
-                const dummyClaim = keccak256(encodePacked(["string"], ["EFFORT_SCORE_150"]));
+                const dummyClaim = keccak256(
+                  encodePacked(["string"], ["EFFORT_SCORE_150"]),
+                );
                 claimReward({
                   spinClass: mockClassAddress as `0x${string}`,
                   rider: address as `0x${string}`,
@@ -233,8 +250,19 @@ export default function RiderPage() {
           </div>
           {(claimSuccess || claimError) && (
             <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/10 text-sm">
-              {claimSuccess && <p className="text-green-400">✨ Rewards claimed successfully! Check your wallet for SPIN.</p>}
-              {claimError && <p className="text-red-400">❌ Claim failed: {claimError.message === "Mock signature for MVP" ? "Invalid signature (MVP Demo)" : claimError.message}</p>}
+              {claimSuccess && (
+                <p className="text-green-400">
+                  ✨ Rewards claimed successfully! Check your wallet for SPIN.
+                </p>
+              )}
+              {claimError && (
+                <p className="text-red-400">
+                  ❌ Claim failed:{" "}
+                  {claimError.message === "Mock signature for MVP"
+                    ? "Invalid signature (MVP Demo)"
+                    : claimError.message}
+                </p>
+              )}
             </div>
           )}
         </SurfaceCard>

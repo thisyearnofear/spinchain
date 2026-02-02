@@ -230,16 +230,32 @@ function FloatingParticles({ theme = "neon" }: { theme?: VisualizerTheme }) {
   );
 }
 
-function BeatMarker({ beat, curve }: { beat: StoryBeat; curve: CatmullRomCurve3 }) {
-  const point = useMemo(() => curve.getPointAt(beat.progress), [curve, beat.progress]);
-  const color = beat.type === "sprint" ? "#ff4d4d" : beat.type === "climb" ? "#fbbf24" : "#6d7cff";
+function BeatMarker({
+  beat,
+  curve,
+}: {
+  beat: StoryBeat;
+  curve: CatmullRomCurve3;
+}) {
+  const point = useMemo(
+    () => curve.getPointAt(beat.progress),
+    [curve, beat.progress],
+  );
+  const color =
+    beat.type === "sprint"
+      ? "#ff4d4d"
+      : beat.type === "climb"
+        ? "#fbbf24"
+        : "#6d7cff";
 
   return (
     <group position={[point.x, point.y + 3, point.z]}>
       <Html center transform sprite distanceFactor={15}>
         <div className="flex flex-col items-center gap-1 group">
-          <div className={`px-2 py-0.5 rounded-full text-[8px] font-bold text-white whitespace-nowrap border backdrop-blur-sm transition-all group-hover:scale-110`}
-            style={{ backgroundColor: `${color}80`, borderColor: color }}>
+          <div
+            className={`px-2 py-0.5 rounded-full text-[8px] font-bold text-white whitespace-nowrap border backdrop-blur-sm transition-all group-hover:scale-110`}
+            style={{ backgroundColor: `${color}80`, borderColor: color }}
+          >
             {beat.label}
           </div>
           <div className="w-0.5 h-4 bg-gradient-to-b from-white/50 to-transparent" />
@@ -247,7 +263,11 @@ function BeatMarker({ beat, curve }: { beat: StoryBeat; curve: CatmullRomCurve3 
       </Html>
       <mesh position={[0, -3, 0]}>
         <cylinderGeometry args={[0.5, 0.5, 0.1, 16]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={2}
+        />
       </mesh>
     </group>
   );
@@ -331,7 +351,9 @@ function Scene({
         // Simple Audio Feedback (Browser Audio)
         if (typeof window !== "undefined") {
           try {
-            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const ctx = new (window.AudioContext ||
+              (window as unknown as { webkitAudioContext: typeof AudioContext })
+                .webkitAudioContext)();
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.connect(gain);
@@ -439,16 +461,26 @@ export default function RouteVisualizer({
         <div className="absolute inset-x-0 top-0 z-20 pointer-events-none p-6">
           <div className="flex gap-4">
             <div className="rounded-xl bg-black/40 border border-white/10 backdrop-blur-md p-3 flex flex-col min-w-[80px]">
-              <span className="text-[10px] uppercase tracking-wider text-white/50 font-bold">HR</span>
+              <span className="text-[10px] uppercase tracking-wider text-white/50 font-bold">
+                HR
+              </span>
               <span className="text-2xl font-black text-white">{stats.hr}</span>
             </div>
             <div className="rounded-xl bg-black/40 border border-white/10 backdrop-blur-md p-3 flex flex-col min-w-[80px]">
-              <span className="text-[10px] uppercase tracking-wider text-white/50 font-bold">Power</span>
-              <span className="text-2xl font-black text-[color:var(--brand)]">{stats.power}w</span>
+              <span className="text-[10px] uppercase tracking-wider text-white/50 font-bold">
+                Power
+              </span>
+              <span className="text-2xl font-black text-[color:var(--brand)]">
+                {stats.power}w
+              </span>
             </div>
             <div className="rounded-xl bg-black/40 border border-white/10 backdrop-blur-md p-3 flex flex-col min-w-[80px]">
-              <span className="text-[10px] uppercase tracking-wider text-white/50 font-bold">RPM</span>
-              <span className="text-2xl font-black text-white">{stats.cadence}</span>
+              <span className="text-[10px] uppercase tracking-wider text-white/50 font-bold">
+                RPM
+              </span>
+              <span className="text-2xl font-black text-white">
+                {stats.cadence}
+              </span>
             </div>
           </div>
         </div>
