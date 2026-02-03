@@ -1,8 +1,8 @@
 "use client";
 
-import { ConnectButton as SuiConnectButton } from "@mysten/dapp-kit";
 import { ThemeToggleCompact } from "./theme-toggle";
 import { ConnectWallet } from "./connect-wallet";
+import { SuiWalletButton } from "./sui-wallet-button";
 
 export function PrimaryNav() {
   return (
@@ -24,7 +24,7 @@ export function PrimaryNav() {
         <div className="flex items-center gap-2">
           <ThemeToggleCompact />
           <ConnectWallet />
-          <SuiConnectButton />
+          <SuiWalletButton />
         </div>
         <a
           href="/routes"
