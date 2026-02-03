@@ -8,6 +8,7 @@ import { SuiProvider } from './sui-provider';
 import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
 import { ThemeProvider, useTheme } from './components/theme-provider';
+import { ToastProvider } from './components/toast';
 
 // Create a stable query client for SSR
 function makeQueryClient() {
@@ -36,7 +37,12 @@ function getQueryClient() {
 // RainbowKit wrapper that responds to theme changes
 function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
-  
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const rainbowTheme = resolvedTheme === 'dark' 
     ? darkTheme({
         accentColor: "#6d7cff",
@@ -53,7 +59,7 @@ function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
 
   return (
     <RainbowKitProvider theme={rainbowTheme}>
-      {children}
+      {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
     </RainbowKitProvider>
   );
 }
@@ -61,18 +67,15 @@ function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
 // Inner providers that need theme context
 function InnerProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => getQueryClient());
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <SuiProvider>
         <WagmiProvider config={config}>
           <RainbowKitThemeWrapper>
-            {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
+            <ToastProvider>
+              {children}
+            </ToastProvider>
           </RainbowKitThemeWrapper>
         </WagmiProvider>
       </SuiProvider>
