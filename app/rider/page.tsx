@@ -6,6 +6,7 @@ import { PrimaryNav } from "../components/nav";
 import { useClasses } from "../hooks/use-class-data";
 import { RoutePreviewCard } from "../components/route-preview-card";
 import { ConnectWallet } from "../components/connect-wallet";
+import { AnimatedClassCard } from "../components/animated-class-card";
 import type { SavedRoute } from "../lib/route-library";
 
 export default function RiderPage() {
@@ -154,73 +155,22 @@ export default function RiderPage() {
 
         {/* Classes Grid */}
         {!isLoading && !error && filteredClasses.length > 0 && (
-          <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
-            {filteredClasses.map((classData) => (
-              <div
-                key={classData.address}
-                className="group rounded-xl sm:rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] overflow-hidden backdrop-blur transition-all hover:border-[color:var(--accent)]/30"
-              >
-                {/* Class Header */}
-                <div className="p-4 sm:p-6 border-b border-[color:var(--border)]">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="text-lg sm:text-xl font-bold text-[color:var(--foreground)] mb-1">
-                        {classData.name}
-                      </h3>
-                      <p className="text-xs sm:text-sm text-[color:var(--muted)]">
-                        by {classData.instructor}
-                      </p>
-                    </div>
-                    
-                    {classData.metadata?.ai?.enabled && (
-                      <div className="rounded-full bg-[color:var(--accent)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--accent)]">
-                        AI Coach
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm text-[color:var(--muted)]">
-                    <span className="flex items-center gap-1">
-                      ⏱️ {classData.metadata?.duration || 45} min
-                    </span>
-                    <span className="flex items-center gap-1">
-                      👥 {classData.ticketsSold} / {classData.maxRiders}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      💰 {classData.currentPrice} ETH
-                    </span>
-                  </div>
-                </div>
-
-                {/* Route Preview */}
-                {classData.metadata?.route && (
-                  <div className="p-4 sm:p-6">
-                    <RoutePreviewCard
-                      route={classData.metadata.route}
-                      variant="compact"
-                      onPreview={() => handlePreviewRoute(classData)}
-                    />
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="p-4 sm:p-6 pt-0 flex gap-2">
-                  <button
-                    onClick={() => handlePreviewRoute(classData)}
-                    className="flex-1 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-strong)] py-2.5 text-sm font-medium text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-elevated)]"
-                  >
-                    Preview Route
-                  </button>
-                  <button 
-                    className="flex-1 rounded-lg bg-[color:var(--accent)] py-2.5 text-sm font-semibold text-white shadow-lg transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={!isConnected}
-                    title={!isConnected ? "Connect wallet to purchase" : "Purchase ticket"}
-                  >
-                    {isConnected ? "Purchase Ticket" : "Connect to Buy"}
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="grid gap-6 md:grid-cols-2">
+            {filteredClasses.map((classData, index) => {
+              // Assign theme based on index
+              const themes: ("neon" | "alpine" | "mars" | "ocean")[] = ["neon", "alpine", "mars", "ocean"];
+              const theme = themes[index % themes.length];
+              
+              return (
+                <AnimatedClassCard
+                  key={classData.address}
+                  classData={classData}
+                  isConnected={isConnected}
+                  onPreview={() => handlePreviewRoute(classData)}
+                  theme={theme}
+                />
+              );
+            })}
           </div>
         )}
 
