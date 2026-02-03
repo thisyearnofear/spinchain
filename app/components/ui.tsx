@@ -36,7 +36,7 @@ export function SectionHeader({
 
 type CardProps = {
   eyebrow?: string;
-  title: string;
+  title?: string;
   description?: string;
   children?: React.ReactNode;
   className?: string;
@@ -58,9 +58,11 @@ export function SurfaceCard({
           {eyebrow}
         </p>
       ) : null}
-      <h3 className="mt-3 text-lg font-semibold text-[color:var(--foreground)]">{title}</h3>
+      {title ? (
+        <h3 className={`text-lg font-semibold text-[color:var(--foreground)] ${eyebrow ? 'mt-3' : ''}`}>{title}</h3>
+      ) : null}
       {description ? (
-        <p className="mt-2 text-sm text-[color:var(--muted)]">{description}</p>
+        <p className={`text-sm text-[color:var(--muted)] ${title ? 'mt-2' : ''}`}>{description}</p>
       ) : null}
       {children}
     </div>

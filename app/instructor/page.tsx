@@ -1,18 +1,20 @@
+"use client";
+
+import { useState } from "react";
+import { useAccount } from "wagmi";
 import { PrimaryNav } from "../components/nav";
-import { BulletList, SectionHeader, SurfaceCard, Tag } from "../components/ui";
+import { InstructorWizard } from "../components/instructor-wizard";
+import { SurfaceCard, Tag } from "../components/ui";
+import { ConnectWallet } from "../components/connect-wallet";
 
 export default function InstructorPage() {
-  const controls = [
-    "Dynamic pricing curves with early-bird ramps",
-    "Reward thresholds based on effort, not raw calories",
-    "Sponsor pools with programmable distributions",
-    "Automated revenue splits with DAO fees",
-  ];
+  const { isConnected } = useAccount();
+  const [showWizard, setShowWizard] = useState(false);
 
   const liveSignals = [
-    { title: "Class Fill", value: "42 / 50 riders" },
-    { title: "Effort Goals Hit", value: "84%" },
-    { title: "Sponsor Pool", value: "1.2 ETH" },
+    { title: "Classes Created", value: "12" },
+    { title: "Total Riders", value: "348" },
+    { title: "Revenue Earned", value: "3.8 ETH" },
   ];
 
   return (
@@ -22,10 +24,31 @@ export default function InstructorPage() {
           <PrimaryNav />
         </div>
 
+        {/* Connect Wallet Banner */}
+        {!isConnected && (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 backdrop-blur">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <span className="text-2xl">🎓</span>
+                <div>
+                  <h3 className="text-lg font-semibold text-amber-400 mb-1">
+                    Become an Instructor
+                  </h3>
+                  <p className="text-sm text-amber-200/80">
+                    Connect your wallet to create classes, set pricing, and start earning.
+                  </p>
+                </div>
+              </div>
+              <ConnectWallet />
+            </div>
+          </div>
+        )}
+
+        {/* Quick Stats */}
         <SurfaceCard
           eyebrow="Instructor Console"
-          title="Design class economics in minutes"
-          description="SpinClass contracts turn your schedule into programmable events."
+          title="Your teaching dashboard"
+          description="Create immersive classes and build your community."
           className="bg-[color:var(--surface-strong)]"
         >
           <div className="mt-6 flex flex-wrap gap-3">
@@ -48,56 +71,92 @@ export default function InstructorPage() {
           </div>
         </SurfaceCard>
 
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <SurfaceCard
-            eyebrow="Class Builder"
-            title="Set the rules once"
-            description="Configure ticket supply, pricing, reward rules, and splits."
-          >
-            <BulletList items={controls} />
-          </SurfaceCard>
+        {/* Create Class CTA */}
+        {!showWizard && (
+          <div className="rounded-3xl border border-dashed border-[color:var(--border)] bg-[color:var(--surface)]/50 p-12 text-center">
+            <span className="text-5xl mb-6 block">✨</span>
+            <h2 className="text-2xl font-semibold text-[color:var(--foreground)] mb-3">
+              Ready to create your next class?
+            </h2>
+            <p className="text-[color:var(--muted)] mb-6 max-w-md mx-auto">
+              Our simplified wizard will guide you through setting up your class, route, and pricing in just a few steps.
+            </p>
+            <button
+              onClick={() => setShowWizard(true)}
+              disabled={!isConnected}
+              className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent)] px-8 py-3 text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create New Class
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </button>
+            {!isConnected && (
+              <p className="mt-3 text-sm text-[color:var(--muted)]">
+                Connect your wallet to get started
+              </p>
+            )}
+          </div>
+        )}
 
-          <SurfaceCard
-            eyebrow="Live Dashboard"
-            title="Aggregates only"
-            description="Instructor sees the room, not the medical data."
-          >
-            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/80">
-              80% of riders are in target HR zone
+        {/* Simplified Wizard */}
+        {showWizard && (
+          <div className="py-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-[color:var(--foreground)]">
+                Create New Class
+              </h2>
+              <button
+                onClick={() => setShowWizard(false)}
+                className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+              >
+                Cancel
+              </button>
             </div>
-            <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/80">
-              Median effort score: 158 (no raw HR shared)
-            </div>
-          </SurfaceCard>
-        </div>
+            <InstructorWizard />
+          </div>
+        )}
 
-        <SurfaceCard
-          eyebrow="Revenue Engine"
-          title="Trustless settlement"
-          description="Payments stream to your treasury with automatic splits."
-        >
-          <SectionHeader
-            eyebrow="Treasury"
-            title="3.8 ETH earned"
-            description="Last class • settled on Base"
-            actions={
-              <>
-                <a
-                  href="/instructor/builder"
-                  className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white/70 transition hover:text-white"
-                >
-                  Open class builder
-                </a>
-                <button className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white/70 transition hover:text-white">
-                  View splits
-                </button>
-                <button className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20">
-                  Settle now
-                </button>
-              </>
-            }
-          />
-        </SurfaceCard>
+        {/* Quick Links */}
+        {!showWizard && (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <a
+              href="/routes/builder"
+              className="group rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 hover:border-[color:var(--accent)]/50 transition-colors"
+            >
+              <span className="text-3xl mb-4 block">🗺️</span>
+              <h3 className="font-semibold text-[color:var(--foreground)] mb-2">
+                Route Builder
+              </h3>
+              <p className="text-sm text-[color:var(--muted)]">
+                Create custom 3D routes with story beats and terrain
+              </p>
+            </a>
+
+            <a
+              href="/instructor/ai"
+              className="group rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 hover:border-[color:var(--accent)]/50 transition-colors"
+            >
+              <span className="text-3xl mb-4 block">🤖</span>
+              <h3 className="font-semibold text-[color:var(--foreground)] mb-2">
+                AI Assistant
+              </h3>
+              <p className="text-sm text-[color:var(--muted)]">
+                Generate routes and class descriptions with AI
+              </p>
+            </a>
+
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6">
+              <span className="text-3xl mb-4 block">📊</span>
+              <h3 className="font-semibold text-[color:var(--foreground)] mb-2">
+                Analytics
+              </h3>
+              <p className="text-sm text-[color:var(--muted)]">
+                Coming soon: Detailed class performance insights
+              </p>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
