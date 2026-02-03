@@ -43,9 +43,12 @@ export default function RiderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#1a2550,transparent_55%),radial-gradient(circle_at_80%_20%,#2a1d5a,transparent_40%)]">
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">
-        <div className="rounded-3xl border border-white/10 bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
+    <div className="min-h-screen bg-[color:var(--background)]">
+      {/* Background gradient - adapts to theme */}
+      <div className="fixed inset-0 bg-gradient-radial pointer-events-none" />
+      
+      <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
           <PrimaryNav />
         </div>
 
@@ -56,10 +59,10 @@ export default function RiderPage() {
               <div className="flex items-start gap-4">
                 <span className="text-2xl">👋</span>
                 <div>
-                  <h3 className="text-lg font-semibold text-amber-400 mb-1">
+                  <h3 className="text-lg font-semibold text-amber-600 dark:text-amber-400 mb-1">
                     Browsing as Guest
                   </h3>
-                  <p className="text-sm text-amber-200/80">
+                  <p className="text-sm text-amber-700/80 dark:text-amber-200/80">
                     You can preview all classes and routes. Connect your wallet to book and earn rewards.
                   </p>
                 </div>
@@ -68,7 +71,7 @@ export default function RiderPage() {
                 <ConnectWallet />
                 <button
                   onClick={() => setShowGuestBanner(false)}
-                  className="p-2 rounded-lg text-amber-400/60 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                  className="p-2 rounded-lg text-amber-600/60 dark:text-amber-400/60 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -102,17 +105,19 @@ export default function RiderPage() {
         {/* Header with Filters */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Available Classes</h1>
-            <p className="mt-1 text-white/60">
+            <h1 className="text-3xl font-bold text-[color:var(--foreground)]">Available Classes</h1>
+            <p className="mt-1 text-[color:var(--muted)]">
               {filteredClasses.length} {filterUpcoming ? 'upcoming' : 'past'} classes with immersive routes
             </p>
           </div>
           
-          <div className="flex gap-2 rounded-lg border border-white/10 bg-black/20 p-1">
+          <div className="flex gap-2 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-1">
             <button
               onClick={() => setFilterUpcoming(true)}
               className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-                filterUpcoming ? "bg-white/10 text-white" : "text-white/60 hover:text-white"
+                filterUpcoming 
+                  ? "bg-[color:var(--accent)] text-white" 
+                  : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
               }`}
             >
               Upcoming
@@ -120,7 +125,9 @@ export default function RiderPage() {
             <button
               onClick={() => setFilterUpcoming(false)}
               className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-                !filterUpcoming ? "bg-white/10 text-white" : "text-white/60 hover:text-white"
+                !filterUpcoming 
+                  ? "bg-[color:var(--accent)] text-white" 
+                  : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
               }`}
             >
               Past
@@ -132,8 +139,8 @@ export default function RiderPage() {
         {isLoading && (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
-              <div className="h-12 w-12 mx-auto animate-spin rounded-full border-4 border-white/20 border-t-white mb-4" />
-              <p className="text-white/60">Loading classes...</p>
+              <div className="h-12 w-12 mx-auto animate-spin rounded-full border-4 border-[color:var(--border)] border-t-[color:var(--accent)] mb-4" />
+              <p className="text-[color:var(--muted)]">Loading classes...</p>
             </div>
           </div>
         )}
@@ -141,7 +148,7 @@ export default function RiderPage() {
         {/* Error State */}
         {error && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-center">
-            <p className="text-red-400">{error}</p>
+            <p className="text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
 
@@ -151,28 +158,28 @@ export default function RiderPage() {
             {filteredClasses.map((classData) => (
               <div
                 key={classData.address}
-                className="group rounded-xl sm:rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] overflow-hidden backdrop-blur transition-all hover:border-white/20"
+                className="group rounded-xl sm:rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] overflow-hidden backdrop-blur transition-all hover:border-[color:var(--accent)]/30"
               >
                 {/* Class Header */}
-                <div className="p-4 sm:p-6 border-b border-white/10">
+                <div className="p-4 sm:p-6 border-b border-[color:var(--border)]">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <h3 className="text-lg sm:text-xl font-bold text-white mb-1">
+                      <h3 className="text-lg sm:text-xl font-bold text-[color:var(--foreground)] mb-1">
                         {classData.name}
                       </h3>
-                      <p className="text-xs sm:text-sm text-white/60">
+                      <p className="text-xs sm:text-sm text-[color:var(--muted)]">
                         by {classData.instructor}
                       </p>
                     </div>
                     
                     {classData.metadata?.ai?.enabled && (
-                      <div className="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-semibold text-indigo-400">
+                      <div className="rounded-full bg-[color:var(--accent)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--accent)]">
                         AI Coach
                       </div>
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm text-white/70">
+                  <div className="flex flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm text-[color:var(--muted)]">
                     <span className="flex items-center gap-1">
                       ⏱️ {classData.metadata?.duration || 45} min
                     </span>
@@ -200,12 +207,12 @@ export default function RiderPage() {
                 <div className="p-4 sm:p-6 pt-0 flex gap-2">
                   <button
                     onClick={() => handlePreviewRoute(classData)}
-                    className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+                    className="flex-1 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-strong)] py-2.5 text-sm font-medium text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-elevated)]"
                   >
                     Preview Route
                   </button>
                   <button 
-                    className="flex-1 rounded-lg bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 rounded-lg bg-[color:var(--accent)] py-2.5 text-sm font-semibold text-white shadow-lg transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={!isConnected}
                     title={!isConnected ? "Connect wallet to purchase" : "Purchase ticket"}
                   >
@@ -219,8 +226,8 @@ export default function RiderPage() {
 
         {/* Empty State */}
         {!isLoading && !error && filteredClasses.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-white/10 p-12 text-center">
-            <p className="text-white/60">No {filterUpcoming ? 'upcoming' : 'past'} classes</p>
+          <div className="rounded-2xl border border-dashed border-[color:var(--border)] p-12 text-center">
+            <p className="text-[color:var(--muted)]">No {filterUpcoming ? 'upcoming' : 'past'} classes</p>
           </div>
         )}
 
@@ -238,7 +245,7 @@ export default function RiderPage() {
               <div className="mt-4 flex gap-3">
                 <button
                   onClick={() => setSelectedRoute(null)}
-                  className="flex-1 py-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-colors"
+                  className="flex-1 py-3 rounded-xl bg-[color:var(--surface-strong)] text-[color:var(--foreground)] hover:bg-[color:var(--surface-elevated)] transition-colors"
                 >
                   Close Preview
                 </button>
