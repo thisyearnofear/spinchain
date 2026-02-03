@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   title: "SpinChain — Privacy-First Fitness DeFi",
   description:
     "SpinChain turns fitness classes into programmable financial events with privacy-preserving incentives.",
+  icons: {
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚴</text></svg>",
+  },
 };
 
 export default function RootLayout({
