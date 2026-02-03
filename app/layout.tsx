@@ -23,13 +23,35 @@ export const metadata: Metadata = {
   },
 };
 
+// Script to prevent flash of wrong theme
+const themeScript = `
+  (function() {
+    function getTheme() {
+      const saved = localStorage.getItem('spinchain-theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+      if (saved === 'system' || !saved) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      return 'dark';
+    }
+    document.documentElement.classList.add(getTheme());
+    document.documentElement.classList.add('no-transitions');
+    window.addEventListener('load', () => {
+      document.documentElement.classList.remove('no-transitions');
+    });
+  })();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

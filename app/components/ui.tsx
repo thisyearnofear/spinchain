@@ -19,7 +19,7 @@ export function SectionHeader({
         <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
           {eyebrow}
         </p>
-        <h2 className="mt-3 text-2xl font-semibold text-white md:text-3xl">
+        <h2 className="mt-3 text-2xl font-semibold text-[color:var(--foreground)] md:text-3xl">
           {title}
         </h2>
         {description ? (
@@ -51,14 +51,14 @@ export function SurfaceCard({
 }: CardProps) {
   return (
     <div
-      className={`rounded-2xl border border-white/10 bg-[color:var(--surface)] p-6 ${className}`}
+      className={`rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 ${className}`}
     >
       {eyebrow ? (
         <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
           {eyebrow}
         </p>
       ) : null}
-      <h3 className="mt-3 text-lg font-semibold text-white">{title}</h3>
+      <h3 className="mt-3 text-lg font-semibold text-[color:var(--foreground)]">{title}</h3>
       {description ? (
         <p className="mt-2 text-sm text-[color:var(--muted)]">{description}</p>
       ) : null}
@@ -75,12 +75,12 @@ type MetricProps = {
 
 export function MetricTile({ label, value, detail }: MetricProps) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+    <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3">
       <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
         {label}
       </p>
-      <p className="mt-2 text-lg font-semibold text-white">{value}</p>
-      {detail ? <p className="text-xs text-white/60">{detail}</p> : null}
+      <p className="mt-2 text-lg font-semibold text-[color:var(--foreground)]">{value}</p>
+      {detail ? <p className="text-xs text-[color:var(--muted)]">{detail}</p> : null}
     </div>
   );
 }
@@ -91,7 +91,7 @@ type BulletListProps = {
 
 export function BulletList({ items }: BulletListProps) {
   return (
-    <ul className="space-y-3 text-sm text-white/80">
+    <ul className="space-y-3 text-sm text-[color:var(--foreground)]/80">
       {items.map((item) => (
         <li key={item} className="flex gap-3">
           <span className="mt-1 h-2 w-2 rounded-full bg-[color:var(--accent)]" />
@@ -108,7 +108,7 @@ type TagProps = {
 
 export function Tag({ children }: TagProps) {
   return (
-    <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/70">
+    <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-2 text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
       {children}
     </span>
   );
@@ -144,7 +144,7 @@ export function ProgressRing({
         height={size}
       >
         <circle
-          stroke="var(--surface)"
+          stroke="var(--surface-strong)"
           fill="transparent"
           strokeWidth={strokeWidth}
           r={radius}
@@ -177,7 +177,7 @@ type GlassCardProps = {
 export function GlassCard({ children, className = "" }: GlassCardProps) {
   return (
     <div
-      className={`rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md ${className}`}
+      className={`rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 backdrop-blur-md ${className}`}
     >
       {children}
     </div>
@@ -192,7 +192,7 @@ type GradientTextProps = {
 export function GradientText({ children, className = "" }: GradientTextProps) {
   return (
     <span
-      className={`bg-gradient-to-r from-white via-white/80 to-white/60 bg-clip-text text-transparent ${className}`}
+      className={`bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] bg-clip-text text-transparent ${className}`}
     >
       {children}
     </span>

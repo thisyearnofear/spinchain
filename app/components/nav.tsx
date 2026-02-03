@@ -2,6 +2,7 @@
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ConnectButton as SuiConnectButton } from "@mysten/dapp-kit";
+import { ThemeToggleCompact } from "./theme-toggle";
 
 export function PrimaryNav() {
   return (
@@ -14,31 +15,32 @@ export function PrimaryNav() {
           <p className="text-sm uppercase tracking-[0.2em] text-[color:var(--muted)]">
             SpinChain Protocol
           </p>
-          <h1 className="text-2xl font-semibold text-white">
+          <h1 className="text-2xl font-semibold text-[color:var(--foreground)]">
             Privacy-first fitness DeFi
           </h1>
         </div>
       </div>
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
+          <ThemeToggleCompact />
           <ConnectButton showBalance={false} />
           <SuiConnectButton />
         </div>
         <a
           href="/routes"
-          className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white/70 transition hover:text-white"
+          className="rounded-full border border-[color:var(--border)] px-5 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
         >
           Route Worlds
         </a>
         <a
           href="/instructor"
-          className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white/70 transition hover:text-white"
+          className="rounded-full border border-[color:var(--border)] px-5 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
         >
           Instructor
         </a>
         <a
           href="/rider"
-          className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:-translate-y-0.5 hover:shadow-lg"
+          className="rounded-full bg-[color:var(--accent)] px-5 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[color:var(--glow)]"
         >
           Rider View
         </a>
