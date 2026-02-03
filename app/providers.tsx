@@ -6,6 +6,7 @@ import { WagmiProvider } from 'wagmi';
 import { config } from './wagmi';
 import { SuiProvider } from './sui-provider';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
+import '@rainbow-me/rainbowkit/styles.css';
 
 // Create a stable query client for SSR
 function makeQueryClient() {
@@ -31,36 +32,13 @@ function getQueryClient() {
   }
 }
 
-// Wrapper for client-only providers
-function ClientProviders({ children }: { children: React.ReactNode }) {
+export function Providers({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => getQueryClient());
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // During SSR and initial hydration, render without RainbowKit
-  // This prevents hydration mismatches and QueryClient issues
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
-  return (
-    <RainbowKitProvider
-      theme={darkTheme({
-        accentColor: "#6d7cff",
-        accentColorForeground: "white",
-        borderRadius: "medium",
-        overlayBlur: "small",
-      })}
-    >
-      {children}
-    </RainbowKitProvider>
-  );
-}
-
-export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => getQueryClient());
 
   // IMPORTANT: QueryClientProvider must wrap SuiProvider because
   // @mysten/dapp-kit uses @tanstack/react-query internally
@@ -68,9 +46,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <SuiProvider>
         <WagmiProvider config={config}>
-          <ClientProviders>
-            {children}
-          </ClientProviders>
+          <RainbowKitProvider
+            theme={darkTheme({
+              accentColor: "#6d7cff",
+              accentColorForeground: "white",
+              borderRadius: "medium",
+              overlayBlur: "small",
+            })}
+          >
+            {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
+          </RainbowKitProvider>
         </WagmiProvider>
       </SuiProvider>
     </QueryClientProvider>
