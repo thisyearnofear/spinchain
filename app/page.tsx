@@ -42,7 +42,7 @@ export default function Home() {
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-6">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[color:var(--accent)]">
-                HackMoney 2026 MVP
+                Privacy-First Fitness DeFi
               </p>
               <h2 className="text-4xl font-semibold leading-tight text-[color:var(--foreground)] md:text-5xl">
                 Turn spin classes into programmable financial events.
