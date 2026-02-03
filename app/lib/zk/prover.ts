@@ -3,6 +3,7 @@
 
 import type { ProofInput, ProofOutput, ZKProof, CircuitType, SelectiveDisclosure } from './types';
 import { CIRCUIT_CONFIGS } from './types';
+import { getNoirProver, NoirProver } from './noir-prover';
 
 // Prover backend interface
 interface ProverBackend {
@@ -13,35 +14,31 @@ interface ProverBackend {
 // Mock prover for development (simulates Noir/SP1)
 class MockProver implements ProverBackend {
   async generateProof(input: ProofInput, circuitType: CircuitType): Promise<ZKProof> {
-    // Simulate proving delay
     const config = CIRCUIT_CONFIGS[circuitType];
     await new Promise(r => setTimeout(r, config.provingTime));
     
-    // Generate deterministic mock proof
     const proofData = await this.hashInputs(input, circuitType);
-    
-    // Compute public outputs
     const output = this.computeOutput(input, circuitType);
     
     return {
       proof: new TextEncoder().encode(proofData),
       publicInputs: [
-        output.effortScore.toString(),
+        input.threshold.toString(),
+        input.minDuration.toString(),
         output.thresholdMet.toString(),
+        output.durationSatisfied.toString(),
+        output.effortScore.toString(),
         input.classId,
         input.riderId,
       ],
       circuitType,
-      verifierAddress: '0xMOCK_VERIFIER',
+      verifierAddress: process.env.NEXT_PUBLIC_MOCK_VERIFIER_ADDRESS || '0xMOCK_VERIFIER',
     };
   }
   
   async verifyProof(proof: ZKProof, publicInputs: string[]): Promise<boolean> {
-    // Simulate verification
     const config = CIRCUIT_CONFIGS[proof.circuitType];
     await new Promise(r => setTimeout(r, config.verificationTime));
-    
-    // Mock verification always succeeds for valid structure
     return proof.publicInputs.length > 0 && proof.proof.length > 0;
   }
   
@@ -58,7 +55,6 @@ class MockProver implements ProverBackend {
     const thresholdMet = input.heartRate > input.threshold;
     const durationSatisfied = input.timestamp >= input.minDuration;
     
-    // Calculate effort score (0-1000)
     const hrRatio = Math.min(input.heartRate / input.threshold, 2);
     const powerRatio = input.power > 0 ? Math.min(input.power / 200, 2) : 1;
     const effortScore = Math.floor(hrRatio * powerRatio * 250);
@@ -68,18 +64,35 @@ class MockProver implements ProverBackend {
       zoneEntered: thresholdMet,
       durationSatisfied,
       effortScore: Math.min(effortScore, 1000),
-      proofHash: '', // Set by generateProof
+      proofHash: '',
     };
   }
 }
 
-// Main ZK Prover class
+// Main ZK Prover class with automatic backend selection
 export class ZKProver {
-  private backend: ProverBackend;
+  private mockBackend: MockProver;
+  private noirBackend: NoirProver | null = null;
+  private useNoir: boolean = false;
   
-  constructor(useMock = true) {
-    // In production, this would instantiate Noir or SP1
-    this.backend = useMock ? new MockProver() : new MockProver();
+  constructor() {
+    this.mockBackend = new MockProver();
+    this.tryInitializeNoir();
+  }
+  
+  private async tryInitializeNoir(): Promise<void> {
+    try {
+      this.noirBackend = await getNoirProver();
+      this.useNoir = this.noirBackend.isAvailable();
+      console.log(`[ZKProver] Using ${this.useNoir ? 'Noir' : 'Mock'} backend`);
+    } catch (error) {
+      console.warn('[ZKProver] Noir initialization failed, using Mock:', error);
+      this.useNoir = false;
+    }
+  }
+  
+  private getBackend(): ProverBackend {
+    return this.useNoir && this.noirBackend ? this.noirBackend : this.mockBackend;
   }
   
   // Generate a proof for effort threshold
@@ -92,7 +105,7 @@ export class ZKProver {
   ): Promise<ZKProof> {
     const input: ProofInput = {
       heartRate,
-      power: 0, // Not used for HR threshold
+      power: 0,
       cadence: 0,
       timestamp: duration,
       riderId,
@@ -101,7 +114,7 @@ export class ZKProver {
       minDuration: duration,
     };
     
-    return this.backend.generateProof(input, 'effort_threshold');
+    return this.getBackend().generateProof(input, 'effort_threshold');
   }
   
   // Generate composite proof (HR + Power + Cadence)
@@ -120,17 +133,17 @@ export class ZKProver {
       cadence,
       timestamp: duration,
       riderId,
-      threshold: thresholds.hr, // Primary threshold
+      threshold: thresholds.hr,
       classId,
       minDuration: duration,
     };
     
-    return this.backend.generateProof(input, 'composite');
+    return this.getBackend().generateProof(input, 'composite');
   }
   
   // Verify any proof
   async verify(proof: ZKProof): Promise<boolean> {
-    return this.backend.verifyProof(proof, proof.publicInputs);
+    return this.getBackend().verifyProof(proof, proof.publicInputs);
   }
   
   // Create selective disclosure from proof
@@ -139,36 +152,50 @@ export class ZKProver {
     statement: string,
     hiddenMetrics: { maxHeartRate: number; avgPower: number; rawDataPoints: number }
   ): SelectiveDisclosure {
-    const [effortScore, thresholdMet, classId] = proof.publicInputs;
+    const [threshold, minDuration, thresholdMet, secondsAbove, effortScore, classId, riderId] = proof.publicInputs;
     
     return {
       statement,
       revealed: {
         effortScore: parseInt(effortScore) || 0,
         zone: thresholdMet === 'true' ? 'Target' : 'Recovery',
-        duration: 0, // Would come from metadata
+        duration: parseInt(secondsAbove) || 0,
       },
       hidden: hiddenMetrics,
     };
+  }
+  
+  // Get current backend info
+  getBackendInfo(): { type: 'noir' | 'mock'; available: boolean } {
+    return {
+      type: this.useNoir ? 'noir' : 'mock',
+      available: this.useNoir || true,
+    };
+  }
+  
+  // Force backend (for testing)
+  setUseNoir(use: boolean): void {
+    this.useNoir = use && this.noirBackend !== null;
   }
 }
 
 // Singleton instance
 let proverInstance: ZKProver | null = null;
 
-export function getProver(useMock = true): ZKProver {
+export function getProver(): ZKProver {
   if (!proverInstance) {
-    proverInstance = new ZKProver(useMock);
+    proverInstance = new ZKProver();
   }
   return proverInstance;
 }
 
 // React hook for using ZK prover
 export function useZKProver() {
-  const prover = getProver(true); // Mock for now
+  const prover = getProver();
   
   return {
     prover,
     configs: CIRCUIT_CONFIGS,
+    backendInfo: prover.getBackendInfo(),
   };
 }

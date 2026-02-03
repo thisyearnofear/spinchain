@@ -34,6 +34,9 @@ export function useAIRoute() {
     setState((prev) => ({ ...prev, isGenerating: true, error: null }));
 
     try {
+      // Simulate brief delay for UX polish (show loading animation)
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      
       const route = await aiService.generateRoute(params);
       const gpxSummary = convertToGpxSummary(route);
 

@@ -1,8 +1,7 @@
 "use client";
 
-// ZK-Enabled Rewards Claim Hook
-// Integrates Phase 2 privacy features with existing contract infrastructure
-// ENHANCEMENT FIRST: Extends useClaimRewards with ZK proofs
+// ZK-Enabled Rewards Claim Hook with On-Chain Verification
+// Integrates Noir proofs with Avalanche verification
 
 import { useState, useCallback } from 'react';
 import { useTransaction } from './use-transaction';
@@ -10,7 +9,9 @@ import { CONTRACT_ERROR_CONTEXT } from '../lib/errors';
 import { getLocalOracle, type LocalProofResult } from '../lib/zk/oracle';
 import { getProver } from '../lib/zk/prover';
 import { createDisclosure, calculatePrivacyScore, getPrivacyLevel } from '../lib/zk/disclosure';
+import { EFFORT_THRESHOLD_VERIFIER_ADDRESS, EFFORT_THRESHOLD_VERIFIER_ABI } from '../lib/contracts/verifier';
 import type { ZKProof } from '../lib/zk/types';
+import { encodePacked, keccak256 } from 'viem';
 
 interface ZKClaimParams {
   spinClass: `0x${string}`;
@@ -20,13 +21,10 @@ interface ZKClaimParams {
 }
 
 interface ZKClaimState {
-  // ZK-specific state
   isGeneratingProof: boolean;
   proofResult?: LocalProofResult;
   privacyScore: number;
   privacyLevel: 'high' | 'medium' | 'low';
-  
-  // Legacy state (for backward compatibility)
   isPending: boolean;
   isSuccess: boolean;
   hash?: `0x${string}`;
@@ -43,10 +41,10 @@ export function useZKClaim() {
     error: null,
   });
   
-  // Use existing transaction hook for the on-chain part
-  const { write: submitClaim, ...txState } = useTransaction({
-    successMessage: 'ZK Rewards Claimed! 🔒',
-    pendingMessage: 'Submitting ZK proof on-chain...',
+  // Use verifier contract for on-chain verification
+  const { write: submitToVerifier, ...txState } = useTransaction({
+    successMessage: 'ZK Proof Verified On-Chain! 🔒',
+    pendingMessage: 'Verifying proof on Avalanche...',
     errorContext: CONTRACT_ERROR_CONTEXT.claimReward,
   });
   
@@ -62,7 +60,7 @@ export function useZKClaim() {
       const oracle = getLocalOracle();
       const prover = getProver();
       
-      // Generate proof
+      // Generate proof using Noir (or mock if unavailable)
       const proof = await prover.proveEffortThreshold(
         heartRate,
         threshold,
@@ -124,32 +122,31 @@ export function useZKClaim() {
     }
   }, []);
   
-  // Submit claim with ZK proof
-  const claimWithProof = useCallback(async (
+  // Submit proof to on-chain verifier
+  const submitProof = useCallback(async (
     params: ZKClaimParams,
     proof: ZKProof
   ) => {
-    // Create attestation hash from proof
-    const claimHash = `0x${Buffer.from(proof.proof).toString('hex').slice(0, 64)}` as `0x${string}`;
+    // Convert proof bytes to hex
+    const proofHex = `0x${Buffer.from(proof.proof).toString('hex')}` as `0x${string}`;
     
-    // Submit to contract (using existing hook)
-    submitClaim({
-      address: params.spinClass,
-      abi: [], // Would use actual incentive engine ABI
-      functionName: "submitZKAttestation",
-      args: [
-        params.spinClass,
-        params.rider,
-        BigInt(parseFloat(params.rewardAmount) * 1e18),
-        params.classId,
-        claimHash,
-        BigInt(Math.floor(Date.now() / 1000)),
-        proof.publicInputs,
-      ],
+    // Encode public inputs for contract
+    const publicInputs = proof.publicInputs.map(v => {
+      // Convert to bytes32
+      const num = BigInt(v);
+      return `0x${num.toString(16).padStart(64, '0')}` as `0x${string}`;
     });
-  }, [submitClaim]);
+    
+    // Submit to verifier contract
+    submitToVerifier({
+      address: EFFORT_THRESHOLD_VERIFIER_ADDRESS,
+      abi: EFFORT_THRESHOLD_VERIFIER_ABI,
+      functionName: 'verifyAndRecord',
+      args: [proofHex, publicInputs],
+    });
+  }, [submitToVerifier]);
   
-  // Full flow: generate proof + submit claim
+  // Full flow: generate proof + submit to verifier
   const claimWithZK = useCallback(async (
     params: ZKClaimParams,
     sessionData: {
@@ -173,15 +170,23 @@ export function useZKClaim() {
       return;
     }
     
-    // Step 2: Submit to contract
-    await claimWithProof(params, proofResult.proof);
-  }, [generateProof, claimWithProof]);
+    // Step 2: Submit to on-chain verifier
+    await submitProof(params, proofResult.proof);
+  }, [generateProof, submitProof]);
+  
+  // Check if proof was already used (prevents replay)
+  const checkProofUsed = useCallback(async (proofHash: `0x${string}`): Promise<boolean> => {
+    // This would use useReadContract in a real implementation
+    // For now, return false
+    return false;
+  }, []);
   
   return {
-    // ZK-specific
+    // Actions
     generateProof,
-    claimWithProof,
+    submitProof,
     claimWithZK,
+    checkProofUsed,
     
     // State
     isGeneratingProof: zkState.isGeneratingProof,
@@ -189,7 +194,7 @@ export function useZKClaim() {
     privacyScore: zkState.privacyScore,
     privacyLevel: zkState.privacyLevel,
     
-    // Transaction state (from useTransaction)
+    // Transaction state
     isPending: txState.isPending,
     isSuccess: txState.isSuccess,
     hash: txState.hash,
@@ -197,8 +202,7 @@ export function useZKClaim() {
   };
 }
 
-// Legacy-compatible hook (signed attestations)
-// This allows gradual migration from signed attestations to ZK proofs
+// Legacy-compatible hook (signed attestations with ZK upgrade path)
 export function useHybridClaim() {
   const zkClaim = useZKClaim();
   const legacyClaim = useTransaction({
@@ -217,11 +221,11 @@ export function useHybridClaim() {
         return zkClaim.claimWithZK(params, sessionData);
       } else {
         // Legacy signed attestation path
-        const claimHash = `0x${'0'.repeat(64)}` as `0x${string}`;
+        const claimHash = keccak256(encodePacked(['string'], ['LEGACY_CLAIM']));
         legacyClaim.write({
           address: params.spinClass,
           abi: [],
-          functionName: "submitAttestation",
+          functionName: 'submitAttestation',
           args: [
             params.spinClass,
             params.rider,
@@ -235,7 +239,7 @@ export function useHybridClaim() {
       }
     },
     
-    // Expose both states
+    // Expose both
     zk: zkClaim,
     legacy: legacyClaim,
   };

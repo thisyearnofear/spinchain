@@ -53,7 +53,7 @@ export class LocalOracle {
   private isRecording: boolean = false;
   
   constructor() {
-    this.prover = getProver(true); // Use mock for now
+    this.prover = getProver(); // Auto-selects Noir if available
   }
   
   // Start a new session

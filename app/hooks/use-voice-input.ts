@@ -40,13 +40,13 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     error: null,
   });
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   // Check for browser support
   useEffect(() => {
     if (typeof window !== "undefined") {
       const SpeechRecognition =
-        window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
       if (SpeechRecognition) {
         setState((prev) => ({ ...prev, isSupported: true }));
@@ -56,17 +56,19 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 
   // Initialize recognition
   useEffect(() => {
-    if (!state.isSupported) return;
+    if (!state.isSupported || typeof window === "undefined") return;
 
     const SpeechRecognition =
-      window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
     recognition.continuous = continuous;
     recognition.interimResults = interimResults;
     recognition.lang = language;
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       let finalTranscript = "";
       let interimTranscript = "";
 
@@ -90,7 +92,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       }
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (event: any) => {
       console.error("Speech recognition error:", event.error);
       
       let errorMessage = "Voice input error";
@@ -205,7 +207,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 // Type augmentation for Web Speech API
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
   }
 }
