@@ -12,10 +12,12 @@ import { GpxUploader, type GpxSummary } from "./gpx-uploader";
 import RouteVisualizer, {
   type VisualizerTheme,
 } from "../../components/route-visualizer";
+import { AIRouteGenerator } from "../../components/ai-route-generator";
 
 export default function RouteBuilderPage() {
   const [gpxData, setGpxData] = useState<GpxSummary | null>(null);
   const [currentTheme, setCurrentTheme] = useState<VisualizerTheme>("neon");
+  const [routeSource, setRouteSource] = useState<"upload" | "ai">("ai");
 
   const steps = [
     "Upload GPX or paste route URL",
@@ -168,33 +170,62 @@ export default function RouteBuilderPage() {
             <SurfaceCard
               eyebrow="Step 1"
               title="Route source"
-              description="Drag & drop GPX file."
+              description="Generate with AI or upload GPX."
               className="bg-[color:var(--surface)]"
             >
+              {/* Source Tabs */}
+              <div className="mt-4 flex gap-2 p-1 rounded-lg bg-black/20 border border-white/10">
+                <button
+                  onClick={() => setRouteSource("ai")}
+                  className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition ${
+                    routeSource === "ai"
+                      ? "bg-white/10 text-white"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  AI Generate
+                </button>
+                <button
+                  onClick={() => setRouteSource("upload")}
+                  className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition ${
+                    routeSource === "upload"
+                      ? "bg-white/10 text-white"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  GPX Upload
+                </button>
+              </div>
+
               <div className="mt-4">
-                <GpxUploader onUpload={setGpxData} />
+                {routeSource === "ai" ? (
+                  <AIRouteGenerator onRouteGenerated={setGpxData} />
+                ) : (
+                  <GpxUploader onUpload={setGpxData} />
+                )}
               </div>
             </SurfaceCard>
 
             <SurfaceCard
               eyebrow="Step 2"
-              title="Narrative prompt"
-              description="Describe the atmosphere."
+              title="Theme & Atmosphere"
+              description="Choose your visual style."
               className="bg-[color:var(--surface)]"
             >
-              <div className="mt-4 space-y-3">
-                <textarea
-                  className="w-full h-24 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-white placeholder:text-white/30 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="e.g. A cyberpunk city sprint at midnight, neon lights reflecting on wet pavement..."
-                />
-                <div className="flex gap-2">
-                  <button className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2 text-xs text-white/70 hover:bg-white/10">
-                    Generate
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {["neon", "alpine", "mars"].map((theme) => (
+                  <button
+                    key={theme}
+                    onClick={() => setCurrentTheme(theme as VisualizerTheme)}
+                    className={`rounded-lg px-4 py-3 text-sm font-medium transition-all ${
+                      currentTheme === theme
+                        ? "bg-white/10 text-white ring-1 ring-white/20"
+                        : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {theme.charAt(0).toUpperCase() + theme.slice(1)}
                   </button>
-                  <button className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2 text-xs text-white/70 hover:bg-white/10">
-                    Randomize
-                  </button>
-                </div>
+                ))}
               </div>
             </SurfaceCard>
 

@@ -18,3 +18,18 @@ export const SUI_CONFIG = {
   packageId: "0x0000000000000000000000000000000000000000000000000000000000000000",
   network: "devnet" as const,
 };
+
+export const AI_CONFIG = {
+  provider: "gemini" as const,
+  model: "gemini-2.0-flash-exp",
+  features: {
+    voiceInput: true,
+    routeLibrary: true,
+    advancedPrompts: true,
+  },
+  limits: {
+    maxRouteLength: 200, // km
+    maxDuration: 180, // minutes
+    maxPromptLength: 500,
+  },
+} as const;

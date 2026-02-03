@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { generateRouteWithGemini } from "@/app/lib/gemini-client";
 
 type RouteGenerationRequest = {
   prompt: string;
@@ -13,25 +14,37 @@ type RouteGenerationRequest = {
   provider: "gemini" | "openai";
 };
 
-// Mock implementation - replace with actual Gemini API calls
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as RouteGenerationRequest;
     const { prompt, preferences, duration, difficulty } = body;
 
-    // TODO: Replace with actual Gemini API integration
-    // const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    // if (!GEMINI_API_KEY) {
-    //   return NextResponse.json(
-    //     { message: "Gemini API key not configured" },
-    //     { status: 500 }
-    //   );
-    // }
+    // Check if Gemini API key is configured
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    
+    if (!GEMINI_API_KEY) {
+      console.warn("GEMINI_API_KEY not configured, using mock data");
+      // Fallback to mock if no API key
+      const mockRoute = generateMockRoute(prompt, duration || 45, difficulty || "moderate");
+      return NextResponse.json(mockRoute);
+    }
 
-    // For now, return a mock route based on the prompt
-    const mockRoute = generateMockRoute(prompt, duration || 45, difficulty || "moderate");
+    // Use real Gemini API
+    try {
+      const route = await generateRouteWithGemini({
+        prompt,
+        preferences,
+        duration: duration || 45,
+        difficulty: difficulty || "moderate",
+      });
 
-    return NextResponse.json(mockRoute);
+      return NextResponse.json(route);
+    } catch (geminiError) {
+      console.error("Gemini API error, falling back to mock:", geminiError);
+      // Graceful fallback to mock data
+      const mockRoute = generateMockRoute(prompt, duration || 45, difficulty || "moderate");
+      return NextResponse.json(mockRoute);
+    }
   } catch (error) {
     console.error("Route generation error:", error);
     return NextResponse.json(

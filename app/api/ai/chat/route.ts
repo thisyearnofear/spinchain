@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { chatWithGemini } from "@/app/lib/gemini-client";
 
 type ChatMessage = {
   role: "user" | "assistant" | "system";
@@ -20,10 +21,22 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as ChatRequest;
     const { messages } = body;
 
-    // TODO: Replace with actual Gemini API integration
-    const response = generateMockResponse(messages);
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-    return NextResponse.json({ response });
+    if (!GEMINI_API_KEY) {
+      console.warn("GEMINI_API_KEY not configured, using mock data");
+      const response = generateMockResponse(messages);
+      return NextResponse.json({ response });
+    }
+
+    try {
+      const response = await chatWithGemini(messages);
+      return NextResponse.json({ response });
+    } catch (geminiError) {
+      console.error("Gemini API error, falling back to mock:", geminiError);
+      const response = generateMockResponse(messages);
+      return NextResponse.json({ response });
+    }
   } catch (error) {
     console.error("Chat error:", error);
     return NextResponse.json(

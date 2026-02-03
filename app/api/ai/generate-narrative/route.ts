@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { generateNarrativeWithGemini } from "@/app/lib/gemini-client";
 
 type NarrativeRequest = {
   elevationProfile: number[];
@@ -17,10 +18,22 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as NarrativeRequest;
     const { elevationProfile, theme, duration } = body;
 
-    // TODO: Replace with actual Gemini API integration
-    const narrative = generateMockNarrative(elevationProfile, theme, duration);
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-    return NextResponse.json({ narrative });
+    if (!GEMINI_API_KEY) {
+      console.warn("GEMINI_API_KEY not configured, using mock data");
+      const narrative = generateMockNarrative(elevationProfile, theme, duration);
+      return NextResponse.json({ narrative });
+    }
+
+    try {
+      const narrative = await generateNarrativeWithGemini(elevationProfile, theme, duration);
+      return NextResponse.json({ narrative });
+    } catch (geminiError) {
+      console.error("Gemini API error, falling back to mock:", geminiError);
+      const narrative = generateMockNarrative(elevationProfile, theme, duration);
+      return NextResponse.json({ narrative });
+    }
   } catch (error) {
     console.error("Narrative generation error:", error);
     return NextResponse.json(
