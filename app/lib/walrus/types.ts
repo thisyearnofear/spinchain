@@ -31,7 +31,7 @@ export const DEFAULT_STORAGE_CONFIG: StorageConfig = {
 };
 
 // Asset types we store
-export type AssetType = 'gpx_route' | '3d_world' | 'biometric_log' | 'proof_card' | 'telemetry';
+export type AssetType = 'gpx_route' | '3d_world' | 'biometric_log' | 'proof_card' | 'telemetry' | 'ai_route';
 
 export interface StoredAsset {
   blobId: string;

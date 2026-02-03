@@ -10,8 +10,12 @@ import {
   Tag,
 } from "../../components/ui";
 import { useCreateClass } from "../../hooks/use-create-class";
+import { useClassWithRoute, getDeploymentStepText } from "../../hooks/use-class-with-route";
+import { RouteSelectionStep } from "../../components/route-selection-step";
 import { INCENTIVE_ENGINE_ADDRESS } from "../../lib/contracts";
 import { useAccount } from "wagmi";
+import type { SavedRoute } from "../../lib/route-library";
+import type { GpxSummary } from "../../routes/builder/gpx-uploader";
 
 type ClassFormData = {
   name: string;
@@ -23,6 +27,9 @@ type ClassFormData = {
   rewardThreshold: number;
   rewardAmount: number;
   suiPerformance: boolean;
+  // NEW: AI configuration
+  aiEnabled?: boolean;
+  aiPersonality?: "zen" | "drill-sergeant" | "data";
 };
 
 function PricingCurveVisualizer({
@@ -141,7 +148,17 @@ function PricingCurveVisualizer({
 export default function InstructorBuilderPage() {
   const { address: userAddress } = useAccount();
   const { createClass, isPending, isSuccess, error: deployError, hash } = useCreateClass();
-  const [step, setStep] = useState(1);
+  const { 
+    deployClassWithRoute, 
+    deploymentStep, 
+    isPending: isDeploying,
+    isSuccess: deploySuccess 
+  } = useClassWithRoute();
+  
+  const [step, setStep] = useState(0); // Start at 0 for route selection
+  const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
+  const [gpxSummary, setGpxSummary] = useState<GpxSummary | null>(null);
+  
   const [formData, setFormData] = useState<ClassFormData>({
     name: "Morning Mountain Climb",
     date: "2026-03-12T09:00",
@@ -155,11 +172,28 @@ export default function InstructorBuilderPage() {
   });
 
   const steps = [
+    { number: 0, title: "Route" },      // NEW
     { number: 1, title: "Basics" },
     { number: 2, title: "Economics" },
-    { number: 3, title: "Rewards" },
+    { number: 3, title: "AI & Rewards" }, // Enhanced
     { number: 4, title: "Deploy" },
   ];
+  
+  // Auto-populate from route
+  const handleRouteSelected = (route: SavedRoute, summary: GpxSummary) => {
+    setSelectedRoute(route);
+    setGpxSummary(summary);
+    
+    // Auto-fill form data from route
+    setFormData(prev => ({
+      ...prev,
+      name: route.name,
+      // Duration could be synced with route if needed
+    }));
+    
+    // Move to next step
+    setStep(1);
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -209,6 +243,14 @@ export default function InstructorBuilderPage() {
         <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
           {/* Main Form Area */}
           <div className="space-y-6">
+            {/* Step 0: Route Selection */}
+            {step === 0 && (
+              <RouteSelectionStep
+                onRouteSelected={handleRouteSelected}
+                selectedRoute={selectedRoute}
+              />
+            )}
+
             {step === 1 && (
               <GlassCard className="space-y-6 p-8">
                 <SectionHeader
@@ -499,18 +541,33 @@ export default function InstructorBuilderPage() {
                 </div>
               </SurfaceCard>
 
+              {/* Route Info Card (Replaced placeholder) */}
               <SurfaceCard
-                eyebrow="Route World"
-                title="Linked Content"
-                description="Select a world to attach to this class."
-                className="border-dashed bg-transparent"
+                eyebrow="Route Info"
+                title={selectedRoute?.name || "No route selected"}
+                description={selectedRoute ? `${selectedRoute.estimatedDistance.toFixed(1)}km • ${selectedRoute.estimatedDuration}min • +${selectedRoute.elevationGain}m` : "Go back to select a route"}
+                className={selectedRoute ? "border-green-500/30 bg-green-500/5" : "border-dashed bg-transparent"}
               >
-                <div className="mt-4 flex h-24 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sm text-white/60">
-                  No world selected
-                </div>
-                <button className="mt-3 w-full rounded-lg border border-white/10 py-2 text-xs text-white/70 hover:bg-white/5">
-                  Choose from library
-                </button>
+                {selectedRoute ? (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-green-400">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Route attached and ready
+                    </div>
+                    <div className="text-xs text-white/60">
+                      Will be uploaded to Walrus on deployment
+                    </div>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => setStep(0)}
+                    className="mt-4 w-full rounded-lg border border-white/10 py-2 text-xs text-white/70 hover:bg-white/5"
+                  >
+                    ← Back to route selection
+                  </button>
+                )}
               </SurfaceCard>
             </div>
           </div>

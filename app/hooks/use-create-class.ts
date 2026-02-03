@@ -4,11 +4,12 @@ import { useTransaction } from "./use-transaction";
 import { CLASS_FACTORY_ADDRESS, CLASS_FACTORY_ABI } from "../lib/contracts";
 import { parseEther } from "viem";
 import { CONTRACT_ERROR_CONTEXT } from "../lib/errors";
+import type { EnhancedClassMetadata } from "../lib/contracts-extended";
 
 interface CreateClassParams {
   name: string;
   symbol: string;
-  metadata: string;
+  metadata: string | EnhancedClassMetadata;  // Now accepts structured metadata
   startTime: number;
   endTime: number;
   maxRiders: number;
@@ -26,6 +27,11 @@ export function useCreateClass() {
   });
 
   const createClass = (params: CreateClassParams) => {
+    // Convert metadata to JSON string if it's an object
+    const metadataString = typeof params.metadata === 'string' 
+      ? params.metadata 
+      : JSON.stringify(params.metadata);
+
     write({
       address: CLASS_FACTORY_ADDRESS as `0x${string}`,
       abi: CLASS_FACTORY_ABI,
@@ -33,7 +39,7 @@ export function useCreateClass() {
       args: [
         params.name,
         params.symbol,
-        params.metadata,
+        metadataString,
         BigInt(params.startTime),
         BigInt(params.endTime),
         BigInt(params.maxRiders),
