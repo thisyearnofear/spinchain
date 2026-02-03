@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSuiTelemetry } from "./use-sui-telemetry";
+import { getAIService } from "../lib/ai-service";
 
 type AgentPersonality = "zen" | "drill-sergeant" | "data";
 

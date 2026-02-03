@@ -12,7 +12,7 @@ import {
   SurfaceCard,
   Tag,
 } from "../components/ui";
-import { useRiderSession, useClaimRewards } from "../hooks/use-rider-session";
+import { usePurchaseTicket, useClaimRewards } from "../hooks/use-rider-session";
 import { useSuiTelemetry } from "../hooks/use-sui-telemetry";
 import { useAccount } from "wagmi";
 import { keccak256, encodePacked } from "viem";
@@ -27,7 +27,7 @@ export default function RiderPage() {
     attended,
     isPending: sessionPending,
     hash: sessionHash,
-  } = useRiderSession(mockClassAddress as `0x${string}`);
+  } = usePurchaseTicket(mockClassAddress as `0x${string}`);
   const {
     claimReward,
     isPending: claimPending,

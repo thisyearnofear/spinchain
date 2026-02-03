@@ -46,3 +46,28 @@ When a ride starts:
 ## 3. Data Integrity & Storage
 - **Walrus**: Raw biometric logs (full GPS/HR history) are stored on Walrus for post-ride analysis and "ghost rider" playback.
 - **ZK Proofs**: Final effort summaries are verified via client-side ZK circuits (Noir/SP1) before rewards are minted on Avalanche.
+
+---
+
+## 4. AI-Powered Route Generation
+
+SpinChain integrates AI-driven natural language route creation to democratize instructor onboarding and enhance immersion.
+
+### Natural Language Route Builder
+- **Gemini Integration**: Instructors describe routes in plain language (e.g., "45-minute coastal climb starting from Santa Monica")
+- **Automatic GPX Generation**: AI generates route geometry, elevation profiles, and story beats
+- **Real-World Preview**: Integration with mapping services for Street View-style route previews
+- **Accessibility**: Voice-guided route creation removes technical barriers
+
+### Consolidated AI Architecture
+All AI capabilities (instructor agents, route generation, narrative prompts) share a unified service layer:
+- Single Gemini API integration point
+- Shared function calling infrastructure
+- Consistent error handling and rate limiting
+- Server-side API key management for security
+
+### Route Intelligence
+- **Gradient Analysis**: Automatic detection of climbs, descents, and sprints from elevation data
+- **Effort Mapping**: AI-suggested zone targeting based on route topology
+- **Story Beat Generation**: Narrative waypoints aligned with physical route features
+- **Multi-Route Series**: Generate connected training programs across days/weeks

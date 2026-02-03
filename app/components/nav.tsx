@@ -1,8 +1,8 @@
 "use client";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ConnectButton as SuiConnectButton } from "@mysten/dapp-kit";
 import { ThemeToggleCompact } from "./theme-toggle";
+import { ConnectWallet } from "./connect-wallet";
 
 export function PrimaryNav() {
   return (
@@ -23,7 +23,7 @@ export function PrimaryNav() {
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <ThemeToggleCompact />
-          <ConnectButton showBalance={false} />
+          <ConnectWallet />
           <SuiConnectButton />
         </div>
         <a

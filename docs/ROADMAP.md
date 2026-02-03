@@ -20,6 +20,8 @@ Focus: Core protocol logic, immersive visualization, and live session mechanics.
 - [x] **Story Sync**: Automated detection of climbs and descents as "Story Beats".
 - [x] **Social Presence**: Ghost riders for shared class energy.
 - [x] **Acoustic Feedback**: Synchronized audio triggers for performance cues.
+- [x] **AI Route Generation**: Natural language route creation via Gemini integration.
+- [x] **Consolidated AI Service**: Unified AI architecture for agents and route intelligence.
 
 ### UX & Social
 - [x] **Instructor Dashboard**: Class builder with economic controls.
@@ -28,9 +30,12 @@ Focus: Core protocol logic, immersive visualization, and live session mechanics.
 
 ---
 
-## Phase 2: Privacy Upgrade (Q2 2026)
-Focus: Replacing signed attestations with cryptographic Zero-Knowledge Proofs.
+## Phase 2: Enhanced Immersion & Privacy (Q2 2026)
+Focus: Advanced route experiences and cryptographic Zero-Knowledge Proofs.
 
+- [ ] **Voice-Guided Rides**: Real-time conversational control during sessions.
+- [ ] **Multi-Route Training Programs**: AI-generated series across multiple days/locations.
+- [ ] **Street View Integration**: Real-world route previews for enhanced immersion.
 - [ ] **Noir/SP1 Integration**: Move from signed claims to true ZK circuits.
 - [ ] **Selective Disclosure**: Prove thresholds (e.g., HR > 150) without revealing raw data.
 - [ ] **Walrus Storage**: Decentralized blob storage for raw biometric logs and 3D assets.
