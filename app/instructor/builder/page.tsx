@@ -75,12 +75,12 @@ function PricingCurveVisualizer({
   const areaD = `${pathD} L ${width - padding},${height - padding} L ${padding},${height - padding} Z`;
 
   return (
-    <div className="relative h-64 w-full overflow-hidden rounded-xl border border-white/10 bg-black/40 p-4">
+    <div className="relative h-64 w-full overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-4">
       <div className="absolute left-4 top-4 z-10">
-        <p className="text-xs font-medium uppercase tracking-wider text-white/50">
+        <p className="text-xs font-medium uppercase tracking-wider text-[color:var(--muted)]">
           Price Trajectory
         </p>
-        <p className="text-lg font-bold text-white">
+        <p className="text-lg font-bold text-[color:var(--foreground)]">
           {data.basePrice} ETH → {data.maxPrice} ETH
         </p>
       </div>
@@ -206,17 +206,17 @@ export default function InstructorBuilderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#1a2550,transparent_55%),radial-gradient(circle_at_80%_20%,#2a1d5a,transparent_40%)]">
+    <div className="min-h-screen bg-[color:var(--background)]">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">
-        <div className="rounded-3xl border border-white/10 bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
           <PrimaryNav />
         </div>
 
         {/* Header */}
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div>
-            <h1 className="text-3xl font-bold text-white">Class Builder</h1>
-            <p className="mt-1 text-white/60">
+            <h1 className="text-3xl font-bold text-[color:var(--foreground)]">Class Builder</h1>
+            <p className="mt-1 text-[color:var(--muted)]">
               Configure your programmable class contract.
             </p>
           </div>
@@ -228,10 +228,10 @@ export default function InstructorBuilderPage() {
                   ? "bg-indigo-500 text-white"
                   : step > s.number
                     ? "bg-indigo-500/20 text-indigo-300"
-                    : "bg-white/5 text-white/40"
+                    : "bg-[color:var(--surface)] text-[color:var(--muted)]"
                   }`}
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/20 text-xs">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[color:var(--surface-strong)] text-xs">
                   {s.number}
                 </span>
                 <span className="hidden sm:inline">{s.title}</span>
@@ -260,7 +260,7 @@ export default function InstructorBuilderPage() {
                 />
                 <div className="grid gap-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white/80">
+                    <label className="text-sm font-medium text-[color:var(--foreground)]">
                       Class Name
                     </label>
                     <input
@@ -268,12 +268,12 @@ export default function InstructorBuilderPage() {
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-white placeholder:text-white/20 focus:border-indigo-500 focus:outline-none"
+                      className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] placeholder:text-[color:var(--muted)] focus:border-indigo-500 focus:outline-none"
                     />
                   </div>
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-white/80">
+                      <label className="text-sm font-medium text-[color:var(--foreground)]">
                         Date & Time
                       </label>
                       <input
@@ -281,11 +281,11 @@ export default function InstructorBuilderPage() {
                         name="date"
                         value={formData.date}
                         onChange={handleInputChange}
-                        className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-white focus:border-indigo-500 focus:outline-none"
+                        className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-white/80">
+                      <label className="text-sm font-medium text-[color:var(--foreground)]">
                         Max Capacity
                       </label>
                       <input
@@ -293,7 +293,7 @@ export default function InstructorBuilderPage() {
                         name="capacity"
                         value={formData.capacity}
                         onChange={handleInputChange}
-                        className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-white focus:border-indigo-500 focus:outline-none"
+                        className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -314,7 +314,7 @@ export default function InstructorBuilderPage() {
                 />
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white/80">
+                    <label className="text-sm font-medium text-[color:var(--foreground)]">
                       Base Price (ETH)
                     </label>
                     <input
@@ -323,11 +323,11 @@ export default function InstructorBuilderPage() {
                       name="basePrice"
                       value={formData.basePrice}
                       onChange={handleInputChange}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-white focus:border-indigo-500 focus:outline-none"
+                      className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white/80">
+                    <label className="text-sm font-medium text-[color:var(--foreground)]">
                       Max Price (ETH)
                     </label>
                     <input
@@ -336,19 +336,19 @@ export default function InstructorBuilderPage() {
                       name="maxPrice"
                       value={formData.maxPrice}
                       onChange={handleInputChange}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-white focus:border-indigo-500 focus:outline-none"
+                      className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-white/80">
+                  <label className="text-sm font-medium text-[color:var(--foreground)]">
                     Curve Logic
                   </label>
                   <select
                     name="curveType"
                     value={formData.curveType}
                     onChange={handleInputChange}
-                    className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-white focus:border-indigo-500 focus:outline-none"
+                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
                   >
                     <option value="linear">Linear (Constant ramp)</option>
                     <option value="exponential">
@@ -368,7 +368,7 @@ export default function InstructorBuilderPage() {
                 />
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white/80">
+                    <label className="text-sm font-medium text-[color:var(--foreground)]">
                       Effort Score Threshold
                     </label>
                     <input
@@ -376,14 +376,14 @@ export default function InstructorBuilderPage() {
                       name="rewardThreshold"
                       value={formData.rewardThreshold}
                       onChange={handleInputChange}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-white focus:border-indigo-500 focus:outline-none"
+                      className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
                     />
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-[color:var(--muted)]">
                       Riders must beat this score to earn rewards.
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white/80">
+                    <label className="text-sm font-medium text-[color:var(--foreground)]">
                       Reward Amount (SPIN)
                     </label>
                     <input
@@ -391,7 +391,7 @@ export default function InstructorBuilderPage() {
                       name="rewardAmount"
                       value={formData.rewardAmount}
                       onChange={handleInputChange}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-white focus:border-indigo-500 focus:outline-none"
+                      className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -403,13 +403,13 @@ export default function InstructorBuilderPage() {
                       💧
                     </div>
                     <div>
-                      <h4 className="font-semibold text-white">Enable Sui Performance Node</h4>
-                      <p className="text-xs text-white/50">High-frequency telemetry & live leaderboards.</p>
+                      <h4 className="font-semibold text-[color:var(--foreground)]">Enable Sui Performance Node</h4>
+                      <p className="text-xs text-[color:var(--muted)]">High-frequency telemetry & live leaderboards.</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setFormData(prev => ({ ...prev, suiPerformance: !prev.suiPerformance }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.suiPerformance ? 'bg-cyan-500' : 'bg-white/10'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.suiPerformance ? 'bg-cyan-500' : 'bg-[color:var(--surface-strong)]'}`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.suiPerformance ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
@@ -424,28 +424,28 @@ export default function InstructorBuilderPage() {
                   title="Review & Deploy"
                   description="Verify configuration before deploying to blockchain."
                 />
-                <div className="grid gap-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
-                  <div className="flex justify-between border-b border-white/10 pb-2">
-                    <span className="text-white/60">Class</span>
-                    <span className="font-semibold text-white">
+                <div className="grid gap-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 text-sm">
+                  <div className="flex justify-between border-b border-[color:var(--border)] pb-2">
+                    <span className="text-[color:var(--muted)]">Class</span>
+                    <span className="font-semibold text-[color:var(--foreground)]">
                       {formData.name}
                     </span>
                   </div>
-                  <div className="flex justify-between border-b border-white/10 pb-2">
-                    <span className="text-white/60">Ticket Supply</span>
-                    <span className="font-semibold text-white">
+                  <div className="flex justify-between border-b border-[color:var(--border)] pb-2">
+                    <span className="text-[color:var(--muted)]">Ticket Supply</span>
+                    <span className="font-semibold text-[color:var(--foreground)]">
                       {formData.capacity}
                     </span>
                   </div>
-                  <div className="flex justify-between border-b border-white/10 pb-2">
-                    <span className="text-white/60">Pricing Range</span>
-                    <span className="font-semibold text-white">
+                  <div className="flex justify-between border-b border-[color:var(--border)] pb-2">
+                    <span className="text-[color:var(--muted)]">Pricing Range</span>
+                    <span className="font-semibold text-[color:var(--foreground)]">
                       {formData.basePrice} - {formData.maxPrice} ETH
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-white/60">Rewards</span>
-                    <span className="font-semibold text-white">
+                    <span className="text-[color:var(--muted)]">Rewards</span>
+                    <span className="font-semibold text-[color:var(--foreground)]">
                       {formData.rewardAmount} SPIN @ {formData.rewardThreshold}{" "}
                       Effort
                     </span>
@@ -467,7 +467,7 @@ export default function InstructorBuilderPage() {
               <button
                 onClick={() => setStep((s) => Math.max(1, s - 1))}
                 disabled={step === 1}
-                className="rounded-full border border-white/10 px-6 py-2 text-sm font-medium text-white/70 transition hover:bg-white/5 disabled:opacity-50"
+                className="rounded-full border border-[color:var(--border)] px-6 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:bg-[color:var(--surface)] disabled:opacity-50"
               >
                 Back
               </button>
@@ -495,7 +495,7 @@ export default function InstructorBuilderPage() {
                     });
                   }}
                   disabled={isPending || !userAddress}
-                  className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-8 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:opacity-90 disabled:opacity-50"
+                  className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-8 py-2 text-sm font-semibold text-[color:var(--foreground)] shadow-lg shadow-indigo-500/30 transition hover:opacity-90 disabled:opacity-50"
                 >
                   {isPending ? "Deploying..." : "Deploy Contract"}
                 </button>
@@ -503,8 +503,8 @@ export default function InstructorBuilderPage() {
             </div>
 
             {hash && (
-              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-                <p>Transaction Hash: <span className="font-mono text-xs text-indigo-300">{hash}</span></p>
+              <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 text-sm text-[color:var(--muted)]">
+                <p>Transaction Hash: <span className="font-mono text-xs text-indigo-500">{hash}</span></p>
                 {isSuccess && <p className="mt-2 text-green-400 font-medium">✨ Class contract deployed successfully!</p>}
                 {deployError && <p className="mt-2 text-red-400 font-medium">❌ Deployment failed: {deployError.message}</p>}
               </div>
@@ -525,17 +525,17 @@ export default function InstructorBuilderPage() {
                   <Tag>Pull Payments</Tag>
                 </div>
                 <div className="mt-6">
-                  <p className="text-xs uppercase tracking-widest text-white/50">
+                  <p className="text-xs uppercase tracking-widest text-[color:var(--muted)]">
                     Est. Revenue
                   </p>
-                  <p className="mt-1 text-2xl font-bold text-white">
+                  <p className="mt-1 text-2xl font-bold text-[color:var(--foreground)]">
                     {(
                       formData.capacity *
                       ((formData.basePrice + formData.maxPrice) / 2)
                     ).toFixed(3)}{" "}
                     ETH
                   </p>
-                  <p className="text-xs text-white/40">
+                  <p className="text-xs text-[color:var(--muted)]">
                     @ 100% sellout (avg price)
                   </p>
                 </div>
@@ -556,14 +556,14 @@ export default function InstructorBuilderPage() {
                       </svg>
                       Route attached and ready
                     </div>
-                    <div className="text-xs text-white/60">
+                    <div className="text-xs text-[color:var(--muted)]">
                       Will be uploaded to Walrus on deployment
                     </div>
                   </div>
                 ) : (
                   <button 
                     onClick={() => setStep(0)}
-                    className="mt-4 w-full rounded-lg border border-white/10 py-2 text-xs text-white/70 hover:bg-white/5"
+                    className="mt-4 w-full rounded-lg border border-[color:var(--border)] py-2 text-xs text-[color:var(--muted)] hover:bg-[color:var(--surface)]"
                   >
                     ← Back to route selection
                   </button>

@@ -18,9 +18,12 @@ export default function InstructorPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#1a2550,transparent_55%),radial-gradient(circle_at_80%_20%,#2a1d5a,transparent_40%)]">
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">
-        <div className="rounded-3xl border border-white/10 bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
+    <div className="min-h-screen bg-[color:var(--background)]">
+      {/* Background gradient */}
+      <div className="fixed inset-0 bg-gradient-radial pointer-events-none" />
+      
+      <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
           <PrimaryNav />
         </div>
 
@@ -31,10 +34,10 @@ export default function InstructorPage() {
               <div className="flex items-start gap-4">
                 <span className="text-2xl">🎓</span>
                 <div>
-                  <h3 className="text-lg font-semibold text-amber-400 mb-1">
+                  <h3 className="text-lg font-semibold text-amber-600 dark:text-amber-400 mb-1">
                     Become an Instructor
                   </h3>
-                  <p className="text-sm text-amber-200/80">
+                  <p className="text-sm text-amber-700/80 dark:text-amber-200/80">
                     Connect your wallet to create classes, set pricing, and start earning.
                   </p>
                 </div>
@@ -60,12 +63,12 @@ export default function InstructorPage() {
             {liveSignals.map((signal) => (
               <div
                 key={signal.title}
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4"
+                className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-4"
               >
                 <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
                   {signal.title}
                 </p>
-                <p className="mt-2 text-lg font-semibold text-white">{signal.value}</p>
+                <p className="mt-2 text-lg font-semibold text-[color:var(--foreground)]">{signal.value}</p>
               </div>
             ))}
           </div>

@@ -31,9 +31,9 @@ export default function RoutesPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#1a2550,transparent_55%),radial-gradient(circle_at_80%_20%,#2a1d5a,transparent_40%)]">
+    <div className="min-h-screen bg-[color:var(--background)]">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">
-        <div className="rounded-3xl border border-white/10 bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
           <PrimaryNav />
         </div>
 
@@ -49,8 +49,8 @@ export default function RoutesPage() {
                 key={theme}
                 onClick={() => setCurrentTheme(theme as VisualizerTheme)}
                 className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${currentTheme === theme
-                    ? "bg-white text-black"
-                    : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+                    ? "bg-[color:var(--foreground)] text-[color:var(--background)]"
+                    : "bg-[color:var(--surface-strong)] text-[color:var(--muted)] hover:bg-[color:var(--surface)] hover:text-[color:var(--foreground)]"
                   }`}
               >
                 {theme.charAt(0).toUpperCase() + theme.slice(1)}
@@ -59,7 +59,7 @@ export default function RoutesPage() {
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <BulletList items={worldModes} />
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-white/80">
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 text-sm text-[color:var(--foreground)]">
               Three.js will power the 3D runtime. For MVP we show a narrative
               preview, then swap in the WebGL scene.
             </div>
@@ -72,16 +72,16 @@ export default function RoutesPage() {
           description="Upload a GPX route and preview elevation, pacing, and story beats before class."
         >
           <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6">
               <div className="flex items-center justify-between">
                 <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
                   Route Profile
                 </p>
-                <div className="rounded-full bg-white/5 px-2 py-1 text-[10px] uppercase text-white/50">
+                <div className="rounded-full bg-[color:var(--surface-strong)] px-2 py-1 text-[10px] uppercase text-[color:var(--muted)]">
                   {currentTheme} mode
                 </div>
               </div>
-              <div className="mt-4 h-80 w-full overflow-hidden rounded-xl border border-white/10">
+              <div className="mt-4 h-80 w-full overflow-hidden rounded-xl border border-[color:var(--border)]">
                 <RouteVisualizer
                   elevationProfile={elevationProfile}
                   theme={currentTheme}
@@ -92,7 +92,7 @@ export default function RoutesPage() {
                   className="h-full"
                 />
               </div>
-              <div className="mt-4 flex flex-wrap gap-3 text-xs text-white/70">
+              <div className="mt-4 flex flex-wrap gap-3 text-xs text-[color:var(--muted)]">
                 <Tag>52 km</Tag>
                 <Tag>+800m</Tag>
                 <Tag>32 min climb</Tag>
@@ -124,12 +124,12 @@ export default function RoutesPage() {
             {upcoming.map((world) => (
               <div
                 key={world.title}
-                className="rounded-2xl border border-white/10 bg-white/5 p-5"
+                className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5"
               >
                 <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
                   {world.title}
                 </p>
-                <p className="mt-3 text-sm text-white/80">
+                <p className="mt-3 text-sm text-[color:var(--foreground)]">
                   {world.description}
                 </p>
               </div>
@@ -148,12 +148,12 @@ export default function RoutesPage() {
             description="Confirm routing data + preview story beats."
             actions={
               <>
-                <button className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white/70 transition hover:text-white">
+                <button className="rounded-full border border-[color:var(--border)] px-5 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)]">
                   View spec
                 </button>
                 <a
                   href="/routes/builder"
-                  className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20"
+                  className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-2 text-sm font-semibold text-[color:var(--foreground)] shadow-lg shadow-indigo-500/20"
                 >
                   Start world builder
                 </a>

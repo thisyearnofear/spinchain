@@ -38,9 +38,9 @@ export default function RouteBuilderPage() {
       : defaultProfile;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#1a2550,transparent_55%),radial-gradient(circle_at_80%_20%,#2a1d5a,transparent_40%)]">
+    <div className="min-h-screen bg-[color:var(--background)]">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">
-        <div className="rounded-3xl border border-white/10 bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
           <PrimaryNav />
         </div>
 
@@ -60,9 +60,9 @@ export default function RouteBuilderPage() {
         <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
           {/* Left Column: Visualization */}
           <div className="flex flex-col gap-6">
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black shadow-2xl">
+            <div className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] shadow-2xl">
               <div className="absolute left-6 top-6 z-10 flex gap-2">
-                <span className="rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur border border-white/10">
+                <span className="rounded-full bg-[color:var(--surface-strong)] px-3 py-1 text-xs font-medium text-[color:var(--foreground)] backdrop-blur border border-[color:var(--border)]">
                   {gpxData ? "Custom Route Loaded" : "Demo Preview"}
                 </span>
               </div>
@@ -74,14 +74,14 @@ export default function RouteBuilderPage() {
                 className="h-[450px] w-full"
               />
 
-              <div className="absolute bottom-6 left-6 right-6 z-10 flex flex-wrap justify-center gap-2 rounded-2xl bg-black/60 p-2 backdrop-blur border border-white/10">
+              <div className="absolute bottom-6 left-6 right-6 z-10 flex flex-wrap justify-center gap-2 rounded-2xl bg-[color:var(--surface-strong)] p-2 backdrop-blur border border-[color:var(--border)]">
                 {["neon", "alpine", "mars"].map((theme) => (
                   <button
                     key={theme}
                     onClick={() => setCurrentTheme(theme as VisualizerTheme)}
                     className={`rounded-xl px-4 py-2 text-xs font-medium transition-all ${currentTheme === theme
-                        ? "bg-white text-black shadow-lg scale-105"
-                        : "bg-transparent text-white/60 hover:bg-white/10 hover:text-white"
+                        ? "bg-[color:var(--foreground)] text-[color:var(--background)] shadow-lg scale-105"
+                        : "bg-transparent text-[color:var(--muted)] hover:bg-[color:var(--surface)] hover:text-[color:var(--foreground)]"
                       }`}
                   >
                     {theme.charAt(0).toUpperCase() + theme.slice(1)} Mode
@@ -100,7 +100,7 @@ export default function RouteBuilderPage() {
                   {gpxData.storyBeats.map((beat, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4"
+                      className="flex items-center justify-between rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4"
                     >
                       <div className="flex items-center gap-3">
                         <span
@@ -112,15 +112,15 @@ export default function RouteBuilderPage() {
                             }`}
                         />
                         <div>
-                          <p className="text-sm font-semibold text-white">
+                          <p className="text-sm font-semibold text-[color:var(--foreground)]">
                             {beat.label}
                           </p>
-                          <p className="text-[10px] uppercase tracking-wider text-white/40">
+                          <p className="text-[10px] uppercase tracking-wider text-[color:var(--muted)]">
                             {beat.type}
                           </p>
                         </div>
                       </div>
-                      <span className="text-xs font-medium text-white/60">
+                      <span className="text-xs font-medium text-[color:var(--muted)]">
                         {Math.round(beat.progress * 100)}%
                       </span>
                     </div>
@@ -139,7 +139,7 @@ export default function RouteBuilderPage() {
                   {gpxData.segments.map((segment, i) => (
                     <div
                       key={i}
-                      className="rounded-xl border border-white/10 bg-white/5 p-4"
+                      className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span
@@ -154,10 +154,10 @@ export default function RouteBuilderPage() {
                           {segment.label}
                         </p>
                       </div>
-                      <p className="text-lg font-semibold text-white">
+                      <p className="text-lg font-semibold text-[color:var(--foreground)]">
                         {segment.minutes} min
                       </p>
-                      <p className="text-xs text-white/50">{segment.zone}</p>
+                      <p className="text-xs text-[color:var(--muted)]">{segment.zone}</p>
                     </div>
                   ))}
                 </div>
@@ -174,13 +174,13 @@ export default function RouteBuilderPage() {
               className="bg-[color:var(--surface)]"
             >
               {/* Source Tabs */}
-              <div className="mt-4 flex gap-2 p-1 rounded-lg bg-black/20 border border-white/10">
+              <div className="mt-4 flex gap-2 p-1 rounded-lg bg-[color:var(--surface-strong)] border border-[color:var(--border)]">
                 <button
                   onClick={() => setRouteSource("ai")}
                   className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition ${
                     routeSource === "ai"
-                      ? "bg-white/10 text-white"
-                      : "text-white/60 hover:text-white"
+                      ? "bg-[color:var(--surface)] text-[color:var(--foreground)]"
+                      : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
                   }`}
                 >
                   AI Generate
@@ -189,8 +189,8 @@ export default function RouteBuilderPage() {
                   onClick={() => setRouteSource("upload")}
                   className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition ${
                     routeSource === "upload"
-                      ? "bg-white/10 text-white"
-                      : "text-white/60 hover:text-white"
+                      ? "bg-[color:var(--surface)] text-[color:var(--foreground)]"
+                      : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
                   }`}
                 >
                   GPX Upload
@@ -219,8 +219,8 @@ export default function RouteBuilderPage() {
                     onClick={() => setCurrentTheme(theme as VisualizerTheme)}
                     className={`rounded-lg px-4 py-3 text-sm font-medium transition-all ${
                       currentTheme === theme
-                        ? "bg-white/10 text-white ring-1 ring-white/20"
-                        : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                        ? "bg-[color:var(--surface)] text-[color:var(--foreground)] ring-1 ring-[color:var(--border)]"
+                        : "bg-[color:var(--surface-strong)] text-[color:var(--muted)] hover:bg-[color:var(--surface)] hover:text-[color:var(--foreground)]"
                     }`}
                   >
                     {theme.charAt(0).toUpperCase() + theme.slice(1)}
@@ -240,7 +240,7 @@ export default function RouteBuilderPage() {
                 actions={
                   <div className="flex flex-col w-full gap-3">
                     <button
-                      className="w-full rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-3 text-sm font-semibold text-[color:var(--foreground)] shadow-lg shadow-indigo-500/20 transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={!gpxData}
                     >
                       Save World
