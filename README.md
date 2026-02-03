@@ -8,6 +8,7 @@ SpinChain is a hybrid fitness protocol that combines the liquidity depth of **Av
 
 ### 1. Route Worlds (3D Specialized)
 - **Interactive Visualization**: High-fidelity 3D WebGL route visualization using GPX data.
+- **AI Route Generation**: Natural language route creation via Gemini integration.
 - **Automated Discovery**: AI/Gradient-based detection of climbs and descents.
 - **Ghost Riders**: Real-time social presence without compromising individual privacy.
 - **Audio Triggers**: Synchronized acoustic cues for high-intensity intervals.
@@ -18,18 +19,21 @@ SpinChain is a hybrid fitness protocol that combines the liquidity depth of **Av
 - **Liquidity Hooks**: Automated management of class token liquidity via Uniswap v4 hooks.
 
 ### 3. The Hybrid Architecture
-- **Settlement Layer (Avalanche)**: Handling tickets, rewards, and identity (ENS).
+- **Settlement Layer (Avalanche)**: Handling tickets, rewards, identity (ENS), and **ZK proof verification**.
 - **Performance Layer (Sui)**: Processing high-frequency biometric data (10Hz) via parallel Move objects.
 - **Storage Layer (Walrus)**: Decentralized hosting for 3D worlds and raw session logs.
 
-### 4. Progressive Privacy
-- **Sovereign Health Data**: Metrics never leave the rider's device.
-- **Verifiable Proofs**: Signed attestations (MVP) upgradeable to full Zero-Knowledge Proofs.
-- **Selective Disclosure**: Prove "Effort > 150" without revealing raw heart rate or biometric data.
+### 4. Zero-Knowledge Privacy ✅ IMPLEMENTED
+- **Noir Circuits**: Production ZK circuits proving effort without revealing health data.
+- **Selective Disclosure**: Prove "HR > 150" without revealing raw heart rate or biometric data.
+- **On-Chain Verification**: Solidity verifier contracts on Avalanche C-Chain.
+- **Local Oracle**: Browser-based proof generation (<1s) with no data leaving device.
+- **Walrus Backup**: Encrypted decentralized storage for raw telemetry.
 
 ### 5. Incentive Layer
-- **Performance Rewards**: Automatic minting of SPIN tokens for hitting effort thresholds.
-- **Shareable Proof Cards**: Dynamic social assets linked to onchain verification.
+- **ZK-Based Rewards**: Automatic SPIN token distribution verified by ZK proofs.
+- **Performance Rewards**: Rewards for hitting effort thresholds with privacy preserved.
+- **Shareable Proof Cards**: Dynamic social assets linked to onchain ZK verification.
 - **Sponsor Integration**: Reward pools funded by wellness brands and protocols.
 
 ---
@@ -37,20 +41,22 @@ SpinChain is a hybrid fitness protocol that combines the liquidity depth of **Av
 ## 🏗️ Technical Architecture
 
 ### Blockchain Stack
-- **Settlement**: Avalanche C-Chain (EVM)
+- **Settlement**: Avalanche C-Chain (EVM) with ZK Verifiers
 - **Execution**: Sui (Move)
 - **Contracts**: Solidity 0.8.24+ & Sui Move
 - **Identity/Wallet**: RainbowKit (EVM) + Sui dApp Kit
+- **ZK Proofs**: Noir (Aztec) with UltraPlonk backend
 
 ### Frontend & Visualization
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 16 (App Router)
 - **3D Engine**: React Three Fiber + Three.js + Drei
 - **Styling**: Tailwind CSS + Custom Glassmorphic System
 
-### Privacy & Data
-- **Attestations**: Browser-native EIP-712 signing
-- **Data Source**: GPX Parsers + Mock Health APIs (MVP)
-- **ZK Path**: Aztec / Noir / Succinct SP1 (Roadmap)
+### Privacy & ZK Stack
+- **Circuits**: Noir (`circuits/effort_threshold/`)
+- **Proving**: Browser-based UltraPlonk (barretenberg)
+- **Verification**: `EffortThresholdVerifier.sol` on Avalanche
+- **Storage**: Sui Walrus for encrypted telemetry
 
 ---
 
@@ -67,6 +73,19 @@ pnpm install
 Create a `.env` file based on `.env.example`:
 ```env
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_id
+NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x...
+```
+
+### Compile ZK Circuits (Optional)
+```bash
+# Install Noir
+curl -L https://noirup.dev | bash
+noirup
+
+# Compile circuits
+cd circuits/effort_threshold
+nargo compile
+nargo test
 ```
 
 ### Development
@@ -79,9 +98,31 @@ Open [http://localhost:3000](http://localhost:3000) to view the protocol dashboa
 
 ## 📚 Documentation
 - [**HackMoney 2026 Submission**](./docs/HACKMONEY.md): Detailed hackathon-specific brief.
-- [**Architecture**](./docs/ARCHITECTURE.md): Deep dive into the Dual-Engine design.
+- [**Architecture**](./docs/ARCHITECTURE.md): Deep dive into the Dual-Engine + ZK design.
+- [**ZK Integration**](./docs/ZK_INTEGRATION.md): Guide for using ZK proofs.
 - [**Roadmap**](./docs/ROADMAP.md): Future phases for privacy and scale.
 - [**Contracts**](./contracts/README.md): Details on the smart contract layer.
+
+---
+
+## 🔐 ZK Proof Quick Example
+
+```typescript
+import { useZKClaim } from '@/app/hooks/use-zk-claim';
+
+// Generate ZK proof (browser, <1s)
+const { generateProof, submitProof } = useZKClaim();
+
+const proofResult = await generateProof(
+  165,    // max heart rate
+  150,    // threshold
+  10      // duration (minutes)
+);
+
+// Submit to Avalanche verifier
+await submitProof(params, proofResult.proof);
+// → Verifies without revealing actual HR data!
+```
 
 ---
 
