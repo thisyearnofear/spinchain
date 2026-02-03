@@ -8,6 +8,7 @@ import { WelcomeModal } from "./components/welcome-modal";
 import { InstructorModeSelector } from "./components/instructor-mode-selector";
 import { FadeIn, StaggerContainer, Parallax, ScaleIn } from "./components/scroll-animations";
 import { AnimatedCard, EnergyPulse, Floating, MagneticButton } from "./components/animated-card";
+import { RouteShowcase } from "./components/route-showcase";
 
 export default function Home() {
   const [showWelcome, setShowWelcome] = useState(false);
@@ -297,6 +298,9 @@ export default function Home() {
             </div>
           </section>
         </Parallax>
+
+        {/* Route Showcase - NEW */}
+        <RouteShowcase />
 
         {/* Features Grid */}
         <section className="grid gap-6 lg:grid-cols-2">
