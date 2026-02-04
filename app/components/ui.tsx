@@ -59,10 +59,18 @@ export function SurfaceCard({
         </p>
       ) : null}
       {title ? (
-        <h3 className={`text-lg font-semibold text-[color:var(--foreground)] ${eyebrow ? 'mt-3' : ''}`}>{title}</h3>
+        <h3
+          className={`text-lg font-semibold text-[color:var(--foreground)] ${eyebrow ? "mt-3" : ""}`}
+        >
+          {title}
+        </h3>
       ) : null}
       {description ? (
-        <p className={`text-sm text-[color:var(--muted)] ${title ? 'mt-2' : ''}`}>{description}</p>
+        <p
+          className={`text-sm text-[color:var(--muted)] ${title ? "mt-2" : ""}`}
+        >
+          {description}
+        </p>
       ) : null}
       {children}
     </div>
@@ -81,8 +89,12 @@ export function MetricTile({ label, value, detail }: MetricProps) {
       <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
         {label}
       </p>
-      <p className="mt-2 text-lg font-semibold text-[color:var(--foreground)]">{value}</p>
-      {detail ? <p className="text-xs text-[color:var(--muted)]">{detail}</p> : null}
+      <p className="mt-2 text-lg font-semibold text-[color:var(--foreground)]">
+        {value}
+      </p>
+      {detail ? (
+        <p className="text-xs text-[color:var(--muted)]">{detail}</p>
+      ) : null}
     </div>
   );
 }
@@ -106,11 +118,25 @@ export function BulletList({ items }: BulletListProps) {
 
 type TagProps = {
   children: React.ReactNode;
+  color?: "blue" | "indigo" | "amber" | "green";
 };
 
-export function Tag({ children }: TagProps) {
+export function Tag({ children, color }: TagProps) {
+  const colorClasses = {
+    blue: "border-blue-500/30 bg-blue-500/10 text-blue-400",
+    indigo: "border-indigo-500/30 bg-indigo-500/10 text-indigo-400",
+    amber: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+    green: "border-green-500/30 bg-green-500/10 text-green-400",
+  };
+
+  const baseClass = color
+    ? colorClasses[color]
+    : "border-[color:var(--border)] bg-[color:var(--surface-strong)] text-[color:var(--muted)]";
+
   return (
-    <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-2 text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
+    <span
+      className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.2em] ${baseClass}`}
+    >
       {children}
     </span>
   );

@@ -1,6 +1,8 @@
 // BLE Service - Core service layer for all BLE operations
 // Following Core Principles: Single source of truth, DRY, CLEAN separation
 
+/// <reference types="web-bluetooth" />
+
 import { 
   BLE_SERVICES, 
   BLE_CHARACTERISTICS, 
@@ -79,7 +81,7 @@ export class BleService {
 
       const device = await navigator.bluetooth.requestDevice({
         filters: [
-          { services: DEVICE_FILTERS.ACCEPTED_SERVICES }
+          { services: [...DEVICE_FILTERS.ACCEPTED_SERVICES] as BluetoothServiceUUID[] }
         ],
         optionalServices: [
           BLE_SERVICES.CYCLING_POWER,
@@ -151,10 +153,13 @@ export class BleService {
     this.stopMetricsUpdates();
     this.updateStatus('disconnected');
     this.state.isConnected = false;
+    
+    // Get device ID before clearing state
+    const deviceId = this.state.device?.id;
     this.state.device = null;
     
-    if (this.state.device?.id) {
-      this.callbacks.onDeviceDisconnected?.(this.state.device.id);
+    if (deviceId) {
+      this.callbacks.onDeviceDisconnected?.(deviceId);
     }
     
     this.notifyStatusChange();

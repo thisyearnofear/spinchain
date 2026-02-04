@@ -21,7 +21,7 @@ export default function InstructorPage() {
     <div className="min-h-screen bg-[color:var(--background)]">
       {/* Background gradient */}
       <div className="fixed inset-0 bg-gradient-radial pointer-events-none" />
-      
+
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">
         <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
           <PrimaryNav />
@@ -37,8 +37,9 @@ export default function InstructorPage() {
                   <h3 className="text-lg font-semibold text-amber-600 dark:text-amber-400 mb-1">
                     Become an Instructor
                   </h3>
-                  <p className="text-sm text-amber-700/80 dark:text-amber-200/80">
-                    Connect your wallet to create classes, set pricing, and start earning.
+                  <p className="text-sm text-amber-900 dark:text-amber-200/80">
+                    Connect your wallet to create classes, set pricing, and
+                    start earning.
                   </p>
                 </div>
               </div>
@@ -68,7 +69,9 @@ export default function InstructorPage() {
                 <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
                   {signal.title}
                 </p>
-                <p className="mt-2 text-lg font-semibold text-[color:var(--foreground)]">{signal.value}</p>
+                <p className="mt-2 text-lg font-semibold text-[color:var(--foreground)]">
+                  {signal.value}
+                </p>
               </div>
             ))}
           </div>
@@ -82,7 +85,8 @@ export default function InstructorPage() {
               Ready to create your next class?
             </h2>
             <p className="text-[color:var(--muted)] mb-6 max-w-md mx-auto">
-              Our simplified wizard will guide you through setting up your class, route, and pricing in just a few steps.
+              Our simplified wizard will guide you through setting up your
+              class, route, and pricing in just a few steps.
             </p>
             <button
               onClick={() => setShowWizard(true)}
@@ -90,8 +94,18 @@ export default function InstructorPage() {
               className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent)] px-8 py-3 text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create New Class
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 8l4 4m0 0l-4 4m4-4H3"
+                />
               </svg>
             </button>
             {!isConnected && (
@@ -138,14 +152,14 @@ export default function InstructorPage() {
 
             <a
               href="/instructor/ai"
-              className="group rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 hover:border-[color:var(--accent)]/50 transition-colors"
+              className="group rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-6 hover:border-indigo-500/50 transition-colors"
             >
               <span className="text-3xl mb-4 block">🤖</span>
               <h3 className="font-semibold text-[color:var(--foreground)] mb-2">
-                AI Assistant
+                Agentic Finance
               </h3>
               <p className="text-sm text-[color:var(--muted)]">
-                Generate routes and class descriptions with AI
+                Deploy autonomous instructors and optimize revenue with V4 hooks
               </p>
             </a>
 

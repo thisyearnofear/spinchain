@@ -14,7 +14,7 @@ import type {
   BleServiceCallbacks 
 } from "../ble/types";
 import { useToast } from "../../components/toast";
-import { parseBleError, type BleErrorCategory } from "../errors";
+import type { BleErrorCategory } from "../errors";
 
 // Type for BLE transaction args (following useTransaction pattern)
 interface BleTransactionArgs {

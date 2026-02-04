@@ -1,14 +1,16 @@
-# AI Route Integration - Product Design & System Architecture
+# SpinChain: AI Integration
 
-## 🎯 Vision
+## AI Route Integration - Product Design & System Architecture
+
+### Vision
 
 Transform SpinChain from a route creation tool into an **end-to-end AI-powered fitness experience** where routes flow seamlessly from generation → class creation → live ride → proof of effort.
 
 ---
 
-## 🔄 Current State Analysis
+### Current State Analysis
 
-### What We Have
+#### What We Have
 1. **AI Route Generator** (`/routes/builder`)
    - Natural language route creation
    - Voice input capability
@@ -39,7 +41,7 @@ Transform SpinChain from a route creation tool into an **end-to-end AI-powered f
    - Story beat triggers
    - **Gap**: Not connected to routes
 
-### What's Missing
+#### What's Missing
 
 ❌ **Routes aren't connected to classes**
 - Instructors create routes separately from classes
@@ -58,9 +60,9 @@ Transform SpinChain from a route creation tool into an **end-to-end AI-powered f
 
 ---
 
-## 🏗️ Proposed Architecture
+### Proposed Architecture
 
-### System Overview
+#### System Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -79,7 +81,7 @@ Transform SpinChain from a route creation tool into an **end-to-end AI-powered f
         ├─ Create Class       ├─ Purchase Ticket   ├─ Trigger Beats
         ├─ Attach Route       ├─ Join Live Ride    ├─ Adjust Difficulty
         └─ Deploy Contract    └─ Claim Rewards     └─ Post-Ride Analysis
-                              
+      
 ┌─────────────────────────────────────────────────────────────────┐
 │                      DATA LAYER                                  │
 │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────┐ │
@@ -91,9 +93,9 @@ Transform SpinChain from a route creation tool into an **end-to-end AI-powered f
 
 ---
 
-## 📋 Product Design: User Journeys
+### Product Design: User Journeys
 
-### Journey 1: Instructor Creates AI-Powered Class
+#### Journey 1: Instructor Creates AI-Powered Class
 
 **Current Flow:**
 1. Go to `/routes/builder` → Generate route → Save to library
@@ -101,6 +103,7 @@ Transform SpinChain from a route creation tool into an **end-to-end AI-powered f
 3. Deploy class contract → Route information lost
 
 **Proposed Flow:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Step 1: Generate or Select Route                            │
@@ -202,6 +205,7 @@ interface ClassMetadata {
 4. Claim rewards manually
 
 **Proposed Flow:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Step 1: Discover Classes with Route Previews               │
@@ -302,6 +306,7 @@ export default function LiveRidePage() {
 - Story beats manually triggered
 
 **Proposed Flow:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Pre-Class: AI Agent Preparation                             │
@@ -381,9 +386,9 @@ export class AICoach {
 
 ---
 
-## 🔗 Data Flow Architecture
+### Data Flow Architecture
 
-### Route Lifecycle
+#### Route Lifecycle
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -432,453 +437,445 @@ export class AICoach {
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Smart Contract Updates
+---
 
-**1. Enhanced SpinClass.sol**
+## AI Features Guide
 
-```solidity
-contract SpinClass is ERC721, Ownable, ReentrancyGuard {
-    // ... existing code ...
-    
-    // NEW: Route metadata
-    struct RouteData {
-        string walrusBlobId;    // Decentralized storage reference
-        string name;
-        uint256 distance;       // in meters
-        uint256 duration;       // in seconds
-        uint256 elevationGain;  // in meters
-        bool aiEnabled;
-        string aiPersonality;
-    }
-    
-    RouteData public route;
-    
-    constructor(
-        // ... existing params ...
-        RouteData memory route_
-    ) {
-        // ... existing code ...
-        route = route_;
-    }
-    
-    function getRouteMetadata() external view returns (RouteData memory) {
-        return route;
-    }
-}
-```
+### Overview
 
-**2. Enhanced Sui Session**
+SpinChain's AI route generation system transforms natural language descriptions into fully-realized spin class routes with elevation profiles, story beats, and immersive visualizations.
 
-```move
-module spinchain::spinsession {
-    // ... existing code ...
-    
-    struct Session has key, store {
-        id: UID,
-        class_id: ID,
-        instructor: address,
-        duration: u64,
-        is_active: bool,
-        
-        // NEW: Route integration
-        route_blob_id: String,  // Walrus reference
-        story_beats: vector<StoryBeat>,
-        current_progress: u64,  // percentage * 100
-    }
-    
-    struct StoryBeat has store, drop {
-        progress: u64,    // percentage * 100
-        label: String,
-        beat_type: String,
-        triggered: bool,
-    }
-    
-    public entry fun update_progress(
-        session: &mut Session,
-        progress: u64,
-        ctx: &mut TxContext
-    ) {
-        session.current_progress = progress;
-        
-        // Auto-trigger story beats at right time
-        let beats = &mut session.story_beats;
-        let i = 0;
-        let len = vector::length(beats);
-        
-        while (i < len) {
-            let beat = vector::borrow_mut(beats, i);
-            if (!beat.triggered && progress >= beat.progress) {
-                beat.triggered = true;
-                event::emit(StoryBeatTriggered {
-                    label: beat.label,
-                    beat_type: beat.beat_type,
-                    intensity: 5, // Could be dynamic
-                });
-            };
-            i = i + 1;
-        };
-    }
-}
-```
+### Key Features
+
+#### 1. Natural Language Route Creation
+Describe your ideal route in plain English, and AI generates complete route data:
+
+**Example Prompts:**
+- "A 45-minute coastal climb with ocean views starting from Santa Monica"
+- "Fast urban sprint through downtown with minimal stops"
+- "Beginner-friendly rolling hills for endurance training"
+- "Challenging mountain ascent with valley views and steep sections"
+
+#### 2. Voice Input (Hands-Free)
+Use your voice to describe routes without typing:
+- Click the "Voice" button to start listening
+- Speak naturally - the system captures your description
+- Works in all modern browsers supporting Web Speech API
+- Perfect for instructors planning while reviewing other content
+
+#### 3. Route Library
+Save and organize your favorite AI-generated routes:
+- **Save**: Store routes with custom tags (climbing, long-distance, challenging)
+- **Favorite**: Star your best routes for quick access
+- **Search**: Find routes by name, description, or tags
+- **Export**: Download your entire library as JSON
+- **Browse**: Beautiful grid view with stats and previews
+- **Auto-tagging**: Routes automatically tagged based on characteristics
+
+#### 4. Enhanced Visualization
+Every generated route includes:
+- **3D Route Preview**: Real-time elevation visualization with theme support (neon/alpine/mars)
+- **Story Beats**: AI-detected moments of high intensity (climbs, sprints, descents)
+- **Difficulty Badges**: Visual indicators for easy/moderate/hard routes
+- **Stat Cards**: Distance, duration, and elevation gain with icons
+- **Progress Bars**: Visual representation of story beat timing
+
+#### 5. Smart AI Integration
+Powered by Google Gemini with sophisticated prompting:
+- **Contextual Understanding**: AI interprets location hints, intensity levels, and preferences
+- **Realistic Terrain**: Elevation profiles match real-world cycling physics
+- **Story Beat Detection**: Automatic identification of dramatic route moments
+- **Adaptive Difficulty**: Route complexity adjusts based on your settings
 
 ---
 
-## 🎨 UI/UX Integration Points
+## AI Route Generation Integration
 
-### Priority 1: Instructor Builder Enhancement
+### Overview
 
-**File**: `app/instructor/builder/page.tsx`
+This document describes the AI-powered route generation system integrated into SpinChain, inspired by the [map-agent project](https://github.com/jeantimex/map-agent).
 
-```tsx
-// Add Step 0: Route Selection
-const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
+SpinChain now features natural language route creation, allowing instructors to describe routes in plain English and have them automatically generated with elevation profiles, story beats, and GPX export capabilities.
 
-<div className="step-container">
-  {step === 0 && (
-    <RouteSelectionStep
-      onRouteSelected={setSelectedRoute}
-      showGenerator={true}
-    />
-  )}
-  
-  {step === 1 && selectedRoute && (
-    <ClassBasicsStep
-      defaultName={selectedRoute.name}
-      defaultDuration={selectedRoute.estimatedDuration}
-      route={selectedRoute}
-    />
-  )}
-  
-  // ... other steps
-</div>
+### Architecture
+
+#### Core Principles Applied
+
+- **Enhancement First**: Enhanced existing route builder instead of creating new pages
+- **Aggressive Consolidation**: Unified all AI services into a single module
+- **DRY**: Single `AIService` class for all AI interactions
+- **Clean Separation**: Clear boundaries between API layer, service layer, and UI components
+- **Modular**: Independent, testable components with explicit dependencies
+
+#### System Components
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Route Builder UI                         │
+│  ┌──────────────────┐           ┌──────────────────┐       │
+│  │  AI Generate Tab │           │  GPX Upload Tab  │       │
+│  │ (NEW)           │           │  (Existing)      │       │
+│  └──────────────────┘           └──────────────────┘       │
+└─────────────────────────────────────────────────────────────┘
+                      ↓                       ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    Service Layer                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  AIService (app/lib/ai-service.ts)                   │  │
+│  │  - generateRoute()                                    │  │
+│  │  - generateNarrative()                                │  │
+│  │  - chat()                                             │  │
+│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  Route Generation Utils (app/lib/route-generation.ts)│  │
+│  │  - convertToGpxSummary()                             │  │
+│  │  - exportToGPX()                                      │  │
+│  │  - downloadGPX()                                      │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    API Layer (Server-Side)                   │
+│  /api/ai/generate-route     - Generate routes from prompts  │
+│  /api/ai/generate-narrative - Create route descriptions     │
+│  /api/ai/chat               - General AI chat               │
+└─────────────────────────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────────────┐
+│                External AI Provider (Gemini)                 │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Priority 2: Live Ride Page
+### Usage
 
-**File**: `app/rider/ride/[classId]/page.tsx` (NEW)
+#### For Instructors
 
-```tsx
-export default function LiveRidePage({ params }: { params: { classId: string } }) {
-  const { route, session } = useRideSession(params.classId);
-  const { telemetry } = useTelemetry();
-  const { aiCoach } = useAICoach(session);
-  
+1. Navigate to `/routes/builder`
+2. Click the **AI Generate** tab
+3. Describe your route in natural language:
+   - "45-minute coastal climb with ocean views"
+   - "Fast urban sprint through downtown"
+   - "Mountain ascent with challenging gradients"
+4. Set duration and difficulty
+5. Click **Generate Route**
+6. Preview the route in 3D with story beats
+7. Export as GPX or save to class
+
+#### For Developers
+
+##### Using the AI Service
+
+```typescript
+import { getAIService } from "@/app/lib/ai-service";
+
+const aiService = getAIService();
+
+// Generate a route
+const route = await aiService.generateRoute({
+  prompt: "coastal climb with ocean views",
+  duration: 45,
+  difficulty: "moderate",
+});
+
+// Generate narrative
+const narrative = await aiService.generateNarrative(
+  elevationProfile,
+  "neon",
+  45
+);
+```
+
+##### Using the Hook
+
+```typescript
+import { useAIRoute } from "@/app/hooks/use-ai-route";
+
+function MyComponent() {
+  const { generateRoute, route, isGenerating, exportGPX } = useAIRoute();
+
+  const handleGenerate = async () => {
+    await generateRoute({
+      prompt: "mountain climb",
+      duration: 45,
+      difficulty: "hard",
+    });
+  };
+
   return (
-    <RideContainer>
-      <RouteVisualization3D
-        route={route}
-        progress={telemetry.progress}
-        storyBeats={route.storyBeats}
-      />
-      
-      <RideHUD telemetry={telemetry} />
-      
-      <AICoachingOverlay
-        coach={aiCoach}
-        session={session}
-      />
-    </RideContainer>
+    <button onClick={handleGenerate} disabled={isGenerating}>
+      {isGenerating ? "Generating..." : "Generate Route"}
+    </button>
   );
 }
 ```
 
-### Priority 3: Class Browser with Routes
+### Features
 
-**File**: `app/rider/page.tsx`
+#### ✅ Implemented (MVP)
 
-```tsx
-// Fetch classes with route metadata
-const classes = useClasses(); // Enhanced to load route data
+- **Natural Language Input**: Describe routes in plain English
+- **Automatic Route Generation**: AI creates coordinates, elevation, and story beats
+- **GPX Export**: Download generated routes as standard GPX files
+- **Integration with Existing UI**: Seamlessly embedded in route builder
+- **Mock Implementation**: Working demo without external API dependencies
+- **Unified AI Service**: Single source of truth for all AI interactions
 
-<div className="classes-grid">
-  {classes.map(cls => (
-    <ClassCard
-      key={cls.id}
-      class={cls}
-      route={cls.route}
-      onPreview={() => setPreviewRoute(cls.route)}
-    />
-  ))}
-</div>
+#### 🚧 Future Enhancements (Phase 2)
 
-{previewRoute && (
-  <RoutePreviewModal
-    route={previewRoute}
-    onClose={() => setPreviewRoute(null)}
-    onPurchaseTicket={() => purchaseTicket(cls.id)}
-  />
-)}
+- **Real Gemini API Integration**: Replace mock with actual Google Gemini API
+- **Google Maps Integration**: Real-world route data and Street View preview
+- **Voice Input**: Speak your route description
+- **Multi-Route Series**: Generate training programs across multiple days
+- **Route Optimization**: AI suggests improvements based on ride goals
+- **Community Templates**: Share and discover AI-generated routes
+
+### Configuration
+
+#### Environment Variables
+
+```env
+# Required for production (Phase 2)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Optional
+NEXT_PUBLIC_AI_PROVIDER=gemini  # or "openai" in future
 ```
+
+#### Current Implementation
+
+The MVP uses **mock implementations** that generate realistic routes without requiring external API keys. This allows immediate testing and development.
+
+To switch to real Gemini API:
+
+1. Uncomment the Gemini API code in `/app/api/ai/generate-route/route.ts`
+2. Add `GEMINI_API_KEY` to your `.env.local`
+3. Install `@google/generative-ai` package (already in dependencies)
 
 ---
 
-## 📊 Data Schema Updates
+## Agentic Finance: The Uniswap v4 Integration
 
-### Route Library Entry
+### Thesis
+Fitness classes are perishable inventory. AI Agents using Uniswap v4 Hooks are superior to static pricing for managing this inventory.
 
-```typescript
-interface SavedRoute {
-  // ... existing fields ...
-  
-  // NEW: Deployment tracking
-  deployments: Array<{
-    classId: string;
-    chainId: number;
-    contractAddress: string;
-    walrusBlobId: string;
-    deployedAt: string;
-    instructor: string;
-  }>;
-  
-  // NEW: Usage analytics
-  analytics: {
-    timesUsed: number;
-    avgRating: number;
-    completionRate: number;
-  };
+### The Core Primitive: SpinPacks (ERC-1155)
+
+We treat every fitness course as a composable asset bundle called a **SpinPack**.
+
+- **Token ID 0 (The IP)**: The "Master" NFT. Ownership of the route data, music playlist, and effort logic. Held by the Creator (Human or AI).
+- **Token ID 1..N (The Access)**: Fungible tickets for specific scheduled slots (e.g., "Monday 9am").
+
+**The Shift**: Instead of selling tickets via a static contract, the AI Agent creates a **Uniswap v4 Pool** for the `Access Token` vs. `$SPIN`.
+
+### The Innovation: Dynamic Demand Hooks
+
+We propose a custom Uniswap v4 Hook: `DemandSurgeHook.sol`.
+
+#### The Problem
+Static class pricing fails in two ways:
+1. **Underpricing**: Popular classes sell out instantly, leaving value on the table (scalpers win).
+2. **Overpricing**: Empty classes earn $0 because the price didn't adapt to low demand.
+
+#### The Agentic Solution
+The AI Instructor attaches a Hook to its class liquidity pool that acts as an automated market maker with "inventory awareness."
+
+##### Hook Logic:
+1. **BeforeSwap**:
+    - Check `block.timestamp` vs `classStartTime`.
+    - Check `pool.liquidity` (remaining tickets).
+2. **Fee Adjustment**:
+    - *Inventory Low + Time Near*: **Surge Mode**. Increase swap fee to 5-10%. The Agent captures premium demand.
+    - *Inventory High + Time Near*: **Fire Sale Mode**. Lower swap fee to 0.01% or even offer a *negative fee* (rebate) to fill the room.
+3. **AfterSwap**:
+    - If the user bought a ticket, automatically check if they hold a "Membership NFT" (SpinChain Pass). If yes, rebate a portion of the fee instantly.
+
+### The Agent Workflow
+
+How "Coach Atlas" (our AI) actively manages liquidity:
+
+1. **Deployment**: Atlas deploys a `SpinPack` and initializes a V4 Pool (`Ticket / ETH`) with the `DemandSurgeHook`.
+2. **Liquidity Provisioning**: Atlas is the sole LP. It provides the initial 50 tickets into the pool range.
+3. **Monitoring**: Atlas runs an off-chain cron job (or Sui Agent) monitoring social sentiment.
+4. **Rebalancing**:
+    - If a route goes viral on Twitter, Atlas calls `poolManager.modifyPosition` to concentrate liquidity at a higher price range.
+    - This is **Agentic Finance**: The code acts on external signals to optimize yield.
+
+### Privacy DeFi Angle (Track 2)
+
+We can combine this with our Privacy architecture:
+
+- **Dark Pools for VIPs**: High-net-worth riders or celebrities can swap for tickets in a private pool where the Hook verifies a ZK Proof of "Status" without revealing their address.
+- **Proof**: "I own a SpinPass > Level 50" (verified inside the Hook) -> Access granted to the VIP liquidity range.
+
+### Technical Implementation for HackMoney
+
+#### The `SpinHook` Contract
+```solidity
+// Pseudo-code for the Hackathon Hook
+contract SpinHook is BaseHook {
+    struct ClassState {
+        uint256 startTime;
+        uint256 capacity;
+        uint256 sold;
+    }
+    
+    mapping(PoolId => ClassState) public classes;
+
+    function beforeSwap(...) override returns (...) {
+        // 1. Calculate Time Decay
+        uint256 timeRemaining = class.startTime - block.timestamp;
+        
+        // 2. Calculate Scarcity
+        uint256 scarcity = (class.sold * 100) / class.capacity;
+        
+        // 3. Adjust Fee
+        if (scarcity > 90) {
+            return (BaseHook.Override.Fee, 50000); // 5% Surge
+        } else if (timeRemaining < 1 hours && scarcity < 50) {
+            return (BaseHook.Override.Fee, 100);   // 0.01% Discount
+        }
+        
+        return (BaseHook.Override.None, 0);
+    }
 }
 ```
 
-### Class Contract Metadata
+### Winning the Prize
 
-```typescript
-interface ClassMetadata {
-  // Existing fields
-  name: string;
-  description: string;
-  instructor: string;
-  
-  // NEW: Route reference
-  route: {
-    walrusBlobId: string;
-    sourceLibraryId?: string;  // Link back to library
-    checksum: string;          // Verify integrity
-  };
-  
-  // NEW: AI configuration
-  ai: {
-    enabled: boolean;
-    personality: string;
-    settings: Record<string, any>;
-  };
+This architecture directly addresses the Uniswap prompt:
+> *"Agents that manage liquidity and execute trades onchain."*
+
+Our AI Agents don't just "trade"; they **structure the market** for their own services, dynamically optimizing for maximum revenue and maximum attendance. It is a perfect micro-cosm of Agentic Finance.
+
+---
+
+## Agentic Finance Implementation Plan
+
+### Mission
+Deploy autonomous agents ("Coach Atlas") that manage physical class difficulty in real-time on Sui and optimize financial yield on EVM using Uniswap v4 Hooks.
+
+### System Architecture: The "Dual-Engine"
+
+We utilize a hybrid-chain architecture to decouple **High-Frequency State** (Biometrics/Performance) from **High-Value State** (Assets/Settlement).
+
+#### A. Settlement Layer (EVM / Avalanche / Ethereum)
+- **Role**: The "Bank" and "Identity Provider".
+- **Core Assets**:
+    - **Identity**: ENS (`coachatlas.eth`) bridged to app.
+    - **Inventory**: Class Tickets (ERC-721).
+    - **Revenue**: `$SPIN` / `USDC` Liquidity Pools.
+- **The Brain (Financial)**: `DemandSurgeHook.sol`
+    - Attached to Uniswap v4 Pools.
+    - Read-only access to Ticket Inventory.
+    - **Action**: Dynamically adjusts Swap Fees based on supply/demand curves.
+
+#### B. Performance Layer (Sui)
+- **Role**: The "Nervous System" and "Data Availability".
+- **Core Objects**:
+    - **Agent**: `Coach` (Shared Object). Represents the AI Instructor's current state (Mood, Tempo, Resistance).
+    - **Session**: `Session` (Shared Object). Represents the live class instance.
+    - **Telemetry**: `RiderStats` (Owned Object). High-frequency biometric data batches.
+- **The Brain (Physical)**: AI Agent (Off-chain loop)
+    - Reads `RiderStats` (Sui).
+    - Writes to `Coach` (Sui) to change class difficulty.
+
+---
+
+### Component Design
+
+#### 2.1 Uniswap v4 Hook (`DemandSurgeHook.sol`)
+**Goal**: Maximize revenue and attendance.
+
+| State | Condition | Fee Logic | Reasoning |
+|-------|-----------|-----------|-----------|
+| **Standard** | Utilization 20-80% | 0.30% | Normal market conditions. |
+| **Surge** | Utilization > 80% + < 2h to start | 1.00% - 5.00% | Capture high willingness-to-pay. |
+| **Fire Sale** | Utilization < 20% + < 24h to start | 0.05% | Incentivize liquidity and attendance. |
+
+**Interface**:
+```solidity
+function beforeSwap(...) returns (uint24 feeOverride) {
+    // 1. Get Class Inventory State
+    // 2. Calculate Time-Weighted Utilization
+    // 3. Return Dynamic Fee
 }
 ```
 
----
+#### 2.2 Sui Move Agent (`spinchain::spinsession`)
+**Goal**: Real-time physical optimization.
 
-## 🚀 Implementation Phases
-
-### Phase 1: Foundation (Week 1)
-**Goal**: Connect routes to classes
-
-- [ ] Update `ClassFormData` to include route selection
-- [ ] Add Step 0 to instructor builder (route selection)
-- [ ] Implement Walrus upload for routes
-- [ ] Update SpinClass contract to store route metadata
-- [ ] Add route preview to class cards
-
-**Deliverables**:
-- Instructors can attach routes to classes
-- Routes stored on Walrus
-- Class metadata includes route reference
-
-### Phase 2: Rider Experience (Week 2)
-**Goal**: Immersive live rides
-
-- [ ] Create `/rider/ride/[classId]` page
-- [ ] Implement full-screen route visualization
-- [ ] Add real-time progress tracking
-- [ ] Build HUD overlay for telemetry
-- [ ] Connect story beats to route progress
-
-**Deliverables**:
-- Live ride page functional
-- Route visualization during ride
-- Story beats trigger at correct times
-
-### Phase 3: AI Coaching (Week 3)
-**Goal**: Autonomous AI instructors
-
-- [ ] Build `AICoach` service class
-- [ ] Subscribe to Sui telemetry events
-- [ ] Implement adaptive difficulty algorithms
-- [ ] Create coaching message generation
-- [ ] Add voice synthesis for AI cues
-
-**Deliverables**:
-- AI monitors live sessions
-- Story beats triggered automatically
-- Coaching cues based on group performance
-
-### Phase 4: Polish & Analytics (Week 4)
-**Goal**: Production-ready experience
-
-- [ ] Add route replay functionality
-- [ ] Implement social proof cards
-- [ ] Build instructor analytics dashboard
-- [ ] Add route rating/feedback system
-- [ ] Performance optimization
-
-**Deliverables**:
-- Complete end-to-end flow
-- Analytics for instructors
-- Social sharing features
-
----
-
-## 🤔 Key Design Decisions
-
-### Decision 1: Where to Store Routes?
-
-**Options:**
-1. **LocalStorage only** (current)
-   - ✅ Fast, private, no cost
-   - ❌ Not accessible to riders
-   - ❌ Lost if browser cache cleared
-
-2. **Walrus + IPFS** (proposed)
-   - ✅ Decentralized, permanent
-   - ✅ Accessible to all users
-   - ❌ Upload cost (~$0.01 per route)
-   - ✅ Censorship resistant
-
-3. **Centralized server**
-   - ✅ Fast, cheap
-   - ❌ Against Web3 ethos
-   - ❌ Single point of failure
-
-**Recommendation**: **Walrus + LocalStorage hybrid**
-- Store in library locally (fast access, free)
-- Upload to Walrus when attaching to class (permanent)
-- Cache Walrus data locally for riders
-
-### Decision 2: Real-Time vs Recorded Routes?
-
-**Options:**
-1. **Live progress tracking**
-   - Requires WebSocket/SSE connection
-   - Updates route visualization in real-time
-   - More complex, higher latency
-
-2. **Pre-recorded with simulated progress**
-   - Simpler implementation
-   - Predictable behavior
-   - Still feels immersive
-
-**Recommendation**: **Start with simulated, add live in Phase 3**
-
-### Decision 3: AI Agent Architecture?
-
-**Options:**
-1. **Server-side agent**
-   - Monitors all sessions centrally
-   - Better for group coordination
-   - Higher server costs
-
-2. **Client-side agent**
-   - Runs in rider's browser
-   - Privacy-preserving
-   - No server costs
-
-3. **Hybrid**
-   - Instructor runs agent locally
-   - Broadcasts to riders
-
-**Recommendation**: **Hybrid approach**
-- Instructor's browser runs AI coach
-- Coaching cues broadcast via Sui events
-- Riders receive cues client-side
-
----
-
-## 💡 Innovation Opportunities
-
-### 1. Dynamic Route Adaptation
-AI adjusts route difficulty mid-ride based on group performance:
-```typescript
-if (avgEffort < targetEffort * 0.75) {
-  // Group is struggling
-  aiCoach.reduceIntensity();
-  aiCoach.encourageRiders();
-} else if (avgEffort > targetEffort * 1.25) {
-  // Group is crushing it
-  aiCoach.increaseIntensity();
-  aiCoach.addBonusInterval();
+**Object Structure**:
+```rust
+struct Coach has key, store {
+    id: UID,
+    personality: u8,      // 0=Zen, 1=Drill Sergeant, 2=Quant
+    current_tempo: u64,   // BPM driving the music
+    resistance_level: u8, // 0-100% global resistance offset
 }
 ```
 
-### 2. Ghost Rider Replays
-Show previous riders on the same route as translucent avatars:
-```typescript
-<RouteVisualization>
-  <CurrentRider position={currentProgress} />
-  <GhostRiders
-    replays={previousSessions}
-    opacity={0.3}
-  />
-</RouteVisualization>
-```
-
-### 3. Social Route Challenges
-Community-created routes with leaderboards:
-```typescript
-interface RouteChallenge {
-  route: SavedRoute;
-  leaderboard: Array<{
-    rider: string;
-    time: number;
-    avgPower: number;
-    date: string;
-  }>;
-  prize: string; // e.g., "100 SPIN"
-}
-```
-
-### 4. Procedural Route Generation
-AI generates infinite variations:
-```typescript
-const weeklyRoute = await aiService.generateRoute({
-  prompt: "Generate a progressive training route for week 3 of a 12-week program",
-  baseRoute: lastWeekRoute,
-  progressionFactor: 1.1
-});
-```
+**Logic Flow**:
+1. **Ingest**: Riders submit `TelemetryPoint` events (batched).
+2. **Analyze**: AI (Off-chain) calculates "Class Energy".
+3. **Act**: AI calls `adjust_environment(coach, new_tempo, new_resistance)`.
+4. **Reflect**: Bikes subscribe to `EnvironmentChanged` events and adjust hardware resistance.
 
 ---
 
-## 📈 Success Metrics
+### Data Flow & Bridging
 
-### Instructor Adoption
-- % of classes with AI-generated routes
-- Avg routes per instructor
-- Route reuse rate
+#### Phase 1: The Booking (EVM)
+1. **Agent** creates `SpinClass` (ERC-721).
+2. **Agent** initializes Uniswap v4 Pool with `DemandSurgeHook`.
+3. **User** swaps `$SPIN` for Ticket (NFT). Hook optimizes price.
 
-### Rider Engagement
-- Completion rate (with vs without route)
-- Session duration
-- Return rate
+#### Phase 2: The Handover (Cross-Chain)
+- *Mechanism*: Oracle / Message Bridge (Wormhole/LayerZero).
+- **Event**: `TicketPurchased(tokenId, rider)` on EVM.
+- **Action**: Agent mints `AccessPass` or updates `Session` allowlist on Sui.
 
-### AI Performance
-- Story beat timing accuracy
-- Rider satisfaction scores
-- Adaptive difficulty effectiveness
+#### Phase 3: The Ride (Sui)
+1. **User** connects wallet to Bike.
+2. **Bike** reads `Coach` object for initial settings.
+3. **Loop**:
+    - Bike -> Sui: `update_telemetry(...)`
+    - Sui -> Agent (Off-chain): Event Indexer
+    - Agent -> Sui: `adjust_environment(...)`
+    - Sui -> Bike: Event Subscription
 
----
-
-## 🎯 Next Steps
-
-**Immediate Actions:**
-1. Review this architecture with stakeholders
-2. Prioritize features for Phase 1
-3. Create detailed task breakdown
-4. Begin Walrus integration research
-
-**Questions to Answer:**
-- Walrus API key / setup process?
-- Sui WebSocket endpoint for live events?
-- Voice synthesis for AI coaching?
-- Mobile app considerations?
+#### Phase 4: The Reward (Settlement)
+1. **Class End**: Agent calculates "Effort Score" from Sui history.
+2. **Bridge**: Agent posts Merkle Root of scores to EVM `IncentiveEngine`.
+3. **Claim**: User claims `$SPIN` rewards on EVM.
 
 ---
 
-**Ready to start implementation?** Let me know which phase you'd like to tackle first!
+### Implementation Roadmap
+
+#### ✅ Step 1: Contracts (Foundation)
+- `contracts/DemandSurgeHook.sol`: Uniswap v4 integration.
+- `move/spinchain/sources/spinsession.move`: Sui state objects.
+
+#### 🚧 Step 2: The Agent Brain (Off-Chain)
+- **Service**: Node.js / Python service.
+- **Inputs**:
+    - EVM RPC (Poll `TicketPurchased`).
+    - Sui RPC (Poll `TelemetryPoint`).
+- **Outputs**:
+    - EVM Wallet (Call `updateClassState` on Hook).
+    - Sui Wallet (Call `adjust_environment` on Coach).
+
+#### ⏳ Step 3: Frontend Integration
+- **Dashboard**:
+    - "Financial View": Uniswap Pool depth, Fee APY.
+    - "Instructor View": Real-time heart rate heatmap of class.
+- **Bike Interface**:
+    - Simple display showing "Coach Atlas is increasing resistance...".
+
+---
+
+### Security & Principles
+
+- **Enhancement First**: We use existing Uniswap liquidity rather than building a custom DEX.
+- **Performance**: High-frequency data lives on Sui (cheap/fast); only final settlement hits EVM.
+- **Modular**: The Hook is swappable. We can deploy a "CharityHook" or "VIPHook" without changing the core protocol.

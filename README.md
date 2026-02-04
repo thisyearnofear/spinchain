@@ -15,12 +15,13 @@ SpinChain is a hybrid fitness protocol that combines the liquidity depth of **Av
 
 ### 2. AI Instructor Studio
 - **Agentic Finance**: Deploy autonomous AI instructors (e.g., "Coach Atlas") that manage their own schedules and P&L.
-- **Dual-Chain Logic**: Agents coordinate settlement on Avalanche and performance tuning on Sui.
-- **Liquidity Hooks**: Automated management of class token liquidity via Uniswap v4 hooks.
+- **Dual-Chain Logic**: Agents coordinate settlement on Avalanche and performance tuning on Sui Testnet.
+- **Liquidity Hooks**: Automated management of class token liquidity via **Uniswap v4 hooks** (`DemandSurgeHook.sol`).
 
 ### 3. The Hybrid Architecture
 - **Settlement Layer (Avalanche)**: Handling tickets, rewards, identity (ENS), and **ZK proof verification**.
-- **Performance Layer (Sui)**: Processing high-frequency biometric data (10Hz) via parallel Move objects.
+- **Performance Layer (Sui Testnet)**: Processing high-frequency biometric data (10Hz).
+    - **Package ID**: `0x9f693e5143b4c80e7acb4f5fb4e2c62648f036c8fe70044fdcd5688fb9f8681d`
 - **Storage Layer (Walrus)**: Decentralized hosting for 3D worlds and raw session logs.
 
 ### 4. Zero-Knowledge Privacy ✅ IMPLEMENTED
@@ -97,10 +98,11 @@ Open [http://localhost:3000](http://localhost:3000) to view the protocol dashboa
 ---
 
 ## 📚 Documentation
-- [**HackMoney 2026 Submission**](./docs/HACKMONEY.md): Detailed hackathon-specific brief.
-- [**Architecture**](./docs/ARCHITECTURE.md): Deep dive into the Dual-Engine + ZK design.
-- [**ZK Integration**](./docs/ZK_INTEGRATION.md): Guide for using ZK proofs.
-- [**Roadmap**](./docs/ROADMAP.md): Future phases for privacy and scale.
+- [**Agentic Finance Implementation**](./docs/AGENTIC_FINANCE_IMPLEMENTATION.md): Deep dive into the Dual-Engine setup and Uniswap v4 Hook logic.
+- [**Sui Deployment Details**](./docs/SUI_DEPLOYMENT_DETAILS.md): On-chain artifacts and Package IDs for the Performance Layer.
+- [**Architecture & Overview**](./docs/ARCHITECTURE.md): Core architecture, dual-engine design, and roadmap.
+- [**AI Integration**](./docs/AI_INTEGRATION_ARCHITECTURE.md): AI features, route generation, and agentic finance.
+- [**ZK & Security**](./docs/ZK_INTEGRATION.md): Zero-knowledge privacy and BLE integration guides.
 - [**Contracts**](./contracts/README.md): Details on the smart contract layer.
 
 ---

@@ -63,7 +63,7 @@ export default function RiderPage() {
                   <h3 className="text-lg font-semibold text-amber-600 dark:text-amber-400 mb-1">
                     Browsing as Guest
                   </h3>
-                  <p className="text-sm text-amber-700/80 dark:text-amber-200/80">
+                  <p className="text-sm text-amber-900 dark:text-amber-200/80">
                     You can preview all classes and routes. Connect your wallet to book and earn rewards.
                   </p>
                 </div>

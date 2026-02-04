@@ -4,15 +4,27 @@ module spinchain::spinsession {
     use sui::transfer;
     use sui::event;
     use std::string::{String};
-    use sui::dynamic_field as df;
+
+    // --- Core Objects ---
 
     /// Represents a live fitness session on Sui.
     struct Session has key, store {
         id: UID,
-        class_id: ID, // Reference to the Base class ID
+        class_id: ID, // Reference to the Base class ID (e.g. on EVM or another Sui object)
         instructor: address,
         duration: u64,
         is_active: bool,
+    }
+
+    /// The AI Coach Agent living on Sui.
+    /// Acts as a "Smart Object" counterpart to the EVM identity.
+    struct Coach has key, store {
+        id: UID,
+        name: String,
+        personality: u8, // 0 = Zen, 1 = Drill Sergeant, 2 = Quant
+        current_tempo: u64, // BPM
+        resistance_level: u8, // 0-100%
+        session_active: bool,
     }
 
     /// High-frequency telemetry for a rider.
@@ -25,6 +37,8 @@ module spinchain::spinsession {
         cadence: u32,
         last_update: u64,
     }
+
+    // --- Events ---
 
     /// Event emitted when a telemetry update happens.
     struct TelemetryPoint has copy, drop {
@@ -42,6 +56,13 @@ module spinchain::spinsession {
         intensity: u8,
     }
 
+    /// Event emitted when the Coach adjusts the environment (Music/Lights/Resistance).
+    struct EnvironmentChanged has copy, drop {
+        coach_id: ID,
+        tempo: u64,
+        resistance: u8,
+    }
+
     // --- Functions ---
 
     public entry fun create_session(class_id: ID, duration: u64, ctx: &mut TxContext) {
@@ -53,6 +74,22 @@ module spinchain::spinsession {
             is_active: true,
         };
         transfer::share_object(session);
+    }
+
+    public entry fun create_coach(
+        name: String,
+        personality: u8,
+        ctx: &mut TxContext
+    ) {
+        let coach = Coach {
+            id: object::new(ctx),
+            name,
+            personality,
+            current_tempo: 0,
+            resistance_level: 0,
+            session_active: false,
+        };
+        transfer::share_object(coach);
     }
 
     public entry fun join_session(session: &Session, ctx: &mut TxContext) {
@@ -87,6 +124,23 @@ module spinchain::spinsession {
             power,
             cadence,
             timestamp,
+        });
+    }
+
+    /// Called by the AI Agent (Coach Atlas) to adjust the ride difficulty in real-time.
+    public entry fun adjust_environment(
+        coach: &mut Coach,
+        new_tempo: u64,
+        new_resistance: u8,
+        _ctx: &mut TxContext
+    ) {
+        coach.current_tempo = new_tempo;
+        coach.resistance_level = new_resistance;
+
+        event::emit(EnvironmentChanged {
+            coach_id: object::id(coach),
+            tempo: new_tempo,
+            resistance: new_resistance
         });
     }
 

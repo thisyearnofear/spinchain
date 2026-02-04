@@ -180,7 +180,7 @@ export default function InstructorBuilderPage() {
   ];
   
   // Auto-populate from route
-  const handleRouteSelected = (route: SavedRoute, summary: GpxSummary) => {
+  const handleRouteSelected = (route: SavedRoute, summary: GpxSummary, smartConfig?: { formData: Partial<ClassFormData> }) => {
     setSelectedRoute(route);
     setGpxSummary(summary);
     
@@ -190,6 +190,14 @@ export default function InstructorBuilderPage() {
       name: route.name,
       // Duration could be synced with route if needed
     }));
+    
+    // If smart config is provided, apply AI suggestions
+    if (smartConfig?.formData) {
+      setFormData(prev => ({
+        ...prev,
+        ...smartConfig.formData,
+      }));
+    }
     
     // Move to next step
     setStep(1);

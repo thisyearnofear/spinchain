@@ -14,9 +14,10 @@ export const CHAIN_CONFIG = {
 } as const;
 
 export const SUI_CONFIG = {
-  // Placeholder for Sui Move Package ID
-  packageId: "0x0000000000000000000000000000000000000000000000000000000000000000",
-  network: "devnet" as const,
+  // Deployed Sui Move Package ID (Testnet)
+  packageId:
+    "0x9f693e5143b4c80e7acb4f5fb4e2c62648f036c8fe70044fdcd5688fb9f8681d",
+  network: "testnet" as const,
 };
 
 export const AI_CONFIG = {

@@ -13,9 +13,25 @@ import { RouteLibrary } from "./route-library";
 import type { SavedRoute } from "../lib/route-library";
 import type { GpxSummary } from "../routes/builder/gpx-uploader";
 import RouteVisualizer from "./route-visualizer";
+import type { RouteAnalysisResponse } from "../api/ai/analyze-route/route";
+
+// Smart Config types
+export type SmartConfigResult = {
+  formData: {
+    name: string;
+    description: string;
+    curveType: "linear" | "exponential";
+    basePrice: number;
+    maxPrice: number;
+    aiPersonality: "zen" | "drill-sergeant" | "data";
+    rewardThreshold: number;
+    rewardAmount: number;
+  };
+  analysis: RouteAnalysisResponse;
+};
 
 type RouteSelectionStepProps = {
-  onRouteSelected: (route: SavedRoute, gpxSummary: GpxSummary) => void;
+  onRouteSelected: (route: SavedRoute, gpxSummary: GpxSummary, smartConfig?: SmartConfigResult) => void;
   selectedRoute?: SavedRoute | null;
 };
 
@@ -26,6 +42,8 @@ export function RouteSelectionStep({
   const [mode, setMode] = useState<"generate" | "library" | "preview">(
     selectedRoute ? "preview" : "generate"
   );
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const { routes } = useRouteLibrary();
 
   const handleRouteGenerated = (gpxSummary: GpxSummary) => {
@@ -55,6 +73,79 @@ export function RouteSelectionStep({
 
   const handleChangeRoute = () => {
     setMode("generate");
+    setAnalysisError(null);
+  };
+
+  const analyzeRouteWithAI = async (route: SavedRoute): Promise<SmartConfigResult | null> => {
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    
+    try {
+      const response = await fetch("/api/ai/analyze-route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          routeName: route.name,
+          routeDescription: route.description,
+          distance: route.estimatedDistance,
+          duration: route.estimatedDuration,
+          elevationGain: route.elevationGain,
+          storyBeats: route.storyBeats,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to analyze route");
+      }
+
+      const analysis: RouteAnalysisResponse = await response.json();
+
+      // Map analysis to form data
+      const smartConfig: SmartConfigResult = {
+        formData: {
+          name: analysis.suggestedName,
+          description: analysis.suggestedDescription,
+          curveType: analysis.pricingCurve,
+          basePrice: analysis.basePrice,
+          maxPrice: analysis.maxPrice,
+          aiPersonality: analysis.aiPersonality,
+          rewardThreshold: analysis.rewardThreshold,
+          rewardAmount: analysis.rewardAmount,
+        },
+        analysis,
+      };
+
+      return smartConfig;
+    } catch (error) {
+      console.error("Smart config error:", error);
+      setAnalysisError("AI analysis failed. Using defaults.");
+      return null;
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSmartConfig = async () => {
+    if (!selectedRoute) return;
+    
+    const smartConfig = await analyzeRouteWithAI(selectedRoute);
+    
+    // Convert route to GPX summary format
+    const gpxSummary: GpxSummary = {
+      trackPoints: selectedRoute.coordinates.length,
+      minElevation: null,
+      maxElevation: null,
+      distanceKm: selectedRoute.estimatedDistance,
+      segments: selectedRoute.storyBeats.map(beat => ({
+        label: beat.label,
+        minutes: Math.floor(beat.progress * selectedRoute.estimatedDuration),
+        zone: beat.type === 'sprint' ? 'Zone 5' : beat.type === 'climb' ? 'Zone 4' : 'Zone 2',
+      })),
+      elevationProfile: selectedRoute.coordinates.map(c => c.ele || 0),
+      storyBeats: selectedRoute.storyBeats,
+    };
+    
+    onRouteSelected(selectedRoute, gpxSummary, smartConfig || undefined);
   };
 
   // Preview mode - show selected route
@@ -135,6 +226,49 @@ export function RouteSelectionStep({
             />
           </div>
         </div>
+
+        {/* Smart Config Button */}
+        <button
+          onClick={handleSmartConfig}
+          disabled={isAnalyzing}
+          className="w-full rounded-xl border border-purple-500/30 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 p-4 text-left transition hover:from-purple-500/30 hover:to-indigo-500/30 disabled:opacity-50"
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/20">
+              {isAnalyzing ? (
+                <svg className="h-6 w-6 animate-spin text-purple-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              ) : (
+                <svg className="h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-purple-300">
+                {isAnalyzing ? "Analyzing route..." : "✨ Smart Config"}
+              </p>
+              <p className="text-sm text-purple-300/70">
+                {isAnalyzing 
+                  ? "AI is analyzing elevation, distance, and story beats..." 
+                  : "Let AI auto-configure pricing, difficulty, and AI personality based on route characteristics"}
+              </p>
+            </div>
+            {!isAnalyzing && (
+              <svg className="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            )}
+          </div>
+        </button>
+
+        {analysisError && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
+            {analysisError}
+          </div>
+        )}
 
         {/* Info Box */}
         <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">

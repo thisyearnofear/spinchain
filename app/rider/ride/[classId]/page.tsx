@@ -204,7 +204,14 @@ export default function LiveRidePage() {
   };
 
   const pauseRide = () => setIsRiding(false);
-  const exitRide = () => isPracticeMode ? router.push("/instructor/builder") : router.push("/rider");
+  const exitRide = () => {
+    if (isPracticeMode) {
+      router.push("/instructor/builder");
+    } else {
+      // Navigate to journey page with ride completion state
+      router.push("/rider/journey?completed=true");
+    }
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -522,7 +529,7 @@ export default function LiveRidePage() {
                 onClick={exitRide}
                 className="flex-1 rounded-full border border-white/20 bg-white/10 py-3 text-white font-semibold transition-all active:scale-95 touch-manipulation min-h-[56px]"
               >
-                {isPracticeMode ? "Back to Builder" : "Back to Classes"}
+                {isPracticeMode ? "Back to Builder" : "View Journey"}
               </button>
               {isPracticeMode ? (
                 <button
