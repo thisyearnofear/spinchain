@@ -111,7 +111,7 @@ export function useClass(classAddress: `0x${string}`) {
           distance: 35 + Math.random() * 20,
           duration: 45,
           elevationGain: 300 + Math.floor(Math.random() * 500),
-          theme: ["neon", "alpine", "mars"][Math.floor(Math.random() * 3)] as any,
+          theme: ["neon", "alpine", "mars"][Math.floor(Math.random() * 3)] as "neon" | "alpine" | "mars",
           checksum: "mock-checksum",
           storyBeatsCount: 3 + Math.floor(Math.random() * 3),
         },
@@ -182,10 +182,6 @@ export function useClasses() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadClasses();
-  }, []);
-
   const loadClasses = async () => {
     setIsLoading(true);
     setError(null);
@@ -208,13 +204,13 @@ export function useClasses() {
               distance: 35 + Math.random() * 20,
               duration: 45,
               elevationGain: 300 + Math.floor(Math.random() * 500),
-              theme: ["neon", "alpine", "mars"][Math.floor(Math.random() * 3)] as any,
+              theme: ["neon", "alpine", "mars"][Math.floor(Math.random() * 3)] as "neon" | "alpine" | "mars",
               checksum: "mock-checksum",
               storyBeatsCount: 3 + Math.floor(Math.random() * 3),
             },
             ai: {
               enabled: true,
-              personality: ["zen", "drill-sergeant", "data"][Math.floor(Math.random() * 3)] as any,
+              personality: ["zen", "drill-sergeant", "data"][Math.floor(Math.random() * 3)] as "zen" | "drill-sergeant" | "data",
               autoTriggerBeats: true,
               adaptiveDifficulty: true,
             },
@@ -265,6 +261,11 @@ export function useClasses() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadClasses();
+  }, []);
 
   return { classes, isLoading, error, refetch: loadClasses };
 }
@@ -401,7 +402,7 @@ export function generateMockRouteData(metadata: EnhancedClassMetadata): WalrusRo
     storyBeats.push({
       progress,
       label: ["Warm-up", "Climb", "Sprint", "Recovery", "Final Push"][i] || `Beat ${i + 1}`,
-      type: ["rest", "climb", "sprint", "drop"][Math.floor(Math.random() * 4)] as any,
+      type: ["rest", "climb", "sprint", "drop"][Math.floor(Math.random() * 4)] as "rest" | "climb" | "sprint" | "drop",
     });
   }
 

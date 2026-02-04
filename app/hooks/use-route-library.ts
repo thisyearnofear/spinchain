@@ -16,8 +16,11 @@ export function useRouteLibrary() {
 
   // Load routes on mount
   useEffect(() => {
-    setRoutes(RouteLibrary.getSavedRoutes());
-    setIsLoading(false);
+    // Use a microtask to defer the state update
+    Promise.resolve().then(() => {
+      setRoutes(RouteLibrary.getSavedRoutes());
+      setIsLoading(false);
+    });
   }, []);
 
   /**

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface InstructorMode {
@@ -49,6 +49,14 @@ const modes: InstructorMode[] = [
     color: "from-cyan-500 to-blue-500"
   }
 ];
+
+// Pre-generate random particle values to avoid Math.random() in render
+const PARTICLE_COUNT = 6;
+const particleData = Array.from({ length: PARTICLE_COUNT }, () => ({
+  x: Math.random() * 100,
+  y: Math.random() * 100,
+  duration: 3 + Math.random() * 2,
+}));
 
 export function InstructorModeSelector() {
   const [activeMode, setActiveMode] = useState<"human" | "agent">("human");
@@ -115,20 +123,20 @@ export function InstructorModeSelector() {
 
           {/* Floating particles effect */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(6)].map((_, i) => (
+            {particleData.map((particle, i) => (
               <motion.div
                 key={i}
                 className={`absolute w-2 h-2 rounded-full bg-gradient-to-r ${currentMode.color} opacity-30`}
                 initial={{
-                  x: Math.random() * 100 + "%",
-                  y: Math.random() * 100 + "%",
+                  x: particle.x + "%",
+                  y: particle.y + "%",
                 }}
                 animate={{
                   y: [null, "-20%"],
                   opacity: [0.3, 0]
                 }}
                 transition={{
-                  duration: 3 + Math.random() * 2,
+                  duration: particle.duration,
                   repeat: Infinity,
                   delay: i * 0.5,
                   ease: "linear"

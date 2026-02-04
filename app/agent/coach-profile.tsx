@@ -141,10 +141,10 @@ export function CoachProfile({
 
       await signAndExecuteTransaction(
         {
-          transaction: tx as any,
+          transaction: tx,
         },
         {
-          onSuccess: (result: any) => {
+          onSuccess: (result: { effects?: { created?: Array<{ reference: { objectId: string } }> } }) => {
             console.log("Coach Genesis complete:", result);
             setIsLoading(false);
             // Extract actual coach ID from transaction effects
@@ -159,7 +159,7 @@ export function CoachProfile({
               if (onDeploy) onDeploy("0xSUI_AGENT_LIVE");
             }
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             console.error("Genesis failed", err);
             setIsLoading(false);
           },

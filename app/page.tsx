@@ -17,6 +17,7 @@ export default function Home() {
   useEffect(() => {
     const hasSeenWelcome = localStorage.getItem("spin-welcome-seen");
     if (!hasSeenWelcome) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowWelcome(true);
     }
 
@@ -134,7 +135,7 @@ export default function Home() {
                     <span className="text-5xl mb-4 block">🚴</span>
                   </Floating>
                   <h2 className="text-2xl font-semibold text-[color:var(--foreground)] mb-2">
-                    I'm a Rider
+                    I&apos;m a Rider
                   </h2>
                   <p className="text-[color:var(--muted)] mb-6">
                     Book classes, track progress, earn rewards for every ride
@@ -156,7 +157,7 @@ export default function Home() {
                     <span className="text-5xl mb-4 block">🎓</span>
                   </Floating>
                   <h2 className="text-2xl font-semibold text-[color:var(--foreground)] mb-2">
-                    I'm an Instructor
+                    I&apos;m an Instructor
                   </h2>
                   <p className="text-[color:var(--muted)] mb-6">
                     Human-crafted or AI-powered—choose your teaching style

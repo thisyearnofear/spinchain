@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import RouteVisualizer from "./route-visualizer";
 import type { SavedRoute } from "../lib/route-library";
 import type { EnhancedClassMetadata } from "../lib/contracts-extended";
@@ -35,6 +35,23 @@ export function RoutePreviewCard({
     storyBeats: 'storyBeats' in route ? route.storyBeats : [],
     theme: 'theme' in route ? route.theme : 'neon',
   };
+
+  // Generate elevation profile once to avoid Math.random() in render
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  const elevationProfile = useMemo(() => {
+    // Create a deterministic seed based on route data to generate consistent values
+    const seed = routeData.name.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+
+    return routeData.storyBeats.map((_, index) => {
+      // Use a simple pseudo-random generator with the seed
+      const pseudoRandom = (seed + index) * 1664525 + 1013904223;
+      return (pseudoRandom >>> 0) % 100;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeData.name, routeData.storyBeats.length]);
 
   const beatsCount = routeData.storyBeats.length;
 
@@ -104,7 +121,7 @@ export function RoutePreviewCard({
       <div className="relative h-48 bg-gradient-to-br from-indigo-900/20 to-purple-900/20">
         {showVisualization ? (
           <RouteVisualizer
-            elevationProfile={routeData.storyBeats.map(() => Math.random() * 100)}
+            elevationProfile={elevationProfile}
             theme={routeData.theme as 'neon' | 'alpine' | 'mars'}
             className="h-full"
           />

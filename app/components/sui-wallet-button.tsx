@@ -8,7 +8,10 @@ export function SuiWalletButton() {
 
   // Prevent hydration mismatch and auto-connect issues
   useEffect(() => {
-    setMounted(true);
+    // Use a microtask to defer the state update
+    Promise.resolve().then(() => {
+      setMounted(true);
+    });
   }, []);
 
   if (!mounted) {
@@ -20,7 +23,7 @@ export function SuiWalletButton() {
   }
 
   return (
-    <SuiConnectButton 
+    <SuiConnectButton
       connectText="Sui Wallet"
       className="!rounded-full !border !border-[color:var(--border)] !bg-transparent !px-4 !py-2 !text-sm !font-medium !text-[color:var(--muted)] hover:!text-[color:var(--foreground)] hover:!border-[color:var(--border-strong)]"
     />

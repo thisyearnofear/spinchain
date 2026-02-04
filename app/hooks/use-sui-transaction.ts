@@ -39,7 +39,7 @@ export function useSuiTransaction(
   const toast = useToast();
   const client = useSuiClient();
   const { mutate: signAndExecute, isPending, data, error, reset } = useSignAndExecuteTransaction();
-  
+
   const [digest, setDigest] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [lastError, setLastError] = useState<Error | null>(null);
@@ -47,9 +47,12 @@ export function useSuiTransaction(
   // Reset state when data changes (new transaction)
   useEffect(() => {
     if (data) {
-      setDigest(data.digest);
-      setIsSuccess(true);
-      
+      // Use a microtask to defer the state update
+      Promise.resolve().then(() => {
+        setDigest(data.digest);
+        setIsSuccess(true);
+      });
+
       toast.success(
         options.successMessage || "Transaction confirmed",
         undefined,
@@ -63,7 +66,7 @@ export function useSuiTransaction(
           },
         }
       );
-      
+
       options.onSuccess?.(data);
     }
   }, [data, options, toast]);
@@ -72,12 +75,15 @@ export function useSuiTransaction(
   useEffect(() => {
     if (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      setLastError(err);
-      setIsSuccess(false);
-      
+      // Use a microtask to defer the state update
+      Promise.resolve().then(() => {
+        setLastError(err);
+        setIsSuccess(false);
+      });
+
       const errorMsg = options.errorMessage || "Transaction failed";
       toast.error("Transaction Failed", err.message || errorMsg);
-      
+
       options.onError?.(err);
     }
   }, [error, options, toast]);
@@ -97,8 +103,7 @@ export function useSuiTransaction(
 
       return new Promise((resolve) => {
         signAndExecute(
-          // @ts-expect-error - Transaction version mismatch between @mysten/dapp-kit and @mysten/sui
-          { transaction: tx as any },
+          { transaction: tx },
           {
             onSuccess: () => resolve(true),
             onError: () => resolve(false),

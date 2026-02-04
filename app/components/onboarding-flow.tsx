@@ -76,10 +76,10 @@ export function OnboardingFlow() {
           <span className="text-4xl">🎉</span>
         </motion.div>
         <h3 className="text-2xl font-bold text-[color:var(--foreground)] mb-2">
-          You're Ready to Ride!
+          You&apos;re Ready to Ride!
         </h3>
         <p className="text-[color:var(--muted)] mb-6">
-          Welcome to the future of fitness. Let's get moving.
+          Welcome to the future of fitness. Let&apos;s get moving.
         </p>
         <MagneticButton>
           <a

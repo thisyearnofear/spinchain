@@ -64,14 +64,20 @@ export function useMediaQuery(breakpoint: Breakpoint): boolean {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(`(min-width: ${BREAKPOINTS[breakpoint]}px)`);
-    
+
     const handleChange = (e: MediaQueryListEvent) => {
-      setMatches(e.matches);
+      // Use a microtask to defer the state update
+      Promise.resolve().then(() => {
+        setMatches(e.matches);
+      });
     };
 
-    setMatches(mediaQuery.matches);
+    // Use a microtask to defer the state update
+    Promise.resolve().then(() => {
+      setMatches(mediaQuery.matches);
+    });
     mediaQuery.addEventListener("change", handleChange);
-    
+
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [breakpoint]);
 
@@ -114,10 +120,13 @@ export function useTouchDevice(): boolean {
   const [isTouch, setIsTouch] = useState(false);
 
   useEffect(() => {
-    setIsTouch(
-      "ontouchstart" in window ||
-      navigator.maxTouchPoints > 0
-    );
+    // Use a microtask to defer the state update
+    Promise.resolve().then(() => {
+      setIsTouch(
+        "ontouchstart" in window ||
+        navigator.maxTouchPoints > 0
+      );
+    });
   }, []);
 
   return isTouch;
@@ -195,12 +204,15 @@ export function useSafeAreaInsets() {
     if (typeof window === "undefined") return;
 
     const style = getComputedStyle(document.documentElement);
-    
-    setInsets({
-      top: parseInt(style.getPropertyValue("env(safe-area-inset-top)") || "0"),
-      right: parseInt(style.getPropertyValue("env(safe-area-inset-right)") || "0"),
-      bottom: parseInt(style.getPropertyValue("env(safe-area-inset-bottom)") || "0"),
-      left: parseInt(style.getPropertyValue("env(safe-area-inset-left)") || "0"),
+
+    // Use a microtask to defer the state update
+    Promise.resolve().then(() => {
+      setInsets({
+        top: parseInt(style.getPropertyValue("env(safe-area-inset-top)") || "0"),
+        right: parseInt(style.getPropertyValue("env(safe-area-inset-right)") || "0"),
+        bottom: parseInt(style.getPropertyValue("env(safe-area-inset-bottom)") || "0"),
+        left: parseInt(style.getPropertyValue("env(safe-area-inset-left)") || "0"),
+      });
     });
   }, []);
 

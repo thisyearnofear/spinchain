@@ -131,7 +131,13 @@ export default function LiveRidePage() {
   });
 
   // Handle BLE metrics updates
-  const handleBleMetrics = (metrics: any) => {
+  const handleBleMetrics = (metrics: {
+    heartRate?: number;
+    power?: number;
+    cadence?: number;
+    speed?: number;
+    effort?: number;
+  }) => {
     setTelemetry(prev => ({
       ...prev,
       heartRate: metrics.heartRate ?? prev.heartRate,
@@ -148,10 +154,13 @@ export default function LiveRidePage() {
   // Auto-adjust HUD based on device
   useEffect(() => {
     if (deviceType === "mobile") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHudMode("compact");
     } else if (deviceType === "tablet") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHudMode(orientation === "portrait" ? "compact" : "full");
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHudMode("full");
     }
   }, [deviceType, orientation]);
@@ -262,7 +271,7 @@ export default function LiveRidePage() {
       <div className="absolute inset-0">
         <RouteVisualizer
           elevationProfile={classData.route.route.coordinates.map(c => c.ele || 0)}
-          theme={(classData.metadata?.route.theme as any) || "neon"}
+          theme={(classData.metadata?.route.theme as 'neon' | 'alpine' | 'mars' | 'ocean') || "neon"}
           storyBeats={classData.route.route.storyBeats}
           className="h-full w-full"
         />

@@ -15,8 +15,16 @@ import {
   RotateCcw
 } from "lucide-react";
 
+export interface FitnessMetrics {
+  heartRate?: number;
+  power?: number;
+  cadence?: number;
+  speed?: number;
+  distance?: number;
+}
+
 export interface DeviceSelectorProps {
-  onMetricsUpdate?: (metrics: any) => void;
+  onMetricsUpdate?: (metrics: FitnessMetrics) => void;
   className?: string;
 }
 
@@ -157,7 +165,7 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
               {error.message}
             </p>
             <p className="mt-1 text-xs text-red-400">
-              Try moving closer to your device or ensure it's powered on.
+              Try moving closer to your device or ensure it&apos;s powered on.
             </p>
           </div>
         )}

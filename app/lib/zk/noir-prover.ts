@@ -52,6 +52,7 @@ export class NoirProver {
       
       // Initialize Noir
       const { Noir } = noirModule;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const noir = new Noir(this.circuit as any);
       await noir.init();
       

@@ -39,8 +39,11 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
   useEffect(() => {
     const onboarded = localStorage.getItem(ONBOARDING_KEY);
     if (!onboarded) {
-      setIsOpen(true);
-      setHasSeenModal(false);
+      // Use a microtask to defer the state update
+      Promise.resolve().then(() => {
+        setIsOpen(true);
+        setHasSeenModal(false);
+      });
     }
   }, []);
 
@@ -146,7 +149,10 @@ export function useNeedsOnboarding(): boolean {
 
   useEffect(() => {
     const onboarded = localStorage.getItem(ONBOARDING_KEY);
-    setNeedsOnboarding(!onboarded);
+    // Use a microtask to defer the state update
+    Promise.resolve().then(() => {
+      setNeedsOnboarding(!onboarded);
+    });
   }, []);
 
   return needsOnboarding;

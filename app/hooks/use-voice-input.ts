@@ -40,16 +40,19 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     error: null,
   });
 
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // Check for browser support
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition = (window as unknown as Record<string, unknown>).SpeechRecognition || 
+        (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
 
       if (SpeechRecognition) {
-        setState((prev) => ({ ...prev, isSupported: true }));
+        // Use a microtask to defer the state update
+        Promise.resolve().then(() => {
+          setState((prev) => ({ ...prev, isSupported: true }));
+        });
       }
     }
   }, []);
@@ -58,8 +61,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
   useEffect(() => {
     if (!state.isSupported || typeof window === "undefined") return;
 
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) return;
 
@@ -68,7 +70,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     recognition.interimResults = interimResults;
     recognition.lang = language;
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = "";
       let interimTranscript = "";
 
@@ -92,7 +94,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       }
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error("Speech recognition error:", event.error);
       
       let errorMessage = "Voice input error";
@@ -207,7 +209,39 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 // Type augmentation for Web Speech API
 declare global {
   interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
   }
+  
+  interface SpeechRecognitionEvent extends Event {
+    readonly resultIndex: number;
+    readonly results: SpeechRecognitionResultList;
+  }
+
+  interface SpeechRecognitionErrorEvent extends Event {
+    readonly error: string;
+    readonly message: string;
+  }
+
+  interface SpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onresult: (event: SpeechRecognitionEvent) => void;
+    onerror: (event: SpeechRecognitionErrorEvent) => void;
+    onend: () => void;
+    start: () => void;
+    stop: () => void;
+    abort: () => void;
+  }
+
+  var SpeechRecognition: {
+    new(): SpeechRecognition;
+    prototype: SpeechRecognition;
+  };
+}
+
+interface Window {
+  SpeechRecognition: typeof SpeechRecognition;
+  webkitSpeechRecognition: typeof SpeechRecognition;
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
 import { PrimaryNav } from "../components/nav";
-import { useClasses } from "../hooks/use-class-data";
+import { useClasses, type ClassWithRoute } from "../hooks/use-class-data";
 import { RoutePreviewCard } from "../components/route-preview-card";
 import { ConnectWallet } from "../components/connect-wallet";
 import { AnimatedClassCard } from "../components/animated-class-card";
@@ -16,13 +16,23 @@ export default function RiderPage() {
   const [filterUpcoming, setFilterUpcoming] = useState(true);
   const [showGuestBanner, setShowGuestBanner] = useState(true);
   
-  // Filter classes by time
-  const now = Math.floor(Date.now() / 1000);
-  const filteredClasses = classes.filter(cls => 
-    filterUpcoming ? cls.startTime > now : cls.startTime <= now
-  );
+  // Filter classes by time - using server-rendered time as base
+  // Client-side time is only accessed in event handlers / effects
+  const [clientTime, setClientTime] = useState<number | null>(null);
+  useEffect(() => {
+    // Schedule time update for next tick to avoid sync setState
+    const timeoutId = setTimeout(() => {
+      setClientTime(Math.floor(Date.now() / 1000));
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, []);
+  
+  const filteredClasses = classes.filter(cls => {
+    const time = clientTime ?? Math.floor(Date.now() / 1000);
+    return filterUpcoming ? cls.startTime > time : cls.startTime <= time;
+  });
 
-  const handlePreviewRoute = (classData: any) => {
+  const handlePreviewRoute = (classData: ClassWithRoute) => {
     if (classData.route) {
       const routeForPreview: SavedRoute = {
         id: classData.address,

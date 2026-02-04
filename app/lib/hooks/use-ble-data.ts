@@ -104,28 +104,7 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
     };
   }, [toast, options.onSuccess, options.onError]);
 
-  // Auto-connect if requested
-  useEffect(() => {
-    if (options.autoConnect && status === 'disconnected') {
-      scanAndConnect();
-    }
-  }, [options.autoConnect, status]);
-
-  // Action methods
-  const connect = useCallback(async (): Promise<boolean> => {
-    setIsPending(true);
-    toast.loading('Connecting to device...', 'Please wait');
-    
-    try {
-      const connectedDevice = await bleService.scanAndConnect();
-      setIsPending(false);
-      return !!connectedDevice;
-    } catch (error) {
-      setIsPending(false);
-      return false;
-    }
-  }, [toast]);
-
+  // Action methods - defined before useEffect to avoid reference issues
   const scanAndConnect = useCallback(async (): Promise<boolean> => {
     setIsPending(true);
     toast.loading('Scanning for devices...', 'Looking for fitness equipment');
@@ -134,11 +113,33 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
       const connectedDevice = await bleService.scanAndConnect();
       setIsPending(false);
       return !!connectedDevice;
-    } catch (error) {
+    } catch (err) {
       setIsPending(false);
       return false;
     }
   }, [toast]);
+
+  const connect = useCallback(async (): Promise<boolean> => {
+    setIsPending(true);
+    toast.loading('Connecting to device...', 'Please wait');
+    
+    try {
+      const connectedDevice = await bleService.scanAndConnect();
+      setIsPending(false);
+      return !!connectedDevice;
+    } catch (err) {
+      setIsPending(false);
+      return false;
+    }
+  }, [toast]);
+
+  // Auto-connect if requested
+  useEffect(() => {
+    if (options.autoConnect && status === 'disconnected') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      scanAndConnect();
+    }
+  }, [options.autoConnect, status, scanAndConnect]);
 
   const disconnect = useCallback((): void => {
     bleService.disconnect();

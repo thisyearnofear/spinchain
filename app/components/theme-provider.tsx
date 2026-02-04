@@ -31,29 +31,36 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    
+    // Use a microtask to defer the state update
+    Promise.resolve().then(() => {
+      setMounted(true);
+    });
+
     // Load saved theme
     const saved = localStorage.getItem(STORAGE_KEY) as Theme | null;
     if (saved) {
-      setThemeState(saved);
-      const resolved = saved === 'system' ? getSystemTheme() : saved;
-      setResolvedTheme(resolved);
+      // Use a microtask to defer the state update
+      Promise.resolve().then(() => {
+        setThemeState(saved);
+      });
     } else {
-      setResolvedTheme(getSystemTheme());
+      // Use a microtask to defer the state update
+      Promise.resolve().then(() => {
+        setResolvedTheme(getSystemTheme());
+      });
     }
 
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
-      setThemeState(current => {
-        if (current === 'system') {
+      if (theme === 'system') {
+        // Use a microtask to defer the state update
+        Promise.resolve().then(() => {
           setResolvedTheme(getSystemTheme());
-        }
-        return current;
-      });
+        });
+      }
     };
-    
+
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
@@ -62,16 +69,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (!mounted) return;
 
     const root = document.documentElement;
-    const newResolvedTheme = theme === 'system' ? getSystemTheme() : theme;
-    
-    setResolvedTheme(newResolvedTheme);
     
     // Apply theme class
     root.classList.remove('light', 'dark');
-    root.classList.add(newResolvedTheme);
+    root.classList.add(theme === 'system' ? getSystemTheme() : theme);
     
     // Store preference
     localStorage.setItem(STORAGE_KEY, theme);
+  }, [theme, mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const newResolvedTheme = theme === 'system' ? getSystemTheme() : theme;
+    // Use a microtask to defer the state update
+    Promise.resolve().then(() => {
+      setResolvedTheme(newResolvedTheme);
+    });
   }, [theme, mounted]);
 
   const setTheme = (newTheme: Theme) => {

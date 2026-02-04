@@ -1,8 +1,16 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { EnergyPulse } from "./animated-card";
+
+interface RouteInfo {
+  name: string;
+  description?: string;
+  estimatedDistance?: number;
+  estimatedDuration?: number;
+  coordinates?: Array<{ lat: number; lng: number }>;
+}
 
 interface AnimatedClassCardProps {
   classData: {
@@ -12,7 +20,7 @@ interface AnimatedClassCardProps {
     metadata?: {
       ai?: { enabled: boolean };
       duration?: number;
-      route?: any;
+      route?: RouteInfo;
     } | null;
     ticketsSold: number;
     maxRiders: number;
@@ -132,7 +140,16 @@ export function AnimatedClassCard({
   };
 
   // Determine if class is live (within 15 mins of start)
-  const isLive = Math.abs(classData.startTime - Math.floor(Date.now() / 1000)) < 900;
+  const [isLive, setIsLive] = useState(false);
+  useEffect(() => {
+    const checkLiveStatus = () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      setIsLive(Math.abs(classData.startTime - currentTime) < 900);
+    };
+    checkLiveStatus();
+    const interval = setInterval(checkLiveStatus, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [classData.startTime]);
   const fillPercentage = (classData.ticketsSold / classData.maxRiders) * 100;
 
   return (

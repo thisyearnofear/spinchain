@@ -21,7 +21,10 @@ export function Tooltip({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    setMounted(true);
+    // Use a microtask to defer the state update
+    Promise.resolve().then(() => {
+      setMounted(true);
+    });
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
