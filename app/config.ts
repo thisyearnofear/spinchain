@@ -15,14 +15,15 @@ export const CHAIN_CONFIG = {
 
 export const SUI_CONFIG = {
   // Deployed Sui Move Package ID (Testnet) - UPDATED 2025-04-02
-  // Contains complete implementation: create_coach, create_session, join_session,
-  // update_telemetry, trigger_beat, close_session, and view functions
+  // Contains: spinsession (telemetry, sessions, coaches) + spin_token (SPIN rewards)
   packageId:
     process.env.NEXT_PUBLIC_SUI_PACKAGE_ID ||
-    "0xc42b32ab25566a6f43db001e6f2c2fd6b2ccc7232e2af3cfca0b9beca824d7dc",
+    "0x98144f86c83bf486d90232833a6ed467aa3d853d237126537241a6e147f2b3f6",
   network: "testnet" as const,
   // Optional: Gas station for sponsored transactions (gasless onboarding)
   gasStationUrl: process.env.NEXT_PUBLIC_SUI_GAS_STATION_URL,
+  // SPIN Token Treasury Cap (for minting rewards)
+  treasuryCapId: process.env.NEXT_PUBLIC_SUI_TREASURY_CAP_ID,
 } as const;
 
 export const ZK_CONFIG = {

@@ -1,6 +1,6 @@
-# SpinChain: Architecture & Overview
+# SpinChain: Architecture Overview
 
-## SpinChain Technical Architecture
+## Dual-Engine Execution Model
 
 SpinChain implements a **Dual-Engine Execution Model** with **Zero-Knowledge Privacy** to solve the dilemma of high-frequency fitness telemetry vs. high-value financial settlement while preserving user privacy.
 
@@ -24,53 +24,52 @@ SpinChain implements a **Dual-Engine Execution Model** with **Zero-Knowledge Pri
 
 ---
 
-## Zero-Knowledge Privacy Architecture
+## System Architecture
 
-### The Privacy Problem
-Traditional fitness apps expose sensitive health data (heart rate, power, biometrics) on-chain. SpinChain solves this with **Selective Disclosure** using ZK-SNARKs.
+### Autonomous AI Instructors (Base Layer: Avalanche)
+AI Agents are deployed as unique identities on Avalanche. They manage:
+- **Scheduling**: Automated session creation.
+- **Liquidity**: Managing pool hooks for $SPIN tokens.
+- **Identity**: ENS names like `atlas.spinchain.eth`.
 
-### ZK Flow
-```
-Rider Telemetry → Local Oracle → Noir Circuit → ZK Proof → Avalanche Verifier → Rewards
-     (Private)       (Private)      (Private)    (Public)       (On-Chain)
-```
+### High-Frequency Telemetry (Execution Layer: Sui)
+When a ride starts:
+1. The app initializes a `Session` object on Sui.
+2. Riders sync their 10Hz heart rate data to personal `RiderStats` objects.
+3. These objects emit `TelemetryPoint` events.
 
-### Components
-
-#### A. Noir Circuits (`circuits/`)
-| Circuit | Purpose | Constraints | Proving Time |
-|---------|---------|-------------|--------------|
-| `effort_threshold` | Prove HR > threshold | 1,024 | ~500ms |
-| `composite` | Prove HR + Power + Cadence | 4,096 | ~1,500ms |
-
-**Circuit Inputs:**
-- **Private**: `heart_rates[60]`, `num_points`
-- **Public**: `threshold`, `min_duration`, `classId`, `riderId`
-
-**Circuit Outputs:**
-- `threshold_met`: bool
-- `seconds_above`: u32
-- `effort_score`: u16 (0-1000)
-
-#### B. On-Chain Verifier (`contracts/verifiers/`)
-```solidity
-EffortThresholdVerifier
-├── UltraVerifier (Noir-generated)
-├── verifyAndRecord(proof, publicInputs) → effortScore
-├── replay protection via proofHash mapping
-└── batchVerify for gas efficiency
-```
-
-#### C. Selective Disclosure (`lib/zk/disclosure.ts`)
+### Local Oracle (Privacy Layer: Browser)
 ```typescript
-// Prove this:
-"Maintained HR > 150 for 10 minutes"
-
-// Without revealing:
-{ maxHeartRate: 172, avgPower: 245, rawDataPoints: 600 }
-
-// Privacy score: 0-100 (based on data minimization)
+LocalOracle
+├── Telemetry Buffer (10-minute rolling window)
+├── ZK Proof Generation (Noir/UltraPlonk)
+├── Selective Disclosure Builder
+└── Walrus Backup (encrypted telemetry)
 ```
+
+### Agentic Feedback Loop
+1. AI Agents subscribe to Sui telemetry events.
+2. Logic (Personality-driven) parses group average effort.
+3. Agent triggers a `StoryBeat` on-chain if effort targets aren't met.
+4. The 3D Visualizer (WebGL) listens to Sui events and adjusts difficulty/atmosphere in real-time.
+
+---
+
+## Data Integrity & Storage
+
+### Walrus Storage (`lib/walrus/`)
+| Data Type | Storage | Compression | Retention |
+|-----------|---------|-------------|-----------|
+| Raw Telemetry | Walrus Blobs | Delta encoding | 30 epochs |
+| 3D Worlds | Walrus Blobs | N/A | Permanent |
+| ZK Proofs | Avalanche Events | N/A | Permanent |
+
+### Privacy Tiers
+| Tier | Revealed | Hidden | Use Case |
+|------|----------|--------|----------|
+| High | effort_score, zone | All raw metrics | Public leaderboards |
+| Medium | + duration, ranking | GPS, biometrics | Friend competitions |
+| Low | Full disclosure | - | Medical/insurance |
 
 ---
 
@@ -105,65 +104,19 @@ LocalOracle
 
 ---
 
-## Data Integrity & Storage
+## Competitive Analysis
 
-### Walrus Storage (`lib/walrus/`)
-| Data Type | Storage | Compression | Retention |
-|-----------|---------|-------------|-----------|
-| Raw Telemetry | Walrus Blobs | Delta encoding | 30 epochs |
-| 3D Worlds | Walrus Blobs | N/A | Permanent |
-| ZK Proofs | Avalanche Events | N/A | Permanent |
+### vs. Peloton/Strava
+- **They**: Centralized, extract all data, own relationship.
+- **We**: Decentralized, user-owned data, instructor-owned economics.
 
-### Privacy Tiers
-| Tier | Revealed | Hidden | Use Case |
-|------|----------|--------|----------|
-| High | effort_score, zone | All raw metrics | Public leaderboards |
-| Medium | + duration, ranking | GPS, biometrics | Friend competitions |
-| Low | Full disclosure | - | Medical/insurance |
+### vs. STEPN/Sweatcoin
+- **They**: Tokenomics-first, questionable sustainability.
+- **We**: Real revenue model (ticket sales), tokens as bonus.
 
----
-
-## AI-Powered Route Generation
-
-SpinChain integrates AI-driven natural language route creation to democratize instructor onboarding and enhance immersion.
-
-### Natural Language Route Builder
-- **Gemini Integration**: Instructors describe routes in plain language (e.g., "45-minute coastal climb starting from Santa Monica")
-- **Automatic GPX Generation**: AI generates route geometry, elevation profiles, and story beats
-- **Real-World Preview**: Integration with mapping services for Street View-style route previews
-- **Accessibility**: Voice-guided route creation removes technical barriers
-
-### Consolidated AI Architecture
-All AI capabilities (instructor agents, route generation, narrative prompts) share a unified service layer:
-- Single Gemini API integration point
-- Shared function calling infrastructure
-- Consistent error handling and rate limiting
-- Server-side API key management for security
-
-### Route Intelligence
-- **Gradient Analysis**: Automatic detection of climbs, descents, and sprints from elevation data
-- **Effort Mapping**: AI-suggested zone targeting based on route topology
-- **Story Beat Generation**: Narrative waypoints aligned with physical route features
-- **Multi-Route Series**: Generate connected training programs across days/weeks
-
----
-
-## Security Considerations
-
-### ZK Proof Security
-- **Trusted Setup**: UltraPlonk uses universal SRS (no per-circuit setup).
-- **Proof Replay**: Verifier contract tracks `usedProofs` mapping.
-- **Front-running**: Commit-reveal scheme for claim submissions.
-
-### Data Privacy
-- **Local-First**: All biometric processing happens in browser.
-- **Encrypted Backup**: Walrus storage uses rider-specific encryption.
-- **Selective Disclosure**: Riders control exactly what is revealed.
-
-### Contract Security
-- **Upgradeable Verifier**: UltraVerifier can be upgraded for circuit improvements.
-- **Access Control**: Only IncentiveEngine can call `verifyAndRecord`.
-- **Emergency Pause**: Circuit breaker for verifier in case of bugs.
+### vs. Other Web3 Fitness
+- **They**: Single-chain bottlenecks (gas costs for frequent updates).
+- **We**: Dual-Engine (Avalanche + Sui) for unlimited scale and speed.
 
 ---
 
@@ -226,38 +179,6 @@ All AI capabilities (instructor agents, route generation, narrative prompts) sha
 3. **Ride**: 3D Visualizer runs, simulating biometric data syncing to Sui.
 4. **Claim**: Rider submits proof of effort; contract on Avalanche mints rewards.
 5. **Analyze**: AI Agent reviews session performance via Walrus logs.
-
----
-
-## Competitive Analysis
-
-### vs. Peloton/Strava
-- **They**: Centralized, extract all data, own relationship.
-- **We**: Decentralized, user-owned data, instructor-owned economics.
-
-### vs. STEPN/Sweatcoin
-- **They**: Tokenomics-first, questionable sustainability.
-- **We**: Real revenue model (ticket sales), tokens as bonus.
-
-### vs. Other Web3 Fitness
-- **They**: Single-chain bottlenecks (gas costs for frequent updates).
-- **We**: Dual-Engine (Avalanche + Sui) for unlimited scale and speed.
-
----
-
-## Team & Execution
-
-### Key Roles for HackMoney
-- **Smart Contract Dev**: Solidity (Avalanche) + Move (Sui).
-- **Frontend Dev**: React/Next.js with dual-wallet providers.
-- **AI Engineer**: Agent logic and "Route World" generation.
-- **Product Designer**: 3D visualization and mobile UX.
-
-### Success Metrics
-- End-to-end demo: Create Agent → Buy Ticket (Avax) → Ride (Sui).
-- Architecture documented: clear distinction between Settlement & Execution layers.
-- Performance: <1s latency on route visualization and telemetry.
-- Aesthetics: High-fidelity "Route Worlds" 3D visualization.
 
 ---
 

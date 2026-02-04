@@ -98,12 +98,11 @@ Open [http://localhost:3000](http://localhost:3000) to view the protocol dashboa
 ---
 
 ## 📚 Documentation
-- [**Agentic Finance Implementation**](./docs/AGENTIC_FINANCE_IMPLEMENTATION.md): Deep dive into the Dual-Engine setup and Uniswap v4 Hook logic.
-- [**Sui Deployment Details**](./docs/SUI_DEPLOYMENT_DETAILS.md): On-chain artifacts and Package IDs for the Performance Layer.
-- [**Architecture & Overview**](./docs/ARCHITECTURE.md): Core architecture, dual-engine design, and roadmap.
-- [**AI Integration**](./docs/AI_INTEGRATION_ARCHITECTURE.md): AI features, route generation, and agentic finance.
-- [**ZK & Security**](./docs/ZK_INTEGRATION.md): Zero-knowledge privacy and BLE integration guides.
-- [**Contracts**](./contracts/README.md): Details on the smart contract layer.
+- [**Architecture Overview**](./docs/ARCHITECTURE_OVERVIEW.md): Core architecture, dual-engine design, and roadmap.
+- [**AI Integration**](./docs/AI_INTEGRATION.md): AI features, route generation, and agentic finance.
+- [**SUI Integration**](./docs/SUI_INTEGRATION.md): Sui deployment details, on-chain artifacts, and performance layer.
+- [**ZK & Security**](./docs/ZK_SECURITY.md): Zero-knowledge privacy, BLE integration, and security considerations.
+- [**Implementation Guides**](./docs/IMPLEMENTATION_GUIDES.md): Detailed implementation guides, mobile optimization, and best practices.
 
 ---
 

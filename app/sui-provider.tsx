@@ -12,7 +12,8 @@ const { networkConfig } = createNetworkConfig({
 });
 
 // Export Sui package ID for use across the app
-export const SUI_PACKAGE_ID = process.env.NEXT_PUBLIC_SUI_PACKAGE_ID || "0x0";
+export const SUI_PACKAGE_ID = process.env.NEXT_PUBLIC_SUI_PACKAGE_ID || 
+  "0x98144f86c83bf486d90232833a6ed467aa3d853d237126537241a6e147f2b3f6";
 
 export function SuiProvider({ children }: { children: React.ReactNode }) {
 	return (
