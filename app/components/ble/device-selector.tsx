@@ -15,7 +15,7 @@ import {
   RotateCcw
 } from "lucide-react";
 
-interface DeviceSelectorProps {
+export interface DeviceSelectorProps {
   onMetricsUpdate?: (metrics: any) => void;
   className?: string;
 }
