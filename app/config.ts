@@ -14,9 +14,11 @@ export const CHAIN_CONFIG = {
 } as const;
 
 export const SUI_CONFIG = {
-  // Deployed Sui Move Package ID (Testnet)
+  // Deployed Sui Move Package ID (Testnet) - UPDATED 2025-04-02
+  // Contains complete implementation: create_coach, create_session, join_session,
+  // update_telemetry, trigger_beat, close_session, and view functions
   packageId:
-    "0x9f693e5143b4c80e7acb4f5fb4e2c62648f036c8fe70044fdcd5688fb9f8681d",
+    "0xc42b32ab25566a6f43db001e6f2c2fd6b2ccc7232e2af3cfca0b9beca824d7dc",
   network: "testnet" as const,
 };
 
