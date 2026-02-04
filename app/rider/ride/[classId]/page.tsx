@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useClass, createPracticeClassMetadata, generateMockRouteData, type ClassWithRoute } from "../../../hooks/use-class-data";
 import RouteVisualizer from "../../../components/route-visualizer";
+import { DeviceSelector } from "../../../components/ble";
 import { useDeviceType, useOrientation, useActualViewportHeight } from "../../../lib/responsive";
 
 interface PracticeClassConfig {
@@ -117,6 +118,9 @@ export default function LiveRidePage() {
   const [showHUD, setShowHUD] = useState(true);
   const [hudMode, setHudMode] = useState<"full" | "compact" | "minimal">("full");
   
+  // BLE Device Connection
+  const [bleConnected, setBleConnected] = useState(false);
+  
   // Telemetry
   const [telemetry, setTelemetry] = useState({
     heartRate: 0,
@@ -125,6 +129,21 @@ export default function LiveRidePage() {
     speed: 0,
     effort: 0,
   });
+
+  // Handle BLE metrics updates
+  const handleBleMetrics = (metrics: any) => {
+    setTelemetry(prev => ({
+      ...prev,
+      heartRate: metrics.heartRate ?? prev.heartRate,
+      power: metrics.power ?? prev.power,
+      cadence: metrics.cadence ?? prev.cadence,
+      speed: metrics.speed ?? prev.speed,
+      effort: metrics.effort ?? prev.effort,
+    }));
+    if (metrics.heartRate || metrics.power) {
+      setBleConnected(true);
+    }
+  };
 
   // Auto-adjust HUD based on device
   useEffect(() => {
@@ -137,9 +156,9 @@ export default function LiveRidePage() {
     }
   }, [deviceType, orientation]);
 
-  // Simulate ride progress
+  // Simulate ride progress (only when BLE not connected)
   useEffect(() => {
-    if (!isRiding || !classData) return;
+    if (!isRiding || !classData || bleConnected) return;
 
     const interval = setInterval(() => {
       setElapsedTime(prev => {
@@ -155,17 +174,21 @@ export default function LiveRidePage() {
         return newTime;
       });
 
-      setTelemetry({
-        heartRate: 120 + Math.floor(Math.random() * 40),
-        power: 150 + Math.floor(Math.random() * 100),
-        cadence: 80 + Math.floor(Math.random() * 20),
-        speed: 25 + Math.random() * 10,
-        effort: 140 + Math.floor(Math.random() * 30),
-      });
+      // Only simulate telemetry if BLE not connected
+      if (!bleConnected) {
+        setTelemetry(prev => ({
+          ...prev,
+          heartRate: prev.heartRate || 120 + Math.floor(Math.random() * 40),
+          power: prev.power || 150 + Math.floor(Math.random() * 100),
+          cadence: prev.cadence || 80 + Math.floor(Math.random() * 20),
+          speed: prev.speed || 25 + Math.random() * 10,
+          effort: prev.effort || 140 + Math.floor(Math.random() * 30),
+        }));
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRiding, classData]);
+  }, [isRiding, classData, bleConnected]);
 
   const currentBeat = classData?.route?.route.storyBeats.find(
     beat => {
@@ -403,6 +426,16 @@ export default function LiveRidePage() {
                 </div>
               )}
 
+              {/* BLE Device Selector - Pre-ride prompt */}
+              {!isRiding && rideProgress === 0 && (
+                <div className="mb-4 max-w-sm mx-auto">
+                  <DeviceSelector 
+                    onMetricsUpdate={handleBleMetrics}
+                    className="bg-black/80 backdrop-blur-xl border-white/10"
+                  />
+                </div>
+              )}
+
               {/* Controls - Touch Optimized */}
               <div className="flex items-center justify-center gap-3">
                 {!isRiding ? (
@@ -421,6 +454,14 @@ export default function LiveRidePage() {
                   </button>
                 )}
               </div>
+
+              {/* BLE Status Indicator */}
+              {bleConnected && (
+                <div className="mt-3 flex items-center justify-center gap-2 text-green-400 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  Live telemetry connected
+                </div>
+              )}
             </div>
           </div>
         </div>
