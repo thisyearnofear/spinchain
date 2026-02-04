@@ -9,6 +9,8 @@ module spinchain::spinsession {
     const ENotOwner: u64 = 0;
     const EInvalidBoundaries: u64 = 1;
     const EValueOutOfBounds: u64 = 2;
+    const ESessionNotActive: u64 = 3;
+    const ENotInstructor: u64 = 4;
 
     // --- Core Objects ---
 
@@ -94,6 +96,21 @@ module spinchain::spinsession {
         max_bpm: u64,
     }
 
+    /// Event emitted when a new session is created.
+    struct SessionCreated has copy, drop {
+        session_id: ID,
+        class_id: ID,
+        instructor: address,
+        duration: u64,
+    }
+
+    /// Event emitted when a rider joins a session.
+    struct RiderJoined has copy, drop {
+        session_id: ID,
+        rider: address,
+        stats_id: ID,
+    }
+
     // --- Functions ---
 
     /// Deploys a new AI Instructor with specific guardrails and cognitive context.
@@ -167,10 +184,156 @@ module spinchain::spinsession {
         coach.system_prompt_cid = system_prompt_cid;
     }
 
+    /// Creates a new fitness session.
+    /// Called by instructor to initialize the performance layer.
     public entry fun create_session(class_id: ID, duration: u64, ctx: &mut TxContext) {
         let session = Session {
             id: object::new(ctx),
             class_id,
             instructor: tx_context::sender(ctx),
             duration,
-            is_active: true
+            is_active: true,
+        };
+
+        let session_id = object::id(&session);
+        transfer::share_object(session);
+
+        event::emit(SessionCreated {
+            session_id,
+            class_id,
+            instructor: tx_context::sender(ctx),
+            duration,
+        });
+    }
+
+    /// Allows a rider to join an active session.
+    /// Creates a RiderStats object owned by the rider.
+    public entry fun join_session(session: &Session, ctx: &mut TxContext) {
+        assert!(session.is_active, ESessionNotActive);
+
+        let stats = RiderStats {
+            id: object::new(ctx),
+            session_id: object::id(session),
+            rider: tx_context::sender(ctx),
+            hr: 0,
+            power: 0,
+            cadence: 0,
+            last_update: 0,
+        };
+
+        let stats_id = object::id(&stats);
+        transfer::transfer(stats, tx_context::sender(ctx));
+
+        event::emit(RiderJoined {
+            session_id: object::id(session),
+            rider: tx_context::sender(ctx),
+            stats_id,
+        });
+    }
+
+    /// Updates telemetry data for a rider.
+    /// Can be called by the rider or an authorized oracle.
+    public entry fun update_telemetry(
+        session: &Session,
+        stats: &mut RiderStats,
+        hr: u32,
+        power: u32,
+        cadence: u32,
+        timestamp: u64,
+        ctx: &mut TxContext
+    ) {
+        assert!(session.is_active, ESessionNotActive);
+        assert!(stats.session_id == object::id(session), EInvalidBoundaries);
+        assert!(stats.rider == tx_context::sender(ctx), ENotOwner);
+
+        stats.hr = hr;
+        stats.power = power;
+        stats.cadence = cadence;
+        stats.last_update = timestamp;
+
+        event::emit(TelemetryPoint {
+            rider: stats.rider,
+            hr,
+            power,
+            cadence,
+            timestamp,
+        });
+    }
+
+    /// Triggers a story beat event.
+    /// Can be called by the instructor, coach, or authorized agent.
+    public entry fun trigger_beat(
+        session: &Session,
+        label: String,
+        beat_type: String,
+        intensity: u8,
+        ctx: &mut TxContext
+    ) {
+        assert!(session.is_active, ESessionNotActive);
+        // Only instructor or session owner can trigger beats
+        // In production, add coach/agent authorization
+        assert!(
+            tx_context::sender(ctx) == session.instructor,
+            ENotInstructor
+        );
+        assert!(intensity <= 100, EValueOutOfBounds);
+
+        event::emit(StoryBeatTriggered {
+            label,
+            beat_type,
+            intensity,
+        });
+    }
+
+    /// Updates the coach's operational state during an active session.
+    public entry fun update_coach_state(
+        coach: &mut Coach,
+        tempo: u64,
+        resistance: u8,
+        ctx: &mut TxContext
+    ) {
+        assert!(tx_context::sender(ctx) == coach.owner, ENotOwner);
+        assert!(resistance <= 100, EValueOutOfBounds);
+        assert!(tempo >= coach.min_bpm && tempo <= coach.max_bpm, EInvalidBoundaries);
+
+        coach.current_tempo = tempo;
+        coach.resistance_level = resistance;
+
+        event::emit(EnvironmentChanged {
+            coach_id: object::id(coach),
+            tempo,
+            resistance,
+            strategy_type: coach.strategy_type,
+        });
+    }
+
+    /// Closes a session. Only the instructor can close their session.
+    public entry fun close_session(session: &mut Session, ctx: &mut TxContext) {
+        assert!(tx_context::sender(ctx) == session.instructor, ENotInstructor);
+        session.is_active = false;
+    }
+
+    // --- View Functions ---
+
+    /// Get session details (for off-chain queries)
+    public fun get_session_details(session: &Session): (ID, address, u64, bool) {
+        (session.class_id, session.instructor, session.duration, session.is_active)
+    }
+
+    /// Get rider stats (for off-chain queries)
+    public fun get_rider_stats(stats: &RiderStats): (ID, address, u32, u32, u32, u64) {
+        (stats.session_id, stats.rider, stats.hr, stats.power, stats.cadence, stats.last_update)
+    }
+
+    /// Get coach configuration (for off-chain queries)
+    public fun get_coach_config(coach: &Coach): (String, u8, u64, u64, u8, u8) {
+        (
+            coach.name,
+            coach.personality,
+            coach.min_bpm,
+            coach.max_bpm,
+            coach.max_resistance,
+            coach.strategy_type
+        )
+    }
+}

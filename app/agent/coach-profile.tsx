@@ -110,50 +110,66 @@ export function CoachProfile({
     return () => clearInterval(interval);
   }, [coachId, client, reason]);
 
-  const deployCoach = () => {
+  const deployCoach = async () => {
     if (!account) return;
     setIsLoading(true);
 
-    const tx = new Transaction();
+    try {
+      const tx = new Transaction();
 
-    // target: package::module::function
-    tx.moveCall({
-      target: `${SUI_CONFIG.packageId}::spinsession::create_coach`,
-      arguments: [
-        tx.pure.string(config.name),
-        tx.pure.u8(
-          config.personality === "zen"
-            ? 0
-            : config.personality === "data"
-              ? 2
-              : 1,
-        ),
-        tx.pure.u64(config.minBpm),
-        tx.pure.u64(config.maxBpm),
-        tx.pure.u8(config.maxResistance),
-        tx.pure.u8(config.strategyType),
-      ],
-    });
+      // Map personality to numeric value
+      const personalityValue = config.personality === "zen" ? 0 : config.personality === "data" ? 2 : 1;
 
-    signAndExecuteTransaction(
-      {
-        // @ts-expect-error - Transaction version mismatch between @mysten/sui versions
-        transaction: tx,
-      },
-      {
-        onSuccess: (result) => {
-          console.log("Coach Genesis complete:", result);
-          setIsLoading(false);
-          // In production, parse result.effects.created[0].reference.objectId
-          if (onDeploy) onDeploy("0xPENDING_INDEXER");
-          setCoachId("0xSUI_AGENT_LIVE"); // Mocking ID for visual flow
+      // Default inference model and prompt CID (can be customized in future)
+      const inferenceModel = "gemini::flash";
+      const systemPromptCid = "ipfs://QmDefaultCoachPrompt"; // Placeholder - should be actual CID
+
+      // target: package::module::function
+      tx.moveCall({
+        target: `${SUI_CONFIG.packageId}::spinsession::create_coach`,
+        arguments: [
+          tx.pure.string(config.name),
+          tx.pure.u8(personalityValue),
+          tx.pure.u64(config.minBpm),
+          tx.pure.u64(config.maxBpm),
+          tx.pure.u8(config.maxResistance),
+          tx.pure.u8(config.strategyType),
+          tx.pure.string(inferenceModel),
+          tx.pure.string(systemPromptCid),
+        ],
+      });
+
+      // @ts-expect-error - Transaction version mismatch between @mysten/dapp-kit and @mysten/sui
+      await signAndExecuteTransaction(
+        {
+          transaction: tx as any,
         },
-        onError: (err) => {
-          console.error("Genesis failed", err);
-          setIsLoading(false);
+        {
+          onSuccess: (result: any) => {
+            console.log("Coach Genesis complete:", result);
+            setIsLoading(false);
+            // Extract actual coach ID from transaction effects
+            const createdObjects = result.effects?.created;
+            if (createdObjects && createdObjects.length > 0) {
+              const coachObjectId = createdObjects[0].reference.objectId;
+              setCoachId(coachObjectId);
+              if (onDeploy) onDeploy(coachObjectId);
+            } else {
+              // Fallback for testing
+              setCoachId("0xSUI_AGENT_LIVE");
+              if (onDeploy) onDeploy("0xSUI_AGENT_LIVE");
+            }
+          },
+          onError: (err: any) => {
+            console.error("Genesis failed", err);
+            setIsLoading(false);
+          },
         },
-      },
-    );
+      );
+    } catch (err) {
+      console.error("Failed to deploy coach:", err);
+      setIsLoading(false);
+    }
   };
 
   const strategies = [

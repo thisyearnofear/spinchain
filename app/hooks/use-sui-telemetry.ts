@@ -1,70 +1,119 @@
 "use client";
 
-import { useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
+import { useSuiClient, useCurrentAccount } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { SUI_CONFIG } from "../config";
+import { useSuiTransaction } from "./use-sui-transaction";
 
-const PACKAGE_ID = "0x..."; // To be filled after deploy
 const MODULE_NAME = "spinsession";
 
-export function useSuiTelemetry(statsObjectId: string | null) {
+export interface TelemetryUpdate {
+    hr: number;
+    power: number;
+    cadence: number;
+    timestamp: number;
+}
+
+export interface StoryBeat {
+    label: string;
+    beatType: string;
+    intensity: number;
+}
+
+/**
+ * Hook for managing Sui telemetry updates and story beats
+ * Follows DRY principle: Uses shared transaction handling from use-sui-transaction
+ */
+export function useSuiTelemetry(sessionId: string | null, statsObjectId: string | null) {
     const suiClient = useSuiClient();
-    const { mutate: signAndExecute } = useSignAndExecuteTransaction();
-    const [isUpdating, setIsUpdating] = useState(false);
+    const account = useCurrentAccount();
+    const { execute, isPending: isUpdating, error } = useSuiTransaction({
+        successMessage: "Telemetry updated",
+        pendingMessage: "Submitting telemetry...",
+    });
+    const [lastUpdate, setLastUpdate] = useState<TelemetryUpdate | null>(null);
 
-    const updateTelemetry = async (hr: number, power: number, cadence: number) => {
-        if (!statsObjectId || isUpdating) return;
-
-        try {
-            setIsUpdating(true);
-            const tx = new Transaction();
-            tx.moveCall({
-                target: `${PACKAGE_ID}::${MODULE_NAME}::update_telemetry`,
-                arguments: [
-                    tx.object(statsObjectId),
-                    tx.pure.u32(hr),
-                    tx.pure.u32(power),
-                    tx.pure.u32(cadence),
-                    tx.pure.u64(Date.now()),
-                ],
-            });
-
-            signAndExecute({
-                transaction: tx as any,
-            }, {
-                onSuccess: () => {
-                    setIsUpdating(false);
-                },
-                onError: () => {
-                    setIsUpdating(false);
-                }
-            });
-        } catch (err) {
-            console.error("Telemetry update failed", err);
-            setIsUpdating(false);
+    /**
+     * Update rider telemetry on Sui
+     * Requires both sessionId and statsObjectId
+     */
+    const updateTelemetry = useCallback(async (
+        hr: number,
+        power: number,
+        cadence: number
+    ): Promise<boolean> => {
+        if (!sessionId || !statsObjectId) {
+            console.warn("[SuiTelemetry] Missing sessionId or statsObjectId");
+            return false;
         }
-    };
 
-    const triggerBeat = async (sessionObjectId: string, label: string, beatType: string, intensity: number) => {
-        try {
-            const tx = new Transaction();
-            tx.moveCall({
-                target: `${PACKAGE_ID}::${MODULE_NAME}::trigger_beat`,
-                arguments: [
-                    tx.object(sessionObjectId),
-                    tx.pure.string(label),
-                    tx.pure.string(beatType),
-                    tx.pure.u8(intensity),
-                ],
-            });
-
-            signAndExecute({
-                transaction: tx as any,
-            });
-        } catch (err) {
-            console.error("Trigger beat failed", err);
+        if (!account) {
+            console.warn("[SuiTelemetry] Wallet not connected");
+            return false;
         }
-    };
 
-    return { updateTelemetry, triggerBeat, isUpdating };
+        const timestamp = Date.now();
+        const update: TelemetryUpdate = { hr, power, cadence, timestamp };
+
+        const tx = new Transaction();
+        tx.moveCall({
+            target: `${SUI_CONFIG.packageId}::${MODULE_NAME}::update_telemetry`,
+            arguments: [
+                tx.object(sessionId),
+                tx.object(statsObjectId),
+                tx.pure.u32(hr),
+                tx.pure.u32(power),
+                tx.pure.u32(cadence),
+                tx.pure.u64(timestamp),
+            ],
+        });
+
+        const success = await execute(tx);
+        if (success) {
+            setLastUpdate(update);
+        }
+        return success;
+    }, [sessionId, statsObjectId, account, execute]);
+
+    /**
+     * Trigger a story beat event on Sui
+     */
+    const triggerBeat = useCallback(async (
+        label: string,
+        beatType: string,
+        intensity: number
+    ): Promise<boolean> => {
+        if (!sessionId) {
+            console.warn("[SuiTelemetry] Missing sessionId");
+            return false;
+        }
+
+        if (!account) {
+            console.warn("[SuiTelemetry] Wallet not connected");
+            return false;
+        }
+
+        const tx = new Transaction();
+        tx.moveCall({
+            target: `${SUI_CONFIG.packageId}::${MODULE_NAME}::trigger_beat`,
+            arguments: [
+                tx.object(sessionId),
+                tx.pure.string(label),
+                tx.pure.string(beatType),
+                tx.pure.u8(Math.min(100, Math.max(0, intensity))),
+            ],
+        });
+
+        return await execute(tx);
+    }, [sessionId, account, execute]);
+
+    return {
+        updateTelemetry,
+        triggerBeat,
+        isUpdating,
+        error,
+        lastUpdate,
+        isConnected: !!account && !!sessionId && !!statsObjectId,
+    };
 }

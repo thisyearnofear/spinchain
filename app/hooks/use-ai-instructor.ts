@@ -18,7 +18,8 @@ export function useAiInstructor(
     sessionObjectId: string | null
 ) {
     const [logs, setLogs] = useState<AgentLog[]>([]);
-    const { triggerBeat } = useSuiTelemetry(null); // We only need triggerBeat, no stats object needed for agent
+    // Agent only needs sessionId for triggerBeat, no stats object needed
+    const { triggerBeat } = useSuiTelemetry(sessionObjectId, null);
     const [isActive, setIsActive] = useState(false);
 
     const addLog = (message: string, type: AgentLog["type"] = "info") => {
@@ -40,17 +41,17 @@ export function useAiInstructor(
             if (personality === "drill-sergeant" && avgHr < 145) {
                 const message = `${agentName}: "I see you slacking! SPRINT NOW!"`;
                 addLog(message, "action");
-                triggerBeat(sessionObjectId, "Attack the Hill!", "sprint", 9);
+                triggerBeat("Attack the Hill!", "sprint", 9);
             } else if (personality === "zen" && avgHr > 165) {
                 const message = `${agentName}: "Your heart is racing. Breathe. Find your center."`;
                 addLog(message, "action");
-                triggerBeat(sessionObjectId, "Deep Breath Recovery", "rest", 3);
+                triggerBeat("Deep Breath Recovery", "rest", 3);
             } else if (personality === "data") {
                 const message = `Analyzing telemetry... Current group power efficiency at ${Math.round(85 + Math.random() * 10)}%.`;
                 addLog(message, "info");
                 // Maybe trigger a technical climb
                 if (Math.random() > 0.8) {
-                    triggerBeat(sessionObjectId, "Optimized Threshold Climb", "climb", 7);
+                    triggerBeat("Optimized Threshold Climb", "climb", 7);
                 }
             } else {
                 addLog(`Monitoring ride... Current Group HR: ${Math.round(avgHr)} BPM`, "info");
