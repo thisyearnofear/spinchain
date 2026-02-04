@@ -99,10 +99,10 @@ Open [http://localhost:3000](http://localhost:3000) to view the protocol dashboa
 
 ## 📚 Documentation
 - [**Architecture Overview**](./docs/ARCHITECTURE_OVERVIEW.md): Core architecture, dual-engine design, and roadmap.
-- [**AI Integration**](./docs/AI_INTEGRATION.md): AI features, route generation, and agentic finance.
+- [**AI Integration**](./docs/AI_INTEGRATION.md): AI features, route generation, and agentic finance implementation.
 - [**SUI Integration**](./docs/SUI_INTEGRATION.md): Sui deployment details, on-chain artifacts, and performance layer.
-- [**ZK & Security**](./docs/ZK_SECURITY.md): Zero-knowledge privacy, BLE integration, and security considerations.
-- [**Implementation Guides**](./docs/IMPLEMENTATION_GUIDES.md): Detailed implementation guides, mobile optimization, and best practices.
+- [**ZK & Security**](./docs/ZK_SECURITY.md): Zero-knowledge privacy, security considerations, and BLE integration.
+- [**Implementation Guides**](./docs/IMPLEMENTATION_GUIDES.md): Mobile optimization, development workflows, and best practices.
 
 ---
 

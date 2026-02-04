@@ -139,7 +139,6 @@ export function CoachProfile({
         ],
       });
 
-      // @ts-expect-error - Transaction version mismatch between @mysten/dapp-kit and @mysten/sui
       await signAndExecuteTransaction(
         {
           transaction: tx as any,
@@ -290,13 +289,12 @@ export function CoachProfile({
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className={`h-1 w-4 rounded-full transition-colors ${
-                (step === "persona" && i === 1) ||
-                (step === "strategy" && i <= 2) ||
-                (step === "review" && i <= 3)
+              className={`h-1 w-4 rounded-full transition-colors ${(step === "persona" && i === 1) ||
+                  (step === "strategy" && i <= 2) ||
+                  (step === "review" && i <= 3)
                   ? "bg-indigo-500"
                   : "bg-white/10"
-              }`}
+                }`}
             />
           ))}
         </div>
@@ -334,11 +332,10 @@ export function CoachProfile({
                         personality: p.id as "zen" | "drill-sergeant" | "data",
                       })
                     }
-                    className={`flex flex-col items-center gap-2 rounded-xl border p-3 transition-all ${
-                      config.personality === p.id
+                    className={`flex flex-col items-center gap-2 rounded-xl border p-3 transition-all ${config.personality === p.id
                         ? "border-indigo-500 bg-indigo-500/20 text-white"
                         : "border-white/5 bg-white/5 text-white/40 hover:bg-white/10"
-                    }`}
+                      }`}
                   >
                     <span className="text-xl">{p.icon}</span>
                     <span className="text-[10px] font-bold uppercase">
@@ -401,11 +398,10 @@ export function CoachProfile({
                   <button
                     key={s.id}
                     onClick={() => setConfig({ ...config, strategyType: s.id })}
-                    className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${
-                      config.strategyType === s.id
+                    className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${config.strategyType === s.id
                         ? "border-indigo-500 bg-indigo-500/20"
                         : "border-white/5 bg-white/5 hover:bg-white/10"
-                    }`}
+                      }`}
                   >
                     <s.icon
                       size={16}
