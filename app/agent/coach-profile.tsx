@@ -141,14 +141,15 @@ export function CoachProfile({
 
       await signAndExecuteTransaction(
         {
-          transaction: tx,
+          transaction: tx as unknown as Parameters<typeof signAndExecuteTransaction>[0]['transaction'],
         },
         {
-          onSuccess: (result: { effects?: { created?: Array<{ reference: { objectId: string } }> } }) => {
+          onSuccess: (result) => {
             console.log("Coach Genesis complete:", result);
             setIsLoading(false);
             // Extract actual coach ID from transaction effects
-            const createdObjects = result.effects?.created;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const createdObjects = (result.effects as any)?.created;
             if (createdObjects && createdObjects.length > 0) {
               const coachObjectId = createdObjects[0].reference.objectId;
               setCoachId(coachObjectId);

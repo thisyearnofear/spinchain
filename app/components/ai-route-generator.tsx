@@ -11,14 +11,7 @@ import { useVoiceInput } from "../hooks/use-voice-input";
 import { useRouteLibrary } from "../hooks/use-route-library";
 import { RouteLibrary } from "./route-library";
 import type { RouteGenerationParams } from "../lib/ai-service";
-
-interface GpxSummary {
-  distance: number;
-  elevationGain: number;
-  elevationLoss: number;
-  duration: number;
-  coordinates: Array<{ lat: number; lng: number; elevation?: number }>;
-}
+import type { GpxSummary } from "../routes/builder/gpx-uploader";
 
 type AIRouteGeneratorProps = {
   onRouteGenerated?: (gpxSummary: GpxSummary) => void;

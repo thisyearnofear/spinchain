@@ -16,21 +16,18 @@ export default function RiderPage() {
   const [filterUpcoming, setFilterUpcoming] = useState(true);
   const [showGuestBanner, setShowGuestBanner] = useState(true);
   
-  // Filter classes by time - using server-rendered time as base
-  // Client-side time is only accessed in event handlers / effects
-  const [clientTime, setClientTime] = useState<number | null>(null);
+  // Filter classes by time
+  const [filteredClasses, setFilteredClasses] = useState<ClassWithRoute[]>(classes);
   useEffect(() => {
-    // Schedule time update for next tick to avoid sync setState
+    // Use setTimeout to defer the state update and avoid sync setState warning
     const timeoutId = setTimeout(() => {
-      setClientTime(Math.floor(Date.now() / 1000));
+      const now = Math.floor(Date.now() / 1000);
+      setFilteredClasses(classes.filter(cls =>
+        filterUpcoming ? cls.startTime > now : cls.startTime <= now
+      ));
     }, 0);
     return () => clearTimeout(timeoutId);
-  }, []);
-  
-  const filteredClasses = classes.filter(cls => {
-    const time = clientTime ?? Math.floor(Date.now() / 1000);
-    return filterUpcoming ? cls.startTime > time : cls.startTime <= time;
-  });
+  }, [classes, filterUpcoming]);
 
   const handlePreviewRoute = (classData: ClassWithRoute) => {
     if (classData.route) {

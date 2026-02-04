@@ -271,7 +271,7 @@ export default function LiveRidePage() {
       <div className="absolute inset-0">
         <RouteVisualizer
           elevationProfile={classData.route.route.coordinates.map(c => c.ele || 0)}
-          theme={(classData.metadata?.route.theme as 'neon' | 'alpine' | 'mars' | 'ocean') || "neon"}
+          theme={(classData.metadata?.route.theme as 'neon' | 'alpine' | 'mars') || "neon"}
           storyBeats={classData.route.route.storyBeats}
           className="h-full w-full"
         />

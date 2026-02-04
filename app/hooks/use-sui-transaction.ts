@@ -103,7 +103,7 @@ export function useSuiTransaction(
 
       return new Promise((resolve) => {
         signAndExecute(
-          { transaction: tx },
+          { transaction: tx as unknown as Parameters<typeof signAndExecute>[0]['transaction'] },
           {
             onSuccess: () => resolve(true),
             onError: () => resolve(false),
