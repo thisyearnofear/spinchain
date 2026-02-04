@@ -110,7 +110,10 @@ export function CoachProfile({
     });
 
     signAndExecuteTransaction(
-      { transaction: tx as unknown as Parameters<typeof signAndExecuteTransaction>[0]["transaction"] },
+      {
+        // @ts-expect-error - Transaction version mismatch between @mysten/sui versions
+        transaction: tx,
+      },
       {
         onSuccess: (result) => {
           console.log("Coach Genesis complete:", result);
