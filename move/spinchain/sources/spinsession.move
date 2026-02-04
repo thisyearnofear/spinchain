@@ -22,7 +22,7 @@ module spinchain::spinsession {
     }
 
     /// The AI Coach Agent living on Sui.
-    /// Enhanced with Strategy and Boundary configurations to define its autonomous behavior.
+    /// Enhanced with Strategy, Boundary, and Cognitive configurations to define its autonomous behavior.
     struct Coach has key, store {
         id: UID,
         owner: address,
@@ -42,6 +42,11 @@ module spinchain::spinsession {
         // Strategy Mandate
         // 0 = Recovery, 1 = Balanced, 2 = HIIT, 3 = Yield-Optimized (Revenue focus)
         strategy_type: u8,
+
+        // Cognitive Layer (AI Inference Link)
+        inference_model: String, // e.g. "venice::llama-3-70b" or "gemini::flash"
+        system_prompt_cid: String, // IPFS/Walrus link to the agent's behavioral logic
+        last_thought_epoch: u64, // Tracking when the agent last processed biometric state
     }
 
     /// High-frequency telemetry for a rider.
@@ -91,7 +96,7 @@ module spinchain::spinsession {
 
     // --- Functions ---
 
-    /// Deploys a new AI Instructor with specific guardrails.
+    /// Deploys a new AI Instructor with specific guardrails and cognitive context.
     public entry fun create_coach(
         name: String,
         personality: u8,
@@ -99,6 +104,8 @@ module spinchain::spinsession {
         max_bpm: u64,
         max_resistance: u8,
         strategy_type: u8,
+        inference_model: String,
+        system_prompt_cid: String,
         ctx: &mut TxContext
     ) {
         assert!(max_bpm >= min_bpm, EInvalidBoundaries);
@@ -116,6 +123,9 @@ module spinchain::spinsession {
             max_bpm,
             max_resistance,
             strategy_type,
+            inference_model,
+            system_prompt_cid,
+            last_thought_epoch: 0,
         };
         transfer::share_object(coach);
     }
@@ -143,6 +153,18 @@ module spinchain::spinsession {
             min_bpm,
             max_bpm,
         });
+    }
+
+    /// Updates the AI model and behavioral logic CID.
+    public entry fun update_cognitive_layer(
+        coach: &mut Coach,
+        inference_model: String,
+        system_prompt_cid: String,
+        ctx: &mut TxContext
+    ) {
+        assert!(tx_context::sender(ctx) == coach.owner, ENotOwner);
+        coach.inference_model = inference_model;
+        coach.system_prompt_cid = system_prompt_cid;
     }
 
     public entry fun create_session(class_id: ID, duration: u64, ctx: &mut TxContext) {

@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { PrimaryNav } from "../../components/nav";
 import { BulletList, SectionHeader, SurfaceCard, Tag } from "../../components/ui";
 
-export default function RiderJourneyPage() {
+function JourneyContent() {
   const searchParams = useSearchParams();
   const isCompleted = searchParams.get("completed") === "true";
 
@@ -131,5 +132,24 @@ export default function RiderJourneyPage() {
         </SurfaceCard>
       </main>
     </div>
+  );
+}
+
+export default function RiderJourneyPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,#1a2550,transparent_55%),radial-gradient(circle_at_80%_20%,#2a1d5a,transparent_40%)]">
+        <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">
+          <div className="rounded-3xl border border-white/10 bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
+            <PrimaryNav />
+          </div>
+          <div className="flex items-center justify-center py-20">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/20 border-t-white" />
+          </div>
+        </main>
+      </div>
+    }>
+      <JourneyContent />
+    </Suspense>
   );
 }
