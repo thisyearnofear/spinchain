@@ -22,7 +22,8 @@ export const SUI_CONFIG = {
 
 export const AI_CONFIG = {
   provider: "gemini" as const,
-  model: "gemini-2.0-flash-exp",
+  model: "gemini-2.0-flash-exp", // Fallback / current stable
+  experimentalModel: "gemini-3.0-flash-preview", // New frontier model
   features: {
     voiceInput: true,
     routeLibrary: true,

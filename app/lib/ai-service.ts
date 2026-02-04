@@ -1,7 +1,7 @@
 /**
  * Unified AI Service Layer
  * Consolidates all AI interactions (Gemini) for instructor agents, route generation, and narrative prompts
- * 
+ *
  * Core Principles:
  * - Single source of truth for AI configuration
  * - Server-side API key management (via Next.js API routes)
@@ -9,14 +9,14 @@
  * - Type-safe function calling interface
  */
 
-export type AIProvider = "gemini" | "openai";
+export type AIProvider = "gemini" | "openai" | "venice";
 
 export type FunctionDeclaration = {
   name: string;
   description: string;
   parameters: {
     type: string;
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
     required: string[];
   };
 };
@@ -45,6 +45,34 @@ export type GeneratedRoute = {
     label: string;
     type: "climb" | "sprint" | "drop" | "rest";
   }>;
+};
+
+export type AgentReasoningParams = {
+  agentName: string;
+  personality: string;
+  context: {
+    telemetry: {
+      avgBpm: number;
+      resistance: number;
+      duration: number;
+    };
+    market: {
+      ticketsSold: number;
+      revenue: number;
+    };
+  };
+};
+
+export type AgentDecision = {
+  thoughtProcess: string;
+  action:
+    | "increase_resistance"
+    | "decrease_resistance"
+    | "maintain"
+    | "surge_price"
+    | "discount_price";
+  parameters: Record<string, unknown>;
+  confidence: number;
 };
 
 /**
@@ -79,12 +107,31 @@ export class AIService {
   }
 
   /**
+   * Agentic Reasoning Loop (Venice / Gemini)
+   * Used by autonomous instructors to decide on physical/financial adjustments
+   */
+  async reasoning(params: AgentReasoningParams): Promise<AgentDecision> {
+    const response = await fetch(`${this.baseUrl}/agent-reasoning`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...params, provider: this.provider }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Agent reasoning failed");
+    }
+
+    return response.json();
+  }
+
+  /**
    * Generate narrative description for a route
    */
   async generateNarrative(
     elevationProfile: number[],
     theme: string,
-    duration: number
+    duration: number,
   ): Promise<string> {
     const response = await fetch(`${this.baseUrl}/generate-narrative`, {
       method: "POST",

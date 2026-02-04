@@ -31,7 +31,7 @@ type RouteResponse = {
  */
 function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
-  
+
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY environment variable is not set");
   }
@@ -82,10 +82,10 @@ Respond ONLY with valid JSON in this exact format:
  * Generate route using Gemini AI
  */
 export async function generateRouteWithGemini(
-  request: RouteRequest
+  request: RouteRequest,
 ): Promise<RouteResponse> {
   const genAI = getGeminiClient();
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.0-flash-preview" });
 
   const userPrompt = `Generate a cycling route with these specifications:
 
@@ -121,7 +121,11 @@ Remember: Respond ONLY with the JSON object, no markdown formatting or extra tex
     const route = JSON.parse(jsonMatch[0]) as RouteResponse;
 
     // Validate response structure
-    if (!route.name || !route.coordinates || !Array.isArray(route.coordinates)) {
+    if (
+      !route.name ||
+      !route.coordinates ||
+      !Array.isArray(route.coordinates)
+    ) {
       throw new Error("Invalid route structure from Gemini");
     }
 
@@ -139,7 +143,7 @@ Remember: Respond ONLY with the JSON object, no markdown formatting or extra tex
           beat.type === "climb" ||
           beat.type === "sprint" ||
           beat.type === "drop" ||
-          beat.type === "rest"
+          beat.type === "rest",
       );
     }
 
@@ -147,7 +151,7 @@ Remember: Respond ONLY with the JSON object, no markdown formatting or extra tex
   } catch (error) {
     console.error("Gemini route generation error:", error);
     throw new Error(
-      `Failed to generate route: ${error instanceof Error ? error.message : "Unknown error"}`
+      `Failed to generate route: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
 }
@@ -158,10 +162,10 @@ Remember: Respond ONLY with the JSON object, no markdown formatting or extra tex
 export async function generateNarrativeWithGemini(
   elevationProfile: number[],
   theme: string,
-  duration: number
+  duration: number,
 ): Promise<string> {
   const genAI = getGeminiClient();
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.0-flash-preview" });
 
   const minEle = Math.min(...elevationProfile);
   const maxEle = Math.max(...elevationProfile);
@@ -189,13 +193,13 @@ Write ONLY the description, no extra text or labels:`;
   try {
     const result = await model.generateContent(prompt);
     const narrative = result.response.text().trim();
-    
+
     // Remove quotes if present
     return narrative.replace(/^["']|["']$/g, "");
   } catch (error) {
     console.error("Gemini narrative generation error:", error);
     throw new Error(
-      `Failed to generate narrative: ${error instanceof Error ? error.message : "Unknown error"}`
+      `Failed to generate narrative: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
 }
@@ -204,12 +208,12 @@ Write ONLY the description, no extra text or labels:`;
  * Chat with Gemini for general route planning questions
  */
 export async function chatWithGemini(
-  messages: Array<{ role: string; content: string }>
+  messages: Array<{ role: string; content: string }>,
 ): Promise<string> {
   const genAI = getGeminiClient();
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.0-flash-preview" });
 
-  const systemPrompt = `You are an expert cycling instructor and route designer for SpinChain, a Web3 fitness protocol. 
+  const systemPrompt = `You are an expert cycling instructor and route designer for SpinChain, a Web3 fitness protocol.
 
 Your role:
 - Help users plan amazing spin class routes
@@ -233,7 +237,7 @@ Keep responses concise (2-3 sentences) and actionable.`;
   } catch (error) {
     console.error("Gemini chat error:", error);
     throw new Error(
-      `Chat failed: ${error instanceof Error ? error.message : "Unknown error"}`
+      `Chat failed: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
 }

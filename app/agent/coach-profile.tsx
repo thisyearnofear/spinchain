@@ -19,7 +19,9 @@ import {
   TrendingUp,
   Flame,
   Wind,
+  MessageSquare,
 } from "lucide-react";
+import { useAgentReasoner } from "../hooks/use-agent-reasoner";
 
 interface CoachProfileProps {
   name?: string;
@@ -63,6 +65,17 @@ export function CoachProfile({
     strategyType: 1, // 0=Recovery, 1=Balanced, 2=HIIT, 3=Yield
   });
 
+  // AI Reasoning Hook
+  const {
+    reason,
+    thoughtLog,
+    state: reasoningState,
+  } = useAgentReasoner({
+    agentName: config.name,
+    personality: config.personality,
+    enabled: !!coachId,
+  });
+
   // Poll for coach data if we have an ID
   useEffect(() => {
     if (!coachId) return;
@@ -74,6 +87,19 @@ export function CoachProfile({
           options: { showContent: true },
         });
         setCoachData(obj.data?.content as unknown as SuiCoachData);
+
+        // Trigger AI Reasoning on new data fetch
+        reason({
+          telemetry: {
+            avgBpm: 145, // Mock data for now
+            resistance: 65,
+            duration: 25,
+          },
+          market: {
+            ticketsSold: 85,
+            revenue: 2.4,
+          },
+        });
       } catch (e) {
         console.error("Failed to fetch coach", e);
       }
@@ -82,7 +108,7 @@ export function CoachProfile({
     fetchCoach();
     const interval = setInterval(fetchCoach, 5000);
     return () => clearInterval(interval);
-  }, [coachId, client]);
+  }, [coachId, client, reason]);
 
   const deployCoach = () => {
     if (!account) return;
@@ -200,6 +226,34 @@ export function CoachProfile({
               Strategy:{" "}
               {strategies.find((s) => s.id === config.strategyType)?.label}
             </span>
+          </div>
+        </div>
+
+        {/* Live Thought Stream */}
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <MessageSquare className="h-3 w-3 text-indigo-400" />
+            <span className="text-[10px] font-bold uppercase text-indigo-300">
+              Cognitive Stream ({reasoningState})
+            </span>
+          </div>
+          <div className="space-y-2 max-h-32 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+            {thoughtLog.length === 0 ? (
+              <p className="text-[10px] text-white/30 italic">
+                Waiting for reasoning...
+              </p>
+            ) : (
+              thoughtLog.map((thought, i) => (
+                <div key={i} className="flex gap-2">
+                  <span className="text-[10px] text-white/30 font-mono">
+                    [{new Date().toLocaleTimeString()}]
+                  </span>
+                  <p className="text-[10px] text-white/70 leading-relaxed font-mono">
+                    &quot;{thought}&quot;
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
