@@ -18,9 +18,33 @@ export const SUI_CONFIG = {
   // Contains complete implementation: create_coach, create_session, join_session,
   // update_telemetry, trigger_beat, close_session, and view functions
   packageId:
+    process.env.NEXT_PUBLIC_SUI_PACKAGE_ID ||
     "0xc42b32ab25566a6f43db001e6f2c2fd6b2ccc7232e2af3cfca0b9beca824d7dc",
   network: "testnet" as const,
-};
+  // Optional: Gas station for sponsored transactions (gasless onboarding)
+  gasStationUrl: process.env.NEXT_PUBLIC_SUI_GAS_STATION_URL,
+} as const;
+
+export const ZK_CONFIG = {
+  // Noir verifier contract address for effort threshold proofs
+  verifierAddress:
+    process.env.NEXT_PUBLIC_NOIR_VERIFIER_ADDRESS || "0x0000000000000000000000000000000000000000",
+  // Circuit type: "effort_threshold" | "composite"
+  defaultCircuit: "effort_threshold" as const,
+} as const;
+
+export const AI_SERVICE_CONFIG = {
+  // Venice AI for agent reasoning (preferred for real-time coach decisions)
+  venice: {
+    apiKey: process.env.VENICE_API_KEY,
+    enabled: !!process.env.VENICE_API_KEY,
+  },
+  // Gemini as fallback for route generation and chat
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY,
+    enabled: !!process.env.GEMINI_API_KEY,
+  },
+} as const;
 
 export const AI_CONFIG = {
   provider: "gemini" as const,
