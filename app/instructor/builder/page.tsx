@@ -148,13 +148,13 @@ function PricingCurveVisualizer({
 export default function InstructorBuilderPage() {
   const { address: userAddress } = useAccount();
   const { createClass, isPending, isSuccess, error: deployError, hash } = useCreateClass();
-  const { 
-    deployClassWithRoute, 
-    deploymentStep, 
+  const {
+    deployClassWithRoute,
+    deploymentStep,
     isPending: isDeploying,
-    isSuccess: deploySuccess 
+    isSuccess: deploySuccess
   } = useClassWithRoute();
-  
+
   const [step, setStep] = useState(0); // Start at 0 for route selection
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
   const [gpxSummary, setGpxSummary] = useState<GpxSummary | null>(null);
@@ -203,6 +203,35 @@ export default function InstructorBuilderPage() {
       ...prev,
       [name]: type === "number" ? parseFloat(value) : value,
     }));
+  };
+
+  const startPractice = () => {
+    if (!selectedRoute || !gpxSummary || !userAddress) return;
+
+    const routeDuration = Math.round(gpxSummary.segments.reduce((acc, s) => acc + s.minutes, 0));
+    const routeElevation = (gpxSummary.maxElevation || 0) - (gpxSummary.minElevation || 0);
+
+    // Build URL params for practice mode
+    const params = new URLSearchParams({
+      mode: "practice",
+      name: formData.name,
+      date: formData.date,
+      instructor: userAddress,
+      capacity: formData.capacity.toString(),
+      basePrice: formData.basePrice.toString(),
+      maxPrice: formData.maxPrice.toString(),
+      curveType: formData.curveType,
+      rewardThreshold: formData.rewardThreshold.toString(),
+      rewardAmount: formData.rewardAmount.toString(),
+      aiEnabled: (formData.aiEnabled ?? true).toString(),
+      aiPersonality: formData.aiPersonality || "drill-sergeant",
+      routeName: selectedRoute.name,
+      routeDistance: (gpxSummary.distanceKm || 20).toString(),
+      routeDuration: routeDuration.toString(),
+      routeElevation: routeElevation.toString(),
+    });
+
+    window.location.href = `/rider/ride/practice-${Date.now()}?${params.toString()}`;
   };
 
   return (
@@ -459,6 +488,22 @@ export default function InstructorBuilderPage() {
                     Deploying will create a new SpinClass contract and mint the
                     ownership NFT to your wallet.
                   </p>
+                </div>
+                <div className="flex items-center gap-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
+                  <div className="grid h-6 w-6 place-items-center rounded-full bg-amber-500/20 text-xs font-bold text-amber-400">
+                    🎓
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-amber-200 font-medium">Try Before You Deploy</p>
+                    <p className="text-amber-300/70">Preview your class with AI coaching and see how it feels.</p>
+                  </div>
+                  <button
+                    onClick={startPractice}
+                    disabled={!selectedRoute || !userAddress}
+                    className="rounded-lg bg-amber-500/20 px-4 py-2 text-sm font-semibold text-amber-300 hover:bg-amber-500/30 transition disabled:opacity-50"
+                  >
+                    Practice Run
+                  </button>
                 </div>
               </GlassCard>
             )}

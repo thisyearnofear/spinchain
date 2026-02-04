@@ -1,23 +1,111 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useClass } from "../../../hooks/use-class-data";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useClass, createPracticeClassMetadata, generateMockRouteData, type ClassWithRoute } from "../../../hooks/use-class-data";
 import RouteVisualizer from "../../../components/route-visualizer";
 import { useDeviceType, useOrientation, useActualViewportHeight } from "../../../lib/responsive";
 
-/**
- * Mobile-Optimized Live Ride Page
- * ENHANCEMENT FIRST: Enhances existing live ride with responsive layout
- * PERFORMANT: Adaptive rendering based on device
- */
+interface PracticeClassConfig {
+  name: string;
+  date: string;
+  capacity: number;
+  basePrice: number;
+  maxPrice: number;
+  curveType: "linear" | "exponential";
+  rewardThreshold: number;
+  rewardAmount: number;
+  aiEnabled?: boolean;
+  aiPersonality?: "zen" | "drill-sergeant" | "data";
+  routeName: string;
+  routeDistance: number;
+  routeDuration: number;
+  routeElevation: number;
+  instructor: string;
+}
 
 export default function LiveRidePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const classId = params.classId as string;
-  
-  const { classData, isLoading } = useClass(classId as `0x${string}`);
+
+  const isPracticeMode = searchParams.get("mode") === "practice";
+
+  const practiceConfig: PracticeClassConfig | null = useMemo(() => {
+    if (!isPracticeMode) return null;
+    const name = searchParams.get("name");
+    const date = searchParams.get("date");
+    const instructor = searchParams.get("instructor");
+    if (!name || !date || !instructor) return null;
+
+    return {
+      name,
+      date,
+      capacity: Number(searchParams.get("capacity")) || 50,
+      basePrice: Number(searchParams.get("basePrice")) || 0.02,
+      maxPrice: Number(searchParams.get("maxPrice")) || 0.08,
+      curveType: (searchParams.get("curveType") as "linear" | "exponential") || "linear",
+      rewardThreshold: Number(searchParams.get("rewardThreshold")) || 150,
+      rewardAmount: Number(searchParams.get("rewardAmount")) || 20,
+      aiEnabled: searchParams.get("aiEnabled") === "true",
+      aiPersonality: (searchParams.get("aiPersonality") as "zen" | "drill-sergeant" | "data") || undefined,
+      routeName: searchParams.get("routeName") || "Practice Route",
+      routeDistance: Number(searchParams.get("routeDistance")) || 20,
+      routeDuration: Number(searchParams.get("routeDuration")) || 45,
+      routeElevation: Number(searchParams.get("routeElevation")) || 300,
+      instructor,
+    };
+  }, [isPracticeMode, searchParams]);
+
+  const practiceClassData: ClassWithRoute | null = useMemo(() => {
+    if (!practiceConfig) return null;
+
+    const metadata = createPracticeClassMetadata(
+      {
+        name: practiceConfig.name,
+        date: practiceConfig.date,
+        capacity: practiceConfig.capacity,
+        basePrice: practiceConfig.basePrice,
+        maxPrice: practiceConfig.maxPrice,
+        curveType: practiceConfig.curveType,
+        rewardThreshold: practiceConfig.rewardThreshold,
+        rewardAmount: practiceConfig.rewardAmount,
+        suiPerformance: true,
+        aiEnabled: practiceConfig.aiEnabled,
+        aiPersonality: practiceConfig.aiPersonality,
+      },
+      {
+        name: practiceConfig.routeName,
+        distance: practiceConfig.routeDistance,
+        duration: practiceConfig.routeDuration,
+        elevationGain: practiceConfig.routeElevation,
+        theme: "neon",
+        storyBeatsCount: 4,
+      },
+      practiceConfig.instructor
+    );
+
+    const route = generateMockRouteData(metadata);
+
+    return {
+      address: classId as `0x${string}`,
+      name: metadata.name,
+      instructor: metadata.instructor,
+      startTime: metadata.startTime,
+      endTime: metadata.endTime,
+      maxRiders: practiceConfig.capacity,
+      ticketsSold: 0,
+      currentPrice: practiceConfig.basePrice.toString(),
+      metadata,
+      route,
+      routeLoading: false,
+      routeError: null,
+    };
+  }, [practiceConfig, classId]);
+
+  const { classData: fetchedClassData, isLoading } = useClass(classId as `0x${string}`);
+  const classData = isPracticeMode ? practiceClassData : fetchedClassData;
   const deviceType = useDeviceType();
   const orientation = useOrientation();
   const viewportHeight = useActualViewportHeight();
@@ -93,7 +181,7 @@ export default function LiveRidePage() {
   };
 
   const pauseRide = () => setIsRiding(false);
-  const exitRide = () => router.push("/rider");
+  const exitRide = () => isPracticeMode ? router.push("/instructor/builder") : router.push("/rider");
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -165,9 +253,17 @@ export default function LiveRidePage() {
           <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-top">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               <div className="flex-1 min-w-0">
-                <h1 className="text-lg sm:text-2xl font-bold text-white mb-0.5 sm:mb-1 truncate">
-                  {classData.name}
-                </h1>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h1 className="text-lg sm:text-2xl font-bold text-white truncate">
+                    {classData.name}
+                  </h1>
+                  {isPracticeMode && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      Practice
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs sm:text-sm text-white/60 truncate">
                   {classData.instructor}
                 </p>
@@ -358,9 +454,11 @@ export default function LiveRidePage() {
               </svg>
             </div>
             
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2 sm:mb-3">Ride Complete!</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2 sm:mb-3">
+              {isPracticeMode ? "Practice Complete!" : "Ride Complete!"}
+            </h2>
             <p className="text-lg sm:text-xl text-white/70 mb-6 sm:mb-8">
-              Total Time: {formatTime(elapsedTime)}
+              {isPracticeMode ? "Great way to preview your class!" : `Total Time: ${formatTime(elapsedTime)}`}
             </p>
             
             <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
@@ -383,13 +481,22 @@ export default function LiveRidePage() {
                 onClick={exitRide}
                 className="flex-1 rounded-full border border-white/20 bg-white/10 py-3 text-white font-semibold transition-all active:scale-95 touch-manipulation min-h-[56px]"
               >
-                Back to Classes
+                {isPracticeMode ? "Back to Builder" : "Back to Classes"}
               </button>
-              <button
-                className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-3 text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px]"
-              >
-                Claim Rewards
-              </button>
+              {isPracticeMode ? (
+                <button
+                  onClick={() => router.push("/instructor/builder")}
+                  className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-3 text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px]"
+                >
+                  Deploy Class
+                </button>
+              ) : (
+                <button
+                  className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-3 text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px]"
+                >
+                  Claim Rewards
+                </button>
+              )}
             </div>
           </div>
         </div>

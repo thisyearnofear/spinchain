@@ -269,10 +269,118 @@ export function useClasses() {
   return { classes, isLoading, error, refetch: loadClasses };
 }
 
+export interface PracticeClassFormData {
+  name: string;
+  date: string;
+  capacity: number;
+  basePrice: number;
+  maxPrice: number;
+  curveType: "linear" | "exponential";
+  rewardThreshold: number;
+  rewardAmount: number;
+  suiPerformance: boolean;
+  aiEnabled?: boolean;
+  aiPersonality?: "zen" | "drill-sergeant" | "data";
+}
+
+export interface PracticeClassOptions {
+  formData: PracticeClassFormData;
+  routeData: {
+    name: string;
+    distance: number;
+    duration: number;
+    elevationGain: number;
+    theme: "neon" | "alpine" | "mars";
+    storyBeatsCount: number;
+  };
+  instructorAddress: string;
+}
+
+export function createPracticeClassMetadata(
+  formData: PracticeClassFormData,
+  routeData: PracticeClassOptions["routeData"],
+  instructorAddress: string
+): EnhancedClassMetadata {
+  return {
+    version: "2.0",
+    name: formData.name,
+    description: `An immersive cycling experience with AI-powered coaching`,
+    instructor: instructorAddress,
+    startTime: Math.floor(new Date(formData.date).getTime() / 1000),
+    endTime: Math.floor(new Date(formData.date).getTime() / 1000) + 3600,
+    duration: routeData.duration,
+    route: {
+      walrusBlobId: `practice-${Date.now()}`,
+      name: routeData.name,
+      distance: routeData.distance,
+      duration: routeData.duration,
+      elevationGain: routeData.elevationGain,
+      theme: routeData.theme,
+      checksum: `practice-checksum-${Date.now()}`,
+      storyBeatsCount: routeData.storyBeatsCount,
+    },
+    ai: {
+      enabled: formData.aiEnabled ?? true,
+      personality: formData.aiPersonality ?? "drill-sergeant",
+      autoTriggerBeats: true,
+      adaptiveDifficulty: true,
+    },
+    pricing: {
+      basePrice: formData.basePrice.toString(),
+      maxPrice: formData.maxPrice.toString(),
+      curveType: formData.curveType,
+    },
+    rewards: {
+      enabled: true,
+      threshold: formData.rewardThreshold,
+      amount: formData.rewardAmount,
+    },
+  };
+}
+
+export function usePracticeClass() {
+  const [practiceClassId, setPracticeClassId] = useState<string | null>(null);
+  const [practiceClassData, setPracticeClassData] = useState<ClassWithRoute | null>(null);
+
+  const createPracticeClass = (
+    formData: PracticeClassFormData,
+    routeData: PracticeClassOptions["routeData"],
+    instructorAddress: string
+  ) => {
+    const mockId = `practice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` as `0x${string}`;
+    const metadata = createPracticeClassMetadata(formData, routeData, instructorAddress);
+    const route = generateMockRouteData(metadata);
+
+    setPracticeClassId(mockId);
+    setPracticeClassData({
+      address: mockId,
+      name: metadata.name,
+      instructor: metadata.instructor,
+      startTime: metadata.startTime,
+      endTime: metadata.endTime,
+      maxRiders: formData.capacity,
+      ticketsSold: 0,
+      currentPrice: formData.basePrice.toString(),
+      metadata,
+      route,
+      routeLoading: false,
+      routeError: null,
+    });
+
+    return mockId;
+  };
+
+  return {
+    practiceClassId,
+    practiceClassData,
+    createPracticeClass,
+  };
+}
+
 /**
  * Generate mock route data for development
  */
-function generateMockRouteData(metadata: EnhancedClassMetadata): WalrusRouteData {
+export function generateMockRouteData(metadata: EnhancedClassMetadata): WalrusRouteData {
   const numPoints = 100;
   const coordinates = [];
   const baseLat = 34.0195;
