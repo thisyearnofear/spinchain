@@ -23,6 +23,30 @@ const steps: OnboardingStep[] = [
     color: "from-indigo-500 to-purple-500"
   },
   {
+    id: "voice",
+    icon: "🎙️",
+    title: "Meet Your AI Coach",
+    description: "Experience voice-enabled AI instructors that speak to you in real-time, adapt to your performance, and motivate you throughout your ride.",
+    action: "Preview Voice",
+    color: "from-pink-500 to-rose-500"
+  },
+  {
+    id: "commands",
+    icon: "🎤",
+    title: "Hands-Free Control",
+    description: "Use voice commands to adjust resistance, check stats, or get motivation - all without breaking your stride. Just say 'more resistance' or 'how's my heart rate?'",
+    action: "Try Commands",
+    color: "from-amber-500 to-orange-500"
+  },
+  {
+    id: "music",
+    icon: "🎵",
+    title: "AI-Generated Soundtracks",
+    description: "Immersive music that adapts to your workout intensity. From warmup to sprint finish, the perfect beat for every moment.",
+    action: "Hear Sample",
+    color: "from-violet-500 to-purple-500"
+  },
+  {
     id: "book",
     icon: "🚴",
     title: "Book Your First Class",

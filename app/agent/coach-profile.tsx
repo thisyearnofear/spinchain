@@ -21,10 +21,13 @@ import {
   Wind,
   MessageSquare,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useAgentReasoner } from "../hooks/use-agent-reasoner";
 import { useProfile, getDisplayName, getAvatarUrl } from "../hooks/use-profile";
 import { useCoachVoice, useWorkoutAudio } from "../hooks/elevenlabs";
 import { CoachAvatar } from "../components/coach";
+import { VoiceToggle } from "../components/voice-toggle";
+import { AudioWaveform, AudioIndicator } from "../components/audio-waveform";
 
 interface CoachProfileProps {
   name?: string;
@@ -58,10 +61,18 @@ export function CoachProfile({
   const { profile: instructorProfile } = useProfile(instructorAddress);
   
   // ElevenLabs Voice & Audio
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const { speak, isSpeaking, isConfigured: voiceConfigured } = useCoachVoice({
     personality: initialPersonality === 'drill-sergeant' ? 'drill' : initialPersonality,
   });
   const { playSound, preloadSounds } = useWorkoutAudio();
+  
+  // Test voice samples
+  const voiceSamples = {
+    zen: "Welcome to your recovery session. Let's find your calm and breathe together.",
+    drill: "Listen up! We're going to crush this workout. Give me 110% right now!",
+    data: "Initializing workout protocol. Heart rate target: 150 BPM. Let's optimize your performance.",
+  };
 
   // Step State
   const [step, setStep] = useState<GenesisStep>("persona");
@@ -239,7 +250,10 @@ export function CoachProfile({
             <p className="text-xs text-white/40">
               Autonomous AI Instructor • Level 1
               {voiceConfigured && (
-                <span className="ml-2 text-green-400">• Voice Enabled</span>
+                <span className="ml-2 text-green-400 flex items-center gap-1">
+                  <AudioIndicator isActive={isSpeaking} size="sm" />
+                  Voice Enabled
+                </span>
               )}
               {instructorProfile?.platform && (
                 <span className="ml-2 text-indigo-400">• {instructorProfile.platform.toUpperCase()}</span>
@@ -388,6 +402,64 @@ export function CoachProfile({
                 ))}
               </div>
             </div>
+            {/* Voice Preview Section */}
+            {voiceConfigured && (
+              <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🎙️</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">
+                      Voice Preview
+                    </span>
+                  </div>
+                  <VoiceToggle
+                    isEnabled={voiceEnabled}
+                    onToggle={setVoiceEnabled}
+                    size="sm"
+                  />
+                </div>
+                
+                <p className="text-xs text-white/60 mb-3">
+                  Hear how your coach will sound during workouts
+                </p>
+                
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      if (voiceEnabled) {
+                        const sample = voiceSamples[config.personality === 'drill-sergeant' ? 'drill' : config.personality];
+                        speak(sample, 'focused');
+                      }
+                    }}
+                    disabled={!voiceEnabled || isSpeaking}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-indigo-600/50 hover:bg-indigo-600 p-3 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isSpeaking ? (
+                      <>
+                        <AudioWaveform isActive size="sm" />
+                        Speaking...
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-lg">▶</span>
+                        Preview Voice
+                      </>
+                    )}
+                  </button>
+                </div>
+                
+                {isSpeaking && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="mt-3"
+                  >
+                    <AudioWaveform isActive intensity={0.7} size="sm" />
+                  </motion.div>
+                )}
+              </div>
+            )}
+            
             <button
               onClick={() => setStep("strategy")}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 p-3 text-sm font-bold text-white hover:bg-white/10"
