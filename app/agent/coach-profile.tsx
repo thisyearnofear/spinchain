@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { useAgentReasoner } from "../hooks/use-agent-reasoner";
 import { useProfile, getDisplayName, getAvatarUrl } from "../hooks/use-profile";
+import { useCoachVoice, useWorkoutAudio } from "../hooks/elevenlabs";
+import { CoachAvatar } from "../components/coach";
 
 interface CoachProfileProps {
   name?: string;
@@ -54,6 +56,12 @@ export function CoachProfile({
   
   // Resolve instructor profile (ENS, etc.)
   const { profile: instructorProfile } = useProfile(instructorAddress);
+  
+  // ElevenLabs Voice & Audio
+  const { speak, isSpeaking, isConfigured: voiceConfigured } = useCoachVoice({
+    personality: initialPersonality === 'drill-sergeant' ? 'drill' : initialPersonality,
+  });
+  const { playSound, preloadSounds } = useWorkoutAudio();
 
   // Step State
   const [step, setStep] = useState<GenesisStep>("persona");
@@ -115,6 +123,24 @@ export function CoachProfile({
     const interval = setInterval(fetchCoach, 5000);
     return () => clearInterval(interval);
   }, [coachId, client, reason]);
+  
+  // Preload workout sounds when coach is deployed
+  useEffect(() => {
+    if (coachId) {
+      preloadSounds(['start', 'countdown', 'finish']);
+    }
+  }, [coachId, preloadSounds]);
+  
+  // Speak AI thoughts when they change
+  useEffect(() => {
+    if (thoughtLog.length > 0 && voiceConfigured) {
+      const latestThought = thoughtLog[thoughtLog.length - 1];
+      // Only speak shorter thoughts (avoid long monologues)
+      if (latestThought.length < 150) {
+        speak(latestThought, 'focused');
+      }
+    }
+  }, [thoughtLog, speak, voiceConfigured]);
 
   const deployCoach = async () => {
     if (!account) return;
@@ -199,27 +225,22 @@ export function CoachProfile({
         </div>
 
         <div className="mt-6 flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full bg-linear-to-tr from-indigo-600 to-purple-600 p-1">
-            <div className="flex h-full w-full items-center justify-center rounded-full bg-black overflow-hidden">
-              <img 
-                src={getAvatarUrl(instructorProfile)} 
-                alt={getDisplayName(instructorProfile, instructorAddress || '')}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  // Fallback to icon on image error
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
-                }}
-              />
-              <Brain className="text-indigo-400 fallback-icon hidden" />
-            </div>
-          </div>
+          <CoachAvatar
+            name={config.name}
+            emotion={isSpeaking ? 'intense' : 'focused'}
+            isSpeaking={isSpeaking}
+            size="lg"
+            avatarUrl={getAvatarUrl(instructorProfile)}
+          />
           <div>
             <h4 className="text-xl font-bold text-white">
               {getDisplayName(instructorProfile, instructorAddress || config.name)}
             </h4>
             <p className="text-xs text-white/40">
               Autonomous AI Instructor • Level 1
+              {voiceConfigured && (
+                <span className="ml-2 text-green-400">• Voice Enabled</span>
+              )}
               {instructorProfile?.platform && (
                 <span className="ml-2 text-indigo-400">• {instructorProfile.platform.toUpperCase()}</span>
               )}
