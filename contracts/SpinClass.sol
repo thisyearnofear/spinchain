@@ -4,13 +4,41 @@ pragma solidity ^0.8.24;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract SpinClass is ERC721, Ownable, ReentrancyGuard {
+/// @custom:security-contact security@spinchain.xyz
+contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
+    // ============ Errors ============
+    error InvalidTimeRange();
+    error InvalidMaxRiders();
+    error InvalidPriceRange();
+    error SalesClosed();
+    error SoldOut();
+    error InsufficientPayment();
+    error NotTicketOwner();
+    error TooEarly();
+    error ClassEnded();
+    error AlreadyCheckedIn();
+    error TreasuryNotSet();
+    error TransferFailed();
+    error ClassCancelled();
+    error ClassNotCancelled();
+    error AlreadyRefunded();
+    error NotRefundable();
+    error TransfersLocked();
+
+    // ============ Structs ============
     struct Pricing {
-        uint256 basePrice;
-        uint256 maxPrice;
+        uint128 basePrice;
+        uint128 maxPrice;
+    }
+    
+    struct TicketInfo {
+        uint256 purchasePrice;
+        bool refunded;
     }
 
+    // ============ State ============
     string public classMetadata;
     uint256 public startTime;
     uint256 public endTime;
@@ -18,18 +46,25 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard {
     Pricing public pricing;
     address public treasury;
     address public incentiveEngine;
+    bool public cancelled;
 
     uint256 public ticketsSold;
     uint256 private nextTokenId = 1;
 
     mapping(uint256 => bool) public checkedIn;
     mapping(address => bool) public attended;
+    mapping(uint256 => TicketInfo) public ticketInfo;
 
+    // ============ Events ============
     event TicketPurchased(address indexed rider, uint256 indexed tokenId, uint256 pricePaid);
     event CheckedIn(address indexed rider, uint256 indexed tokenId);
     event TreasuryUpdated(address indexed treasury);
     event IncentiveEngineUpdated(address indexed engine);
     event RevenueSettled(address indexed treasury, uint256 amount);
+    event ClassCancelled(uint256 timestamp);
+    event TicketRefunded(address indexed rider, uint256 indexed tokenId, uint256 amount);
+    event TransferLocked(uint256 tokenId);
+    event InstructorMetadataSet(string key, string value);
 
     constructor(
         address owner_,
@@ -44,9 +79,9 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard {
         address treasury_,
         address incentiveEngine_
     ) ERC721(name_, symbol_) Ownable(owner_) {
-        require(startTime_ < endTime_, "invalid time");
-        require(maxRiders_ > 0, "max riders");
-        require(maxPrice_ >= basePrice_, "price range");
+        if (startTime_ >= endTime_) revert InvalidTimeRange();
+        if (maxRiders_ == 0) revert InvalidMaxRiders();
+        if (maxPrice_ < basePrice_) revert InvalidPriceRange();
         classMetadata = classMetadata_;
         startTime = startTime_;
         endTime = endTime_;
@@ -56,6 +91,8 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard {
         incentiveEngine = incentiveEngine_;
     }
 
+    /// @notice Calculate current ticket price using exponential bonding curve
+    /// @dev Price increases faster as capacity fills
     function currentPrice() public view returns (uint256) {
         if (ticketsSold >= maxRiders) {
             return pricing.maxPrice;
@@ -64,21 +101,32 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard {
         if (spread == 0) {
             return pricing.basePrice;
         }
-        uint256 variablePart = (spread * ticketsSold) / maxRiders;
+        // Exponential: price increases faster as capacity fills
+        uint256 progress = (ticketsSold * 1e18) / maxRiders;
+        uint256 exponentialProgress = (progress * progress) / 1e18;
+        uint256 variablePart = (spread * exponentialProgress) / 1e18;
         return pricing.basePrice + variablePart;
     }
 
-    function purchaseTicket() external payable nonReentrant returns (uint256 tokenId) {
-        require(block.timestamp < startTime, "sales closed");
-        require(ticketsSold < maxRiders, "sold out");
+    function purchaseTicket() external payable nonReentrant whenNotPaused returns (uint256 tokenId) {
+        if (block.timestamp >= startTime) revert SalesClosed();
+        if (ticketsSold >= maxRiders) revert SoldOut();
+        if (cancelled) revert ClassCancelled(); // Can't buy if cancelled
+        
         uint256 price = currentPrice();
-        require(msg.value >= price, "insufficient payment");
+        if (msg.value < price) revert InsufficientPayment();
 
         tokenId = nextTokenId;
-        nextTokenId += 1;
-        ticketsSold += 1;
+        nextTokenId++;
+        ticketsSold++;
 
         _safeMint(msg.sender, tokenId);
+        
+        // Store purchase price for refunds
+        ticketInfo[tokenId] = TicketInfo({
+            purchasePrice: price,
+            refunded: false
+        });
 
         if (msg.value > price) {
             unchecked {
@@ -90,10 +138,12 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard {
     }
 
     function checkIn(uint256 tokenId) external {
-        require(ownerOf(tokenId) == msg.sender, "not ticket owner");
-        require(block.timestamp >= startTime, "too early");
-        require(block.timestamp <= endTime, "class ended");
-        require(!checkedIn[tokenId], "already checked in");
+        if (ownerOf(tokenId) != msg.sender) revert NotTicketOwner();
+        if (block.timestamp < startTime) revert TooEarly();
+        if (block.timestamp > endTime) revert ClassEnded();
+        if (checkedIn[tokenId]) revert AlreadyCheckedIn();
+        if (ticketInfo[tokenId].refunded) revert NotRefundable();
+        
         checkedIn[tokenId] = true;
         attended[msg.sender] = true;
         emit CheckedIn(msg.sender, tokenId);
@@ -113,12 +163,70 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard {
         emit IncentiveEngineUpdated(engine_);
     }
 
-    function settleRevenue() external nonReentrant {
-        require(treasury != address(0), "treasury not set");
+    function settleRevenue() external nonReentrant onlyOwner {
+        if (treasury == address(0)) revert TreasuryNotSet();
         uint256 amount = address(this).balance;
-        require(amount > 0, "no balance");
+        if (amount == 0) return;
+        
         (bool ok, ) = treasury.call{value: amount}("");
-        require(ok, "transfer failed");
+        if (!ok) revert TransferFailed();
         emit RevenueSettled(treasury, amount);
+    }
+
+    // ============ Cancellation & Refunds ============
+
+    /// @notice Cancel the class and enable refunds
+    function cancelClass() external onlyOwner {
+        if (block.timestamp >= startTime) revert ClassEnded();
+        cancelled = true;
+        emit ClassCancelled(block.timestamp);
+    }
+
+    /// @notice Claim refund for a cancelled class
+    function claimRefund(uint256 tokenId) external nonReentrant {
+        if (!cancelled) revert ClassNotCancelled();
+        if (ownerOf(tokenId) != msg.sender) revert NotTicketOwner();
+        
+        TicketInfo storage info = ticketInfo[tokenId];
+        if (info.refunded) revert AlreadyRefunded();
+        
+        uint256 refundAmount = info.purchasePrice;
+        info.refunded = true;
+        
+        _burn(tokenId);
+        ticketsSold--;
+        
+        (bool ok, ) = payable(msg.sender).call{value: refundAmount}("");
+        if (!ok) revert TransferFailed();
+        
+        emit TicketRefunded(msg.sender, tokenId, refundAmount);
+    }
+
+    // ============ Admin ============
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /// @notice Set instructor metadata (ENS, avatar, etc.) - emits event for indexing
+    function setMetadata(string calldata key, string calldata value) external onlyOwner {
+        emit InstructorMetadataSet(key, value);
+    }
+
+    // ============ Hooks ============
+
+    /// @notice Prevent transfers after class starts (optional anti-scalping)
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override {
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+        
+        // Only check transfers (not mints/burns)
+        if (from != address(0) && to != address(0)) {
+            // Allow transfers only before class starts
+            if (block.timestamp >= startTime) revert TransfersLocked();
+        }
     }
 }

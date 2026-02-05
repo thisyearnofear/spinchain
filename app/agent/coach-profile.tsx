@@ -22,11 +22,13 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useAgentReasoner } from "../hooks/use-agent-reasoner";
+import { useProfile, getDisplayName, getAvatarUrl } from "../hooks/use-profile";
 
 interface CoachProfileProps {
   name?: string;
   personality?: "zen" | "drill-sergeant" | "data";
   onDeploy?: (id: string) => void;
+  instructorAddress?: string; // For ENS resolution
 }
 
 type GenesisStep = "persona" | "strategy" | "review";
@@ -44,10 +46,14 @@ export function CoachProfile({
   name: initialName = "Coach Atlas",
   personality: initialPersonality = "drill-sergeant",
   onDeploy,
+  instructorAddress,
 }: CoachProfileProps) {
   const client = useSuiClient();
   const account = useCurrentAccount();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  
+  // Resolve instructor profile (ENS, etc.)
+  const { profile: instructorProfile } = useProfile(instructorAddress);
 
   // Step State
   const [step, setStep] = useState<GenesisStep>("persona");
@@ -194,14 +200,29 @@ export function CoachProfile({
 
         <div className="mt-6 flex items-center gap-4">
           <div className="h-16 w-16 rounded-full bg-linear-to-tr from-indigo-600 to-purple-600 p-1">
-            <div className="flex h-full w-full items-center justify-center rounded-full bg-black">
-              <Brain className="text-indigo-400" />
+            <div className="flex h-full w-full items-center justify-center rounded-full bg-black overflow-hidden">
+              <img 
+                src={getAvatarUrl(instructorProfile)} 
+                alt={getDisplayName(instructorProfile, instructorAddress || '')}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  // Fallback to icon on image error
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
+                }}
+              />
+              <Brain className="text-indigo-400 fallback-icon hidden" />
             </div>
           </div>
           <div>
-            <h4 className="text-xl font-bold text-white">{config.name}.eth</h4>
+            <h4 className="text-xl font-bold text-white">
+              {getDisplayName(instructorProfile, instructorAddress || config.name)}
+            </h4>
             <p className="text-xs text-white/40">
               Autonomous AI Instructor • Level 1
+              {instructorProfile?.platform && (
+                <span className="ml-2 text-indigo-400">• {instructorProfile.platform.toUpperCase()}</span>
+              )}
             </p>
           </div>
         </div>
@@ -442,7 +463,9 @@ export function CoachProfile({
             <div className="rounded-xl bg-indigo-500/5 border border-indigo-500/20 p-4 space-y-3">
               <div className="flex justify-between text-xs">
                 <span className="text-white/40">Identity</span>
-                <span className="text-white font-bold">{config.name}.eth</span>
+                <span className="text-white font-bold">
+                  {getDisplayName(instructorProfile, instructorAddress || `${config.name}.eth`)}
+                </span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-white/40">Personality</span>

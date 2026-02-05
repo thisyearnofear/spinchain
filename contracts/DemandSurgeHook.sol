@@ -9,38 +9,47 @@ import {BalanceDelta} from "v4-core/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 import {BeforeSwapParams, AfterSwapParams} from "v4-core/interfaces/IHooks.sol";
 import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title DemandSurgeHook
 /// @notice A Uniswap v4 Hook that adjusts swap fees based on class inventory and time-to-start.
 /// @dev Designed for the SpinChain "Agentic Finance" layer where an AI agent manages liquidity.
-contract DemandSurgeHook is BaseHook {
+/// @custom:security-contact security@spinchain.xyz
+contract DemandSurgeHook is BaseHook, Ownable {
     using CurrencyLibrary for Currency;
 
-    // --- State ---
+    // ============ Errors ============
+    error NotAgent();
+    error ClassNotFound();
+    error InvalidTimeRange();
+    error InvalidCapacity();
 
+    // ============ Structs ============
     struct ClassState {
-        uint256 totalTickets;
-        uint256 ticketsSold;
+        uint128 totalTickets;
+        uint128 ticketsSold;
         uint256 startTime;
     }
 
-    // Mapping from Ticket Token (Currency) to Class Metadata
+    // ============ State ============
     mapping(Currency => ClassState) public classStates;
+    mapping(address => bool) public authorizedAgents;
+    address public defaultAgent;
 
-    address public agent; // The AI Agent (Coach Atlas) allowed to update state
+    // ============ Events ============
+    event ClassStateUpdated(Currency indexed currency, uint128 totalTickets, uint128 ticketsSold, uint256 startTime);
+    event AgentUpdated(address indexed agent, bool authorized);
+    event DefaultAgentUpdated(address indexed agent);
 
-    // --- Errors ---
-    error NotAgent();
-    error ClassNotFound();
-
-    // --- Modifiers ---
+    // ============ Modifiers ============
     modifier onlyAgent() {
-        if (msg.sender != agent) revert NotAgent();
+        if (!authorizedAgents[msg.sender] && msg.sender != defaultAgent) revert NotAgent();
         _;
     }
 
-    constructor(IPoolManager _poolManager, address _agent) BaseHook(_poolManager) {
-        agent = _agent;
+    constructor(IPoolManager _poolManager, address _agent) BaseHook(_poolManager) Ownable(msg.sender) {
+        defaultAgent = _agent;
+        authorizedAgents[_agent] = true;
     }
 
     // --- Permissions ---
@@ -67,51 +76,62 @@ contract DemandSurgeHook is BaseHook {
     // --- Agent Interface ---
 
     /// @notice Updates the inventory state of a class associated with a specific currency.
-    /// @dev The Agent (Coach Atlas) calls this based on off-chain indexing of the SpinClass ERC721.
     function updateClassState(
         Currency currency,
-        uint256 totalTickets,
-        uint256 ticketsSold,
+        uint128 totalTickets,
+        uint128 ticketsSold,
         uint256 startTime
     ) external onlyAgent {
+        if (totalTickets == 0) revert InvalidCapacity();
+        if (ticketsSold > totalTickets) revert InvalidCapacity();
+        
         classStates[currency] = ClassState({
             totalTickets: totalTickets,
             ticketsSold: ticketsSold,
             startTime: startTime
         });
+        
+        emit ClassStateUpdated(currency, totalTickets, ticketsSold, startTime);
     }
 
     // --- Hook Logic ---
 
+    /// @notice Calculate dynamic fee based on class state
     function beforeSwap(
         address,
         PoolKey calldata key,
-        BeforeSwapParams calldata,
+        BeforeSwapParams calldata params,
         bytes calldata
     ) external view override returns (bytes4, BeforeSwapDelta, uint24) {
-        // 1. Identify Class State from Currency (Ticketing Token)
-        // We assume the ticket token is one of the currencies in the pool.
+        // Identify Class State from Currency
         ClassState memory state = classStates[key.currency1];
         if (state.totalTickets == 0) {
             state = classStates[key.currency0];
         }
 
-        // If no class state found, return 0 to use the Pool's static fee (or 0 override if intended)
+        // No class state found - use pool's static fee
         if (state.totalTickets == 0) {
              return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
         }
 
-        // 2. Calculate Metrics
-        uint256 utilization = (state.ticketsSold * 100) / state.totalTickets;
+        // Calculate Metrics
+        uint256 utilization = (uint256(state.ticketsSold) * 100) / state.totalTickets;
 
         uint256 timeRemaining = 0;
         if (state.startTime > block.timestamp) {
             timeRemaining = state.startTime - block.timestamp;
         }
 
-        // 3. Determine Dynamic Fee (in pips: 10000 = 1%)
-        // Standard Fee base
-        uint24 fee = 3000; // 0.30%
+        // Determine Dynamic Fee (in pips: 10000 = 1%)
+        uint24 fee = _calculateFee(utilization, timeRemaining);
+
+        return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, fee);
+    }
+
+    /// @notice Calculate fee based on utilization and time
+    function _calculateFee(uint256 utilization, uint256 timeRemaining) internal pure returns (uint24) {
+        // Standard fee base: 0.30%
+        uint24 fee = 3000;
 
         if (utilization > 95) {
             // EXTREME SCARCITY: Last tickets
@@ -124,9 +144,7 @@ contract DemandSurgeHook is BaseHook {
              fee = 500; // 0.05%
         }
 
-        // Return with fee override
-        // Note: The pool must be initialized with the dynamic fee capability for this to take effect.
-        return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, fee);
+        return fee;
     }
 
     function afterSwap(
@@ -138,5 +156,17 @@ contract DemandSurgeHook is BaseHook {
     ) external override returns (bytes4, int128) {
         // Future Logic: Check for Membership NFT and issue rebate if applicable
         return (BaseHook.afterSwap.selector, 0);
+    }
+
+    // ============ Admin ============
+
+    function setAgentAuthorization(address agent, bool authorized) external onlyOwner {
+        authorizedAgents[agent] = authorized;
+        emit AgentUpdated(agent, authorized);
+    }
+
+    function setDefaultAgent(address agent) external onlyOwner {
+        defaultAgent = agent;
+        emit DefaultAgentUpdated(agent);
     }
 }
