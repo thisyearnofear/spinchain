@@ -42,5 +42,30 @@ export {
   isElevenLabsConfigured,
 } from './client';
 
+// Video/Avatar
+export {
+  generateLipSyncVideo,
+  generateVideo,
+  createFallbackAvatarAnimation,
+  FALLBACK_AVATAR_CSS,
+} from './video';
+
+// Music
+export {
+  generateWorkoutMusic,
+  generatePhaseMusic,
+  WORKOUT_MUSIC_PROMPTS,
+} from './music';
+
+// Speech-to-Text
+export {
+  transcribeAudio,
+  parseCommand,
+  RealtimeTranscriber,
+  VOICE_COMMANDS,
+  isSpeechRecognitionSupported,
+  requestMicrophoneAccess,
+} from './stt';
+
 // Mixer
 export { getAudioMixer, resetAudioMixer, AudioMixer } from './mixer';
