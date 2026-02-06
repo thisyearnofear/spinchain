@@ -11,6 +11,7 @@ import { useCoachVoice } from "../../../hooks/use-coach-voice";
 import { useAiInstructor } from "../../../hooks/use-ai-instructor";
 import { useRewards, REWARD_MODES } from "../../../hooks/use-rewards";
 import { YellowRewardTicker } from "../../../components/yellow-reward-ticker";
+import { DemoCompleteModal } from "../../../components/demo-complete-modal";
 import {
   type WorkoutPlan,
   type WorkoutInterval,
@@ -170,6 +171,16 @@ export default function LiveRidePage() {
     classId: classId as string,
     instructor: (classData?.instructor as `0x${string}`) || "0x0",
     depositAmount: BigInt(0), // Demo mode - no real deposit required
+  });
+
+  // Demo complete modal state
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [demoStats, setDemoStats] = useState({
+    duration: 0,
+    avgHeartRate: 0,
+    maxHeartRate: 0,
+    effortScore: 0,
+    spinEarned: "0",
   });
 
   // Track last spoken beat to avoid repeats
@@ -431,21 +442,45 @@ export default function LiveRidePage() {
     stopVoice();
     setAiActive(false);
     
+    // Calculate demo stats
+    const samples = telemetrySamples.current;
+    const avgHR = samples.length > 0 
+      ? Math.round(samples.reduce((sum, s) => sum + s.hr, 0) / samples.length)
+      : 0;
+    const maxHR = samples.length > 0
+      ? Math.max(...samples.map(s => s.hr))
+      : 0;
+    
     // Finalize Yellow rewards
+    let spinEarned = "0";
     if (rewards.isActive) {
       try {
         const result = await rewards.finalizeRewards();
         console.log("[Ride] Rewards finalized:", result);
+        spinEarned = result.amount ? (Number(result.amount) / 1e18).toFixed(1) : "0";
       } catch (err) {
         console.warn("[Ride] Failed to finalize rewards:", err);
       }
     }
     
+    // Show demo complete modal for practice mode
     if (isPracticeMode) {
-      router.push("/instructor/builder");
+      setDemoStats({
+        duration: elapsedTime,
+        avgHeartRate: avgHR,
+        maxHeartRate: maxHR,
+        effortScore: Math.min(1000, Math.round((avgHR / 200) * 1000)),
+        spinEarned: spinEarned || "12.5", // Fallback for demo
+      });
+      setShowDemoModal(true);
     } else {
       router.push("/rider/journey?completed=true");
     }
+  };
+
+  const handleDemoModalClose = () => {
+    setShowDemoModal(false);
+    router.push("/rider");
   };
 
   const formatTime = (seconds: number) => {
@@ -945,6 +980,13 @@ export default function LiveRidePage() {
           </div>
         </div>
       )}
+
+      {/* Demo Complete Modal */}
+      <DemoCompleteModal
+        isOpen={showDemoModal}
+        onClose={handleDemoModalClose}
+        stats={demoStats}
+      />
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { avalanche, mainnet } from "wagmi/chains";
+import { avalanche, avalancheFuji, mainnet } from "wagmi/chains";
 
 export const config = getDefaultConfig({
   appName: "SpinChain",
-  projectId: "YOUR_PROJECT_ID",
-  chains: [avalanche, mainnet],
-  ssr: true, // If your dApp uses server side rendering (SSR)
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "YOUR_PROJECT_ID",
+  chains: [avalancheFuji, avalanche, mainnet],
+  ssr: true,
 });
