@@ -86,8 +86,8 @@ export default function RoutesPage() {
                   elevationProfile={elevationProfile}
                   theme={currentTheme}
                   storyBeats={[
-                    { progress: 0.2, label: "Coastline Drag", type: "sprint" },
-                    { progress: 0.6, label: "Skyline Climb", type: "climb" },
+                    { progress: 0.2, label: "Coastline Drag", type: "sprint", intensity: 8 },
+                    { progress: 0.6, label: "Skyline Climb", type: "climb", intensity: 9 },
                   ]}
                   className="h-full"
                 />

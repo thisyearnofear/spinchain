@@ -10,7 +10,7 @@
  * - ACCESSIBLE: Hands-free control for safety
  */
 
-import { ELEVENLABS_CONFIG } from './constants';
+import { ELEVENLABS_CONFIG } from "./constants";
 
 export interface STTRequest {
   audioData: Blob | ArrayBuffer;
@@ -85,42 +85,32 @@ export interface ParsedCommand {
  * Transcribe audio using ElevenLabs Scribe
  */
 export async function transcribeAudio(
-  request: STTRequest
+  request: STTRequest,
 ): Promise<TranscriptionResult | null> {
-  if (!ELEVENLABS_CONFIG.apiKey) {
-    console.warn('ElevenLabs API key not configured');
-    return null;
-  }
-
   try {
     const formData = new FormData();
-    
+
     // Convert audio data to file
-    const audioFile = request.audioData instanceof Blob 
-      ? request.audioData 
-      : new Blob([request.audioData], { type: 'audio/webm' });
-    
-    formData.append('file', audioFile, 'audio.webm');
-    formData.append('model_id', request.model || 'scribe-v2');
-    
+    const audioFile =
+      request.audioData instanceof Blob
+        ? request.audioData
+        : new Blob([request.audioData], { type: "audio/webm" });
+
+    formData.append("file", audioFile, "audio.webm");
+    formData.append("model_id", request.model || "scribe-v2");
+
     if (request.language) {
-      formData.append('language_code', request.language);
-    }
-    
-    if (request.tagAudioEvents) {
-      formData.append('tag_audio_events', 'true');
+      formData.append("language_code", request.language);
     }
 
-    const response = await fetch(
-      `${ELEVENLABS_CONFIG.baseUrl}/speech-to-text`,
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': ELEVENLABS_CONFIG.apiKey,
-        },
-        body: formData,
-      }
-    );
+    if (request.tagAudioEvents) {
+      formData.append("tag_audio_events", "true");
+    }
+
+    const response = await fetch(ELEVENLABS_CONFIG.sttRoute, {
+      method: "POST",
+      body: formData,
+    });
 
     if (!response.ok) {
       const error = await response.text();
@@ -128,21 +118,22 @@ export async function transcribeAudio(
     }
 
     const data = await response.json();
-    
+
     return {
       text: data.text,
       confidence: data.confidence || 0.9,
-      language: data.language_code || 'en',
-      words: data.words?.map((w: unknown) => ({
-        word: (w as { text: string }).text,
-        startTime: (w as { start: number }).start,
-        endTime: (w as { end: number }).end,
-        confidence: (w as { confidence: number }).confidence,
-      })) || [],
+      language: data.language_code || "en",
+      words:
+        data.words?.map((w: unknown) => ({
+          word: (w as { text: string }).text,
+          startTime: (w as { start: number }).start,
+          endTime: (w as { end: number }).end,
+          confidence: (w as { confidence: number }).confidence,
+        })) || [],
       audioEvents: data.audio_events,
     };
   } catch (error) {
-    console.error('Transcription failed:', error);
+    console.error("Transcription failed:", error);
     return null;
   }
 }
@@ -217,10 +208,9 @@ export class RealtimeTranscriber {
     
     this.ws.onopen = () => {
       console.log('STT WebSocket connected');
-      // Send API key for authentication
-      this.ws?.send(JSON.stringify({
-        api_key: ELEVENLABS_CONFIG.apiKey,
-      }));
+      // Note: WebSocket authentication would need to be handled differently
+    // For now, this is a placeholder for future implementation
+    console.warn("WebSocket STT authentication not yet implemented");
     };
     
     this.ws.onmessage = (event) => {

@@ -48,6 +48,21 @@ import {
 export type { AIProvider, RouteRequest, RouteResponse, CoachingContext, CoachingResponse, AgentDecision };
 export { getProviderBadge, isFeatureAvailable, DEFAULT_AI_PREFERENCES };
 
+// Type aliases for backward compatibility
+export type RouteGenerationParams = RouteRequest;
+export type GeneratedRoute = RouteResponse & { _meta?: { provider: string; duration: number } };
+
+// Agent reasoning parameter type
+export interface AgentReasoningParams {
+  agentName: string;
+  personality: string;
+  context: {
+    telemetry: { avgBpm: number; resistance: number; duration: number };
+    market: { ticketsSold: number; revenue: number; capacity: number };
+    recentDecisions: string[];
+  };
+}
+
 // Service configuration
 export interface AIServiceConfig {
   preferredProvider?: AIProvider;

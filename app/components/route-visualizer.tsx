@@ -63,11 +63,12 @@ const THEMES = {
 
 export type VisualizerTheme = keyof typeof THEMES;
 
-export type StoryBeat = {
-  progress: number;
-  label: string;
-  type: "climb" | "sprint" | "drop" | "rest";
-};
+// Import StoryBeat types from gpx-uploader for consistency
+import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../routes/builder/gpx-uploader";
+
+// Re-export for consumers
+export type { StoryBeatType };
+export type StoryBeat = GpxStoryBeat;
 
 export type RiderStats = {
   hr: number;

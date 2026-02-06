@@ -123,7 +123,9 @@ export function CoachProfile({
           market: {
             ticketsSold: 85,
             revenue: 2.4,
+            capacity: 100,
           },
+          recentDecisions: [],
         });
       } catch (e) {
         console.error("Failed to fetch coach", e);

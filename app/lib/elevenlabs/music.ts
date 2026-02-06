@@ -10,7 +10,7 @@
  * - PERFORMANT: Caching and preloading
  */
 
-import { ELEVENLABS_CONFIG } from './constants';
+import { ELEVENLABS_CONFIG } from "./constants";
 
 export interface MusicGenerationRequest {
   prompt: string;
@@ -38,10 +38,10 @@ export interface MusicSegment {
 }
 
 // Check if Music API is available
+// Note: ElevenLabs Music API is not yet publicly available
+// This function always returns false until the API is released
 function isMusicApiAvailable(): boolean {
-  // Check for API key and assume availability
-  // In production, could make a test request
-  return !!ELEVENLABS_CONFIG.apiKey && ELEVENLABS_CONFIG.apiKey.length > 0;
+  return false;
 }
 
 // Pre-defined workout music prompts
@@ -87,47 +87,9 @@ export async function generateWorkoutMusic(
     return getFallbackMusic(request);
   }
 
-  try {
-    // Note: This endpoint may vary - adjust based on actual ElevenLabs API
-    const response = await fetch(
-      `${ELEVENLABS_CONFIG.baseUrl}/music-generation`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': ELEVENLABS_CONFIG.apiKey,
-        },
-        body: JSON.stringify({
-          prompt: request.prompt,
-          duration: request.duration || 120,
-          genre: request.genre,
-          mood: request.mood,
-          tempo: request.tempo,
-          instrumental: request.instrumental ?? true,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      // API might not be available, use fallback
-      console.warn('Music generation API unavailable, using fallback');
-      return getFallbackMusic(request);
-    }
-
-    const data = await response.json();
-    
-    return {
-      id: data.id || `generated-${Date.now()}`,
-      url: data.audio_url,
-      duration: request.duration || 120,
-      bpm: estimateBPM(request.prompt),
-      energy: estimateEnergy(request.mood, request.prompt),
-      segments: generateSegments(request.duration || 120),
-    };
-  } catch (error) {
-    console.error('Music generation failed:', error);
-    return getFallbackMusic(request);
-  }
+  // Music API not yet available - always use fallback
+  console.warn("Music generation API unavailable, using fallback");
+  return getFallbackMusic(request);
 }
 
 /**

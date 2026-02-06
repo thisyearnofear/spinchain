@@ -6,14 +6,14 @@
 "use client";
 
 import { useState } from "react";
-import { getAIService, type RouteGenerationParams, type GeneratedRoute } from "../lib/ai-service";
+import { getAIService, type RouteRequest, type RouteResponse } from "../lib/ai-service";
 import { convertToGpxSummary, downloadGPX } from "../lib/route-generation";
 import type { GpxSummary } from "../routes/builder/gpx-uploader";
 
 type RouteGenerationState = {
   isGenerating: boolean;
   error: string | null;
-  route: GeneratedRoute | null;
+  route: RouteResponse | null;
   gpxSummary: GpxSummary | null;
 };
 
@@ -30,7 +30,7 @@ export function useAIRoute() {
   /**
    * Generate route from natural language prompt
    */
-  const generateRoute = async (params: RouteGenerationParams) => {
+  const generateRoute = async (params: RouteRequest) => {
     setState((prev) => ({ ...prev, isGenerating: true, error: null }));
 
     try {

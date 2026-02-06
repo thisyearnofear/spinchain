@@ -4,7 +4,7 @@
  * DRY: Single source of truth for route persistence
  */
 
-import type { GeneratedRoute } from "./ai-service";
+import type { RouteResponse } from "./ai-service";
 import type { SavedRoute } from "./route-library";
 import { getAssetManager, getWalrusClient } from "./walrus/client";
 import type { StoreResult, RetrieveResult } from "./walrus/types";
@@ -29,7 +29,7 @@ export interface RouteDeployment {
  */
 export interface WalrusRouteData {
   version: "1.0";
-  route: GeneratedRoute;
+  route: RouteResponse;
   deployment: {
     classId: string;
     instructor: string;
@@ -43,7 +43,7 @@ export interface WalrusRouteData {
  * Returns blob ID for storage in smart contract
  */
 export async function uploadRouteToWalrus(
-  route: GeneratedRoute,
+  route: RouteResponse,
   metadata: {
     classId: string;
     instructor: string;
@@ -192,7 +192,7 @@ export function getDeploymentByClassId(
 /**
  * Generate checksum for route integrity
  */
-function generateChecksum(route: GeneratedRoute): string {
+function generateChecksum(route: RouteResponse): string {
   const data = JSON.stringify({
     name: route.name,
     coordinates: route.coordinates,

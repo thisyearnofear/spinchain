@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useCreateClass } from "./use-create-class";
 import { useAccount } from "wagmi";
 import type { SavedRoute } from "../lib/route-library";
-import type { GeneratedRoute } from "../lib/ai-service";
+import type { RouteResponse } from "../lib/ai-service";
 import { uploadRouteToWalrus, recordDeployment } from "../lib/route-storage";
 import { createClassMetadata } from "../lib/contracts";
 import { INCENTIVE_ENGINE_ADDRESS } from "../lib/contracts";
@@ -31,7 +31,7 @@ interface CreateClassWithRouteParams {
   rewardAmount: number;
   
   // Route
-  route: SavedRoute | GeneratedRoute;
+  route: SavedRoute | RouteResponse;
   routeId?: string; // For library routes
   
   // AI

@@ -10,7 +10,7 @@ import { useAIRoute } from "../hooks/use-ai-route";
 import { useVoiceInput } from "../hooks/use-voice-input";
 import { useRouteLibrary } from "../hooks/use-route-library";
 import { RouteLibrary } from "./route-library";
-import type { RouteGenerationParams } from "../lib/ai-service";
+import type { RouteRequest } from "../lib/ai-service";
 import type { GpxSummary } from "../routes/builder/gpx-uploader";
 
 type AIRouteGeneratorProps = {
@@ -53,7 +53,7 @@ export function AIRouteGenerator({
     if (!prompt.trim()) return;
 
     try {
-      const params: RouteGenerationParams = {
+      const params: RouteRequest = {
         prompt,
         duration,
         difficulty,

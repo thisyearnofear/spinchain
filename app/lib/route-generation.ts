@@ -3,7 +3,7 @@
  * Converts AI-generated routes to GPX-compatible format and integrates with existing visualization
  */
 
-import type { GeneratedRoute } from "./ai-service";
+import type { RouteResponse } from "./ai-service";
 import type { GpxSummary, StoryBeat } from "../routes/builder/gpx-uploader";
 
 /**
@@ -106,7 +106,7 @@ function estimateSegments(
 /**
  * Convert AI-generated route to GPX summary format
  */
-export function convertToGpxSummary(route: GeneratedRoute): GpxSummary {
+export function convertToGpxSummary(route: RouteResponse): GpxSummary {
   const coordinates = route.coordinates;
   const elevations = coordinates
     .map((c) => c.ele)
@@ -151,7 +151,7 @@ export function convertToGpxSummary(route: GeneratedRoute): GpxSummary {
  * Convert GPX summary to GPX XML format for export
  */
 export function exportToGPX(
-  route: GeneratedRoute,
+  route: RouteResponse,
   metadata?: { name?: string; author?: string }
 ): string {
   const name = metadata?.name || route.name;
@@ -187,7 +187,7 @@ ${trackPoints}
  * Download GPX file to user's device
  */
 export function downloadGPX(
-  route: GeneratedRoute,
+  route: RouteResponse,
   metadata?: { name?: string; author?: string }
 ): void {
   const gpxContent = exportToGPX(route, metadata);

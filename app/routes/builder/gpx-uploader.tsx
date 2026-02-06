@@ -2,10 +2,14 @@
 
 import { useState, useRef } from "react";
 
+export type StoryBeatType = "climb" | "sprint" | "drop" | "rest" | "scenery" | "push";
+
 export type StoryBeat = {
   progress: number;
   label: string;
-  type: "climb" | "sprint" | "drop" | "rest";
+  type: StoryBeatType;
+  description?: string;
+  intensity: number;
 };
 
 export type GpxSummary = {
@@ -59,12 +63,14 @@ function detectBeats(points: TrackPoint[], distanceKm: number): StoryBeat[] {
           progress: i / points.length,
           label: "Steep Climb",
           type: "climb",
+          intensity: Math.min(10, Math.round(gradient)),
         });
       } else if (gradient < -8) {
         beats.push({
           progress: i / points.length,
           label: "Fast Descent",
           type: "drop",
+          intensity: Math.min(10, Math.round(Math.abs(gradient))),
         });
       }
     }

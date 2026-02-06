@@ -10,7 +10,7 @@
  * - FUTURE-PROOF: Architecture ready for when API access is granted
  */
 
-import { ELEVENLABS_CONFIG } from './constants';
+import { ELEVENLABS_CONFIG } from "./constants";
 
 export interface LipSyncRequest {
   videoUrl: string;      // Input video or image
@@ -35,9 +35,9 @@ export interface GeneratedVideo {
 }
 
 // Check if Studio API is available (requires contacting sales)
+// Note: Studio API requires special access from ElevenLabs
+// For now, this always returns false - implement when access granted
 function isStudioApiAvailable(): boolean {
-  // Studio API requires special access
-  // For now, return false - implement when access granted
   return false;
 }
 
@@ -53,38 +53,8 @@ export async function generateLipSyncVideo(
     return null;
   }
 
-  try {
-    const response = await fetch(
-      `${ELEVENLABS_CONFIG.baseUrl}/studio/lipsync`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': ELEVENLABS_CONFIG.apiKey,
-        },
-        body: JSON.stringify({
-          video_url: request.videoUrl,
-          audio_url: request.audioUrl,
-          model: request.model || 'omnihuman',
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`LipSync API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return {
-      url: data.video_url,
-      thumbnailUrl: data.thumbnail_url,
-      duration: data.duration,
-      status: data.status,
-    };
-  } catch (error) {
-    console.error('LipSync generation failed:', error);
-    return null;
-  }
+  console.warn("Studio API not available. Contact ElevenLabs sales for access.");
+  return null;
 }
 
 /**
@@ -99,41 +69,8 @@ export async function generateVideo(
     return null;
   }
 
-  try {
-    const response = await fetch(
-      `${ELEVENLABS_CONFIG.baseUrl}/studio/video`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': ELEVENLABS_CONFIG.apiKey,
-        },
-        body: JSON.stringify({
-          prompt: request.prompt,
-          image_url: request.imageUrl,
-          duration: request.duration || 4,
-          resolution: request.resolution || '720p',
-          aspect_ratio: request.aspectRatio || '16:9',
-          model: request.model || 'veo-3',
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Video generation API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return {
-      url: data.video_url,
-      thumbnailUrl: data.thumbnail_url,
-      duration: data.duration,
-      status: data.status,
-    };
-  } catch (error) {
-    console.error('Video generation failed:', error);
-    return null;
-  }
+  console.warn("Studio API not available. Contact ElevenLabs sales for access.");
+  return null;
 }
 
 /**

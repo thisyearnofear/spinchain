@@ -4,7 +4,7 @@
 "use client";
 
 import { useState } from "react";
-import { useBleData } from "../../lib/hooks/use-ble-data";
+import { useBleData } from "../../hooks/use-ble-data";
 import { motion } from "framer-motion";
 import { 
   Bluetooth, 

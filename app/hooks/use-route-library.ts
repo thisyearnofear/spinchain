@@ -6,7 +6,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { GeneratedRoute } from "../lib/ai-service";
+import type { RouteResponse } from "../lib/ai-service";
 import type { SavedRoute } from "../lib/route-library";
 import * as RouteLibrary from "../lib/route-library";
 
@@ -27,7 +27,7 @@ export function useRouteLibrary() {
    * Save a new route
    */
   const saveRoute = useCallback(
-    (route: GeneratedRoute, metadata?: { author?: string; tags?: string[] }) => {
+    (route: RouteResponse, metadata?: { author?: string; tags?: string[] }) => {
       try {
         const saved = RouteLibrary.saveRoute(route, metadata);
         setRoutes((prev) => [saved, ...prev]);

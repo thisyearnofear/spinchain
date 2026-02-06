@@ -7,7 +7,7 @@
  * - ORGANIZED: Domain-driven exports grouped by concern
  */
 
-import type { GeneratedRoute } from "./ai-service";
+import type { RouteResponse } from "./ai-service";
 
 // ============================================================================
 // CONTRACT ADDRESSES
@@ -212,7 +212,7 @@ export function createClassMetadata(params: {
   curveType: string;
   rewardThreshold: number;
   rewardAmount: number;
-  route: GeneratedRoute;
+  route: RouteResponse;
   walrusBlobId: string;
   aiEnabled: boolean;
   aiPersonality: "zen" | "drill-sergeant" | "data";
@@ -258,7 +258,7 @@ export function createClassMetadata(params: {
 
 export function validateRouteIntegrity(
   metadata: EnhancedClassMetadata,
-  walrusRoute: GeneratedRoute
+  walrusRoute: RouteResponse
 ): boolean {
   const expectedChecksum = generateSimpleHash(walrusRoute);
   return metadata.route.checksum === expectedChecksum;
@@ -268,7 +268,7 @@ export function validateRouteIntegrity(
 // PRIVATE UTILITIES
 // ============================================================================
 
-function generateSimpleHash(route: GeneratedRoute): string {
+function generateSimpleHash(route: RouteResponse): string {
   const data = JSON.stringify({
     name: route.name,
     distance: route.estimatedDistance,

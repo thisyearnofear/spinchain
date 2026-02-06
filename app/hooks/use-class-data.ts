@@ -11,6 +11,7 @@ import { useReadContract } from "wagmi";
 import { SPIN_CLASS_ABI } from "../lib/contracts";
 import { parseClassMetadata, type EnhancedClassMetadata } from "../lib/contracts";
 import { retrieveRouteFromWalrus, getCachedRoute, cacheRouteLocally, type WalrusRouteData } from "../lib/route-storage";
+import type { StoryBeat, StoryBeatType } from "../routes/builder/gpx-uploader";
 
 /**
  * Mock class data for development
@@ -396,15 +397,27 @@ export function generateMockRouteData(metadata: EnhancedClassMetadata): WalrusRo
     });
   }
 
-  const storyBeats = [];
+  const storyBeats: StoryBeat[] = [];
   for (let i = 0; i < metadata.route.storyBeatsCount; i++) {
     const progress = (i + 1) / (metadata.route.storyBeatsCount + 1);
     storyBeats.push({
       progress,
       label: ["Warm-up", "Climb", "Sprint", "Recovery", "Final Push"][i] || `Beat ${i + 1}`,
-      type: ["rest", "climb", "sprint", "drop"][Math.floor(Math.random() * 4)] as "rest" | "climb" | "sprint" | "drop",
+      type: ["rest", "climb", "sprint", "drop"][Math.floor(Math.random() * 4)] as StoryBeatType,
+      intensity: Math.floor(Math.random() * 10) + 1,
     });
   }
+
+  // Calculate elevation metrics
+  const elevations = coordinates.map(c => c.ele || 0);
+  const maxElevation = Math.max(...elevations);
+  const minElevation = Math.min(...elevations);
+  const elevationLoss = elevations.reduce((loss, ele, i) => {
+    if (i === 0) return 0;
+    const diff = ele - elevations[i - 1];
+    return diff < 0 ? loss + Math.abs(diff) : loss;
+  }, 0);
+  const avgGrade = metadata.route.elevationGain / (metadata.route.distance * 1000) * 100;
 
   return {
     version: "1.0",
@@ -415,7 +428,20 @@ export function generateMockRouteData(metadata: EnhancedClassMetadata): WalrusRo
       estimatedDistance: metadata.route.distance,
       estimatedDuration: metadata.route.duration,
       elevationGain: metadata.route.elevationGain,
+      elevationLoss,
+      maxElevation,
+      minElevation,
+      avgGrade,
+      maxGrade: avgGrade * 1.5,
       storyBeats,
+      terrainTags: ["rolling", "mixed"],
+      difficultyScore: 50,
+      estimatedCalories: 400,
+      zones: [
+        { name: "Warmup", startProgress: 0, endProgress: 0.15, type: "warmup", description: "Easy spinning" },
+        { name: "Main", startProgress: 0.15, endProgress: 0.85, type: "endurance", description: "Steady effort" },
+        { name: "Cooldown", startProgress: 0.85, endProgress: 1, type: "recovery", description: "Easy spinning" },
+      ],
     },
     deployment: {
       classId: "mock-class-id",

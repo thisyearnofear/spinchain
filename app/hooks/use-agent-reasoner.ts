@@ -1,9 +1,5 @@
 import { useState, useCallback } from "react";
-import {
-  getAIService,
-  AgentDecision,
-  AgentReasoningParams,
-} from "../lib/ai-service";
+import { getAIService, type AgentDecision, type AgentReasoningParams } from "../lib/ai-service";
 
 type ReasoningState = "idle" | "thinking" | "acting" | "error";
 
@@ -28,12 +24,12 @@ export function useAgentReasoner({
 
       setState("thinking");
       try {
-        const aiService = getAIService("gemini"); // Or Venice if configured
-        const decision = await aiService.reasoning({
+        const aiService = getAIService({ preferredProvider: "gemini" });
+        const decision = await aiService.agentReasoning(
           agentName,
           personality,
-          context,
-        });
+          context
+        );
 
         setLastDecision(decision);
         setThoughtLog((prev) =>

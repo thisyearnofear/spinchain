@@ -3,9 +3,9 @@
  * Local storage management for saved AI-generated routes
  */
 
-import type { GeneratedRoute } from "./ai-service";
+import type { RouteResponse } from "./ai-service";
 
-export type SavedRoute = GeneratedRoute & {
+export type SavedRoute = RouteResponse & {
   id: string;
   savedAt: string;
   author: string;
@@ -41,7 +41,7 @@ export function getSavedRoutes(): SavedRoute[] {
  * Save a new route to library
  */
 export function saveRoute(
-  route: GeneratedRoute,
+  route: RouteResponse,
   metadata: { author?: string; tags?: string[] } = {}
 ): SavedRoute {
   const routes = getSavedRoutes();
