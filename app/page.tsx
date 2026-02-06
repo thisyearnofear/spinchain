@@ -100,11 +100,30 @@ export default function Home() {
           <header className="flex flex-col items-start justify-between gap-8 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 shadow-[0_20px_80px_rgba(0,0,0,0.15)] backdrop-blur">
             <PrimaryNav />
             
-            {/* One-liner value prop */}
-            <div className="w-full text-center py-6 border-y border-[color:var(--border)]">
-              <p className="text-lg text-[color:var(--muted)]">
-                Join a class, ride hard, <span className="text-[color:var(--accent)] font-medium">earn SPIN rewards</span> — your data stays private
+            {/* Clear What-We-Do Statement */}
+            <div className="w-full text-center py-8 border-y border-[color:var(--border)]">
+              <h1 className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)] mb-3">
+                Immersive Indoor Cycling + Crypto Rewards
+              </h1>
+              <p className="text-lg text-[color:var(--muted)] max-w-2xl mx-auto">
+                Take live cycling classes from home. Hit your effort goals. 
+                <span className="text-[color:var(--accent)] font-medium"> Earn SPIN tokens instantly</span> — 
+                your health data stays private with zero-knowledge proofs.
               </p>
+              <div className="flex flex-wrap items-center justify-center gap-4 mt-4 text-sm">
+                <span className="flex items-center gap-1.5 text-[color:var(--muted)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                  Live & On-Demand Classes
+                </span>
+                <span className="flex items-center gap-1.5 text-[color:var(--muted)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                  Real Crypto Rewards
+                </span>
+                <span className="flex items-center gap-1.5 text-[color:var(--muted)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                  Private Health Data
+                </span>
+              </div>
             </div>
             
             {/* Live Stats Ticker */}

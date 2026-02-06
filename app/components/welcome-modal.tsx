@@ -8,20 +8,20 @@ const ONBOARDING_KEY = "spinchain-onboarded";
 const steps = [
   {
     icon: "🚴",
-    title: "Ride. Earn. Repeat.",
-    description: "Join live cycling classes and earn SPIN tokens when you hit your effort goals. The harder you work, the more you earn back.",
-    cta: "Get Started",
+    title: "What is SpinChain?",
+    description: "The first indoor cycling platform that rewards your workouts with real crypto (SPIN tokens). Take live classes from home, hit your effort goals, and earn instantly—while keeping your health data completely private.",
+    cta: "How It Works",
   },
   {
-    icon: "🌍",
-    title: "Ride Anywhere",
-    description: "From mountain passes to city streets—experience immersive routes from home. Ride with real instructors or meet Coachy, your AI training partner.",
+    icon: "💰",
+    title: "Earn As You Ride",
+    description: "Connect your heart rate monitor or power meter. The harder you work, the more SPIN you earn. Rewards are calculated automatically and sent to your wallet instantly after class.",
     cta: "Next",
   },
   {
     icon: "🔒",
-    title: "Your Data Is Yours",
-    description: "We verify your effort for rewards without accessing your personal health data. Private by design.",
+    title: "Privacy Built-In",
+    description: "Unlike other fitness apps, we never see your raw health data. We use zero-knowledge proofs to verify you hit your goals—so you get rewards without sacrificing privacy.",
     cta: "Start Exploring",
   },
 ];
