@@ -39,9 +39,42 @@ const themeColors = {
   ocean: { primary: "#4ecdc4", secondary: "#06b6d4", bg: "rgba(78, 205, 196, 0.1)" },
 };
 
+// Generate unique elevation path based on class name
+function generateElevationPath(className: string): string {
+  const isMountain = className.toLowerCase().includes("mountain") || 
+                     className.toLowerCase().includes("climb");
+  const isSprint = className.toLowerCase().includes("sprint") || 
+                   className.toLowerCase().includes("coastal");
+  const isIntervals = className.toLowerCase().includes("interval") || 
+                      className.toLowerCase().includes("city");
+  
+  if (isMountain) {
+    // Mountain: Steady climb with some variation
+    return "M0,50 C20,48 40,40 60,35 C80,30 100,25 120,20 C140,15 160,12 180,8 C190,6 195,5 200,5";
+  } else if (isSprint) {
+    // Coastal: Rolling hills
+    return "M0,35 C15,25 30,40 45,30 C60,20 75,35 90,25 C105,15 120,30 135,20 C150,10 165,25 180,15 C190,10 195,12 200,10";
+  } else if (isIntervals) {
+    // City: Sharp spikes
+    return "M0,40 L20,40 L25,20 L30,40 L50,40 L55,15 L60,40 L80,40 L85,18 L90,40 L110,40 L115,12 L120,40 L140,40 L145,16 L150,40 L170,40 L175,14 L180,40 L200,40";
+  }
+  
+  // Default: Rolling terrain
+  return "M0,40 Q25,30 50,35 T100,25 T150,30 T200,20";
+}
+
 // Mini SVG route visualization
-function MiniRoutePreview({ theme, isHovered }: { theme: string; isHovered: boolean }) {
+function MiniRoutePreview({ 
+  theme, 
+  isHovered, 
+  className 
+}: { 
+  theme: string; 
+  isHovered: boolean;
+  className: string;
+}) {
   const colors = themeColors[theme as keyof typeof themeColors] || themeColors.neon;
+  const pathD = generateElevationPath(className);
   
   return (
     <div className="relative h-24 w-full overflow-hidden rounded-lg bg-[color:var(--surface-strong)]">
@@ -67,7 +100,7 @@ function MiniRoutePreview({ theme, isHovered }: { theme: string; isHovered: bool
         
         {/* Elevation line */}
         <motion.path
-          d="M0,40 Q30,25 60,35 T120,20 T180,35 T200,30"
+          d={pathD}
           fill="none"
           stroke={`url(#pathGradient-${theme})`}
           strokeWidth="2"
@@ -86,7 +119,7 @@ function MiniRoutePreview({ theme, isHovered }: { theme: string; isHovered: bool
             animate={{ offsetDistance: "100%" }}
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
             style={{
-              offsetPath: "path('M0,40 Q30,25 60,35 T120,20 T180,35 T200,30')"
+              offsetPath: `path('${pathD}')`
             }}
           />
         )}
@@ -211,7 +244,7 @@ export function AnimatedClassCard({
 
           {/* Mini Route Visualization */}
           <div className="mb-4">
-            <MiniRoutePreview theme={theme} isHovered={isHovered} />
+            <MiniRoutePreview theme={theme} isHovered={isHovered} className={classData.name} />
           </div>
 
           {/* Stats row */}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
 import { PrimaryNav } from "../components/nav";
-import { useClasses, type ClassWithRoute } from "../hooks/use-class-data";
+import { useClasses, type ClassWithRoute, GUEST_DEMO_CLASS } from "../hooks/use-class-data";
 import { RoutePreviewCard } from "../components/route-preview-card";
 import { ConnectWallet } from "../components/connect-wallet";
 import { AnimatedClassCard } from "../components/animated-class-card";
@@ -114,6 +114,58 @@ export default function RiderPage() {
               <div className="text-right">
                 <p className="text-2xl font-bold text-[color:var(--foreground)]">0</p>
                 <p className="text-xs text-[color:var(--muted)]">SPIN Balance</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Guest Demo Class */}
+        {!isConnected && (
+          <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 backdrop-blur">
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="px-2 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-semibold">
+                    FREE DEMO
+                  </span>
+                  <span className="text-2xl">🏔️</span>
+                </div>
+                <h2 className="text-2xl font-bold text-[color:var(--foreground)] mb-2">
+                  {GUEST_DEMO_CLASS.name}
+                </h2>
+                <p className="text-[color:var(--muted)] mb-4">
+                  {GUEST_DEMO_CLASS.description}
+                </p>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[color:var(--muted)]">Duration:</span>
+                    <span className="font-medium">{GUEST_DEMO_CLASS.duration} min</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[color:var(--muted)]">Elevation:</span>
+                    <span className="font-medium">+{GUEST_DEMO_CLASS.elevationGain}m</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[color:var(--muted)]">Difficulty:</span>
+                    <span className="font-medium capitalize">{GUEST_DEMO_CLASS.difficulty}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <a
+                  href={`/rider/ride/demo?mode=practice&name=${encodeURIComponent(GUEST_DEMO_CLASS.name)}&date=${new Date().toISOString()}&instructor=${encodeURIComponent(GUEST_DEMO_CLASS.instructor)}&capacity=20&basePrice=0&maxPrice=0&curveType=linear&rewardThreshold=150&rewardAmount=10&aiEnabled=true&aiPersonality=zen&routeName=${encodeURIComponent(GUEST_DEMO_CLASS.name)}&routeDistance=15&routeDuration=${GUEST_DEMO_CLASS.duration}&routeElevation=${GUEST_DEMO_CLASS.elevationGain}`}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Try Free Demo
+                </a>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-green-400">{GUEST_DEMO_CLASS.ticketsSold}</p>
+                  <p className="text-xs text-[color:var(--muted)]">riders now</p>
+                </div>
               </div>
             </div>
           </div>

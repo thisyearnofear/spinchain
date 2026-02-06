@@ -47,6 +47,26 @@ const MOCK_CLASSES = [
   },
 ];
 
+/**
+ * Guest Demo Class
+ * Free to try without wallet connection
+ */
+export const GUEST_DEMO_CLASS = {
+  address: "0xGUEST0000000000000000000000000000000000" as `0x${string}`,
+  name: "Alpine Challenge (Demo)",
+  instructor: "Coach Demo",
+  startTime: Math.floor(Date.now() / 1000) + 1800, // 30 min from now
+  ticketsSold: 8,
+  maxRiders: 20,
+  currentPrice: "0",
+  isGuestMode: true,
+  description: "Try SpinChain without connecting a wallet. Experience the full workout with real-time rewards!",
+  difficulty: "moderate",
+  duration: 30,
+  elevationGain: 450,
+  theme: "alpine" as const,
+};
+
 export interface ClassWithRoute {
   // Contract data
   address: `0x${string}`;
@@ -380,6 +400,64 @@ export function usePracticeClass() {
 }
 
 /**
+ * Generate elevation profile based on route type
+ */
+function generateElevationProfile(
+  routeName: string,
+  elevationGain: number,
+  numPoints: number
+): number[] {
+  const elevations: number[] = [];
+  const baseElevation = 100;
+  
+  // Determine route type from name
+  const isMountain = routeName.toLowerCase().includes("mountain") || 
+                     routeName.toLowerCase().includes("climb");
+  const isSprint = routeName.toLowerCase().includes("sprint") || 
+                   routeName.toLowerCase().includes("coastal");
+  const isIntervals = routeName.toLowerCase().includes("interval") || 
+                      routeName.toLowerCase().includes("city");
+  
+  for (let i = 0; i < numPoints; i++) {
+    const progress = i / (numPoints - 1);
+    let elevation = baseElevation;
+    
+    if (isMountain) {
+      // Mountain climb: Steady ascent with some variation
+      // S-curve: starts gradual, steepens in middle, eases at top
+      const climbFactor = Math.pow(progress, 0.7); // Non-linear for realistic climb
+      elevation += climbFactor * elevationGain;
+      // Add some rocky variation
+      elevation += Math.sin(progress * Math.PI * 8) * (elevationGain * 0.05);
+      
+    } else if (isSprint) {
+      // Coastal sprint: Rolling hills, undulating
+      // Multiple small climbs and descents
+      const wave1 = Math.sin(progress * Math.PI * 4) * (elevationGain * 0.3);
+      const wave2 = Math.sin(progress * Math.PI * 8) * (elevationGain * 0.15);
+      elevation += (progress * elevationGain * 0.4) + wave1 + wave2;
+      
+    } else if (isIntervals) {
+      // City intervals: Sharp spikes for interval training
+      // Flat with periodic sharp climbs
+      const intervalPattern = Math.sin(progress * Math.PI * 6);
+      const spike = intervalPattern > 0.5 
+        ? (intervalPattern - 0.5) * 2 * elevationGain * 0.8 
+        : 0;
+      elevation += (progress * elevationGain * 0.2) + spike;
+      
+    } else {
+      // Default: Rolling terrain
+      elevation += progress * elevationGain + Math.sin(progress * Math.PI * 5) * 50;
+    }
+    
+    elevations.push(Math.round(elevation));
+  }
+  
+  return elevations;
+}
+
+/**
  * Generate mock route data for development
  */
 export function generateMockRouteData(metadata: EnhancedClassMetadata): WalrusRouteData {
@@ -387,13 +465,20 @@ export function generateMockRouteData(metadata: EnhancedClassMetadata): WalrusRo
   const coordinates = [];
   const baseLat = 34.0195;
   const baseLng = -118.4912;
+  
+  // Generate unique elevation profile based on route name
+  const elevationProfile = generateElevationProfile(
+    metadata.route.name,
+    metadata.route.elevationGain,
+    numPoints
+  );
 
   for (let i = 0; i < numPoints; i++) {
     const progress = i / (numPoints - 1);
     coordinates.push({
       lat: baseLat + Math.sin(progress * Math.PI * 3) * 0.01,
       lng: baseLng + progress * 0.02,
-      ele: 100 + progress * metadata.route.elevationGain + Math.sin(progress * Math.PI * 5) * 50,
+      ele: elevationProfile[i],
     });
   }
 
