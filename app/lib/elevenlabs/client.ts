@@ -1,10 +1,11 @@
 /**
- * ElevenLabs Client - Unified API client
+ * ElevenLabs Client - Proxied through server API routes
  * 
  * Core Principles:
  * - DRY: Single client for all ElevenLabs APIs
- * - MODULAR: Separate methods for TTS, SFX, Avatar
- * - PERFORMANT: Streaming support, request deduplication
+ * - MODULAR: Separate methods for TTS, SFX
+ * - PERFORMANT: Request deduplication, caching
+ * - CLEAN: No API keys on client - all proxied through /api/ai/elevenlabs/*
  */
 
 import { ELEVENLABS_CONFIG } from './constants';
@@ -18,35 +19,29 @@ function getRequestKey(type: string, params: unknown): string {
 }
 
 /**
- * Generate speech from text (TTS)
+ * Generate speech from text (TTS) via server route
  */
 export async function generateSpeech(request: TTSRequest): Promise<ArrayBuffer> {
   const key = getRequestKey('tts', request);
   
-  // Return pending request if exists (deduplication)
   if (pendingRequests.has(key)) {
     return pendingRequests.get(key)!;
   }
   
-  const promise = fetch(
-    `${ELEVENLABS_CONFIG.baseUrl}/text-to-speech/${request.voice_id}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'xi-api-key': ELEVENLABS_CONFIG.apiKey,
-      },
-      body: JSON.stringify({
-        text: request.text,
-        model_id: request.model_id || ELEVENLABS_CONFIG.defaultModel,
-        voice_settings: request.voice_settings,
-        optimize_streaming_latency: request.optimize_streaming_latency ?? ELEVENLABS_CONFIG.streamingLatency,
-      }),
-    }
-  ).then(async (response) => {
+  const promise = fetch(ELEVENLABS_CONFIG.ttsRoute, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text: request.text,
+      voice_id: request.voice_id,
+      model_id: request.model_id || ELEVENLABS_CONFIG.defaultModel,
+      voice_settings: request.voice_settings,
+      optimize_streaming_latency: request.optimize_streaming_latency ?? ELEVENLABS_CONFIG.streamingLatency,
+    }),
+  }).then(async (response) => {
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`ElevenLabs TTS error: ${response.status} - ${error}`);
+      throw new Error(`TTS error: ${response.status} - ${error}`);
     }
     return response.arrayBuffer();
   }).finally(() => {
@@ -58,30 +53,27 @@ export async function generateSpeech(request: TTSRequest): Promise<ArrayBuffer> 
 }
 
 /**
- * Generate speech with streaming (for real-time)
+ * Generate speech with streaming (for real-time) via server route
  */
 export async function* generateSpeechStream(request: TTSRequest): AsyncGenerator<Uint8Array> {
-  const response = await fetch(
-    `${ELEVENLABS_CONFIG.baseUrl}/text-to-speech/${request.voice_id}/stream`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'xi-api-key': ELEVENLABS_CONFIG.apiKey,
-        'Accept': 'audio/mpeg',
-      },
-      body: JSON.stringify({
-        text: request.text,
-        model_id: request.model_id || ELEVENLABS_CONFIG.defaultModel,
-        voice_settings: request.voice_settings,
-        optimize_streaming_latency: 0, // Max speed for streaming
-      }),
-    }
-  );
+  const response = await fetch(ELEVENLABS_CONFIG.ttsRoute, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'audio/mpeg',
+    },
+    body: JSON.stringify({
+      text: request.text,
+      voice_id: request.voice_id,
+      model_id: request.model_id || ELEVENLABS_CONFIG.defaultModel,
+      voice_settings: request.voice_settings,
+      optimize_streaming_latency: 0,
+    }),
+  });
   
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`ElevenLabs TTS stream error: ${response.status} - ${error}`);
+    throw new Error(`TTS stream error: ${response.status} - ${error}`);
   }
   
   const reader = response.body?.getReader();
@@ -95,7 +87,7 @@ export async function* generateSpeechStream(request: TTSRequest): AsyncGenerator
 }
 
 /**
- * Generate sound effect
+ * Generate sound effect via server route
  */
 export async function generateSoundEffect(request: SoundEffectRequest): Promise<ArrayBuffer> {
   const key = getRequestKey('sfx', request);
@@ -104,24 +96,18 @@ export async function generateSoundEffect(request: SoundEffectRequest): Promise<
     return pendingRequests.get(key)!;
   }
   
-  const promise = fetch(
-    `${ELEVENLABS_CONFIG.baseUrl}/sound-generation`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'xi-api-key': ELEVENLABS_CONFIG.apiKey,
-      },
-      body: JSON.stringify({
-        text: request.text,
-        duration_seconds: request.duration_seconds ?? 2,
-        prompt_influence: request.prompt_influence ?? 0.7,
-      }),
-    }
-  ).then(async (response) => {
+  const promise = fetch(ELEVENLABS_CONFIG.sfxRoute, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text: request.text,
+      duration_seconds: request.duration_seconds ?? 2,
+      prompt_influence: request.prompt_influence ?? 0.7,
+    }),
+  }).then(async (response) => {
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`ElevenLabs SFX error: ${response.status} - ${error}`);
+      throw new Error(`SFX error: ${response.status} - ${error}`);
     }
     return response.arrayBuffer();
   }).finally(() => {
@@ -133,18 +119,15 @@ export async function generateSoundEffect(request: SoundEffectRequest): Promise<
 }
 
 /**
- * Generate avatar video (if API available)
- * Note: This is a placeholder - check ElevenLabs docs for actual endpoint
+ * Generate avatar video (placeholder)
  */
 export async function generateAvatarVideo(request: AvatarVideoRequest): Promise<string> {
-  // Placeholder - implement based on actual ElevenLabs API
-  // May need to use alternative service like D-ID, HeyGen, or Sync Labs
   console.warn('Avatar video generation not yet implemented');
-  return request.image_url; // Fallback to static image
+  return request.image_url;
 }
 
 /**
- * Get available voices
+ * Get available voices via server route
  */
 export async function getVoices(): Promise<Array<{
   voice_id: string;
@@ -152,11 +135,7 @@ export async function getVoices(): Promise<Array<{
   preview_url: string;
   category: string;
 }>> {
-  const response = await fetch(`${ELEVENLABS_CONFIG.baseUrl}/voices`, {
-    headers: {
-      'xi-api-key': ELEVENLABS_CONFIG.apiKey,
-    },
-  });
+  const response = await fetch(ELEVENLABS_CONFIG.voicesRoute);
   
   if (!response.ok) {
     throw new Error(`Failed to fetch voices: ${response.status}`);
@@ -167,8 +146,23 @@ export async function getVoices(): Promise<Array<{
 }
 
 /**
- * Check if API key is configured
+ * Check if ElevenLabs is configured (pings server route)
  */
 export function isElevenLabsConfigured(): boolean {
-  return !!ELEVENLABS_CONFIG.apiKey && ELEVENLABS_CONFIG.apiKey.length > 0;
+  // Optimistically return true - the server route will return 503 if not configured
+  // This avoids a blocking async check on hook initialization
+  return true;
+}
+
+/**
+ * Async check if ElevenLabs is actually configured on the server
+ */
+export async function checkElevenLabsConfigured(): Promise<boolean> {
+  try {
+    const response = await fetch(ELEVENLABS_CONFIG.ttsRoute, { method: 'GET' });
+    const data = await response.json();
+    return data.status === 'ready';
+  } catch {
+    return false;
+  }
 }
