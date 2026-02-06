@@ -1,190 +1,188 @@
 /**
- * Unified AI Service Layer
- * Consolidates all AI interactions (Gemini) for instructor agents, route generation, and narrative prompts
- *
- * Core Principles:
- * - Single source of truth for AI configuration
- * - Server-side API key management (via Next.js API routes)
- * - Shared error handling and rate limiting
- * - Type-safe function calling interface
+ * Unified Multi-Provider AI Service Layer
+ * 
+ * HACKATHON STRATEGY:
+ * - Default: Venice AI (you have credits)
+ * - Optional: Gemini 3 (BYOK for judges to see)
+ * - Smart fallbacks with graceful degradation
+ * 
+ * Features:
+ * - Provider-agnostic interface
+ * - Automatic fallback handling
+ * - User preference management
+ * - Clear provider indicators
  */
 
-export type AIProvider = "gemini" | "openai" | "venice";
+import {
+  generateRouteWithGemini,
+  generateNarrativeWithGemini,
+  chatWithGemini,
+  getCoachingWithGemini,
+  agentReasoningWithGemini,
+  generateRouteStream,
+  RouteRequest,
+  RouteResponse,
+  CoachingContext,
+  CoachingResponse,
+  AgentDecision,
+} from "./gemini-client";
 
-export type FunctionDeclaration = {
-  name: string;
-  description: string;
-  parameters: {
-    type: string;
-    properties: Record<string, unknown>;
-    required: string[];
-  };
-};
+import {
+  generateRouteWithVenice,
+  generateNarrativeWithVenice,
+  chatWithVenice,
+  getCoachingWithVenice,
+  agentReasoningWithVenice,
+} from "./venice-client";
 
-export type AIMessage = {
-  role: "user" | "assistant" | "system";
-  content: string;
-};
+import {
+  AIProvider,
+  getUserAIPreferences,
+  setUserAIPreferences,
+  getProviderBadge,
+  isFeatureAvailable,
+  DEFAULT_AI_PREFERENCES,
+} from "./ai-providers";
 
-export type RouteGenerationParams = {
-  prompt: string;
-  preferences?: string;
-  duration?: number; // minutes
-  difficulty?: "easy" | "moderate" | "hard";
-};
+// Re-export types
+export type { AIProvider, RouteRequest, RouteResponse, CoachingContext, CoachingResponse, AgentDecision };
+export { getProviderBadge, isFeatureAvailable, DEFAULT_AI_PREFERENCES };
 
-export type GeneratedRoute = {
-  name: string;
-  description: string;
-  coordinates: Array<{ lat: number; lng: number; ele?: number }>;
-  estimatedDistance: number; // km
-  estimatedDuration: number; // minutes
-  elevationGain: number; // meters
-  storyBeats: Array<{
-    progress: number;
-    label: string;
-    type: "climb" | "sprint" | "drop" | "rest";
-  }>;
-};
-
-export type AgentReasoningParams = {
-  agentName: string;
-  personality: string;
-  context: {
-    telemetry: {
-      avgBpm: number;
-      resistance: number;
-      duration: number;
-    };
-    market: {
-      ticketsSold: number;
-      revenue: number;
-    };
-  };
-};
-
-export type AgentDecision = {
-  thoughtProcess: string;
-  action:
-    | "increase_resistance"
-    | "decrease_resistance"
-    | "maintain"
-    | "surge_price"
-    | "discount_price";
-  parameters: Record<string, unknown>;
-  confidence: number;
-};
+// Service configuration
+export interface AIServiceConfig {
+  preferredProvider?: AIProvider;
+  geminiApiKey?: string; // BYOK
+  enableStreaming?: boolean;
+  enableAdvancedFeatures?: boolean;
+}
 
 /**
- * Client-side wrapper for AI service
- * All actual API calls go through Next.js API routes for security
+ * Unified AI Service - Multi-Provider Architecture
+ * 
+ * Usage:
+ * ```typescript
+ * const ai = new AIService(); // Uses Venice by default
+ * 
+ * // Or specify provider
+ * const aiGemini = new AIService({ preferredProvider: 'gemini' });
+ * 
+ * // Route generation (works with any provider)
+ * const route = await ai.generateRoute({
+ *   prompt: "coastal sunset climb",
+ *   duration: 45,
+ *   difficulty: "moderate"
+ * });
+ * ```
  */
 export class AIService {
-  private provider: AIProvider;
+  private config: AIServiceConfig;
   private baseUrl: string;
 
-  constructor(provider: AIProvider = "gemini") {
-    this.provider = provider;
+  constructor(config: AIServiceConfig = {}) {
+    // Load from localStorage if not provided
+    const prefs = getUserAIPreferences();
+    this.config = {
+      preferredProvider: config.preferredProvider || prefs.preferredProvider,
+      geminiApiKey: config.geminiApiKey || prefs.geminiApiKey,
+      enableStreaming: config.enableStreaming ?? prefs.enableStreaming,
+      enableAdvancedFeatures: config.enableAdvancedFeatures ?? prefs.enableAdvancedFeatures,
+    };
     this.baseUrl = "/api/ai";
   }
 
   /**
-   * Generate a route from natural language description
+   * Get current active provider
    */
-  async generateRoute(params: RouteGenerationParams): Promise<GeneratedRoute> {
+  getProvider(): AIProvider {
+    return this.config.preferredProvider || "venice";
+  }
+
+  /**
+   * Check if a feature is available with current provider
+   */
+  isFeatureAvailable(feature: string): boolean {
+    return isFeatureAvailable(feature, this.getProvider());
+  }
+
+  /**
+   * Get provider badge info for UI
+   */
+  getProviderBadge() {
+    return getProviderBadge(this.getProvider());
+  }
+
+  /**
+   * Generate a route from natural language description
+   * Works with Venice or Gemini 3
+   */
+  async generateRoute(params: RouteRequest): Promise<RouteResponse & { _meta?: { provider: string; duration: number } }> {
+    const provider = this.getProvider();
+    const startTime = Date.now();
+
+    try {
+      let route: RouteResponse;
+
+      if (provider === "gemini") {
+        // Use server-side Gemini with BYOK or env key
+        route = await this.callServerRoute("generate-route", params);
+      } else {
+        // Use Venice via server (for API key security)
+        route = await this.callServerRoute("generate-route", { ...params, provider });
+      }
+
+      return {
+        ...route,
+        _meta: {
+          provider,
+          duration: Date.now() - startTime,
+        },
+      };
+    } catch (error) {
+      console.error(`[AIService] Route generation failed with ${provider}:`, error);
+      
+      // Try fallback if Gemini failed
+      if (provider === "gemini" && this.config.preferredProvider !== "venice") {
+        console.log("[AIService] Falling back to Venice AI...");
+        const fallbackRoute = await this.callServerRoute("generate-route", {
+          ...params,
+          provider: "venice",
+        });
+        return {
+          ...fallbackRoute,
+          _meta: {
+            provider: "venice (fallback)",
+            duration: Date.now() - startTime,
+          },
+        };
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Stream route generation (Gemini 3 only)
+   */
+  async *streamRoute(params: RouteRequest): AsyncGenerator<{ type: "status" | "partial" | "complete"; data: any }> {
+    const provider = this.getProvider();
+    
+    if (provider !== "gemini") {
+      // Venice doesn't support streaming, yield status then complete
+      yield { type: "status", data: { stage: "generating", message: "Generating route..." } };
+      const route = await this.generateRoute(params);
+      yield { type: "complete", data: route };
+      return;
+    }
+
+    // Gemini streaming via server
     const response = await fetch(`${this.baseUrl}/generate-route`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...params, provider: this.provider }),
+      body: JSON.stringify({ ...params, stream: true }),
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to generate route");
-    }
-
-    return response.json();
-  }
-
-  /**
-   * Agentic Reasoning Loop (Venice / Gemini)
-   * Used by autonomous instructors to decide on physical/financial adjustments
-   */
-  async reasoning(params: AgentReasoningParams): Promise<AgentDecision> {
-    const response = await fetch(`${this.baseUrl}/agent-reasoning`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...params, provider: this.provider }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Agent reasoning failed");
-    }
-
-    return response.json();
-  }
-
-  /**
-   * Generate narrative description for a route
-   */
-  async generateNarrative(
-    elevationProfile: number[],
-    theme: string,
-    duration: number,
-  ): Promise<string> {
-    const response = await fetch(`${this.baseUrl}/generate-narrative`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        elevationProfile,
-        theme,
-        duration,
-        provider: this.provider,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to generate narrative");
-    }
-
-    const data = await response.json();
-    return data.narrative;
-  }
-
-  /**
-   * Chat with AI for general queries
-   */
-  async chat(messages: AIMessage[]): Promise<string> {
-    const response = await fetch(`${this.baseUrl}/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages, provider: this.provider }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Chat failed");
-    }
-
-    const data = await response.json();
-    return data.response;
-  }
-
-  /**
-   * Stream chat responses for real-time interactions
-   */
-  async *streamChat(messages: AIMessage[]): AsyncGenerator<string> {
-    const response = await fetch(`${this.baseUrl}/chat/stream`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages, provider: this.provider }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Stream chat failed");
+      throw new Error("Stream failed");
     }
 
     const reader = response.body?.getReader();
@@ -194,17 +192,186 @@ export class AIService {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      yield decoder.decode(value);
+      
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n\n");
+      
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            yield data;
+          } catch {
+            // Skip invalid JSON
+          }
+        }
+      }
     }
+  }
+
+  /**
+   * Generate narrative description for a route
+   */
+  async generateNarrative(
+    elevationProfile: number[],
+    theme: string,
+    duration: number,
+    routeName?: string
+  ): Promise<{ narrative: string; atmosphere: string; intensity: string; _meta?: { provider: string } }> {
+    const provider = this.getProvider();
+    
+    const result = await this.callServerRoute("generate-narrative", {
+      elevationProfile,
+      theme,
+      duration,
+      routeName,
+      provider,
+    });
+
+    return {
+      ...result,
+      _meta: { provider },
+    };
+  }
+
+  /**
+   * Chat with AI coach
+   */
+  async chat(messages: Array<{ role: string; content: string }>): Promise<{ response: string; _meta?: { provider: string } }> {
+    const provider = this.getProvider();
+    
+    const result = await this.callServerRoute("chat", {
+      messages,
+      provider,
+    });
+
+    return {
+      ...result,
+      _meta: { provider },
+    };
+  }
+
+  /**
+   * Get adaptive coaching based on rider context
+   */
+  async getCoaching(
+    context: CoachingContext,
+    conversationHistory: Array<{ role: "rider" | "coach"; message: string }> = []
+  ): Promise<CoachingResponse & { _meta?: { provider: string } }> {
+    const provider = this.getProvider();
+    
+    const result = await this.callServerRoute("chat", {
+      mode: "coaching",
+      context,
+      conversationHistory,
+      provider,
+    });
+
+    return {
+      ...result,
+      _meta: { provider },
+    };
+  }
+
+  /**
+   * Agent reasoning for autonomous decisions
+   */
+  async agentReasoning(
+    agentName: string,
+    personality: string,
+    context: {
+      telemetry: { avgBpm: number; resistance: number; duration: number };
+      market: { ticketsSold: number; revenue: number; capacity: number };
+      recentDecisions: string[];
+    }
+  ): Promise<AgentDecision & { _meta?: { provider: string } }> {
+    const provider = this.getProvider();
+    
+    const result = await this.callServerRoute("agent-reasoning", {
+      agentName,
+      personality,
+      context,
+      provider,
+    });
+
+    return {
+      ...result,
+      _meta: { provider },
+    };
+  }
+
+  /**
+   * Update service configuration
+   */
+  updateConfig(newConfig: Partial<AIServiceConfig>): void {
+    this.config = { ...this.config, ...newConfig };
+    
+    // Persist to localStorage
+    setUserAIPreferences({
+      preferredProvider: this.config.preferredProvider,
+      geminiApiKey: this.config.geminiApiKey,
+      enableStreaming: this.config.enableStreaming,
+      enableAdvancedFeatures: this.config.enableAdvancedFeatures,
+    });
+  }
+
+  /**
+   * Switch provider
+   */
+  switchProvider(provider: AIProvider): void {
+    this.updateConfig({ preferredProvider: provider });
+  }
+
+  /**
+   * Internal: Call server API route
+   */
+  private async callServerRoute(endpoint: string, body: any): Promise<any> {
+    const response = await fetch(`${this.baseUrl}/${endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...body,
+        // Include BYOK if using Gemini
+        ...(this.config.preferredProvider === "gemini" && this.config.geminiApiKey && {
+          apiKey: this.config.geminiApiKey,
+        }),
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || `${endpoint} failed`);
+    }
+
+    return response.json();
   }
 }
 
-// Singleton instance
-let aiServiceInstance: AIService | null = null;
+// Singleton instance for convenience
+let defaultService: AIService | null = null;
 
-export function getAIService(provider?: AIProvider): AIService {
-  if (!aiServiceInstance) {
-    aiServiceInstance = new AIService(provider);
+export function getAIService(config?: AIServiceConfig): AIService {
+  if (!defaultService || config) {
+    defaultService = new AIService(config);
   }
-  return aiServiceInstance;
+  return defaultService;
+}
+
+// Utility to check provider availability on server
+export async function checkProviderAvailability(): Promise<{
+  venice: boolean;
+  gemini: boolean;
+  preferred: AIProvider;
+}> {
+  try {
+    const response = await fetch("/api/ai/health");
+    const data = await response.json();
+    return {
+      venice: data.providers.venice,
+      gemini: data.providers.gemini,
+      preferred: data.preferredProvider,
+    };
+  } catch {
+    return { venice: false, gemini: false, preferred: "venice" };
+  }
 }
