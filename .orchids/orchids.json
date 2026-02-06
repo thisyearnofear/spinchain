@@ -1,0 +1,7 @@
+{
+  "projectId": "4e0f598b-1752-4417-a6db-53c0ab7d7e97",
+  "createdAt": 1770371523970,
+  "startupCommands": [
+    "pnpm run dev --port 3005"
+  ]
+}

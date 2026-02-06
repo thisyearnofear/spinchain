@@ -1,0 +1,170 @@
+2026-02-06T10:09:52.752Z [console][error] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <TransactionStoreProvider>
+      <ShowBalanceProvider>
+        <ModalProvider>
+          <div data-rk="">
+            <style>
+            <div style={{...}}>
+              <ToastProvider>
+                ...
+                  <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:<Fragment>, ...}} ...>
+                    <SegmentViewNode type="page" pagePath="page.tsx">
+                      <SegmentTrieNode>
+                      <ClientPageRoot Component={function Home} serverProvidedParams={{...}}>
+                        <Home params={Promise} searchParams={Promise}>
+                          <div className="min-h-scre...">
+                            <div>
+                            <main className="relative m...">
+                              <FadeIn>
+                              ...
+                                <div className="w-full">
+                                  <div>
+                                  ...
+                                    <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} ...>
+                                      <div
+                                        className="relative overflow-hidden rounded-3xl border border-[color:var(--bor..."
+                                        style={{opacity:0,transform:"translateY..."}}
+                                        ref={function useMotionRef.useCallback}
+-                                       data-orchid-ref="ref-fv2rw2oi9g"
+                                      >
+                                        <motion.div className="absolute i..." animate={{opacity:0.05}} ...>
+                                          <div
+                                            className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-50..."
+                                            style={{}}
+                                            ref={function useMotionRef.useCallback}
+-                                           data-orchid-ref="ref-h8w99794i4"
+                                          >
+                                        <div
+                                          className="absolute inset-0 overflow-hidden pointer-events-none"
+-                                         data-orchid-ref="ref-n48xu0tzzf"
+                                        >
+                                          <motion.div className="absolute w..." initial={{x:"63.8936...", ...}} ...>
+                                            <div
+                                              className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-indigo-50..."
+                                              style={{
++                                               transform: "translateX(63.893635665529246%) translateY(74.030039938185..."
+-                                               transform: "translateX(4.77701%) translateY(88.5173%)"
+                                              }}
+                                              ref={function useMotionRef.useCallback}
+-                                             data-orchid-ref="ref-x1gj2qcaq1"
+                                            >
+                                          <motion.div className="absolute w..." initial={{x:"21.8941...", ...}} ...>
+                                            <div
+      ... [truncated]
+2026-02-06T10:09:52.833Z [console][error] Please ensure that the container has a non-static position, like 'relative', 'fixed', or 'absolute' to ensure scroll offset is calculated correctly.
+2026-02-06T10:10:02.465Z [console][error] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+2026-02-06T10:22:12.100Z [console][error] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <TransactionStoreProvider>
+      <ShowBalanceProvider>
+        <ModalProvider>
+          <div data-rk="">
+            <style>
+            <div style={{...}}>
+              <ToastProvider>
+                ...
+                  <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:<Fragment>, ...}} ...>
+                    <SegmentViewNode type="page" pagePath="page.tsx">
+                      <SegmentTrieNode>
+                      <ClientPageRoot Component={function Home} serverProvidedParams={{...}}>
+                        <Home params={Promise} searchParams={Promise}>
+                          <div className="min-h-scre...">
+                            <div>
+                            <main className="relative m...">
+                              <FadeIn>
+                              ...
+                                <div className="absolute i...">
+                                  <motion.div className="absolute w..." initial={{x:"24.0302...", ...}} ...>
+                                    <div
+                                      className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-indigo-500 to-pur..."
+                                      style={{
++                                       transform: "translateX(24.030266449317285%) translateY(72.6288099042349%)"
+-                                       transform: "translateX(4.77701%) translateY(88.5173%)"
+                                      }}
+                                      ref={function useMotionRef.useCallback}
+                                    >
+                                  <motion.div className="absolute w..." initial={{x:"35.9865...", ...}} ...>
+                                    <div
+                                      className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-indigo-500 to-pur..."
+                                      style={{
++                                       transform: "translateX(35.98654128999096%) translateY(79.05067885844788%)"
+-                                       transform: "translateX(38.3279%) translateY(46.569%)"
+                                      }}
+                                      ref={function useMotionRef.useCallback}
+                                    >
+                                  <motion.div className="absolute w..." initial={{x:"79.6675...", ...}} ...>
+                                    <div
+                                      className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-indigo-500 to-pur..."
+                                      style={{
++                                       transform: "translateX(79.66752648555642%) translateY(22.06960256047865%)"
+-                                       transform: "translateX(52.2281%) translateY(30.9592%)"
+                                      }}
+                                      ref={function useMotionRef.useCallback}
+                                    >
+                                  <motion.div className="absolute w..." initial={{x:"3.01565...", ...}} ...>
+                                    <div
+                                      className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-indigo-500 to-pur..."
+                                      style={{
++                                       transform: ... [truncated]
+2026-02-06T10:22:12.918Z [console][error] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+2026-02-06T10:24:01.836Z [console][error] Please ensure that the container has a non-static position, like 'relative', 'fixed', or 'absolute' to ensure scroll offset is calculated correctly.
+2026-02-06T10:22:12.100Z [console][error] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <TransactionStoreProvider>
+      <ShowBalanceProvider>
+        <ModalProvider>
+          <div data-rk="">
+            <style>
+            <div style={{...}}>
+              <ToastProvider>
+                ...
+                  <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:<Fragment>, ...}} ...>
+                    <SegmentViewNode type="page" pagePath="page.tsx">
+                      <SegmentTrieNode>
+                      <ClientPageRoot Component={function Home} serverProvidedParams={{...}}>
+                        <Home params={Promise} searchParams={Promise}>
+                          <div className="min-h-scre...">
+                            <div>
+                            <main className="relative m...">
+                              <FadeIn>
+                              ...
+                                <div className="absolute i...">
+                                  <motion.div className="absolute w..." initial={{x:"24.0302...", ...}} ...>
+                                    <div
+                                      className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-indigo-500 to-pur..."
+                                      style={{
++                                       transform: "translateX(24.030266449317285%) translateY(72.6288099042349...

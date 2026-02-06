@@ -4,6 +4,7 @@
  * Core Principles:
  * - CLEAN: Single entry point for all ElevenLabs functionality
  * - ORGANIZED: Domain-driven exports
+ * - DRY: All client functions consolidated in client.ts
  */
 
 // Types
@@ -32,21 +33,20 @@ export {
 } from './constants';
 export type { WorkoutSoundType } from './constants';
 
-// Client (Secure - calls server-side API routes)
+// Client (all ElevenLabs API calls proxied through server routes)
 export {
-  generateTTS,
-  generateSFX,
-  transcribeAudio,
-  getVoices,
-  isElevenLabsConfigured,
-} from './api-client';
-
-// Legacy exports (deprecated - will be removed)
-// Use the new secure api-client functions instead
-export {
+  // TTS & SFX
   generateSpeech,
   generateSpeechStream,
   generateSoundEffect,
+  // Aliases for convenience
+  generateSpeech as generateTTS,
+  generateSoundEffect as generateSFX,
+  // Voice management
+  getVoices,
+  // Configuration
+  isElevenLabsConfigured,
+  checkElevenLabsConfigured,
 } from './client';
 
 // Video/Avatar
@@ -64,7 +64,7 @@ export {
   WORKOUT_MUSIC_PROMPTS,
 } from './music';
 
-// Speech-to-Text (transcribeAudio is exported from api-client above)
+// Speech-to-Text
 export {
   parseCommand,
   RealtimeTranscriber,
