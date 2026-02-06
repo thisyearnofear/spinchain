@@ -9,11 +9,20 @@
 import { CoachVoice, VoiceSettings } from './types';
 
 // API Configuration
+// NOTE: API key is loaded server-side only via ELEVENLABS_API_KEY (not NEXT_PUBLIC)
+// Client-side code should call API routes, not use this config directly
 export const ELEVENLABS_CONFIG = {
   baseUrl: 'https://api.elevenlabs.io/v1',
-  apiKey: process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || '',
   defaultModel: 'eleven_turbo_v2' as const,
   streamingLatency: 3, // 0-4, balance quality vs speed
+};
+
+// Server-side only - do not export to client
+export const getElevenLabsApiKey = () => {
+  if (typeof window !== 'undefined') {
+    throw new Error('ElevenLabs API key is server-side only');
+  }
+  return process.env.ELEVENLABS_API_KEY || '';
 };
 
 // Pre-configured coach voices
