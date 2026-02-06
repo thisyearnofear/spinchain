@@ -440,45 +440,26 @@ function Scene({
   // Animate progress if none provided
   const [activeProgress, setActiveProgress] = useState(progress);
 
-  useFrame((state, delta) => {
-    let nextProgress = activeProgress;
-    if (progress === 0) {
-      nextProgress = (activeProgress + delta * 0.05) % 1;
-      setActiveProgress(nextProgress);
-    } else {
-      nextProgress = progress;
-      setActiveProgress(progress);
-    }
-
-    // Audio Trigger Logic
-    storyBeats.forEach((beat, index) => {
-      if (
-        nextProgress >= beat.progress &&
-        lastBeatRef.current < index &&
-        Math.abs(nextProgress - beat.progress) < 0.02
-      ) {
-        lastBeatRef.current = index;
-        // Simple Audio Feedback (Browser Audio)
-        if (typeof window !== "undefined") {
-          try {
-            const ctx = new (window.AudioContext ||
-              (window as unknown as { webkitAudioContext: typeof AudioContext })
-                .webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.value = 440;
-            gain.gain.setValueAtTime(0.1, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.2);
-          } catch (e) {
-            console.warn("Audio Context failed", e);
-          }
-        }
+    useFrame((state, delta) => {
+      let nextProgress = activeProgress;
+      if (progress === 0) {
+        nextProgress = (activeProgress + delta * 0.05) % 1;
+        setActiveProgress(nextProgress);
+      } else {
+        nextProgress = progress;
+        setActiveProgress(progress);
       }
-    });
+
+      // Track beat hits for visual markers
+      storyBeats.forEach((beat, index) => {
+        if (
+          nextProgress >= beat.progress &&
+          lastBeatRef.current < index &&
+          Math.abs(nextProgress - beat.progress) < 0.02
+        ) {
+          lastBeatRef.current = index;
+        }
+      });
 
     // Reset loop ref if progress resets
     if (nextProgress < 0.01) lastBeatRef.current = -1;
@@ -510,22 +491,22 @@ function Scene({
       <fog attach="fog" args={[styles.fog, 20, 250]} />
 
       <Environment preset={styles.envPreset} />
-      <FloatingParticles theme={theme} />
-      {progress > 0 && (
-        <SpeedLines
-          count={Math.min(50, Math.floor(stats.power / 5))}
-          theme={theme}
-        />
-      )}
+        <FloatingParticles theme={theme} />
+        {progress > 0 && (
+          <SpeedLines
+            count={Math.min(50, Math.floor(stats.power / 5))}
+            theme={theme}
+          />
+        )}
 
-      <Sparkles
-        count={50}
-        scale={100}
-        size={2}
-        speed={0.5}
-        color={styles.particleColor}
-        opacity={0.2}
-      />
+        <Sparkles
+          count={Math.min(100, 30 + Math.floor(stats.power / 4))}
+          scale={100}
+          size={Math.min(4, 1.5 + stats.power / 150)}
+          speed={0.3 + (stats.cadence / 200)}
+          color={styles.particleColor}
+          opacity={Math.min(0.5, 0.1 + stats.power / 500)}
+        />
 
       <group position={[0, -10, 0]}>
         <Road curve={curve} theme={theme} />

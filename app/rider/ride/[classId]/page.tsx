@@ -1,11 +1,24 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useClass, createPracticeClassMetadata, generateMockRouteData, type ClassWithRoute } from "../../../hooks/use-class-data";
 import RouteVisualizer from "../../../components/route-visualizer";
 import { DeviceSelector } from "../../../components/ble";
 import { useDeviceType, useOrientation, useActualViewportHeight } from "../../../lib/responsive";
+import { useWorkoutAudio } from "../../../hooks/use-workout-audio";
+import { useCoachVoice } from "../../../hooks/use-coach-voice";
+import { useAiInstructor } from "../../../hooks/use-ai-instructor";
+import {
+  type WorkoutPlan,
+  type WorkoutInterval,
+  PHASE_DEFAULTS,
+  PHASE_TO_THEME,
+  PRESET_WORKOUTS,
+  getCurrentInterval,
+  getIntervalProgress,
+  getIntervalRemaining,
+} from "../../../lib/workout-plan";
 
 interface PracticeClassConfig {
   name: string;
@@ -130,6 +143,48 @@ export default function LiveRidePage() {
     effort: 0,
   });
 
+  // Telemetry averages for completion screen
+  const telemetrySamples = useRef<{ hr: number; power: number; effort: number }[]>([]);
+
+  // Audio hooks
+  const aiPersonality = classData?.metadata?.ai?.personality;
+  const coachPersonality = aiPersonality === 'drill-sergeant' ? 'drill' : aiPersonality === 'zen' ? 'zen' : 'data';
+  const { playSound, playCountdown, stopAll: stopAudio, isConfigured: audioConfigured } = useWorkoutAudio();
+  const { speak, stop: stopVoice, isSpeaking } = useCoachVoice({
+    personality: coachPersonality,
+    intensity: rideProgress / 100,
+  });
+
+  // AI Instructor
+  const { logs: aiLogs, isActive: aiActive, setIsActive: setAiActive } = useAiInstructor(
+    classData?.instructor || 'Coach',
+    aiPersonality || 'data',
+    null // No Sui session in practice/standalone mode
+  );
+
+  // Track last spoken beat to avoid repeats
+  const lastSpokenBeatRef = useRef<string | null>(null);
+
+  // Workout plan state
+  const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(
+    () => PRESET_WORKOUTS[1] // Default to HIIT 45 for demo; will be selectable
+  );
+
+  // Current interval tracking (derived from elapsed time)
+  const currentIntervalIndex = workoutPlan
+    ? getCurrentInterval(workoutPlan.intervals, elapsedTime)
+    : -1;
+  const currentInterval = workoutPlan?.intervals[currentIntervalIndex] ?? null;
+  const intervalProgress = workoutPlan
+    ? getIntervalProgress(workoutPlan.intervals, elapsedTime)
+    : 0;
+  const intervalRemaining = workoutPlan
+    ? getIntervalRemaining(workoutPlan.intervals, elapsedTime)
+    : 0;
+
+  // Track interval transitions for audio cues
+  const lastIntervalRef = useRef<number>(-1);
+
   // Handle BLE metrics updates
   const handleBleMetrics = (metrics: {
     heartRate?: number;
@@ -184,40 +239,166 @@ export default function LiveRidePage() {
       });
 
       // Only simulate telemetry if BLE not connected
-      if (!bleConnected) {
-        setTelemetry(prev => ({
-          ...prev,
-          heartRate: prev.heartRate || 120 + Math.floor(Math.random() * 40),
-          power: prev.power || 150 + Math.floor(Math.random() * 100),
-          cadence: prev.cadence || 80 + Math.floor(Math.random() * 20),
-          speed: prev.speed || 25 + Math.random() * 10,
-          effort: prev.effort || 140 + Math.floor(Math.random() * 30),
-        }));
+        if (!bleConnected) {
+          setTelemetry(prev => {
+            const newTelemetry = {
+              ...prev,
+              heartRate: prev.heartRate || 120 + Math.floor(Math.random() * 40),
+              power: prev.power || 150 + Math.floor(Math.random() * 100),
+              cadence: prev.cadence || 80 + Math.floor(Math.random() * 20),
+              speed: prev.speed || 25 + Math.random() * 10,
+              effort: prev.effort || 140 + Math.floor(Math.random() * 30),
+            };
+            // Collect samples for averages
+            telemetrySamples.current.push({
+              hr: newTelemetry.heartRate,
+              power: newTelemetry.power,
+              effort: newTelemetry.effort,
+            });
+            return newTelemetry;
+          });
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }, [isRiding, classData, bleConnected]);
+
+    // Also collect BLE telemetry samples
+    useEffect(() => {
+      if (isRiding && bleConnected && telemetry.heartRate > 0) {
+        telemetrySamples.current.push({
+          hr: telemetry.heartRate,
+          power: telemetry.power,
+          effort: telemetry.effort,
+        });
       }
-    }, 1000);
+    }, [isRiding, bleConnected, telemetry.heartRate, telemetry.power, telemetry.effort]);
 
-    return () => clearInterval(interval);
-  }, [isRiding, classData, bleConnected]);
+  // Interval transition: announce phase changes with coach voice + SFX
+  useEffect(() => {
+    if (!isRiding || !workoutPlan || currentIntervalIndex < 0) return;
+    if (lastIntervalRef.current === currentIntervalIndex) return;
+    
+    const prevIndex = lastIntervalRef.current;
+    lastIntervalRef.current = currentIntervalIndex;
+    
+    // Skip first interval announcement on ride start (already handled by startRide)
+    if (prevIndex === -1) return;
+    
+    const interval = workoutPlan.intervals[currentIntervalIndex];
+    if (!interval) return;
 
-  const currentBeat = classData?.route?.route.storyBeats.find(
+    // Play phase-appropriate SFX
+    if (interval.phase === 'sprint') {
+      playSound('intervalStart');
+    } else if (interval.phase === 'recovery' || interval.phase === 'cooldown') {
+      playSound('recover');
+    } else if (interval.phase === 'interval') {
+      playSound('resistanceUp');
+    }
+
+    // Coach announces the interval transition
+    if (interval.coachCue) {
+      const emotion = PHASE_DEFAULTS[interval.phase].coachEmotion;
+      speak(interval.coachCue, emotion);
+    }
+  }, [isRiding, workoutPlan, currentIntervalIndex, playSound, speak]);
+
+  // Countdown warning at 5 seconds before interval ends
+  useEffect(() => {
+    if (!isRiding || !workoutPlan || !currentInterval) return;
+    if (intervalRemaining <= 5 && intervalRemaining > 4) {
+      playSound('countdown');
+    }
+  }, [isRiding, workoutPlan, currentInterval, intervalRemaining, playSound]);
+
+    const currentBeat = classData?.route?.route.storyBeats.find(
     beat => {
       const beatProgress = beat.progress * 100;
       return rideProgress >= beatProgress && rideProgress < beatProgress + 1;
     }
   );
 
+  // Voice coach announces story beats
+  useEffect(() => {
+    if (!currentBeat || !isRiding) return;
+    const beatKey = `${currentBeat.progress}-${currentBeat.label}`;
+    if (lastSpokenBeatRef.current === beatKey) return;
+    lastSpokenBeatRef.current = beatKey;
+
+    // Play SFX based on beat type
+    if (currentBeat.type === 'sprint') {
+      playSound('sprint');
+    } else if (currentBeat.type === 'climb') {
+      playSound('climb');
+    } else if (currentBeat.type === 'rest') {
+      playSound('recover');
+    }
+
+    // Coach announces the beat
+    const emotion = currentBeat.type === 'sprint' ? 'intense' as const
+      : currentBeat.type === 'climb' ? 'focused' as const
+      : currentBeat.type === 'rest' ? 'calm' as const
+      : 'focused' as const;
+    speak(currentBeat.label, emotion);
+  }, [currentBeat, isRiding, playSound, speak]);
+
+  // Activate AI instructor when riding
+  useEffect(() => {
+    setAiActive(isRiding && !!classData?.metadata?.ai?.enabled);
+  }, [isRiding, classData?.metadata?.ai?.enabled, setAiActive]);
+
+  // Speak AI instructor actions
+  useEffect(() => {
+    if (aiLogs.length === 0) return;
+    const latest = aiLogs[0];
+    if (latest.type === 'action' && !isSpeaking) {
+      speak(latest.message, 'intense');
+    }
+  }, [aiLogs, isSpeaking, speak]);
+
+  // Compute averages for completion
+  const telemetryAverages = useMemo(() => {
+    const samples = telemetrySamples.current;
+    if (samples.length === 0) return { avgHr: 0, avgPower: 0, avgEffort: 0 };
+    const sum = samples.reduce((acc, s) => ({
+      hr: acc.hr + s.hr,
+      power: acc.power + s.power,
+      effort: acc.effort + s.effort,
+    }), { hr: 0, power: 0, effort: 0 });
+    return {
+      avgHr: Math.round(sum.hr / samples.length),
+      avgPower: Math.round(sum.power / samples.length),
+      avgEffort: Math.round(sum.effort / samples.length),
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rideProgress >= 100]);
+
   const startRide = () => {
-    setIsRiding(true);
-    setRideProgress(0);
-    setElapsedTime(0);
+    playCountdown(3);
+    // Start ride after countdown finishes
+    setTimeout(() => {
+      setIsRiding(true);
+      setRideProgress(0);
+      setElapsedTime(0);
+      telemetrySamples.current = [];
+      lastSpokenBeatRef.current = null;
+      lastIntervalRef.current = -1;
+      speak("Let's go!", 'intense');
+    }, 3000);
   };
 
-  const pauseRide = () => setIsRiding(false);
+  const pauseRide = () => {
+    setIsRiding(false);
+    playSound('recover');
+  };
   const exitRide = () => {
+    stopAudio();
+    stopVoice();
+    setAiActive(false);
     if (isPracticeMode) {
       router.push("/instructor/builder");
     } else {
-      // Navigate to journey page with ride completion state
       router.push("/rider/journey?completed=true");
     }
   };
@@ -269,20 +450,54 @@ export default function LiveRidePage() {
     >
       {/* Full-Screen Route Visualization */}
       <div className="absolute inset-0">
-        <RouteVisualizer
-          elevationProfile={classData.route.route.coordinates.map(c => c.ele || 0)}
-          theme={(classData.metadata?.route.theme as 'neon' | 'alpine' | 'mars') || "neon"}
-          storyBeats={classData.route.route.storyBeats}
-          className="h-full w-full"
-        />
-        
-        {/* Progress Bar */}
-        <div className="absolute inset-x-0 bottom-0 h-1 sm:h-2 bg-black/50">
-          <div
-            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300"
-            style={{ width: `${rideProgress}%` }}
+          <RouteVisualizer
+            elevationProfile={classData.route.route.coordinates.map(c => c.ele || 0)}
+            theme={currentInterval ? PHASE_TO_THEME[currentInterval.phase] : (classData.metadata?.route.theme as 'neon' | 'alpine' | 'mars') || "neon"}
+            storyBeats={classData.route.route.storyBeats}
+            progress={isRiding || rideProgress > 0 ? rideProgress / 100 : 0}
+            stats={{ hr: telemetry.heartRate, power: telemetry.power, cadence: telemetry.cadence }}
+            className="h-full w-full"
           />
-        </div>
+        
+        {/* Progress Bar - Segmented by workout intervals */}
+          <div className="absolute inset-x-0 bottom-0 h-2 sm:h-3 bg-black/50 flex">
+            {workoutPlan ? (
+              workoutPlan.intervals.map((interval, i) => {
+                const widthPct = (interval.durationSeconds / workoutPlan.totalDuration) * 100;
+                const isCurrent = i === currentIntervalIndex;
+                const isComplete = i < currentIntervalIndex;
+                const phaseColor = interval.phase === 'sprint' ? 'bg-red-500'
+                  : interval.phase === 'interval' ? 'bg-yellow-500'
+                  : interval.phase === 'warmup' ? 'bg-green-500'
+                  : interval.phase === 'recovery' ? 'bg-blue-500'
+                  : interval.phase === 'cooldown' ? 'bg-indigo-400'
+                  : 'bg-purple-500';
+                return (
+                  <div
+                    key={i}
+                    className="relative h-full border-r border-black/30 last:border-r-0"
+                    style={{ width: `${widthPct}%` }}
+                  >
+                    <div
+                      className={`h-full transition-all duration-300 ${phaseColor} ${
+                        isComplete ? 'opacity-100' : isCurrent ? 'opacity-80' : 'opacity-20'
+                      }`}
+                      style={{ width: isCurrent ? `${intervalProgress * 100}%` : isComplete ? '100%' : '0%' }}
+                    />
+                    {isCurrent && (
+                      <div className="absolute top-0 right-0 bottom-0 w-0.5 bg-white animate-pulse" 
+                        style={{ left: `${intervalProgress * 100}%` }} />
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div
+                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300"
+                style={{ width: `${rideProgress}%` }}
+              />
+            )}
+          </div>
       </div>
 
       {/* HUD Overlay */}
@@ -424,33 +639,110 @@ export default function LiveRidePage() {
           {/* Bottom - Controls (Mobile Optimized) */}
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-bottom">
             <div className="max-w-7xl mx-auto">
-              {/* Progress Info - Compact on Mobile */}
-              {hudMode !== "minimal" && (
-                <div className="flex items-center justify-between mb-3 sm:mb-4 text-white">
-                  <div className="text-left">
-                    <p className="text-[10px] sm:text-sm text-white/50">Progress</p>
-                    <p className="text-xl sm:text-2xl font-bold">{rideProgress.toFixed(0)}%</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[10px] sm:text-sm text-white/50">Time</p>
-                    <p className="text-xl sm:text-2xl font-bold">{formatTime(elapsedTime)}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] sm:text-sm text-white/50">Effort</p>
-                    <p className="text-xl sm:text-2xl font-bold text-purple-400">{telemetry.effort}</p>
-                  </div>
-                </div>
-              )}
+              {/* Progress Info + Interval Status */}
+                {hudMode !== "minimal" && (
+                  <div className="mb-3 sm:mb-4">
+                    {/* Current Interval Banner */}
+                    {isRiding && currentInterval && (
+                      <div className="mb-2 flex items-center justify-between rounded-lg bg-black/60 backdrop-blur border border-white/10 px-3 py-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-block w-2.5 h-2.5 rounded-full ${
+                            currentInterval.phase === 'sprint' ? 'bg-red-500'
+                            : currentInterval.phase === 'interval' ? 'bg-yellow-500'
+                            : currentInterval.phase === 'warmup' ? 'bg-green-500'
+                            : currentInterval.phase === 'recovery' ? 'bg-blue-500'
+                            : currentInterval.phase === 'cooldown' ? 'bg-indigo-400'
+                            : 'bg-purple-500'
+                          }`} />
+                          <span className="text-xs sm:text-sm font-semibold text-white uppercase tracking-wider">
+                            {currentInterval.phase}
+                          </span>
+                        </div>
+                        <span className="text-xs sm:text-sm font-mono text-white/70">
+                          {formatTime(Math.ceil(intervalRemaining))} left
+                        </span>
+                        {/* Target RPM zone comparison */}
+                        {currentInterval.targetRpm && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-white/40">RPM</span>
+                            <span className={`text-xs font-bold ${
+                              telemetry.cadence >= currentInterval.targetRpm[0] && telemetry.cadence <= currentInterval.targetRpm[1]
+                                ? 'text-green-400'
+                                : telemetry.cadence < currentInterval.targetRpm[0]
+                                  ? 'text-blue-400'
+                                  : 'text-red-400'
+                            }`}>
+                              {telemetry.cadence}
+                              <span className="text-white/30 font-normal"> / {currentInterval.targetRpm[0]}-{currentInterval.targetRpm[1]}</span>
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-              {/* BLE Device Selector - Pre-ride prompt */}
-              {!isRiding && rideProgress === 0 && (
-                <div className="mb-4 max-w-sm mx-auto">
-                  <DeviceSelector 
-                    onMetricsUpdate={handleBleMetrics}
-                    className="bg-black/80 backdrop-blur-xl border-white/10"
-                  />
-                </div>
-              )}
+                    {/* Main stats row */}
+                    <div className="flex items-center justify-between text-white">
+                      <div className="text-left">
+                        <p className="text-[10px] sm:text-sm text-white/50">Progress</p>
+                        <p className="text-xl sm:text-2xl font-bold">{rideProgress.toFixed(0)}%</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[10px] sm:text-sm text-white/50">Time</p>
+                        <p className="text-xl sm:text-2xl font-bold">{formatTime(elapsedTime)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] sm:text-sm text-white/50">Effort</p>
+                        <p className="text-xl sm:text-2xl font-bold text-purple-400">{telemetry.effort}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              {/* Pre-ride Setup */}
+                {!isRiding && rideProgress === 0 && (
+                  <div className="mb-4 max-w-sm mx-auto space-y-3">
+                    {/* Workout Plan Selector */}
+                    <div className="rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-white/50 mb-2">Workout Plan</p>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {PRESET_WORKOUTS.map(preset => (
+                          <button
+                            key={preset.id}
+                            onClick={() => setWorkoutPlan(preset)}
+                            className={`flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-all active:scale-95 touch-manipulation ${
+                              workoutPlan?.id === preset.id
+                                ? 'bg-indigo-500 text-white'
+                                : 'bg-white/10 text-white/60 hover:bg-white/20'
+                            }`}
+                          >
+                            {preset.name}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setWorkoutPlan(null)}
+                          className={`flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-all active:scale-95 touch-manipulation ${
+                            !workoutPlan
+                              ? 'bg-indigo-500 text-white'
+                              : 'bg-white/10 text-white/60 hover:bg-white/20'
+                          }`}
+                        >
+                          Free Ride
+                        </button>
+                      </div>
+                      {workoutPlan && (
+                        <p className="mt-1.5 text-[10px] text-white/40">
+                          {workoutPlan.intervals.length} intervals
+                          {' · '}{Math.round(workoutPlan.totalDuration / 60)} min
+                          {' · '}{workoutPlan.difficulty}
+                        </p>
+                      )}
+                    </div>
+                    <DeviceSelector
+                      onMetricsUpdate={handleBleMetrics}
+                      className="bg-black/80 backdrop-blur-xl border-white/10"
+                    />
+                  </div>
+                )}
 
               {/* Controls - Touch Optimized */}
               <div className="flex items-center justify-center gap-3">
@@ -472,12 +764,39 @@ export default function LiveRidePage() {
               </div>
 
               {/* BLE Status Indicator */}
-              {bleConnected && (
-                <div className="mt-3 flex items-center justify-center gap-2 text-green-400 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  Live telemetry connected
-                </div>
-              )}
+                {bleConnected && (
+                  <div className="mt-3 flex items-center justify-center gap-2 text-green-400 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                    Live telemetry connected
+                  </div>
+                )}
+
+                {/* Audio/Coach Status */}
+                {isRiding && (audioConfigured || aiActive) && (
+                  <div className="mt-2 flex items-center justify-center gap-3 text-xs">
+                    {isSpeaking && (
+                      <span className="flex items-center gap-1.5 text-indigo-400">
+                        <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                        Coach speaking
+                      </span>
+                    )}
+                    {aiActive && (
+                      <span className="flex items-center gap-1.5 text-amber-400">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                        AI Active
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Latest AI Coach Message */}
+                {isRiding && aiLogs.length > 0 && aiLogs[0].type === 'action' && (
+                  <div className="mt-2 max-w-sm mx-auto">
+                    <div className="rounded-lg bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 text-xs text-indigo-300 text-center truncate">
+                      {aiLogs[0].message}
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -518,20 +837,20 @@ export default function LiveRidePage() {
               {isPracticeMode ? "Great way to preview your class!" : `Total Time: ${formatTime(elapsedTime)}`}
             </p>
             
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
-              <div className="rounded-xl bg-white/10 p-3 sm:p-4">
-                <p className="text-xs sm:text-sm text-white/50">Avg HR</p>
-                <p className="text-xl sm:text-2xl font-bold text-white">{telemetry.heartRate}</p>
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
+                <div className="rounded-xl bg-white/10 p-3 sm:p-4">
+                  <p className="text-xs sm:text-sm text-white/50">Avg HR</p>
+                  <p className="text-xl sm:text-2xl font-bold text-white">{telemetryAverages.avgHr}</p>
+                </div>
+                <div className="rounded-xl bg-white/10 p-3 sm:p-4">
+                  <p className="text-xs sm:text-sm text-white/50">Avg Power</p>
+                  <p className="text-xl sm:text-2xl font-bold text-white">{telemetryAverages.avgPower}W</p>
+                </div>
+                <div className="rounded-xl bg-white/10 p-3 sm:p-4">
+                  <p className="text-xs sm:text-sm text-white/50">Effort</p>
+                  <p className="text-xl sm:text-2xl font-bold text-purple-400">{telemetryAverages.avgEffort}</p>
+                </div>
               </div>
-              <div className="rounded-xl bg-white/10 p-3 sm:p-4">
-                <p className="text-xs sm:text-sm text-white/50">Avg Power</p>
-                <p className="text-xl sm:text-2xl font-bold text-white">{telemetry.power}W</p>
-              </div>
-              <div className="rounded-xl bg-white/10 p-3 sm:p-4">
-                <p className="text-xs sm:text-sm text-white/50">Effort</p>
-                <p className="text-xl sm:text-2xl font-bold text-purple-400">{telemetry.effort}</p>
-              </div>
-            </div>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
