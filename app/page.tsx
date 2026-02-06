@@ -54,17 +54,17 @@ export default function Home() {
     {
       step: "1",
       title: "Book a Class",
-      description: "Browse immersive routes from top instructors",
+      description: "Choose from live or on-demand cycling classes",
     },
     {
       step: "2",
-      title: "Ride & Track",
-      description: "Connect your devices and ride",
+      title: "Ride & Connect",
+      description: "Join via your bike, heart rate monitor, or app",
     },
     {
       step: "3",
-      title: "Earn Rewards",
-      description: "Hit goals, get SPIN tokens automatically",
+      title: "Earn Instantly",
+      description: "Get rewarded automatically based on your effort",
     },
   ];
 
@@ -99,6 +99,13 @@ export default function Home() {
         <FadeIn>
           <header className="flex flex-col items-start justify-between gap-8 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 shadow-[0_20px_80px_rgba(0,0,0,0.15)] backdrop-blur">
             <PrimaryNav />
+            
+            {/* One-liner value prop */}
+            <div className="w-full text-center py-6 border-y border-[color:var(--border)]">
+              <p className="text-lg text-[color:var(--muted)]">
+                Join a class, ride hard, <span className="text-[color:var(--accent)] font-medium">earn SPIN rewards</span> — your data stays private
+              </p>
+            </div>
             
             {/* Live Stats Ticker */}
             <div className="w-full flex flex-wrap justify-center gap-8 py-4 border-y border-[color:var(--border)]">
@@ -135,13 +142,13 @@ export default function Home() {
                     <span className="text-5xl mb-4 block">🚴</span>
                   </Floating>
                   <h2 className="text-2xl font-semibold text-[color:var(--foreground)] mb-2">
-                    I&apos;m a Rider
+                    I Want to Ride
                   </h2>
                   <p className="text-[color:var(--muted)] mb-6">
-                    Book classes, track progress, earn rewards for every ride
+                    Join live classes, track your effort, and earn rewards automatically
                   </p>
                   <MagneticButton className="inline-flex items-center gap-2 text-[color:var(--accent)] font-medium">
-                    Browse Classes
+                    Find Classes
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>
@@ -149,7 +156,7 @@ export default function Home() {
                 </a>
               </AnimatedCard>
 
-              {/* Instructor Card - Now with mode selector below */}
+              {/* Instructor Card */}
               <AnimatedCard glowColor="var(--accent-strong)">
                 <div className="p-8 h-full">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[color:var(--accent-strong)]/20 to-transparent rounded-bl-full" />
@@ -157,14 +164,14 @@ export default function Home() {
                     <span className="text-5xl mb-4 block">🎓</span>
                   </Floating>
                   <h2 className="text-2xl font-semibold text-[color:var(--foreground)] mb-2">
-                    I&apos;m an Instructor
+                    I Want to Teach
                   </h2>
                   <p className="text-[color:var(--muted)] mb-6">
-                    Human-crafted or AI-powered—choose your teaching style
+                    Host classes, set your price, and earn from every rider
                   </p>
                   <MagneticButton className="inline-flex items-center gap-2 text-[color:var(--accent)] font-medium">
                     <a href="#instructor-modes" className="flex items-center gap-2">
-                      Explore Options
+                      See How It Works
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                       </svg>

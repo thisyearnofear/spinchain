@@ -35,16 +35,16 @@ const modes: InstructorMode[] = [
   {
     id: "agent",
     icon: "🤖",
-    title: "AI Agent",
-    subtitle: "Deploy Autonomous Coaching",
-    description: "Launch an AI-powered instructor that adapts to each rider, manages pricing, and optimizes engagement 24/7.",
+    title: "Coachy",
+    subtitle: "Your AI Training Partner",
+    description: "Meet Coachy—an AI instructor that adapts to each rider, handles classes 24/7, and helps you earn while you focus on other things.",
     features: [
-      "Real-time difficulty adjustment",
-      "Dynamic pricing optimization",
-      "Personalized coaching at scale",
-      "Cross-chain performance tracking"
+      "Personalized coaching for every rider",
+      "Runs classes automatically",
+      "Earn while you sleep",
+      "No technical setup needed"
     ],
-    cta: "Deploy Agent",
+    cta: "Meet Coachy",
     href: "/instructor/ai",
     color: "from-cyan-500 to-blue-500"
   }

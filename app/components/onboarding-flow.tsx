@@ -25,8 +25,8 @@ const steps: OnboardingStep[] = [
   {
     id: "voice",
     icon: "🎙️",
-    title: "Meet Your AI Coach",
-    description: "Experience voice-enabled AI instructors that speak to you in real-time, adapt to your performance, and motivate you throughout your ride.",
+    title: "Meet Coachy",
+    description: "Experience voice-enabled AI coaching that speaks to you in real-time, adapts to your performance, and motivates you throughout your ride.",
     action: "Preview Voice",
     color: "from-pink-500 to-rose-500"
   },
@@ -50,7 +50,7 @@ const steps: OnboardingStep[] = [
     id: "book",
     icon: "🚴",
     title: "Book Your First Class",
-    description: "Choose from immersive routes crafted by human instructors or AI agents. Find your perfect ride.",
+    description: "Choose from immersive routes crafted by human instructors or Coachy. Find your perfect ride.",
     action: "Browse Classes",
     color: "from-cyan-500 to-blue-500"
   },
@@ -58,7 +58,7 @@ const steps: OnboardingStep[] = [
     id: "earn",
     icon: "💎",
     title: "Earn SPIN Rewards",
-    description: "Hit your effort goals and automatically receive SPIN tokens. Your workout finally pays off.",
+    description: "Hit your effort goals and automatically receive SPIN tokens. The harder you work, the more you earn back.",
     action: "Start Earning",
     color: "from-emerald-500 to-teal-500"
   }

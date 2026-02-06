@@ -194,10 +194,10 @@ export function InstructorWizard() {
                   <Bot size={24} />
                 </div>
                 <h3 className="font-bold text-[color:var(--foreground)] mb-2">
-                  Agentic Mode
+                  Coachy Mode
                 </h3>
                 <p className="text-xs text-[color:var(--muted)]">
-                  Autonomous AI instructor with real-time Sui performance logic.
+                  Let Coachy run your classes automatically with personalized coaching for each rider.
                 </p>
                 {formData.mode === "agentic" && (
                   <div className="absolute top-4 right-4 text-indigo-500">
@@ -209,9 +209,9 @@ export function InstructorWizard() {
 
             {formData.mode === "agentic" && (
               <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Select AI Personality
-                </label>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Select Coachy's Personality
+                  </label>
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { id: "zen", label: "Zen", icon: "🧘" },
@@ -333,8 +333,8 @@ export function InstructorWizard() {
                     <Tag>Demand Surge</Tag>
                   </div>
                   <span className="block text-xs text-[color:var(--muted)] mt-1">
-                    AI Agent will manage class liquidity. Prices surge for last
-                    seats and drop for fire sales.
+                    Coachy will manage class pricing automatically. Prices surge for last
+                    seats and drop for early bookings.
                   </span>
                 </div>
               </label>
@@ -361,8 +361,8 @@ export function InstructorWizard() {
                 <h4 className="text-xs uppercase tracking-wider text-(--muted)">
                   Class Identity
                 </h4>
-                <Tag color={formData.mode === "agentic" ? "indigo" : "blue"}>
-                  {formData.mode === "agentic" ? "🤖 Agentic" : "👤 Standard"}
+                  <Tag color={formData.mode === "agentic" ? "indigo" : "blue"}>
+                  {formData.mode === "agentic" ? "🤖 Coachy" : "👤 Standard"}
                 </Tag>
               </div>
               <div className="space-y-2 text-sm">
@@ -380,7 +380,7 @@ export function InstructorWizard() {
                 </div>
                 {formData.mode === "agentic" && (
                   <div className="flex justify-between">
-                    <span className="text-[color:var(--muted)]">AI Coach</span>
+                    <span className="text-[color:var(--muted)]">Coachy</span>
                     <span className="text-indigo-400 capitalize">
                       {formData.personality.replace("-", " ")}
                     </span>
@@ -507,8 +507,8 @@ export function InstructorWizard() {
               className={`flex-1 shadow-lg ${formData.mode === "agentic" ? "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/20" : "shadow-[color:var(--accent)]/20"}`}
             >
               {formData.mode === "agentic"
-                ? "Deploy Agent & Class"
-                : "Initialize Class"}
+                ? "Launch with Coachy"
+                : "Create Class"}
             </LoadingButton>
           )}
         </div>

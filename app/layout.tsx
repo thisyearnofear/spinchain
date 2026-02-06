@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SpinChain — Privacy-First Fitness DeFi",
+  title: "SpinChain — Your Workout, Rewarded",
   description:
-    "SpinChain turns fitness classes into programmable financial events with privacy-preserving incentives.",
+    "Join immersive indoor cycling classes. Earn SPIN tokens for hitting your effort goals. Your data stays private.",
   icons: {
     icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚴</text></svg>",
   },

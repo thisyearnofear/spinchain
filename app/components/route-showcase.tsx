@@ -44,7 +44,7 @@ const routes: Route[] = [
     distance: "12 km",
     elevation: "+80m",
     theme: "city",
-    instructor: "AI Coach Delta",
+      instructor: "Coachy",
     liveRiders: 156,
     nextClass: "Live now",
   },
@@ -72,7 +72,7 @@ const routes: Route[] = [
     distance: "35 km",
     elevation: "+800m",
     theme: "forest",
-    instructor: "AI Coach Atlas",
+      instructor: "Coachy Pro",
     liveRiders: 42,
     nextClass: "In 4 hours",
   },
@@ -198,7 +198,7 @@ function RouteCard({ route, index }: { route: Route; index: number }) {
             <div>
               <p className="text-sm font-medium text-[color:var(--foreground)]">{route.instructor}</p>
               <p className="text-xs text-[color:var(--muted)]">
-                {route.instructor.startsWith("AI") ? "Autonomous Agent" : "Human Instructor"}
+                {route.instructor.startsWith("Coachy") ? "AI Training Partner" : route.instructor === "Team SpinChain" ? "Group Class" : "Human Instructor"}
               </p>
             </div>
           </div>
@@ -263,8 +263,8 @@ export function RouteShowcase() {
           transition={{ delay: 0.2 }}
           className="text-lg text-[color:var(--muted)] max-w-2xl mx-auto"
         >
-          Each route is a cinematic journey. From misty mountains to neon cities, 
-          find your perfect ride.
+          From scenic mountain climbs to high-energy city rides—find a class 
+          that matches your mood and fitness level.
         </motion.p>
       </div>
 

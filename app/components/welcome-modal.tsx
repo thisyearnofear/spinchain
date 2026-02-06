@@ -8,20 +8,20 @@ const ONBOARDING_KEY = "spinchain-onboarded";
 const steps = [
   {
     icon: "🚴",
-    title: "Welcome to SpinChain",
-    description: "The future of indoor cycling. Ride immersive 3D routes, track your progress, and earn SPIN tokens for every workout.",
+    title: "Ride. Earn. Repeat.",
+    description: "Join live cycling classes and earn SPIN tokens when you hit your effort goals. The harder you work, the more you earn back.",
     cta: "Get Started",
   },
   {
-    icon: "💎",
-    title: "Earn Real Rewards",
-    description: "Hit your effort goals and automatically receive SPIN tokens. Trade them for discounts, merchandise, or cash out. Your effort finally pays off.",
-    cta: "How It Works",
+    icon: "🌍",
+    title: "Ride Anywhere",
+    description: "From mountain passes to city streets—experience immersive routes from home. Ride with real instructors or meet Coachy, your AI training partner.",
+    cta: "Next",
   },
   {
     icon: "🔒",
-    title: "Your Data Stays Yours",
-    description: "We use zero-knowledge proofs to verify your effort without exposing your health data. Privacy is built in, not an afterthought.",
+    title: "Your Data Is Yours",
+    description: "We verify your effort for rewards without accessing your personal health data. Private by design.",
     cta: "Start Exploring",
   },
 ];
