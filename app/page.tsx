@@ -103,27 +103,12 @@ export default function Home() {
             {/* Clear What-We-Do Statement */}
             <div className="w-full text-center py-8 border-y border-[color:var(--border)]">
               <h1 className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)] mb-3">
-                Immersive Indoor Cycling + Crypto Rewards
+                Indoor Cycling. Onchain Rewards.
               </h1>
               <p className="text-lg text-[color:var(--muted)] max-w-2xl mx-auto">
-                Take live cycling classes from home. Hit your effort goals. 
-                <span className="text-[color:var(--accent)] font-medium"> Earn SPIN tokens instantly</span> — 
-                your health data stays private with zero-knowledge proofs.
+                Live classes from home. Earn SPIN tokens as you ride. 
+                <span className="text-[color:var(--accent)] font-medium">Private by design.</span>
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-4 mt-4 text-sm">
-                <span className="flex items-center gap-1.5 text-[color:var(--muted)]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                  Live & On-Demand Classes
-                </span>
-                <span className="flex items-center gap-1.5 text-[color:var(--muted)]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                  Real Crypto Rewards
-                </span>
-                <span className="flex items-center gap-1.5 text-[color:var(--muted)]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                  Private Health Data
-                </span>
-              </div>
             </div>
             
             {/* Live Stats Ticker */}
