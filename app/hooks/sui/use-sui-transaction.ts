@@ -7,8 +7,8 @@
 import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
 import { useEffect, useCallback, useState } from "react";
 import { Transaction } from "@mysten/sui/transactions";
-import { useToast } from "../components/ui/toast";
-import { SUI_CONFIG } from "../config";
+import { useToast } from "@/app/components/ui/toast";
+import { SUI_CONFIG } from "@/app/config";
 
 interface UseSuiTransactionOptions {
   successMessage?: string;

@@ -1,18 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { PrimaryNav } from "../../components/nav";
+import { PrimaryNav } from "../../components/layout/nav";
 import {
   BulletList,
   SectionHeader,
   SurfaceCard,
   Tag,
-} from "../../components/ui";
+} from "../../components/ui/ui";
 import { GpxUploader, type GpxSummary } from "./gpx-uploader";
 import RouteVisualizer, {
   type VisualizerTheme,
-} from "../../components/route-visualizer";
-import { AIRouteGenerator } from "../../components/ai-route-generator";
+} from "../../components/features/route/route-visualizer";
+import { AIRouteGenerator } from "../../components/features/ai/ai-route-generator";
 
 export default function RouteBuilderPage() {
   const [gpxData, setGpxData] = useState<GpxSummary | null>(null);

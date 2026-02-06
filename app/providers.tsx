@@ -7,8 +7,8 @@ import { config } from './wagmi';
 import { SuiProvider } from './sui-provider';
 import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
-import { ThemeProvider, useTheme } from './components/theme-provider';
-import { ToastProvider } from './components/toast';
+import { ThemeProvider, useTheme } from './components/layout/theme-provider';
+import { ToastProvider } from './components/ui/toast';
 
 // Create a stable query client for SSR
 function makeQueryClient() {

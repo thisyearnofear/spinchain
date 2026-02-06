@@ -6,10 +6,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouteLibrary } from "../hooks/use-route-library";
-import type { SavedRoute } from "../lib/route-library";
-import type { GpxSummary } from "../routes/builder/gpx-uploader";
-import { convertToGpxSummary } from "../lib/route-generation";
+import { useRouteLibrary } from "../../../hooks/use-route-library";
+import type { SavedRoute } from "../../../lib/route-library";
+import type { GpxSummary } from "../../../routes/builder/gpx-uploader";
+import { convertToGpxSummary } from "../../../lib/route-generation";
 
 type RouteLibraryProps = {
   onRouteSelect?: (gpxSummary: GpxSummary) => void;
@@ -36,7 +36,7 @@ export function RouteLibrary({ onRouteSelect, onClose }: RouteLibraryProps) {
   const displayedRoutes = searchQuery
     ? searchRoutes(searchQuery)
     : filterFavorites
-    ? routes.filter((r) => r.isFavorite)
+    ? routes.filter((r: SavedRoute) => r.isFavorite)
     : routes;
 
   const handleSelectRoute = (route: SavedRoute) => {
@@ -192,7 +192,7 @@ export function RouteLibrary({ onRouteSelect, onClose }: RouteLibraryProps) {
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          {displayedRoutes.map((route) => (
+          {displayedRoutes.map((route: SavedRoute) => (
             <button
               key={route.id}
               onClick={() => handleSelectRoute(route)}
@@ -226,7 +226,7 @@ export function RouteLibrary({ onRouteSelect, onClose }: RouteLibraryProps) {
               {/* Tags */}
               {route.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                  {route.tags.slice(0, 3).map((tag) => (
+                  {route.tags.slice(0, 3).map((tag: string) => (
                     <span
                       key={tag}
                       className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-white/50"

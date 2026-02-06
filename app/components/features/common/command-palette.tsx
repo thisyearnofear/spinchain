@@ -12,7 +12,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, X, ChevronRight } from "lucide-react";
-import { VOICE_COMMANDS, type VoiceCommand } from "../lib/elevenlabs/stt";
+import { VOICE_COMMANDS, type VoiceCommand } from "../../../lib/elevenlabs/stt";
 
 interface CommandPaletteProps {
   isOpen: boolean;

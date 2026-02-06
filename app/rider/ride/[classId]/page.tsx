@@ -3,16 +3,16 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useClass, createPracticeClassMetadata, generateMockRouteData, type ClassWithRoute } from "../../../hooks/use-class-data";
-import RouteVisualizer from "../../../components/route-visualizer";
-import { DeviceSelector } from "../../../components/ble";
+import RouteVisualizer from "../../../components/features/route/route-visualizer";
+import { DeviceSelector } from "../../../components/features/ble/device-selector";
 import { useDeviceType, useOrientation, useActualViewportHeight } from "../../../lib/responsive";
 import { useWorkoutAudio } from "../../../hooks/use-workout-audio";
 import { useCoachVoice } from "../../../hooks/use-coach-voice";
 import { useAiInstructor } from "../../../hooks/use-ai-instructor";
 import { useRewards, REWARD_MODES } from "../../../hooks/use-rewards";
-import { YellowRewardTicker } from "../../../components/yellow-reward-ticker";
-import { DemoCompleteModal } from "../../../components/demo-complete-modal";
-import { PedalSimulator } from "../../../components/pedal-simulator";
+import { YellowRewardTicker } from "../../../components/features/common/yellow-reward-ticker";
+import { DemoCompleteModal } from "../../../components/features/common/demo-complete-modal";
+import { PedalSimulator } from "../../../components/features/common/pedal-simulator";
 import {
   type WorkoutPlan,
   type WorkoutInterval,

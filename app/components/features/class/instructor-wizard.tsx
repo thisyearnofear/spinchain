@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { LoadingButton } from "./loading-button";
-import { SurfaceCard, Tag } from "./ui";
+import { LoadingButton } from "../../../components/ui/loading-button";
+import { SurfaceCard, Tag } from "../../../components/ui/ui";
 import { Brain, Zap, Shield, TrendingUp, User, Bot } from "lucide-react";
 
 type WizardStep = "basics" | "mode" | "route" | "pricing" | "review";

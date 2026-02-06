@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { AnimatedCard, EnergyPulse } from "./animated-card";
+import { AnimatedCard, EnergyPulse } from "../../../components/ui/animated-card";
 
 interface Route {
   id: string;

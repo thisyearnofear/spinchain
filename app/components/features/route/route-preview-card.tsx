@@ -8,8 +8,8 @@
 
 import { useMemo, useState } from "react";
 import RouteVisualizer from "./route-visualizer";
-import type { SavedRoute } from "../lib/route-library";
-import type { EnhancedClassMetadata } from "../lib/contracts";
+import type { SavedRoute } from "../../../lib/route-library";
+import type { EnhancedClassMetadata } from "../../../lib/contracts";
 
 type RoutePreviewCardProps = {
   route: SavedRoute | EnhancedClassMetadata["route"];
@@ -40,12 +40,12 @@ export function RoutePreviewCard({
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const elevationProfile = useMemo(() => {
     // Create a deterministic seed based on route data to generate consistent values
-    const seed = routeData.name.split('').reduce((a, b) => {
+    const seed = routeData.name.split('').reduce((a: number, b: string) => {
       a = ((a << 5) - a) + b.charCodeAt(0);
       return a & a;
     }, 0);
 
-    return routeData.storyBeats.map((_, index) => {
+    return routeData.storyBeats.map((_: any, index: number) => {
       // Use a simple pseudo-random generator with the seed
       const pseudoRandom = (seed + index) * 1664525 + 1013904223;
       return (pseudoRandom >>> 0) % 100;
@@ -89,7 +89,7 @@ export function RoutePreviewCard({
         {beatsCount > 0 && (
           <div className="mt-2 flex items-center gap-1.5">
             <div className="flex -space-x-1">
-              {routeData.storyBeats.slice(0, 3).map((beat, i) => (
+              {routeData.storyBeats.slice(0, 3).map((beat: any, i: number) => (
                 <div
                   key={i}
                   className={`h-5 w-5 rounded-full border border-white/10 flex items-center justify-center text-[10px] ${
@@ -165,7 +165,7 @@ export function RoutePreviewCard({
           <div className="mt-4">
             <p className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Story Beats</p>
             <div className="flex flex-wrap gap-2">
-              {routeData.storyBeats.slice(0, 4).map((beat, i) => (
+              {routeData.storyBeats.slice(0, 4).map((beat: any, i: number) => (
                 <span
                   key={i}
                   className={`px-2 py-1 rounded-full text-[10px] ${

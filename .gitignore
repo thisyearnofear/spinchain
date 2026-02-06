@@ -46,3 +46,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Move build artifacts
+move/**/build/
+move/**/Move.lock
+move/**/Published.toml
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo

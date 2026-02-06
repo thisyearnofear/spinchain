@@ -5,8 +5,8 @@
 
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useEffect, useCallback } from "react";
-import { useToast } from "../components/ui/toast";
-import { parseError, type ErrorCategory } from "../lib/errors";
+import { useToast } from "@/app/components/ui/toast";
+import { parseError, type ErrorCategory } from "@/app/lib/errors";
 import type { Abi, Address } from "viem";
 
 // Type for write contract args

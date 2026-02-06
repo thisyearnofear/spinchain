@@ -1,10 +1,10 @@
 "use client";
 
 import { ThemeToggleCompact } from "./theme-toggle";
-import { ConnectWallet } from "./connect-wallet";
-import { SuiWalletButton } from "./sui-wallet-button";
-import { Tooltip } from "./tooltip";
-import { AIProviderSettings } from "./ai-provider-settings";
+import { ConnectWallet } from "../features/wallet/connect-wallet";
+import { SuiWalletButton } from "../features/wallet/sui-wallet-button";
+import { Tooltip } from "../ui/tooltip";
+import { AIProviderSettings } from "../features/ai/ai-provider-settings";
 
 export function PrimaryNav() {
   return (

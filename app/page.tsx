@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { PrimaryNav } from "./components/nav";
-import { BulletList, MetricTile, SurfaceCard, Tag } from "./components/ui";
-import { WelcomeModal } from "./components/welcome-modal";
-import { InstructorModeSelector } from "./components/instructor-mode-selector";
-import { FadeIn, StaggerContainer, Parallax, ScaleIn } from "./components/scroll-animations";
-import { AnimatedCard, EnergyPulse, Floating, MagneticButton } from "./components/animated-card";
-import { RouteShowcase } from "./components/route-showcase";
+import { PrimaryNav } from "@/app/components/layout/nav";
+import { BulletList, MetricTile, SurfaceCard, Tag } from "@/app/components/ui/ui";
+import { WelcomeModal } from "@/app/components/features/common/welcome-modal";
+import { InstructorModeSelector } from "@/app/components/features/class/instructor-mode-selector";
+import { FadeIn, StaggerContainer, Parallax, ScaleIn } from "@/app/components/ui/scroll-animations";
+import { AnimatedCard, EnergyPulse, Floating, MagneticButton } from "@/app/components/ui/animated-card";
+import { RouteShowcase } from "@/app/components/features/route/route-showcase";
 
 export default function Home() {
   const [showWelcome, setShowWelcome] = useState(false);

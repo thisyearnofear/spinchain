@@ -2,8 +2,8 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { PrimaryNav } from "../../components/nav";
-import { BulletList, SectionHeader, SurfaceCard, Tag } from "../../components/ui";
+import { PrimaryNav } from "../../components/layout/nav";
+import { BulletList, SectionHeader, SurfaceCard, Tag } from "../../components/ui/ui";
 
 function JourneyContent() {
   const searchParams = useSearchParams();

@@ -25,9 +25,9 @@ import { motion } from "framer-motion";
 import { useAgentReasoner } from "../hooks/use-agent-reasoner";
 import { useProfile, getDisplayName, getAvatarUrl } from "../hooks/use-profile";
 import { useCoachVoice, useWorkoutAudio } from "../hooks/elevenlabs";
-import { CoachAvatar } from "../components/coach";
-import { VoiceToggle } from "../components/voice-toggle";
-import { AudioWaveform, AudioIndicator } from "../components/audio-waveform";
+import { CoachAvatar } from "../components/features/coach/avatar";
+import { VoiceToggle } from "../components/ui/voice-toggle";
+import { AudioWaveform, AudioIndicator } from "../components/ui/audio-waveform";
 
 interface CoachProfileProps {
   name?: string;

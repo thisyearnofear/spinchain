@@ -64,7 +64,7 @@ const THEMES = {
 export type VisualizerTheme = keyof typeof THEMES;
 
 // Import StoryBeat types from gpx-uploader for consistency
-import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../routes/builder/gpx-uploader";
+import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../../../routes/builder/gpx-uploader";
 
 // Re-export for consumers
 export type { StoryBeatType };

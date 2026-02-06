@@ -1,10 +1,10 @@
 "use client";
 
-import { PrimaryNav } from "../components/nav";
-import { BulletList, SectionHeader, SurfaceCard, Tag } from "../components/ui";
+import { PrimaryNav } from "../components/layout/nav";
+import { BulletList, SectionHeader, SurfaceCard, Tag } from "../components/ui/ui";
 import RouteVisualizer, {
   VisualizerTheme,
-} from "../components/route-visualizer";
+} from "../components/features/route/route-visualizer";
 import { useState } from "react";
 
 export default function RoutesPage() {

@@ -14,8 +14,8 @@
 
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { RewardStreamState, RewardMode } from "../lib/rewards";
-import { formatReward, getStreamingStatus, calculateStreamingRate } from "../lib/rewards";
+import type { RewardStreamState, RewardMode } from "../../../lib/rewards";
+import { formatReward, getStreamingStatus, calculateStreamingRate } from "../../../lib/rewards";
 
 // ============================================================================
 // Types

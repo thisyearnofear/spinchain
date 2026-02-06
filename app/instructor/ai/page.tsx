@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PrimaryNav } from "../../components/nav";
+import { PrimaryNav } from "@/app/components/layout/nav";
 import {
   GlassCard,
   SectionHeader,
   SurfaceCard,
   Tag,
-} from "../../components/ui";
-import { HookVisualizer } from "../../agent/hook-visualizer";
-import { CoachProfile } from "../../agent/coach-profile";
+} from "@/app/components/ui/ui";
+import { HookVisualizer } from "@/app/agent/hook-visualizer";
+import { CoachProfile } from "@/app/agent/coach-profile";
 
 function useAiInstructor(isActive: boolean) {
   const [logs, setLogs] = useState<

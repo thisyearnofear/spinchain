@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { EnergyPulse } from "./animated-card";
+import { EnergyPulse } from "../../../components/ui/animated-card";
 
 interface RouteInfo {
   name: string;

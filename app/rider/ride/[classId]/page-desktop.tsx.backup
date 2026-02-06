@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useClass } from "../../../hooks/use-class-data";
-import RouteVisualizer from "../../../components/route-visualizer";
+import RouteVisualizer from "../../../components/features/route/route-visualizer";
 
 /**
  * Live Ride Page

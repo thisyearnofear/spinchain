@@ -7,13 +7,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouteLibrary } from "../hooks/use-route-library";
-import { AIRouteGenerator } from "./ai-route-generator";
+import { useRouteLibrary } from "../../../hooks/use-route-library";
+import { AIRouteGenerator } from "../../../components/features/ai/ai-route-generator";
 import { RouteLibrary } from "./route-library";
-import type { SavedRoute } from "../lib/route-library";
-import type { GpxSummary } from "../routes/builder/gpx-uploader";
+import type { SavedRoute } from "../../../lib/route-library";
+import type { GpxSummary } from "../../../routes/builder/gpx-uploader";
 import RouteVisualizer from "./route-visualizer";
-import type { RouteAnalysisResponse } from "../api/ai/analyze-route/route";
+import type { RouteAnalysisResponse } from "../../../api/ai/analyze-route/route";
 
 // Smart Config types
 export type SmartConfigResult = {
@@ -59,12 +59,12 @@ export function RouteSelectionStep({
       minElevation: null,
       maxElevation: null,
       distanceKm: route.estimatedDistance,
-      segments: route.storyBeats.map(beat => ({
+      segments: route.storyBeats.map((beat: any) => ({
         label: beat.label,
         minutes: Math.floor(beat.progress * route.estimatedDuration),
         zone: beat.type === 'sprint' ? 'Zone 5' : beat.type === 'climb' ? 'Zone 4' : 'Zone 2',
       })),
-      elevationProfile: route.coordinates.map(c => c.ele || 0),
+      elevationProfile: route.coordinates.map((c: any) => c.ele || 0),
       storyBeats: route.storyBeats,
     };
     onRouteSelected(route, gpxSummary);
@@ -136,12 +136,12 @@ export function RouteSelectionStep({
       minElevation: null,
       maxElevation: null,
       distanceKm: selectedRoute.estimatedDistance,
-      segments: selectedRoute.storyBeats.map(beat => ({
+      segments: selectedRoute.storyBeats.map((beat: any) => ({
         label: beat.label,
         minutes: Math.floor(beat.progress * selectedRoute.estimatedDuration),
         zone: beat.type === 'sprint' ? 'Zone 5' : beat.type === 'climb' ? 'Zone 4' : 'Zone 2',
       })),
-      elevationProfile: selectedRoute.coordinates.map(c => c.ele || 0),
+      elevationProfile: selectedRoute.coordinates.map((c: any) => c.ele || 0),
       storyBeats: selectedRoute.storyBeats,
     };
     
@@ -219,7 +219,7 @@ export function RouteSelectionStep({
           </p>
           <div className="h-64 rounded-xl overflow-hidden">
             <RouteVisualizer
-              elevationProfile={selectedRoute.coordinates.map((c) => c.ele || 0)}
+              elevationProfile={selectedRoute.coordinates.map((c: any) => c.ele || 0)}
               theme="neon"
               storyBeats={selectedRoute.storyBeats}
               className="h-full"
@@ -381,7 +381,7 @@ export function RouteSelectionStep({
         <RouteLibrary
           onRouteSelect={(gpxSummary) => {
             // Find the route from the summary and handle selection
-            const route = routes.find(r => 
+            const route = routes.find((r: any) => 
               r.estimatedDistance === gpxSummary.distanceKm &&
               r.coordinates.length === gpxSummary.trackPoints
             );

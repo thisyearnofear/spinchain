@@ -6,12 +6,12 @@
 "use client";
 
 import { useState } from "react";
-import { useAIRoute } from "../hooks/use-ai-route";
-import { useVoiceInput } from "../hooks/use-voice-input";
-import { useRouteLibrary } from "../hooks/use-route-library";
-import { RouteLibrary } from "./route-library";
-import type { RouteRequest } from "../lib/ai-service";
-import type { GpxSummary } from "../routes/builder/gpx-uploader";
+import { useAIRoute } from "../../../hooks/ai/use-ai-route";
+import { useVoiceInput } from "../../../hooks/ai/use-voice-input";
+import { useRouteLibrary } from "../../../hooks/use-route-library";
+import { RouteLibrary } from "../route/route-library";
+import type { RouteRequest } from "../../../lib/ai-service";
+import type { GpxSummary } from "../../../routes/builder/gpx-uploader";
 
 type AIRouteGeneratorProps = {
   onRouteGenerated?: (gpxSummary: GpxSummary) => void;
@@ -43,7 +43,7 @@ export function AIRouteGenerator({
   } = useVoiceInput({
     continuous: false,
     interimResults: true,
-    onResult: (finalTranscript) => {
+    onResult: (finalTranscript: string) => {
       // Append voice input to prompt
       setPrompt((prev) => (prev ? `${prev} ${finalTranscript}` : finalTranscript));
     },
@@ -102,7 +102,7 @@ export function AIRouteGenerator({
   if (showLibrary) {
     return (
       <RouteLibrary
-        onRouteSelect={(gpxSummary) => {
+        onRouteSelect={(gpxSummary: GpxSummary) => {
           if (onRouteGenerated) {
             onRouteGenerated(gpxSummary);
           }

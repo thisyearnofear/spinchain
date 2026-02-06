@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { useDeviceType } from '../lib/responsive';
+import { useDeviceType } from '../../../lib/responsive';
 
 interface PedalSimulatorProps {
     isActive: boolean;

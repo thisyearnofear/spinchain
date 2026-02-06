@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { EnergyPulse, MagneticButton } from "./animated-card";
+import { EnergyPulse, MagneticButton } from "../../../components/ui/animated-card";
 
 interface OnboardingStep {
   id: string;

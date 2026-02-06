@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { LoadingButton } from "./loading-button";
+import { LoadingButton } from "../../../components/ui/loading-button";
 
 const ONBOARDING_KEY = "spinchain-onboarded";
 

@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useAccount } from "wagmi";
-import { PrimaryNav } from "../components/nav";
-import { InstructorWizard } from "../components/instructor-wizard";
-import { SurfaceCard, Tag } from "../components/ui";
-import { ConnectWallet } from "../components/connect-wallet";
+import { PrimaryNav } from "../components/layout/nav";
+import { InstructorWizard } from "../components/features/class/instructor-wizard";
+import { SurfaceCard, Tag } from "../components/ui/ui";
+import { ConnectWallet } from "../components/features/wallet/connect-wallet";
 
 export default function InstructorPage() {
   const { isConnected } = useAccount();

@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
-import { PrimaryNav } from "../components/nav";
+import { PrimaryNav } from "../components/layout/nav";
 import { useClasses, type ClassWithRoute, GUEST_DEMO_CLASS } from "../hooks/use-class-data";
-import { RoutePreviewCard } from "../components/route-preview-card";
-import { ConnectWallet } from "../components/connect-wallet";
-import { AnimatedClassCard } from "../components/animated-class-card";
+import { RoutePreviewCard } from "../components/features/route/route-preview-card";
+import { ConnectWallet } from "../components/features/wallet/connect-wallet";
+import { AnimatedClassCard } from "../components/features/class/animated-class-card";
 import type { SavedRoute } from "../lib/route-library";
 
 export default function RiderPage() {

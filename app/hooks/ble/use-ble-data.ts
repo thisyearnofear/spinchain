@@ -5,15 +5,15 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { bleService } from "../lib/ble/service";
+import { bleService } from "@/app/lib/ble/service";
 import type { 
   FitnessMetrics, 
   ConnectionStatus, 
   BleError, 
   BleDevice,
   BleServiceCallbacks 
-} from "../lib/ble/types";
-import { useToast } from "../components/ui/toast";
+} from "@/app/lib/ble/types";
+import { useToast } from "@/app/components/ui/toast";
 
 // Type for BLE transaction args (following useTransaction pattern)
 interface BleTransactionArgs {
