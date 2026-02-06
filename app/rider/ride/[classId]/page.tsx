@@ -139,6 +139,13 @@ export default function LiveRidePage() {
   const [bleConnected, setBleConnected] = useState(false);
   const [useSimulator, setUseSimulator] = useState(false);
 
+  // Reset simulator mode when not in practice mode
+  useEffect(() => {
+    if (!isPracticeMode && useSimulator) {
+      setUseSimulator(false);
+    }
+  }, [isPracticeMode, useSimulator]);
+
   // Telemetry
   const [telemetry, setTelemetry] = useState({
     heartRate: 0,
@@ -244,7 +251,7 @@ export default function LiveRidePage() {
     }
   };
 
-  // Handle simulator metrics updates
+  // Handle simulator metrics updates (PRACTICE MODE ONLY - prevents cheating in real classes)
   const handleSimulatorMetrics = (metrics: {
     heartRate: number;
     power: number;
@@ -252,6 +259,12 @@ export default function LiveRidePage() {
     speed: number;
     effort: number;
   }) => {
+    // Security check: only allow simulator in practice mode
+    if (!isPracticeMode) {
+      console.warn('[Security] Simulator metrics rejected - not in practice mode');
+      return;
+    }
+
     setTelemetry(metrics);
 
     // Also update ride progress based on cadence
@@ -285,9 +298,9 @@ export default function LiveRidePage() {
     }
   }, [deviceType, orientation]);
 
-  // Simulate ride progress (only when BLE not connected and not using simulator)
+  // Simulate ride progress (only when BLE not connected, not using simulator, or in auto mode)
   useEffect(() => {
-    if (!isRiding || !classData || bleConnected || useSimulator) return;
+    if (!isRiding || !classData || bleConnected || (useSimulator && isPracticeMode)) return;
 
     const interval = setInterval(() => {
       setElapsedTime(prev => {
@@ -304,7 +317,7 @@ export default function LiveRidePage() {
       });
 
       // Only simulate telemetry if BLE not connected and not using simulator
-      if (!bleConnected && !useSimulator) {
+      if (!bleConnected && !(useSimulator && isPracticeMode)) {
         setTelemetry(prev => {
           const newTelemetry = {
             ...prev,
@@ -326,18 +339,18 @@ export default function LiveRidePage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRiding, classData, bleConnected, useSimulator]);
+  }, [isRiding, classData, bleConnected, useSimulator, isPracticeMode]);
 
-  // Also collect BLE and simulator telemetry samples
+  // Also collect BLE and simulator telemetry samples (simulator only in practice mode)
   useEffect(() => {
-    if (isRiding && (bleConnected || useSimulator) && telemetry.heartRate > 0) {
+    if (isRiding && (bleConnected || (useSimulator && isPracticeMode)) && telemetry.heartRate > 0) {
       telemetrySamples.current.push({
         hr: telemetry.heartRate,
         power: telemetry.power,
         effort: telemetry.effort,
       });
     }
-  }, [isRiding, bleConnected, useSimulator, telemetry.heartRate, telemetry.power, telemetry.effort]);
+  }, [isRiding, bleConnected, useSimulator, isPracticeMode, telemetry.heartRate, telemetry.power, telemetry.effort]);
 
   // Interval transition: announce phase changes with coach voice + SFX
   useEffect(() => {
@@ -865,38 +878,40 @@ export default function LiveRidePage() {
                     )}
                   </div>
 
-                  {/* Input Mode Toggle */}
-                  <div className="rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-white/50 mb-2">Input Mode</p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setUseSimulator(false)}
-                        className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-all active:scale-95 touch-manipulation ${!useSimulator
-                          ? 'bg-indigo-500 text-white'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20'
-                          }`}
-                      >
-                        🚴 BLE Device
-                      </button>
-                      <button
-                        onClick={() => setUseSimulator(true)}
-                        className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-all active:scale-95 touch-manipulation ${useSimulator
-                          ? 'bg-indigo-500 text-white'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20'
-                          }`}
-                      >
-                        ⌨️ Simulator
-                      </button>
+                  {/* Input Mode Toggle - Only in Practice Mode */}
+                  {isPracticeMode && (
+                    <div className="rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-white/50 mb-2">Input Mode</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setUseSimulator(false)}
+                          className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-all active:scale-95 touch-manipulation ${!useSimulator
+                            ? 'bg-indigo-500 text-white'
+                            : 'bg-white/10 text-white/60 hover:bg-white/20'
+                            }`}
+                        >
+                          🚴 BLE Device
+                        </button>
+                        <button
+                          onClick={() => setUseSimulator(true)}
+                          className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-all active:scale-95 touch-manipulation ${useSimulator
+                            ? 'bg-indigo-500 text-white'
+                            : 'bg-white/10 text-white/60 hover:bg-white/20'
+                            }`}
+                        >
+                          ⌨️ Simulator
+                        </button>
+                      </div>
+                      <p className="mt-1.5 text-[10px] text-white/40">
+                        {useSimulator
+                          ? deviceType === 'mobile' ? 'Tap buttons to pedal' : 'Use arrow keys to pedal'
+                          : 'Connect your bike via Bluetooth'
+                        }
+                      </p>
                     </div>
-                    <p className="mt-1.5 text-[10px] text-white/40">
-                      {useSimulator
-                        ? deviceType === 'mobile' ? 'Tap buttons to pedal' : 'Use arrow keys to pedal'
-                        : 'Connect your bike via Bluetooth'
-                      }
-                    </p>
-                  </div>
+                  )}
 
-                  {!useSimulator && (
+                  {(!isPracticeMode || !useSimulator) && (
                     <DeviceSelector
                       onMetricsUpdate={handleBleMetrics}
                       className="bg-black/80 backdrop-blur-xl border-white/10"
@@ -1045,8 +1060,8 @@ export default function LiveRidePage() {
         stats={demoStats}
       />
 
-      {/* Pedal Simulator */}
-      {useSimulator && (
+      {/* Pedal Simulator - Only in Practice Mode */}
+      {isPracticeMode && useSimulator && (
         <PedalSimulator
           isActive={isRiding}
           onMetricsUpdate={handleSimulatorMetrics}

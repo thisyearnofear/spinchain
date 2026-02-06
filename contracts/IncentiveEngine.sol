@@ -5,6 +5,8 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {TieredRewards} from "./TieredRewards.sol";
 
 interface ISpinClass {
     function hasAttended(address rider) external view returns (bool);
@@ -18,9 +20,13 @@ interface IEffortThresholdVerifier {
     function verifyAndRecord(bytes calldata proof, bytes32[] calldata publicInputs) external returns (uint16);
 }
 
+/// @title IncentiveEngine
+/// @notice Reward distribution with tier multipliers (Option B)
+/// @dev Enhanced with tier-based rewards for SPIN holders
 /// @custom:security-contact security@spinchain.xyz
 contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     using ECDSA for bytes32;
+    using TieredRewards for *;
 
     // ============ Errors ============
     error NotAttended();
@@ -38,12 +44,14 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
 
     // ============ State ============
     ISpinToken public rewardToken;
+    IERC20 public spinToken;
     IEffortThresholdVerifier public verifier;
     address public attestationSigner;
     
     mapping(bytes32 => bool) public usedAttestations;
     mapping(uint256 => uint256) public dailyMinted; // day => amount
     mapping(address => uint256) public totalClaimed; // rider => total rewards
+    mapping(address => TieredRewards.Tier) public userTiers; // cached tiers
 
     // ============ Events ============
     event AttestationSignerUpdated(address indexed signer);
@@ -51,9 +59,11 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     event VerifierUpdated(address indexed verifier);
     event RewardClaimed(address indexed rider, address indexed spinClass, uint256 amount, bytes32 attestationId);
     event ZKRewardClaimed(address indexed rider, bytes32 indexed classId, uint256 amount, uint16 effortScore);
+    event TierRewardBoost(address indexed rider, TieredRewards.Tier tier, uint256 baseAmount, uint256 boostedAmount);
 
     constructor(address owner_, address token_, address signer_, address verifier_) Ownable(owner_) {
         rewardToken = ISpinToken(token_);
+        spinToken = IERC20(token_);
         attestationSigner = signer_;
         verifier = IEffortThresholdVerifier(verifier_);
     }
@@ -65,12 +75,25 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
 
     function setRewardToken(address token_) external onlyOwner {
         rewardToken = ISpinToken(token_);
+        spinToken = IERC20(token_);
         emit RewardTokenUpdated(token_);
     }
 
     function setVerifier(address verifier_) external onlyOwner {
         verifier = IEffortThresholdVerifier(verifier_);
         emit VerifierUpdated(verifier_);
+    }
+
+    /// @notice Get user's current tier based on SPIN balance
+    function getUserTier(address user) public view returns (TieredRewards.Tier) {
+        return TieredRewards.getTier(spinToken.balanceOf(user));
+    }
+
+    /// @notice Calculate reward with tier multiplier applied
+    function calculateRewardWithTier(uint16 effortScore, address rider) public view returns (uint256) {
+        uint256 baseReward = calculateReward(effortScore);
+        TieredRewards.Tier tier = getUserTier(rider);
+        return TieredRewards.applyMultiplier(baseReward, tier);
     }
 
     /// @notice Claim rewards via ECDSA attestation (off-chain verification)
@@ -99,10 +122,17 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
         address recovered = message.recover(signature);
         if (recovered != attestationSigner) revert InvalidSignature();
 
-        _mintWithLimit(rider, rewardAmount);
-        totalClaimed[rider] += rewardAmount;
+        // Apply tier multiplier
+        TieredRewards.Tier tier = getUserTier(rider);
+        uint256 boostedAmount = TieredRewards.applyMultiplier(rewardAmount, tier);
         
-        emit RewardClaimed(rider, spinClass, rewardAmount, attestationId);
+        _mintWithLimit(rider, boostedAmount);
+        totalClaimed[rider] += boostedAmount;
+        
+        emit RewardClaimed(rider, spinClass, boostedAmount, attestationId);
+        if (tier != TieredRewards.Tier.NONE) {
+            emit TierRewardBoost(rider, tier, rewardAmount, boostedAmount);
+        }
     }
 
     /// @notice Claim rewards via ZK proof (trustless verification)
@@ -124,13 +154,20 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
         // Verify the caller is the rider in the proof
         if (msg.sender != rider) revert InvalidSignature();
 
-        _mintWithLimit(rider, rewardAmount);
-        totalClaimed[rider] += rewardAmount;
+        // Apply tier multiplier
+        TieredRewards.Tier tier = getUserTier(rider);
+        uint256 boostedAmount = TieredRewards.applyMultiplier(rewardAmount, tier);
+
+        _mintWithLimit(rider, boostedAmount);
+        totalClaimed[rider] += boostedAmount;
         
-        emit ZKRewardClaimed(rider, classId, rewardAmount, effortScore);
+        emit ZKRewardClaimed(rider, classId, boostedAmount, effortScore);
+        if (tier != TieredRewards.Tier.NONE) {
+            emit TierRewardBoost(rider, tier, rewardAmount, boostedAmount);
+        }
     }
 
-    /// @notice Calculate reward based on effort score
+    /// @notice Calculate base reward based on effort score (no tier multiplier)
     function calculateReward(uint16 effortScore) public pure returns (uint256) {
         // Base reward: 10 SPIN, max: 100 SPIN based on effort
         // effortScore is 0-1000

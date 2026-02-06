@@ -1,117 +1,178 @@
-# SPIN Tokenomics
+# SPIN Tokenomics (Option B)
 
-## The Problem
+## Overview
+Independent SPIN tokens on AVAX and Sui. Same name, same purpose, isolated supplies. No bridging.
 
-Most "X-to-earn" tokens fail because users earn them, immediately sell, and price collapses. No sustainable demand.
+## Supply
+- **AVAX SPIN**: 50M max (18 decimals)
+- **Sui SPIN**: 50M max (9 decimals)
+- **Total**: 100M SPIN across both chains
 
-## The Solution: The SpinCycle
+## The SpinCycle
+Every class payment triggers:
+1. 15% diverted to SPIN buyback
+2. 80% of bought SPIN → Rewards pool
+3. 20% of bought SPIN → Burned permanently
 
-Every class payment automatically buys and burns SPIN. More users = more demand = higher price.
+## Tier Benefits
+
+| Tier | SPIN Required | Reward Bonus | Class Discount |
+|------|--------------|--------------|----------------|
+| Bronze | 100 | +5% | 5% |
+| Silver | 500 | +10% | 10% |
+| Gold | 2,000 | +18% | 18% |
+| Diamond | 10,000 | +25% | 25% |
+
+## LI.FI Integration
+- **Used for**: Treasury swaps (USDC→SPIN buyback)
+- **NOT used for**: SPIN bridging (independent tokens by design)
+
+## Deployment (Remix)
+
+### 1. Deploy TieredRewards.sol (Library)
+No constructor. Used by other contracts.
+
+### 2. Deploy SpinToken.sol
+```solidity
+constructor(address owner_)
+// Example: deployer address as owner
+```
+
+### 3. Deploy IncentiveEngine.sol
+```solidity
+constructor(
+    address owner_,      // deployer
+    address token_,      // SpinToken address
+    address signer_,     // attestation signer (can be deployer initially)
+    address verifier_    // ZK verifier (can be address(0) initially)
+)
+```
+
+### 4. Deploy SpinClass.sol
+```solidity
+constructor(
+    address owner_,          // deployer
+    string memory name_,     // "SpinClass"
+    string memory symbol_,   // "SPINCLASS"
+    string memory classMetadata_,  // IPFS CID or URI
+    uint256 startTime_,      // unix timestamp
+    uint256 endTime_,        // unix timestamp
+    uint256 maxRiders_,      // e.g., 50
+    uint256 basePrice_,      // in wei (e.g., 0.01 AVAX = 10000000000000000)
+    uint256 maxPrice_,       // in wei
+    address treasury_,       // treasury address
+    address incentiveEngine_, // IncentiveEngine address
+    address spinToken_       // SpinToken address
+)
+```
+
+### 5. Configuration
+```solidity
+// Transfer token ownership to IncentiveEngine
+SpinToken.transferOwnership(IncentiveEngine_address)
+
+// Set attestation signer (if different from deployer)
+IncentiveEngine.setAttestationSigner(signer_address)
+
+// Set ZK verifier (when ready)
+IncentiveEngine.setVerifier(verifier_address)
+```
+
+## Key Functions
+
+### Check User Tier
+```solidity
+// Get tier for any address
+IncentiveEngine.getUserTier(userAddress) 
+// Returns: 0=None, 1=Bronze, 2=Silver, 3=Gold, 4=Diamond
+```
+
+### Get Discounted Price
+```solidity
+// Get price for specific user
+SpinClass.priceForUser(userAddress)
+// Returns: (basePrice, discountedPrice, tier)
+```
+
+### Buy Ticket with Discount
+```solidity
+// Send discounted ETH/AVAX value
+SpinClass.purchaseTicket{value: discountedPrice}()
+```
+
+### Record Buyback Burn (Treasury)
+```solidity
+// After LI.FI swap USDC->SPIN
+SpinToken.recordBuybackBurn(spinAmountAcquired)
+// Automatically burns 20%, emits event for 80% rewards
+```
+
+## Events
+
+```solidity
+// Tier reward boost applied
+TierRewardBoost(address rider, uint8 tier, uint256 baseAmount, uint256 boostedAmount)
+
+// Discount applied at purchase
+TierDiscountApplied(address rider, uint8 tier, uint256 originalPrice, uint256 discountedPrice)
+
+// Buyback burn completed
+BuybackBurned(uint256 buybackAmount, uint256 burnedAmount, uint256 rewardAmount)
+```
+
+## Sui Deployment
+
+### 1. Publish Package
+```bash
+cd move/spinchain
+sui client publish --gas-budget 100000000
+```
+
+### 2. Get TreasuryCap ID
+From publish output, note:
+- `TreasuryCap<SPIN_TOKEN>` object ID
+- `TreasuryManager` object ID
+
+### 3. Mint Rewards
+```move
+spin_token::mint_reward(
+    treasury_cap,      // &mut TreasuryCap<SPIN_TOKEN>
+    treasury_manager,  // &mut TreasuryManager
+    amount,            // u64 (9 decimals)
+    recipient,         // address
+    reason,            // String
+    session_id,        // address
+    ctx
+)
+```
+
+### 4. Record Buyback Burn
+```move
+spin_token::record_buyback_burn(
+    treasury_cap,
+    treasury_manager,
+    buyback_coins,     // Coin<SPIN_TOKEN>
+    ctx
+)
+```
+
+### 5. Check Tier
+```move
+tier_benefits::get_tier(spin_balance)  // returns Tier enum
+```
+
+## File Structure
 
 ```
-User pays $25 for class
-        ↓
-15% ($3.75) → Treasury
-        ↓
-DEX swap to SPIN
-        ↓
-    ┌────┴────┐
- Burn 20%   Rewards 80%
-    ↓            ↓
-Deflation   Staking + Challenges
+contracts/
+├── SpinToken.sol          # ERC-20 with buyback burn
+├── TieredRewards.sol      # Tier library
+├── IncentiveEngine.sol    # Rewards + tiers
+├── SpinClass.sol          # NFT + discounts
+└── TreasurySplitter.sol   # Revenue split
+
+move/spinchain/sources/
+├── spin_token.move        # Coin with TreasuryManager
+├── tier_benefits.move     # Tier calculations
+└── spinsession.move       # Session management
 ```
-
-## Token Utility (Why Hold?)
-
-| Tier | SPIN | Discount | Annual Savings* |
-|------|------|----------|-----------------|
-| Spinner | 100 | 5% | $60 |
-| Cyclist | 500 | 10% | $120 |
-| Peloton | 2,000 | 15% | $180 |
-| Century | 10,000 | 25% | $300 |
-
-*On $100/month spend. ROI: 480%+ at $0.05/SPIN
-
-Additional benefits: Premium AI agents, early class access, governance, exclusive challenges.
-
-## Supply & Distribution
-
-**Initial**: 100M SPIN fixed
-
-| Allocation | % | Vesting |
-|------------|---|---------|
-| Community rewards | 40% | 4 years |
-| Treasury | 20% | 2 years |
-| Liquidity | 15% | Immediate |
-| Team | 15% | 4 years |
-| Backers | 10% | 2 years |
-
-**Emissions**: Halve every 2 years. Deflationary after Year 1 via burns.
-
-## Instructor Challenges
-
-Instructors create competitions with verifiable metrics (ZK proofs):
-
-- **Metrics**: FTP improvement, resting HR decrease, zone mastery
-- **Entry**: 50 SPIN per rider
-- **Prize pool**: Winner 80%, Platform 10%, Burn 10%
-- **Result**: Zero instructor cost, high engagement, SPIN demand
-
-## Cross-Chain
-
-**Avalanche**: Primary trading, treasury buybacks, governance
-**Sui**: Fast transfers, gaming integrations, low fees
-
-Bridge: 1:1 backed, multisig secured.
-
-## Economic Projections
-
-| Daily Classes | Monthly Buyback | Annual Buyback |
-|---------------|-----------------|----------------|
-| 100 | $11,250 | $135,000 |
-| 1,000 | $112,500 | $1,350,000 |
-| 10,000 | $1,125,000 | $13,500,000 |
-
-At 1,000 classes/day and $0.50/SPIN: 225,000 SPIN burned yearly.
-
-## Risk Mitigation
-
-| Risk | Mitigation |
-|------|------------|
-| Low volume | Treasury reserves guarantee minimum buybacks |
-| Price crash | Staking lockups + real-world utility |
-| Bridge exploit | Multisig + insurance fund |
-| Regulatory | Utility token design, no profit promises |
-
-## Implementation
-
-**Phase 1 (MVP)**:
-- SPIN on Avalanche
-- Basic tier: 100 SPIN = 5% discount
-- Treasury buyback mechanism
-- Simple staking
-
-**Phase 2**:
-- Full 4-tier system
-- Instructor challenges
-- Sui bridge
-- Governance
-
-**Phase 3**:
-- Real-world redemptions
-- Insurance pool
-- Advanced ZK challenges
-
-## Success Metrics
-
-- Month 6: 1,000 classes, 500 holders, $50k treasury
-- Month 12: 10,000 classes, 5,000 holders, $500k treasury
-- Year 2: Deflationary supply, self-sustaining
-
-## Key Insight
-
-SPIN is valuable because the platform is valuable—not the other way around. Every workout makes SPIN scarcer.
-
----
-
-*Status: Design phase. Review, model, then implement MVP.*

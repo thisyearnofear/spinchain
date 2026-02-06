@@ -25,7 +25,7 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
     // Pedal stroke tracking
     const pedalTimestamps = useRef<number[]>([]);
     const lastPedalLeg = useRef<'left' | 'right'>('right');
-    const metricsInterval = useRef<NodeJS.Timeout>();
+    const metricsInterval = useRef<NodeJS.Timeout | null>(null);
 
     // Base metrics that evolve over time
     const baseMetrics = useRef({
