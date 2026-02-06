@@ -4,6 +4,7 @@ import { ThemeToggleCompact } from "./theme-toggle";
 import { ConnectWallet } from "./connect-wallet";
 import { SuiWalletButton } from "./sui-wallet-button";
 import { Tooltip } from "./tooltip";
+import { AIProviderSettings } from "./ai-provider-settings";
 
 export function PrimaryNav() {
   return (
@@ -23,6 +24,10 @@ export function PrimaryNav() {
       </div>
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
+          <Tooltip content="AI Provider Settings" position="bottom">
+            <AIProviderSettings />
+          </Tooltip>
+          
           <Tooltip content="Toggle light/dark mode" position="bottom">
             <ThemeToggleCompact />
           </Tooltip>
