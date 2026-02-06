@@ -1,21 +1,49 @@
 # SpinChain: AI Integration
 
-## AI Route Generation Features
+> **🏆 HACKATHON-READY: Powered by Gemini 3.0 Flash Preview**
+> 
+> This project leverages Google's latest Gemini 3.0 Flash Preview model for all AI capabilities,
+> featuring enhanced reasoning, structured outputs, and real-time streaming.
 
-### Overview
+## AI-Powered Fitness Platform
 
-SpinChain's AI route generation system transforms natural language descriptions into fully-realized spin class routes with elevation profiles, story beats, and immersive visualizations.
+### Gemini 3 Integration Overview
 
-### Key Features
+SpinChain is built on **Google Gemini 3.0 Flash Preview**, utilizing its advanced capabilities:
 
-#### 1. Natural Language Route Creation
-Describe your ideal route in plain English, and AI generates complete route data:
+- **Enhanced Reasoning**: Multi-step route generation with exercise science principles
+- **Structured Outputs**: Reliable JSON responses with validation
+- **Streaming Support**: Real-time generation for instant user feedback
+- **Multimodal Capabilities**: Image analysis for route understanding
+- **Low Latency**: Sub-second response times for interactive coaching
+
+### AI Features Powered by Gemini 3
+
+#### 1. Natural Language Route Generation
+Transform plain English into complete cycling experiences:
+
+**Gemini 3 Capabilities Used:**
+- Complex prompt understanding with multi-constraint handling
+- Geospatial reasoning for realistic coordinate generation
+- Exercise physiology knowledge for proper workout structuring
 
 **Example Prompts:**
 - "A 45-minute coastal climb with ocean views starting from Santa Monica"
 - "Fast urban sprint through downtown with minimal stops"
 - "Beginner-friendly rolling hills for endurance training"
 - "Challenging mountain ascent with valley views and steep sections"
+
+**Technical Implementation:**
+```typescript
+// Model: gemini-3.0-flash-preview
+// Features: JSON mode, structured output, retry logic
+const route = await generateRouteWithGemini({
+  prompt: "coastal sunset climb",
+  duration: 45,
+  difficulty: "moderate",
+  theme: "coastal"
+});
+```
 
 #### 2. Voice Input (Hands-Free)
 Use your voice to describe routes without typing:
@@ -172,45 +200,165 @@ function MyComponent() {
 
 ### Features
 
-#### ✅ Implemented (MVP)
+### Gemini 3 Technical Implementation
 
-- **Natural Language Input**: Describe routes in plain English
-- **Automatic Route Generation**: AI creates coordinates, elevation, and story beats
-- **GPX Export**: Download generated routes as standard GPX files
-- **Integration with Existing UI**: Seamlessly embedded in route builder
-- **Mock Implementation**: Working demo without external API dependencies
-- **Unified AI Service**: Single source of truth for all AI interactions
+#### API Endpoints
 
-#### 🚧 Future Enhancements (Phase 2)
+All AI functionality is exposed through optimized Edge API routes:
 
-- **Real Gemini API Integration**: Replace mock with actual Google Gemini API
-- **Google Maps Integration**: Real-world route data and Street View preview
-- **Voice Input**: Speak your route description
-- **Multi-Route Series**: Generate training programs across multiple days
-- **Route Optimization**: AI suggests improvements based on ride goals
-- **Community Templates**: Share and discover AI-generated routes
+| Endpoint | Feature | Gemini 3 Capability |
+|----------|---------|---------------------|
+| `/api/ai/generate-route` | Route generation | Complex reasoning + JSON mode |
+| `/api/ai/generate-narrative` | Narrative creation | Creative writing + context awareness |
+| `/api/ai/chat` | Real-time coaching | Adaptive responses + structured output |
+| `/api/ai/agent-reasoning` | Autonomous decisions | Multi-objective optimization + confidence scoring |
+
+#### Streaming Support
+
+Route generation supports real-time streaming for instant UX feedback:
+
+```typescript
+const stream = generateRouteStream({
+  prompt: "mountain sunset",
+  duration: 45,
+  difficulty: "hard"
+});
+
+for await (const chunk of stream) {
+  if (chunk.type === "status") {
+    console.log(chunk.data.message); // "Analyzing...", "Generating..."
+  }
+  if (chunk.type === "complete") {
+    console.log(chunk.data); // Full route object
+  }
+}
+```
+
+#### Structured Output with Validation
+
+Gemini 3's JSON mode ensures reliable, parseable responses:
+
+```typescript
+// Route generation returns validated RouteResponse
+interface RouteResponse {
+  name: string;
+  description: string;
+  coordinates: Array<{ lat: number; lng: number; ele?: number }>;
+  storyBeats: Array<{
+    progress: number;
+    label: string;
+    type: "climb" | "sprint" | "drop" | "rest";
+    intensity: number;
+  }>;
+  zones: Array<{
+    name: string;
+    type: "warmup" | "endurance" | "tempo" | "threshold";
+    description: string;
+  }>;
+  // ... plus 10+ more fields
+}
+```
+
+#### Real-Time Coaching Engine
+
+Adaptive coaching based on rider telemetry:
+
+```typescript
+const coaching = await getCoachingWithGemini(
+  {
+    riderHeartRate: 165,
+    targetHeartRate: 160,
+    currentResistance: 45,
+    currentCadence: 85,
+    workoutProgress: 0.65,
+    recentPerformance: "above",
+    fatigueLevel: "moderate"
+  },
+  conversationHistory
+);
+
+// Returns structured coaching response
+{
+  message: "Great effort! Your heart rate is elevated—ease off 2% to stay in Zone 4.",
+  tone: "challenging",
+  action: { type: "decrease_resistance", value: 2 },
+  motivation: "You're crushing this climb!",
+  technique: "Relax your shoulders, breathe steadily"
+}
+```
+
+#### Agent Reasoning with Confidence Scoring
+
+Autonomous AI agents make explainable decisions:
+
+```typescript
+const decision = await agentReasoningWithGemini(
+  "Coach Atlas",
+  "motivational",
+  {
+    telemetry: { avgBpm: 155, resistance: 50, duration: 30 },
+    market: { ticketsSold: 42, capacity: 50, revenue: 2.5 }
+  }
+);
+
+// Returns explainable decision
+{
+  thoughtProcess: "Riders are performing well (155 BPM avg), but we have 8 unsold tickets with 10 mins left",
+  action: "discount_price",
+  parameters: { multiplier: 0.8, message: "Last chance! 20% off remaining tickets" },
+  confidence: 0.87,
+  reasoning: "Price reduction will likely fill remaining seats without significantly impacting revenue",
+  expectedOutcome: "Sell 6-8 more tickets, total revenue increase of 15-20%"
+}
+```
+
+### Gemini 3 Model Configuration
+
+```typescript
+// Optimized settings for Gemini 3.0 Flash Preview
+const config = {
+  model: "gemini-3.0-flash-preview",
+  generationConfig: {
+    temperature: 0.7,      // Balanced creativity/consistency
+    topK: 40,              // Diverse token selection
+    topP: 0.95,            // Nucleus sampling
+    maxOutputTokens: 8192, // Allow detailed responses
+    responseMimeType: "application/json" // Structured output
+  }
+};
+```
+
+### Error Handling & Resilience
+
+Production-ready retry logic with exponential backoff:
+
+```typescript
+const route = await withRetry(
+  () => generateRouteWithGemini(request),
+  3 // Max 3 retries
+);
+```
 
 ### Configuration
 
-#### Environment Variables
+#### Required Environment Variables
 
 ```env
-# Required for production (Phase 2)
+# Gemini 3 API Key (required)
 GEMINI_API_KEY=your_gemini_api_key_here
 
-# Optional
-NEXT_PUBLIC_AI_PROVIDER=gemini  # or "openai" in future
+# Optional: Venice AI for agent reasoning fallback
+VENICE_API_KEY=your_venice_api_key_here
 ```
 
-#### Current Implementation
+#### Health Check Endpoints
 
-The MVP uses **mock implementations** that generate realistic routes without requiring external API keys. This allows immediate testing and development.
+All API routes expose health checks:
 
-To switch to real Gemini API:
-
-1. Uncomment the Gemini API code in `/app/api/ai/generate-route/route.ts`
-2. Add `GEMINI_API_KEY` to your `.env.local`
-3. Install `@google/generative-ai` package (already in dependencies)
+```bash
+curl /api/ai/generate-route
+# { "status": "ready", "model": "gemini-3.0-flash-preview", ... }
+```
 
 ---
 

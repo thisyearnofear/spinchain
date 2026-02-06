@@ -1,181 +1,182 @@
 /**
  * Next.js API Route for AI Route Generation
- * Server-side only - protects API keys
+ * Powered by Gemini 3.0 Flash Preview
+ * 
+ * HACKATHON ENHANCEMENT:
+ * - Streaming support for real-time generation
+ * - Enhanced structured output with exercise zones
+ * - No mock fallbacks - pure Gemini 3 power
+ * - Robust error handling with retries
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { generateRouteWithGemini } from "@/app/lib/gemini-client";
+import { 
+  generateRouteWithGemini, 
+  generateRouteStream,
+  RouteRequest,
+  RouteResponse 
+} from "@/app/lib/gemini-client";
+
+export const runtime = "edge";
+export const maxDuration = 30; // Allow up to 30s for generation
 
 type RouteGenerationRequest = {
   prompt: string;
   preferences?: string;
   duration?: number;
-  difficulty?: "easy" | "moderate" | "hard";
-  provider: "gemini" | "openai";
+  difficulty?: "easy" | "moderate" | "hard" | "extreme";
+  theme?: string;
+  fitnessLevel?: "beginner" | "intermediate" | "advanced" | "elite";
+  stream?: boolean;
 };
 
+/**
+ * POST /api/ai/generate-route
+ * Generate immersive cycling routes using Gemini 3
+ */
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as RouteGenerationRequest;
-    const { prompt, preferences, duration, difficulty } = body;
+    const { 
+      prompt, 
+      preferences, 
+      duration, 
+      difficulty,
+      theme,
+      fitnessLevel,
+      stream = false 
+    } = body;
 
-    // Check if Gemini API key is configured
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    
-    if (!GEMINI_API_KEY) {
-      console.warn("GEMINI_API_KEY not configured, using mock data");
-      // Fallback to mock if no API key
-      const mockRoute = generateMockRoute(prompt, duration || 45, difficulty || "moderate");
-      return NextResponse.json(mockRoute);
+    // Validate required fields
+    if (!prompt || prompt.trim().length < 3) {
+      return NextResponse.json(
+        { 
+          error: "Invalid request", 
+          message: "Route description must be at least 3 characters" 
+        },
+        { status: 400 }
+      );
     }
 
-    // Use real Gemini API
-    try {
-      const route = await generateRouteWithGemini({
-        prompt,
-        preferences,
-        duration: duration || 45,
-        difficulty: difficulty || "moderate",
+    // Validate API key
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (!GEMINI_API_KEY) {
+      return NextResponse.json(
+        { 
+          error: "Configuration error", 
+          message: "GEMINI_API_KEY not configured" 
+        },
+        { status: 503 }
+      );
+    }
+
+    // Prepare request
+    const routeRequest: RouteRequest = {
+      prompt: prompt.trim(),
+      duration: Math.min(Math.max(duration || 45, 15), 120), // Clamp 15-120 mins
+      difficulty: difficulty || "moderate",
+      preferences: preferences?.trim(),
+      theme: theme as any,
+      fitnessLevel: fitnessLevel || "intermediate",
+    };
+
+    // Handle streaming response
+    if (stream) {
+      const encoder = new TextEncoder();
+      const stream_generator = generateRouteStream(routeRequest);
+
+      const readableStream = new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of stream_generator) {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`)
+              );
+            }
+            controller.close();
+          } catch (error) {
+            controller.error(error);
+          }
+        },
       });
 
-      return NextResponse.json(route);
-    } catch (geminiError) {
-      console.error("Gemini API error, falling back to mock:", geminiError);
-      // Graceful fallback to mock data
-      const mockRoute = generateMockRoute(prompt, duration || 45, difficulty || "moderate");
-      return NextResponse.json(mockRoute);
+      return new Response(readableStream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
     }
+
+    // Standard response
+    console.log(`[Gemini 3] Generating route: "${prompt.substring(0, 50)}..."`);
+    const startTime = Date.now();
+    
+    const route = await generateRouteWithGemini(routeRequest);
+    
+    const duration_ms = Date.now() - startTime;
+    console.log(`[Gemini 3] Route generated in ${duration_ms}ms: "${route.name}"`);
+
+    // Add metadata
+    const response: RouteResponse & { 
+      _meta: { 
+        generatedAt: string; 
+        duration: number;
+        model: string;
+        version: string;
+      } 
+    } = {
+      ...route,
+      _meta: {
+        generatedAt: new Date().toISOString(),
+        duration: duration_ms,
+        model: "gemini-3.0-flash-preview",
+        version: "1.0.0",
+      },
+    };
+
+    return NextResponse.json(response);
+
   } catch (error) {
-    console.error("Route generation error:", error);
+    console.error("[Gemini 3] Route generation error:", error);
+    
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Determine if it's a rate limit or API error
+    const isRateLimit = errorMessage.toLowerCase().includes("rate") || 
+                        errorMessage.toLowerCase().includes("quota");
+    
     return NextResponse.json(
-      { message: "Failed to generate route", error: String(error) },
-      { status: 500 }
+      { 
+        error: isRateLimit ? "Rate limit exceeded" : "Generation failed",
+        message: isRateLimit 
+          ? "Please try again in a moment" 
+          : "Failed to generate route. Please try again.",
+        details: process.env.NODE_ENV === "development" ? errorMessage : undefined,
+      },
+      { status: isRateLimit ? 429 : 500 }
     );
   }
 }
 
 /**
- * Generate a mock route for testing
- * TODO: Replace with actual Gemini API call
+ * GET /api/ai/generate-route
+ * Health check endpoint
  */
-function generateMockRoute(
-  prompt: string,
-  duration: number,
-  difficulty: "easy" | "moderate" | "hard"
-) {
-  // Parse location hints from prompt
-  const isCoastal = /coast|beach|ocean|sea/i.test(prompt);
-  const isMountain = /mountain|climb|alpine|hill/i.test(prompt);
-  const isUrban = /city|urban|downtown|street/i.test(prompt);
-
-  // Base coordinates (Santa Monica as default)
-  const baseLat = 34.0195;
-  const baseLng = -118.4912;
-
-  // Generate route points
-  const numPoints = 100;
-  const coordinates = [];
-  let elevationGain = 0;
-
-  for (let i = 0; i < numPoints; i++) {
-    const progress = i / (numPoints - 1);
-    
-    // Vary the route based on prompt type
-    let latOffset = 0;
-    let lngOffset = 0;
-    let elevation = 50;
-
-    if (isCoastal) {
-      // Follow coastline
-      latOffset = Math.sin(progress * Math.PI * 2) * 0.01;
-      lngOffset = progress * 0.02;
-      elevation = 20 + Math.sin(progress * Math.PI * 4) * 30;
-    } else if (isMountain) {
-      // Climbing route
-      latOffset = progress * 0.015;
-      lngOffset = Math.sin(progress * Math.PI) * 0.01;
-      elevation = 100 + progress * 400 + Math.sin(progress * Math.PI * 6) * 50;
-    } else {
-      // Default winding route
-      latOffset = Math.sin(progress * Math.PI * 3) * 0.01;
-      lngOffset = Math.cos(progress * Math.PI * 3) * 0.01;
-      elevation = 100 + Math.sin(progress * Math.PI * 5) * 80;
-    }
-
-    coordinates.push({
-      lat: baseLat + latOffset,
-      lng: baseLng + lngOffset,
-      ele: elevation,
-    });
-
-    if (i > 0) {
-      elevationGain += Math.max(0, elevation - coordinates[i - 1].ele!);
-    }
-  }
-
-  // Generate story beats based on elevation changes
-  const storyBeats = [];
-  for (let i = 10; i < numPoints - 10; i += 20) {
-    const elevationChange =
-      coordinates[i + 5].ele! - coordinates[i - 5].ele!;
-    if (elevationChange > 30) {
-      storyBeats.push({
-        progress: i / numPoints,
-        label: "Steep Climb",
-        type: "climb" as const,
-      });
-    } else if (elevationChange < -30) {
-      storyBeats.push({
-        progress: i / numPoints,
-        label: "Fast Descent",
-        type: "drop" as const,
-      });
-    }
-  }
-
-  // Limit to 4 story beats
-  const selectedBeats = storyBeats
-    .filter((_, i) => i % 2 === 0)
-    .slice(0, 4);
-
-  return {
-    name: extractRouteName(prompt),
-    description: prompt,
-    coordinates,
-    estimatedDistance: calculateDistance(coordinates),
-    estimatedDuration: duration,
-    elevationGain: Math.round(elevationGain),
-    storyBeats: selectedBeats,
-  };
-}
-
-function extractRouteName(prompt: string): string {
-  // Simple name extraction - can be enhanced
-  const words = prompt.split(" ").slice(0, 4);
-  return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-}
-
-function calculateDistance(
-  coordinates: Array<{ lat: number; lng: number }>
-): number {
-  let distance = 0;
-  for (let i = 1; i < coordinates.length; i++) {
-    const lat1 = coordinates[i - 1].lat;
-    const lng1 = coordinates[i - 1].lng;
-    const lat2 = coordinates[i].lat;
-    const lng2 = coordinates[i].lng;
-
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lng2 - lng1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    distance += R * c;
-  }
-  return Math.round(distance * 10) / 10;
+export async function GET() {
+  const hasApiKey = !!process.env.GEMINI_API_KEY;
+  
+  return NextResponse.json({
+    status: hasApiKey ? "ready" : "not_configured",
+    model: "gemini-3.0-flash-preview",
+    features: [
+      "natural_language_route_generation",
+      "exercise_zone_structuring",
+      "story_beat_identification",
+      "elevation_profiling",
+      "streaming_support",
+    ],
+    version: "1.0.0",
+  });
 }

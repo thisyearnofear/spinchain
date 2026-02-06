@@ -1,66 +1,119 @@
 /**
  * Next.js API Route for AI Narrative Generation
- * Generates story descriptions for routes based on elevation and theme
+ * Powered by Gemini 3.0 Flash Preview
+ * 
+ * HACKATHON ENHANCEMENT:
+ * - Multidimensional narrative generation (narrative + atmosphere + intensity)
+ * - Context-aware descriptions based on elevation profile
+ * - Structured output for UI components
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { generateNarrativeWithGemini } from "@/app/lib/gemini-client";
 
+export const runtime = "edge";
+
 type NarrativeRequest = {
   elevationProfile: number[];
   theme: string;
   duration: number;
-  provider: "gemini" | "openai";
+  routeName?: string;
 };
 
+/**
+ * POST /api/ai/generate-narrative
+ * Generate immersive route narratives using Gemini 3
+ */
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as NarrativeRequest;
-    const { elevationProfile, theme, duration } = body;
+    const { elevationProfile, theme, duration, routeName } = body;
 
+    // Validate required fields
+    if (!elevationProfile || !Array.isArray(elevationProfile) || elevationProfile.length < 2) {
+      return NextResponse.json(
+        { error: "Invalid request", message: "elevationProfile must be an array with at least 2 points" },
+        { status: 400 }
+      );
+    }
+
+    if (!theme || theme.trim().length < 2) {
+      return NextResponse.json(
+        { error: "Invalid request", message: "theme is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate API key
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
     if (!GEMINI_API_KEY) {
-      console.warn("GEMINI_API_KEY not configured, using mock data");
-      const narrative = generateMockNarrative(elevationProfile, theme, duration);
-      return NextResponse.json({ narrative });
+      return NextResponse.json(
+        { error: "Configuration error", message: "GEMINI_API_KEY not configured" },
+        { status: 503 }
+      );
     }
 
-    try {
-      const narrative = await generateNarrativeWithGemini(elevationProfile, theme, duration);
-      return NextResponse.json({ narrative });
-    } catch (geminiError) {
-      console.error("Gemini API error, falling back to mock:", geminiError);
-      const narrative = generateMockNarrative(elevationProfile, theme, duration);
-      return NextResponse.json({ narrative });
-    }
+    console.log(`[Gemini 3] Generating narrative for "${theme}" theme, ${duration}min route`);
+    
+    const startTime = Date.now();
+    
+    const result = await generateNarrativeWithGemini(
+      elevationProfile,
+      theme,
+      duration,
+      routeName
+    );
+    
+    const duration_ms = Date.now() - startTime;
+    console.log(`[Gemini 3] Narrative generated in ${duration_ms}ms`);
+
+    return NextResponse.json({
+      ...result,
+      _meta: {
+        generatedAt: new Date().toISOString(),
+        duration: duration_ms,
+        model: "gemini-3.0-flash-preview",
+        inputStats: {
+          elevationPoints: elevationProfile.length,
+          elevationGain: Math.max(...elevationProfile) - Math.min(...elevationProfile),
+          theme,
+          duration,
+        },
+      },
+    });
+
   } catch (error) {
-    console.error("Narrative generation error:", error);
+    console.error("[Gemini 3] Narrative generation error:", error);
+    
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
     return NextResponse.json(
-      { message: "Failed to generate narrative", error: String(error) },
+      { 
+        error: "Generation failed",
+        message: "Failed to generate narrative. Please try again.",
+        details: process.env.NODE_ENV === "development" ? errorMessage : undefined,
+      },
       { status: 500 }
     );
   }
 }
 
-function generateMockNarrative(
-  elevationProfile: number[],
-  theme: string,
-  duration: number
-): string {
-  const hasClimb = Math.max(...elevationProfile) - Math.min(...elevationProfile) > 100;
+/**
+ * GET /api/ai/generate-narrative
+ * Health check
+ */
+export async function GET() {
+  const hasApiKey = !!process.env.GEMINI_API_KEY;
   
-  const narratives = {
-    neon: hasClimb
-      ? `A ${duration}-minute cyberpunk odyssey through neon-lit cityscapes. The route begins in the electric depths of the grid, ascending through data streams to the skyline peaks where digital rain falls in cascades of light.`
-      : `A high-energy ${duration}-minute sprint through the neon underbelly. Pulse-pounding intervals sync with the city's electric heartbeat as you navigate the glowing corridors of the cyber-metropolis.`,
-    alpine: hasClimb
-      ? `A ${duration}-minute ascent through pristine mountain wilderness. Starting in misty valleys, you'll climb through alpine meadows to breathtaking summit views, where eagles soar and the air is crisp with possibility.`
-      : `A scenic ${duration}-minute journey through rolling alpine terrain. Experience the serenity of mountain valleys, with gentle climbs and flowing descents that mirror the natural rhythm of the landscape.`,
-    mars: hasClimb
-      ? `A ${duration}-minute expedition across the red planet's dramatic terrain. Climb from the rusty valleys through ancient impact craters to the towering volcanic peaks, where the horizon glows with otherworldly beauty.`
-      : `A ${duration}-minute traverse of Mars' mysterious plains. Navigate the crimson landscape with its rolling dunes and scattered rock formations, feeling the isolation and wonder of an alien world.`,
-  };
-
-  return narratives[theme as keyof typeof narratives] || narratives.neon;
+  return NextResponse.json({
+    status: hasApiKey ? "ready" : "not_configured",
+    model: "gemini-3.0-flash-preview",
+    features: [
+      "multidimensional_narrative",
+      "context_aware_descriptions",
+      "structured_output",
+      "theme_adaptation",
+    ],
+    version: "1.0.0",
+  });
 }
