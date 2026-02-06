@@ -168,6 +168,32 @@ async function withRetry<T>(
 }
 
 /**
+ * Chat with Gemini for general conversations
+ */
+export async function chatWithGemini(
+  messages: Array<{ role: "user" | "assistant" | "system"; content: string }>
+): Promise<string> {
+  return withRetry(async () => {
+    const model = getOptimizedModel(false);
+    
+    // Convert messages to Gemini format
+    const history = messages.slice(0, -1).map(m => ({
+      role: m.role === "user" ? "user" : "model",
+      parts: [{ text: m.content }],
+    }));
+    
+    const lastMessage = messages[messages.length - 1];
+    
+    const chat = model.startChat({
+      history: history as any,
+    });
+    
+    const result = await chat.sendMessage(lastMessage.content);
+    return result.response.text();
+  });
+}
+
+/**
  * Enhanced route generation system prompt optimized for Gemini 3 reasoning
  */
 const ROUTE_GENERATION_SYSTEM_PROMPT = `You are an elite cycling route architect and exercise physiologist specializing in indoor spin class experiences.

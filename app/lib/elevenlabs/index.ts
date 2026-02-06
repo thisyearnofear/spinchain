@@ -64,9 +64,8 @@ export {
   WORKOUT_MUSIC_PROMPTS,
 } from './music';
 
-// Speech-to-Text
+// Speech-to-Text (transcribeAudio is exported from api-client above)
 export {
-  transcribeAudio,
   parseCommand,
   RealtimeTranscriber,
   VOICE_COMMANDS,
