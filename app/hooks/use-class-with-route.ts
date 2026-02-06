@@ -11,7 +11,7 @@ import { useAccount } from "wagmi";
 import type { SavedRoute } from "../lib/route-library";
 import type { GeneratedRoute } from "../lib/ai-service";
 import { uploadRouteToWalrus, recordDeployment } from "../lib/route-storage";
-import { createClassMetadata } from "../lib/contracts-extended";
+import { createClassMetadata } from "../lib/contracts";
 import { INCENTIVE_ENGINE_ADDRESS } from "../lib/contracts";
 
 interface CreateClassWithRouteParams {

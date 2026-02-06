@@ -9,7 +9,7 @@
 import { useMemo, useState } from "react";
 import RouteVisualizer from "./route-visualizer";
 import type { SavedRoute } from "../lib/route-library";
-import type { EnhancedClassMetadata } from "../lib/contracts-extended";
+import type { EnhancedClassMetadata } from "../lib/contracts";
 
 type RoutePreviewCardProps = {
   route: SavedRoute | EnhancedClassMetadata["route"];

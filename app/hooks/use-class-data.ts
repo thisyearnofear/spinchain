@@ -9,7 +9,7 @@
 import { useState, useEffect } from "react";
 import { useReadContract } from "wagmi";
 import { SPIN_CLASS_ABI } from "../lib/contracts";
-import { parseClassMetadata, type EnhancedClassMetadata } from "../lib/contracts-extended";
+import { parseClassMetadata, type EnhancedClassMetadata } from "../lib/contracts";
 import { retrieveRouteFromWalrus, getCachedRoute, cacheRouteLocally, type WalrusRouteData } from "../lib/route-storage";
 
 /**

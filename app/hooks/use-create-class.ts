@@ -4,7 +4,7 @@ import { useTransaction } from "./use-transaction";
 import { CLASS_FACTORY_ADDRESS, CLASS_FACTORY_ABI } from "../lib/contracts";
 import { parseEther } from "viem";
 import { CONTRACT_ERROR_CONTEXT } from "../lib/errors";
-import type { EnhancedClassMetadata } from "../lib/contracts-extended";
+import type { EnhancedClassMetadata } from "../lib/contracts";
 
 interface CreateClassParams {
   name: string;
