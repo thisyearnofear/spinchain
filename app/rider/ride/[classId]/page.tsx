@@ -560,7 +560,7 @@ export default function LiveRidePage() {
                 <div className="flex flex-col gap-2 w-full max-w-[200px]">
                   {/* Primary Metric - Large */}
                   <div className="rounded-xl bg-black/70 backdrop-blur-xl border border-white/20 p-4 text-center">
-                    <p className="text-[10px] uppercase tracking-wider text-white/50 mb-1">Heart Rate</p>
+                    <p className="text-xs uppercase tracking-wider text-white/50 mb-1">Heart Rate</p>
                     <p className="text-4xl font-bold text-red-400">
                       {telemetry.heartRate}
                     </p>
@@ -569,11 +569,11 @@ export default function LiveRidePage() {
                   {/* Secondary Metrics - Small */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-lg bg-black/60 backdrop-blur-xl border border-white/10 p-2 text-center">
-                      <p className="text-[9px] uppercase text-white/40">Power</p>
+                      <p className="text-[10px] sm:text-xs uppercase text-white/40">Power</p>
                       <p className="text-xl font-bold text-yellow-400">{telemetry.power}</p>
                     </div>
                     <div className="rounded-lg bg-black/60 backdrop-blur-xl border border-white/10 p-2 text-center">
-                      <p className="text-[9px] uppercase text-white/40">RPM</p>
+                      <p className="text-[10px] sm:text-xs uppercase text-white/40">RPM</p>
                       <p className="text-xl font-bold text-blue-400">{telemetry.cadence}</p>
                     </div>
                   </div>

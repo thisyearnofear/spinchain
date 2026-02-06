@@ -151,6 +151,18 @@ body {
 }
 /* Mobile-Specific CSS Enhancements */
 
+/* Prevent text size adjustment on orientation change */
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Prevent overscroll bounce on mobile */
+body {
+  overscroll-behavior: none;
+}
+
 /* Safe area insets for notched devices */
 .safe-top {
   padding-top: max(env(safe-area-inset-top), 0.75rem);

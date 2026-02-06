@@ -183,28 +183,28 @@ export function RouteSelectionStep({
           {/* Route Stats */}
           <div className="grid grid-cols-4 gap-3">
             <div className="rounded-lg bg-white/5 p-3">
-              <p className="text-[10px] uppercase tracking-wider text-white/50">Distance</p>
+              <p className="text-xs uppercase tracking-wider text-white/50">Distance</p>
               <p className="text-lg font-bold text-white mt-1">
                 {selectedRoute.estimatedDistance.toFixed(1)}
                 <span className="text-xs font-normal text-white/50 ml-1">km</span>
               </p>
             </div>
             <div className="rounded-lg bg-white/5 p-3">
-              <p className="text-[10px] uppercase tracking-wider text-white/50">Duration</p>
+              <p className="text-xs uppercase tracking-wider text-white/50">Duration</p>
               <p className="text-lg font-bold text-white mt-1">
                 {selectedRoute.estimatedDuration}
                 <span className="text-xs font-normal text-white/50 ml-1">min</span>
               </p>
             </div>
             <div className="rounded-lg bg-white/5 p-3">
-              <p className="text-[10px] uppercase tracking-wider text-white/50">Elevation</p>
+              <p className="text-xs uppercase tracking-wider text-white/50">Elevation</p>
               <p className="text-lg font-bold text-white mt-1">
                 {selectedRoute.elevationGain}
                 <span className="text-xs font-normal text-white/50 ml-1">m</span>
               </p>
             </div>
             <div className="rounded-lg bg-white/5 p-3">
-              <p className="text-[10px] uppercase tracking-wider text-white/50">Story Beats</p>
+              <p className="text-xs uppercase tracking-wider text-white/50">Story Beats</p>
               <p className="text-lg font-bold text-white mt-1">
                 {selectedRoute.storyBeats.length}
               </p>
@@ -214,7 +214,7 @@ export function RouteSelectionStep({
 
         {/* Route Visualization */}
         <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-6 backdrop-blur">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted)] mb-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)] mb-4">
             Route Preview
           </p>
           <div className="h-64 rounded-xl overflow-hidden">

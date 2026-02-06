@@ -125,7 +125,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
 
       <button
         onClick={onDismiss}
-        className="flex-shrink-0 p-1 rounded-lg text-[color:var(--muted)] hover:text-[color:var(--foreground)] hover:bg-[color:var(--surface-strong)]"
+        className="flex-shrink-0 p-2 rounded-lg text-[color:var(--muted)] hover:text-[color:var(--foreground)] hover:bg-[color:var(--surface-strong)] min-w-[44px] min-h-[44px] flex items-center justify-center"
       >
         <X className="w-4 h-4" />
       </button>
