@@ -9,6 +9,8 @@ import { useDeviceType, useOrientation, useActualViewportHeight } from "../../..
 import { useWorkoutAudio } from "../../../hooks/use-workout-audio";
 import { useCoachVoice } from "../../../hooks/use-coach-voice";
 import { useAiInstructor } from "../../../hooks/use-ai-instructor";
+import { useRewards, REWARD_MODES } from "../../../hooks/use-rewards";
+import { YellowRewardTicker } from "../../../components/yellow-reward-ticker";
 import {
   type WorkoutPlan,
   type WorkoutInterval,
@@ -162,6 +164,14 @@ export default function LiveRidePage() {
     null // No Sui session in practice/standalone mode
   );
 
+  // Yellow Rewards - Real-time streaming
+  const rewards = useRewards({
+    mode: "yellow-stream",
+    classId: classId as string,
+    instructor: (classData?.instructor as `0x${string}`) || "0x0",
+    depositAmount: BigInt(0), // Demo mode - no real deposit required
+  });
+
   // Track last spoken beat to avoid repeats
   const lastSpokenBeatRef = useRef<string | null>(null);
 
@@ -186,7 +196,7 @@ export default function LiveRidePage() {
   const lastIntervalRef = useRef<number>(-1);
 
   // Handle BLE metrics updates
-  const handleBleMetrics = (metrics: {
+  const handleBleMetrics = async (metrics: {
     heartRate?: number;
     power?: number;
     cadence?: number;
@@ -203,6 +213,21 @@ export default function LiveRidePage() {
     }));
     if (metrics.heartRate || metrics.power) {
       setBleConnected(true);
+    }
+    
+    // Record effort for Yellow rewards
+    if (isRiding && rewards.isActive && (metrics.heartRate || metrics.power)) {
+      try {
+        await rewards.recordEffort({
+          timestamp: Date.now(),
+          heartRate: metrics.heartRate || telemetry.heartRate,
+          power: metrics.power || telemetry.power,
+          cadence: metrics.cadence || telemetry.cadence,
+        });
+      } catch (err) {
+        // Silently fail - rewards are best-effort
+        console.debug("[Ride] Failed to record effort:", err);
+      }
     }
   };
 
@@ -374,8 +399,17 @@ export default function LiveRidePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rideProgress >= 100]);
 
-  const startRide = () => {
+  const startRide = async () => {
     playCountdown(3);
+    
+    // Initialize Yellow rewards channel
+    try {
+      await rewards.startEarning();
+      console.log("[Ride] Yellow rewards channel opened");
+    } catch (err) {
+      console.warn("[Ride] Failed to open rewards channel:", err);
+    }
+    
     // Start ride after countdown finishes
     setTimeout(() => {
       setIsRiding(true);
@@ -392,10 +426,21 @@ export default function LiveRidePage() {
     setIsRiding(false);
     playSound('recover');
   };
-  const exitRide = () => {
+  const exitRide = async () => {
     stopAudio();
     stopVoice();
     setAiActive(false);
+    
+    // Finalize Yellow rewards
+    if (rewards.isActive) {
+      try {
+        const result = await rewards.finalizeRewards();
+        console.log("[Ride] Rewards finalized:", result);
+      } catch (err) {
+        console.warn("[Ride] Failed to finalize rewards:", err);
+      }
+    }
+    
     if (isPracticeMode) {
       router.push("/instructor/builder");
     } else {
@@ -558,6 +603,16 @@ export default function LiveRidePage() {
               {/* Mobile: Single Column */}
               {deviceType === "mobile" && hudMode === "compact" && (
                 <div className="flex flex-col gap-2 w-full max-w-[200px]">
+                  {/* Yellow Rewards Ticker */}
+                  {rewards.isActive && (
+                    <YellowRewardTicker
+                      streamState={rewards.streamState!}
+                      mode={rewards.mode}
+                      symbol="SPIN"
+                      compact
+                    />
+                  )}
+                  
                   {/* Primary Metric - Large */}
                   <div className="rounded-xl bg-black/70 backdrop-blur-xl border border-white/20 p-4 text-center">
                     <p className="text-xs uppercase tracking-wider text-white/50 mb-1">Heart Rate</p>
@@ -600,36 +655,49 @@ export default function LiveRidePage() {
                 </div>
               )}
 
-              {/* Desktop/Tablet Landscape: 2x2 Grid */}
+              {/* Desktop/Tablet Landscape: 2x2 Grid + Yellow Ticker */}
               {(deviceType === "desktop" || (deviceType === "tablet" && orientation === "landscape")) && hudMode === "full" && (
-                <div className="grid grid-cols-2 gap-4 sm:gap-6">
-                  <div className="rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 p-4 sm:p-6 min-w-[160px] sm:min-w-[180px]">
-                    <p className="text-xs uppercase tracking-wider text-white/50 mb-2">Heart Rate</p>
-                    <p className="text-4xl sm:text-5xl font-bold text-red-400">
-                      {telemetry.heartRate}
-                      <span className="text-lg sm:text-xl text-white/50 ml-2">bpm</span>
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 p-4 sm:p-6 min-w-[160px] sm:min-w-[180px]">
-                    <p className="text-xs uppercase tracking-wider text-white/50 mb-2">Power</p>
-                    <p className="text-4xl sm:text-5xl font-bold text-yellow-400">
-                      {telemetry.power}
-                      <span className="text-lg sm:text-xl text-white/50 ml-2">W</span>
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 p-4 sm:p-6 min-w-[160px] sm:min-w-[180px]">
-                    <p className="text-xs uppercase tracking-wider text-white/50 mb-2">Cadence</p>
-                    <p className="text-4xl sm:text-5xl font-bold text-blue-400">
-                      {telemetry.cadence}
-                      <span className="text-lg sm:text-xl text-white/50 ml-2">rpm</span>
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 p-4 sm:p-6 min-w-[160px] sm:min-w-[180px]">
-                    <p className="text-xs uppercase tracking-wider text-white/50 mb-2">Speed</p>
-                    <p className="text-4xl sm:text-5xl font-bold text-green-400">
-                      {telemetry.speed.toFixed(1)}
-                      <span className="text-lg sm:text-xl text-white/50 ml-2">km/h</span>
-                    </p>
+                <div className="flex flex-col gap-4">
+                  {/* Yellow Rewards Ticker */}
+                  {rewards.isActive && rewards.streamState && (
+                    <div className="flex justify-center">
+                      <YellowRewardTicker
+                        streamState={rewards.streamState}
+                        mode={rewards.mode}
+                        symbol="SPIN"
+                      />
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-4 sm:gap-6">
+                    <div className="rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 p-4 sm:p-6 min-w-[160px] sm:min-w-[180px]">
+                      <p className="text-xs uppercase tracking-wider text-white/50 mb-2">Heart Rate</p>
+                      <p className="text-4xl sm:text-5xl font-bold text-red-400">
+                        {telemetry.heartRate}
+                        <span className="text-lg sm:text-xl text-white/50 ml-2">bpm</span>
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 p-4 sm:p-6 min-w-[160px] sm:min-w-[180px]">
+                      <p className="text-xs uppercase tracking-wider text-white/50 mb-2">Power</p>
+                      <p className="text-4xl sm:text-5xl font-bold text-yellow-400">
+                        {telemetry.power}
+                        <span className="text-lg sm:text-xl text-white/50 ml-2">W</span>
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 p-4 sm:p-6 min-w-[160px] sm:min-w-[180px]">
+                      <p className="text-xs uppercase tracking-wider text-white/50 mb-2">Cadence</p>
+                      <p className="text-4xl sm:text-5xl font-bold text-blue-400">
+                        {telemetry.cadence}
+                        <span className="text-lg sm:text-xl text-white/50 ml-2">rpm</span>
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 p-4 sm:p-6 min-w-[160px] sm:min-w-[180px]">
+                      <p className="text-xs uppercase tracking-wider text-white/50 mb-2">Speed</p>
+                      <p className="text-4xl sm:text-5xl font-bold text-green-400">
+                        {telemetry.speed.toFixed(1)}
+                        <span className="text-lg sm:text-xl text-white/50 ml-2">km/h</span>
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
