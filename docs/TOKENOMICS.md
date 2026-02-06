@@ -1,256 +1,117 @@
-# SPIN Tokenomics Design
+# SPIN Tokenomics
 
-## Core Problem Statement
+## The Problem
 
-Current state: Users earn SPIN tokens but there's no sustainable value accrual mechanism. Without demand-side pressure, tokens become inflationary rewards with no utility.
+Most "X-to-earn" tokens fail because users earn them, immediately sell, and price collapses. No sustainable demand.
 
-## Design Goals
+## The Solution: The SpinCycle
 
-1. **Sustainable Value Accrual**: Every class payment creates buy pressure on SPIN
-2. **Natural Demand**: Users want SPIN for tangible benefits (discounts, access, status)
-3. **Instructor Alignment**: Instructors benefit from holding and distributing SPIN
-4. **Cross-Chain Unity**: Single economic model across Sui and Avalanche
-5. **Progressive Unlock**: Benefits scale with holding amount (not binary)
-
----
-
-## Token Flow Architecture
-
-### 1. Primary Value Accrual: The "SpinCycle"
+Every class payment automatically buys and burns SPIN. More users = more demand = higher price.
 
 ```
-User pays for class (USDC/ETH/SUI)
-         ↓
-   [10-20%] automatically swapped to SPIN
-         ↓
+User pays $25 for class
+        ↓
+15% ($3.75) → Treasury
+        ↓
+DEX swap to SPIN
+        ↓
     ┌────┴────┐
-    ↓         ↓
-Burn (5%)  Treasury (95%)
-    ↓         ↓
-Deflation  Instructor rewards
-           User rewards pool
-           Staking rewards
+ Burn 20%   Rewards 80%
+    ↓            ↓
+Deflation   Staking + Challenges
 ```
 
-**Key insight**: Every class payment = SPIN buy pressure. The more popular the platform, the more valuable SPIN becomes.
+## Token Utility (Why Hold?)
 
-### 2. User Utility Tiers (Progressive Benefits)
+| Tier | SPIN | Discount | Annual Savings* |
+|------|------|----------|-----------------|
+| Spinner | 100 | 5% | $60 |
+| Cyclist | 500 | 10% | $120 |
+| Peloton | 2,000 | 15% | $180 |
+| Century | 10,000 | 25% | $300 |
 
-| Tier | SPIN Required | Benefits |
-|------|---------------|----------|
-| **Rider** | 0 SPIN | Basic class access |
-| **Spinner** | 100 SPIN | 5% class discount, basic agent access |
-| **Cyclist** | 500 SPIN | 10% discount, premium agents, early class access |
-| **Peloton** | 2,000 SPIN | 15% discount, exclusive agents, private classes |
-| **Century** | 10,000 SPIN | 25% discount, governance, revenue share |
+*On $100/month spend. ROI: 480%+ at $0.05/SPIN
 
-**Benefits are multiplicative** - hold more SPIN, get more value. No binary "you have it or you don't."
+Additional benefits: Premium AI agents, early class access, governance, exclusive challenges.
 
-### 3. Instructor Incentive Mechanisms
+## Supply & Distribution
 
-Instructors can create **SPIN-backed challenges** with verifiable metrics:
+**Initial**: 100M SPIN fixed
 
-#### Verifiable On-Chain Metrics (via ZK proofs)
-- **Effort Score**: Heart rate × power × duration
-- **Consistency**: Classes attended per week
-- **Improvement**: Resting HR decrease over time
-- **Power Progression**: FTP (Functional Threshold Power) improvement
-- **Zone Mastery**: Time in target heart rate zones
+| Allocation | % | Vesting |
+|------------|---|---------|
+| Community rewards | 40% | 4 years |
+| Treasury | 20% | 2 years |
+| Liquidity | 15% | Immediate |
+| Team | 15% | 4 years |
+| Backers | 10% | 2 years |
 
-#### Challenge Types
-```
-Instructor creates challenge:
-├── Prize Pool: 1000 SPIN (from instructor treasury)
-├── Metric: "Most improved FTP over 4 weeks"
-├── Entry: 50 SPIN (creates demand)
-├── Verification: ZK proof of effort data
-└── Winner takes: 80% of pool
-    Platform: 10%
-    Burn: 10%
-```
+**Emissions**: Halve every 2 years. Deflationary after Year 1 via burns.
 
-### 4. Cross-Chain Mechanics
+## Instructor Challenges
 
-**SPIN (Avalanche)**: ERC-20, primary trading, deep liquidity
-**SPIN (Sui)**: Native object, fast transfers, gaming integrations
+Instructors create competitions with verifiable metrics (ZK proofs):
 
-**Bridge Flow**:
-```
-User wants to use Sui-native feature
-        ↓
-   Lock SPIN on Avalanche
-        ↓
-   Mint SPIN on Sui (1:1)
-        ↓
-   Use on Sui ecosystem
-        ↓
-   Burn Sui SPIN
-        ↓
-   Unlock Avalanche SPIN
-```
+- **Metrics**: FTP improvement, resting HR decrease, zone mastery
+- **Entry**: 50 SPIN per rider
+- **Prize pool**: Winner 80%, Platform 10%, Burn 10%
+- **Result**: Zero instructor cost, high engagement, SPIN demand
 
-**Key**: SPIN supply is managed across chains. Total supply is fixed/controlled.
+## Cross-Chain
 
----
+**Avalanche**: Primary trading, treasury buybacks, governance
+**Sui**: Fast transfers, gaming integrations, low fees
 
-## Economic Sustainability Model
+Bridge: 1:1 backed, multisig secured.
 
-### Revenue Sources
+## Economic Projections
 
-| Source | % of Class Price | Destination |
-|--------|------------------|-------------|
-| Instructor | 70% | Direct payout |
-| Treasury | 15% | SPIN buyback + operations |
-| Platform | 10% | Development, marketing |
-| Insurance | 5% | Refund pool, disputes |
+| Daily Classes | Monthly Buyback | Annual Buyback |
+|---------------|-----------------|----------------|
+| 100 | $11,250 | $135,000 |
+| 1,000 | $112,500 | $1,350,000 |
+| 10,000 | $1,125,000 | $13,500,000 |
 
-### Treasury Allocation (from 15%)
+At 1,000 classes/day and $0.50/SPIN: 225,000 SPIN burned yearly.
 
-```
-Treasury receives USDC/ETH
-        ↓
-   DEX swap to SPIN
-        ↓
-    ┌───┼───┐
-    ↓   ↓   ↓
-  Burn Stake Rewards
-   20%  30%  50%
-        ↓
-   Staked SPIN earns
-   more SPIN + USDC
-```
-
-### The Virtuous Cycle
-
-```
-More users → More class payments
-                ↓
-         More SPIN buybacks
-                ↓
-         SPIN price increases
-                ↓
-    Existing holders wealth increases
-                ↓
-         They hold longer
-                ↓
-         Supply shock
-                ↓
-         Price increases more
-                ↓
-    New users want SPIN for discounts
-                ↓
-         More demand
-                ↓
-    [Cycle repeats]
-```
-
----
-
-## Token Distribution & Emissions
-
-### Initial Distribution
-
-| Category | % | Vesting | Purpose |
-|----------|---|---------|---------|
-| Community Rewards | 40% | 4 years linear | Ride-to-earn, challenges |
-| Team & Advisors | 15% | 4 years cliff + linear | Long-term alignment |
-| Treasury | 20% | 2 years linear | Operations, marketing |
-| Liquidity | 15% | Immediate | DEX pools |
-| Early Backers | 10% | 2 years linear | Initial funding |
-
-### Emissions Schedule
-
-**Year 1**: 25% of rewards pool (high inflation to bootstrap)
-**Year 2**: 20% of remaining
-**Year 3**: 15% of remaining
-**Year 4+**: 10% of remaining (sustainable long-term)
-
-**Halving mechanism**: Every 2 years, emissions halve.
-
----
-
-## Advanced Features (Future)
-
-### 1. SPIN-Backed Class Insurance
-- Users stake SPIN as collateral
-- If class is cancelled, stakers cover refunds
-- Stakers earn yield from insurance fees
-
-### 2. Agent Governance
-- Hold SPIN to vote on AI agent features
-- Propose new agent personalities
-- Vote on protocol parameter changes
-
-### 3. NFT Integration
-- Complete challenges → Earn NFT badges
-- NFTs boost SPIN earnings (multiplier)
-- Tradeable, but soulbound for core achievements
-
-### 4. Real-World Redemptions
-- SPIN → Fitness equipment discounts
-- SPIN → Gym partnerships
-- SPIN → Health insurance discounts
-
----
-
-## Open Questions
-
-### Critical Decisions Needed
-
-1. **Initial Supply**: 100M? 1B? Infinite with burn?
-2. **Burn Rate**: Fixed % or dynamic based on volume?
-3. **Bridge Custody**: Who controls the bridge? (Multisig? DAO?)
-4. **Sui vs AVAX Priority**: Which chain gets features first?
-5. **Regulatory**: Is SPIN a security? (Utility token design)
-
-### Risk Factors
+## Risk Mitigation
 
 | Risk | Mitigation |
 |------|------------|
-| Low class volume = no buy pressure | Bootstrap with treasury buybacks |
-| Whale manipulation | Holding caps for governance |
-| Bridge exploit | Insurance fund + gradual unlocks |
-| Instructor churn | Revenue share locks them in |
-| Regulatory | Utility-first design, no profit promises |
+| Low volume | Treasury reserves guarantee minimum buybacks |
+| Price crash | Staking lockups + real-world utility |
+| Bridge exploit | Multisig + insurance fund |
+| Regulatory | Utility token design, no profit promises |
 
----
+## Implementation
+
+**Phase 1 (MVP)**:
+- SPIN on Avalanche
+- Basic tier: 100 SPIN = 5% discount
+- Treasury buyback mechanism
+- Simple staking
+
+**Phase 2**:
+- Full 4-tier system
+- Instructor challenges
+- Sui bridge
+- Governance
+
+**Phase 3**:
+- Real-world redemptions
+- Insurance pool
+- Advanced ZK challenges
 
 ## Success Metrics
 
-### Phase 1 (Months 1-3): Bootstrap
-- [ ] 1000+ classes completed
-- [ ] 500+ SPIN holders
-- [ ] $10k+ treasury accumulated
+- Month 6: 1,000 classes, 500 holders, $50k treasury
+- Month 12: 10,000 classes, 5,000 holders, $500k treasury
+- Year 2: Deflationary supply, self-sustaining
 
-### Phase 2 (Months 4-12): Growth
-- [ ] 10,000+ classes completed
-- [ ] SPIN market cap > $1M
-- [ ] 50%+ of users hold SPIN for discounts
+## Key Insight
 
-### Phase 3 (Year 2+): Maturity
-- [ ] Self-sustaining treasury (no external funding)
-- [ ] SPIN trading on major DEXs
-- [ ] Real-world redemption partnerships
+SPIN is valuable because the platform is valuable—not the other way around. Every workout makes SPIN scarcer.
 
 ---
 
-## Next Steps
-
-1. **Model the math**: Excel simulation with different scenarios
-2. **Legal review**: Token classification in key jurisdictions
-3. **Community feedback**: Share with early users, get input
-4. **MVP contracts**: Start with basic SPIN + simple discount tier
-5. **Testnet launch**: Let users play with fake money first
-
----
-
-## Appendix: Comparison to Other Models
-
-| Project | Model | Our Differentiation |
-|---------|-------|---------------------|
-| STEPN | Move-to-earn, shoe NFTs | No NFT requirement, real fitness data |
-| Sweatcoin | Step counting | ZK privacy, DeFi integrations |
-| Axie | Play-to-earn, breeding | Real-world utility (fitness), sustainable burns |
-| Lido | Liquid staking | Fitness-verified staking |
-
-**Our moat**: Real fitness data + privacy-preserving ZK proofs + sustainable economics.
+*Status: Design phase. Review, model, then implement MVP.*
