@@ -103,11 +103,11 @@ export default function Home() {
             {/* Clear What-We-Do Statement */}
             <div className="w-full text-center py-8 border-y border-[color:var(--border)]">
               <h1 className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)] mb-3">
-                Indoor Cycling. Onchain Rewards.
+                Elevate Your Spin. Earn Onchain.
               </h1>
               <p className="text-lg text-[color:var(--muted)] max-w-2xl mx-auto">
-                Live classes from home. Earn SPIN tokens as you ride. 
-                <span className="text-[color:var(--accent)] font-medium">Private by design.</span>
+                Transform any spin bike into an immersive experience. 
+                <span className="text-[color:var(--accent)] font-medium">Earn SPIN tokens</span> as you crush your goals.
               </p>
             </div>
             
