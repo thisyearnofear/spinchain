@@ -32,14 +32,21 @@ export {
 } from './constants';
 export type { WorkoutSoundType } from './constants';
 
-// Client
+// Client (Secure - calls server-side API routes)
+export {
+  generateTTS,
+  generateSFX,
+  transcribeAudio,
+  getVoices,
+  isElevenLabsConfigured,
+} from './api-client';
+
+// Legacy exports (deprecated - will be removed)
+// Use the new secure api-client functions instead
 export {
   generateSpeech,
   generateSpeechStream,
   generateSoundEffect,
-  generateAvatarVideo,
-  getVoices,
-  isElevenLabsConfigured,
 } from './client';
 
 // Video/Avatar
