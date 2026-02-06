@@ -130,6 +130,8 @@ export default function LiveRidePage() {
 
   // Ride state
   const [isRiding, setIsRiding] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const [rideProgress, setRideProgress] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showHUD, setShowHUD] = useState(true);
@@ -453,6 +455,7 @@ export default function LiveRidePage() {
   }, [rideProgress >= 100]);
 
   const startRide = async () => {
+    setIsStarting(true);
     playCountdown(3);
 
     // Initialize Yellow rewards channel
@@ -466,6 +469,7 @@ export default function LiveRidePage() {
     // Start ride after countdown finishes
     setTimeout(() => {
       setIsRiding(true);
+      setIsStarting(false);
       setRideProgress(0);
       setElapsedTime(0);
       telemetrySamples.current = [];
@@ -480,6 +484,7 @@ export default function LiveRidePage() {
     playSound('recover');
   };
   const exitRide = async () => {
+    setIsExiting(true);
     stopAudio();
     stopVoice();
     setAiActive(false);
@@ -514,6 +519,7 @@ export default function LiveRidePage() {
         effortScore: Math.min(1000, Math.round((avgHR / 200) * 1000)),
         spinEarned: spinEarned || "12.5", // Fallback for demo
       });
+      setIsExiting(false);
       setShowDemoModal(true);
     } else {
       router.push("/rider/journey?completed=true");
@@ -662,19 +668,51 @@ export default function LiveRidePage() {
                 {/* Exit Button */}
                 <button
                   onClick={exitRide}
-                  className="rounded-lg bg-white/10 p-2 sm:p-2.5 text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  disabled={isExiting}
+                  className="rounded-lg bg-white/10 p-2 sm:p-2.5 text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Exit ride"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  {isExiting ? (
+                    <svg
+                      className="animate-spin h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeDasharray="4 4"
+                        opacity="0.3"
+                      />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeDasharray="15 45"
+                        opacity="0.8"
+                      />
+                      <circle cx="12" cy="12" r="2" fill="currentColor" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Center - Telemetry (Responsive Layout) */}
-          {hudMode !== "minimal" && (
+          {/* Center - Telemetry (Responsive Layout) - Only show when riding */}
+          {hudMode !== "minimal" && (isRiding || rideProgress > 0) && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-3 sm:p-6">
               {/* Mobile: Single Column */}
               {deviceType === "mobile" && hudMode === "compact" && (
@@ -925,9 +963,48 @@ export default function LiveRidePage() {
                 {!isRiding ? (
                   <button
                     onClick={startRide}
-                    className="rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px]"
+                    disabled={isStarting}
+                    className="relative rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px] disabled:opacity-80 disabled:cursor-not-allowed disabled:active:scale-100"
                   >
-                    {rideProgress > 0 ? "Resume" : "Start Ride"}
+                    {isStarting ? (
+                      <span className="flex items-center gap-2">
+                        <svg
+                          className="animate-spin"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          {/* Bike wheel with spokes */}
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeDasharray="4 4"
+                            opacity="0.3"
+                          />
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeDasharray="15 45"
+                            opacity="0.8"
+                          />
+                          {/* Center hub */}
+                          <circle cx="12" cy="12" r="2" fill="currentColor" />
+                        </svg>
+                        <span>Starting...</span>
+                      </span>
+                    ) : (
+                      <span>{rideProgress > 0 ? "Resume" : "Start Ride"}</span>
+                    )}
                   </button>
                 ) : (
                   <button

@@ -68,7 +68,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
           >
             <div className="w-full max-w-lg bg-[color:var(--surface)] rounded-3xl border border-[color:var(--border)] shadow-2xl overflow-hidden">
               {/* Header with gradient */}
-              <div className="relative bg-gradient-to-br from-[color:var(--accent)]/20 to-[color:var(--accent-strong)]/20 p-8 text-center">
+              <div className="relative bg-gradient-to-br from-[color:var(--accent)]/20 to-[color:var(--accent-strong)]/20 p-6 text-center">
                 {/* Confetti effect */}
                 {showConfetti && (
                   <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -100,21 +100,21 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2, type: "spring" }}
-                  className="text-6xl mb-4"
+                  className="text-5xl mb-3"
                 >
                   🎉
                 </motion.div>
-                <h2 className="text-2xl font-bold text-[color:var(--foreground)] mb-2">
-                  Demo Complete!
+                <h2 className="text-2xl font-bold text-[color:var(--foreground)] mb-1">
+                  You Did It!
                 </h2>
-                <p className="text-[color:var(--muted)]">
-                  Great effort! Here&apos;s how you performed
+                <p className="text-sm text-[color:var(--muted)]">
+                  Here&apos;s how you performed
                 </p>
               </div>
 
               {/* Stats Grid */}
-              <div className="p-6">
-                <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="p-5">
+                <div className="grid grid-cols-2 gap-3 mb-4">
                   <StatCard
                     label="Duration"
                     value={formatTime(stats.duration)}
@@ -139,19 +139,19 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                 </div>
 
                 {/* Earnings Preview */}
-                <div className="rounded-2xl bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border border-yellow-500/20 p-4 mb-6">
+                <div className="rounded-xl bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border border-yellow-500/20 p-3 mb-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-[color:var(--muted)] mb-1">
+                      <p className="text-xs text-[color:var(--muted)] mb-0.5">
                         You would have earned
                       </p>
-                      <p className="text-3xl font-bold text-yellow-400">
-                        {stats.spinEarned} <span className="text-lg">SPIN</span>
+                      <p className="text-2xl font-bold text-yellow-400">
+                        {stats.spinEarned} <span className="text-base">SPIN</span>
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-[color:var(--muted)]">Value</p>
-                      <p className="text-lg font-semibold text-[color:var(--foreground)]">
+                      <p className="text-base font-semibold text-[color:var(--foreground)]">
                         ~${(parseFloat(stats.spinEarned) * 0.2).toFixed(2)}
                       </p>
                     </div>
@@ -159,17 +159,17 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                 </div>
 
                 {/* Benefits */}
-                <div className="space-y-3 mb-6">
+                <div className="space-y-2 mb-4">
                   <BenefitRow icon="🚴" text="Book live classes with top instructors" />
                   <BenefitRow icon="💰" text="Earn SPIN tokens for every workout" />
                   <BenefitRow icon="🔒" text="Privacy-first: ZK proofs protect your data" />
                 </div>
 
                 {/* CTAs */}
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Link
                     href="/rider"
-                    className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl bg-[color:var(--accent)] text-white font-semibold hover:opacity-90 transition-opacity"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 px-6 rounded-xl bg-[color:var(--accent)] text-white font-semibold hover:opacity-90 transition-opacity text-sm"
                   >
                     <span>🚴</span>
                     Browse Live Classes
@@ -177,7 +177,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
 
                   <Link
                     href="/?showConnect=true"
-                    className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] text-[color:var(--foreground)] font-semibold hover:bg-[color:var(--surface-elevated)] transition-colors"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 px-6 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] text-[color:var(--foreground)] font-semibold hover:bg-[color:var(--surface-elevated)] transition-colors text-sm"
                   >
                     <span>💼</span>
                     Connect Wallet to Earn
@@ -185,7 +185,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
 
                   <button
                     onClick={onClose}
-                    className="w-full py-2 text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+                    className="w-full py-2 text-xs text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
                   >
                     Continue browsing as guest →
                   </button>
@@ -216,14 +216,13 @@ function StatCard({
 }) {
   return (
     <div
-      className={`rounded-xl p-3 text-center ${
-        highlight
-          ? "bg-[color:var(--accent)]/10 border border-[color:var(--accent)]/20"
-          : "bg-[color:var(--surface-strong)]"
-      }`}
+      className={`rounded-lg p-2.5 text-center ${highlight
+        ? "bg-[color:var(--accent)]/10 border border-[color:var(--accent)]/20"
+        : "bg-[color:var(--surface-strong)]"
+        }`}
     >
-      <span className="text-xl mb-1 block">{icon}</span>
-      <p className="text-lg font-bold text-[color:var(--foreground)]">{value}</p>
+      <span className="text-lg mb-0.5 block">{icon}</span>
+      <p className="text-base font-bold text-[color:var(--foreground)]">{value}</p>
       <p className="text-xs text-[color:var(--muted)]">{label}</p>
     </div>
   );
@@ -231,8 +230,8 @@ function StatCard({
 
 function BenefitRow({ icon, text }: { icon: string; text: string }) {
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <span className="text-lg">{icon}</span>
+    <div className="flex items-center gap-2 text-xs">
+      <span className="text-base">{icon}</span>
       <span className="text-[color:var(--foreground)]">{text}</span>
     </div>
   );
