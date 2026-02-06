@@ -1,9 +1,10 @@
 # SpinChain: AI Integration
 
-> **🏆 HACKATHON-READY: Powered by Gemini 3.0 Flash Preview**
+> **Multi-Provider AI: Venice AI + Gemini 3.0 Flash**
 > 
-> This project leverages Google's latest Gemini 3.0 Flash Preview model for all AI capabilities,
-> featuring enhanced reasoning, structured outputs, and real-time streaming.
+> This project supports multiple AI providers. Venice AI is the default (privacy-first, no setup required).
+> Gemini 3.0 Flash Preview is available via BYOK (Bring Your Own Key) for enhanced reasoning,
+> structured outputs, and real-time streaming.
 
 ## AI-Powered Fitness Platform
 

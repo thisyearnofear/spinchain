@@ -1,11 +1,10 @@
 /**
  * Multi-Provider AI Architecture
  * 
- * HACKATHON STRATEGY:
- * - Default: Venice AI (user has credits available)
- * - Optional: Gemini 3 (BYOK - Bring Your Own Key for hackathon showcase)
+ * Supports multiple AI providers:
+ * - Venice AI: Privacy-first inference (default)
+ * - Gemini 3: Enhanced reasoning & structured outputs (BYOK)
  * - Smart fallbacks with graceful degradation
- * - Clear UI indicators for which provider is active
  */
 
 // Provider Types
@@ -19,7 +18,7 @@ export interface ProviderConfig {
   apiKeyEnvVar: string;
   capabilities: string[];
   isDefault: boolean;
-  hackathonShowcase: boolean; // For highlighting to judges
+  highlighted: boolean; // Highlight in UI as new/exciting feature
 }
 
 // Provider Definitions
@@ -37,7 +36,7 @@ export const PROVIDERS: Record<AIProvider, ProviderConfig> = {
       "agent_reasoning",
     ],
     isDefault: true,
-    hackathonShowcase: false,
+    highlighted: false,
   },
   gemini: {
     id: "gemini",
@@ -55,7 +54,7 @@ export const PROVIDERS: Record<AIProvider, ProviderConfig> = {
       "multimodal",
     ],
     isDefault: false,
-    hackathonShowcase: true, // ⭐ Highlight this for judges
+    highlighted: true,
   },
   auto: {
     id: "auto",
@@ -65,7 +64,7 @@ export const PROVIDERS: Record<AIProvider, ProviderConfig> = {
     apiKeyEnvVar: "",
     capabilities: [],
     isDefault: false,
-    hackathonShowcase: false,
+    highlighted: false,
   },
 };
 

@@ -1,10 +1,9 @@
 /**
  * AI Provider Settings Component
  * 
- * HACKATHON STRATEGY:
- * - Default: Venice AI (user has credits)
- * - Optional: Gemini 3 BYOK (Bring Your Own Key)
- * - Clear UI for hackathon judges to see Gemini 3 option
+ * Multi-provider AI architecture:
+ * - Venice AI: Privacy-first inference
+ * - Gemini 3: Enhanced reasoning with BYOK (Bring Your Own Key)
  */
 
 "use client";
@@ -137,12 +136,9 @@ export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps
                 <div className="text-left flex-1">
                   <div className="font-medium text-gray-900 dark:text-white">
                     Venice AI
-                    <span className="ml-2 text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
-                      Default
-                    </span>
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Privacy-first inference. Recommended for regular use.
+                    Privacy-first inference. No API key required.
                   </div>
                 </div>
                 {prefs.preferredProvider === "venice" && (
@@ -168,12 +164,9 @@ export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps
                     <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
                       BYOK
                     </span>
-                    <span className="ml-2 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 px-2 py-0.5 rounded-full">
-                      ⭐ Hackathon
-                    </span>
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Enhanced reasoning & structured outputs. Bring your own API key.
+                    Enhanced reasoning, streaming & structured outputs. Bring your own API key.
                   </div>
                 </div>
                 {prefs.preferredProvider === "gemini" && (
@@ -262,11 +255,8 @@ export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps
 
             {/* Info Footer */}
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-              <p className="mb-1">
-                <strong>💡 Tip:</strong> Venice AI is recommended for regular use.
-              </p>
               <p>
-                <strong>🏆 Hackathon:</strong> Use Gemini 3 to showcase enhanced reasoning capabilities.
+                <strong>💡 Tip:</strong> Both providers work great. Venice is simpler (no setup), Gemini 3 has more advanced features.
               </p>
             </div>
           </div>
