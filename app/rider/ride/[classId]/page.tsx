@@ -580,10 +580,12 @@ export default function LiveRidePage() {
       <div className="absolute inset-0">
         <RouteVisualizer
           elevationProfile={classData.route.route.coordinates.map(c => c.ele || 0)}
-          theme={currentInterval ? PHASE_TO_THEME[currentInterval.phase] : (classData.metadata?.route.theme as 'neon' | 'alpine' | 'mars') || "neon"}
+          theme={currentInterval ? PHASE_TO_THEME[currentInterval.phase] : (classData.metadata?.route.theme as 'neon' | 'alpine' | 'mars' | 'anime' | 'rainbow') || "neon"}
           storyBeats={classData.route.route.storyBeats}
           progress={isRiding || rideProgress > 0 ? rideProgress / 100 : 0}
           stats={{ hr: telemetry.heartRate, power: telemetry.power, cadence: telemetry.cadence }}
+          avatarId={searchParams.get("avatarId") || undefined}
+          equipmentId={searchParams.get("equipmentId") || undefined}
           className="h-full w-full"
         />
 

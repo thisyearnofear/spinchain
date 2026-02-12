@@ -119,9 +119,10 @@ export function BulletList({ items }: BulletListProps) {
 type TagProps = {
   children: React.ReactNode;
   color?: "blue" | "indigo" | "amber" | "green";
+  className?: string;
 };
 
-export function Tag({ children, color }: TagProps) {
+export function Tag({ children, color, className = "" }: TagProps) {
   const colorClasses = {
     blue: "border-blue-500/30 bg-blue-500/10 text-blue-400",
     indigo: "border-indigo-500/30 bg-indigo-500/10 text-indigo-400",
@@ -135,7 +136,7 @@ export function Tag({ children, color }: TagProps) {
 
   return (
     <span
-      className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.2em] ${baseClass}`}
+      className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.2em] ${baseClass} ${className}`}
     >
       {children}
     </span>

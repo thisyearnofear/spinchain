@@ -20,6 +20,8 @@ import {
   PerspectiveCamera,
   Sparkles,
   Trail,
+  useGLTF,
+  Clone,
 } from "@react-three/drei";
 
 const THEMES = {
@@ -59,9 +61,36 @@ const THEMES = {
     envPreset: "sunset" as const,
     particleColor: "#f87171",
   },
+  anime: {
+    fog: "#ffdeeb",
+    roadColor: "#ffffff",
+    roadEmissive: "#ff90b3",
+    roadEmissiveIntensity: 0.5,
+    lineColor: "#ff4d8d",
+    riderColor: "#ff4d8d",
+    grid: false,
+    stars: false,
+    envPreset: "apartment" as const,
+    particleColor: "#ffc0cb",
+  },
+  rainbow: {
+    fog: "#1a0b2e",
+    roadColor: "#2d1a4a",
+    roadEmissive: "#ff00ff",
+    roadEmissiveIntensity: 0.8,
+    lineColor: "#00ffff",
+    riderColor: "#ffffff",
+    grid: true,
+    stars: true,
+    envPreset: "night" as const,
+    particleColor: "#ff00ff",
+  },
 };
 
 export type VisualizerTheme = keyof typeof THEMES;
+
+// Import Selection types
+import { AVATARS, EQUIPMENT, WORLDS, type AvatarAsset, type EquipmentAsset, type WorldAsset } from "../../../lib/selection-library";
 
 // Import StoryBeat types from gpx-uploader for consistency
 import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../../../routes/builder/gpx-uploader";
@@ -75,6 +104,11 @@ export type RiderStats = {
   power: number;
   cadence: number;
 };
+
+function Model({ url, scale = 1, rotation = [0, 0, 0], position = [0, 0, 0] }: { url: string; scale?: number; rotation?: [number, number, number]; position?: [number, number, number] }) {
+  const { scene } = useGLTF(url);
+  return <Clone object={scene} scale={scale} rotation={rotation} position={position} />;
+}
 
 /**
  * Generates a mock route curve based on elevation data/seeds
@@ -126,7 +160,7 @@ function Road({
 
   const geometry = useMemo(() => {
     const shape = new Shape();
-    const width = 2.5;
+    const width = theme === "rainbow" ? 4 : 2.5;
     const height = 0.5;
 
     // Create a trapezoid road profile
@@ -141,7 +175,7 @@ function Road({
       extrudePath: curve,
       bevelEnabled: false,
     });
-  }, [curve]);
+  }, [curve, theme]);
 
   return (
     <group>
@@ -154,7 +188,7 @@ function Road({
           metalness={0.9}
         />
       </mesh>
-      {theme === "neon" && (
+      {(theme === "neon" || theme === "rainbow") && (
         <mesh geometry={geometry}>
           <meshBasicMaterial
             color={styles.lineColor}
@@ -173,11 +207,15 @@ function RiderMarker({
   progress,
   theme = "neon",
   stats = { hr: 120, power: 150, cadence: 80 },
+  avatar,
+  equipment,
 }: {
   curve: CatmullRomCurve3;
   progress: number;
   theme?: VisualizerTheme;
   stats?: RiderStats;
+  avatar?: AvatarAsset;
+  equipment?: EquipmentAsset;
 }) {
   const groupRef = useRef<Group>(null);
   const styles = THEMES[theme];
@@ -195,7 +233,7 @@ function RiderMarker({
     // Update position
     groupRef.current.position.copy(point);
     // Lift slightly above road
-    groupRef.current.position.y += 1.5;
+    groupRef.current.position.y += equipment?.type === "vehicle" ? 2.5 : 1.5;
 
     // Update rotation to face forward
     const lookAt = point.clone().add(tangent);
@@ -219,35 +257,46 @@ function RiderMarker({
     <group ref={groupRef}>
       <Trail
         width={2}
-        length={10}
+        length={15}
         color={styles.riderColor}
         attenuation={(t) => t * t}
       >
         <Float speed={5} rotationIntensity={0.2} floatIntensity={0.5}>
-          {/* Main Body */}
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <coneGeometry args={[0.8, 2, 8]} />
-            <meshStandardMaterial
-              color={styles.riderColor}
-              emissive={styles.riderColor}
-              emissiveIntensity={4}
-              toneMapped={false}
-            />
-          </mesh>
+          {/* Avatar and Equipment Models */}
+          {avatar && (
+            <group position={[0, equipment?.type === "bike" ? 0.8 : 0, 0]}>
+              <Model url={avatar.modelUrl} scale={1.5} rotation={[0, Math.PI, 0]} />
+            </group>
+          )}
+          
+          {equipment ? (
+             <Model url={equipment.modelUrl} scale={equipment.type === "vehicle" ? 2 : 1.2} />
+          ) : (
+            /* Fallback to cone if no model */
+            <mesh rotation={[Math.PI / 2, 0, 0]}>
+              <coneGeometry args={[0.8, 2, 8]} />
+              <meshStandardMaterial
+                color={styles.riderColor}
+                emissive={styles.riderColor}
+                emissiveIntensity={4}
+                toneMapped={false}
+              />
+            </mesh>
+          )}
 
           {/* Pulsing Aura */}
           <mesh ref={auraRef} rotation={[Math.PI / 2, 0, 0]}>
-            <sphereGeometry args={[1.5, 32, 32]} />
+            <sphereGeometry args={[2, 32, 32]} />
             <meshBasicMaterial
               color={styles.riderColor}
               transparent
-              opacity={0.1}
+              opacity={0.05}
             />
           </mesh>
 
           <pointLight
             ref={lightRef}
-            distance={20}
+            distance={30}
             intensity={10}
             color={styles.riderColor}
           />
@@ -255,7 +304,7 @@ function RiderMarker({
       </Trail>
 
       {/* Label */}
-      <Html position={[0, 3, 0]} center transform sprite distanceFactor={20}>
+      <Html position={[0, 4, 0]} center transform sprite distanceFactor={20}>
         <div className="flex flex-col items-center gap-1">
           <div className="whitespace-nowrap rounded-full bg-black/80 px-3 py-1 text-[12px] font-black text-white backdrop-blur-md border border-white/30 shadow-2xl">
             YOU
@@ -426,6 +475,8 @@ function Scene({
   storyBeats = [],
   ghosts = [],
   stats = { hr: 0, power: 0, cadence: 0 },
+  avatar,
+  equipment,
 }: {
   elevationProfile: number[];
   theme?: VisualizerTheme;
@@ -433,6 +484,8 @@ function Scene({
   storyBeats?: StoryBeat[];
   ghosts?: number[];
   stats?: RiderStats;
+  avatar?: AvatarAsset;
+  equipment?: EquipmentAsset;
 }) {
   const curve = useRouteCurve(elevationProfile);
   const styles = THEMES[theme];
@@ -487,7 +540,7 @@ function Scene({
       <pointLight
         position={[10, 50, 10]}
         intensity={1}
-        color={theme === "mars" ? "#ef4444" : "#9b7bff"}
+        color={theme === "mars" ? "#ef4444" : theme === "rainbow" ? "#ff00ff" : "#9b7bff"}
       />
       <fog attach="fog" args={[styles.fog, 20, 250]} />
 
@@ -516,6 +569,8 @@ function Scene({
           progress={activeProgress}
           theme={theme}
           stats={stats}
+          avatar={avatar}
+          equipment={equipment}
         />
 
         {ghosts.map((g, i) => (
@@ -528,7 +583,7 @@ function Scene({
 
         {styles.grid && (
           <gridHelper
-            args={[300, 30, "#2a1d5a", "#121a2d"]}
+            args={[300, 30, theme === "rainbow" ? "#ff00ff" : "#2a1d5a", "#121a2d"]}
             position={[0, -2, 0]}
           />
         )}
@@ -557,6 +612,8 @@ export default function RouteVisualizer({
   ghosts = [],
   className = "",
   onStatsUpdate,
+  avatarId,
+  equipmentId,
 }: {
   elevationProfile?: number[];
   theme?: VisualizerTheme;
@@ -566,8 +623,13 @@ export default function RouteVisualizer({
   ghosts?: number[];
   className?: string;
   onStatsUpdate?: (stats: RiderStats) => void;
+  avatarId?: string;
+  equipmentId?: string;
 }) {
   const styles = THEMES[theme];
+  
+  const avatar = useMemo(() => AVATARS.find(a => a.id === avatarId), [avatarId]);
+  const equipment = useMemo(() => EQUIPMENT.find(e => e.id === equipmentId), [equipmentId]);
 
   // Simulation loop for stats if progress is live
   useEffect(() => {
@@ -598,6 +660,8 @@ export default function RouteVisualizer({
           storyBeats={storyBeats}
           ghosts={ghosts}
           stats={stats}
+          avatar={avatar}
+          equipment={equipment}
         />
       </Canvas>
 

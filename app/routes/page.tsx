@@ -8,7 +8,7 @@ import RouteVisualizer, {
 import { useState } from "react";
 
 export default function RoutesPage() {
-  const [currentTheme, setCurrentTheme] = useState<"neon" | "alpine" | "mars">(
+  const [currentTheme, setCurrentTheme] = useState<VisualizerTheme>(
     "neon",
   );
   const elevationProfile = [
@@ -44,7 +44,7 @@ export default function RoutesPage() {
           className="bg-[color:var(--surface-strong)]"
         >
           <div className="mt-6 flex flex-wrap gap-3">
-            {["neon", "alpine", "mars"].map((theme) => (
+            {["neon", "alpine", "mars", "anime", "rainbow"].map((theme) => (
               <button
                 key={theme}
                 onClick={() => setCurrentTheme(theme as VisualizerTheme)}

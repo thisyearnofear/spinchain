@@ -17,6 +17,9 @@ import { useAccount } from "wagmi";
 import type { SavedRoute } from "@/app/lib/route-library";
 import type { GpxSummary } from "@/app/routes/builder/gpx-uploader";
 
+import { SelectionGarage } from "@/app/components/features/common/selection-garage";
+import type { AvatarAsset, EquipmentAsset, WorldAsset } from "@/app/lib/selection-library";
+
 type ClassFormData = {
   name: string;
   date: string;
@@ -30,6 +33,10 @@ type ClassFormData = {
   // NEW: AI configuration
   aiEnabled?: boolean;
   aiPersonality?: "zen" | "drill-sergeant" | "data";
+  // NEW: Selection
+  avatarId?: string;
+  equipmentId?: string;
+  worldId?: string;
 };
 
 function PricingCurveVisualizer({
@@ -145,6 +152,9 @@ function PricingCurveVisualizer({
   );
 }
 
+import { Tooltip } from "@/app/components/ui/tooltip";
+import { motion, AnimatePresence } from "framer-motion";
+
 export default function InstructorBuilderPage() {
   const { address: userAddress } = useAccount();
   const { createClass, isPending, isSuccess, error: deployError, hash } = useCreateClass();
@@ -155,9 +165,21 @@ export default function InstructorBuilderPage() {
     isSuccess: deploySuccess
   } = useClassWithRoute();
 
-  const [step, setStep] = useState(0); // Start at 0 for route selection
+  const [step, setStep] = useState(0); 
+  const [showOnboarding, setShowOnboarding] = useState(true);
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
   const [gpxSummary, setGpxSummary] = useState<GpxSummary | null>(null);
+  
+  const onboardingTips = [
+    "Start by choosing a race track for your riders.",
+    "Give your class a name and schedule it on the calendar.",
+    "Pick your character, bike, and world theme.",
+    "Set the ticket price curve - early birds pay less!",
+    "Define how much riders can earn for their effort.",
+    "Review everything and deploy your smart contract."
+  ];
+
+  // ... rest of the component
   
   const [formData, setFormData] = useState<ClassFormData>({
     name: "Morning Mountain Climb",
@@ -172,11 +194,12 @@ export default function InstructorBuilderPage() {
   });
 
   const steps = [
-    { number: 0, title: "Route" },      // NEW
+    { number: 0, title: "Route" },
     { number: 1, title: "Basics" },
-    { number: 2, title: "Economics" },
-    { number: 3, title: "AI & Rewards" }, // Enhanced
-    { number: 4, title: "Deploy" },
+    { number: 2, title: "Character & Gear" }, // NEW
+    { number: 3, title: "Economics" },
+    { number: 4, title: "AI & Rewards" },
+    { number: 5, title: "Deploy" },
   ];
   
   // Auto-populate from route
@@ -237,13 +260,61 @@ export default function InstructorBuilderPage() {
       routeDistance: (gpxSummary.distanceKm || 20).toString(),
       routeDuration: routeDuration.toString(),
       routeElevation: routeElevation.toString(),
+      // NEW: Selection
+      avatarId: formData.avatarId || "default-human",
+      equipmentId: formData.equipmentId || "spin-bike-01",
+      worldId: formData.worldId || "neon-city",
     });
 
     window.location.href = `/rider/ride/practice-${Date.now()}?${params.toString()}`;
   };
 
   return (
-    <div className="min-h-screen bg-[color:var(--background)]">
+    <div className="min-h-screen bg-[color:var(--background)] relative">
+      {/* Onboarding Overlay */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="max-w-md w-full bg-[#12141c] border border-white/10 rounded-3xl p-8 shadow-2xl"
+            >
+              <div className="h-16 w-16 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-6">
+                <span className="text-3xl">🏗️</span>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Welcome, Instructor!</h2>
+              <p className="text-white/60 mb-8 leading-relaxed">
+                You're about to build a programmable spin class. Follow the 6 steps to configure your route, identity, and economics.
+              </p>
+              
+              <div className="space-y-4 mb-8">
+                {["Select Track", "Identity & Gear", "Program Economics"].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3 text-sm text-white/80">
+                    <div className="h-5 w-5 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px] font-bold text-indigo-400">
+                      {i + 1}
+                    </div>
+                    {item}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowOnboarding(false)}
+                className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/20"
+              >
+                Let's Build!
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">
         <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
           <PrimaryNav />
@@ -282,10 +353,16 @@ export default function InstructorBuilderPage() {
           <div className="space-y-6">
             {/* Step 0: Route Selection */}
             {step === 0 && (
-              <RouteSelectionStep
-                onRouteSelected={handleRouteSelected}
-                selectedRoute={selectedRoute}
-              />
+              <div className="space-y-4">
+                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 flex items-center gap-3">
+                  <span className="text-xl">💡</span>
+                  <p className="text-sm text-indigo-300 font-medium">{onboardingTips[0]}</p>
+                </div>
+                <RouteSelectionStep
+                  onRouteSelected={handleRouteSelected}
+                  selectedRoute={selectedRoute}
+                />
+              </div>
             )}
 
             {step === 1 && (
@@ -293,7 +370,7 @@ export default function InstructorBuilderPage() {
                 <SectionHeader
                   eyebrow="Step 1"
                   title="Class Details"
-                  description="Set the foundational metadata for your class."
+                  description={onboardingTips[1]}
                 />
                 <div className="grid gap-6">
                   <div className="space-y-2">
@@ -339,11 +416,35 @@ export default function InstructorBuilderPage() {
             )}
 
             {step === 2 && (
+              <div className="space-y-4">
+                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 flex items-center gap-3">
+                  <span className="text-xl">🎨</span>
+                  <p className="text-sm text-indigo-300 font-medium">{onboardingTips[2]}</p>
+                </div>
+                <SelectionGarage
+                  onSelectionChange={(selection) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      avatarId: selection.avatar.id,
+                      equipmentId: selection.equipment.id,
+                      worldId: selection.world.id,
+                    }));
+                  }}
+                  initialSelection={{
+                    avatarId: formData.avatarId,
+                    equipmentId: formData.equipmentId,
+                    worldId: formData.worldId,
+                  }}
+                />
+              </div>
+            )}
+
+            {step === 3 && (
               <GlassCard className="space-y-6 p-8">
                 <SectionHeader
-                  eyebrow="Step 2"
+                  eyebrow="Step 3"
                   title="Token Economics"
-                  description="Define how ticket prices react to demand."
+                  description={onboardingTips[3]}
                 />
                 <PricingCurveVisualizer
                   data={formData}
@@ -396,12 +497,12 @@ export default function InstructorBuilderPage() {
               </GlassCard>
             )}
 
-            {step === 3 && (
+            {step === 4 && (
               <GlassCard className="space-y-6 p-8">
                 <SectionHeader
-                  eyebrow="Step 3"
+                  eyebrow="Step 4"
                   title="Incentives"
-                  description="Program the conditions for rider rewards."
+                  description={onboardingTips[4]}
                 />
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -454,12 +555,12 @@ export default function InstructorBuilderPage() {
               </GlassCard>
             )}
 
-            {step === 4 && (
+            {step === 5 && (
               <GlassCard className="space-y-6 p-8">
                 <SectionHeader
-                  eyebrow="Step 4"
+                  eyebrow="Step 5"
                   title="Review & Deploy"
-                  description="Verify configuration before deploying to blockchain."
+                  description={onboardingTips[5]}
                 />
                 <div className="grid gap-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 text-sm">
                   <div className="flex justify-between border-b border-[color:var(--border)] pb-2">
@@ -518,15 +619,15 @@ export default function InstructorBuilderPage() {
 
             <div className="flex justify-between pt-4">
               <button
-                onClick={() => setStep((s) => Math.max(1, s - 1))}
-                disabled={step === 1}
+                onClick={() => setStep((s) => Math.max(0, s - 1))}
+                disabled={step === 0}
                 className="rounded-full border border-[color:var(--border)] px-6 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:bg-[color:var(--surface)] disabled:opacity-50"
               >
                 Back
               </button>
-              {step < 4 ? (
+              {step < 5 ? (
                 <button
-                  onClick={() => setStep((s) => Math.min(4, s + 1))}
+                  onClick={() => setStep((s) => Math.min(5, s + 1))}
                   className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-white/10 transition hover:bg-gray-100"
                 >
                   Next Step
