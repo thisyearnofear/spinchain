@@ -151,10 +151,9 @@ contract YellowSettlement is ReentrancyGuard, Ownable {
     /**
      * @notice Batch settle multiple channels (for instructor efficiency)
      * @param states Array of channel states to settle
+     * @dev Each rider's reward is minted directly to their address, not to this contract.
      */
     function batchSettle(ChannelState[] calldata states) external nonReentrant {
-        uint256 totalRewards = 0;
-        
         for (uint i = 0; i < states.length; i++) {
             ChannelState calldata state = states[i];
             
@@ -165,8 +164,10 @@ contract YellowSettlement is ReentrancyGuard, Ownable {
             channels[state.channelId] = state;
             channels[state.channelId].settled = true;
             
-            totalRewards += state.finalReward;
             totalSettled[state.rider] += state.finalReward;
+            
+            // Mint directly to the rider, not to address(this)
+            _mintWithLimit(state.rider, state.finalReward);
             
             emit ChannelSettled(
                 state.channelId,
@@ -176,9 +177,6 @@ contract YellowSettlement is ReentrancyGuard, Ownable {
                 state.effortScore
             );
         }
-        
-        // Mint total (gas optimization)
-        _mintWithLimit(address(this), totalRewards);
     }
 
     // ============ View Functions ============

@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { useAIRoute } from "../../../hooks/ai/use-ai-route";
 import { useVoiceInput } from "../../../hooks/ai/use-voice-input";
-import { useRouteLibrary } from "../../../hooks/use-route-library";
+import { useRouteLibrary } from "../../../hooks/common/use-route-library";
 import { RouteLibrary } from "../route/route-library";
 import type { RouteRequest } from "../../../lib/ai-service";
 import type { GpxSummary } from "../../../routes/builder/gpx-uploader";

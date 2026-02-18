@@ -41,22 +41,17 @@ export interface UseVoiceCommandsReturn {
 
 export function useVoiceCommands(options: UseVoiceCommandsOptions = {}): UseVoiceCommandsReturn {
   const { onCommand, language = 'en', continuous = true } = options;
-  
+
   const [isListening, setIsListening] = useState(false);
-  const [isSupported, setIsSupported] = useState(false);
+  const [isSupported, setIsSupported] = useState(() => isSpeechRecognitionSupported());
   const [hasPermission, setHasPermission] = useState(false);
   const [lastCommand, setLastCommand] = useState<ParsedCommand | null>(null);
   const [transcript, setTranscript] = useState('');
   const [confidence, setConfidence] = useState(0);
-  
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const transcriberRef = useRef<RealtimeTranscriber | null>(null);
-
-  // Check support on mount
-  useEffect(() => {
-    setIsSupported(isSpeechRecognitionSupported());
-  }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     const granted = await requestMicrophoneAccess();
@@ -186,7 +181,7 @@ export function useVoiceCommands(options: UseVoiceCommandsOptions = {}): UseVoic
       console.error('Failed to start listening:', error);
       setIsListening(false);
     }
-  }, [isSupported, hasPermission, continuous, language, onCommand, processAudio, requestPermission]);
+  }, [isSupported, hasPermission, continuous, language, onCommand, processAudio, requestPermission, isListening]);
 
   const stopListening = useCallback(() => {
     setIsListening(false);

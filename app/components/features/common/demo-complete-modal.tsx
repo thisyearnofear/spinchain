@@ -13,7 +13,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
@@ -31,6 +31,16 @@ interface DemoCompleteModalProps {
 
 export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalProps) {
   const [showConfetti, setShowConfetti] = useState(false);
+  const confettiPositions = useMemo(() => 
+    Array.from({ length: 20 }, (_, i) => ({
+      index: i,
+      color: ["#6d7cff", "#6ef3c6", "#fbbf24", "#f87171"][i % 4],
+      left: Math.random() * 100,
+      xOffset: (Math.random() - 0.5) * 200,
+      duration: 2 + Math.random() * 2,
+    })),
+    []
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -72,23 +82,23 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                 {/* Confetti effect */}
                 {showConfetti && (
                   <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    {[...Array(20)].map((_, i) => (
+                    {confettiPositions.map((confetti) => (
                       <motion.div
-                        key={i}
+                        key={confetti.index}
                         className="absolute w-2 h-2 rounded-full"
                         style={{
-                          background: ["#6d7cff", "#6ef3c6", "#fbbf24", "#f87171"][i % 4],
-                          left: `${Math.random() * 100}%`,
+                          background: confetti.color,
+                          left: `${confetti.left}%`,
                           top: "-10%",
                         }}
                         animate={{
                           y: [0, 400],
-                          x: [0, (Math.random() - 0.5) * 200],
+                          x: [0, confetti.xOffset],
                           rotate: [0, 360],
                           opacity: [1, 0],
                         }}
                         transition={{
-                          duration: 2 + Math.random() * 2,
+                          duration: confetti.duration,
                           ease: "easeOut",
                         }}
                       />

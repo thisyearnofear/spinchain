@@ -210,7 +210,7 @@ export function InstructorWizard() {
             {formData.mode === "agentic" && (
               <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    Select Coachy's Personality
+                    Select Coachy&apos;s Personality
                   </label>
                 <div className="grid grid-cols-3 gap-3">
                   {[

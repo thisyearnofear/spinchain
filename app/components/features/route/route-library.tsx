@@ -6,7 +6,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouteLibrary } from "../../../hooks/use-route-library";
+import { useRouteLibrary } from "../../../hooks/common/use-route-library";
 import type { SavedRoute } from "../../../lib/route-library";
 import type { GpxSummary } from "../../../routes/builder/gpx-uploader";
 import { convertToGpxSummary } from "../../../lib/route-generation";

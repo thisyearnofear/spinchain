@@ -36,7 +36,7 @@ export function AudioWaveform({
   className = "",
 }: AudioWaveformProps) {
   const config = SIZE_CONFIG[size];
-  const [bars, setBars] = useState<number[]>([]);
+  const [bars, setBars] = useState<number[]>(() => Array(barCount).fill(0.1));
   const animationRef = useRef<number | null>(null);
 
   // Generate animated bar heights

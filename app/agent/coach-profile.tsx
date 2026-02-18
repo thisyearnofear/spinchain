@@ -22,9 +22,9 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useAgentReasoner } from "../hooks/use-agent-reasoner";
-import { useProfile, getDisplayName, getAvatarUrl } from "../hooks/use-profile";
-import { useCoachVoice, useWorkoutAudio } from "../hooks/elevenlabs";
+import { useAgentReasoner } from "../hooks/ai/use-agent-reasoner";
+import { useProfile, getDisplayName, getAvatarUrl } from "../hooks/common/use-profile";
+import { useCoachVoice, useWorkoutAudio } from "../hooks/ai/elevenlabs";
 import { CoachAvatar } from "../components/features/coach/avatar";
 import { VoiceToggle } from "../components/ui/voice-toggle";
 import { AudioWaveform, AudioIndicator } from "../components/ui/audio-waveform";

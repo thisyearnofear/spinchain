@@ -1,12 +1,27 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { ThemeToggleCompact } from "./theme-toggle";
 import { ConnectWallet } from "../features/wallet/connect-wallet";
 import { SuiWalletButton } from "../features/wallet/sui-wallet-button";
 import { Tooltip } from "../ui/tooltip";
 import { AIProviderSettings } from "../features/ai/ai-provider-settings";
 
+/**
+ * Sui wallet is only relevant during active ride sessions and the agent studio.
+ * Showing it everywhere adds cognitive load for new users who must install two
+ * separate wallet extensions before they can do anything.  We surface it
+ * contextually so the primary EVM wallet connection remains the clear first step.
+ */
+function useSuiWalletVisible(): boolean {
+  const pathname = usePathname();
+  const suiPages = ["/rider/ride", "/rider/journey", "/agent", "/instructor/ai"];
+  return suiPages.some((page) => pathname?.startsWith(page));
+}
+
 export function PrimaryNav() {
+  const showSuiWallet = useSuiWalletVisible();
+
   return (
     <nav className="flex w-full flex-wrap items-center justify-between gap-6">
       <div className="flex items-center gap-3">
@@ -27,20 +42,22 @@ export function PrimaryNav() {
           <Tooltip content="AI Provider Settings" position="bottom">
             <AIProviderSettings />
           </Tooltip>
-          
+
           <Tooltip content="Toggle light/dark mode" position="bottom">
             <ThemeToggleCompact />
           </Tooltip>
-          
+
           <Tooltip content="Connect Ethereum wallet for SpinChain" position="bottom">
             <ConnectWallet />
           </Tooltip>
-          
-          <Tooltip content="Connect Sui wallet for performance tracking" position="bottom">
-            <SuiWalletButton />
-          </Tooltip>
+
+          {showSuiWallet && (
+            <Tooltip content="Connect Sui wallet for performance tracking" position="bottom">
+              <SuiWalletButton />
+            </Tooltip>
+          )}
         </div>
-        
+
         <Tooltip content="Browse available cycling routes" position="bottom">
           <a
             href="/routes"
@@ -49,7 +66,7 @@ export function PrimaryNav() {
             Routes
           </a>
         </Tooltip>
-        
+
         <Tooltip content="Create or manage classes" position="bottom">
           <a
             href="/instructor"
@@ -58,7 +75,7 @@ export function PrimaryNav() {
             Teach
           </a>
         </Tooltip>
-        
+
         <Tooltip content="Find classes and start riding" position="bottom">
           <a
             href="/rider"

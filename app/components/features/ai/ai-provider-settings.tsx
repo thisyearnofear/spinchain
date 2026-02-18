@@ -25,16 +25,10 @@ interface AIProviderSettingsProps {
 }
 
 export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps) {
-  const [prefs, setPrefs] = useState<UserAIPreferences>(DEFAULT_AI_PREFERENCES);
+  const [prefs, setPrefs] = useState<UserAIPreferences>(() => getUserAIPreferences());
   const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [testStatus, setTestStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
-
-  // Load preferences on mount
-  useEffect(() => {
-    const loaded = getUserAIPreferences();
-    setPrefs(loaded);
-  }, []);
 
   const handleProviderChange = (provider: AIProvider) => {
     const newPrefs = { ...prefs, preferredProvider: provider };
@@ -268,12 +262,7 @@ export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps
 
 // Compact version for nav bar
 export function AIProviderBadge() {
-  const [provider, setProvider] = useState<AIProvider>("venice");
-
-  useEffect(() => {
-    const prefs = getUserAIPreferences();
-    setProvider(prefs.preferredProvider);
-  }, []);
+  const [provider, setProvider] = useState<AIProvider>(() => getUserAIPreferences().preferredProvider);
 
   const badge = getProviderBadge(provider);
 

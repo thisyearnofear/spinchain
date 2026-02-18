@@ -69,7 +69,7 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as "avatar" | "equipment" | "world")}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all whitespace-nowrap ${
               activeTab === tab.id
                 ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
@@ -234,21 +234,21 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
   );
 }
 
-function AssetIcon({ asset, size = "md" }: { asset: any; size?: "xs" | "md" }) {
-  const emoji = asset.theme === "neon" ? "🌆" : 
-                asset.theme === "anime" ? "🌸" : 
-                asset.theme === "rainbow" ? "🌈" : 
-                asset.theme === "mars" ? "☄️" :
+function AssetIcon({ asset, size = "md" }: { asset: AvatarAsset | EquipmentAsset | WorldAsset; size?: "xs" | "md" }) {
+  const emoji = "theme" in asset && asset.theme === "neon" ? "🌆" :
+                "theme" in asset && asset.theme === "anime" ? "🌸" :
+                "theme" in asset && asset.theme === "rainbow" ? "🌈" :
+                "theme" in asset && asset.theme === "mars" ? "☄️" :
                 asset.id === "space-cat" ? "🐱" :
                 asset.id === "ghost-rider" ? "👻" :
                 asset.id === "floating-cloud" ? "☁️" :
                 asset.id === "cyber-cycle" ? "🏍️" :
-                asset.type === "humanoid" ? "👩‍🚀" : 
-                asset.type === "robot" ? "🤖" : 
-                asset.type === "creature" ? "🐉" :
-                asset.type === "bike" ? "🚲" : 
-                asset.type === "vehicle" ? "🚀" : "🐢";
-  
+                "type" in asset && asset.type === "humanoid" ? "👩‍🚀" :
+                "type" in asset && asset.type === "robot" ? "🤖" :
+                "type" in asset && asset.type === "creature" ? "🐉" :
+                "type" in asset && asset.type === "bike" ? "🚲" :
+                "type" in asset && asset.type === "vehicle" ? "🚀" : "🐢";
+
   return <span className={size === "xs" ? "text-sm" : ""}>{emoji}</span>;
 }
 
@@ -263,7 +263,7 @@ function LoadoutBadge({ icon, label }: { icon: React.ReactNode; label: string })
   );
 }
 
-function AssetCard({ asset, isSelected, onClick }: { asset: any; isSelected: boolean; onClick: () => void }) {
+function AssetCard({ asset, isSelected, onClick }: { asset: AvatarAsset | EquipmentAsset | WorldAsset; isSelected: boolean; onClick: () => void }) {
   return (
     <motion.button
       whileHover={{ scale: 1.02 }}
@@ -284,7 +284,7 @@ function AssetCard({ asset, isSelected, onClick }: { asset: any; isSelected: boo
             {asset.name}
           </p>
           <p className="text-[10px] uppercase tracking-wider text-white/40">
-            {asset.type || asset.theme}
+            {"type" in asset ? asset.type : asset.theme}
           </p>
         </div>
       </div>

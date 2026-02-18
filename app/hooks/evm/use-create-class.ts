@@ -17,6 +17,7 @@ interface CreateClassParams {
   maxPrice: string;
   treasury: `0x${string}`;
   incentiveEngine: `0x${string}`;
+  spinToken: `0x${string}`; // Required for tier discount calculations in SpinClass
 }
 
 export function useCreateClass() {
@@ -47,6 +48,7 @@ export function useCreateClass() {
         parseEther(params.maxPrice),
         params.treasury,
         params.incentiveEngine,
+        params.spinToken,       // 11th arg — required by ClassFactory.createClass
       ],
     });
   };

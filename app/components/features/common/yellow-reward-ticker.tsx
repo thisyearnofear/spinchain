@@ -12,7 +12,7 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { RewardStreamState, RewardMode } from "../../../lib/rewards";
 import { formatReward, getStreamingStatus, calculateStreamingRate } from "../../../lib/rewards";
@@ -153,13 +153,20 @@ function FullTicker({
   lastUpdate,
   className,
 }: FullTickerProps) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const timeSinceUpdate = useMemo(() => {
     if (lastUpdate === 0) return null;
-    const seconds = Math.floor((Date.now() - lastUpdate) / 1000);
+    const seconds = Math.floor((now - lastUpdate) / 1000);
     if (seconds < 60) return `${seconds}s ago`;
     const minutes = Math.floor(seconds / 60);
     return `${minutes}m ago`;
-  }, [lastUpdate]);
+  }, [now, lastUpdate]);
 
   return (
     <div

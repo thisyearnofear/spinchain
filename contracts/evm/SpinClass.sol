@@ -148,10 +148,12 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
             refunded: false
         });
 
-        // Refund excess
+        // Refund excess — use call() not transfer() to support smart contract wallets
         if (msg.value > discountedPrice) {
             unchecked {
-                payable(msg.sender).transfer(msg.value - discountedPrice);
+                uint256 refund = msg.value - discountedPrice;
+                (bool ok, ) = payable(msg.sender).call{value: refund}("");
+                if (!ok) revert TransferFailed();
             }
         }
 
@@ -248,14 +250,16 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
 
     // ============ Hooks ============
 
-    /// @notice Prevent transfers after class starts (optional anti-scalping)
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+    /// @notice Prevent transfers after class starts (anti-scalping)
+    /// @dev Uses OZ v5 _update hook — replaces deprecated _beforeTokenTransfer
+    function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
+        address from = _ownerOf(tokenId);
         
-        // Only check transfers (not mints/burns)
+        // Only restrict live transfers (not mints where from==0, nor burns where to==0)
         if (from != address(0) && to != address(0)) {
-            // Allow transfers only before class starts
             if (block.timestamp >= startTime) revert TransfersLocked();
         }
+        
+        return super._update(to, tokenId, auth);
     }
 }

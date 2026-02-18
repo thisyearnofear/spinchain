@@ -9,11 +9,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { 
-  generateRouteWithGemini, 
+import {
+  generateRouteWithGemini,
   generateRouteStream,
   RouteRequest,
-  RouteResponse 
+  RouteResponse,
+  type RouteTheme,
 } from "@/app/lib/gemini-client";
 import { generateRouteWithVenice } from "@/app/lib/venice-client";
 
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
       duration: Math.min(Math.max(duration || 45, 15), 120),
       difficulty: difficulty || "moderate",
       preferences: preferences?.trim(),
-      theme: theme as any,
+      theme: theme as RouteTheme | undefined,
       fitnessLevel: fitnessLevel || "intermediate",
     };
 

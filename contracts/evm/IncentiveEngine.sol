@@ -136,13 +136,11 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     }
 
     /// @notice Claim rewards via ZK proof (trustless verification)
+    /// @dev rewardAmount is derived on-chain from effortScore — callers cannot inflate it
     function submitZKProof(
         bytes calldata proof,
-        bytes32[] calldata publicInputs,
-        uint256 rewardAmount
+        bytes32[] calldata publicInputs
     ) external nonReentrant whenNotPaused {
-        if (rewardAmount == 0) revert InvalidAmount();
-        
         // Verify ZK proof - this also records it to prevent replays
         uint16 effortScore = verifier.verifyAndRecord(proof, publicInputs);
         if (effortScore == 0) revert ThresholdNotMet();
@@ -154,16 +152,20 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
         // Verify the caller is the rider in the proof
         if (msg.sender != rider) revert InvalidSignature();
 
+        // Compute reward on-chain from verified effort score — no caller input trusted
+        uint256 baseAmount = calculateReward(effortScore);
+        if (baseAmount == 0) revert InvalidAmount();
+
         // Apply tier multiplier
         TieredRewards.Tier tier = getUserTier(rider);
-        uint256 boostedAmount = TieredRewards.applyMultiplier(rewardAmount, tier);
+        uint256 boostedAmount = TieredRewards.applyMultiplier(baseAmount, tier);
 
         _mintWithLimit(rider, boostedAmount);
         totalClaimed[rider] += boostedAmount;
         
         emit ZKRewardClaimed(rider, classId, boostedAmount, effortScore);
         if (tier != TieredRewards.Tier.NONE) {
-            emit TierRewardBoost(rider, tier, rewardAmount, boostedAmount);
+            emit TierRewardBoost(rider, tier, baseAmount, boostedAmount);
         }
     }
 

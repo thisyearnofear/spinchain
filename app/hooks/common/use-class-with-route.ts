@@ -11,7 +11,7 @@ import { useAccount } from "wagmi";
 import type { SavedRoute } from "@/app/lib/route-library";
 import type { RouteResponse } from "@/app/lib/ai-service";
 import { uploadRouteToWalrus, recordDeployment } from "@/app/lib/route-storage";
-import { createClassMetadata, INCENTIVE_ENGINE_ADDRESS } from "@/app/lib/contracts";
+import { createClassMetadata, INCENTIVE_ENGINE_ADDRESS, SPIN_TOKEN_ADDRESS } from "@/app/lib/contracts";
 
 interface CreateClassWithRouteParams {
   // Basic class info
@@ -117,6 +117,7 @@ export function useClassWithRoute() {
         maxPrice: params.maxPrice,
         treasury: address,
         incentiveEngine: INCENTIVE_ENGINE_ADDRESS as `0x${string}`,
+        spinToken: SPIN_TOKEN_ADDRESS as `0x${string}`,
       });
 
       // Note: Contract deployment will be handled by useCreateClass

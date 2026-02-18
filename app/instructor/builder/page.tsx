@@ -12,7 +12,7 @@ import {
 import { useCreateClass } from "@/app/hooks/evm/use-create-class";
 import { useClassWithRoute, getDeploymentStepText } from "@/app/hooks/common/use-class-with-route";
 import { RouteSelectionStep } from "@/app/components/features/route/route-selection-step";
-import { INCENTIVE_ENGINE_ADDRESS } from "@/app/lib/contracts";
+import { INCENTIVE_ENGINE_ADDRESS, SPIN_TOKEN_ADDRESS } from "@/app/lib/contracts";
 import { useAccount } from "wagmi";
 import type { SavedRoute } from "@/app/lib/route-library";
 import type { GpxSummary } from "@/app/routes/builder/gpx-uploader";
@@ -290,7 +290,7 @@ export default function InstructorBuilderPage() {
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">Welcome, Instructor!</h2>
               <p className="text-white/60 mb-8 leading-relaxed">
-                You're about to build a programmable spin class. Follow the 6 steps to configure your route, identity, and economics.
+                You&apos;re about to build a programmable spin class. Follow the 6 steps to configure your route, identity, and economics.
               </p>
               
               <div className="space-y-4 mb-8">
@@ -308,7 +308,7 @@ export default function InstructorBuilderPage() {
                 onClick={() => setShowOnboarding(false)}
                 className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/20"
               >
-                Let's Build!
+                Let&apos;s Build!
               </button>
             </motion.div>
           </motion.div>
@@ -646,6 +646,7 @@ export default function InstructorBuilderPage() {
                       maxPrice: formData.maxPrice.toString(),
                       treasury: userAddress || "0x0000000000000000000000000000000000000000",
                       incentiveEngine: INCENTIVE_ENGINE_ADDRESS as `0x${string}`,
+                      spinToken: SPIN_TOKEN_ADDRESS as `0x${string}`,
                     });
                   }}
                   disabled={isPending || !userAddress}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
 import { PrimaryNav } from "../components/layout/nav";
-import { useClasses, type ClassWithRoute, GUEST_DEMO_CLASS } from "../hooks/use-class-data";
+import { useClasses, type ClassWithRoute, GUEST_DEMO_CLASS } from "../hooks/evm/use-class-data";
 import { RoutePreviewCard } from "../components/features/route/route-preview-card";
 import { ConnectWallet } from "../components/features/wallet/connect-wallet";
 import { AnimatedClassCard } from "../components/features/class/animated-class-card";

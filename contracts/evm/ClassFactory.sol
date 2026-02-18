@@ -32,6 +32,7 @@ contract ClassFactory is Ownable {
     constructor() Ownable(msg.sender) {}
 
     /// @notice Create a new SpinClass with validation
+    /// @param spinToken Address of SPIN token (used for tier discount calculations)
     function createClass(
         string calldata name,
         string calldata symbol,
@@ -42,7 +43,8 @@ contract ClassFactory is Ownable {
         uint128 basePrice,
         uint128 maxPrice,
         address treasury,
-        address incentiveEngine
+        address incentiveEngine,
+        address spinToken
     ) external returns (address spinClass) {
         // Input validation
         if (startTime >= endTime) revert InvalidTimeRange();
@@ -61,7 +63,8 @@ contract ClassFactory is Ownable {
             basePrice,
             maxPrice,
             treasury,
-            incentiveEngine
+            incentiveEngine,
+            spinToken
         );
 
         spinClass = address(instance);

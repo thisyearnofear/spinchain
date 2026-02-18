@@ -48,6 +48,10 @@ import {
 export type { AIProvider, RouteRequest, RouteResponse, CoachingContext, CoachingResponse, AgentDecision };
 export { getProviderBadge, isFeatureAvailable, DEFAULT_AI_PREFERENCES };
 
+// Internal types for streaming
+type StreamStatus = { stage: string; message: string };
+type StreamData = { type: "status" | "partial" | "complete"; data: StreamStatus | RouteResponse };
+
 // Type aliases for backward compatibility
 export type RouteGenerationParams = RouteRequest;
 export type GeneratedRoute = RouteResponse & { _meta?: { provider: string; duration: number } };
@@ -178,7 +182,7 @@ export class AIService {
   /**
    * Stream route generation (Gemini 3 only)
    */
-  async *streamRoute(params: RouteRequest): AsyncGenerator<{ type: "status" | "partial" | "complete"; data: any }> {
+  async *streamRoute(params: RouteRequest): AsyncGenerator<StreamData> {
     const provider = this.getProvider();
     
     if (provider !== "gemini") {
@@ -340,7 +344,7 @@ export class AIService {
   /**
    * Internal: Call server API route
    */
-  private async callServerRoute(endpoint: string, body: any): Promise<any> {
+  private async callServerRoute(endpoint: string, body: Record<string, unknown>): Promise<RouteResponse> {
     const response = await fetch(`${this.baseUrl}/${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -358,7 +362,7 @@ export class AIService {
       throw new Error(error.message || `${endpoint} failed`);
     }
 
-    return response.json();
+    return response.json() as Promise<RouteResponse>;
   }
 }
 

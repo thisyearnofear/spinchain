@@ -28,6 +28,8 @@ export type RouteTheme =
 
 export type StoryBeatType = "climb" | "sprint" | "drop" | "rest" | "scenery" | "push";
 
+export type StreamStatus = { stage: string; message: string };
+
 export interface RouteRequest {
   prompt: string;
   duration: number;
@@ -124,8 +126,8 @@ function getGeminiClient(): GoogleGenerativeAI {
  */
 function getOptimizedModel(jsonMode = false): GenerativeModel {
   const genAI = getGeminiClient();
-  
-  const config: any = {
+
+  const config: Record<string, unknown> = {
     temperature: 0.7,
     topK: 40,
     topP: 0.95,
@@ -185,7 +187,7 @@ export async function chatWithGemini(
     const lastMessage = messages[messages.length - 1];
     
     const chat = model.startChat({
-      history: history as any,
+      history: history as Array<{ role: string; parts: Array<{ text: string }> }>,
     });
     
     const result = await chat.sendMessage(lastMessage.content);
@@ -346,7 +348,7 @@ Generate this route now:`;
  */
 export async function* generateRouteStream(
   request: RouteRequest
-): AsyncGenerator<{ type: "status" | "partial" | "complete"; data: any }> {
+): AsyncGenerator<{ type: "status" | "partial" | "complete"; data: StreamStatus | RouteResponse }> {
   yield { type: "status", data: { stage: "analyzing", message: "Analyzing your route request..." } };
 
   try {
