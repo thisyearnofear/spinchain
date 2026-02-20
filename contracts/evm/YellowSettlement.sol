@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -43,6 +44,10 @@ struct ChannelState {
  * @notice Signed reward update from streaming session
  */
 struct SignedUpdate {
+    bytes32 channelId;
+    bytes32 classId;
+    address rider;
+    address instructor;
     uint256 timestamp;
     uint256 sequence;
     uint256 accumulatedReward;
@@ -51,7 +56,7 @@ struct SignedUpdate {
     bytes signature;
 }
 
-contract YellowSettlement is ReentrancyGuard, Ownable {
+contract YellowSettlement is EIP712, ReentrancyGuard, Ownable {
     using ECDSA for bytes32;
 
     // ============ Errors ============
@@ -60,6 +65,8 @@ contract YellowSettlement is ReentrancyGuard, Ownable {
     error InvalidChannel();
     error RewardTooHigh();
     error DailyLimitExceeded();
+    error InvalidUpdateChain();
+    error EmptyUpdates();
 
     // ============ Constants ============
     uint256 public constant DAILY_MINT_LIMIT = 1_000_000 * 1e18; // 1M SPIN per day
@@ -85,11 +92,23 @@ contract YellowSettlement is ReentrancyGuard, Ownable {
     event IncentiveEngineUpdated(address indexed engine);
 
     // ============ Constructor ============
+    // ============ EIP-712 ============
+    // Domain separator includes chainId + verifyingContract via OZ EIP712.
+    // This prevents cross-chain and cross-contract replay.
+
+    bytes32 private constant CHANNEL_STATE_TYPEHASH = keccak256(
+        "ChannelState(bytes32 channelId,address rider,address instructor,bytes32 classId,uint256 finalReward,uint16 effortScore)"
+    );
+
+    bytes32 private constant UPDATE_TYPEHASH = keccak256(
+        "SignedUpdate(bytes32 channelId,bytes32 classId,address rider,address instructor,uint256 timestamp,uint256 sequence,uint256 accumulatedReward,uint16 heartRate,uint16 power)"
+    );
+
     constructor(
         address owner_,
         address token_,
         address engine_
-    ) Ownable(owner_) {
+    ) EIP712("SpinChainYellowSettlement", "1") Ownable(owner_) {
         rewardToken = ISpinToken(token_);
         incentiveEngine = IIncentiveEngine(engine_);
     }
@@ -153,22 +172,34 @@ contract YellowSettlement is ReentrancyGuard, Ownable {
      * @param states Array of channel states to settle
      * @dev Each rider's reward is minted directly to their address, not to this contract.
      */
-    function batchSettle(ChannelState[] calldata states) external nonReentrant {
+    function batchSettle(
+        ChannelState[] calldata states,
+        SignedUpdate[][] calldata updatesArray
+    ) external nonReentrant {
+        if (states.length != updatesArray.length) revert InvalidChannel();
+
         for (uint i = 0; i < states.length; i++) {
             ChannelState calldata state = states[i];
-            
+            SignedUpdate[] calldata updates = updatesArray[i];
+
+            // Skip already settled channels to allow idempotent batching
             if (channels[state.channelId].settled) continue;
-            if (state.finalReward > MAX_REWARD_PER_CHANNEL) continue;
-            
-            // Store settlement
-            channels[state.channelId] = state;
-            channels[state.channelId].settled = true;
-            
-            totalSettled[state.rider] += state.finalReward;
-            
-            // Mint directly to the rider, not to address(this)
+            if (state.finalReward > MAX_REWARD_PER_CHANNEL) revert RewardTooHigh();
+
+            if (!_verifyChannelState(state, updates)) revert InvalidSignatures();
+
+            ChannelState storage stored = channels[state.channelId];
+            stored.channelId = state.channelId;
+            stored.rider = state.rider;
+            stored.instructor = state.instructor;
+            stored.classId = state.classId;
+            stored.finalReward = state.finalReward;
+            stored.effortScore = state.effortScore;
+            stored.settled = true;
+
             _mintWithLimit(state.rider, state.finalReward);
-            
+            totalSettled[state.rider] += state.finalReward;
+
             emit ChannelSettled(
                 state.channelId,
                 state.rider,
@@ -212,30 +243,95 @@ contract YellowSettlement is ReentrancyGuard, Ownable {
     function _verifyChannelState(
         ChannelState calldata state,
         SignedUpdate[] calldata updates
-    ) internal pure returns (bool) {
+    ) internal view returns (bool) {
         // Verify we have updates
-        if (updates.length == 0) return false;
+        if (updates.length == 0) revert EmptyUpdates();
+
+        // Bind channelId to this contract + chainId + participants + class.
+        // This prevents reusing the same signatures across contracts/chains/classes.
+        bytes32 expectedChannelId = keccak256(
+            abi.encode(
+                block.chainid,
+                address(this),
+                state.rider,
+                state.instructor,
+                state.classId
+            )
+        );
+        if (state.channelId != expectedChannelId) revert InvalidChannel();
 
         // Verify final reward matches last update
-        SignedUpdate memory lastUpdate = updates[updates.length - 1];
-        if (lastUpdate.accumulatedReward != state.finalReward) return false;
+        SignedUpdate calldata lastUpdate = updates[updates.length - 1];
+        if (lastUpdate.accumulatedReward != state.finalReward) revert InvalidUpdateChain();
 
-        // Verify rider signature on final state
-        bytes32 messageHash = keccak256(abi.encodePacked(
-            state.channelId,
-            state.rider,
-            state.instructor,
-            state.finalReward,
-            state.effortScore
-        ));
-        
-        bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
-        address recoveredRider = ethSignedMessageHash.recover(state.riderSignature);
-        
+        // Verify rider + instructor signatures on final state (EIP-712)
+        bytes32 stateStructHash = keccak256(
+            abi.encode(
+                CHANNEL_STATE_TYPEHASH,
+                state.channelId,
+                state.rider,
+                state.instructor,
+                state.classId,
+                state.finalReward,
+                state.effortScore
+            )
+        );
+        bytes32 stateDigest = _hashTypedDataV4(stateStructHash);
+
+        address recoveredRider = stateDigest.recover(state.riderSignature);
         if (recoveredRider != state.rider) return false;
 
-        // TODO: Verify instructor signature in production
-        // TODO: Verify all intermediate updates form valid chain
+        address recoveredInstructor = stateDigest.recover(state.instructorSignature);
+        if (recoveredInstructor != state.instructor) return false;
+
+        // Verify updates are ordered, consistent, and signed by rider
+        uint256 prevSequence = 0;
+        uint256 prevTimestamp = 0;
+        uint256 prevAccumulated = 0;
+
+        for (uint256 i = 0; i < updates.length; i++) {
+            SignedUpdate calldata u = updates[i];
+
+            // Updates must correspond to this channel
+            if (u.sequence == 0) revert InvalidUpdateChain();
+            if (u.channelId != state.channelId) revert InvalidUpdateChain();
+            if (u.classId != state.classId) revert InvalidUpdateChain();
+            if (u.rider != state.rider) revert InvalidUpdateChain();
+            if (u.instructor != state.instructor) revert InvalidUpdateChain();
+            if (i == 0) {
+                // First update sets the baseline
+                prevSequence = u.sequence;
+                prevTimestamp = u.timestamp;
+                prevAccumulated = u.accumulatedReward;
+            } else {
+                if (u.sequence <= prevSequence) revert InvalidUpdateChain();
+                if (u.timestamp < prevTimestamp) revert InvalidUpdateChain();
+                if (u.accumulatedReward < prevAccumulated) revert InvalidUpdateChain();
+
+                prevSequence = u.sequence;
+                prevTimestamp = u.timestamp;
+                prevAccumulated = u.accumulatedReward;
+            }
+
+            // Rider signs each update
+            bytes32 updateStructHash = keccak256(
+                abi.encode(
+                    UPDATE_TYPEHASH,
+                    u.channelId,
+                    u.classId,
+                    u.rider,
+                    u.instructor,
+                    u.timestamp,
+                    u.sequence,
+                    u.accumulatedReward,
+                    u.heartRate,
+                    u.power
+                )
+            );
+            bytes32 updateDigest = _hashTypedDataV4(updateStructHash);
+            address recoveredUpdateSigner = updateDigest.recover(u.signature);
+            if (recoveredUpdateSigner != state.rider) return false;
+        }
 
         return true;
     }

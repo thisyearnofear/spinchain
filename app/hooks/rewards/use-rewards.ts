@@ -14,6 +14,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useAccount } from "wagmi";
+import { useYellowSettlement } from "@/app/hooks/evm/use-yellow-settlement";
 import type { TelemetryPoint } from "@/app/lib/zk/oracle";
 import {
   // Types
@@ -112,6 +113,7 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   // Mode-specific hooks
   const yellow = useYellowStreaming();
   const zk = useZKRewards();
+  const yellowSettlement = useYellowSettlement();
   
   // Local state for batch accumulation (ZK mode)
   const [batchAccumulator, setBatchAccumulator] = useState<BatchAccumulator | null>(null);
@@ -171,7 +173,10 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   const recordEffort = useCallback(async (telemetry: TelemetryPoint): Promise<void> => {
     switch (mode) {
       case "yellow-stream": {
-        await yellow.sendUpdate(telemetry);
+        const signed = await yellow.sendUpdate(telemetry);
+        if (signed) {
+          setUpdates((prev) => [...prev, signed]);
+        }
         break;
       }
       
@@ -207,10 +212,43 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
     switch (mode) {
       case "yellow-stream": {
         const closedChannel = await yellow.stopStreaming();
+        if (!closedChannel) {
+          return { success: false, amount: BigInt(0) };
+        }
+
+        // Rider signs the final state (EIP-712). Instructor will co-sign later in /instructor/yellow.
+        const effortScore = 0; // MVP: you can compute this from updates later.
+        const riderSig = await yellowSettlement.signFinalState({
+          channelId: closedChannel.id as `0x${string}`,
+          classId: closedChannel.classId,
+          rider: closedChannel.rider,
+          instructor: closedChannel.instructor,
+          finalReward: yellow.streamState.accumulated,
+          effortScore,
+        });
+
+        const { upsertPendingSettlement, toStoredUpdates } = await import("@/app/lib/rewards");
+
+        upsertPendingSettlement({
+          id: closedChannel.id,
+          channelId: closedChannel.id as `0x${string}`,
+          classId: closedChannel.classId,
+          rider: closedChannel.rider,
+          instructor: closedChannel.instructor,
+          finalReward: yellow.streamState.accumulated,
+          effortScore,
+          riderSignature: riderSig,
+          instructorSignature: undefined,
+          updates: toStoredUpdates(updates),
+          status: "rider_signed",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+
         return {
-          success: !!closedChannel,
+          success: true,
           amount: yellow.streamState.accumulated,
-          hash: closedChannel?.id, // Channel ID as settlement reference
+          hash: closedChannel.id,
         };
       }
       

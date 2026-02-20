@@ -9,6 +9,7 @@
 
 export * from "./channel";
 export * from "./streaming";
+export * from "./pending-store";
 
 // Yellow Network Constants
 export const YELLOW_CLEARNODE_URL = "wss://clearnet-sandbox.yellow.com/ws";

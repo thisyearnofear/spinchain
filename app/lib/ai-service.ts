@@ -239,7 +239,7 @@ export class AIService {
   ): Promise<{ narrative: string; atmosphere: string; intensity: string; _meta?: { provider: string } }> {
     const provider = this.getProvider();
     
-    const result = await this.callServerRoute("generate-narrative", {
+    const result = await this.callServerRoute<{ narrative: string; atmosphere: string; intensity: string }>("generate-narrative", {
       elevationProfile,
       theme,
       duration,
@@ -259,7 +259,7 @@ export class AIService {
   async chat(messages: Array<{ role: string; content: string }>): Promise<{ response: string; _meta?: { provider: string } }> {
     const provider = this.getProvider();
     
-    const result = await this.callServerRoute("chat", {
+    const result = await this.callServerRoute<{ response: string }>("chat", {
       messages,
       provider,
     });
@@ -279,7 +279,7 @@ export class AIService {
   ): Promise<CoachingResponse & { _meta?: { provider: string } }> {
     const provider = this.getProvider();
     
-    const result = await this.callServerRoute("chat", {
+    const result = await this.callServerRoute<CoachingResponse>("chat", {
       mode: "coaching",
       context,
       conversationHistory,
@@ -306,7 +306,7 @@ export class AIService {
   ): Promise<AgentDecision & { _meta?: { provider: string } }> {
     const provider = this.getProvider();
     
-    const result = await this.callServerRoute("agent-reasoning", {
+    const result = await this.callServerRoute<AgentDecision>("agent-reasoning", {
       agentName,
       personality,
       context,
@@ -344,7 +344,10 @@ export class AIService {
   /**
    * Internal: Call server API route
    */
-  private async callServerRoute(endpoint: string, body: Record<string, unknown>): Promise<RouteResponse> {
+  private async callServerRoute<TResponse = RouteResponse>(
+    endpoint: string,
+    body: object
+  ): Promise<TResponse> {
     const response = await fetch(`${this.baseUrl}/${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -362,7 +365,7 @@ export class AIService {
       throw new Error(error.message || `${endpoint} failed`);
     }
 
-    return response.json() as Promise<RouteResponse>;
+    return response.json() as Promise<TResponse>;
   }
 }
 

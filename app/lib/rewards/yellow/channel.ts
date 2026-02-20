@@ -128,8 +128,25 @@ export async function openRewardChannel(
   globalState.callbacks = callbacks;
 
   // Create channel
+  // IMPORTANT: channelId must match the on-chain YellowSettlement expectedChannelId:
+  // keccak256(abi.encode(chainId, settlementContract, rider, instructor, classId))
+  // We compute it client-side for maintainability and deterministic settlement.
+  const chainIdHex = (await window.ethereum?.request({ method: "eth_chainId" })) as string;
+  if (!chainIdHex) throw new Error("Ethereum provider not available");
+  const chainId = Number.parseInt(chainIdHex, 16);
+  const settlementContract = (process.env.NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS || "0x0000000000000000000000000000000000000000") as `0x${string}`;
+
+  // Lazy import to keep this module lightweight
+  const { keccak256, encodeAbiParameters, parseAbiParameters } = await import("viem");
+  const id = keccak256(
+    encodeAbiParameters(
+      parseAbiParameters("uint256 chainId, address settlement, address rider, address instructor, bytes32 classId"),
+      [BigInt(chainId), settlementContract, rider, instructor, classId]
+    )
+  );
+
   const channel: RewardChannel = {
-    id: `ch-${Date.now()}-${rider.slice(0, 6)}`,
+    id,
     rider,
     instructor,
     classId,

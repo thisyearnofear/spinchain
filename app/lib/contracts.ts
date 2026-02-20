@@ -8,6 +8,7 @@
  */
 
 import type { RouteResponse } from "./ai-service";
+import { YELLOW_SETTLEMENT_ABI as YELLOW_SETTLEMENT_CONTRACT_ABI } from "./contracts/yellow-settlement";
 
 // ============================================================================
 // NETWORK CONFIGURATION
@@ -29,8 +30,11 @@ export const AVALANCHE_MAINNET = {
   nativeCurrency: { name: "AVAX", symbol: "AVAX", decimals: 18 },
 } as const;
 
-// Active network — switch to AVALANCHE_MAINNET for production
-export const ACTIVE_NETWORK = AVALANCHE_FUJI;
+// Active network
+// For Fuji launch, set NEXT_PUBLIC_AVALANCHE_CHAIN_ID=43113 (default).
+// When ready for mainnet, set NEXT_PUBLIC_AVALANCHE_CHAIN_ID=43114.
+const ACTIVE_CHAIN_ID = Number(process.env.NEXT_PUBLIC_AVALANCHE_CHAIN_ID ?? AVALANCHE_FUJI.id);
+export const ACTIVE_NETWORK = ACTIVE_CHAIN_ID === AVALANCHE_MAINNET.id ? AVALANCHE_MAINNET : AVALANCHE_FUJI;
 
 // ============================================================================
 // CONTRACT ADDRESSES
@@ -71,6 +75,7 @@ export const CONTRACT_ADDRESSES = {
 export const CLASS_FACTORY_ADDRESS = CONTRACT_ADDRESSES.CLASS_FACTORY;
 export const INCENTIVE_ENGINE_ADDRESS = CONTRACT_ADDRESSES.INCENTIVE_ENGINE;
 export const SPIN_TOKEN_ADDRESS = CONTRACT_ADDRESSES.SPIN_TOKEN;
+export const YELLOW_SETTLEMENT_ADDRESS = CONTRACT_ADDRESSES.YELLOW_SETTLEMENT;
 
 // ============================================================================
 // CONTRACT ABIs
@@ -314,6 +319,8 @@ export const SPIN_CLASS_ABI = [
     ],
   },
 ] as const;
+
+export const YELLOW_SETTLEMENT_ABI = YELLOW_SETTLEMENT_CONTRACT_ABI;
 
 export const INCENTIVE_ENGINE_ABI = [
   {

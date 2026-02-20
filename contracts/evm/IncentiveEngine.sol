@@ -37,6 +37,7 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     error DailyLimitExceeded();
     error InvalidProof();
     error ThresholdNotMet();
+    error InvalidPublicInputs();
 
     // ============ Constants ============
     uint256 public constant ATTESTATION_VALIDITY = 7 days;
@@ -141,6 +142,8 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
         bytes calldata proof,
         bytes32[] calldata publicInputs
     ) external nonReentrant whenNotPaused {
+        if (publicInputs.length != 7) revert InvalidPublicInputs();
+
         // Verify ZK proof - this also records it to prevent replays
         uint16 effortScore = verifier.verifyAndRecord(proof, publicInputs);
         if (effortScore == 0) revert ThresholdNotMet();

@@ -34,6 +34,8 @@ Get testnet AVAX: https://faucet.avax.network
 
 ## Deployment Order
 
+> **Fuji MVP note**: If you plan to use Yellow streaming settlement, deploy `YellowSettlement.sol` and set `NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS`.
+
 ### Step 1 — MockUltraVerifier *(testnet only)*
 
 > For mainnet, generate the real verifier: `cd circuits/effort_threshold && nargo codegen-verifier`
@@ -93,14 +95,26 @@ Get testnet AVAX: https://faucet.avax.network
 
 ---
 
-### Step 6 — ClassFactory
+### Step 6 — YellowSettlement *(required for Yellow streaming MVP)*
+
+**File**: `YellowSettlement.sol`  
+**Constructor**:
+| Param     | Value                         |
+|----------|-------------------------------|
+| `owner_` | Your deployer wallet          |
+| `token_` | SpinToken address (Step 2)    |
+| `engine_`| IncentiveEngine (Step 4)      |
+
+---
+
+### Step 7 — ClassFactory
 
 **File**: `ClassFactory.sol`  
 **Constructor args**: none
 
 ---
 
-### Step 7 — Transfer SpinToken Ownership to IncentiveEngine
+### Step 8 — Transfer SpinToken Ownership to IncentiveEngine
 
 In Remix, select **SpinToken** → **transferOwnership**:
 ```
@@ -118,12 +132,18 @@ newOwner = <IncentiveEngine address from Step 4>
 Add to your `.env.local`:
 
 ```env
+# Network (Fuji)
+NEXT_PUBLIC_AVALANCHE_CHAIN_ID=43113
+NEXT_PUBLIC_AVALANCHE_EXPLORER_URL=https://testnet.snowtrace.io
+
+# Deployed contracts
 NEXT_PUBLIC_SPIN_TOKEN_ADDRESS=0x...
 NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=0x...
 NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=0x...
 NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=0x...         # MockUltraVerifier for testnet
 NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x...
 NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=0x...
+NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS=0x...
 ```
 
 These are read by `app/lib/contracts.ts` → `CONTRACT_ADDRESSES`.

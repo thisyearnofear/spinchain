@@ -167,8 +167,8 @@ export function calculateUpdateReward(
   if (!previousUpdate) {
     // First update: calculate from scratch
     const effortScore = calculateEffortScore({
-      heartRate: update.telemetry.heartRate,
-      power: update.telemetry.power,
+      heartRate: update.heartRate,
+      power: update.power,
       durationSeconds: 10, // Assume 10s intervals
     });
     const reward = calculateRewardFromScore(effortScore);

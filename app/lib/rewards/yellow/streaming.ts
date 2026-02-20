@@ -30,6 +30,7 @@ export interface UseYellowStreamingReturn {
   // State
   channel: RewardChannel | null;
   streamState: RewardStreamState;
+  updates: SignedRewardUpdate[];
   
   // Actions
   startStreaming: (
@@ -40,7 +41,7 @@ export interface UseYellowStreamingReturn {
     messageSigner: MessageSigner
   ) => Promise<void>;
   
-  sendUpdate: (telemetry: TelemetryPoint) => Promise<void>;
+  sendUpdate: (telemetry: TelemetryPoint) => Promise<SignedRewardUpdate | null>;
   
   stopStreaming: (finalReward?: bigint) => Promise<RewardChannel | null>;
   
@@ -67,6 +68,9 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
     updateCount: 0,
     status: "closed",
   });
+
+  // Signed updates for later settlement
+  const [updates, setUpdates] = useState<SignedRewardUpdate[]>([]);
 
   // Refs for interval management
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -106,6 +110,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
       const callbacks: ChannelCallbacks = {
         onOpen: (ch) => {
           setChannel(ch);
+          setUpdates([]);
           setStreamState(prev => ({
             ...prev,
             status: "open",
@@ -133,7 +138,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
       intervalRef.current = setInterval(() => {
         // Trigger update with last known telemetry
         if (lastTelemetryRef.current) {
-          sendUpdateInternal(lastTelemetryRef.current);
+          void sendUpdateInternal(lastTelemetryRef.current);
         }
       }, STREAMING_INTERVAL);
 
@@ -148,10 +153,10 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
   /**
    * Send a telemetry update (internal)
    */
-  const sendUpdateInternal = useCallback(async (telemetry: TelemetryPoint): Promise<void> => {
+  const sendUpdateInternal = useCallback(async (telemetry: TelemetryPoint): Promise<SignedRewardUpdate | null> => {
     if (!isChannelOpen()) {
       console.warn("[YellowStreaming] Cannot send update: channel not open");
-      return;
+      return null;
     }
 
     const now = Date.now();
@@ -175,23 +180,33 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
       newAccumulated = streamState.accumulated;
     }
 
-    // Create signed update
+    if (!channel) {
+      console.warn("[YellowStreaming] Cannot send update: no channel in state");
+      return null;
+    }
+
+    // Create signed update payload (flattened fields for on-chain settlement)
     const update: Omit<SignedRewardUpdate, "riderSignature"> = {
+      channelId: channel.id as unknown as `0x${string}`,
+      classId: channel.classId,
+      rider: channel.rider,
+      instructor: channel.instructor,
       timestamp: now,
-      telemetry,
-      accumulatedReward: newAccumulated,
       sequence,
+      accumulatedReward: newAccumulated,
+      heartRate: telemetry.heartRate,
+      power: telemetry.power,
+      // instructorSignature optional at streaming-time
+      instructorSignature: undefined,
     };
 
     // Sign the update
     let signature: string;
     try {
-      signature = await messageSignerRef.current!(
-        JSON.stringify(update)
-      );
+      signature = await messageSignerRef.current!(JSON.stringify(update));
     } catch (err) {
       console.error("[YellowStreaming] Failed to sign update:", err);
-      return;
+      return null;
     }
 
     const signedUpdate: SignedRewardUpdate = {
@@ -208,6 +223,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
 
     // Update refs and state
     lastTelemetryRef.current = { ...telemetry, timestamp: now };
+    setUpdates((prev) => [...prev, signedUpdate]);
     setStreamState(prev => ({
       accumulated: newAccumulated,
       lastUpdate: now,
@@ -217,19 +233,23 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
 
     // In production, send to Yellow ClearNode:
     // ws.send(JSON.stringify({ type: 'reward_update', update: signedUpdate }));
-  }, [streamState.accumulated]);
+
+    return signedUpdate;
+  }, [streamState.accumulated, channel]);
 
   /**
    * Send a telemetry update (public API)
    */
-  const sendUpdate = useCallback(async (telemetry: TelemetryPoint): Promise<void> => {
+  const sendUpdate = useCallback(async (telemetry: TelemetryPoint): Promise<SignedRewardUpdate | null> => {
     // Store for interval-based sending
     lastTelemetryRef.current = telemetry;
     
     // Send immediately if channel is open
     if (isChannelOpen()) {
-      await sendUpdateInternal(telemetry);
+      return await sendUpdateInternal(telemetry);
     }
+
+    return null;
   }, [sendUpdateInternal]);
 
   /**
@@ -266,6 +286,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
   return {
     channel,
     streamState,
+    updates,
     startStreaming,
     sendUpdate,
     stopStreaming,

@@ -107,18 +107,30 @@ export interface RewardChannel {
 }
 
 export interface SignedRewardUpdate {
-  /** Update timestamp */
+  /** Channel ID bound for on-chain settlement */
+  channelId: `0x${string}`;
+  /** Class ID (bytes32) */
+  classId: `0x${string}`;
+  /** Rider address */
+  rider: `0x${string}`;
+  /** Instructor address */
+  instructor: `0x${string}`;
+
+  /** Update timestamp (ms since epoch for app; will be normalized on submission) */
   timestamp: number;
-  /** Telemetry at time of update */
-  telemetry: TelemetryPoint;
-  /** Accumulated reward so far (wei/SPIN units) */
-  accumulatedReward: bigint;
-  /** Rider's signature */
-  riderSignature: string;
-  /** Instructor's signature (optional for demo) */
-  instructorSignature?: string;
   /** Update sequence number for ordering */
   sequence: number;
+  /** Accumulated reward so far (wei/SPIN units) */
+  accumulatedReward: bigint;
+
+  /** Flattened telemetry for typed signing */
+  heartRate: number;
+  power: number;
+
+  /** Rider's signature */
+  riderSignature: string;
+  /** Instructor's signature (required for settlement) */
+  instructorSignature?: string;
 }
 
 export interface ChannelAllocation {

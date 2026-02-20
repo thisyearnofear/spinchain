@@ -72,7 +72,10 @@ export function useTransaction(options: UseTransactionOptions): UseTransactionRe
         undefined,
         {
           label: 'View',
-          onClick: () => window.open(`https://testnet.snowtrace.io/tx/${hash}`, '_blank'),
+          onClick: () => {
+            const base = process.env.NEXT_PUBLIC_AVALANCHE_EXPLORER_URL || "https://testnet.snowtrace.io";
+            window.open(`${base}/tx/${hash}`, "_blank");
+          },
         }
       );
       
