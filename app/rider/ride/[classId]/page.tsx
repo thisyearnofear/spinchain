@@ -142,6 +142,18 @@ export default function LiveRidePage() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showHUD, setShowHUD] = useState(true);
   const [hudMode, setHudMode] = useState<"full" | "compact" | "minimal">("full");
+
+  // Persisted HUD preference (client-only)
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("spinchain:ride:hudMode");
+      if (stored === "full" || stored === "compact" || stored === "minimal") {
+        setHudMode(stored);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
   const [viewMode, setViewMode] = useState<"immersive" | "focus">(
     deviceType === "mobile" ? "focus" : "immersive"
   );
@@ -158,7 +170,7 @@ export default function LiveRidePage() {
     }
   }, []);
 
-  // Accessibility: prefer reduced motion => default to focus mode
+  // Accessibility: prefer reduced motion => default to focus mode + minimal HUD
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -167,6 +179,12 @@ export default function LiveRidePage() {
     const apply = () => {
       if (mq.matches) {
         setViewMode("focus");
+        setHudMode("minimal");
+        try {
+          window.localStorage.setItem("spinchain:ride:hudMode", "minimal");
+        } catch {
+          // ignore
+        }
       }
     };
 
@@ -625,10 +643,15 @@ export default function LiveRidePage() {
   };
 
   const cycleHudMode = () => {
-    setHudMode(prev =>
-      prev === "full" ? "compact" :
-        prev === "compact" ? "minimal" : "full"
-    );
+    setHudMode((prev) => {
+      const next = prev === "full" ? "compact" : prev === "compact" ? "minimal" : "full";
+      try {
+        window.localStorage.setItem("spinchain:ride:hudMode", next);
+      } catch {
+        // ignore
+      }
+      return next;
+    });
   };
 
   if (isLoading) {
