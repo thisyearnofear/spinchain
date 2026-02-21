@@ -146,6 +146,35 @@ export default function LiveRidePage() {
     deviceType === "mobile" ? "focus" : "immersive"
   );
 
+  // Persisted preference (client-only)
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("spinchain:ride:viewMode");
+      if (stored === "focus" || stored === "immersive") {
+        setViewMode(stored);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Accessibility: prefer reduced motion => default to focus mode
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    if (!mq) return;
+
+    const apply = () => {
+      if (mq.matches) {
+        setViewMode("focus");
+      }
+    };
+
+    apply();
+    mq.addEventListener?.("change", apply);
+    return () => mq.removeEventListener?.("change", apply);
+  }, []);
+
   // BLE Device Connection
   const [bleConnected, setBleConnected] = useState(false);
   const [useSimulator, setUseSimulator] = useState(false);
@@ -723,7 +752,17 @@ export default function LiveRidePage() {
               <div className="flex items-center gap-2 ml-2">
                 {/* View Mode Toggle */}
                 <button
-                  onClick={() => setViewMode((v) => (v === "immersive" ? "focus" : "immersive"))}
+                  onClick={() =>
+                    setViewMode((v) => {
+                      const next = v === "immersive" ? "focus" : "immersive";
+                      try {
+                        window.localStorage.setItem("spinchain:ride:viewMode", next);
+                      } catch {
+                        // ignore
+                      }
+                      return next;
+                    })
+                  }
                   className="rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
                   aria-label="Toggle view mode"
                 >
