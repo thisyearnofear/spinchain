@@ -3,7 +3,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useClass, createPracticeClassMetadata, generateMockRouteData, type ClassWithRoute } from "../../../hooks/evm/use-class-data";
-import RouteVisualizer from "../../../components/features/route/route-visualizer";
+import dynamic from "next/dynamic";
+import FocusRouteVisualizer from "../../../components/features/route/focus-route-visualizer";
+
+const RouteVisualizer = dynamic(
+  () => import("../../../components/features/route/route-visualizer"),
+  { ssr: false }
+);
 import { DeviceSelector } from "../../../components/features/ble/device-selector";
 import { useDeviceType, useOrientation, useActualViewportHeight } from "../../../lib/responsive";
 import { useWorkoutAudio } from "../../../hooks/ai/use-workout-audio";
@@ -136,6 +142,9 @@ export default function LiveRidePage() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showHUD, setShowHUD] = useState(true);
   const [hudMode, setHudMode] = useState<"full" | "compact" | "minimal">("full");
+  const [viewMode, setViewMode] = useState<"immersive" | "focus">(
+    deviceType === "mobile" ? "focus" : "immersive"
+  );
 
   // BLE Device Connection
   const [bleConnected, setBleConnected] = useState(false);
@@ -328,17 +337,22 @@ export default function LiveRidePage() {
     }
   };
 
-  // Auto-adjust HUD based on device
+  // Auto-adjust HUD + default view mode based on device
   useEffect(() => {
     if (deviceType === "mobile") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setHudMode("compact");
+      // Default to Focus mode on mobile for battery + performance
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setViewMode("focus");
     } else if (deviceType === "tablet") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setHudMode(orientation === "portrait" ? "compact" : "full");
     } else {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setHudMode("full");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setViewMode("immersive");
     }
   }, [deviceType, orientation]);
 
@@ -620,19 +634,28 @@ export default function LiveRidePage() {
       className="fixed inset-0 bg-black"
       style={{ height: deviceType === "mobile" ? `${viewportHeight}px` : "100vh" }}
     >
-      {/* Full-Screen Route Visualization */}
+      {/* Full-Screen Visualization */}
       <div className="absolute inset-0">
-        <RouteVisualizer
-          elevationProfile={classData.route.route.coordinates.map(c => c.ele || 0)}
-          theme={currentInterval ? PHASE_TO_THEME[currentInterval.phase] : (classData.metadata?.route.theme as 'neon' | 'alpine' | 'mars' | 'anime' | 'rainbow') || "neon"}
-          storyBeats={classData.route.route.storyBeats}
-          progress={isRiding || rideProgress > 0 ? rideProgress / 100 : 0}
-          stats={{ hr: telemetry.heartRate, power: telemetry.power, cadence: telemetry.cadence }}
-          avatarId={searchParams.get("avatarId") || undefined}
-          equipmentId={searchParams.get("equipmentId") || undefined}
-          quality={deviceType === "mobile" ? "low" : "high"}
-          className="h-full w-full"
-        />
+        {viewMode === "focus" ? (
+          <FocusRouteVisualizer
+            elevationProfile={classData.route.route.coordinates.map((c) => c.ele || 0)}
+            storyBeats={classData.route.route.storyBeats}
+            progress={isRiding || rideProgress > 0 ? rideProgress / 100 : 0}
+            className="h-full w-full"
+          />
+        ) : (
+          <RouteVisualizer
+            elevationProfile={classData.route.route.coordinates.map((c) => c.ele || 0)}
+            theme={currentInterval ? PHASE_TO_THEME[currentInterval.phase] : (classData.metadata?.route.theme as 'neon' | 'alpine' | 'mars' | 'anime' | 'rainbow') || "neon"}
+            storyBeats={classData.route.route.storyBeats}
+            progress={isRiding || rideProgress > 0 ? rideProgress / 100 : 0}
+            stats={{ hr: telemetry.heartRate, power: telemetry.power, cadence: telemetry.cadence }}
+            avatarId={searchParams.get("avatarId") || undefined}
+            equipmentId={searchParams.get("equipmentId") || undefined}
+            quality={deviceType === "mobile" ? "low" : "high"}
+            className="h-full w-full"
+          />
+        )}
 
         {/* Progress Bar - Segmented by workout intervals */}
         <div className="absolute inset-x-0 bottom-0 h-2 sm:h-3 bg-black/50 flex">
@@ -698,6 +721,14 @@ export default function LiveRidePage() {
               </div>
 
               <div className="flex items-center gap-2 ml-2">
+                {/* View Mode Toggle */}
+                <button
+                  onClick={() => setViewMode((v) => (v === "immersive" ? "focus" : "immersive"))}
+                  className="rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
+                  aria-label="Toggle view mode"
+                >
+                  {viewMode === "immersive" ? "3D" : "2D"}
+                </button>
                 {/* HUD Mode Toggle (Mobile) */}
                 {deviceType === "mobile" && (
                   <button
