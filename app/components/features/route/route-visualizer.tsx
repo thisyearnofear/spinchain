@@ -1,6 +1,7 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
+import { useDeviceType } from "@/app/lib/responsive";
 import {
   CatmullRomCurve3,
   Vector3,
@@ -614,6 +615,7 @@ export default function RouteVisualizer({
   onStatsUpdate,
   avatarId,
   equipmentId,
+  quality,
 }: {
   elevationProfile?: number[];
   theme?: VisualizerTheme;
@@ -625,7 +627,11 @@ export default function RouteVisualizer({
   onStatsUpdate?: (stats: RiderStats) => void;
   avatarId?: string;
   equipmentId?: string;
+  quality?: "low" | "high";
 }) {
+  const deviceType = useDeviceType();
+  const effectiveQuality = quality ?? (deviceType === "mobile" ? "low" : "high");
+
   const styles = THEMES[theme];
   
   const avatar = useMemo(() => AVATARS.find(a => a.id === avatarId), [avatarId]);
@@ -633,6 +639,7 @@ export default function RouteVisualizer({
 
   // Simulation loop for stats if progress is live
   useEffect(() => {
+    if (effectiveQuality === "low") return;
     if (progress > 0 && onStatsUpdate) {
       const interval = setInterval(() => {
         // Subtle randomization around the current stats
@@ -651,7 +658,7 @@ export default function RouteVisualizer({
     <div
       className={`relative w-full overflow-hidden rounded-2xl bg-black ${className}`}
     >
-      <Canvas dpr={[1, 2]}>
+      <Canvas dpr={effectiveQuality === "low" ? 1 : [1, 2]}>
         <color attach="background" args={[styles.fog]} />
         <Scene
           elevationProfile={elevationProfile}

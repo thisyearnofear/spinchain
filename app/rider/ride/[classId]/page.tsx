@@ -148,7 +148,7 @@ export default function LiveRidePage() {
     }
   }, [isPracticeMode, useSimulator]);
 
-  // Telemetry
+  // Telemetry (buffer raw updates in refs; commit to React state at a UI rate for mobile perf)
   const [telemetry, setTelemetry] = useState({
     heartRate: 0,
     power: 0,
@@ -156,9 +156,21 @@ export default function LiveRidePage() {
     speed: 0,
     effort: 0,
   });
+  const telemetryRawRef = useRef({
+    heartRate: 0,
+    power: 0,
+    cadence: 0,
+    speed: 0,
+    effort: 0,
+  });
+  const lastTelemetryCommitMsRef = useRef(0);
 
   // Telemetry averages for completion screen
   const telemetrySamples = useRef<{ hr: number; power: number; effort: number }[]>([]);
+
+  // Rate-limit reward recording to avoid async pressure on mobile
+  const lastRewardRecordMsRef = useRef(0);
+  const pendingRewardRecordRef = useRef(false);
 
   // Audio hooks
   const aiPersonality = classData?.metadata?.ai?.personality;
@@ -217,6 +229,23 @@ export default function LiveRidePage() {
   // Track interval transitions for audio cues
   const lastIntervalRef = useRef<number>(-1);
 
+  // Commit buffered telemetry into React state at a fixed rate to reduce rerenders
+  useEffect(() => {
+    if (!isRiding) return;
+
+    const uiHz = deviceType === "mobile" ? 2 : 4;
+    const intervalMs = Math.floor(1000 / uiHz);
+
+    const id = setInterval(() => {
+      const now = Date.now();
+      if (now - lastTelemetryCommitMsRef.current < intervalMs) return;
+      lastTelemetryCommitMsRef.current = now;
+      setTelemetry(telemetryRawRef.current);
+    }, intervalMs);
+
+    return () => clearInterval(id);
+  }, [isRiding, deviceType]);
+
   // Handle BLE metrics updates
   const handleBleMetrics = async (metrics: {
     heartRate?: number;
@@ -225,30 +254,41 @@ export default function LiveRidePage() {
     speed?: number;
     effort?: number;
   }) => {
-    setTelemetry(prev => ({
-      ...prev,
-      heartRate: metrics.heartRate ?? prev.heartRate,
-      power: metrics.power ?? prev.power,
-      cadence: metrics.cadence ?? prev.cadence,
-      speed: metrics.speed ?? prev.speed,
-      effort: metrics.effort ?? prev.effort,
-    }));
+    // Buffer raw telemetry (do not trigger React rerender here)
+    telemetryRawRef.current = {
+      heartRate: metrics.heartRate ?? telemetryRawRef.current.heartRate,
+      power: metrics.power ?? telemetryRawRef.current.power,
+      cadence: metrics.cadence ?? telemetryRawRef.current.cadence,
+      speed: metrics.speed ?? telemetryRawRef.current.speed,
+      effort: metrics.effort ?? telemetryRawRef.current.effort,
+    };
     if (metrics.heartRate || metrics.power) {
       setBleConnected(true);
     }
 
-    // Record effort for Yellow rewards
+    // Record effort for Yellow rewards (rate-limited; do not block UI)
     if (isRiding && rewards.isActive && (metrics.heartRate || metrics.power)) {
-      try {
-        await rewards.recordEffort({
-          timestamp: Date.now(),
-          heartRate: metrics.heartRate || telemetry.heartRate,
-          power: metrics.power || telemetry.power,
-          cadence: metrics.cadence || telemetry.cadence,
-        });
-      } catch (err) {
-        // Silently fail - rewards are best-effort
-        console.debug("[Ride] Failed to record effort:", err);
+      const now = Date.now();
+      const minIntervalMs = deviceType === "mobile" ? 500 : 250; // 2Hz mobile, 4Hz desktop
+
+      if (!pendingRewardRecordRef.current && now - lastRewardRecordMsRef.current >= minIntervalMs) {
+        pendingRewardRecordRef.current = true;
+        lastRewardRecordMsRef.current = now;
+
+        void rewards
+          .recordEffort({
+            timestamp: now,
+            heartRate: metrics.heartRate || telemetry.heartRate,
+            power: metrics.power || telemetry.power,
+            cadence: metrics.cadence || telemetry.cadence,
+          })
+          .catch((err) => {
+            // Best-effort
+            console.debug("[Ride] Failed to record effort:", err);
+          })
+          .finally(() => {
+            pendingRewardRecordRef.current = false;
+          });
       }
     }
   };
@@ -267,6 +307,8 @@ export default function LiveRidePage() {
       return;
     }
 
+    telemetryRawRef.current = metrics;
+    // Simulator is a user-driven control; update UI immediately for responsiveness
     setTelemetry(metrics);
 
     // Also update ride progress based on cadence
@@ -320,22 +362,22 @@ export default function LiveRidePage() {
 
       // Only simulate telemetry if BLE not connected and not using simulator
       if (!bleConnected && !(useSimulator && isPracticeMode)) {
-        setTelemetry(prev => {
-          const newTelemetry = {
-            ...prev,
-            heartRate: prev.heartRate || 120 + Math.floor(Math.random() * 40),
-            power: prev.power || 150 + Math.floor(Math.random() * 100),
-            cadence: prev.cadence || 80 + Math.floor(Math.random() * 20),
-            speed: prev.speed || 25 + Math.random() * 10,
-            effort: prev.effort || 140 + Math.floor(Math.random() * 30),
-          };
-          // Collect samples for averages
-          telemetrySamples.current.push({
-            hr: newTelemetry.heartRate,
-            power: newTelemetry.power,
-            effort: newTelemetry.effort,
-          });
-          return newTelemetry;
+        const prev = telemetryRawRef.current;
+        const newTelemetry = {
+          ...prev,
+          heartRate: prev.heartRate || 120 + Math.floor(Math.random() * 40),
+          power: prev.power || 150 + Math.floor(Math.random() * 100),
+          cadence: prev.cadence || 80 + Math.floor(Math.random() * 20),
+          speed: prev.speed || 25 + Math.random() * 10,
+          effort: prev.effort || 140 + Math.floor(Math.random() * 30),
+        };
+        telemetryRawRef.current = newTelemetry;
+
+        // Collect samples for averages
+        telemetrySamples.current.push({
+          hr: newTelemetry.heartRate,
+          power: newTelemetry.power,
+          effort: newTelemetry.effort,
         });
       }
     }, 1000);
@@ -392,12 +434,14 @@ export default function LiveRidePage() {
     }
   }, [isRiding, workoutPlan, currentInterval, intervalRemaining, playSound]);
 
-  const currentBeat = classData?.route?.route.storyBeats.find(
-    beat => {
+  const currentBeat = useMemo(() => {
+    const beats = classData?.route?.route.storyBeats;
+    if (!beats) return undefined;
+    return beats.find((beat) => {
       const beatProgress = beat.progress * 100;
       return rideProgress >= beatProgress && rideProgress < beatProgress + 1;
-    }
-  );
+    });
+  }, [classData?.route?.route.storyBeats, rideProgress]);
 
   // Voice coach announces story beats
   useEffect(() => {
@@ -586,6 +630,7 @@ export default function LiveRidePage() {
           stats={{ hr: telemetry.heartRate, power: telemetry.power, cadence: telemetry.cadence }}
           avatarId={searchParams.get("avatarId") || undefined}
           equipmentId={searchParams.get("equipmentId") || undefined}
+          quality={deviceType === "mobile" ? "low" : "high"}
           className="h-full w-full"
         />
 
