@@ -773,6 +773,25 @@ export default function LiveRidePage() {
               </div>
 
               <div className="flex items-center gap-2 ml-2">
+                {/* Reset UI prefs (useful for testing / getting back to defaults) */}
+                <button
+                  onClick={() => {
+                    try {
+                      window.localStorage.removeItem("spinchain:ride:viewMode");
+                      window.localStorage.removeItem("spinchain:ride:hudMode");
+                    } catch {
+                      // ignore
+                    }
+
+                    // Re-apply device defaults
+                    setHudMode(deviceType === "mobile" ? "compact" : "full");
+                    setViewMode(deviceType === "mobile" ? "focus" : "immersive");
+                  }}
+                  className="hidden sm:inline-flex rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/60 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
+                  aria-label="Reset ride UI preferences"
+                >
+                  Reset
+                </button>
                 {/* View Mode Toggle */}
                 <button
                   onClick={() =>
