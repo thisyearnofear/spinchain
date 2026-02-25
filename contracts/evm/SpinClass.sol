@@ -6,14 +6,16 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {TieredRewards} from "./TieredRewards.sol";
 
 /// @title SpinClass
-/// @notice NFT ticketing with tier discounts (Option B)
-/// @dev Enhanced with SPIN holder discounts
+/// @notice NFT ticketing with stablecoin payments and instructor revenue splits
+/// @dev Supports both human and AI agent instructors with 70-90% revenue share
 /// @custom:security-contact security@spinchain.xyz
 contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
     using TieredRewards for *;
+    using SafeERC20 for IERC20;
 
     // ============ Errors ============
     error InvalidTimeRange();
@@ -33,6 +35,9 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
     error AlreadyRefunded();
     error NotRefundable();
     error TransfersLocked();
+    error InvalidPaymentToken();
+    error InvalidInstructorShare();
+    error UnsupportedPaymentMethod();
 
     // ============ Structs ============
     struct Pricing {
@@ -43,6 +48,7 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
     struct TicketInfo {
         uint256 purchasePrice;
         bool refunded;
+        bool paidInStable; // Track payment method for refunds
     }
 
     // ============ State ============
@@ -51,10 +57,17 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
     uint256 public endTime;
     uint256 public maxRiders;
     Pricing public pricing;
-    address public treasury;
+    address public instructor; // Human or AI agent wallet
+    address public treasury; // Protocol treasury (5-10% fee)
     address public incentiveEngine;
     address public spinToken;
     bool public cancelled;
+    
+    // Stablecoin payment support
+    IERC20 public paymentToken; // USDT/USDC address (address(0) = native AVAX)
+    uint16 public instructorShareBps; // Instructor revenue share in basis points (7000-9000 = 70-90%)
+    uint256 public instructorBalance; // Accumulated instructor revenue
+    uint256 public protocolBalance; // Accumulated protocol fees
 
     uint256 public ticketsSold;
     uint256 private nextTokenId = 1;
@@ -64,17 +77,21 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
     mapping(uint256 => TicketInfo) public ticketInfo;
 
     // ============ Events ============
-    event TicketPurchased(address indexed rider, uint256 indexed tokenId, uint256 pricePaid, TieredRewards.Tier tier);
+    event TicketPurchased(address indexed rider, uint256 indexed tokenId, uint256 pricePaid, TieredRewards.Tier tier, bool paidInStable);
     event CheckedIn(address indexed rider, uint256 indexed tokenId);
     event TreasuryUpdated(address indexed treasury);
     event IncentiveEngineUpdated(address indexed engine);
     event SpinTokenUpdated(address indexed token);
     event RevenueSettled(address indexed treasury, uint256 amount);
     event ClassCancelled(uint256 timestamp);
-    event TicketRefunded(address indexed rider, uint256 indexed tokenId, uint256 amount);
+    event TicketRefunded(address indexed rider, uint256 indexed tokenId, uint256 amount, bool inStable);
     event TransferLocked(uint256 tokenId);
     event InstructorMetadataSet(string key, string value);
     event TierDiscountApplied(address indexed rider, TieredRewards.Tier tier, uint256 originalPrice, uint256 discountedPrice);
+    event InstructorPaid(address indexed instructor, uint256 amount, bool inStable);
+    event ProtocolFeePaid(address indexed treasury, uint256 amount, bool inStable);
+    event PaymentTokenUpdated(address indexed token);
+    event InstructorShareUpdated(uint16 shareBps);
 
     constructor(
         address owner_,
@@ -86,21 +103,29 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
         uint256 maxRiders_,
         uint256 basePrice_,
         uint256 maxPrice_,
+        address instructor_,
         address treasury_,
         address incentiveEngine_,
-        address spinToken_
+        address spinToken_,
+        address paymentToken_,
+        uint16 instructorShareBps_
     ) ERC721(name_, symbol_) Ownable(owner_) {
         if (startTime_ >= endTime_) revert InvalidTimeRange();
         if (maxRiders_ == 0) revert InvalidMaxRiders();
         if (maxPrice_ < basePrice_) revert InvalidPriceRange();
+        if (instructorShareBps_ < 7000 || instructorShareBps_ > 9000) revert InvalidInstructorShare();
+        
         classMetadata = classMetadata_;
         startTime = startTime_;
         endTime = endTime_;
         maxRiders = maxRiders_;
         pricing = Pricing({basePrice: uint128(basePrice_), maxPrice: uint128(maxPrice_)});
+        instructor = instructor_;
         treasury = treasury_;
         incentiveEngine = incentiveEngine_;
         spinToken = spinToken_;
+        paymentToken = IERC20(paymentToken_); // address(0) = native AVAX
+        instructorShareBps = instructorShareBps_;
     }
 
     /// @notice Calculate current ticket price using exponential bonding curve
@@ -128,38 +153,88 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
         return (basePrice, discountedPrice, tier);
     }
 
+    /// @notice Purchase ticket with native AVAX (legacy support)
     function purchaseTicket() external payable nonReentrant whenNotPaused returns (uint256 tokenId) {
-        if (block.timestamp >= startTime) revert SalesClosed();
-        if (ticketsSold >= maxRiders) revert SoldOut();
-        if (cancelled) revert ClassCancelled();
+        if (address(paymentToken) != address(0)) revert UnsupportedPaymentMethod();
+        return _purchaseTicket(msg.sender, false);
+    }
+
+    /// @notice Purchase ticket with stablecoin (USDT/USDC)
+    /// @param amount Amount of stablecoin to pay (must be >= discounted price)
+    function purchaseTicketStable(uint256 amount) external nonReentrant whenNotPaused returns (uint256 tokenId) {
+        if (address(paymentToken) == address(0)) revert InvalidPaymentToken();
         
         (uint256 basePrice, uint256 discountedPrice, TieredRewards.Tier tier) = priceForUser(msg.sender);
-        if (msg.value < discountedPrice) revert InsufficientPayment();
-
+        if (amount < discountedPrice) revert InsufficientPayment();
+        
+        // Transfer stablecoin from buyer
+        paymentToken.safeTransferFrom(msg.sender, address(this), discountedPrice);
+        
+        // Split revenue: instructor share + protocol fee
+        uint256 instructorAmount = (discountedPrice * instructorShareBps) / 10_000;
+        uint256 protocolAmount = discountedPrice - instructorAmount;
+        
+        instructorBalance += instructorAmount;
+        protocolBalance += protocolAmount;
+        
         tokenId = nextTokenId;
         nextTokenId++;
         ticketsSold++;
 
         _safeMint(msg.sender, tokenId);
         
-        // Store purchase price for refunds (use discounted price)
         ticketInfo[tokenId] = TicketInfo({
             purchasePrice: discountedPrice,
-            refunded: false
+            refunded: false,
+            paidInStable: true
         });
 
-        // Refund excess — use call() not transfer() to support smart contract wallets
+        emit TicketPurchased(msg.sender, tokenId, discountedPrice, tier, true);
+        if (tier != TieredRewards.Tier.NONE) {
+            emit TierDiscountApplied(msg.sender, tier, basePrice, discountedPrice);
+        }
+    }
+
+    /// @notice Internal ticket purchase logic for native AVAX
+    function _purchaseTicket(address buyer, bool isStable) internal returns (uint256 tokenId) {
+        if (block.timestamp >= startTime) revert SalesClosed();
+        if (ticketsSold >= maxRiders) revert SoldOut();
+        if (cancelled) revert ClassCancelled();
+        
+        (uint256 basePrice, uint256 discountedPrice, TieredRewards.Tier tier) = priceForUser(buyer);
+        if (msg.value < discountedPrice) revert InsufficientPayment();
+
+        // Split revenue: instructor share + protocol fee
+        uint256 instructorAmount = (discountedPrice * instructorShareBps) / 10_000;
+        uint256 protocolAmount = discountedPrice - instructorAmount;
+        
+        instructorBalance += instructorAmount;
+        protocolBalance += protocolAmount;
+
+        tokenId = nextTokenId;
+        nextTokenId++;
+        ticketsSold++;
+
+        _safeMint(buyer, tokenId);
+        
+        ticketInfo[tokenId] = TicketInfo({
+            purchasePrice: discountedPrice,
+            refunded: false,
+            paidInStable: isStable
+        });
+
+        // Refund excess AVAX
         if (msg.value > discountedPrice) {
             unchecked {
                 uint256 refund = msg.value - discountedPrice;
-                (bool ok, ) = payable(msg.sender).call{value: refund}("");
+                (bool ok, ) = payable(buyer).call{value: refund}("");
                 if (!ok) revert TransferFailed();
             }
         }
 
-        emit TicketPurchased(msg.sender, tokenId, discountedPrice, tier);
+        emit TicketPurchased(buyer, tokenId, discountedPrice, tier, isStable);
         if (tier != TieredRewards.Tier.NONE) {
-            emit TierDiscountApplied(msg.sender, tier, basePrice, discountedPrice);
+            emit TierDiscountApplied(buyer, tier, basePrice, discountedPrice);
         }
     }
 
@@ -194,6 +269,46 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
         emit SpinTokenUpdated(token_);
     }
 
+    /// @notice Instructor (human or AI agent) withdraws their revenue share
+    function withdrawInstructorRevenue() external nonReentrant {
+        uint256 amount = instructorBalance;
+        if (amount == 0) return;
+        
+        instructorBalance = 0;
+        
+        if (address(paymentToken) != address(0)) {
+            // Stablecoin payment
+            paymentToken.safeTransfer(instructor, amount);
+            emit InstructorPaid(instructor, amount, true);
+        } else {
+            // Native AVAX payment
+            (bool ok, ) = payable(instructor).call{value: amount}("");
+            if (!ok) revert TransferFailed();
+            emit InstructorPaid(instructor, amount, false);
+        }
+    }
+
+    /// @notice Protocol withdraws fee share to treasury
+    function withdrawProtocolFees() external nonReentrant onlyOwner {
+        if (treasury == address(0)) revert TreasuryNotSet();
+        uint256 amount = protocolBalance;
+        if (amount == 0) return;
+        
+        protocolBalance = 0;
+        
+        if (address(paymentToken) != address(0)) {
+            // Stablecoin payment
+            paymentToken.safeTransfer(treasury, amount);
+            emit ProtocolFeePaid(treasury, amount, true);
+        } else {
+            // Native AVAX payment
+            (bool ok, ) = treasury.call{value: amount}("");
+            if (!ok) revert TransferFailed();
+            emit ProtocolFeePaid(treasury, amount, false);
+        }
+    }
+
+    /// @notice Legacy revenue settlement (deprecated - use withdrawInstructorRevenue + withdrawProtocolFees)
     function settleRevenue() external nonReentrant onlyOwner {
         if (treasury == address(0)) revert TreasuryNotSet();
         uint256 amount = address(this).balance;
@@ -222,15 +337,22 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
         if (info.refunded) revert AlreadyRefunded();
         
         uint256 refundAmount = info.purchasePrice;
+        bool isStable = info.paidInStable;
         info.refunded = true;
         
         _burn(tokenId);
         ticketsSold--;
         
-        (bool ok, ) = payable(msg.sender).call{value: refundAmount}("");
-        if (!ok) revert TransferFailed();
+        if (isStable) {
+            // Refund in stablecoin
+            paymentToken.safeTransfer(msg.sender, refundAmount);
+        } else {
+            // Refund in native AVAX
+            (bool ok, ) = payable(msg.sender).call{value: refundAmount}("");
+            if (!ok) revert TransferFailed();
+        }
         
-        emit TicketRefunded(msg.sender, tokenId, refundAmount);
+        emit TicketRefunded(msg.sender, tokenId, refundAmount, isStable);
     }
 
     // ============ Admin ============
@@ -246,6 +368,21 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
     /// @notice Set instructor metadata (ENS, avatar, etc.) - emits event for indexing
     function setMetadata(string calldata key, string calldata value) external onlyOwner {
         emit InstructorMetadataSet(key, value);
+    }
+
+    /// @notice Update payment token (owner only, before sales start)
+    function setPaymentToken(address token_) external onlyOwner {
+        if (ticketsSold > 0) revert SalesClosed();
+        paymentToken = IERC20(token_);
+        emit PaymentTokenUpdated(token_);
+    }
+
+    /// @notice Update instructor revenue share (owner only, before sales start)
+    function setInstructorShare(uint16 shareBps_) external onlyOwner {
+        if (ticketsSold > 0) revert SalesClosed();
+        if (shareBps_ < 7000 || shareBps_ > 9000) revert InvalidInstructorShare();
+        instructorShareBps = shareBps_;
+        emit InstructorShareUpdated(shareBps_);
     }
 
     // ============ Hooks ============

@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 /**
  * Breakpoints following Tailwind's mobile-first approach
@@ -243,4 +243,208 @@ export function useActualViewportHeight(): number {
   }, []);
 
   return height;
+}
+
+/**
+ * Performance tier detection for adaptive rendering
+ */
+export type PerformanceTier = "high" | "medium" | "low";
+
+export function usePerformanceTier(): PerformanceTier {
+  const [tier, setTier] = useState<PerformanceTier>("medium");
+  const deviceType = useDeviceType();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Check hardware concurrency (CPU cores)
+    const cores = navigator.hardwareConcurrency || 4;
+    
+    // Check device memory (if available)
+    const memory = (navigator as any).deviceMemory || 4;
+    
+    // Check GPU tier via WebGL
+    const canvas = document.createElement("canvas");
+    const gl = canvas.getContext("webgl") as WebGLRenderingContext | null;
+    let gpuTier: "high" | "medium" | "low" = "medium";
+    
+    if (gl) {
+      const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+      if (debugInfo) {
+        const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) as string;
+        // Simple heuristic: check for high-end GPU keywords
+        if (/Apple GPU|Mali-G|Adreno 6|RTX|GTX|Radeon/i.test(renderer)) {
+          gpuTier = "high";
+        } else if (/Adreno 5|Mali-T|Intel HD/i.test(renderer)) {
+          gpuTier = "low";
+        }
+      }
+    }
+
+    // Determine tier based on device type and hardware
+    if (deviceType === "mobile") {
+      // Mobile: conservative by default
+      if (cores >= 8 && memory >= 6 && gpuTier === "high") {
+        setTier("high");
+      } else if (cores >= 4 && memory >= 4) {
+        setTier("medium");
+      } else {
+        setTier("low");
+      }
+    } else if (deviceType === "tablet") {
+      // Tablet: medium by default
+      if (cores >= 6 && memory >= 4 && gpuTier === "high") {
+        setTier("high");
+      } else {
+        setTier("medium");
+      }
+    } else {
+      // Desktop: high by default
+      if (cores >= 4 && memory >= 8) {
+        setTier("high");
+      } else {
+        setTier("medium");
+      }
+    }
+  }, [deviceType]);
+
+  return tier;
+}
+
+/**
+ * Network quality detection
+ */
+export type NetworkQuality = "4g" | "3g" | "2g" | "slow-2g" | "offline";
+
+export function useNetworkQuality(): NetworkQuality {
+  const [quality, setQuality] = useState<NetworkQuality>("4g");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    
+    if (!connection) return;
+
+    const updateQuality = () => {
+      const effectiveType = connection.effectiveType || "4g";
+      setQuality(effectiveType);
+    };
+
+    updateQuality();
+    connection.addEventListener("change", updateQuality);
+    
+    return () => connection.removeEventListener("change", updateQuality);
+  }, []);
+
+  return quality;
+}
+
+/**
+ * Battery status detection (for power-saving mode)
+ */
+export function useBatteryStatus() {
+  const [battery, setBattery] = useState({
+    level: 1,
+    charging: true,
+    lowPower: false,
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const updateBattery = (batteryManager: any) => {
+      setBattery({
+        level: batteryManager.level,
+        charging: batteryManager.charging,
+        lowPower: batteryManager.level < 0.2 && !batteryManager.charging,
+      });
+    };
+
+    (navigator as any).getBattery?.().then((batteryManager: any) => {
+      updateBattery(batteryManager);
+      
+      batteryManager.addEventListener("levelchange", () => updateBattery(batteryManager));
+      batteryManager.addEventListener("chargingchange", () => updateBattery(batteryManager));
+    });
+  }, []);
+
+  return battery;
+}
+
+/**
+ * Adaptive quality settings based on device capabilities
+ */
+export function useAdaptiveQuality() {
+  const performanceTier = usePerformanceTier();
+  const networkQuality = useNetworkQuality();
+  const battery = useBatteryStatus();
+  const deviceType = useDeviceType();
+
+  return useMemo(() => {
+    // Start with tier-based defaults
+    let quality = {
+      // 3D rendering
+      pixelRatio: 1,
+      shadows: false,
+      antialiasing: false,
+      particleCount: 100,
+      meshDetail: "low" as "low" | "medium" | "high",
+      
+      // Assets
+      textureQuality: "medium" as "low" | "medium" | "high",
+      modelLOD: 2,
+      
+      // Animation
+      fps: 30,
+      enableBloom: false,
+      enableSSAO: false,
+    };
+
+    // Adjust based on performance tier
+    if (performanceTier === "high") {
+      quality = {
+        ...quality,
+        pixelRatio: Math.min(window.devicePixelRatio, 2),
+        shadows: true,
+        antialiasing: true,
+        particleCount: 500,
+        meshDetail: "high",
+        textureQuality: "high",
+        modelLOD: 0,
+        fps: 60,
+        enableBloom: true,
+        enableSSAO: deviceType === "desktop",
+      };
+    } else if (performanceTier === "medium") {
+      quality = {
+        ...quality,
+        pixelRatio: 1,
+        shadows: deviceType !== "mobile",
+        antialiasing: deviceType !== "mobile",
+        particleCount: 200,
+        meshDetail: "medium",
+        textureQuality: "medium",
+        modelLOD: 1,
+        fps: 45,
+      };
+    }
+
+    // Reduce quality on slow network
+    if (networkQuality === "2g" || networkQuality === "slow-2g") {
+      quality.textureQuality = "low";
+      quality.particleCount = Math.floor(quality.particleCount / 2);
+    }
+
+    // Power saving mode
+    if (battery.lowPower) {
+      quality.fps = 30;
+      quality.shadows = false;
+      quality.enableBloom = false;
+      quality.enableSSAO = false;
+      quality.particleCount = Math.floor(quality.particleCount / 2);
+    }
+
+    return quality;
+  }, [performanceTier, networkQuality, battery, deviceType]);
 }

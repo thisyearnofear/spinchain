@@ -32,7 +32,9 @@ contract ClassFactory is Ownable {
     constructor() Ownable(msg.sender) {}
 
     /// @notice Create a new SpinClass with validation
-    /// @param spinToken Address of SPIN token (used for tier discount calculations)
+    /// @param instructor Address receiving 70-90% revenue (human or AI agent wallet)
+    /// @param paymentToken Address of USDT/USDC (address(0) for native AVAX)
+    /// @param instructorShareBps Instructor revenue share in basis points (7000-9000)
     function createClass(
         string calldata name,
         string calldata symbol,
@@ -42,9 +44,12 @@ contract ClassFactory is Ownable {
         uint256 maxRiders,
         uint128 basePrice,
         uint128 maxPrice,
+        address instructor,
         address treasury,
         address incentiveEngine,
-        address spinToken
+        address spinToken,
+        address paymentToken,
+        uint16 instructorShareBps
     ) external returns (address spinClass) {
         // Input validation
         if (startTime >= endTime) revert InvalidTimeRange();
@@ -62,9 +67,12 @@ contract ClassFactory is Ownable {
             maxRiders,
             basePrice,
             maxPrice,
+            instructor,
             treasury,
             incentiveEngine,
-            spinToken
+            spinToken,
+            paymentToken,
+            instructorShareBps
         );
 
         spinClass = address(instance);
@@ -75,10 +83,10 @@ contract ClassFactory is Ownable {
         // Register the class
         isSpinClass[spinClass] = true;
         classById[classId] = spinClass;
-        classesByInstructor[msg.sender].push(spinClass);
+        classesByInstructor[instructor].push(spinClass);
         allClasses.push(spinClass);
 
-        emit ClassCreated(msg.sender, spinClass, classId, startTime, endTime, maxRiders);
+        emit ClassCreated(instructor, spinClass, classId, startTime, endTime, maxRiders);
     }
 
     // ============ View Functions ============

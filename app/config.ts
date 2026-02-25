@@ -5,6 +5,10 @@ export const CONTRACTS = {
     spinToken: "0x0000000000000000000000000000000000000000",
     incentiveEngine: "0x0000000000000000000000000000000000000000",
     classFactory: "0x0000000000000000000000000000000000000000",
+    biometricOracle: "0x0000000000000000000000000000000000000000",
+    // Stablecoin addresses (Avalanche Fuji Testnet)
+    usdc: "0x5425890298aed601595a70AB815c96711a31Bc65", // Fuji USDC
+    usdt: "0x0000000000000000000000000000000000000000", // Deploy mock or use bridge
   },
 } as const;
 
@@ -32,6 +36,23 @@ export const ZK_CONFIG = {
     process.env.NEXT_PUBLIC_NOIR_VERIFIER_ADDRESS || "0x0000000000000000000000000000000000000000",
   // Circuit type: "effort_threshold" | "composite"
   defaultCircuit: "effort_threshold" as const,
+} as const;
+
+export const CHAINLINK_CONFIG = {
+  // Chainlink Functions configuration for biometric oracle
+  router: process.env.NEXT_PUBLIC_CHAINLINK_ROUTER || "0x0000000000000000000000000000000000000000",
+  donId: process.env.NEXT_PUBLIC_CHAINLINK_DON_ID || "",
+  subscriptionId: process.env.NEXT_PUBLIC_CHAINLINK_SUBSCRIPTION_ID || "0",
+  gasLimit: 300000,
+} as const;
+
+export const PAYMENT_CONFIG = {
+  // Default payment method: "native" (AVAX) | "usdc" | "usdt"
+  defaultMethod: (process.env.NEXT_PUBLIC_DEFAULT_PAYMENT_METHOD || "usdc") as "native" | "usdc" | "usdt",
+  // Instructor revenue share (70-90%)
+  defaultInstructorShare: 8000, // 80%
+  // Protocol fee (10-30%)
+  defaultProtocolFee: 2000, // 20%
 } as const;
 
 export const AI_SERVICE_CONFIG = {

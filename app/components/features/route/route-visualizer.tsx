@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useDeviceType } from "@/app/lib/responsive";
+import { useDeviceType, useAdaptiveQuality, usePerformanceTier } from "@/app/lib/responsive";
 import {
   CatmullRomCurve3,
   Vector3,
@@ -11,7 +11,7 @@ import {
   Group,
   PointLight,
 } from "three";
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect, Suspense } from "react";
 import {
   OrbitControls,
   Environment,
@@ -478,6 +478,7 @@ function Scene({
   stats = { hr: 0, power: 0, cadence: 0 },
   avatar,
   equipment,
+  quality,
 }: {
   elevationProfile: number[];
   theme?: VisualizerTheme;
@@ -487,6 +488,13 @@ function Scene({
   stats?: RiderStats;
   avatar?: AvatarAsset;
   equipment?: EquipmentAsset;
+  quality?: {
+    pixelRatio: number;
+    shadows: boolean;
+    antialiasing: boolean;
+    particleCount: number;
+    fps: number;
+  };
 }) {
   const curve = useRouteCurve(elevationProfile);
   const styles = THEMES[theme];
@@ -534,6 +542,11 @@ function Scene({
     }
   });
 
+  // Adaptive particle count based on quality
+  const particleCount = quality?.particleCount || 200;
+  const sparkleCount = Math.min(particleCount, 30 + Math.floor(stats.power / 4));
+  const speedLineCount = quality?.particleCount ? Math.min(50, Math.floor(stats.power / 5)) : 0;
+
   return (
     <>
       <PerspectiveCamera makeDefault position={[50, 40, 80]} fov={55} />
@@ -542,26 +555,29 @@ function Scene({
         position={[10, 50, 10]}
         intensity={1}
         color={theme === "mars" ? "#ef4444" : theme === "rainbow" ? "#ff00ff" : "#9b7bff"}
+        castShadow={quality?.shadows}
       />
       <fog attach="fog" args={[styles.fog, 20, 250]} />
 
       <Environment preset={styles.envPreset} />
-        <FloatingParticles theme={theme} />
-        {progress > 0 && (
-          <SpeedLines
-            count={Math.min(50, Math.floor(stats.power / 5))}
-            theme={theme}
-          />
-        )}
+      
+      {/* Conditionally render expensive effects */}
+      {particleCount > 100 && <FloatingParticles theme={theme} />}
+      
+      {progress > 0 && speedLineCount > 0 && (
+        <SpeedLines count={speedLineCount} theme={theme} />
+      )}
 
+      {sparkleCount > 0 && (
         <Sparkles
-          count={Math.min(100, 30 + Math.floor(stats.power / 4))}
+          count={sparkleCount}
           scale={100}
           size={Math.min(4, 1.5 + stats.power / 150)}
           speed={0.3 + (stats.cadence / 200)}
           color={styles.particleColor}
           opacity={Math.min(0.5, 0.1 + stats.power / 500)}
         />
+      )}
 
       <group position={[0, -10, 0]}>
         <Road curve={curve} theme={theme} />
@@ -574,7 +590,8 @@ function Scene({
           equipment={equipment}
         />
 
-        {ghosts.map((g, i) => (
+        {/* Limit ghosts on low-end devices */}
+        {ghosts.slice(0, quality?.particleCount && quality.particleCount < 200 ? 3 : 10).map((g, i) => (
           <GhostRider key={i} curve={curve} progress={g} theme={theme} />
         ))}
 
@@ -597,6 +614,7 @@ function Scene({
         minDistance={20}
         maxDistance={150}
         enablePan={false}
+        enableDamping={quality?.particleCount ? quality.particleCount > 200 : true}
       />
     </>
   );
@@ -627,10 +645,27 @@ export default function RouteVisualizer({
   onStatsUpdate?: (stats: RiderStats) => void;
   avatarId?: string;
   equipmentId?: string;
-  quality?: "low" | "high";
+  quality?: "low" | "medium" | "high";
 }) {
   const deviceType = useDeviceType();
-  const effectiveQuality = quality ?? (deviceType === "mobile" ? "low" : "high");
+  const adaptiveQuality = useAdaptiveQuality();
+  const performanceTier = usePerformanceTier();
+  
+  // Determine effective quality settings
+  const effectiveQuality = useMemo(() => {
+    if (quality) {
+      // Manual override
+      return {
+        pixelRatio: quality === "high" ? Math.min(window.devicePixelRatio, 2) : 1,
+        shadows: quality === "high",
+        antialiasing: quality !== "low",
+        particleCount: quality === "high" ? 500 : quality === "medium" ? 200 : 100,
+        fps: quality === "high" ? 60 : quality === "medium" ? 45 : 30,
+      };
+    }
+    // Use adaptive quality
+    return adaptiveQuality;
+  }, [quality, adaptiveQuality]);
 
   const styles = THEMES[theme];
   
@@ -639,7 +674,7 @@ export default function RouteVisualizer({
 
   // Simulation loop for stats if progress is live
   useEffect(() => {
-    if (effectiveQuality === "low") return;
+    if (performanceTier === "low") return; // Skip on low-end devices
     if (progress > 0 && onStatsUpdate) {
       const interval = setInterval(() => {
         // Subtle randomization around the current stats
@@ -652,49 +687,60 @@ export default function RouteVisualizer({
       }, 2000); // 2 seconds update for Sui telemetry
       return () => clearInterval(interval);
     }
-  }, [progress, stats, onStatsUpdate]);
+  }, [progress, stats, onStatsUpdate, performanceTier]);
 
   return (
     <div
       className={`relative w-full overflow-hidden rounded-2xl bg-black ${className}`}
     >
-      <Canvas dpr={effectiveQuality === "low" ? 1 : [1, 2]}>
-        <color attach="background" args={[styles.fog]} />
-        <Scene
-          elevationProfile={elevationProfile}
-          theme={theme}
-          progress={progress}
-          storyBeats={storyBeats}
-          ghosts={ghosts}
-          stats={stats}
-          avatar={avatar}
-          equipment={equipment}
-        />
-      </Canvas>
+      <Suspense fallback={
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-900/20 to-purple-900/20">
+          <div className="text-white/60 text-sm">Loading 3D route...</div>
+        </div>
+      }>
+        <Canvas 
+          dpr={effectiveQuality.pixelRatio}
+          frameloop={progress > 0 ? "always" : "demand"} // Optimize when static
+          performance={{ min: 0.5 }} // Allow frame rate to drop if needed
+        >
+          <color attach="background" args={[styles.fog]} />
+          <Scene
+            elevationProfile={elevationProfile}
+            theme={theme}
+            progress={progress}
+            storyBeats={storyBeats}
+            ghosts={ghosts}
+            stats={stats}
+            avatar={avatar}
+            equipment={equipment}
+            quality={effectiveQuality}
+          />
+        </Canvas>
+      </Suspense>
 
-      {/* Rider HUD Overlay */}
+      {/* Rider HUD Overlay - Responsive sizing */}
       {progress > 0 && (
-        <div className="absolute inset-x-0 top-0 z-20 pointer-events-none p-6">
-          <div className="flex gap-4">
-            <div className="rounded-xl bg-black/40 border border-white/10 backdrop-blur-md p-3 flex flex-col min-w-[80px]">
-              <span className="text-[10px] uppercase tracking-wider text-white/50 font-bold">
+        <div className="absolute inset-x-0 top-0 z-20 pointer-events-none p-3 md:p-6">
+          <div className="flex gap-2 md:gap-4">
+            <div className="rounded-lg md:rounded-xl bg-black/40 border border-white/10 backdrop-blur-md p-2 md:p-3 flex flex-col min-w-[60px] md:min-w-[80px]">
+              <span className="text-[8px] md:text-[10px] uppercase tracking-wider text-white/50 font-bold">
                 HR
               </span>
-              <span className="text-2xl font-black text-white">{stats.hr}</span>
+              <span className="text-xl md:text-2xl font-black text-white">{stats.hr}</span>
             </div>
-            <div className="rounded-xl bg-black/40 border border-white/10 backdrop-blur-md p-3 flex flex-col min-w-[80px]">
-              <span className="text-[10px] uppercase tracking-wider text-white/50 font-bold">
+            <div className="rounded-lg md:rounded-xl bg-black/40 border border-white/10 backdrop-blur-md p-2 md:p-3 flex flex-col min-w-[60px] md:min-w-[80px]">
+              <span className="text-[8px] md:text-[10px] uppercase tracking-wider text-white/50 font-bold">
                 Power
               </span>
-              <span className="text-2xl font-black text-[color:var(--brand)]">
+              <span className="text-xl md:text-2xl font-black text-[color:var(--brand)]">
                 {stats.power}w
               </span>
             </div>
-            <div className="rounded-xl bg-black/40 border border-white/10 backdrop-blur-md p-3 flex flex-col min-w-[80px]">
-              <span className="text-[10px] uppercase tracking-wider text-white/50 font-bold">
+            <div className="rounded-lg md:rounded-xl bg-black/40 border border-white/10 backdrop-blur-md p-2 md:p-3 flex flex-col min-w-[60px] md:min-w-[80px]">
+              <span className="text-[8px] md:text-[10px] uppercase tracking-wider text-white/50 font-bold">
                 RPM
               </span>
-              <span className="text-2xl font-black text-white">
+              <span className="text-xl md:text-2xl font-black text-white">
                 {stats.cadence}
               </span>
             </div>

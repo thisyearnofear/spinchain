@@ -20,9 +20,13 @@ interface IEffortThresholdVerifier {
     function verifyAndRecord(bytes calldata proof, bytes32[] calldata publicInputs) external returns (uint16);
 }
 
+interface IBiometricOracle {
+    function getVerifiedScore(bytes32 classId, address rider) external view returns (uint16);
+}
+
 /// @title IncentiveEngine
-/// @notice Reward distribution with tier multipliers (Option B)
-/// @dev Enhanced with tier-based rewards for SPIN holders
+/// @notice Reward distribution with tier multipliers and Chainlink oracle verification
+/// @dev Supports ZK proofs, signed attestations, and Chainlink-verified biometrics
 /// @custom:security-contact security@spinchain.xyz
 contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     using ECDSA for bytes32;
@@ -47,19 +51,23 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     ISpinToken public rewardToken;
     IERC20 public spinToken;
     IEffortThresholdVerifier public verifier;
+    IBiometricOracle public biometricOracle;
     address public attestationSigner;
     
     mapping(bytes32 => bool) public usedAttestations;
     mapping(uint256 => uint256) public dailyMinted; // day => amount
     mapping(address => uint256) public totalClaimed; // rider => total rewards
     mapping(address => TieredRewards.Tier) public userTiers; // cached tiers
+    mapping(bytes32 => bool) public chainlinkClaimsUsed; // classId+rider => claimed
 
     // ============ Events ============
     event AttestationSignerUpdated(address indexed signer);
     event RewardTokenUpdated(address indexed token);
     event VerifierUpdated(address indexed verifier);
+    event BiometricOracleUpdated(address indexed oracle);
     event RewardClaimed(address indexed rider, address indexed spinClass, uint256 amount, bytes32 attestationId);
     event ZKRewardClaimed(address indexed rider, bytes32 indexed classId, uint256 amount, uint16 effortScore);
+    event ChainlinkRewardClaimed(address indexed rider, bytes32 indexed classId, uint256 amount, uint16 effortScore);
     event TierRewardBoost(address indexed rider, TieredRewards.Tier tier, uint256 baseAmount, uint256 boostedAmount);
 
     constructor(address owner_, address token_, address signer_, address verifier_) Ownable(owner_) {
@@ -83,6 +91,11 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     function setVerifier(address verifier_) external onlyOwner {
         verifier = IEffortThresholdVerifier(verifier_);
         emit VerifierUpdated(verifier_);
+    }
+
+    function setBiometricOracle(address oracle_) external onlyOwner {
+        biometricOracle = IBiometricOracle(oracle_);
+        emit BiometricOracleUpdated(oracle_);
     }
 
     /// @notice Get user's current tier based on SPIN balance
@@ -169,6 +182,40 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
         emit ZKRewardClaimed(rider, classId, boostedAmount, effortScore);
         if (tier != TieredRewards.Tier.NONE) {
             emit TierRewardBoost(rider, tier, baseAmount, boostedAmount);
+        }
+    }
+
+    /// @notice Claim rewards via Chainlink oracle verification (tamper-proof biometrics)
+    /// @dev Uses Chainlink Functions to verify off-chain biometric data
+    function submitChainlinkProof(
+        bytes32 classId
+    ) external nonReentrant whenNotPaused {
+        if (address(biometricOracle) == address(0)) revert InvalidProof();
+        
+        // Check if already claimed
+        bytes32 claimKey = keccak256(abi.encodePacked(classId, msg.sender));
+        if (chainlinkClaimsUsed[claimKey]) revert AttestationUsed();
+        
+        // Get verified score from Chainlink oracle
+        uint16 effortScore = biometricOracle.getVerifiedScore(classId, msg.sender);
+        if (effortScore == 0) revert ThresholdNotMet();
+        
+        chainlinkClaimsUsed[claimKey] = true;
+
+        // Compute reward on-chain from verified effort score
+        uint256 baseAmount = calculateReward(effortScore);
+        if (baseAmount == 0) revert InvalidAmount();
+
+        // Apply tier multiplier
+        TieredRewards.Tier tier = getUserTier(msg.sender);
+        uint256 boostedAmount = TieredRewards.applyMultiplier(baseAmount, tier);
+
+        _mintWithLimit(msg.sender, boostedAmount);
+        totalClaimed[msg.sender] += boostedAmount;
+        
+        emit ChainlinkRewardClaimed(msg.sender, classId, boostedAmount, effortScore);
+        if (tier != TieredRewards.Tier.NONE) {
+            emit TierRewardBoost(msg.sender, tier, baseAmount, boostedAmount);
         }
     }
 
