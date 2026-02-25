@@ -4,6 +4,7 @@ import "./globals.css";
 import "@rainbow-me/rainbowkit/styles.css";
 import { Providers } from "./providers";
 import { SmoothScrollProvider } from "@/app/components/ui/smooth-scroll";
+import { ErrorBoundary } from "@/app/components/layout/error-boundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -72,9 +73,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>
-          <SmoothScrollProvider>{children}</SmoothScrollProvider>
-        </Providers>
+        <ErrorBoundary>
+          <Providers>
+            <SmoothScrollProvider>{children}</SmoothScrollProvider>
+          </Providers>
+        </ErrorBoundary>
       </body>
     </html>
   );

@@ -4,6 +4,29 @@ SpinChain is a hybrid fitness protocol that combines the liquidity depth of **Av
 
 ---
 
+## 🔒 Security: Pre-Commit Hook
+
+This repository includes a **pre-commit hook** that prevents accidentally committing secrets (API keys, private keys, `.env.local` files, etc.).
+
+### Setup
+```bash
+# The hook is already installed. To verify or reinstall:
+./scripts/setup-hooks.sh
+```
+
+### What it blocks
+- Private keys (Sui `suiprivkey1...`, Ethereum 64-char hex, generic)
+- API keys (Google `AIza...`, GitHub `ghp_...`, AWS `AKIA...`, generic)
+- High-entropy secrets in `KEY=`, `SECRET=`, `TOKEN=` patterns
+- `.env.local`, `.env.production`, `.env.development` files
+
+### Bypass (emergency only)
+```bash
+git commit --no-verify
+```
+
+---
+
 ## 🚀 Key Features
 
 ### 1. Route Worlds (3D Specialized)

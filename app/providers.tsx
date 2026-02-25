@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WagmiProvider } from 'wagmi';
+import { WagmiProvider, useAccount } from 'wagmi';
 import { config } from './wagmi';
 import { SuiProvider } from './sui-provider';
 import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
@@ -34,6 +34,22 @@ function getQueryClient() {
   }
 }
 
+// Hook to handle wallet reconnection on mobile
+function useWalletReconnection() {
+  const { isConnected, isConnecting, isReconnecting } = useAccount();
+  const [hasAttemptedReconnect, setHasAttemptedReconnect] = useState(false);
+
+  useEffect(() => {
+    // On mobile, wallet connections can be flaky after page navigation
+    // This ensures we attempt reconnection once on mount
+    if (!hasAttemptedReconnect && !isConnected && !isConnecting && !isReconnecting) {
+      setHasAttemptedReconnect(true);
+    }
+  }, [isConnected, isConnecting, isReconnecting, hasAttemptedReconnect]);
+
+  return { hasAttemptedReconnect };
+}
+
 // RainbowKit wrapper that responds to theme changes
 function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
@@ -43,6 +59,9 @@ function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
+
+  // Handle mobile wallet reconnection
+  useWalletReconnection();
 
   const rainbowTheme = resolvedTheme === 'dark' 
     ? darkTheme({
@@ -59,7 +78,13 @@ function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
       });
 
   return (
-    <RainbowKitProvider theme={rainbowTheme}>
+    <RainbowKitProvider 
+      theme={rainbowTheme}
+      appInfo={{
+        appName: "SpinChain",
+        learnMoreUrl: "https://spinchain.xyz",
+      }}
+    >
       {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
     </RainbowKitProvider>
   );

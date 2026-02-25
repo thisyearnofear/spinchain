@@ -18,7 +18,7 @@ export const SUI_PACKAGE_ID = process.env.NEXT_PUBLIC_SUI_PACKAGE_ID ||
 export function SuiProvider({ children }: { children: React.ReactNode }) {
 	return (
 		<SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
-			<WalletProvider autoConnect={false}>
+			<WalletProvider autoConnect>
 				{children}
 			</WalletProvider>
 		</SuiClientProvider>

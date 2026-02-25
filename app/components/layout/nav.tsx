@@ -23,7 +23,8 @@ export function PrimaryNav() {
   const showSuiWallet = useSuiWalletVisible();
 
   return (
-    <nav className="flex w-full flex-wrap items-center justify-between gap-6">
+    <nav className="flex w-full flex-col lg:flex-row lg:flex-wrap lg:items-center lg:justify-between gap-4 lg:gap-6">
+      {/* Logo and Title */}
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] text-xl font-semibold text-white">
           🚴
@@ -37,7 +38,10 @@ export function PrimaryNav() {
           </h1>
         </div>
       </div>
-      <div className="flex items-center gap-3">
+
+      {/* Actions - Stacked on mobile, row on desktop */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        {/* Wallet & Settings Row */}
         <div className="flex items-center gap-2">
           <Tooltip content="AI Provider Settings" position="bottom">
             <AIProviderSettings />
@@ -58,32 +62,35 @@ export function PrimaryNav() {
           )}
         </div>
 
-        <Tooltip content="Browse available cycling routes" position="bottom">
-          <a
-            href="/routes"
-            className="rounded-full border border-[color:var(--border)] px-5 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
-          >
-            Routes
-          </a>
-        </Tooltip>
+        {/* Navigation Links - Full width on mobile, auto on desktop */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <Tooltip content="Browse available cycling routes" position="bottom">
+            <a
+              href="/routes"
+              className="flex-1 sm:flex-none text-center rounded-full border border-[color:var(--border)] px-4 sm:px-5 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
+            >
+              Routes
+            </a>
+          </Tooltip>
 
-        <Tooltip content="Create or manage classes" position="bottom">
-          <a
-            href="/instructor"
-            className="rounded-full border border-[color:var(--border)] px-5 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
-          >
-            Teach
-          </a>
-        </Tooltip>
+          <Tooltip content="Create or manage classes" position="bottom">
+            <a
+              href="/instructor"
+              className="flex-1 sm:flex-none text-center rounded-full border border-[color:var(--border)] px-4 sm:px-5 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
+            >
+              Teach
+            </a>
+          </Tooltip>
 
-        <Tooltip content="Find classes and start riding" position="bottom">
-          <a
-            href="/rider"
-            className="rounded-full bg-[color:var(--accent)] px-5 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[color:var(--glow)]"
-          >
-            Start Riding
-          </a>
-        </Tooltip>
+          <Tooltip content="Find classes and start riding" position="bottom">
+            <a
+              href="/rider"
+              className="flex-1 sm:flex-none text-center rounded-full bg-[color:var(--accent)] px-4 sm:px-5 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[color:var(--glow)]"
+            >
+              Start Riding
+            </a>
+          </Tooltip>
+        </div>
       </div>
     </nav>
   );

@@ -91,6 +91,9 @@ export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentBadge.color} text-white hover:opacity-90`}
         title={`AI Provider: ${currentBadge.label}`}
+        aria-label={`AI Provider: ${currentBadge.label}. Click to change settings.`}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
       >
         <span>{currentBadge.icon}</span>
         <span className="hidden sm:inline">{currentBadge.label}</span>
