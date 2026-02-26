@@ -1,7 +1,0 @@
-[package]
-name = "spinchain_circuits"
-type = "lib"
-authors = ["SpinChain Protocol"]
-compiler_version = ">=0.33.0"
-
-[dependencies]

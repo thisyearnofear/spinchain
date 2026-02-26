@@ -6,7 +6,7 @@
 global MAX_DATA_POINTS: u32 = 60;
 
 // Circuit inputs
-struct EffortInput {
+pub struct EffortInput {
     // Private inputs (hidden)
     heart_rates: [u16; MAX_DATA_POINTS],
     num_points: u32,  // Actual number of data points used
@@ -17,16 +17,16 @@ struct EffortInput {
 }
 
 // Circuit outputs
-struct EffortOutput {
+pub struct EffortOutput {
     threshold_met: bool,
     seconds_above: u32,
     effort_score: u16,   // 0-1000 scale
 }
 
 // Main circuit function
-fn main(
+pub fn main(
     input: EffortInput
-) -> EffortOutput {
+) -> pub EffortOutput {
     // Count seconds above threshold
     let mut seconds_above: u32 = 0;
     let mut total_effort: u32 = 0;
@@ -61,7 +61,8 @@ fn main(
     };
     
     let effort_score = if input.threshold > 0 {
-        let score = (avg_effort * 1000) / input.threshold;
+        let threshold_u32 = input.threshold as u32;
+        let score = (avg_effort * 1000) / threshold_u32;
         if score > 1000 {
             1000
         } else {

@@ -57,3 +57,4 @@ move/**/Published.toml
 .idea/
 *.swp
 *.swo
+circuits/*/target/
