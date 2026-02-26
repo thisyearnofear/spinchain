@@ -12,6 +12,8 @@
     "@google/generative-ai": "^0.24.1",
     "@mysten/dapp-kit": "^0.14.53",
     "@mysten/sui": "^1.45.2",
+    "@noir-lang/backend_barretenberg": "0.36.0",
+    "@noir-lang/noir_js": "1.0.0-beta.19",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",

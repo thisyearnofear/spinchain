@@ -69,7 +69,7 @@ export const AI_SERVICE_CONFIG = {
 } as const;
 
 export const AI_CONFIG = {
-  provider: "gemini" as const,
+  provider: "venice" as const,
   model: "gemini-2.0-flash-exp", // Fallback / current stable
   experimentalModel: "gemini-3.0-flash-preview", // New frontier model
   features: {
