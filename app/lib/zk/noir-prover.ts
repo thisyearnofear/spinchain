@@ -65,20 +65,26 @@ export class NoirProver {
   }
   
   private async loadCircuit(): Promise<void> {
-    // In production: fetch('/circuits/effort_threshold/target/effort_threshold.json')
-    // For now, we'll use a placeholder that falls back to mock
+    // Load the compiled circuit from public directory
     try {
       const response = await fetch('/circuits/effort_threshold/target/effort_threshold.json');
       if (response.ok) {
-        this.circuit = await response.json();
-        // Load ACIR bytecode
-        const acirResponse = await fetch('/circuits/effort_threshold/target/effort_threshold.acir');
-        if (acirResponse.ok) {
-          this.circuitBytecode = new Uint8Array(await acirResponse.arrayBuffer());
+        const circuitJson = await response.json();
+        this.circuit = circuitJson;
+        
+        // The JSON contains the bytecode directly
+        if (circuitJson.bytecode) {
+          // Convert hex string to Uint8Array
+          const hex = circuitJson.bytecode.replace(/^0x/, '');
+          this.circuitBytecode = new Uint8Array(hex.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []);
         }
+        
+        console.log('[NoirProver] Circuit loaded successfully');
+      } else {
+        console.warn('[NoirProver] Circuit not found at /circuits/...');
       }
-    } catch {
-      console.warn('[NoirProver] Circuit files not found');
+    } catch (error) {
+      console.warn('[NoirProver] Circuit load failed:', error);
     }
   }
   
