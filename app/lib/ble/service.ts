@@ -19,7 +19,9 @@ import type {
   BleServiceConfig,
   BleServiceState,
   BleServiceCallbacks,
-  SavedDevice
+  SavedDevice,
+  ConnectionQuality,
+  SignalStrength
 } from './types';
 
 // Storage key for saved devices
@@ -465,6 +467,39 @@ export class BleService {
       this.handleError('CONNECTION_FAILED', (error as Error).message);
       return false;
     }
+  }
+
+  // ============================================================================
+  // Connection Quality - Signal strength visualization
+  // ============================================================================
+
+  /**
+   * Get connection quality based on data freshness
+   * Web Bluetooth doesn't provide RSSI, so we infer from data updates
+   */
+  public getConnectionQuality(): ConnectionQuality {
+    if (!this.state.isConnected || !this.state.metrics) {
+      return { strength: 'none', percentage: 0, label: 'No connection' };
+    }
+
+    const now = Date.now();
+    const lastUpdate = this.state.metrics.timestamp;
+    const timeSinceUpdate = now - lastUpdate;
+
+    // If data arrived within last 2 seconds = excellent
+    if (timeSinceUpdate < 2000) {
+      return { strength: 'excellent', percentage: 100, label: 'Excellent' };
+    }
+    // 2-5 seconds = good
+    if (timeSinceUpdate < 5000) {
+      return { strength: 'good', percentage: 75, label: 'Good' };
+    }
+    // 5-10 seconds = fair
+    if (timeSinceUpdate < 10000) {
+      return { strength: 'fair', percentage: 50, label: 'Fair' };
+    }
+    // >10 seconds = poor
+    return { strength: 'poor', percentage: 25, label: 'Poor' };
   }
 }
 

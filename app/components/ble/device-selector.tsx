@@ -38,6 +38,7 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
     isConnected,
     isPending,
     savedDevices,
+    connectionQuality,
     scanAndConnect,
     quickConnect,
     disconnect,
@@ -50,6 +51,15 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
   
   const hasSavedDevices = savedDevices.length > 0;
   const lastDevice = savedDevices[0];
+  
+  // Signal strength colors
+  const signalColors = {
+    excellent: 'bg-green-500',
+    good: 'bg-green-400',
+    fair: 'bg-yellow-500',
+    poor: 'bg-red-500',
+    none: 'bg-gray-400'
+  };
 
   // Connection status indicator
   const getConnectionStatus = () => {
@@ -91,6 +101,30 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
               </p>
             </div>
           </div>
+          
+          {/* Signal Strength Indicator */}
+          {isConnected && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-end gap-0.5">
+                {[1, 2, 3, 4].map((bar) => (
+                  <div
+                    key={bar}
+                    className={`w-1 rounded-full transition-all ${
+                      bar <= (connectionQuality.percentage / 25)
+                        ? signalColors[connectionQuality.strength]
+                        : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                    style={{
+                      height: `${bar * 4}px`
+                    }}
+                  />
+                ))}
+              </div>
+              <span className="text-xs text-[color:var(--muted)]">
+                {connectionQuality.label}
+              </span>
+            </div>
+          )}
           
           <div className={`rounded-full px-3 py-1 text-xs font-medium ${
             isConnected 

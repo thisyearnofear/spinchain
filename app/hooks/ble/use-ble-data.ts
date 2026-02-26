@@ -12,7 +12,8 @@ import type {
   BleError, 
   BleDevice,
   BleServiceCallbacks,
-  SavedDevice
+  SavedDevice,
+  ConnectionQuality
 } from "@/app/lib/ble/types";
 import { useToast } from "@/app/components/ui/toast";
 
@@ -37,6 +38,7 @@ interface UseBleDataReturn {
   isScanning: boolean;
   isConnected: boolean;
   savedDevices: SavedDevice[];
+  connectionQuality: ConnectionQuality;
   
   // Actions
   connect: () => Promise<boolean>;
@@ -197,6 +199,11 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
     setSavedDevices([]);
   }, []);
   
+  // Get connection quality (computed from data freshness)
+  const getConnectionQuality = useCallback(() => {
+    return bleService.getConnectionQuality();
+  }, []);
+  
   // Return current state and actions
   return {
     // State
@@ -207,6 +214,7 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
     isScanning,
     isConnected,
     savedDevices,
+    connectionQuality: getConnectionQuality(),
     
     // Actions
     connect,

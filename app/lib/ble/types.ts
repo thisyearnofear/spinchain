@@ -90,3 +90,12 @@ export interface SavedDevice {
   lastConnected: number; // Unix timestamp
   services: string[];
 }
+
+// Signal strength for connection quality visualization
+export type SignalStrength = 'excellent' | 'good' | 'fair' | 'poor' | 'none';
+
+export interface ConnectionQuality {
+  strength: SignalStrength;
+  percentage: number; // 0-100
+  label: string;
+}
