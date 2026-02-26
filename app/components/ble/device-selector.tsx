@@ -3,7 +3,6 @@
 
 "use client";
 
-import { useState } from "react";
 import { useBleData } from "../../hooks/ble/use-ble-data";
 import { motion } from "framer-motion";
 import { 
@@ -126,13 +125,11 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
             </div>
           )}
           
-          <div className={`rounded-full px-3 py-1 text-xs font-medium ${
-            isConnected 
-              ? 'bg-green-500/20 text-green-500' 
-              : 'bg-gray-500/20 text-gray-500'
-          }`}>
-            {isConnected ? "ACTIVE" : "INACTIVE"}
-          </div>
+          {!isConnected && (
+            <div className="rounded-full px-3 py-1 text-xs font-medium bg-gray-500/20 text-gray-500">
+              INACTIVE
+            </div>
+          )}
         </div>
 
         {/* Connection Controls */}
@@ -168,24 +165,25 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
                   </>
                 )}
               </button>
-          ) : (
-            <button
-              onClick={disconnect}
-              className="flex-1 rounded-lg border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-3 text-sm font-semibold text-[color:var(--foreground)] transition hover:bg-[color:var(--muted)]"
-            >
-              <Bluetooth className="mr-2 inline h-4 w-4" />
-              Disconnect
-            </button>
-          )}
-          
-          {error && (
-            <button
-              onClick={clearError}
-              className="rounded-lg p-2 text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </button>
-          )}
+            ) : (
+              <button
+                onClick={disconnect}
+                className="flex-1 rounded-lg border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-3 text-sm font-semibold text-[color:var(--foreground)] transition hover:bg-[color:var(--muted)]"
+              >
+                <Bluetooth className="mr-2 inline h-4 w-4" />
+                Disconnect
+              </button>
+            )}
+            
+            {error && (
+              <button
+                onClick={clearError}
+                className="rounded-lg p-2 text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Device Metrics Display */}
@@ -218,7 +216,7 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
               {error.message}
             </p>
             <p className="mt-1 text-xs text-red-400">
-              Try moving closer to your device or ensure it&apos;s powered on.
+              Try moving closer to your device or ensure it's powered on.
             </p>
           </div>
         )}

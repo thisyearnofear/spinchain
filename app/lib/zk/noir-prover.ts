@@ -76,7 +76,9 @@ export class NoirProver {
         if (circuitJson.bytecode) {
           // Convert hex string to Uint8Array
           const hex = circuitJson.bytecode.replace(/^0x/, '');
-          this.circuitBytecode = new Uint8Array(hex.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []);
+          this.circuitBytecode = new Uint8Array(
+            hex.match(/.{1,2}/g)?.map((byte: string) => parseInt(byte, 16)) || []
+          );
         }
         
         console.log('[NoirProver] Circuit loaded successfully');

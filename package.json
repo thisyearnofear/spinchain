@@ -9,6 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@capacitor-community/bluetooth-le": "2.3.0",
+    "@capacitor/android": "5.7.8",
+    "@capacitor/cli": "5.7.8",
+    "@capacitor/core": "5.7.8",
+    "@capacitor/ios": "5.7.8",
     "@google/generative-ai": "^0.24.1",
     "@mysten/dapp-kit": "^0.14.53",
     "@mysten/sui": "^1.45.2",

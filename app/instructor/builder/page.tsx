@@ -644,6 +644,7 @@ export default function InstructorBuilderPage() {
                       maxRiders: formData.capacity,
                       basePrice: formData.basePrice.toString(),
                       maxPrice: formData.maxPrice.toString(),
+                      instructor: userAddress || "0x0000000000000000000000000000000000000000",
                       treasury: userAddress || "0x0000000000000000000000000000000000000000",
                       incentiveEngine: INCENTIVE_ENGINE_ADDRESS as `0x${string}`,
                       spinToken: SPIN_TOKEN_ADDRESS as `0x${string}`,

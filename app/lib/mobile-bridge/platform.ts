@@ -2,7 +2,7 @@
 
 export type Platform = 'web' | 'ios' | 'android';
 
-interface PlatformInfo {
+export interface PlatformInfo {
   platform: Platform;
   isMobile: boolean;
   isNative: boolean;

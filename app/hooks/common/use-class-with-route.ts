@@ -115,6 +115,7 @@ export function useClassWithRoute() {
         maxRiders: params.maxRiders,
         basePrice: params.basePrice,
         maxPrice: params.maxPrice,
+        instructor: address,
         treasury: address,
         incentiveEngine: INCENTIVE_ENGINE_ADDRESS as `0x${string}`,
         spinToken: SPIN_TOKEN_ADDRESS as `0x${string}`,
