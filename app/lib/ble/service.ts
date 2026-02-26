@@ -18,8 +18,13 @@ import type {
   BleError,
   BleServiceConfig,
   BleServiceState,
-  BleServiceCallbacks
+  BleServiceCallbacks,
+  SavedDevice
 } from './types';
+
+// Storage key for saved devices
+const SAVED_DEVICES_KEY = 'spinchain:saved-devices';
+const MAX_SAVED_DEVICES = 5;
 
 export class BleService {
   private static instance: BleService;
@@ -129,6 +134,9 @@ export class BleService {
       
       await this.setupNotifications();
       this.startMetricsUpdates();
+      
+      // Save device to memory for quick reconnect
+      this.saveDevice(bleDevice);
       
       this.callbacks.onDeviceConnected?.(bleDevice);
       this.notifyStatusChange();
@@ -340,6 +348,123 @@ export class BleService {
 
   private notifyStatusChange(): void {
     this.callbacks.onStatusChange?.(this.state.status);
+  }
+
+  // ============================================================================
+  // Device Memory - Remember previously paired devices for quick reconnect
+  // ============================================================================
+
+  /**
+   * Get all saved devices (sorted by last connected, newest first)
+   */
+  public getSavedDevices(): SavedDevice[] {
+    try {
+      const stored = localStorage.getItem(SAVED_DEVICES_KEY);
+      if (!stored) return [];
+      const devices: SavedDevice[] = JSON.parse(stored);
+      return devices.sort((a, b) => b.lastConnected - a.lastConnected);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Save a device after successful connection
+   */
+  private saveDevice(device: BleDevice): void {
+    try {
+      const saved = this.getSavedDevices();
+      
+      // Remove if already exists (will re-add with new timestamp)
+      const filtered = saved.filter(d => d.id !== device.id);
+      
+      // Add to front with current timestamp
+      filtered.unshift({
+        id: device.id,
+        name: device.name,
+        lastConnected: Date.now(),
+        services: device.services,
+      });
+      
+      // Keep only last MAX_SAVED_DEVICES
+      const trimmed = filtered.slice(0, MAX_SAVED_DEVICES);
+      localStorage.setItem(SAVED_DEVICES_KEY, JSON.stringify(trimmed));
+    } catch (error) {
+      console.warn('[BLE] Failed to save device:', error);
+    }
+  }
+
+  /**
+   * Remove a device from memory
+   */
+  public removeSavedDevice(deviceId: string): void {
+    try {
+      const saved = this.getSavedDevices().filter(d => d.id !== deviceId);
+      localStorage.setItem(SAVED_DEVICES_KEY, JSON.stringify(saved));
+    } catch (error) {
+      console.warn('[BLE] Failed to remove device:', error);
+    }
+  }
+
+  /**
+   * Clear all saved devices
+   */
+  public clearSavedDevices(): void {
+    try {
+      localStorage.removeItem(SAVED_DEVICES_KEY);
+    } catch (error) {
+      console.warn('[BLE] Failed to clear devices:', error);
+    }
+  }
+
+  /**
+   * Auto-connect to last used device
+   * Returns true if attempting connection, false if no saved devices
+   */
+  public async autoConnect(): Promise<boolean> {
+    const saved = this.getSavedDevices();
+    if (saved.length === 0) return false;
+
+    const lastDevice = saved[0];
+    
+    if (!this.isBluetoothAvailable()) {
+      this.handleError('PERMISSION_DENIED', 'Bluetooth not available');
+      return false;
+    }
+
+    try {
+      this.updateStatus('connecting');
+      
+      // Try to connect to the saved device
+      // Note: Web Bluetooth can't directly connect by ID, need to scan and match
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [
+          { services: [...DEVICE_FILTERS.ACCEPTED_SERVICES] as BluetoothServiceUUID[] }
+        ],
+        optionalServices: [
+          BLE_SERVICES.CYCLING_POWER,
+          BLE_SERVICES.HEART_RATE,
+          BLE_SERVICES.DEVICE_INFORMATION
+        ]
+      });
+
+      // Check if it's the same device we want
+      if (device.id === lastDevice.id) {
+        this.state.isScanning = false;
+        const connected = await this.connectToDevice(device);
+        return !!connected;
+      }
+
+      // Different device - connect anyway (user may have swapped)
+      this.state.isScanning = false;
+      const connected = await this.connectToDevice(device);
+      return !!connected;
+      
+    } catch (error) {
+      this.state.isScanning = false;
+      this.handleError('CONNECTION_FAILED', (error as Error).message);
+      return false;
+    }
   }
 }
 

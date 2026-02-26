@@ -82,3 +82,11 @@ export interface BleServiceCallbacks {
   onDeviceConnected?: (device: BleDevice) => void;
   onDeviceDisconnected?: (deviceId: string) => void;
 }
+
+// Saved device for persistent storage
+export interface SavedDevice {
+  id: string;
+  name: string;
+  lastConnected: number; // Unix timestamp
+  services: string[];
+}

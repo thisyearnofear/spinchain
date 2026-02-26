@@ -11,7 +11,8 @@ import type {
   ConnectionStatus, 
   BleError, 
   BleDevice,
-  BleServiceCallbacks 
+  BleServiceCallbacks,
+  SavedDevice
 } from "@/app/lib/ble/types";
 import { useToast } from "@/app/components/ui/toast";
 
@@ -35,11 +36,15 @@ interface UseBleDataReturn {
   error: BleError | null;
   isScanning: boolean;
   isConnected: boolean;
+  savedDevices: SavedDevice[];
   
   // Actions
   connect: () => Promise<boolean>;
   disconnect: () => void;
   scanAndConnect: () => Promise<boolean>;
+  quickConnect: () => Promise<boolean>;
+  removeSavedDevice: (deviceId: string) => void;
+  clearSavedDevices: () => void;
   clearError: () => void;
   
   // Loading states
@@ -55,8 +60,14 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
   const [isScanning, setIsScanning] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [savedDevices, setSavedDevices] = useState<SavedDevice[]>([]);
   
   const callbacksRef = useRef<BleServiceCallbacks>({});
+  
+  // Load saved devices on mount
+  useEffect(() => {
+    setSavedDevices(bleService.getSavedDevices());
+  }, []);
 
   // Initialize service callbacks
   useEffect(() => {
@@ -87,6 +98,7 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
       
       onDeviceConnected: (connectedDevice) => {
         setDevice(connectedDevice);
+        setSavedDevices(bleService.getSavedDevices()); // Refresh saved devices
         toast.success('Device Connected!', `${connectedDevice.name} is now connected`);
       },
       
@@ -152,6 +164,39 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
     setError(null);
   }, []);
 
+  // Quick connect to last used device
+  const quickConnect = useCallback(async (): Promise<boolean> => {
+    const saved = bleService.getSavedDevices();
+    if (saved.length === 0) {
+      toast.info('No saved devices', 'Connect a device first to enable quick connect');
+      return false;
+    }
+    
+    setIsPending(true);
+    toast.loading('Quick connecting...', `Connecting to ${saved[0].name}`);
+    
+    try {
+      const connected = await bleService.autoConnect();
+      setIsPending(false);
+      return connected;
+    } catch (err) {
+      setIsPending(false);
+      return false;
+    }
+  }, [toast]);
+  
+  // Remove a saved device
+  const removeSavedDevice = useCallback((deviceId: string): void => {
+    bleService.removeSavedDevice(deviceId);
+    setSavedDevices(bleService.getSavedDevices());
+  }, []);
+  
+  // Clear all saved devices
+  const clearSavedDevices = useCallback((): void => {
+    bleService.clearSavedDevices();
+    setSavedDevices([]);
+  }, []);
+  
   // Return current state and actions
   return {
     // State
@@ -161,11 +206,15 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
     error,
     isScanning,
     isConnected,
+    savedDevices,
     
     // Actions
     connect,
     disconnect,
     scanAndConnect,
+    quickConnect,
+    removeSavedDevice,
+    clearSavedDevices,
     clearError,
     
     // Loading state

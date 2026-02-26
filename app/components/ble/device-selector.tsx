@@ -37,13 +37,19 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
     isScanning,
     isConnected,
     isPending,
+    savedDevices,
     scanAndConnect,
+    quickConnect,
     disconnect,
+    removeSavedDevice,
     clearError
   } = useBleData({
     onSuccess: onMetricsUpdate,
     autoConnect: false
   });
+  
+  const hasSavedDevices = savedDevices.length > 0;
+  const lastDevice = savedDevices[0];
 
   // Connection status indicator
   const getConnectionStatus = () => {
@@ -96,25 +102,38 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
         </div>
 
         {/* Connection Controls */}
-        <div className="flex gap-3">
-          {!isConnected ? (
+        <div className="flex flex-col gap-3">
+          {/* Quick Connect - Only show if has saved devices and not connected */}
+          {!isConnected && hasSavedDevices && (
             <button
-              onClick={scanAndConnect}
+              onClick={quickConnect}
               disabled={isPending || isScanning}
-              className="flex-1 rounded-lg bg-[color:var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-lg bg-green-600 hover:bg-green-700 px-4 py-3 text-sm font-semibold text-white transition disabled:opacity-50"
             >
-              {isScanning ? (
-                <>
-                  <BluetoothSearching className="mr-2 inline h-4 w-4 animate-spin" />
-                  Scanning...
-                </>
-              ) : (
-                <>
-                  <Bluetooth className="mr-2 inline h-4 w-4" />
-                  Connect Device
-                </>
-              )}
+              <BluetoothConnected className="h-4 w-4" />
+              Quick Connect to {lastDevice?.name}
             </button>
+          )}
+          
+          <div className="flex gap-3">
+            {!isConnected ? (
+              <button
+                onClick={scanAndConnect}
+                disabled={isPending || isScanning}
+                className="flex-1 rounded-lg bg-[color:var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              >
+                {isScanning ? (
+                  <>
+                    <BluetoothSearching className="mr-2 inline h-4 w-4 animate-spin" />
+                    Scanning...
+                  </>
+                ) : (
+                  <>
+                    <Bluetooth className="mr-2 inline h-4 w-4" />
+                    {hasSavedDevices ? 'Connect Different Device' : 'Connect Device'}
+                  </>
+                )}
+              </button>
           ) : (
             <button
               onClick={disconnect}
