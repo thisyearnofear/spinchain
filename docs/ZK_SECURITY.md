@@ -287,6 +287,22 @@ console.log(prover.getBackendInfo());
 // { type: 'noir', available: true }
 ```
 
+#### Circuit Compilation
+
+```bash
+# Install Noir CLI
+curl -L https://noirup.dev | bash
+noirup --version 1.0.0-beta.19
+
+# Compile the circuit
+cd circuits/effort_threshold
+nargo compile
+
+# Output: circuits/effort_threshold/target/effort_threshold.json
+```
+
+The compiled circuit is automatically copied to `public/circuits/effort_threshold/target/` for browser loading.
+
 ---
 
 ### Troubleshooting
@@ -579,6 +595,11 @@ Potential areas for expansion:
 - Workout data logging and export
 - Integration with fitness tracking services
 - Multi-device support
+- **Device Memory**: Automatically remember paired devices for quick reconnect
+  - First connection: User selects device normally
+  - Return visits: "Quick Connect" button appears for one-tap reconnection
+  - Stored in localStorage (max 5 devices)
+  - Works on Chrome Desktop with full Web Bluetooth support
 
 ### Troubleshooting
 

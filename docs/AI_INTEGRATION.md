@@ -1,9 +1,13 @@
 # SpinChain: AI Integration
 
-> **Multi-Provider AI: Venice AI + Gemini 3.0 Flash**
+> **Default AI: Venice AI (Privacy-First)**
 > 
-> This project supports multiple AI providers. Venice AI is the default (privacy-first, no setup required).
-> Gemini 3.0 Flash Preview is available via BYOK (Bring Your Own Key) for enhanced reasoning,
+> Venice AI is the default inference provider for SpinChain. It offers:
+> - Privacy-first inference (data not used for training)
+> - Competitive pricing
+> - No setup required (user has credits)
+> 
+> Gemini 3.0 Flash is available as a fallback via BYOK (Bring Your Own Key) for enhanced reasoning,
 > structured outputs, and real-time streaming.
 
 ## AI-Powered Fitness Platform
@@ -345,11 +349,17 @@ const route = await withRetry(
 #### Required Environment Variables
 
 ```env
-# Gemini 3 API Key (required)
+# Venice AI API Key (default - privacy-first inference)
+# Get from https://venice.ai
+VENICE_API_KEY=your_venice_api_key_here
+
+# Optional: Gemini 3 API Key (fallback - BYOK)
+# Get from https://aistudio.google.com/app/apikey
 GEMINI_API_KEY=your_gemini_api_key_here
 
-# Optional: Venice AI for agent reasoning fallback
-VENICE_API_KEY=your_venice_api_key_here
+# Optional: ElevenLabs for voice synthesis
+# Get from https://elevenlabs.io
+ELEVENLABS_API_KEY=your_elevenlabs_key
 ```
 
 #### Health Check Endpoints
