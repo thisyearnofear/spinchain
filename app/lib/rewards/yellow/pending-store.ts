@@ -1,6 +1,8 @@
 "use client";
 
 import type { SignedRewardUpdate } from "../types";
+import { getSessions } from "./clearnode";
+import type { Address } from "viem";
 
 export type PendingSettlementStatus =
   | "rider_signed"
@@ -54,6 +56,48 @@ function safeParse(json: string | null): PendingYellowSettlement[] {
 
 export function listPendingSettlements(): PendingYellowSettlement[] {
   return safeParse(localStorage.getItem(STORAGE_KEY));
+}
+
+/**
+ * Sync pending settlements from Yellow ClearNode.
+ * Queries closed app sessions and merges with local store.
+ */
+export async function syncPendingWithSDK(address: Address): Promise<void> {
+  try {
+    const sessions = await getSessions(address, "closed");
+    const localItems = listPendingSettlements();
+    let changed = false;
+
+    for (const s of sessions) {
+      const idx = localItems.findIndex((x) => x.id === s.appSessionId);
+      if (idx >= 0) continue; // Already tracked locally
+
+      const data = JSON.parse(s.sessionData || "{}");
+      if (data.type !== "reward-channel") continue;
+
+      localItems.unshift({
+        id: s.appSessionId,
+        channelId: s.appSessionId as `0x${string}`,
+        classId: (data.classId || "0x0") as `0x${string}`,
+        rider: s.participants[0] as `0x${string}`,
+        instructor: s.participants[1] as `0x${string}`,
+        finalReward: BigInt(0),
+        effortScore: 0,
+        riderSignature: "0x" as `0x${string}`,
+        updates: [],
+        status: "rider_signed",
+        createdAt: s.nonce,
+        updatedAt: Date.now(),
+      });
+      changed = true;
+    }
+
+    if (changed) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(localItems));
+    }
+  } catch (err) {
+    console.warn("[Yellow] Failed to sync with ClearNode:", err);
+  }
 }
 
 export function upsertPendingSettlement(item: PendingYellowSettlement): void {

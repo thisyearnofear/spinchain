@@ -9,6 +9,7 @@ import {
   listPendingSettlements,
   upsertPendingSettlement,
   markPendingSettlementSettled,
+  syncPendingWithSDK,
   type PendingYellowSettlement,
 } from "@/app/lib/rewards";
 import { useYellowSettlement } from "@/app/hooks/evm/use-yellow-settlement";
@@ -23,6 +24,13 @@ export default function InstructorYellowSettlementsPage() {
 
   useEffect(() => {
     setItems(listPendingSettlements());
+
+    // Sync with Yellow SDK on mount
+    if (address) {
+      syncPendingWithSDK(address).then(() => {
+        setItems(listPendingSettlements());
+      });
+    }
 
     const interval = setInterval(() => {
       setItems(listPendingSettlements());
