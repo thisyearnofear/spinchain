@@ -18,6 +18,7 @@ interface RideCompletionProps {
   avgHeartRate: number;
   avgPower: number;
   avgEffort: number;
+  telemetrySource: "live-bike" | "simulator" | "estimated";
   onExit: () => void;
   onDeploy?: () => void;
 }
@@ -28,6 +29,7 @@ export function RideCompletion({
   avgHeartRate,
   avgPower,
   avgEffort,
+  telemetrySource,
   onExit,
   onDeploy,
 }: RideCompletionProps) {
@@ -73,6 +75,21 @@ export function RideCompletion({
             ? "Great way to preview your class!"
             : `Total Time: ${formatTime(elapsedTime)}`}
         </p>
+
+        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80">
+          <span className={`h-2 w-2 rounded-full ${
+            telemetrySource === "live-bike"
+              ? "bg-emerald-400"
+              : telemetrySource === "simulator"
+                ? "bg-amber-400"
+                : "bg-zinc-400"
+          }`} />
+          {telemetrySource === "live-bike"
+            ? "Telemetry source: Live bike"
+            : telemetrySource === "simulator"
+              ? "Telemetry source: Simulator"
+              : "Telemetry source: Estimated"}
+        </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">

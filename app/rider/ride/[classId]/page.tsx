@@ -10,18 +10,17 @@ const RouteVisualizer = dynamic(
   () => import("../../../components/features/route/route-visualizer"),
   { ssr: false }
 );
-import { DeviceSelector } from "../../../components/features/ble/device-selector";
+import { RideControls } from "../../../components/features/ride/ride-controls";
+import { RideCompletion } from "../../../components/features/ride/ride-completion";
 import { useDeviceType, useOrientation, useActualViewportHeight } from "../../../lib/responsive";
 import { useWorkoutAudio } from "../../../hooks/ai/use-workout-audio";
 import { useCoachVoice } from "../../../hooks/common/use-coach-voice";
 import { useAiInstructor } from "../../../hooks/ai/use-ai-instructor";
-import { useRewards, REWARD_MODES } from "../../../hooks/rewards/use-rewards";
+import { useRewards } from "../../../hooks/rewards/use-rewards";
 import { YellowRewardTicker } from "../../../components/features/common/yellow-reward-ticker";
 import { DemoCompleteModal } from "../../../components/features/common/demo-complete-modal";
-import { PedalSimulator } from "../../../components/features/common/pedal-simulator";
 import {
   type WorkoutPlan,
-  type WorkoutInterval,
   PHASE_DEFAULTS,
   PHASE_TO_THEME,
   PRESET_WORKOUTS,
@@ -140,7 +139,7 @@ export default function LiveRidePage() {
   const [isExiting, setIsExiting] = useState(false);
   const [rideProgress, setRideProgress] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [showHUD, setShowHUD] = useState(true);
+  const [showHUD] = useState(true);
   const [hudMode, setHudMode] = useState<"full" | "compact" | "minimal">("full");
 
   // Persisted HUD preference (client-only)
@@ -196,6 +195,7 @@ export default function LiveRidePage() {
   // BLE Device Connection
   const [bleConnected, setBleConnected] = useState(false);
   const [useSimulator, setUseSimulator] = useState(false);
+  const [connectionHint, setConnectionHint] = useState<string | null>(null);
 
   // Reset simulator mode when not in practice mode
   useEffect(() => {
@@ -203,6 +203,12 @@ export default function LiveRidePage() {
       setUseSimulator(false);
     }
   }, [isPracticeMode, useSimulator]);
+
+  useEffect(() => {
+    if (bleConnected || (isPracticeMode && useSimulator)) {
+      setConnectionHint(null);
+    }
+  }, [bleConnected, isPracticeMode, useSimulator]);
 
   // Telemetry (buffer raw updates in refs; commit to React state at a UI rate for mobile perf)
   const [telemetry, setTelemetry] = useState({
@@ -387,18 +393,13 @@ export default function LiveRidePage() {
   // Auto-adjust HUD + default view mode based on device
   useEffect(() => {
     if (deviceType === "mobile") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHudMode("compact");
       // Default to Focus mode on mobile for battery + performance
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setViewMode("focus");
     } else if (deviceType === "tablet") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHudMode(orientation === "portrait" ? "compact" : "full");
     } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHudMode("full");
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setViewMode("immersive");
     }
   }, [deviceType, orientation]);
@@ -560,6 +561,12 @@ export default function LiveRidePage() {
   }, [rideProgress >= 100]);
 
   const startRide = async () => {
+    const telemetryReady = bleConnected || (isPracticeMode && useSimulator);
+    if (!telemetryReady) {
+      setConnectionHint("Connect your bike before starting to capture live telemetry.");
+      return;
+    }
+
     setIsStarting(true);
     playCountdown(3);
 
@@ -770,6 +777,14 @@ export default function LiveRidePage() {
                 <p className="text-xs sm:text-sm text-white/60 truncate">
                   {classData.instructor}
                 </p>
+                {(isRiding || rideProgress > 0) && (
+                  <div className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 px-2 py-0.5 text-[11px] text-white/80">
+                    <span className={`h-1.5 w-1.5 rounded-full ${
+                      bleConnected ? "bg-emerald-400" : (isPracticeMode && useSimulator) ? "bg-amber-400" : "bg-zinc-400"
+                    }`} />
+                    {bleConnected ? "Live telemetry" : (isPracticeMode && useSimulator) ? "Simulator telemetry" : "No telemetry"}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2 ml-2">
@@ -1037,151 +1052,24 @@ export default function LiveRidePage() {
                 </div>
               )}
 
-              {/* Pre-ride Setup */}
-              {!isRiding && rideProgress === 0 && (
-                <div className="mb-4 max-w-sm mx-auto space-y-3">
-                  {/* Workout Plan Selector */}
-                  <div className="rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-white/50 mb-2">Workout Plan</p>
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {PRESET_WORKOUTS.map(preset => (
-                        <button
-                          key={preset.id}
-                          onClick={() => setWorkoutPlan(preset)}
-                          className={`flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-all active:scale-95 touch-manipulation ${workoutPlan?.id === preset.id
-                            ? 'bg-indigo-500 text-white'
-                            : 'bg-white/10 text-white/60 hover:bg-white/20'
-                            }`}
-                        >
-                          {preset.name}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => setWorkoutPlan(null)}
-                        className={`flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-all active:scale-95 touch-manipulation ${!workoutPlan
-                          ? 'bg-indigo-500 text-white'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20'
-                          }`}
-                      >
-                        Free Ride
-                      </button>
-                    </div>
-                    {workoutPlan && (
-                      <p className="mt-1.5 text-[10px] text-white/40">
-                        {workoutPlan.intervals.length} intervals
-                        {' · '}{Math.round(workoutPlan.totalDuration / 60)} min
-                        {' · '}{workoutPlan.difficulty}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Input Mode Toggle - Only in Practice Mode */}
-                  {isPracticeMode && (
-                    <div className="rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 p-3">
-                      <p className="text-[10px] uppercase tracking-wider text-white/50 mb-2">Input Mode</p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setUseSimulator(false)}
-                          className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-all active:scale-95 touch-manipulation ${!useSimulator
-                            ? 'bg-indigo-500 text-white'
-                            : 'bg-white/10 text-white/60 hover:bg-white/20'
-                            }`}
-                        >
-                          🚴 BLE Device
-                        </button>
-                        <button
-                          onClick={() => setUseSimulator(true)}
-                          className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-all active:scale-95 touch-manipulation ${useSimulator
-                            ? 'bg-indigo-500 text-white'
-                            : 'bg-white/10 text-white/60 hover:bg-white/20'
-                            }`}
-                        >
-                          ⌨️ Simulator
-                        </button>
-                      </div>
-                      <p className="mt-1.5 text-[10px] text-white/40">
-                        {useSimulator
-                          ? deviceType === 'mobile' ? 'Tap buttons to pedal' : 'Use arrow keys to pedal'
-                          : 'Connect your bike via Bluetooth'
-                        }
-                      </p>
-                    </div>
-                  )}
-
-                  {(!isPracticeMode || !useSimulator) && (
-                    <DeviceSelector
-                      onMetricsUpdate={handleBleMetrics}
-                      className="bg-black/80 backdrop-blur-xl border-white/10"
-                    />
-                  )}
-                </div>
-              )}
-
-              {/* Controls - Touch Optimized */}
-              <div className="flex items-center justify-center gap-3">
-                {!isRiding ? (
-                  <button
-                    onClick={startRide}
-                    disabled={isStarting}
-                    className="relative rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px] disabled:opacity-80 disabled:cursor-not-allowed disabled:active:scale-100"
-                  >
-                    {isStarting ? (
-                      <span className="flex items-center gap-2">
-                        <svg
-                          className="animate-spin"
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          {/* Bike wheel with spokes */}
-                          <circle
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeDasharray="4 4"
-                            opacity="0.3"
-                          />
-                          <circle
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeDasharray="15 45"
-                            opacity="0.8"
-                          />
-                          {/* Center hub */}
-                          <circle cx="12" cy="12" r="2" fill="currentColor" />
-                        </svg>
-                        <span>Starting...</span>
-                      </span>
-                    ) : (
-                      <span>{rideProgress > 0 ? "Resume" : "Start Ride"}</span>
-                    )}
-                  </button>
-                ) : (
-                  <button
-                    onClick={pauseRide}
-                    className="rounded-full bg-white/20 backdrop-blur px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white transition-all active:scale-95 touch-manipulation min-h-[56px]"
-                  >
-                    Pause
-                  </button>
-                )}
-              </div>
-
-              {/* BLE Status Indicator */}
-              {bleConnected && (
-                <div className="mt-3 flex items-center justify-center gap-2 text-green-400 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  Live telemetry connected
-                </div>
-              )}
+              <RideControls
+                isRiding={isRiding}
+                isStarting={isStarting}
+                rideProgress={rideProgress}
+                isPracticeMode={isPracticeMode}
+                useSimulator={useSimulator}
+                deviceType={deviceType}
+                workoutPlan={workoutPlan}
+                bleConnected={bleConnected}
+                canStartRide={bleConnected || (isPracticeMode && useSimulator)}
+                startHint={connectionHint}
+                onStartRide={startRide}
+                onPauseRide={pauseRide}
+                onSetWorkoutPlan={setWorkoutPlan}
+                onSetUseSimulator={setUseSimulator}
+                onBleMetrics={handleBleMetrics}
+                onSimulatorMetrics={handleSimulatorMetrics}
+              />
 
               {/* Audio/Coach Status */}
               {isRiding && (audioConfigured || aiActive) && (
@@ -1233,60 +1121,16 @@ export default function LiveRidePage() {
 
       {/* Completion Modal - Mobile Optimized */}
       {rideProgress >= 100 && (
-        <div className="absolute inset-0 bg-black/95 backdrop-blur-sm flex items-center justify-center pointer-events-auto p-4">
-          <div className="rounded-3xl bg-gradient-to-br from-indigo-900/90 to-purple-900/90 border border-white/20 p-6 sm:p-12 text-center max-w-lg w-full backdrop-blur-xl">
-            <div className="h-16 w-16 sm:h-24 sm:w-24 mx-auto mb-4 sm:mb-6 rounded-full bg-gradient-to-r from-green-400 to-emerald-400 flex items-center justify-center">
-              <svg className="h-8 w-8 sm:h-12 sm:w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2 sm:mb-3">
-              {isPracticeMode ? "Practice Complete!" : "Ride Complete!"}
-            </h2>
-            <p className="text-lg sm:text-xl text-white/70 mb-6 sm:mb-8">
-              {isPracticeMode ? "Great way to preview your class!" : `Total Time: ${formatTime(elapsedTime)}`}
-            </p>
-
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
-              <div className="rounded-xl bg-white/10 p-3 sm:p-4">
-                <p className="text-xs sm:text-sm text-white/50">Avg HR</p>
-                <p className="text-xl sm:text-2xl font-bold text-white">{telemetryAverages.avgHr}</p>
-              </div>
-              <div className="rounded-xl bg-white/10 p-3 sm:p-4">
-                <p className="text-xs sm:text-sm text-white/50">Avg Power</p>
-                <p className="text-xl sm:text-2xl font-bold text-white">{telemetryAverages.avgPower}W</p>
-              </div>
-              <div className="rounded-xl bg-white/10 p-3 sm:p-4">
-                <p className="text-xs sm:text-sm text-white/50">Effort</p>
-                <p className="text-xl sm:text-2xl font-bold text-purple-400">{telemetryAverages.avgEffort}</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <button
-                onClick={exitRide}
-                className="flex-1 rounded-full border border-white/20 bg-white/10 py-3 text-white font-semibold transition-all active:scale-95 touch-manipulation min-h-[56px]"
-              >
-                {isPracticeMode ? "Back to Builder" : "View Journey"}
-              </button>
-              {isPracticeMode ? (
-                <button
-                  onClick={() => router.push("/instructor/builder")}
-                  className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-3 text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px]"
-                >
-                  Deploy Class
-                </button>
-              ) : (
-                <button
-                  className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-3 text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px]"
-                >
-                  Claim Rewards
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <RideCompletion
+          isPracticeMode={isPracticeMode}
+          elapsedTime={elapsedTime}
+          avgHeartRate={telemetryAverages.avgHr}
+          avgPower={telemetryAverages.avgPower}
+          avgEffort={telemetryAverages.avgEffort}
+          telemetrySource={bleConnected ? "live-bike" : (isPracticeMode && useSimulator) ? "simulator" : "estimated"}
+          onExit={exitRide}
+          onDeploy={isPracticeMode ? () => router.push("/instructor/builder") : undefined}
+        />
       )}
 
       {/* Demo Complete Modal */}
@@ -1296,13 +1140,6 @@ export default function LiveRidePage() {
         stats={demoStats}
       />
 
-      {/* Pedal Simulator - Only in Practice Mode */}
-      {isPracticeMode && useSimulator && (
-        <PedalSimulator
-          isActive={isRiding}
-          onMetricsUpdate={handleSimulatorMetrics}
-        />
-      )}
     </div>
   );
 }

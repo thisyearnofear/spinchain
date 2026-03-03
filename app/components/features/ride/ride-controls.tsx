@@ -3,7 +3,6 @@
 import { DeviceSelector } from "@/app/components/features/ble/device-selector";
 import { PedalSimulator } from "@/app/components/features/common/pedal-simulator";
 import { PRESET_WORKOUTS, type WorkoutPlan } from "@/app/lib/workout-plan";
-import { formatTime } from "@/app/lib/formatters";
 
 interface RideControlsProps {
   isRiding: boolean;
@@ -14,6 +13,8 @@ interface RideControlsProps {
   deviceType: "mobile" | "tablet" | "desktop";
   workoutPlan: WorkoutPlan | null;
   bleConnected: boolean;
+  canStartRide?: boolean;
+  startHint?: string | null;
   onStartRide: () => void;
   onPauseRide: () => void;
   onSetWorkoutPlan: (plan: WorkoutPlan | null) => void;
@@ -47,6 +48,8 @@ export function RideControls({
   deviceType,
   workoutPlan,
   bleConnected,
+  canStartRide = true,
+  startHint,
   onStartRide,
   onPauseRide,
   onSetWorkoutPlan,
@@ -89,7 +92,7 @@ export function RideControls({
         {!isRiding ? (
           <button
             onClick={onStartRide}
-            disabled={isStarting}
+            disabled={isStarting || !canStartRide}
             className="relative rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px] disabled:opacity-80 disabled:cursor-not-allowed"
             aria-label={rideProgress > 0 ? "Resume ride" : "Start ride"}
           >
@@ -118,6 +121,12 @@ export function RideControls({
         <div className="mt-3 flex items-center justify-center gap-2 text-green-400 text-xs">
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" aria-hidden="true" />
           Live telemetry connected
+        </div>
+      )}
+
+      {startHint && (
+        <div className="mt-2 text-center text-xs text-amber-300">
+          {startHint}
         </div>
       )}
 
