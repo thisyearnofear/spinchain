@@ -11,6 +11,7 @@
 
 import { useEffect, useRef } from "react";
 import { formatTime } from "@/app/lib/formatters";
+import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 
 interface RideCompletionProps {
   isPracticeMode: boolean;
@@ -21,6 +22,7 @@ interface RideCompletionProps {
   telemetrySource: "live-bike" | "simulator" | "estimated";
   onExit: () => void;
   onDeploy?: () => void;
+  onUpgrade?: () => void;
 }
 
 export function RideCompletion({
@@ -32,6 +34,7 @@ export function RideCompletion({
   telemetrySource,
   onExit,
   onDeploy,
+  onUpgrade,
 }: RideCompletionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +42,14 @@ export function RideCompletion({
   useEffect(() => {
     containerRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (!isPracticeMode) {
+      trackEvent(ANALYTICS_EVENTS.PREMIUM_UPSELL_VIEWED, {
+        telemetrySource,
+      });
+    }
+  }, [isPracticeMode, telemetrySource]);
 
   return (
     <div
@@ -125,6 +136,28 @@ export function RideCompletion({
             </button>
           )}
         </div>
+
+        {!isPracticeMode && (
+          <div className="mt-5 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">
+            <p className="font-semibold text-white">Free included</p>
+            <p>Live telemetry + ride summary</p>
+            <p className="mt-2 font-semibold text-white">Premium unlock</p>
+            <p>Historical trends, zone breakdowns, and AI coaching insights</p>
+            {onUpgrade && (
+              <button
+                onClick={() => {
+                  trackEvent(ANALYTICS_EVENTS.PREMIUM_UPSELL_CLICKED, {
+                    source: 'ride-completion',
+                  });
+                  onUpgrade();
+                }}
+                className="mt-3 w-full rounded-lg border border-indigo-300/40 bg-indigo-500/20 px-3 py-2 text-xs font-semibold text-indigo-100 transition hover:bg-indigo-500/30"
+              >
+                Unlock Advanced Analytics
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

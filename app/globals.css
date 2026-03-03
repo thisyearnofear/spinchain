@@ -68,8 +68,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans, system-ui, -apple-system, "Segoe UI", sans-serif);
+  --font-mono: var(--font-geist-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
 }
 
 /* Smooth theme transitions */
@@ -93,7 +93,7 @@ html.no-transitions *::after {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-geist-sans, system-ui, -apple-system, "Segoe UI", sans-serif);
 }
 
 /* Custom easing */

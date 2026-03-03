@@ -5,6 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:web": "next build",
+    "mobile:sync": "npx cap sync",
+    "mobile:sync:ios": "npx cap sync ios",
+    "mobile:sync:android": "npx cap sync android",
     "start": "next start",
     "lint": "eslint"
   },

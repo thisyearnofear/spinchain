@@ -6,6 +6,7 @@ import { isNativeApp, hasNativeBluetooth } from './platform';
 import { bleService } from '../ble/service';
 import { BLE_SERVICES, BLE_CHARACTERISTICS } from '../ble/constants';
 import { BleParser } from '../ble/parser';
+import { ANALYTICS_EVENTS, trackEvent } from '../analytics/events';
 import type {
   FitnessMetrics,
   BleDevice,
@@ -104,6 +105,12 @@ class NativeBleService implements UnifiedBleService {
   private initialized = false;
   private lastRssi: number | null = null;
   private notificationStreams: Array<{ service: string; characteristic: string }> = [];
+  private metricsWatchdog: ReturnType<typeof setInterval> | null = null;
+  private metricsWatchdogLastRecovery = 0;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempts = 0;
+  private readonly maxReconnectAttempts = 3;
+  private userInitiatedDisconnect = false;
 
   getMetrics(): FitnessMetrics | null {
     return this.metrics;
@@ -225,6 +232,7 @@ class NativeBleService implements UnifiedBleService {
 
   private async connectNativeDevice(deviceId: string, name?: string): Promise<BleDevice | null> {
     this.updateStatus('connecting');
+    this.userInitiatedDisconnect = false;
 
     try {
       await BleClient.connect(
@@ -253,6 +261,8 @@ class NativeBleService implements UnifiedBleService {
       await this.startTelemetryNotifications(deviceId);
       await this.refreshRssi(deviceId);
       this.saveDevice(mapped);
+      this.startMetricsWatchdog();
+      this.reconnectAttempts = 0;
 
       this.updateStatus('connected');
       this.callbacks.onDeviceConnected?.(mapped);
@@ -333,6 +343,12 @@ class NativeBleService implements UnifiedBleService {
   }
 
   private handleUnexpectedDisconnect(deviceId: string): void {
+    if (this.userInitiatedDisconnect) {
+      return;
+    }
+
+    const lastKnownName = this.device?.name;
+    this.stopMetricsWatchdog();
     this.status = 'disconnected';
     this.device = null;
     this.metrics = null;
@@ -340,10 +356,14 @@ class NativeBleService implements UnifiedBleService {
     this.notificationStreams = [];
     this.callbacks.onDeviceDisconnected?.(deviceId);
     this.callbacks.onStatusChange?.(this.status);
+    this.scheduleReconnect(deviceId, lastKnownName);
   }
 
   private async disconnectInternal(): Promise<void> {
+    this.userInitiatedDisconnect = true;
     const deviceId = this.device?.id;
+    this.stopMetricsWatchdog();
+    this.clearReconnectTimer();
 
     if (deviceId) {
       for (const stream of this.notificationStreams) {
@@ -406,6 +426,86 @@ class NativeBleService implements UnifiedBleService {
     };
     this.callbacks.onError?.(payload);
     this.callbacks.onStatusChange?.(this.status);
+  }
+
+  private startMetricsWatchdog(): void {
+    this.stopMetricsWatchdog();
+    this.metricsWatchdog = setInterval(() => {
+      if (this.status !== 'connected' || !this.device || !this.metrics) return;
+
+      const ageMs = Date.now() - this.metrics.timestamp;
+      if (ageMs < 15000) return;
+
+      const now = Date.now();
+      if (now - this.metricsWatchdogLastRecovery < 15000) return;
+      this.metricsWatchdogLastRecovery = now;
+      void this.recoverTelemetryStream('stale-metrics');
+    }, 5000);
+  }
+
+  private stopMetricsWatchdog(): void {
+    if (this.metricsWatchdog) {
+      clearInterval(this.metricsWatchdog);
+      this.metricsWatchdog = null;
+    }
+  }
+
+  private async recoverTelemetryStream(reason: 'stale-metrics' | 'reconnect'): Promise<void> {
+    if (!this.device) return;
+    const deviceId = this.device.id;
+
+    trackEvent(ANALYTICS_EVENTS.TELEMETRY_RECOVERY_STARTED, { reason });
+
+    try {
+      for (const stream of this.notificationStreams) {
+        try {
+          await BleClient.stopNotifications(deviceId, stream.service, stream.characteristic);
+        } catch {
+          // Best-effort cleanup.
+        }
+      }
+      await this.startTelemetryNotifications(deviceId);
+      await this.refreshRssi(deviceId);
+      trackEvent(ANALYTICS_EVENTS.TELEMETRY_RECOVERY_SUCCEEDED, { reason });
+    } catch {
+      trackEvent(ANALYTICS_EVENTS.TELEMETRY_RECOVERY_FAILED, { reason });
+      this.scheduleReconnect(deviceId, this.device.name);
+    }
+  }
+
+  private scheduleReconnect(deviceId: string, deviceName?: string): void {
+    if (this.userInitiatedDisconnect) return;
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      trackEvent(ANALYTICS_EVENTS.TELEMETRY_RECOVERY_FAILED, {
+        reason: 'reconnect-limit',
+      });
+      return;
+    }
+
+    this.clearReconnectTimer();
+    const delayMs = Math.min(1000 * 2 ** this.reconnectAttempts, 8000);
+    this.reconnectTimer = setTimeout(async () => {
+      if (this.userInitiatedDisconnect) return;
+
+      this.reconnectAttempts += 1;
+      this.updateStatus('connecting');
+      const reconnected = await this.connectNativeDevice(deviceId, deviceName);
+      if (!reconnected) {
+        this.scheduleReconnect(deviceId, deviceName);
+      } else {
+        trackEvent(ANALYTICS_EVENTS.TELEMETRY_RECOVERY_SUCCEEDED, {
+          reason: 'reconnect',
+          attempts: this.reconnectAttempts,
+        });
+      }
+    }, delayMs);
+  }
+
+  private clearReconnectTimer(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
   }
 }
 

@@ -17,6 +17,7 @@ import { useWorkoutAudio } from "../../../hooks/ai/use-workout-audio";
 import { useCoachVoice } from "../../../hooks/common/use-coach-voice";
 import { useAiInstructor } from "../../../hooks/ai/use-ai-instructor";
 import { useRewards } from "../../../hooks/rewards/use-rewards";
+import { ANALYTICS_EVENTS, trackEvent } from "../../../lib/analytics/events";
 import { YellowRewardTicker } from "../../../components/features/common/yellow-reward-ticker";
 import { DemoCompleteModal } from "../../../components/features/common/demo-complete-modal";
 import {
@@ -226,6 +227,9 @@ export default function LiveRidePage() {
     effort: 0,
   });
   const lastTelemetryCommitMsRef = useRef(0);
+  const trackedEntryViewRef = useRef(false);
+  const trackedLiveTelemetryRef = useRef(false);
+  const trackedCompletionRef = useRef(false);
 
   // Telemetry averages for completion screen
   const telemetrySamples = useRef<{ hr: number; power: number; effort: number }[]>([]);
@@ -326,6 +330,13 @@ export default function LiveRidePage() {
     };
     if (metrics.heartRate || metrics.power) {
       setBleConnected(true);
+      if (!trackedLiveTelemetryRef.current) {
+        trackedLiveTelemetryRef.current = true;
+        trackEvent(ANALYTICS_EVENTS.TELEMETRY_LIVE_READY, {
+          classId,
+          practiceMode: isPracticeMode,
+        });
+      }
     }
 
     // Record effort for Yellow rewards (rate-limited; do not block UI)
@@ -403,6 +414,15 @@ export default function LiveRidePage() {
       setViewMode("immersive");
     }
   }, [deviceType, orientation]);
+
+  useEffect(() => {
+    if (isRiding || rideProgress > 0 || trackedEntryViewRef.current) return;
+    trackedEntryViewRef.current = true;
+    trackEvent(ANALYTICS_EVENTS.RIDE_ENTRY_VIEWED, {
+      classId,
+      practiceMode: isPracticeMode,
+    });
+  }, [classId, isPracticeMode, isRiding, rideProgress]);
 
   // Simulate ride progress (only when BLE not connected, not using simulator, or in auto mode)
   useEffect(() => {
@@ -564,8 +584,18 @@ export default function LiveRidePage() {
     const telemetryReady = bleConnected || (isPracticeMode && useSimulator);
     if (!telemetryReady) {
       setConnectionHint("Connect your bike before starting to capture live telemetry.");
+      trackEvent(ANALYTICS_EVENTS.RIDE_START_BLOCKED_NO_TELEMETRY, {
+        classId,
+        practiceMode: isPracticeMode,
+      });
       return;
     }
+
+    trackEvent(ANALYTICS_EVENTS.RIDE_STARTED, {
+      classId,
+      source: bleConnected ? 'live-bike' : 'simulator',
+      practiceMode: isPracticeMode,
+    });
 
     setIsStarting(true);
     playCountdown(3);
@@ -587,6 +617,7 @@ export default function LiveRidePage() {
       telemetrySamples.current = [];
       lastSpokenBeatRef.current = null;
       lastIntervalRef.current = -1;
+      trackedCompletionRef.current = false;
       speak("Let's go!", 'intense');
     }, 3000);
   };
@@ -660,6 +691,16 @@ export default function LiveRidePage() {
       return next;
     });
   };
+
+  useEffect(() => {
+    if (rideProgress < 100 || trackedCompletionRef.current) return;
+    trackedCompletionRef.current = true;
+    trackEvent(ANALYTICS_EVENTS.RIDE_COMPLETED, {
+      classId,
+      source: bleConnected ? 'live-bike' : (isPracticeMode && useSimulator) ? 'simulator' : 'estimated',
+      practiceMode: isPracticeMode,
+    });
+  }, [bleConnected, classId, isPracticeMode, rideProgress, useSimulator]);
 
   if (isLoading) {
     return (
@@ -1130,6 +1171,7 @@ export default function LiveRidePage() {
           telemetrySource={bleConnected ? "live-bike" : (isPracticeMode && useSimulator) ? "simulator" : "estimated"}
           onExit={exitRide}
           onDeploy={isPracticeMode ? () => router.push("/instructor/builder") : undefined}
+          onUpgrade={!isPracticeMode ? () => router.push("/rider/journey?upgrade=analytics") : undefined}
         />
       )}
 

@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getUnifiedBleService } from "@/app/lib/mobile-bridge";
+import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import type { 
   FitnessMetrics, 
   ConnectionStatus, 
@@ -87,12 +88,18 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
         );
         
         onError?.(bleError);
+        trackEvent(ANALYTICS_EVENTS.TELEMETRY_CONNECT_FAILED, {
+          errorType: bleError.type,
+        });
       },
       
       onDeviceConnected: (connectedDevice) => {
         setDevice(connectedDevice);
         setSavedDevices(ble.getSavedDevices()); // Refresh saved devices
         toast.success('Device Connected!', `${connectedDevice.name} is now connected`);
+        trackEvent(ANALYTICS_EVENTS.TELEMETRY_CONNECT_SUCCESS, {
+          deviceName: connectedDevice.name,
+        });
       },
       
       onDeviceDisconnected: () => {
@@ -113,6 +120,7 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
   const scanAndConnect = useCallback(async (): Promise<boolean> => {
     setIsPending(true);
     toast.loading('Scanning for devices...', 'Looking for fitness equipment');
+    trackEvent(ANALYTICS_EVENTS.TELEMETRY_CONNECT_CTA_CLICKED, { mode: 'scan' });
     
     try {
       const connectedDevice = await ble.scanAndConnect();
@@ -127,6 +135,7 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
   const connect = useCallback(async (): Promise<boolean> => {
     setIsPending(true);
     toast.loading('Connecting to device...', 'Please wait');
+    trackEvent(ANALYTICS_EVENTS.TELEMETRY_CONNECT_CTA_CLICKED, { mode: 'connect' });
     
     try {
       const connectedDevice = await ble.connect();
@@ -167,6 +176,7 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
     
     setIsPending(true);
     toast.loading('Quick connecting...', `Connecting to ${saved[0].name}`);
+    trackEvent(ANALYTICS_EVENTS.TELEMETRY_CONNECT_CTA_CLICKED, { mode: 'quick-connect' });
     
     try {
       const connected = await ble.autoConnect();
