@@ -5,7 +5,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { bleService } from "@/app/lib/ble/service";
+import { getUnifiedBleService } from "@/app/lib/mobile-bridge";
 import type { 
   FitnessMetrics, 
   ConnectionStatus, 
@@ -16,12 +16,6 @@ import type {
   ConnectionQuality
 } from "@/app/lib/ble/types";
 import { useToast } from "@/app/components/ui/toast";
-
-// Type for BLE transaction args (following useTransaction pattern)
-interface BleTransactionArgs {
-  action: 'connect' | 'disconnect' | 'scan';
-  deviceId?: string;
-}
 
 interface UseBleDataOptions {
   autoConnect?: boolean;
@@ -54,6 +48,8 @@ interface UseBleDataReturn {
 }
 
 export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
+  const { autoConnect = false, onSuccess, onError } = options;
+  const ble = getUnifiedBleService();
   const toast = useToast();
   const [metrics, setMetrics] = useState<FitnessMetrics | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
@@ -62,21 +58,16 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
   const [isScanning, setIsScanning] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isPending, setIsPending] = useState(false);
-  const [savedDevices, setSavedDevices] = useState<SavedDevice[]>([]);
+  const [savedDevices, setSavedDevices] = useState<SavedDevice[]>(() => ble.getSavedDevices());
   
   const callbacksRef = useRef<BleServiceCallbacks>({});
   
-  // Load saved devices on mount
-  useEffect(() => {
-    setSavedDevices(bleService.getSavedDevices());
-  }, []);
-
   // Initialize service callbacks
   useEffect(() => {
     callbacksRef.current = {
       onMetricsUpdate: (newMetrics) => {
         setMetrics(newMetrics);
-        options.onSuccess?.(newMetrics);
+        onSuccess?.(newMetrics);
       },
       
       onStatusChange: (newStatus) => {
@@ -95,28 +86,28 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
           parsedError.message
         );
         
-        options.onError?.(bleError);
+        onError?.(bleError);
       },
       
       onDeviceConnected: (connectedDevice) => {
         setDevice(connectedDevice);
-        setSavedDevices(bleService.getSavedDevices()); // Refresh saved devices
+        setSavedDevices(ble.getSavedDevices()); // Refresh saved devices
         toast.success('Device Connected!', `${connectedDevice.name} is now connected`);
       },
       
-      onDeviceDisconnected: (deviceId) => {
+      onDeviceDisconnected: () => {
         setDevice(null);
         setMetrics(null);
         toast.info('Device Disconnected', 'Fitness equipment disconnected');
       }
     };
 
-    bleService.setCallbacks(callbacksRef.current);
+    ble.setCallbacks(callbacksRef.current);
 
     return () => {
-      bleService.setCallbacks({});
+      ble.setCallbacks({});
     };
-  }, [toast, options.onSuccess, options.onError]);
+  }, [ble, onError, onSuccess, toast]);
 
   // Action methods - defined before useEffect to avoid reference issues
   const scanAndConnect = useCallback(async (): Promise<boolean> => {
@@ -124,43 +115,43 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
     toast.loading('Scanning for devices...', 'Looking for fitness equipment');
     
     try {
-      const connectedDevice = await bleService.scanAndConnect();
+      const connectedDevice = await ble.scanAndConnect();
       setIsPending(false);
       return !!connectedDevice;
-    } catch (err) {
+    } catch {
       setIsPending(false);
       return false;
     }
-  }, [toast]);
+  }, [ble, toast]);
 
   const connect = useCallback(async (): Promise<boolean> => {
     setIsPending(true);
     toast.loading('Connecting to device...', 'Please wait');
     
     try {
-      const connectedDevice = await bleService.scanAndConnect();
+      const connectedDevice = await ble.connect();
       setIsPending(false);
       return !!connectedDevice;
-    } catch (err) {
+    } catch {
       setIsPending(false);
       return false;
     }
-  }, [toast]);
+  }, [ble, toast]);
 
   // Auto-connect if requested
   useEffect(() => {
-    if (options.autoConnect && status === 'disconnected') {
+    if (autoConnect && status === 'disconnected') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       scanAndConnect();
     }
-  }, [options.autoConnect, status, scanAndConnect]);
+  }, [autoConnect, status, scanAndConnect]);
 
   const disconnect = useCallback((): void => {
-    bleService.disconnect();
+    ble.disconnect();
     setMetrics(null);
     setDevice(null);
     setError(null);
-  }, []);
+  }, [ble]);
 
   const clearError = useCallback((): void => {
     setError(null);
@@ -168,7 +159,7 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
 
   // Quick connect to last used device
   const quickConnect = useCallback(async (): Promise<boolean> => {
-    const saved = bleService.getSavedDevices();
+    const saved = ble.getSavedDevices();
     if (saved.length === 0) {
       toast.info('No saved devices', 'Connect a device first to enable quick connect');
       return false;
@@ -178,31 +169,31 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
     toast.loading('Quick connecting...', `Connecting to ${saved[0].name}`);
     
     try {
-      const connected = await bleService.autoConnect();
+      const connected = await ble.autoConnect();
       setIsPending(false);
       return connected;
-    } catch (err) {
+    } catch {
       setIsPending(false);
       return false;
     }
-  }, [toast]);
+  }, [ble, toast]);
   
   // Remove a saved device
   const removeSavedDevice = useCallback((deviceId: string): void => {
-    bleService.removeSavedDevice(deviceId);
-    setSavedDevices(bleService.getSavedDevices());
-  }, []);
+    ble.removeSavedDevice(deviceId);
+    setSavedDevices(ble.getSavedDevices());
+  }, [ble]);
   
   // Clear all saved devices
   const clearSavedDevices = useCallback((): void => {
-    bleService.clearSavedDevices();
+    ble.clearSavedDevices();
     setSavedDevices([]);
-  }, []);
+  }, [ble]);
   
   // Get connection quality (computed from data freshness)
   const getConnectionQuality = useCallback(() => {
-    return bleService.getConnectionQuality();
-  }, []);
+    return ble.getConnectionQuality();
+  }, [ble]);
   
   // Return current state and actions
   return {

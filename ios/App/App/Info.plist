@@ -22,6 +22,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>SpinChain uses Bluetooth to connect to your bike and stream live ride telemetry.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>SpinChain uses Bluetooth to connect to your bike and stream live ride telemetry.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

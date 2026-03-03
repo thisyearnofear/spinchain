@@ -1,18 +1,16 @@
-// Simplified BLE Device Selector - Compatible with existing components
-// Following Core Principles: Enhancement First, DRY patterns
+// BLE Device Selector - Unified UX for web + native BLE flows
 
 "use client";
 
-import { useState } from "react";
 import { useBleData } from "../../../hooks/ble/use-ble-data";
 import { motion } from "framer-motion";
-import { 
-  Bluetooth, 
-  BluetoothConnected, 
+import {
+  Bluetooth,
+  BluetoothConnected,
   BluetoothSearching,
   Power,
   Heart,
-  RotateCcw
+  RotateCcw,
 } from "lucide-react";
 
 export interface FitnessMetrics {
@@ -37,22 +35,40 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
     isScanning,
     isConnected,
     isPending,
+    savedDevices,
+    connectionQuality,
     scanAndConnect,
+    quickConnect,
     disconnect,
-    clearError
+    clearError,
   } = useBleData({
     onSuccess: onMetricsUpdate,
-    autoConnect: false
+    autoConnect: false,
   });
 
-  // Connection status indicator
+  const hasSavedDevices = savedDevices.length > 0;
+  const lastDevice = savedDevices[0];
+
+  const signalColors = {
+    excellent: "bg-green-500",
+    good: "bg-green-400",
+    fair: "bg-yellow-500",
+    poor: "bg-red-500",
+    none: "bg-gray-400",
+  } as const;
+
   const getConnectionStatus = () => {
     switch (status) {
-      case 'connected': return { icon: BluetoothConnected, color: 'text-green-500', label: 'Connected' };
-      case 'scanning': return { icon: BluetoothSearching, color: 'text-blue-500', label: 'Scanning' };
-      case 'connecting': return { icon: Bluetooth, color: 'text-yellow-500', label: 'Connecting' };
-      case 'error': return { icon: Bluetooth, color: 'text-red-500', label: 'Error' };
-      default: return { icon: Bluetooth, color: 'text-gray-400', label: 'Disconnected' };
+      case "connected":
+        return { icon: BluetoothConnected, color: "text-green-500", label: "Connected" };
+      case "scanning":
+        return { icon: BluetoothSearching, color: "text-blue-500", label: "Scanning" };
+      case "connecting":
+        return { icon: Bluetooth, color: "text-yellow-500", label: "Connecting" };
+      case "error":
+        return { icon: Bluetooth, color: "text-red-500", label: "Error" };
+      default:
+        return { icon: Bluetooth, color: "text-gray-400", label: "Disconnected" };
     }
   };
 
@@ -62,7 +78,6 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
   return (
     <div className={`rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-6 ${className}`}>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -76,79 +91,97 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
               )}
             </div>
             <div>
-              <h3 className="font-semibold text-[color:var(--foreground)]">
-                Fitness Equipment
-              </h3>
+              <h3 className="font-semibold text-[color:var(--foreground)]">Fitness Equipment</h3>
               <p className="text-sm text-[color:var(--muted)]">
                 {statusInfo.label}
                 {device && ` - ${device.name}`}
               </p>
             </div>
           </div>
-          
-          <div className={`rounded-full px-3 py-1 text-xs font-medium ${
-            isConnected 
-              ? 'bg-green-500/20 text-green-500' 
-              : 'bg-gray-500/20 text-gray-500'
-          }`}>
-            {isConnected ? "ACTIVE" : "INACTIVE"}
+
+          {isConnected ? (
+            <div className="flex items-center gap-2">
+              <div className="flex items-end gap-0.5">
+                {[1, 2, 3, 4].map((bar) => (
+                  <div
+                    key={bar}
+                    className={`w-1 rounded-full transition-all ${
+                      bar <= connectionQuality.percentage / 25
+                        ? signalColors[connectionQuality.strength]
+                        : "bg-gray-300 dark:bg-gray-600"
+                    }`}
+                    style={{ height: `${bar * 4}px` }}
+                  />
+                ))}
+              </div>
+              <span className="text-xs text-[color:var(--muted)]">{connectionQuality.label}</span>
+            </div>
+          ) : (
+            <div className="rounded-full bg-gray-500/20 px-3 py-1 text-xs font-medium text-gray-500">INACTIVE</div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {!isConnected && hasSavedDevices && (
+            <button
+              onClick={quickConnect}
+              disabled={isPending || isScanning}
+              className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+            >
+              <BluetoothConnected className="h-4 w-4" />
+              Quick Connect to {lastDevice?.name}
+            </button>
+          )}
+
+          <div className="flex gap-3">
+            {!isConnected ? (
+              <button
+                onClick={scanAndConnect}
+                disabled={isPending || isScanning}
+                className="flex-1 rounded-lg bg-[color:var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              >
+                {isScanning ? (
+                  <>
+                    <BluetoothSearching className="mr-2 inline h-4 w-4 animate-spin" />
+                    Scanning...
+                  </>
+                ) : (
+                  <>
+                    <Bluetooth className="mr-2 inline h-4 w-4" />
+                    {hasSavedDevices ? "Connect Different Device" : "Connect Device"}
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={disconnect}
+                className="flex-1 rounded-lg border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-3 text-sm font-semibold text-[color:var(--foreground)] transition hover:bg-[color:var(--muted)]"
+              >
+                <Bluetooth className="mr-2 inline h-4 w-4" />
+                Disconnect
+              </button>
+            )}
+
+            {error && (
+              <button
+                onClick={clearError}
+                className="rounded-lg p-2 text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Connection Controls */}
-        <div className="flex gap-3">
-          {!isConnected ? (
-            <button
-              onClick={scanAndConnect}
-              disabled={isPending || isScanning}
-              className="flex-1 rounded-lg bg-[color:var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-            >
-              {isScanning ? (
-                <>
-                  <BluetoothSearching className="mr-2 inline h-4 w-4 animate-spin" />
-                  Scanning...
-                </>
-              ) : (
-                <>
-                  <Bluetooth className="mr-2 inline h-4 w-4" />
-                  Connect Device
-                </>
-              )}
-            </button>
-          ) : (
-            <button
-              onClick={disconnect}
-              className="flex-1 rounded-lg border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-3 text-sm font-semibold text-[color:var(--foreground)] transition hover:bg-[color:var(--muted)]"
-            >
-              <Bluetooth className="mr-2 inline h-4 w-4" />
-              Disconnect
-            </button>
-          )}
-          
-          {error && (
-            <button
-              onClick={clearError}
-              className="rounded-lg p-2 text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Device Metrics Display */}
         {isConnected && metrics && (
-          <motion.div 
-            className="grid grid-cols-2 gap-4"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div className="grid grid-cols-2 gap-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <MetricCard
               icon={<Power className="h-4 w-4 text-blue-500" />}
               label="Power"
               value={`${Math.round(metrics.power)} W`}
               trend={metrics.power > 100 ? "high" : metrics.power > 50 ? "medium" : "low"}
             />
-            
+
             <MetricCard
               icon={<Heart className="h-4 w-4 text-red-500" />}
               label="Heart Rate"
@@ -158,20 +191,14 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
           </motion.div>
         )}
 
-        {/* Error Display */}
         {error && (
           <div className="rounded-lg bg-red-500/10 p-4">
-            <p className="text-sm font-medium text-red-500">
-              {error.message}
-            </p>
-            <p className="mt-1 text-xs text-red-400">
-              Try moving closer to your device or ensure it&apos;s powered on.
-            </p>
+            <p className="text-sm font-medium text-red-500">{error.message}</p>
+            <p className="mt-1 text-xs text-red-400">Try moving closer to your device or ensure it&apos;s powered on.</p>
           </div>
         )}
 
-        {/* Debug Info (Development only) */}
-        {process.env.NODE_ENV === 'development' && (
+        {process.env.NODE_ENV === "development" && (
           <details className="text-xs text-[color:var(--muted)]">
             <summary className="cursor-pointer">Debug Info</summary>
             <div className="mt-2 space-y-1 font-mono">
@@ -197,8 +224,8 @@ interface MetricCardProps {
 function MetricCard({ icon, label, value, trend }: MetricCardProps) {
   const trendColors = {
     high: "text-red-500",
-    medium: "text-yellow-500", 
-    low: "text-green-500"
+    medium: "text-yellow-500",
+    low: "text-green-500",
   };
 
   return (

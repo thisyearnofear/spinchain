@@ -10,9 +10,9 @@ import {
   CONNECTION_CONFIG,
   DATA_CONFIG
 } from './constants';
+import { BleParser } from './parser';
 import type { 
   BleDevice, 
-  RawBleData, 
   FitnessMetrics, 
   ConnectionStatus, 
   BleError,
@@ -20,8 +20,7 @@ import type {
   BleServiceState,
   BleServiceCallbacks,
   SavedDevice,
-  ConnectionQuality,
-  SignalStrength
+  ConnectionQuality
 } from './types';
 
 // Storage key for saved devices
@@ -131,10 +130,10 @@ export class BleService {
       };
 
       this.state.device = bleDevice;
-      this.updateStatus('connected');
-      this.state.isConnected = true;
       
       await this.setupNotifications();
+      this.updateStatus('connected');
+      this.state.isConnected = true;
       this.startMetricsUpdates();
       
       // Save device to memory for quick reconnect
@@ -212,8 +211,24 @@ export class BleService {
   private async setupNotifications(): Promise<void> {
     if (!this.server) return;
 
+    let hasActiveStream = false;
+
     try {
-      // Setup power measurements
+      // Setup FTMS indoor bike data stream (speed/cadence/power/distance/hr when available)
+      const ftmsService = await this.server.getPrimaryService(BLE_SERVICES.FITNESS_MACHINE);
+      const indoorBikeData = await ftmsService.getCharacteristic(
+        BLE_CHARACTERISTICS.INDOOR_BIKE_DATA
+      );
+      await indoorBikeData.startNotifications();
+      indoorBikeData.addEventListener('characteristicvaluechanged',
+        this.handleIndoorBikeData.bind(this));
+      hasActiveStream = true;
+    } catch (error) {
+      console.warn('Failed to setup FTMS indoor bike notifications:', error);
+    }
+
+    try {
+      // Setup power measurements (Cycling Power Service)
       const powerService = await this.server.getPrimaryService(BLE_SERVICES.CYCLING_POWER);
       const powerCharacteristic = await powerService.getCharacteristic(
         BLE_CHARACTERISTICS.CYCLING_POWER_MEASUREMENT
@@ -221,7 +236,12 @@ export class BleService {
       await powerCharacteristic.startNotifications();
       powerCharacteristic.addEventListener('characteristicvaluechanged', 
         this.handlePowerData.bind(this));
+      hasActiveStream = true;
+    } catch (error) {
+      console.warn('Failed to setup power notifications:', error);
+    }
 
+    try {
       // Setup heart rate measurements
       const hrService = await this.server.getPrimaryService(BLE_SERVICES.HEART_RATE);
       const hrCharacteristic = await hrService.getCharacteristic(
@@ -230,71 +250,53 @@ export class BleService {
       await hrCharacteristic.startNotifications();
       hrCharacteristic.addEventListener('characteristicvaluechanged',
         this.handleHeartRateData.bind(this));
-
+      hasActiveStream = true;
     } catch (error) {
-      console.warn('Failed to setup notifications:', error);
+      console.warn('Failed to setup heart rate notifications:', error);
+    }
+
+    if (!hasActiveStream) {
+      throw new Error('No supported telemetry notification stream found');
+    }
+  }
+
+  private handleIndoorBikeData(event: Event): void {
+    const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
+    if (characteristic?.value) {
+      this.mergeMetrics(BleParser.parseIndoorBikeData(characteristic.value));
     }
   }
 
   private handlePowerData(event: Event): void {
     const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
     if (characteristic?.value) {
-      this.parseAndEmitMetrics({ power: characteristic.value });
+      this.mergeMetrics(BleParser.parseCyclingPower(characteristic.value));
     }
   }
 
   private handleHeartRateData(event: Event): void {
     const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
     if (characteristic?.value) {
-      this.parseAndEmitMetrics({ heartRate: characteristic.value });
+      this.mergeMetrics({ heartRate: BleParser.parseHeartRate(characteristic.value) });
     }
   }
 
-  private parseAndEmitMetrics(rawData: RawBleData): void {
+  private mergeMetrics(next: Partial<FitnessMetrics>): void {
     try {
-      const metrics = this.parseFitnessMetrics(rawData);
-      this.state.metrics = metrics;
-      this.callbacks.onMetricsUpdate?.(metrics);
+      const current = this.state.metrics;
+      const merged: FitnessMetrics = {
+        power: next.power ?? current?.power ?? 0,
+        cadence: next.cadence ?? current?.cadence ?? 0,
+        heartRate: next.heartRate ?? current?.heartRate ?? 0,
+        speed: next.speed ?? current?.speed ?? 0,
+        distance: next.distance ?? current?.distance ?? 0,
+        timestamp: Date.now(),
+      };
+      this.state.metrics = merged;
+      this.callbacks.onMetricsUpdate?.(merged);
     } catch (error) {
       this.handleError('PARSING_ERROR', (error as Error).message);
     }
-  }
-
-  private parseFitnessMetrics(rawData: RawBleData): FitnessMetrics {
-    const now = Date.now();
-    
-    return {
-      power: rawData.power ? this.parsePowerData(rawData.power) : (this.state.metrics?.power || 0),
-      cadence: rawData.cadence ? this.parseCadenceData(rawData.cadence) : (this.state.metrics?.cadence || 0),
-      heartRate: rawData.heartRate ? this.parseHeartRateData(rawData.heartRate) : (this.state.metrics?.heartRate || 0),
-      speed: rawData.speed ? this.parseSpeedData(rawData.speed) : (this.state.metrics?.speed || 0),
-      distance: rawData.distance ? this.parseDistanceData(rawData.distance) : (this.state.metrics?.distance || 0),
-      timestamp: now
-    };
-  }
-
-  // Data parsing methods (simplified - would need full FTMS specification)
-  private parsePowerData(data: DataView): number {
-    // Simplified parsing - actual implementation would follow FTMS spec
-    return data.getUint16(0, true) * DATA_CONFIG.POWER_SCALE;
-  }
-
-  private parseCadenceData(data: DataView): number {
-    return data.getUint16(0, true) * DATA_CONFIG.CADENCE_SCALE;
-  }
-
-  private parseHeartRateData(data: DataView): number {
-    const flags = data.getUint8(0);
-    const is16Bit = (flags & 0x01) === 0x01;
-    return is16Bit ? data.getUint16(1, true) : data.getUint8(1);
-  }
-
-  private parseSpeedData(data: DataView): number {
-    return data.getUint16(0, true) / 100; // km/h
-  }
-
-  private parseDistanceData(data: DataView): number {
-    return data.getUint32(0, true) / 1000; // km
   }
 
   private startMetricsUpdates(): void {
@@ -321,7 +323,7 @@ export class BleService {
       try {
         await this.connectToDevice(this.device);
         return;
-      } catch (error) {
+      } catch {
         await new Promise(resolve => setTimeout(resolve, CONNECTION_CONFIG.RECONNECT_DELAY));
       }
     }
