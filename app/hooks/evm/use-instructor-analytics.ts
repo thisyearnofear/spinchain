@@ -79,6 +79,7 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
   const { classes, isLoading: classesLoading } = useClasses();
   
   const [isLoading, setIsLoading] = useState(true);
+  const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1000));
   const [error, setError] = useState<Error | null>(null);
 
   // Filter classes by instructor
@@ -91,7 +92,6 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
 
   // Filter by time range
   const filteredClasses = useMemo(() => {
-    const now = Date.now() / 1000;
     const ranges = {
       "7d": 7 * 24 * 60 * 60,
       "30d": 30 * 24 * 60 * 60,
@@ -99,13 +99,13 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
       "all": Infinity,
     };
     
-    const cutoff = now - ranges[timeRange];
+    const cutoff = nowSeconds - ranges[timeRange];
     return instructorClasses.filter(c => c.startTime >= cutoff);
-  }, [instructorClasses, timeRange]);
+  }, [instructorClasses, nowSeconds, timeRange]);
 
   // Calculate analytics
   const analytics = useMemo((): InstructorAnalytics => {
-    const now = Date.now() / 1000;
+    const now = nowSeconds;
     
     // Map classes to analytics
     const classAnalytics: ClassAnalytics[] = filteredClasses.map(cls => {
@@ -184,7 +184,14 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
       classes: classAnalytics,
       timeRange,
     };
-  }, [filteredClasses, timeRange]);
+  }, [filteredClasses, nowSeconds, timeRange]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNowSeconds(Math.floor(Date.now() / 1000));
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     setIsLoading(classesLoading);

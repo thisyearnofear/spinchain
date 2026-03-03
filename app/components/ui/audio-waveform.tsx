@@ -9,7 +9,7 @@
  * - MODULAR: Works with any audio source
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
 interface AudioWaveformProps {
@@ -37,12 +37,16 @@ export function AudioWaveform({
 }: AudioWaveformProps) {
   const config = SIZE_CONFIG[size];
   const [bars, setBars] = useState<number[]>(() => Array(barCount).fill(0.1));
+  const idleBars = useMemo(() => Array(barCount).fill(0.1), [barCount]);
   const animationRef = useRef<number | null>(null);
 
   // Generate animated bar heights
   useEffect(() => {
     if (!isActive) {
-      setBars(Array(barCount).fill(0.1));
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
       return;
     }
 
@@ -69,12 +73,14 @@ export function AudioWaveform({
     };
   }, [isActive, intensity, barCount]);
 
+  const renderedBars = isActive ? bars : idleBars;
+
   return (
     <div
       className={`flex items-center justify-center gap-1 ${className}`}
       style={{ height: config.height }}
     >
-      {bars.map((height, i) => (
+      {renderedBars.map((height, i) => (
         <motion.div
           key={i}
           className="rounded-full"

@@ -40,7 +40,7 @@ export interface ChannelState {
 // State
 // ============================================================================
 
-let globalState: ChannelState = {
+const globalState: ChannelState = {
   channel: null,
   sequence: 0,
   callbacks: {},

@@ -18,13 +18,11 @@ export default function InstructorYellowSettlementsPage() {
   const toast = useToast();
   const { address, isConnected } = useAccount();
 
-  const [items, setItems] = useState<PendingYellowSettlement[]>([]);
+  const [items, setItems] = useState<PendingYellowSettlement[]>(() => listPendingSettlements());
 
   const yellow = useYellowSettlement();
 
   useEffect(() => {
-    setItems(listPendingSettlements());
-
     // Sync with Yellow SDK on mount
     if (address) {
       syncPendingWithSDK(address).then(() => {
@@ -37,7 +35,7 @@ export default function InstructorYellowSettlementsPage() {
     }, 1500);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [address]);
 
   const myPending = useMemo(() => {
     if (!address) return [];

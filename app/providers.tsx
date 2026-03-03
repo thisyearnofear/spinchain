@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, useAccount } from 'wagmi';
 import { config } from './wagmi';
@@ -37,17 +37,15 @@ function getQueryClient() {
 // Hook to handle wallet reconnection on mobile
 function useWalletReconnection() {
   const { isConnected, isConnecting, isReconnecting } = useAccount();
-  const [hasAttemptedReconnect, setHasAttemptedReconnect] = useState(false);
+  const hasAttemptedReconnectRef = useRef(false);
 
   useEffect(() => {
     // On mobile, wallet connections can be flaky after page navigation
     // This ensures we attempt reconnection once on mount
-    if (!hasAttemptedReconnect && !isConnected && !isConnecting && !isReconnecting) {
-      setHasAttemptedReconnect(true);
+    if (!hasAttemptedReconnectRef.current && !isConnected && !isConnecting && !isReconnecting) {
+      hasAttemptedReconnectRef.current = true;
     }
-  }, [isConnected, isConnecting, isReconnecting, hasAttemptedReconnect]);
-
-  return { hasAttemptedReconnect };
+  }, [isConnected, isConnecting, isReconnecting]);
 }
 
 // RainbowKit wrapper that responds to theme changes

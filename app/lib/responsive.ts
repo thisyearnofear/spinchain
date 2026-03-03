@@ -8,6 +8,23 @@
 
 import { useState, useEffect, useMemo } from "react";
 
+interface NetworkConnectionLike extends EventTarget {
+  effectiveType?: NetworkQuality;
+}
+
+interface BatteryManagerLike extends EventTarget {
+  level: number;
+  charging: boolean;
+}
+
+interface NavigatorWithDeviceInfo extends Navigator {
+  deviceMemory?: number;
+  connection?: NetworkConnectionLike;
+  mozConnection?: NetworkConnectionLike;
+  webkitConnection?: NetworkConnectionLike;
+  getBattery?: () => Promise<BatteryManagerLike>;
+}
+
 /**
  * Breakpoints following Tailwind's mobile-first approach
  */
@@ -251,28 +268,22 @@ export function useActualViewportHeight(): number {
 export type PerformanceTier = "high" | "medium" | "low";
 
 export function usePerformanceTier(): PerformanceTier {
-  const [tier, setTier] = useState<PerformanceTier>("medium");
   const deviceType = useDeviceType();
+  return useMemo(() => {
+    if (typeof window === "undefined") return "medium";
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    // Check hardware concurrency (CPU cores)
+    const nav = navigator as NavigatorWithDeviceInfo;
     const cores = navigator.hardwareConcurrency || 4;
-    
-    // Check device memory (if available)
-    const memory = (navigator as any).deviceMemory || 4;
-    
-    // Check GPU tier via WebGL
+    const memory = nav.deviceMemory || 4;
+
     const canvas = document.createElement("canvas");
     const gl = canvas.getContext("webgl") as WebGLRenderingContext | null;
-    let gpuTier: "high" | "medium" | "low" = "medium";
-    
+    let gpuTier: PerformanceTier = "medium";
+
     if (gl) {
       const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
       if (debugInfo) {
         const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) as string;
-        // Simple heuristic: check for high-end GPU keywords
         if (/Apple GPU|Mali-G|Adreno 6|RTX|GTX|Radeon/i.test(renderer)) {
           gpuTier = "high";
         } else if (/Adreno 5|Mali-T|Intel HD/i.test(renderer)) {
@@ -281,34 +292,18 @@ export function usePerformanceTier(): PerformanceTier {
       }
     }
 
-    // Determine tier based on device type and hardware
     if (deviceType === "mobile") {
-      // Mobile: conservative by default
-      if (cores >= 8 && memory >= 6 && gpuTier === "high") {
-        setTier("high");
-      } else if (cores >= 4 && memory >= 4) {
-        setTier("medium");
-      } else {
-        setTier("low");
-      }
-    } else if (deviceType === "tablet") {
-      // Tablet: medium by default
-      if (cores >= 6 && memory >= 4 && gpuTier === "high") {
-        setTier("high");
-      } else {
-        setTier("medium");
-      }
-    } else {
-      // Desktop: high by default
-      if (cores >= 4 && memory >= 8) {
-        setTier("high");
-      } else {
-        setTier("medium");
-      }
+      if (cores >= 8 && memory >= 6 && gpuTier === "high") return "high";
+      if (cores >= 4 && memory >= 4) return "medium";
+      return "low";
     }
+    if (deviceType === "tablet") {
+      if (cores >= 6 && memory >= 4 && gpuTier === "high") return "high";
+      return "medium";
+    }
+    if (cores >= 4 && memory >= 8) return "high";
+    return "medium";
   }, [deviceType]);
-
-  return tier;
 }
 
 /**
@@ -322,7 +317,8 @@ export function useNetworkQuality(): NetworkQuality {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    const nav = navigator as NavigatorWithDeviceInfo;
+    const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
     
     if (!connection) return;
 
@@ -353,7 +349,7 @@ export function useBatteryStatus() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const updateBattery = (batteryManager: any) => {
+    const updateBattery = (batteryManager: BatteryManagerLike) => {
       setBattery({
         level: batteryManager.level,
         charging: batteryManager.charging,
@@ -361,7 +357,8 @@ export function useBatteryStatus() {
       });
     };
 
-    (navigator as any).getBattery?.().then((batteryManager: any) => {
+    const nav = navigator as NavigatorWithDeviceInfo;
+    nav.getBattery?.().then((batteryManager: BatteryManagerLike) => {
       updateBattery(batteryManager);
       
       batteryManager.addEventListener("levelchange", () => updateBattery(batteryManager));

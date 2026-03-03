@@ -153,7 +153,7 @@ function FullTicker({
   lastUpdate,
   className,
 }: FullTickerProps) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);

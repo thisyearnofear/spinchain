@@ -13,7 +13,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
@@ -30,25 +30,15 @@ interface DemoCompleteModalProps {
 }
 
 export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalProps) {
-  const [showConfetti, setShowConfetti] = useState(false);
-  const confettiPositions = useMemo(() => 
+  const [confettiPositions] = useState(() =>
     Array.from({ length: 20 }, (_, i) => ({
       index: i,
       color: ["#6d7cff", "#6ef3c6", "#fbbf24", "#f87171"][i % 4],
       left: Math.random() * 100,
       xOffset: (Math.random() - 0.5) * 200,
       duration: 2 + Math.random() * 2,
-    })),
-    []
+    }))
   );
-
-  useEffect(() => {
-    if (isOpen) {
-      setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -80,7 +70,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
               {/* Header with gradient */}
               <div className="relative bg-gradient-to-br from-[color:var(--accent)]/20 to-[color:var(--accent-strong)]/20 p-6 text-center">
                 {/* Confetti effect */}
-                {showConfetti && (
+                {isOpen && (
                   <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     {confettiPositions.map((confetti) => (
                       <motion.div
