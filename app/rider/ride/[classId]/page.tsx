@@ -913,6 +913,10 @@ export default function LiveRidePage() {
                 >
                   Reset
                 </button>
+                {/* View mode status badge (mobile only, non-interactive) */}
+                <span className="sm:hidden inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 text-[10px] text-white/50">
+                  {viewMode === "focus" ? "2D" : "3D"}
+                </span>
                 {/* View Mode Toggle */}
                 <button
                   onClick={() =>
@@ -929,7 +933,7 @@ export default function LiveRidePage() {
                   className="rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
                   aria-label="Toggle view mode"
                 >
-                  {viewMode === "immersive" ? "3D" : "2D"}
+                  {viewMode === "immersive" ? "→ 2D" : "→ 3D"}
                 </button>
                 {/* HUD Mode Toggle (Mobile) */}
                 {deviceType === "mobile" && (

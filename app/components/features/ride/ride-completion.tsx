@@ -72,11 +72,11 @@ export function RideCompletion({
       aria-labelledby="completion-title"
       tabIndex={-1}
     >
-      <div className="rounded-3xl bg-gradient-to-br from-indigo-900/90 to-purple-900/90 border border-white/20 p-6 sm:p-12 text-center max-w-lg w-full backdrop-blur-xl">
+      <div className="rounded-3xl bg-gradient-to-br from-indigo-900/90 to-purple-900/90 border border-white/20 p-4 sm:p-8 text-center max-w-lg w-full backdrop-blur-xl overflow-y-auto max-h-[90vh]">
         {/* Success Icon */}
-        <div className="h-16 w-16 sm:h-24 sm:w-24 mx-auto mb-4 sm:mb-6 rounded-full bg-gradient-to-r from-green-400 to-emerald-400 flex items-center justify-center">
+        <div className="h-12 w-12 sm:h-20 sm:w-20 mx-auto mb-3 sm:mb-5 rounded-full bg-gradient-to-r from-green-400 to-emerald-400 flex items-center justify-center">
           <svg
-            className="h-8 w-8 sm:h-12 sm:w-12 text-white"
+            className="h-6 w-6 sm:h-10 sm:w-10 text-white"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -89,17 +89,17 @@ export function RideCompletion({
         {/* Title */}
         <h2
           id="completion-title"
-          className="text-3xl sm:text-4xl font-bold text-white mb-2 sm:mb-3"
+          className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2"
         >
           {isPracticeMode ? "Practice Complete!" : "Ride Complete!"}
         </h2>
-        <p className="text-lg sm:text-xl text-white/70 mb-6 sm:mb-8">
+        <p className="text-sm sm:text-base text-white/70 mb-3 sm:mb-5">
           {isPracticeMode
             ? "Great way to preview your class!"
             : `Total Time: ${formatTime(elapsedTime)}`}
         </p>
 
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80">
+        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80">
           <span className={`h-2 w-2 rounded-full ${
             telemetrySource === "live-bike"
               ? "bg-emerald-400"
@@ -115,17 +115,17 @@ export function RideCompletion({
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
           <Stat label="Avg HR" value={avgHeartRate} />
           <Stat label="Avg Power" value={`${avgPower}W`} />
           <Stat label="Effort" value={avgEffort} highlight />
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <button
             onClick={onExit}
-            className="flex-1 rounded-full border border-white/20 bg-white/10 py-3 text-white font-semibold transition-all active:scale-95 touch-manipulation min-h-[56px] hover:bg-white/20"
+            className="flex-1 rounded-full border border-white/20 bg-white/10 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-white/20"
             aria-label={isPracticeMode ? "Back to builder" : "View journey"}
           >
             {isPracticeMode ? "Back to Builder" : "View Journey"}
@@ -134,7 +134,7 @@ export function RideCompletion({
           {isPracticeMode && onDeploy ? (
             <button
               onClick={onDeploy}
-              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-3 text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px] hover:opacity-90"
+              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
               aria-label="Deploy class"
             >
               Deploy Class
@@ -143,7 +143,7 @@ export function RideCompletion({
             <button
               onClick={onClaimRewards}
               disabled={zkProofStatus?.isGenerating || zkProofStatus?.isSuccess}
-              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-3 text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               aria-label="Claim rewards with ZK proof"
             >
               {zkProofStatus?.isGenerating
