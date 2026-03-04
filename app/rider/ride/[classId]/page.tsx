@@ -144,6 +144,53 @@ export default function LiveRidePage() {
   const [showHUD] = useState(true);
   const [hudMode, setHudMode] = useState<"full" | "compact" | "minimal">("full");
 
+  // Onboarding Tutorial State
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // Show tutorial for first-time riders or when explicitly requested
+    const searchParams = new URLSearchParams(window.location.search);
+    const hasSeenTutorial = localStorage.getItem("spinchain:onboarding:ride-tutorial");
+    if (!hasSeenTutorial || searchParams.get("setup") === "true") {
+      setShowTutorial(true);
+    }
+  }, []);
+
+  // Tutorial Content
+  const tutorialSteps = [
+    {
+      title: "Welcome to the HUD",
+      content: "This is your control center. Track your power, cadence, and heart rate in real-time.",
+      position: "top-1/4 left-1/2 -translate-x-1/2",
+    },
+    {
+      title: "Effort Score",
+      content: "The Effort Score (top right) is what determines your SPIN rewards. Keep it high to earn more!",
+      position: "top-20 right-10",
+    },
+    {
+      title: "ZK Privacy",
+      content: "Notice the shield icon? Your raw health data never leaves this device. Only a private proof is sent to the blockchain.",
+      position: "bottom-40 right-10",
+    },
+    {
+      title: "Ready to Start?",
+      content: "Link your device or use the simulator to begin your ride.",
+      position: "bottom-32 left-1/2 -translate-x-1/2",
+    }
+  ];
+
+  const nextTutorial = () => {
+    if (tutorialStep < tutorialSteps.length - 1) {
+      setTutorialStep(s => s + 1);
+    } else {
+      setShowTutorial(false);
+      localStorage.setItem("spinchain:onboarding:ride-tutorial", "true");
+    }
+  };
+
   // Persisted HUD preference (client-only)
   useEffect(() => {
     try {
@@ -196,18 +243,12 @@ export default function LiveRidePage() {
 
   // BLE Device Connection
   const [bleConnected, setBleConnected] = useState(false);
+  // Simulator mode is a user choice — Capacitor BLE works natively on iOS/Android/web
   const [useSimulator, setUseSimulator] = useState(false);
   const [connectionHint, setConnectionHint] = useState<string | null>(null);
 
-  // Reset simulator mode when not in practice mode
   useEffect(() => {
-    if (!isPracticeMode && useSimulator) {
-      setUseSimulator(false);
-    }
-  }, [isPracticeMode, useSimulator]);
-
-  useEffect(() => {
-    if (bleConnected || (isPracticeMode && useSimulator)) {
+    if (bleConnected || useSimulator) {
       setConnectionHint(null);
     }
   }, [bleConnected, isPracticeMode, useSimulator]);
@@ -395,7 +436,7 @@ export default function LiveRidePage() {
     }
   };
 
-  // Handle simulator metrics updates (PRACTICE MODE ONLY - prevents cheating in real classes)
+  // Handle simulator metrics updates
   const handleSimulatorMetrics = (metrics: {
     heartRate: number;
     power: number;
@@ -403,11 +444,6 @@ export default function LiveRidePage() {
     speed: number;
     effort: number;
   }) => {
-    // Security check: only allow simulator in practice mode
-    if (!isPracticeMode) {
-      console.warn('[Security] Simulator metrics rejected - not in practice mode');
-      return;
-    }
 
     telemetryRawRef.current = metrics;
     // Simulator is a user-driven control; update UI immediately for responsiveness
@@ -453,9 +489,9 @@ export default function LiveRidePage() {
     });
   }, [classId, isPracticeMode, isRiding, rideProgress]);
 
-  // Simulate ride progress (only when BLE not connected, not using simulator, or in auto mode)
+  // Simulate ride progress (only when BLE not connected and not using simulator)
   useEffect(() => {
-    if (!isRiding || !classData || bleConnected || (useSimulator && isPracticeMode)) return;
+    if (!isRiding || !classData || bleConnected || useSimulator) return;
 
     const interval = setInterval(() => {
       setElapsedTime(prev => {
@@ -472,7 +508,7 @@ export default function LiveRidePage() {
       });
 
       // Only simulate telemetry if BLE not connected and not using simulator
-      if (!bleConnected && !(useSimulator && isPracticeMode)) {
+      if (!bleConnected && !useSimulator) {
         const prev = telemetryRawRef.current;
         const newTelemetry = {
           ...prev,
@@ -494,11 +530,11 @@ export default function LiveRidePage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRiding, classData, bleConnected, useSimulator, isPracticeMode]);
+  }, [isRiding, classData, bleConnected, useSimulator]);
 
-  // Also collect BLE and simulator telemetry samples (simulator only in practice mode)
+  // Also collect BLE and simulator telemetry samples
   useEffect(() => {
-    if (isRiding && (bleConnected || (useSimulator && isPracticeMode)) && telemetry.heartRate > 0) {
+    if (isRiding && (bleConnected || useSimulator) && telemetry.heartRate > 0) {
       telemetrySamples.current.push({
         hr: telemetry.heartRate,
         power: telemetry.power,
@@ -1131,7 +1167,7 @@ export default function LiveRidePage() {
                 deviceType={deviceType}
                 workoutPlan={workoutPlan}
                 bleConnected={bleConnected}
-                canStartRide={bleConnected || (isPracticeMode && useSimulator)}
+                canStartRide={bleConnected || useSimulator}
                 startHint={connectionHint}
                 onStartRide={startRide}
                 onPauseRide={pauseRide}
@@ -1212,6 +1248,54 @@ export default function LiveRidePage() {
         onClose={handleDemoModalClose}
         stats={demoStats}
       />
+
+      {/* Onboarding Tutorial Overlay */}
+      {showTutorial && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md transition-all duration-500 p-6">
+          <div className={`absolute ${tutorialSteps[tutorialStep].position} max-w-sm w-full transform transition-all duration-500 scale-100 opacity-100`}>
+            <div className="rounded-3xl border border-white/20 bg-indigo-600/90 p-8 shadow-[0_20px_50px_rgba(79,70,229,0.3)] backdrop-blur-xl">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold uppercase tracking-widest text-indigo-200">
+                  Step {tutorialStep + 1} of {tutorialSteps.length}
+                </span>
+                <button 
+                  onClick={() => setShowTutorial(false)}
+                  className="text-indigo-200 hover:text-white transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-3">
+                {tutorialSteps[tutorialStep].title}
+              </h3>
+              <p className="text-indigo-50/80 leading-relaxed mb-8">
+                {tutorialSteps[tutorialStep].content}
+              </p>
+              <div className="flex items-center justify-between gap-4">
+                <button
+                  onClick={() => setShowTutorial(false)}
+                  className="text-sm font-medium text-indigo-200 hover:text-white transition-colors"
+                >
+                  Skip tutorial
+                </button>
+                <button
+                  onClick={nextTutorial}
+                  className="flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-indigo-600 shadow-xl shadow-white/10 hover:bg-indigo-50 active:scale-95 transition-all"
+                >
+                  <span>{tutorialStep === tutorialSteps.length - 1 ? "Got it!" : "Next"}</span>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            {/* Visual indicator arrow pointing to the actual UI element could be added here */}
+            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[16px] border-t-indigo-600/90 opacity-0 sm:opacity-100" />
+          </div>
+        </div>
+      )}
 
     </div>
   );

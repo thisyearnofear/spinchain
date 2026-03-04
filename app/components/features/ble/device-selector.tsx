@@ -2,6 +2,7 @@
 
 "use client";
 
+import { useMemo } from "react";
 import { useBleData } from "../../../hooks/ble/use-ble-data";
 import { motion } from "framer-motion";
 import {
@@ -12,6 +13,14 @@ import {
   Heart,
   RotateCcw,
 } from "lucide-react";
+
+function useBluetoothSupport() {
+  return useMemo(() => {
+    // Capacitor BLE (@capacitor-community/bluetooth-le) works natively on iOS,
+    // Android, and modern desktop browsers — no Web Bluetooth API required.
+    return { supported: true, isIOS: false };
+  }, []);
+}
 
 export interface FitnessMetrics {
   heartRate?: number;
@@ -27,6 +36,7 @@ export interface DeviceSelectorProps {
 }
 
 export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelectorProps) {
+  useBluetoothSupport(); // kept for future conditional logic
   const {
     metrics,
     status,

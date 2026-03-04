@@ -1,20 +1,20 @@
 // BLE Service - Core service layer for all BLE operations
+// Uses @capacitor-community/bluetooth-le for cross-platform support (iOS, Android, Web)
 // Following Core Principles: Single source of truth, DRY, CLEAN separation
 
-/// <reference types="web-bluetooth" />
-
-import { 
-  BLE_SERVICES, 
-  BLE_CHARACTERISTICS, 
+import { BleClient, BleDevice as CapBleDevice } from '@capacitor-community/bluetooth-le';
+import {
+  BLE_SERVICES,
+  BLE_CHARACTERISTICS,
   DEVICE_FILTERS,
   CONNECTION_CONFIG,
   DATA_CONFIG
 } from './constants';
 import { BleParser } from './parser';
-import type { 
-  BleDevice, 
-  FitnessMetrics, 
-  ConnectionStatus, 
+import type {
+  BleDevice,
+  FitnessMetrics,
+  ConnectionStatus,
   BleError,
   BleServiceConfig,
   BleServiceState,
@@ -32,9 +32,9 @@ export class BleService {
   private state: BleServiceState;
   private config: Required<BleServiceConfig>;
   private callbacks: BleServiceCallbacks;
-  private device: BluetoothDevice | null = null;
-  private server: BluetoothRemoteGATTServer | null = null;
+  private deviceId: string | null = null;
   private updateInterval: NodeJS.Timeout | null = null;
+  private initialized = false;
 
   private constructor() {
     this.state = {
@@ -73,22 +73,24 @@ export class BleService {
     this.callbacks = { ...this.callbacks, ...callbacks };
   }
 
+  // Initialise the Capacitor BLE plugin (idempotent)
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized) return;
+    await BleClient.initialize({ androidNeverForLocation: true });
+    this.initialized = true;
+  }
+
   // Public API methods
   public async scanAndConnect(): Promise<BleDevice | null> {
-    if (!this.isBluetoothAvailable()) {
-      this.handleError('PERMISSION_DENIED', 'Bluetooth not available or permission denied');
-      return null;
-    }
-
     try {
+      await this.ensureInitialized();
       this.updateStatus('scanning');
       this.state.isScanning = true;
       this.notifyStatusChange();
 
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: [...DEVICE_FILTERS.ACCEPTED_SERVICES] as BluetoothServiceUUID[] }
-        ],
+      // requestDevice shows the native OS picker on iOS/Android; falls back to browser picker on web
+      const capDevice: CapBleDevice = await BleClient.requestDevice({
+        services: [...DEVICE_FILTERS.ACCEPTED_SERVICES],
         optionalServices: [
           BLE_SERVICES.CYCLING_POWER,
           BLE_SERVICES.HEART_RATE,
@@ -97,12 +99,7 @@ export class BleService {
       });
 
       this.state.isScanning = false;
-      
-      if (device) {
-        return await this.connectToDevice(device);
-      }
-      
-      return null;
+      return await this.connectToDeviceById(capDevice.deviceId, capDevice.name ?? 'Unknown Device');
     } catch (error) {
       this.state.isScanning = false;
       this.handleError('CONNECTION_FAILED', (error as Error).message);
@@ -110,38 +107,39 @@ export class BleService {
     }
   }
 
-  public async connectToDevice(device: BluetoothDevice): Promise<BleDevice | null> {
-    try {
-      this.updateStatus('connecting');
-      
-      this.device = device;
-      this.server = await device.gatt?.connect() || null;
+  public async connectToDevice(device: { deviceId: string; name?: string }): Promise<BleDevice | null> {
+    return this.connectToDeviceById(device.deviceId, device.name ?? 'Unknown Device');
+  }
 
-      if (!this.server) {
-        throw new Error('Failed to connect to GATT server');
-      }
+  private async connectToDeviceById(deviceId: string, name: string): Promise<BleDevice | null> {
+    try {
+      await this.ensureInitialized();
+      this.updateStatus('connecting');
+      this.deviceId = deviceId;
+
+      await BleClient.connect(deviceId, (id) => this.handleDisconnect(id));
+
+      const services = await this.discoverServices(deviceId);
 
       const bleDevice: BleDevice = {
-        id: device.id,
-        name: device.name || 'Unknown Device',
-        rssi: 0, // Not available in Web Bluetooth API
+        id: deviceId,
+        name,
+        rssi: 0,
         connected: true,
-        services: await this.discoverServices()
+        services
       };
 
       this.state.device = bleDevice;
-      
-      await this.setupNotifications();
+
+      await this.setupNotifications(deviceId);
       this.updateStatus('connected');
       this.state.isConnected = true;
       this.startMetricsUpdates();
-      
-      // Save device to memory for quick reconnect
+
       this.saveDevice(bleDevice);
-      
       this.callbacks.onDeviceConnected?.(bleDevice);
       this.notifyStatusChange();
-      
+
       return bleDevice;
     } catch (error) {
       this.handleError('CONNECTION_FAILED', (error as Error).message);
@@ -150,27 +148,22 @@ export class BleService {
   }
 
   public disconnect(): void {
-    if (this.server) {
-      this.server.disconnect();
-      this.server = null;
+    if (this.deviceId) {
+      BleClient.disconnect(this.deviceId).catch(() => {});
+      this.deviceId = null;
     }
-    
-    if (this.device) {
-      this.device = null;
-    }
-    
+
     this.stopMetricsUpdates();
     this.updateStatus('disconnected');
     this.state.isConnected = false;
-    
-    // Get device ID before clearing state
+
     const deviceId = this.state.device?.id;
     this.state.device = null;
-    
+
     if (deviceId) {
       this.callbacks.onDeviceDisconnected?.(deviceId);
     }
-    
+
     this.notifyStatusChange();
   }
 
@@ -184,9 +177,8 @@ export class BleService {
 
   // Private helper methods
   private isBluetoothAvailable(): boolean {
-    return typeof navigator !== 'undefined' && 
-           navigator.bluetooth !== undefined &&
-           typeof navigator.bluetooth.requestDevice === 'function';
+    // Capacitor BLE works on iOS, Android, and modern desktop browsers
+    return typeof window !== 'undefined';
   }
 
   private defaultDeviceFilter(device: BleDevice): boolean {
@@ -196,60 +188,53 @@ export class BleService {
     );
   }
 
-  private async discoverServices(): Promise<string[]> {
-    if (!this.server) return [];
-    
+  private async discoverServices(deviceId: string): Promise<string[]> {
     try {
-      const services = await this.server.getPrimaryServices();
-      return services.map(service => service.uuid);
+      const result = await BleClient.getServices(deviceId);
+      return result.map(s => s.uuid);
     } catch (error) {
       console.warn('Failed to discover services:', error);
       return [];
     }
   }
 
-  private async setupNotifications(): Promise<void> {
-    if (!this.server) return;
-
+  private async setupNotifications(deviceId: string): Promise<void> {
     let hasActiveStream = false;
 
     try {
-      // Setup FTMS indoor bike data stream (speed/cadence/power/distance/hr when available)
-      const ftmsService = await this.server.getPrimaryService(BLE_SERVICES.FITNESS_MACHINE);
-      const indoorBikeData = await ftmsService.getCharacteristic(
-        BLE_CHARACTERISTICS.INDOOR_BIKE_DATA
+      // FTMS indoor bike data (speed/cadence/power/distance)
+      await BleClient.startNotifications(
+        deviceId,
+        BLE_SERVICES.FITNESS_MACHINE,
+        BLE_CHARACTERISTICS.INDOOR_BIKE_DATA,
+        (value) => this.mergeMetrics(BleParser.parseIndoorBikeData(value))
       );
-      await indoorBikeData.startNotifications();
-      indoorBikeData.addEventListener('characteristicvaluechanged',
-        this.handleIndoorBikeData.bind(this));
       hasActiveStream = true;
     } catch (error) {
       console.warn('Failed to setup FTMS indoor bike notifications:', error);
     }
 
     try {
-      // Setup power measurements (Cycling Power Service)
-      const powerService = await this.server.getPrimaryService(BLE_SERVICES.CYCLING_POWER);
-      const powerCharacteristic = await powerService.getCharacteristic(
-        BLE_CHARACTERISTICS.CYCLING_POWER_MEASUREMENT
+      // Cycling Power Service
+      await BleClient.startNotifications(
+        deviceId,
+        BLE_SERVICES.CYCLING_POWER,
+        BLE_CHARACTERISTICS.CYCLING_POWER_MEASUREMENT,
+        (value) => this.mergeMetrics(BleParser.parseCyclingPower(value))
       );
-      await powerCharacteristic.startNotifications();
-      powerCharacteristic.addEventListener('characteristicvaluechanged', 
-        this.handlePowerData.bind(this));
       hasActiveStream = true;
     } catch (error) {
       console.warn('Failed to setup power notifications:', error);
     }
 
     try {
-      // Setup heart rate measurements
-      const hrService = await this.server.getPrimaryService(BLE_SERVICES.HEART_RATE);
-      const hrCharacteristic = await hrService.getCharacteristic(
-        BLE_CHARACTERISTICS.HEART_RATE_MEASUREMENT
+      // Heart Rate Service
+      await BleClient.startNotifications(
+        deviceId,
+        BLE_SERVICES.HEART_RATE,
+        BLE_CHARACTERISTICS.HEART_RATE_MEASUREMENT,
+        (value) => this.mergeMetrics({ heartRate: BleParser.parseHeartRate(value) })
       );
-      await hrCharacteristic.startNotifications();
-      hrCharacteristic.addEventListener('characteristicvaluechanged',
-        this.handleHeartRateData.bind(this));
       hasActiveStream = true;
     } catch (error) {
       console.warn('Failed to setup heart rate notifications:', error);
@@ -260,24 +245,17 @@ export class BleService {
     }
   }
 
-  private handleIndoorBikeData(event: Event): void {
-    const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
-    if (characteristic?.value) {
-      this.mergeMetrics(BleParser.parseIndoorBikeData(characteristic.value));
-    }
-  }
+  private handleDisconnect(deviceId: string): void {
+    this.stopMetricsUpdates();
+    this.updateStatus('disconnected');
+    this.state.isConnected = false;
+    this.state.device = null;
+    this.deviceId = null;
+    this.callbacks.onDeviceDisconnected?.(deviceId);
+    this.notifyStatusChange();
 
-  private handlePowerData(event: Event): void {
-    const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
-    if (characteristic?.value) {
-      this.mergeMetrics(BleParser.parseCyclingPower(characteristic.value));
-    }
-  }
-
-  private handleHeartRateData(event: Event): void {
-    const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
-    if (characteristic?.value) {
-      this.mergeMetrics({ heartRate: BleParser.parseHeartRate(characteristic.value) });
+    if (this.config.autoReconnect) {
+      this.reconnect(deviceId);
     }
   }
 
@@ -303,8 +281,8 @@ export class BleService {
     this.stopMetricsUpdates();
     this.updateInterval = setInterval(() => {
       // Trigger any periodic updates or state checks
-      if (this.state.device && !this.state.isConnected) {
-        this.reconnect();
+      if (this.deviceId && !this.state.isConnected) {
+        this.reconnect(this.deviceId);
       }
     }, this.config.updateInterval);
   }
@@ -316,18 +294,19 @@ export class BleService {
     }
   }
 
-  private async reconnect(): Promise<void> {
-    if (!this.config.autoReconnect || !this.device) return;
-    
+  private async reconnect(deviceId: string): Promise<void> {
+    if (!this.config.autoReconnect) return;
+
     for (let i = 0; i < this.config.reconnectAttempts; i++) {
       try {
-        await this.connectToDevice(this.device);
+        const saved = this.getSavedDevices().find(d => d.id === deviceId);
+        await this.connectToDeviceById(deviceId, saved?.name ?? 'Unknown Device');
         return;
       } catch {
         await new Promise(resolve => setTimeout(resolve, CONNECTION_CONFIG.RECONNECT_DELAY));
       }
     }
-    
+
     this.handleError('CONNECTION_FAILED', 'Failed to reconnect after multiple attempts');
   }
 
@@ -437,35 +416,12 @@ export class BleService {
     }
 
     try {
+      await this.ensureInitialized();
       this.updateStatus('connecting');
-      
-      // Try to connect to the saved device
-      // Note: Web Bluetooth can't directly connect by ID, need to scan and match
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: [...DEVICE_FILTERS.ACCEPTED_SERVICES] as BluetoothServiceUUID[] }
-        ],
-        optionalServices: [
-          BLE_SERVICES.CYCLING_POWER,
-          BLE_SERVICES.HEART_RATE,
-          BLE_SERVICES.DEVICE_INFORMATION
-        ]
-      });
-
-      // Check if it's the same device we want
-      if (device.id === lastDevice.id) {
-        this.state.isScanning = false;
-        const connected = await this.connectToDevice(device);
-        return !!connected;
-      }
-
-      // Different device - connect anyway (user may have swapped)
-      this.state.isScanning = false;
-      const connected = await this.connectToDevice(device);
+      // Capacitor BLE supports direct connect by device ID — no re-scan needed
+      const connected = await this.connectToDeviceById(lastDevice.id, lastDevice.name);
       return !!connected;
-      
     } catch (error) {
-      this.state.isScanning = false;
       this.handleError('CONNECTION_FAILED', (error as Error).message);
       return false;
     }
