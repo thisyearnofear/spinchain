@@ -9,6 +9,7 @@ import { InstructorModeSelector } from "@/app/components/features/class/instruct
 import { FadeIn, StaggerContainer, Parallax, ScaleIn } from "@/app/components/ui/scroll-animations";
 import { AnimatedCard, EnergyPulse, Floating, MagneticButton } from "@/app/components/ui/animated-card";
 import { RouteShowcase } from "@/app/components/features/route/route-showcase";
+import Link from "next/link";
 
 export default function Home() {
   const [showWelcome, setShowWelcome] = useState(false);
@@ -137,7 +138,7 @@ export default function Home() {
             <div className="w-full grid lg:grid-cols-2 gap-6 mt-4">
               {/* Rider Card */}
               <AnimatedCard glowColor="var(--accent)">
-                <a 
+                <Link 
                   href="/rider"
                   className="group block relative overflow-hidden p-8 h-full"
                 >
@@ -151,13 +152,13 @@ export default function Home() {
                   <p className="text-[color:var(--muted)] mb-6">
                     Join live classes, track your effort, and earn rewards automatically
                   </p>
-                  <MagneticButton className="inline-flex items-center gap-2 text-[color:var(--accent)] font-medium">
+                  <MagneticButton className="inline-flex items-center gap-2 text-[color:var(--accent)] font-medium pointer-events-none">
                     Find Classes
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>
                   </MagneticButton>
-                </a>
+                </Link>
               </AnimatedCard>
 
               {/* Instructor Card */}

@@ -55,6 +55,7 @@ function safeParse(json: string | null): PendingYellowSettlement[] {
 }
 
 export function listPendingSettlements(): PendingYellowSettlement[] {
+  if (typeof window === 'undefined') return [];
   return safeParse(localStorage.getItem(STORAGE_KEY));
 }
 
@@ -63,6 +64,7 @@ export function listPendingSettlements(): PendingYellowSettlement[] {
  * Queries closed app sessions and merges with local store.
  */
 export async function syncPendingWithSDK(address: Address): Promise<void> {
+  if (typeof window === 'undefined') return;
   try {
     const sessions = await getSessions(address, "closed");
     const localItems = listPendingSettlements();
@@ -101,6 +103,7 @@ export async function syncPendingWithSDK(address: Address): Promise<void> {
 }
 
 export function upsertPendingSettlement(item: PendingYellowSettlement): void {
+  if (typeof window === 'undefined') return;
   const items = listPendingSettlements();
   const idx = items.findIndex((x) => x.id === item.id);
   if (idx >= 0) items[idx] = item;
@@ -109,6 +112,7 @@ export function upsertPendingSettlement(item: PendingYellowSettlement): void {
 }
 
 export function markPendingSettlementSettled(channelId: string, txHash: `0x${string}`): void {
+  if (typeof window === 'undefined') return;
   const items = listPendingSettlements();
   const idx = items.findIndex((x) => x.id === channelId);
   if (idx < 0) return;

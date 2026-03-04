@@ -68,17 +68,15 @@ export function RideControls({
             onSelect={onSetWorkoutPlan}
           />
 
-          {/* Input Mode Toggle - Practice Mode Only */}
-          {isPracticeMode && (
-            <InputModeSelector
-              useSimulator={useSimulator}
-              deviceType={deviceType}
-              onSelect={onSetUseSimulator}
-            />
-          )}
+          {/* Input Mode Toggle */}
+          <InputModeSelector
+            useSimulator={useSimulator}
+            deviceType={deviceType}
+            onSelect={onSetUseSimulator}
+          />
 
-          {/* BLE Device Selector */}
-          {(!isPracticeMode || !useSimulator) && (
+          {/* BLE Device Selector - only shown when not using simulator */}
+          {!useSimulator && (
             <DeviceSelector
               onMetricsUpdate={onBleMetrics}
               className="bg-black/80 backdrop-blur-xl border-white/10"
@@ -130,8 +128,8 @@ export function RideControls({
         </div>
       )}
 
-      {/* Pedal Simulator - Practice Mode Only */}
-      {isPracticeMode && useSimulator && (
+      {/* Pedal Simulator */}
+      {useSimulator && (
         <PedalSimulator isActive={isRiding} onMetricsUpdate={onSimulatorMetrics} />
       )}
     </div>

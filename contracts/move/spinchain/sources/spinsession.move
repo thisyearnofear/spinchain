@@ -3,7 +3,10 @@ module spinchain::spinsession {
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
     use sui::event;
+    use sui::coin::{Coin};
     use std::string::{String};
+    use deepbook::balance_manager::{BalanceManager};
+    use deepbook::pool::{Pool};
 
     // --- Errors ---
     const ENotOwner: u64 = 0;
@@ -49,6 +52,9 @@ module spinchain::spinsession {
         inference_model: String, // e.g. "venice::llama-3-70b" or "gemini::flash"
         system_prompt_cid: String, // IPFS/Walrus link to the agent's behavioral logic
         last_thought_epoch: u64, // Tracking when the agent last processed biometric state
+
+        // DeepBook Liquidity Layer
+        balance_manager_id: Option<ID>,
     }
 
     /// High-frequency telemetry for a rider.
@@ -143,6 +149,7 @@ module spinchain::spinsession {
             inference_model,
             system_prompt_cid,
             last_thought_epoch: 0,
+            balance_manager_id: std::option::none(),
         };
         transfer::share_object(coach);
     }
@@ -311,6 +318,60 @@ module spinchain::spinsession {
     public entry fun close_session(session: &mut Session, ctx: &mut TxContext) {
         assert!(tx_context::sender(ctx) == session.instructor, ENotInstructor);
         session.is_active = false;
+    }
+
+    // --- DeepBook Liquidity Management ---
+
+    /// Registers a BalanceManager for the coach to enable DeepBook interactions.
+    public entry fun register_balance_manager(
+        coach: &mut Coach,
+        manager: &BalanceManager,
+        ctx: &mut TxContext
+    ) {
+        assert!(tx_context::sender(ctx) == coach.owner, ENotOwner);
+        coach.balance_manager_id = std::option::some(object::id(manager));
+    }
+
+    /// Places a limit order on DeepBook.
+    /// AI Agent can use this to manage liquidity for the SPIN token or execute trades.
+    public entry fun place_limit_order<AssetBase, AssetQuote>(
+        coach: &mut Coach,
+        pool: &mut Pool<AssetBase, AssetQuote>,
+        manager: &mut BalanceManager,
+        price: u64,
+        quantity: u64,
+        is_bid: bool,
+        expire_timestamp: u64,
+        restriction: u8,
+        ctx: &mut TxContext
+    ) {
+        assert!(tx_context::sender(ctx) == coach.owner, ENotOwner);
+        assert!(std::option::is_some(&coach.balance_manager_id), EInvalidBoundaries);
+        assert!(*std::option::borrow(&coach.balance_manager_id) == object::id(manager), ENotOwner);
+
+        pool.place_limit_order(
+            manager,
+            price,
+            quantity,
+            is_bid,
+            expire_timestamp,
+            restriction,
+            ctx
+        );
+    }
+
+    /// Deposits assets into the coach's BalanceManager.
+    public entry fun deposit_assets<T>(
+        coach: &mut Coach,
+        manager: &mut BalanceManager,
+        coin: Coin<T>,
+        ctx: &mut TxContext
+    ) {
+        assert!(tx_context::sender(ctx) == coach.owner, ENotOwner);
+        assert!(std::option::is_some(&coach.balance_manager_id), EInvalidBoundaries);
+        assert!(*std::option::borrow(&coach.balance_manager_id) == object::id(manager), ENotOwner);
+
+        manager.deposit(coin, ctx);
     }
 
     // --- View Functions ---
