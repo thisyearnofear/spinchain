@@ -67,6 +67,32 @@ export const GUEST_DEMO_CLASS = {
   theme: "alpine" as const,
 };
 
+/**
+ * Generates practice mode URL for demo ride
+ * Single source of truth for demo ride links (DRY principle)
+ */
+export function getDemoRideUrl(): string {
+  const params = new URLSearchParams({
+    mode: "practice",
+    name: GUEST_DEMO_CLASS.name,
+    date: new Date().toISOString(),
+    instructor: GUEST_DEMO_CLASS.instructor,
+    capacity: "20",
+    basePrice: "0",
+    maxPrice: "0",
+    curveType: "linear",
+    rewardThreshold: "150",
+    rewardAmount: "10",
+    aiEnabled: "true",
+    aiPersonality: "zen",
+    routeName: GUEST_DEMO_CLASS.name,
+    routeDistance: "15",
+    routeDuration: GUEST_DEMO_CLASS.duration.toString(),
+    routeElevation: GUEST_DEMO_CLASS.elevationGain.toString(),
+  });
+  return `/rider/ride/demo?${params.toString()}`;
+}
+
 export interface ClassWithRoute {
   // Contract data
   address: `0x${string}`;
@@ -77,10 +103,10 @@ export interface ClassWithRoute {
   maxRiders: number;
   ticketsSold: number;
   currentPrice: string;
-  
+
   // Metadata
   metadata: EnhancedClassMetadata | null;
-  
+
   // Route data
   route: WalrusRouteData | null;
   routeLoading: boolean;
@@ -162,7 +188,7 @@ export function useClass(classAddress: `0x${string}`) {
         // In production: route = await retrieveRouteFromWalrus(mockMetadata.route.walrusBlobId);
         // For now, generate mock route data
         route = generateMockRouteData(mockMetadata);
-        
+
         // Cache it
         if (route) {
           cacheRouteLocally(classAddress, route);
@@ -249,7 +275,7 @@ export function useClasses() {
 
           // Check cache
           let route = getCachedRoute(mockClass.address);
-          
+
           if (!route) {
             route = generateMockRouteData(mockMetadata);
             if (route) {
@@ -409,19 +435,19 @@ function generateElevationProfile(
 ): number[] {
   const elevations: number[] = [];
   const baseElevation = 100;
-  
+
   // Determine route type from name
-  const isMountain = routeName.toLowerCase().includes("mountain") || 
-                     routeName.toLowerCase().includes("climb");
-  const isSprint = routeName.toLowerCase().includes("sprint") || 
-                   routeName.toLowerCase().includes("coastal");
-  const isIntervals = routeName.toLowerCase().includes("interval") || 
-                      routeName.toLowerCase().includes("city");
-  
+  const isMountain = routeName.toLowerCase().includes("mountain") ||
+    routeName.toLowerCase().includes("climb");
+  const isSprint = routeName.toLowerCase().includes("sprint") ||
+    routeName.toLowerCase().includes("coastal");
+  const isIntervals = routeName.toLowerCase().includes("interval") ||
+    routeName.toLowerCase().includes("city");
+
   for (let i = 0; i < numPoints; i++) {
     const progress = i / (numPoints - 1);
     let elevation = baseElevation;
-    
+
     if (isMountain) {
       // Mountain climb: Steady ascent with some variation
       // S-curve: starts gradual, steepens in middle, eases at top
@@ -429,31 +455,31 @@ function generateElevationProfile(
       elevation += climbFactor * elevationGain;
       // Add some rocky variation
       elevation += Math.sin(progress * Math.PI * 8) * (elevationGain * 0.05);
-      
+
     } else if (isSprint) {
       // Coastal sprint: Rolling hills, undulating
       // Multiple small climbs and descents
       const wave1 = Math.sin(progress * Math.PI * 4) * (elevationGain * 0.3);
       const wave2 = Math.sin(progress * Math.PI * 8) * (elevationGain * 0.15);
       elevation += (progress * elevationGain * 0.4) + wave1 + wave2;
-      
+
     } else if (isIntervals) {
       // City intervals: Sharp spikes for interval training
       // Flat with periodic sharp climbs
       const intervalPattern = Math.sin(progress * Math.PI * 6);
-      const spike = intervalPattern > 0.5 
-        ? (intervalPattern - 0.5) * 2 * elevationGain * 0.8 
+      const spike = intervalPattern > 0.5
+        ? (intervalPattern - 0.5) * 2 * elevationGain * 0.8
         : 0;
       elevation += (progress * elevationGain * 0.2) + spike;
-      
+
     } else {
       // Default: Rolling terrain
       elevation += progress * elevationGain + Math.sin(progress * Math.PI * 5) * 50;
     }
-    
+
     elevations.push(Math.round(elevation));
   }
-  
+
   return elevations;
 }
 
@@ -465,7 +491,7 @@ export function generateMockRouteData(metadata: EnhancedClassMetadata): WalrusRo
   const coordinates = [];
   const baseLat = 34.0195;
   const baseLng = -118.4912;
-  
+
   // Generate unique elevation profile based on route name
   const elevationProfile = generateElevationProfile(
     metadata.route.name,

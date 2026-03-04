@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { PrimaryNav } from "../components/layout/nav";
-import { useClasses, type ClassWithRoute, GUEST_DEMO_CLASS } from "../hooks/evm/use-class-data";
+import { useClasses, type ClassWithRoute, GUEST_DEMO_CLASS, getDemoRideUrl } from "../hooks/evm/use-class-data";
 import Link from "next/link";
 import { RoutePreviewCard } from "../components/features/route/route-preview-card";
 import { ConnectWallet } from "../components/features/wallet/connect-wallet";
@@ -78,38 +78,31 @@ export default function RiderPage() {
 
         {/* Guest Mode Banner */}
         {!isConnected && showGuestBanner && (
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 backdrop-blur">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <span className="text-2xl">👋</span>
-                <div>
-                  <h3 className="text-lg font-semibold text-amber-600 dark:text-amber-400 mb-1">
-                    Browsing as Guest
-                  </h3>
-                  <p className="text-sm text-amber-900 dark:text-amber-200/80">
-                    You can preview all classes and routes. Connect your wallet to book and earn rewards.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Link 
-                      href={`/rider/ride/${GUEST_DEMO_CLASS.address}`}
-                      className="rounded-full bg-amber-500 px-4 py-2 text-xs font-bold text-white hover:bg-amber-600 active:scale-95 transition-all shadow-lg shadow-amber-500/20"
-                    >
-                      Try Demo Ride →
-                    </Link>
-                  </div>
-                </div>
+          <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 backdrop-blur">
+            <div className="flex items-center gap-3">
+              <span className="text-lg">👤</span>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-medium text-amber-700 dark:text-amber-300">Guest</span>
+                <span className="text-amber-600/60 dark:text-amber-400/60">·</span>
+                <span className="text-amber-600/80 dark:text-amber-400/80 hidden sm:inline">Preview mode</span>
               </div>
-              <div className="flex items-center gap-3">
-                <ConnectWallet />
-                <button
-                  onClick={() => setShowGuestBanner(false)}
-                  className="p-2 rounded-lg text-amber-600/60 dark:text-amber-400/60 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link 
+                href={getDemoRideUrl()}
+                className="text-xs font-medium px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-500/30 transition"
+              >
+                Try Demo
+              </Link>
+              <ConnectWallet />
+              <button
+                onClick={() => setShowGuestBanner(false)}
+                className="p-1.5 rounded-lg text-amber-600/50 hover:text-amber-600 hover:bg-amber-500/10 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
         )}
@@ -167,8 +160,8 @@ export default function RiderPage() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <a
-                  href={`/rider/ride/demo?mode=practice&name=${encodeURIComponent(GUEST_DEMO_CLASS.name)}&date=${new Date().toISOString()}&instructor=${encodeURIComponent(GUEST_DEMO_CLASS.instructor)}&capacity=20&basePrice=0&maxPrice=0&curveType=linear&rewardThreshold=150&rewardAmount=10&aiEnabled=true&aiPersonality=zen&routeName=${encodeURIComponent(GUEST_DEMO_CLASS.name)}&routeDistance=15&routeDuration=${GUEST_DEMO_CLASS.duration}&routeElevation=${GUEST_DEMO_CLASS.elevationGain}`}
+                <Link
+                  href={getDemoRideUrl()}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -176,7 +169,7 @@ export default function RiderPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Try Free Demo
-                </a>
+                </Link>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-green-400">{GUEST_DEMO_CLASS.ticketsSold}</p>
                   <p className="text-xs text-[color:var(--muted)]">riders now</p>

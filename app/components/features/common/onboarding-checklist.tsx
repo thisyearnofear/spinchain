@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { CheckCircle2, Circle, Wallet, Bluetooth, Timer, ArrowRight } from "lucide-react";
 import { useAccount } from "wagmi";
 import Link from "next/link";
-import { GUEST_DEMO_CLASS } from "@/app/hooks/evm/use-class-data";
+import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 
 const STORAGE_KEY = "spinchain:onboarding:checklist";
 
@@ -49,7 +49,7 @@ export function OnboardingChecklist() {
       description: "Connect your heart rate monitor or power meter",
       icon: Bluetooth,
       isDone: completedSteps.includes("device"),
-      action: "/rider/ride/" + GUEST_DEMO_CLASS.address + "?setup=true",
+      action: getDemoRideUrl() + "&setup=true",
       actionLabel: "Setup",
     },
     {
@@ -58,7 +58,7 @@ export function OnboardingChecklist() {
       description: "Complete a 5-minute practice ride",
       icon: Timer,
       isDone: completedSteps.includes("ride"),
-      action: "/rider/ride/" + GUEST_DEMO_CLASS.address,
+      action: getDemoRideUrl(),
       actionLabel: "Start",
     },
   ];
