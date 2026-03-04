@@ -207,6 +207,10 @@ Focus: Core protocol logic, immersive visualization, and live session mechanics.
 - [x] **Instructor Dashboard**: Class builder with economic controls.
 - [x] **Rider HUD**: Real-time glassmorphic overlay for HR/Power/Cadence.
 - [x] **Social Proof**: One-click generation of shareable effort cards.
+- [x] **Onboarding Flow**: 3-step welcome modal for new users.
+- [x] **HUD Tutorial**: Interactive in-ride guide.
+- [x] **Pedal Simulator**: Animated, haptic-enabled simulator for device-less rides.
+- [x] **Mobile Native BLE**: iOS/Android support via Capacitor.
 
 ---
 
@@ -249,21 +253,21 @@ Focus: Cryptographic Zero-Knowledge Proofs and decentralized storage.
 - [x] **Voice-Guided Rides**: Real-time conversational control during sessions.
 - [x] **Multi-Route Training Programs**: Sequence-based training plans persisted to Walrus.
 - [x] **Street View Integration**: Real-world route previews via Static API.
-- [ ] **Privacy Subnet**: Dedicated regulatory-compliant subnet for health data.
+- [x] **Privacy Subnet**: Dedicated regulatory-compliant subnet for health data routing and settlement.
 
 ---
 
-### Phase 3: Ecosystem Growth (Q3 2026) - IN PROGRESS 🚧
+### Phase 3: Ecosystem Growth (Q3 2026) - COMPLETED ✅
 Focus: Scaling the business model and onboarding the fitness industry.
 
 - [x] **Mindbody/ClassPass Bridge**: `MindbodyAdapter` for legacy booking to on-chain tickets.
 - [x] **E2E Live Loop Validation**: Scripted validation of BLE -> Sui -> ZK -> Avalanche.
-- [ ] **DeepBook Integration**: AI Agents execute limit orders for class token liquidity on Sui.
-- [ ] **Sponsor SDK**: Allow wellness brands to fund reward pools for specific routes.
-- [ ] **Instructor DAO**: Self-governing body for protocol fees and route standards.
-- [ ] **Multi-Sport Vertical**: Expand logic to yoga, rowing, and outdoor running clubs.
+- [x] **DeepBook Integration**: AI Agents execute limit orders for class token liquidity on Sui via `BalanceManager`.
+- [x] **Sponsor SDK**: `SponsorSDK` for wellness brands to fund reward pools for specific routes and criteria.
+- [x] **Instructor DAO**: `InstructorDAO.sol` for self-governing protocol fees, route standards, and shared pools.
+- [x] **Multi-Sport Vertical**: `MultiSportAdapter` to expand logic to yoga, rowing, and outdoor running clubs.
 
-### Phase 4: Enterprise Scale (Q4 2026)
+### Phase 4: Enterprise Scale (Q4 2026) - IN PROGRESS 🚧
 Focus: Institutional partnerships and planetary scale.
 
 - [ ] **Studio Chain Integration**: White-label infrastructure for global boutique chains.

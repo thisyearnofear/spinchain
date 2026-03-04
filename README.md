@@ -56,13 +56,12 @@ git commit --no-verify
 - **Local Oracle**: Browser-based proof generation (<1s) with no data leaving device.
 - **Walrus Backup**: Encrypted decentralized storage for raw telemetry.
 
-### 5. Incentive Layer
-- **ZK-Based Rewards**: Automatic SPIN token distribution verified by ZK proofs.
-- **Performance Rewards**: Rewards for hitting effort thresholds with privacy preserved.
-- **Shareable Proof Cards**: Dynamic social assets linked to onchain ZK verification.
-- **Sponsor Integration**: Reward pools funded by wellness brands and protocols.
-- **Mindbody Bridge**: Seamless integration with legacy fitness booking systems.
-- **Training Programs**: Multi-route workout plans persisted to Walrus.
+### 6. User Experience & Onboarding ✅ NEW
+- **Onboarding Flow**: Guided 3-step intro (What is SpinChain? → Earn → Privacy).
+- **Guest Mode**: Frictionless "Try Demo Ride" without initial wallet connection.
+- **Pedal Simulator**: Immersive, haptic-enabled simulator with animated crank and cadence zones.
+- **Cross-Platform BLE**: Native Bluetooth support for iOS, Android, and Desktop via Capacitor.
+- **HUD Tutorial**: In-ride interactive guide for metrics and ZK privacy features.
 
 ---
 
@@ -77,8 +76,10 @@ git commit --no-verify
 
 ### Frontend & Visualization
 - **Framework**: Next.js 16 (App Router)
+- **Native Bridge**: Capacitor 5.7 (iOS/Android/Web)
 - **3D Engine**: React Three Fiber + Three.js + Drei
 - **Styling**: Tailwind CSS + Custom Glassmorphic System
+- **Haptics**: Native Vibration API integration
 
 ### Privacy & ZK Stack
 - **Circuits**: Noir (`circuits/effort_threshold/`)
@@ -126,6 +127,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the protocol dashboa
 
 ## 📚 Documentation
 - [**Architecture Overview**](./docs/ARCHITECTURE_OVERVIEW.md): Core architecture, dual-engine design, and roadmap.
+- [**Onboarding & First Ride**](./docs/ONBOARDING_GUIDE.md): Guided user flow, Guest Mode, and Simulator UX.
 - [**AI Integration**](./docs/AI_INTEGRATION.md): AI features, route generation, and agentic finance implementation.
 - [**SUI Integration**](./docs/SUI_INTEGRATION.md): Sui deployment details, on-chain artifacts, and performance layer.
 - [**ZK & Security**](./docs/ZK_SECURITY.md): Zero-knowledge privacy, security considerations, and BLE integration.

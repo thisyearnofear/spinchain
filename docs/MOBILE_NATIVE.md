@@ -46,38 +46,23 @@ This document outlines the strategy for adding native mobile app support to Spin
 
 ---
 
-## Implementation Plan
+### Phase 1: Native BLE implementation (COMPLETED ✅)
+Capacitor has been successfully integrated, replacing Web Bluetooth with a cross-platform BLE stack.
 
-### Phase 1: Setup Capacitor (1-2 days)
 ```bash
-# Install Capacitor
-npm install @capacitor/core @capacitor/cli
-
-# Add platforms
-npx cap add ios
-npx cap add android
-
-# Install BLE plugin
+# Plugin used
 npm install @capacitor-community/bluetooth-le
 ```
 
-### Phase 2: Create Native Bridge (2-3 days)
-- Wrap existing `BleService` with Capacitor BLE plugin
-- Create `@spinchain/mobile-bridge` module
-- Falls back to Web Bluetooth on desktop
-
-### Phase 3: App Configuration (1 day)
-- App icons, splash screens
-- Push notification setup
-- App Store metadata
-
-### Phase 4: Testing & Deploy (2-3 days)
-- Test on real iOS/Android devices
-- Submit to App Store / Play Store
+### Key Native Features
+- **Cross-Platform BLE**: Single `BleService` (using `BleClient`) that works on iOS, Android, and Desktop Chrome.
+- **Haptic Feedback**: `navigator.vibrate` is used for pedal simulator feedback on mobile.
+- **iOS Config**: `Info.plist` is configured with `NSBluetoothAlwaysUsageDescription` and `NSBluetoothPeripheralUsageDescription`.
+- **Android Config**: `AndroidManifest.xml` includes all required Bluetooth permissions.
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -101,28 +86,22 @@ npm install @capacitor-community/bluetooth-le
 
 ---
 
-## Code Example: Native BLE Bridge
+## Code Example: Capacitor BLE implementation
 
 ```typescript
-// lib/mobile-bridge/ble.ts
+// app/lib/ble/service.ts
 import { BleClient } from '@capacitor-community/bluetooth-le';
 
-class NativeBleService {
+class BleService {
   async scanAndConnect(): Promise<BleDevice> {
-    // Native BLE - works on iOS/Android
+    await BleClient.initialize();
     const device = await BleClient.requestDevice({
-      services: ['18018', '180D'], // Power, HR services
+      services: [HR_SERVICE_UUID, POWER_SERVICE_UUID],
     });
-    await device.connect();
-    return this.parseDevice(device);
+    await BleClient.connect(device.deviceId);
+    // ... handle notifications
   }
 }
-
-// Auto-detect platform
-const bleService = 
-  isMobile() 
-    ? new NativeBleService() 
-    : new WebBleService();
 ```
 
 ---
