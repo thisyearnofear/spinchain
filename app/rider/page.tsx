@@ -1,15 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { PrimaryNav } from "../components/layout/nav";
 import { useClasses, type ClassWithRoute, GUEST_DEMO_CLASS } from "../hooks/evm/use-class-data";
+import Link from "next/link";
 import { RoutePreviewCard } from "../components/features/route/route-preview-card";
 import { ConnectWallet } from "../components/features/wallet/connect-wallet";
 import { AnimatedClassCard } from "../components/features/class/animated-class-card";
+import { OnboardingChecklist } from "../components/features/common/onboarding-checklist";
 import type { SavedRoute } from "../lib/route-library";
 
 export default function RiderPage() {
+  const router = useRouter();
   const { address, isConnected } = useAccount();
   const { classes, isLoading, error } = useClasses();
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
@@ -69,6 +73,9 @@ export default function RiderPage() {
           <PrimaryNav />
         </div>
 
+        {/* Onboarding Checklist for new users */}
+        <OnboardingChecklist />
+
         {/* Guest Mode Banner */}
         {!isConnected && showGuestBanner && (
           <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 backdrop-blur">
@@ -82,6 +89,14 @@ export default function RiderPage() {
                   <p className="text-sm text-amber-900 dark:text-amber-200/80">
                     You can preview all classes and routes. Connect your wallet to book and earn rewards.
                   </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link 
+                      href={`/rider/ride/${GUEST_DEMO_CLASS.address}`}
+                      className="rounded-full bg-amber-500 px-4 py-2 text-xs font-bold text-white hover:bg-amber-600 active:scale-95 transition-all shadow-lg shadow-amber-500/20"
+                    >
+                      Try Demo Ride →
+                    </Link>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -235,6 +250,7 @@ export default function RiderPage() {
                   classData={classData}
                   isConnected={isConnected}
                   onPreview={() => handlePreviewRoute(classData)}
+                  onJoin={() => router.push(`/rider/ride/${classData.address}`)}
                   theme={theme}
                 />
               );

@@ -29,6 +29,7 @@ interface AnimatedClassCardProps {
   };
   isConnected: boolean;
   onPreview: () => void;
+  onJoin: () => void;
   theme?: "neon" | "alpine" | "mars" | "ocean";
 }
 
@@ -142,6 +143,7 @@ export function AnimatedClassCard({
   classData, 
   isConnected, 
   onPreview,
+  onJoin,
   theme = "neon"
 }: AnimatedClassCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -297,16 +299,16 @@ export function AnimatedClassCard({
               Preview
             </motion.button>
             <motion.button
-              className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={onJoin}
+              className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white"
               style={{ 
                 background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
                 boxShadow: isHovered ? `0 10px 30px -10px ${colors.primary}` : 'none'
               }}
-              disabled={!isConnected}
-              whileHover={isConnected ? { scale: 1.02 } : {}}
-              whileTap={isConnected ? { scale: 0.98 } : {}}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              {isConnected ? "Join" : "Connect"}
+              {isConnected ? "Join" : "Start Riding"}
             </motion.button>
           </div>
         </div>
