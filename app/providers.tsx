@@ -95,7 +95,7 @@ function InnerProviders({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <SuiProvider>
-        <WagmiProvider config={config}>
+        <WagmiProvider config={config} reconnectOnMount={false}>
           <RainbowKitThemeWrapper>
             <ToastProvider>
               {children}

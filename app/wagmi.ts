@@ -58,10 +58,4 @@ export const config: Config = getDefaultConfig({
   ssr: true,
   storage,
   syncConnectedChain: true,
-  // Prevent Wagmi from automatically attempting to reconnect the wallet on
-  // every page navigation. Without this, mobile wallet apps (Coinbase, Base)
-  // receive a connection request on every route change and show an intrusive
-  // prompt. The stored connector state is still preserved so a manual
-  // reconnect (or a hard refresh) restores the session correctly.
-  reconnectOnMount: false,
 });
