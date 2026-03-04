@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PrimaryNav } from "../../components/layout/nav";
 import { BulletList, SectionHeader, SurfaceCard, Tag } from "../../components/ui/ui";
@@ -8,6 +8,20 @@ import { BulletList, SectionHeader, SurfaceCard, Tag } from "../../components/ui
 function JourneyContent() {
   const searchParams = useSearchParams();
   const isCompleted = searchParams.get("completed") === "true";
+  const [showPreview, setShowPreview] = useState(false);
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
+
+  async function handleShareProof() {
+    const url = window.location.href;
+    const text = "I just completed a SpinChain ride and earned SPIN tokens! 🚴‍♂️🔒 Proof of effort, privacy-first.";
+    if (navigator.share) {
+      await navigator.share({ title: "SpinChain Proof of Effort", text, url }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      setShareStatus("copied");
+      setTimeout(() => setShareStatus("idle"), 2000);
+    }
+  }
 
   const journeySteps = [
     "Connect wearable + privacy preferences",
@@ -120,16 +134,67 @@ function JourneyContent() {
             description="Auto-branded with instructor + class info."
             actions={
               <>
-                <button className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white/70 transition hover:text-white">
+                <button
+                  onClick={() => setShowPreview(true)}
+                  className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white/70 transition hover:text-white"
+                >
                   Preview card
                 </button>
-                <button className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20">
-                  Share proof
+                <button
+                  onClick={handleShareProof}
+                  className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20"
+                >
+                  {shareStatus === "copied" ? "Copied! ✓" : "Share proof"}
                 </button>
               </>
             }
           />
         </SurfaceCard>
+
+        {/* Proof card preview modal */}
+        {showPreview && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={() => setShowPreview(false)}
+          >
+            <div
+              className="w-full max-w-sm rounded-3xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-1 shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="rounded-[22px] bg-[#0d0f1e] p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400">SpinChain</span>
+                  <span className="rounded-full bg-green-500/20 px-3 py-1 text-xs font-medium text-green-400">Verified ✓</span>
+                </div>
+                <h3 className="mb-1 text-2xl font-bold text-white">Proof of Effort</h3>
+                <p className="mb-6 text-sm text-white/50">Privacy-preserving ride certificate</p>
+                <div className="mb-6 grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-xl bg-white/5 p-3">
+                    <div className="text-lg font-bold text-white">45m</div>
+                    <div className="text-xs text-white/40">Duration</div>
+                  </div>
+                  <div className="rounded-xl bg-white/5 p-3">
+                    <div className="text-lg font-bold text-white">142</div>
+                    <div className="text-xs text-white/40">Avg HR</div>
+                  </div>
+                  <div className="rounded-xl bg-white/5 p-3">
+                    <div className="text-lg font-bold text-indigo-400">+10</div>
+                    <div className="text-xs text-white/40">SPIN</div>
+                  </div>
+                </div>
+                <div className="mb-4 rounded-xl bg-indigo-500/10 px-4 py-3 text-xs text-indigo-300">
+                  🔒 ZK proof — no raw biometrics shared
+                </div>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="w-full rounded-xl bg-white/10 py-2.5 text-sm font-medium text-white/70 hover:bg-white/20 transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
