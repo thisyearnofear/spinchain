@@ -205,6 +205,22 @@ function MyComponent() {
 
 ### Features
 
+#### 6. Multi-Route Training Programs
+Powered by Walrus storage and AI generation:
+- **Sequence Builder**: AI generates a series of routes across multiple days.
+- **Persistent Plans**: Workout plans are stored as JSON on Walrus.
+- **Adaptive Progression**: Plan difficulty adjusts based on previous ride effort scores.
+- **Walrus Integration**: Decoupled from chain storage for cost-efficiency.
+
+#### 7. Mindbody/ClassPass Bridge
+Highest-leverage item for real adoption:
+- **MindbodyAdapter**: Polls Mindbody API for studio bookings.
+- **On-Chain Tickets**: Automatically mints ticket NFTs on Avalanche for each booking.
+- **Wallet-less Claims**: Generates claim links for non-crypto users to join sessions.
+- **Studio Onboarding**: Isolated adapter, zero changes to core protocol required.
+
+---
+
 ### Gemini 3 Technical Implementation
 
 #### API Endpoints

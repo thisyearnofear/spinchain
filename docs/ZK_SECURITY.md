@@ -85,9 +85,14 @@ effort_score = min(1000, (avg_hr / threshold) * 500)
 
 ```bash
 cd circuits/effort_threshold
-nargo codegen-verifier
+nargo compile
 
-# Output: contract/effort_threshold/plonk_vk.sol
+# Option A: Local Generation (requires bb)
+bb write_vk -b ./target/effort_threshold.json -o ./target/vk
+bb contract -v ./target/vk -o ../../contracts/evm/UltraVerifier.sol
+
+# Option B: Automated CI (Preferred)
+# Simply push to main; .github/workflows/zk-verifier.yml handles generation.
 ```
 
 #### 2. Deploy to Avalanche
@@ -301,7 +306,22 @@ nargo compile
 # Output: circuits/effort_threshold/target/effort_threshold.json
 ```
 
-The compiled circuit is automatically copied to `public/circuits/effort_threshold/target/` for browser loading.
+#### CI/CD Pipeline
+
+The project includes a GitHub Action (`.github/workflows/zk-verifier.yml`) that automatically:
+1. Installs `nargo` and `bb`
+2. Compiles the `effort_threshold` circuit
+3. Generates the production `UltraVerifier.sol` contract
+4. Commits the updated verifier to the repository
+
+This ensures the on-chain verifier is always in sync with the latest circuit changes.
+
+#### End-to-End Validation
+
+Run the live loop validation script to verify the full stack (BLE -> Sui -> ZK -> Avalanche):
+```bash
+npx ts-node scripts/e2e-live-loop.ts
+```
 
 ---
 

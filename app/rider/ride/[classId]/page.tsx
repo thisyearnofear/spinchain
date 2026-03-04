@@ -17,6 +17,7 @@ import { useWorkoutAudio } from "../../../hooks/ai/use-workout-audio";
 import { useCoachVoice } from "../../../hooks/common/use-coach-voice";
 import { useAiInstructor } from "../../../hooks/ai/use-ai-instructor";
 import { useRewards } from "../../../hooks/rewards/use-rewards";
+import { useZKClaim } from "../../../hooks/evm/use-zk-claim";
 import { ANALYTICS_EVENTS, trackEvent } from "../../../lib/analytics/events";
 import { YellowRewardTicker } from "../../../components/features/common/yellow-reward-ticker";
 import { DemoCompleteModal } from "../../../components/features/common/demo-complete-modal";
@@ -253,6 +254,34 @@ export default function LiveRidePage() {
     aiPersonality || 'data',
     null // No Sui session in practice/standalone mode
   );
+
+  // ZK Proof + Privacy
+  const {
+    claimWithZK,
+    isGeneratingProof,
+    isSuccess: zkSuccess,
+    privacyScore,
+    privacyLevel,
+    error: zkError,
+  } = useZKClaim();
+
+  const handleClaimRewards = async () => {
+    if (isPracticeMode) return;
+    const threshold = classData?.metadata?.rewards?.threshold ?? 150;
+    await claimWithZK(
+      {
+        spinClass: (classId as `0x${string}`),
+        rider: '0x0000000000000000000000000000000000000000',
+        rewardAmount: String(classData?.metadata?.rewards?.amount ?? 0),
+        classId: (classId as `0x${string}`),
+      },
+      {
+        heartRate: telemetryAverages.avgHr || telemetry.heartRate,
+        threshold,
+        duration: Math.floor(elapsedTime / 60),
+      }
+    );
+  };
 
   // Yellow Rewards - Real-time streaming
   const rewards = useRewards({
@@ -1172,6 +1201,8 @@ export default function LiveRidePage() {
           onExit={exitRide}
           onDeploy={isPracticeMode ? () => router.push("/instructor/builder") : undefined}
           onUpgrade={!isPracticeMode ? () => router.push("/rider/journey?upgrade=analytics") : undefined}
+          onClaimRewards={!isPracticeMode ? handleClaimRewards : undefined}
+          zkProofStatus={!isPracticeMode ? { isGenerating: isGeneratingProof, isSuccess: zkSuccess, privacyScore, privacyLevel, error: zkError } : undefined}
         />
       )}
 

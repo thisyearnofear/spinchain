@@ -216,6 +216,7 @@ cp .env.local.template .env.local
 # - SUI_WALLET_ADDRESS
 # - SUI_PRIVATE_KEY (from sui keytool export)
 # - NEXT_PUBLIC_SUI_PACKAGE_ID
+# - NEXT_PUBLIC_PRIVACY_SUBNET_RPC (for Phase 2 compliance)
 ```
 
 ### Private Key Export (for backend use)
@@ -249,10 +250,11 @@ EVM (Avalanche)          Sui (Testnet)
 ├─ SpinClass NFT    ←──→ ├─ Session (shared)
 ├─ Ticket purchase       ├─ RiderStats (per-rider)
 ├─ SPIN rewards          ├─ Telemetry events
-└─ ZK verification       └─ Story beat events
+├─ ZK verification       ├─ Story beat events
+└─ Privacy Subnet        └─ Biometric privacy
 ```
 
-Sui handles high-frequency data cheaply, EVM handles value/assets.
+Sui handles high-frequency data cheaply, EVM handles value/assets. Sensitive health data is routed through the **Privacy Subnet**.
 
 ---
 

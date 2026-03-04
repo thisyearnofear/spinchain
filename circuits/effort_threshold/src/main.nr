@@ -27,6 +27,10 @@ pub struct EffortOutput {
 pub fn main(
     input: EffortInput
 ) -> pub EffortOutput {
+    // Validate inputs before processing
+    assert(validate_threshold(input.threshold), "threshold must be 50-250 BPM");
+    assert(validate_num_points(input.num_points), "num_points exceeds MAX_DATA_POINTS");
+
     // Count seconds above threshold
     let mut seconds_above: u32 = 0;
     let mut total_effort: u32 = 0;
@@ -83,12 +87,12 @@ pub fn main(
 }
 
 // Constraint: threshold must be reasonable (50-250 BPM)
-fn validate_threshold(threshold: u16) -> bool {
-    threshold >= 50 & threshold <= 250
+pub fn validate_threshold(threshold: u16) -> bool {
+    (threshold >= 50) & (threshold <= 250)
 }
 
 // Constraint: num_points must not exceed MAX_DATA_POINTS
-fn validate_num_points(num_points: u32) -> bool {
+pub fn validate_num_points(num_points: u32) -> bool {
     num_points <= MAX_DATA_POINTS
 }
 
@@ -112,7 +116,7 @@ fn test_effort_threshold_met() {
     
     assert(output.threshold_met == true);
     assert(output.seconds_above == 45);
-    assert(output.effort_score > 1000);
+    assert(output.effort_score == 1000); // capped at 1000
 }
 
 #[test]

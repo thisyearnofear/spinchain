@@ -1,0 +1,66 @@
+name: ZK Verifier Generation
+
+on:
+  push:
+    paths:
+      - 'circuits/**'
+  pull_request:
+    paths:
+      - 'circuits/**'
+  workflow_dispatch:
+
+jobs:
+  generate-verifier:
+    name: Compile Circuit & Generate Solidity Verifier
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nargo
+        run: |
+          curl -L https://noirup.dev | bash
+          echo "$HOME/.nargo/bin" >> $GITHUB_PATH
+
+      - name: Install Barretenberg (bb)
+        run: |
+          curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/master/barretenberg/cpp/installation/install | bash
+          echo "$HOME/.bb" >> $GITHUB_PATH
+
+      - name: Compile circuit
+        working-directory: circuits/effort_threshold
+        run: nargo compile
+
+      - name: Run circuit tests
+        working-directory: circuits/effort_threshold
+        run: nargo test
+
+      - name: Generate verification key
+        working-directory: circuits/effort_threshold
+        run: bb write_vk -b target/effort_threshold.json -o target/vk
+
+      - name: Generate Solidity verifier
+        working-directory: circuits/effort_threshold
+        run: bb contract -k target/vk -o ../../contracts/evm/UltraVerifier.sol
+
+      - name: Verify output exists
+        run: test -f contracts/evm/UltraVerifier.sol && echo "UltraVerifier.sol generated successfully"
+
+      - name: Commit generated verifier
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add contracts/evm/UltraVerifier.sol
+          git diff --staged --quiet || git commit \
+            --trailer "Co-authored-by: Junie <junie@jetbrains.com>" \
+            -m "ci: regenerate UltraVerifier.sol from Noir circuit [skip ci]"
+          git push
+
+      - name: Upload verifier artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ultra-verifier-sol
+          path: contracts/evm/UltraVerifier.sol
+          retention-days: 90

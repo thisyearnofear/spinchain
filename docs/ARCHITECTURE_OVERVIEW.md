@@ -201,6 +201,7 @@ Focus: Core protocol logic, immersive visualization, and live session mechanics.
 - [x] **Acoustic Feedback**: Synchronized audio triggers for performance cues.
 - [x] **AI Route Generation**: Natural language route creation via Gemini integration.
 - [x] **Consolidated AI Service**: Unified AI architecture for agents and route intelligence.
+- [x] **Voice-Guided Rides**: Real-time voice coaching and story beat announcements.
 
 #### UX & Social
 - [x] **Instructor Dashboard**: Class builder with economic controls.
@@ -209,7 +210,7 @@ Focus: Core protocol logic, immersive visualization, and live session mechanics.
 
 ---
 
-### Phase 2: Privacy Upgrade (Q2 2026) - IN PROGRESS 🚧
+### Phase 2: Privacy Upgrade (Q2 2026) - COMPLETED ✅
 Focus: Cryptographic Zero-Knowledge Proofs and decentralized storage.
 
 #### ZK Circuits (Noir) - COMPLETED ✅
@@ -217,10 +218,11 @@ Focus: Cryptographic Zero-Knowledge Proofs and decentralized storage.
 - [x] **UltraPlonk Backend**: Browser-compatible proof generation (~500ms).
 - [x] **Witness Generation**: Converts telemetry to circuit inputs.
 - [x] **Circuit Tests**: Validated threshold met/not met scenarios.
+- [x] **CI Verifier Generation**: Automated `UltraVerifier.sol` generation via GitHub Actions.
 
 #### On-Chain Verification (Avalanche) - COMPLETED ✅
 - [x] **EffortThresholdVerifier.sol**: Solidity verifier contract.
-- [x] **UltraVerifier Integration**: Uses Noir-generated verifier.
+- [x] **UltraVerifier Integration**: Uses production Noir-generated verifier.
 - [x] **Replay Protection**: Proof hash tracking prevents double-claims.
 - [x] **Batch Verification**: Gas-efficient multiple proof verification.
 - [x] **Audit Events**: `ProofVerified` events for transparency.
@@ -243,20 +245,21 @@ Focus: Cryptographic Zero-Knowledge Proofs and decentralized storage.
 - [x] **Session Management**: Start/stop/intermediate proofs.
 - [x] **Auto-Backup**: Secure storage to Walrus.
 
-#### Remaining Phase 2 Items
-- [ ] **Voice-Guided Rides**: Real-time conversational control during sessions.
-- [ ] **Multi-Route Training Programs**: AI-generated series across multiple days/locations.
-- [ ] **Street View Integration**: Real-world route previews for enhanced immersion.
+#### Remaining Phase 2 Items - COMPLETED ✅
+- [x] **Voice-Guided Rides**: Real-time conversational control during sessions.
+- [x] **Multi-Route Training Programs**: Sequence-based training plans persisted to Walrus.
+- [x] **Street View Integration**: Real-world route previews via Static API.
 - [ ] **Privacy Subnet**: Dedicated regulatory-compliant subnet for health data.
 
 ---
 
-### Phase 3: Ecosystem Growth (Q3 2026)
+### Phase 3: Ecosystem Growth (Q3 2026) - IN PROGRESS 🚧
 Focus: Scaling the business model and onboarding the fitness industry.
 
+- [x] **Mindbody/ClassPass Bridge**: `MindbodyAdapter` for legacy booking to on-chain tickets.
+- [x] **E2E Live Loop Validation**: Scripted validation of BLE -> Sui -> ZK -> Avalanche.
 - [ ] **DeepBook Integration**: AI Agents execute limit orders for class token liquidity on Sui.
 - [ ] **Sponsor SDK**: Allow wellness brands to fund reward pools for specific routes.
-- [ ] **Mindbody/ClassPass Bridge**: Connect legacy fitness booking to onchain tickets.
 - [ ] **Instructor DAO**: Self-governing body for protocol fees and route standards.
 - [ ] **Multi-Sport Vertical**: Expand logic to yoga, rowing, and outdoor running clubs.
 

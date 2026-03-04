@@ -13,6 +13,14 @@ import { useEffect, useRef } from "react";
 import { formatTime } from "@/app/lib/formatters";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 
+interface ZKProofStatus {
+  isGenerating: boolean;
+  isSuccess: boolean;
+  privacyScore: number;
+  privacyLevel: 'high' | 'medium' | 'low';
+  error: Error | null;
+}
+
 interface RideCompletionProps {
   isPracticeMode: boolean;
   elapsedTime: number;
@@ -23,6 +31,8 @@ interface RideCompletionProps {
   onExit: () => void;
   onDeploy?: () => void;
   onUpgrade?: () => void;
+  onClaimRewards?: () => void;
+  zkProofStatus?: ZKProofStatus;
 }
 
 export function RideCompletion({
@@ -35,6 +45,8 @@ export function RideCompletion({
   onExit,
   onDeploy,
   onUpgrade,
+  onClaimRewards,
+  zkProofStatus,
 }: RideCompletionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -129,13 +141,49 @@ export function RideCompletion({
             </button>
           ) : (
             <button
-              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-3 text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px] hover:opacity-90"
-              aria-label="Claim rewards"
+              onClick={onClaimRewards}
+              disabled={zkProofStatus?.isGenerating || zkProofStatus?.isSuccess}
+              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-3 text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+              aria-label="Claim rewards with ZK proof"
             >
-              Claim Rewards
+              {zkProofStatus?.isGenerating
+                ? 'Generating Proof…'
+                : zkProofStatus?.isSuccess
+                  ? '✓ Rewards Claimed'
+                  : 'Claim Rewards'}
             </button>
           )}
         </div>
+
+        {/* ZK Privacy Proof Status */}
+        {!isPracticeMode && zkProofStatus && (
+          <div className="mt-4 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-semibold text-white">🔒 ZK Privacy Proof</span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                zkProofStatus.privacyLevel === 'high'
+                  ? 'bg-emerald-500/30 text-emerald-300'
+                  : zkProofStatus.privacyLevel === 'medium'
+                    ? 'bg-amber-500/30 text-amber-300'
+                    : 'bg-zinc-500/30 text-zinc-300'
+              }`}>
+                {zkProofStatus.privacyLevel.toUpperCase()} PRIVACY
+              </span>
+            </div>
+            {zkProofStatus.isGenerating && (
+              <p className="text-white/60">Generating proof — your raw biometrics stay private…</p>
+            )}
+            {zkProofStatus.isSuccess && (
+              <p className="text-emerald-300">Proof verified on-chain. Privacy score: {zkProofStatus.privacyScore}/100</p>
+            )}
+            {zkProofStatus.error && (
+              <p className="text-red-300">Proof failed — falling back to signed attestation.</p>
+            )}
+            {!zkProofStatus.isGenerating && !zkProofStatus.isSuccess && !zkProofStatus.error && (
+              <p className="text-white/60">Claim rewards to generate a ZK proof of your effort.</p>
+            )}
+          </div>
+        )}
 
         {!isPracticeMode && (
           <div className="mt-5 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">

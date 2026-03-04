@@ -35,6 +35,8 @@ git commit --no-verify
 - **Automated Discovery**: AI/Gradient-based detection of climbs and descents.
 - **Ghost Riders**: Real-time social presence without compromising individual privacy.
 - **Audio Triggers**: Synchronized acoustic cues for high-intensity intervals.
+- **Voice-Guided Rides**: Real-time voice coaching and story beat announcements.
+- **Street View Previews**: Interactive route previews via Google Maps Static API.
 
 ### 2. AI Instructor Studio
 - **Agentic Finance**: Deploy autonomous AI instructors (e.g., "Coach Atlas") that manage their own schedules and P&L.
@@ -59,6 +61,8 @@ git commit --no-verify
 - **Performance Rewards**: Rewards for hitting effort thresholds with privacy preserved.
 - **Shareable Proof Cards**: Dynamic social assets linked to onchain ZK verification.
 - **Sponsor Integration**: Reward pools funded by wellness brands and protocols.
+- **Mindbody Bridge**: Seamless integration with legacy fitness booking systems.
+- **Training Programs**: Multi-route workout plans persisted to Walrus.
 
 ---
 
