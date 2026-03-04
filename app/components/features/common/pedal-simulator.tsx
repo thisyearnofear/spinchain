@@ -17,195 +17,218 @@ interface PedalSimulatorProps {
 
 type Leg = 'left' | 'right' | null;
 
+function getCadenceZone(cadence: number): { label: string; color: string; ringColor: string; glowClass: string } {
+    if (cadence === 0)  return { label: 'Rest',   color: 'text-white/40',   ringColor: 'rgba(255,255,255,0.15)', glowClass: '' };
+    if (cadence < 60)   return { label: 'Easy',   color: 'text-blue-400',   ringColor: '#60a5fa',               glowClass: 'shadow-blue-500/40' };
+    if (cadence < 80)   return { label: 'Steady', color: 'text-green-400',  ringColor: '#4ade80',               glowClass: 'shadow-green-500/40' };
+    if (cadence < 100)  return { label: 'Push',   color: 'text-yellow-400', ringColor: '#facc15',               glowClass: 'shadow-yellow-500/40' };
+    return                     { label: 'Sprint', color: 'text-red-400',    ringColor: '#f87171',               glowClass: 'shadow-red-500/40' };
+}
+
+function haptic(ms: number) {
+    try {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate(ms);
+        }
+    } catch { /* not supported */ }
+}
+
 export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: PedalSimulatorProps) {
     const deviceType = useDeviceType();
     const [activeLeg, setActiveLeg] = useState<Leg>(null);
     const [showInstructions, setShowInstructions] = useState(true);
+    const [cadence, setCadence] = useState(0);
 
-    // Pedal stroke tracking
+    const crankAngle = useRef(0);
+    const [crankDeg, setCrankDeg] = useState(0);
     const pedalTimestamps = useRef<number[]>([]);
     const lastPedalLeg = useRef<'left' | 'right'>('right');
     const metricsInterval = useRef<NodeJS.Timeout | null>(null);
-
-    // Base metrics that evolve over time
-    const baseMetrics = useRef({
-        heartRate: 100,
-        power: 80,
-        effort: 120,
-    });
+    const animFrame = useRef<number | null>(null);
+    const latestCadence = useRef(0);
+    const baseMetrics = useRef({ heartRate: 100, power: 80, effort: 120 });
 
     const calculateMetrics = useCallback(() => {
         const now = Date.now();
-        const recentPedals = pedalTimestamps.current.filter(t => now - t < 10000); // Last 10 seconds
+        const recentPedals = pedalTimestamps.current.filter(t => now - t < 10000);
         pedalTimestamps.current = recentPedals;
 
         if (recentPedals.length < 2) {
-            // No recent activity - metrics decline
             baseMetrics.current.heartRate = Math.max(80, baseMetrics.current.heartRate - 2);
             baseMetrics.current.power = Math.max(0, baseMetrics.current.power - 5);
             baseMetrics.current.effort = Math.max(100, baseMetrics.current.effort - 3);
-
-            return {
-                heartRate: Math.round(baseMetrics.current.heartRate),
-                power: Math.round(baseMetrics.current.power),
-                cadence: 0,
-                speed: 0,
-                effort: Math.round(baseMetrics.current.effort),
-            };
+            latestCadence.current = 0;
+            setCadence(0);
+            return { heartRate: Math.round(baseMetrics.current.heartRate), power: Math.round(baseMetrics.current.power), cadence: 0, speed: 0, effort: Math.round(baseMetrics.current.effort) };
         }
 
-        // Calculate cadence from pedal intervals
         const intervals: number[] = [];
-        for (let i = 1; i < recentPedals.length; i++) {
-            intervals.push(recentPedals[i] - recentPedals[i - 1]);
-        }
-
+        for (let i = 1; i < recentPedals.length; i++) intervals.push(recentPedals[i] - recentPedals[i - 1]);
         const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-        const cadence = Math.round(60000 / avgInterval); // RPM
+        const clampedCadence = Math.min(Math.max(Math.round(60000 / avgInterval), 0), 140);
 
-        // Clamp cadence to realistic range
-        const clampedCadence = Math.min(Math.max(cadence, 0), 140);
+        latestCadence.current = clampedCadence;
+        setCadence(clampedCadence);
 
-        // Power increases with cadence (simplified power curve)
         const targetPower = Math.round(clampedCadence * 2.5 + Math.random() * 20);
-        baseMetrics.current.power = baseMetrics.current.power * 0.7 + targetPower * 0.3; // Smooth transition
-
-        // Heart rate gradually increases with effort
+        baseMetrics.current.power = baseMetrics.current.power * 0.7 + targetPower * 0.3;
         const targetHR = Math.min(180, 100 + clampedCadence * 0.6);
         baseMetrics.current.heartRate = baseMetrics.current.heartRate * 0.95 + targetHR * 0.05;
-
-        // Effort score (combination of HR and power)
         const targetEffort = Math.round((baseMetrics.current.heartRate + baseMetrics.current.power) * 0.8);
         baseMetrics.current.effort = baseMetrics.current.effort * 0.9 + targetEffort * 0.1;
-
-        // Speed based on power
         const speed = (baseMetrics.current.power / 10) + 15;
 
-        return {
-            heartRate: Math.round(baseMetrics.current.heartRate),
-            power: Math.round(baseMetrics.current.power),
-            cadence: clampedCadence,
-            speed: Math.round(speed * 10) / 10,
-            effort: Math.round(baseMetrics.current.effort),
-        };
+        return { heartRate: Math.round(baseMetrics.current.heartRate), power: Math.round(baseMetrics.current.power), cadence: clampedCadence, speed: Math.round(speed * 10) / 10, effort: Math.round(baseMetrics.current.effort) };
     }, []);
 
-    const recordPedalStroke = useCallback((leg: 'left' | 'right') => {
-        // Only count alternating strokes for realistic cadence
-        if (lastPedalLeg.current === leg && pedalTimestamps.current.length > 0) {
-            return; // Same leg twice in a row - ignore
-        }
+    // Animate crank rotation
+    useEffect(() => {
+        if (!isActive) return;
+        let last = performance.now();
+        const tick = (now: number) => {
+            const dt = now - last;
+            last = now;
+            const degsPerMs = (latestCadence.current / 60) * 360 / 1000;
+            crankAngle.current = (crankAngle.current + degsPerMs * dt) % 360;
+            setCrankDeg(crankAngle.current);
+            animFrame.current = requestAnimationFrame(tick);
+        };
+        animFrame.current = requestAnimationFrame(tick);
+        return () => { if (animFrame.current) cancelAnimationFrame(animFrame.current); };
+    }, [isActive]);
 
+    const recordPedalStroke = useCallback((leg: 'left' | 'right') => {
+        if (lastPedalLeg.current === leg && pedalTimestamps.current.length > 0) return;
         lastPedalLeg.current = leg;
         pedalTimestamps.current.push(Date.now());
-
-        // Visual feedback
+        haptic(25);
         setActiveLeg(leg);
         setTimeout(() => setActiveLeg(null), 150);
-
-        // Hide instructions after first pedal
-        if (showInstructions) {
-            setShowInstructions(false);
-        }
+        if (showInstructions) setShowInstructions(false);
     }, [showInstructions]);
 
-    // Keyboard controls
+    // Keyboard controls (desktop)
     useEffect(() => {
         if (!isActive || deviceType === 'mobile') return;
-
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.repeat) return; // Ignore key repeat
-
-            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-                e.preventDefault();
-                recordPedalStroke('left');
-            } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-                e.preventDefault();
-                recordPedalStroke('right');
-            }
+            if (e.repeat) return;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); recordPedalStroke('left'); }
+            else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); recordPedalStroke('right'); }
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isActive, deviceType, recordPedalStroke]);
 
-    // Continuous metrics update
+    // Metrics loop
     useEffect(() => {
-        if (!isActive) {
-            if (metricsInterval.current) {
-                clearInterval(metricsInterval.current);
-            }
-            return;
-        }
-
-        metricsInterval.current = setInterval(() => {
-            const metrics = calculateMetrics();
-            onMetricsUpdate(metrics);
-        }, 500); // Update every 500ms
-
-        return () => {
-            if (metricsInterval.current) {
-                clearInterval(metricsInterval.current);
-            }
-        };
+        if (!isActive) { if (metricsInterval.current) clearInterval(metricsInterval.current); return; }
+        metricsInterval.current = setInterval(() => { onMetricsUpdate(calculateMetrics()); }, 500);
+        return () => { if (metricsInterval.current) clearInterval(metricsInterval.current); };
     }, [isActive, calculateMetrics, onMetricsUpdate]);
 
     if (!isActive) return null;
 
-    // Mobile: Touch buttons
+    const zone = getCadenceZone(cadence);
+
+    // Animated crank SVG
+    const CrankVisual = ({ size = 80 }: { size?: number }) => {
+        const r = size / 2;
+        const armLen = r * 0.52;
+        const ringR = r - 7;
+        const circ = 2 * Math.PI * ringR;
+        const pct = Math.min(cadence / 120, 1);
+        const lx = r + Math.cos((crankDeg + 180) * Math.PI / 180) * armLen;
+        const ly = r + Math.sin((crankDeg + 180) * Math.PI / 180) * armLen;
+        const rx = r + Math.cos(crankDeg * Math.PI / 180) * armLen;
+        const ry = r + Math.sin(crankDeg * Math.PI / 180) * armLen;
+
+        return (
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                {/* Background disc */}
+                <circle cx={r} cy={r} r={r - 2} fill="rgba(0,0,0,0.45)" stroke="rgba(255,255,255,0.07)" strokeWidth="1.5" />
+                {/* Track ring */}
+                <circle cx={r} cy={r} r={ringR} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4" />
+                {/* Cadence progress ring */}
+                <circle
+                    cx={r} cy={r} r={ringR}
+                    fill="none"
+                    stroke={zone.ringColor}
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeDasharray={`${circ * pct} ${circ}`}
+                    strokeDashoffset={circ * 0.25}
+                    style={{ transition: 'stroke-dasharray 0.3s ease, stroke 0.4s ease' }}
+                />
+                {/* Crank arms */}
+                <line x1={r} y1={r} x2={lx} y2={ly} stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
+                <line x1={r} y1={r} x2={rx} y2={ry} stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
+                {/* Pedal dots */}
+                <circle cx={lx} cy={ly} r="5" fill={activeLeg === 'left' ? '#60a5fa' : 'rgba(255,255,255,0.35)'} style={{ transition: 'fill 0.1s' }} />
+                <circle cx={rx} cy={ry} r="5" fill={activeLeg === 'right' ? '#4ade80' : 'rgba(255,255,255,0.35)'} style={{ transition: 'fill 0.1s' }} />
+                {/* Hub */}
+                <circle cx={r} cy={r} r="5" fill="white" opacity="0.85" />
+            </svg>
+        );
+    };
+
+    // ── MOBILE ───────────────────────────────────────────────────────────────
     if (deviceType === 'mobile') {
         return (
-            <div className={`fixed bottom-20 inset-x-0 pointer-events-auto ${className}`}>
-                <div className="max-w-2xl mx-auto px-4">
-                    {showInstructions && (
-                        <div className="mb-3 text-center animate-bounce">
-                            <p className="text-sm text-white/70 font-medium">
-                                Tap buttons to pedal 🚴
+            <div className={`fixed bottom-0 inset-x-0 pointer-events-auto z-20 ${className}`}>
+                <div className="bg-black/50 backdrop-blur-2xl border-t border-white/10 px-4 pt-3 pb-6">
+
+                    {/* Crank + cadence */}
+                    <div className="flex items-center justify-center gap-5 mb-3">
+                        <CrankVisual size={68} />
+                        <div className="text-center">
+                            <p className={`text-4xl font-bold tabular-nums leading-none ${zone.color}`} style={{ transition: 'color 0.4s' }}>
+                                {cadence}
+                            </p>
+                            <p className="text-[10px] uppercase tracking-widest text-white/35 mt-0.5">RPM</p>
+                            <p className={`text-xs font-semibold mt-1 ${zone.color}`} style={{ transition: 'color 0.4s' }}>
+                                {zone.label}
                             </p>
                         </div>
+                    </div>
+
+                    {showInstructions && (
+                        <p className="text-center text-xs text-white/45 mb-2 animate-pulse">
+                            Tap L &amp; R alternately to pedal 🚴
+                        </p>
                     )}
 
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Pedal buttons */}
+                    <div className="grid grid-cols-2 gap-3">
                         <button
-                            onTouchStart={(e) => {
-                                e.preventDefault();
-                                recordPedalStroke('left');
-                            }}
+                            onTouchStart={(e) => { e.preventDefault(); recordPedalStroke('left'); }}
                             className={`
-                relative rounded-2xl border-2 py-12 font-bold text-lg
-                transition-all active:scale-95 touch-manipulation
-                ${activeLeg === 'left'
-                                    ? 'bg-blue-500 border-blue-400 text-white scale-95 shadow-lg shadow-blue-500/50'
-                                    : 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                                relative rounded-2xl border-2 py-7 font-bold
+                                transition-all duration-100 active:scale-95 touch-manipulation select-none
+                                ${activeLeg === 'left'
+                                    ? 'bg-blue-500 border-blue-400 text-white shadow-lg shadow-blue-500/50 scale-[0.97]'
+                                    : 'bg-blue-500/12 border-blue-500/35 text-blue-300'
                                 }
-              `}
+                            `}
                         >
-                            <div className="absolute top-3 left-3 text-xs uppercase tracking-wider opacity-60">
-                                Left
-                            </div>
-                            <div className="text-4xl mb-2">🦵</div>
-                            <div>L</div>
+                            <span className="absolute top-2 left-3 text-[10px] uppercase tracking-widest opacity-45">Left</span>
+                            <span className="block text-3xl leading-none">🦵</span>
+                            <span className="block text-sm mt-1 opacity-60">L</span>
                         </button>
 
                         <button
-                            onTouchStart={(e) => {
-                                e.preventDefault();
-                                recordPedalStroke('right');
-                            }}
+                            onTouchStart={(e) => { e.preventDefault(); recordPedalStroke('right'); }}
                             className={`
-                relative rounded-2xl border-2 py-12 font-bold text-lg
-                transition-all active:scale-95 touch-manipulation
-                ${activeLeg === 'right'
-                                    ? 'bg-green-500 border-green-400 text-white scale-95 shadow-lg shadow-green-500/50'
-                                    : 'bg-green-500/20 border-green-500/50 text-green-300'
+                                relative rounded-2xl border-2 py-7 font-bold
+                                transition-all duration-100 active:scale-95 touch-manipulation select-none
+                                ${activeLeg === 'right'
+                                    ? 'bg-green-500 border-green-400 text-white shadow-lg shadow-green-500/50 scale-[0.97]'
+                                    : 'bg-green-500/12 border-green-500/35 text-green-300'
                                 }
-              `}
+                            `}
                         >
-                            <div className="absolute top-3 right-3 text-xs uppercase tracking-wider opacity-60">
-                                Right
-                            </div>
-                            <div className="text-4xl mb-2">🦵</div>
-                            <div>R</div>
+                            <span className="absolute top-2 right-3 text-[10px] uppercase tracking-widest opacity-45">Right</span>
+                            <span className="block text-3xl leading-none">🦵</span>
+                            <span className="block text-sm mt-1 opacity-60">R</span>
                         </button>
                     </div>
                 </div>
@@ -213,41 +236,42 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
         );
     }
 
-    // Desktop: Keyboard indicator
+    // ── DESKTOP ──────────────────────────────────────────────────────────────
     return (
-        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 pointer-events-none ${className}`}>
-            {showInstructions && (
-                <div className="mb-4 text-center animate-bounce">
-                    <p className="text-sm text-white/70 font-medium">
-                        Press ← → or A D keys to pedal 🚴
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 pointer-events-none z-20 ${className}`}>
+            <div className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-black/50 backdrop-blur-2xl border border-white/12 shadow-2xl">
+                <CrankVisual size={60} />
+
+                <div className="text-center min-w-[48px]">
+                    <p className={`text-2xl font-bold tabular-nums leading-none ${zone.color}`} style={{ transition: 'color 0.4s' }}>
+                        {cadence}
                     </p>
-                </div>
-            )}
-
-            <div className="flex items-center gap-4 px-6 py-3 rounded-full bg-black/60 backdrop-blur-xl border border-white/20">
-                <div className={`
-          flex items-center gap-2 px-4 py-2 rounded-lg transition-all
-          ${activeLeg === 'left'
-                        ? 'bg-blue-500 text-white scale-110 shadow-lg shadow-blue-500/50'
-                        : 'bg-blue-500/20 text-blue-300'
-                    }
-        `}>
-                    <kbd className="text-xs font-mono">←</kbd>
-                    <span className="text-sm font-medium">Left</span>
+                    <p className="text-[9px] uppercase tracking-widest text-white/35">RPM</p>
+                    <p className={`text-[10px] font-semibold mt-0.5 ${zone.color}`}>{zone.label}</p>
                 </div>
 
-                <div className="w-px h-8 bg-white/20" />
+                <div className="w-px h-9 bg-white/12" />
 
-                <div className={`
-          flex items-center gap-2 px-4 py-2 rounded-lg transition-all
-          ${activeLeg === 'right'
-                        ? 'bg-green-500 text-white scale-110 shadow-lg shadow-green-500/50'
-                        : 'bg-green-500/20 text-green-300'
-                    }
-        `}>
-                    <span className="text-sm font-medium">Right</span>
-                    <kbd className="text-xs font-mono">→</kbd>
+                <div className="flex items-center gap-2">
+                    <div className={`
+                        flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-100
+                        ${activeLeg === 'left' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/40 scale-110' : 'bg-blue-500/12 text-blue-300'}
+                    `}>
+                        <kbd className="text-xs font-mono">←</kbd>
+                        <span className="text-sm font-medium">L</span>
+                    </div>
+                    <div className={`
+                        flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-100
+                        ${activeLeg === 'right' ? 'bg-green-500 text-white shadow-lg shadow-green-500/40 scale-110' : 'bg-green-500/12 text-green-300'}
+                    `}>
+                        <span className="text-sm font-medium">R</span>
+                        <kbd className="text-xs font-mono">→</kbd>
+                    </div>
                 </div>
+
+                {showInstructions && (
+                    <p className="text-[11px] text-white/35 animate-pulse ml-1">← → or A D</p>
+                )}
             </div>
         </div>
     );

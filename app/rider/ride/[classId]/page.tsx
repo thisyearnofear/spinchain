@@ -1099,7 +1099,7 @@ export default function LiveRidePage() {
           )}
 
           {/* Bottom - Controls (Mobile Optimized) */}
-          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-bottom">
+          <div className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"}`}>
             <div className="max-w-7xl mx-auto">
               {/* Progress Info + Interval Status */}
               {hudMode !== "minimal" && (
