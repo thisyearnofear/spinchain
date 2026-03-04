@@ -57,7 +57,11 @@ export const config: Config = getDefaultConfig({
   chains: [avalancheFuji, avalanche, mainnet],
   ssr: true,
   storage,
-  // Ensure wallet connection persists across page navigations
-  // This is crucial for mobile wallet apps like Base that use deep linking
   syncConnectedChain: true,
+  // Prevent Wagmi from automatically attempting to reconnect the wallet on
+  // every page navigation. Without this, mobile wallet apps (Coinbase, Base)
+  // receive a connection request on every route change and show an intrusive
+  // prompt. The stored connector state is still preserved so a manual
+  // reconnect (or a hard refresh) restores the session correctly.
+  reconnectOnMount: false,
 });
