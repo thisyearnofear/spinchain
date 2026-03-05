@@ -61,9 +61,15 @@ export default function FocusRouteVisualizer({
     const max = Math.max(...values);
     const range = Math.max(1, max - min);
 
-    const width = 1000;
-    const height = 160;
+    // Adaptive dimensions based on container size
+    const containerWidth = 1000; // Default mobile width
+    const containerHeight = 160; // Default mobile height
     const pad = 12;
+
+    // Calculate responsive dimensions
+    const isDesktop = window.innerWidth > 768;
+    const width = isDesktop ? Math.min(1400, window.innerWidth * 0.8) : containerWidth;
+    const height = isDesktop ? 200 : containerHeight;
 
     const step = (width - pad * 2) / Math.max(1, values.length - 1);
     const points = values.map((v, i) => {
@@ -156,7 +162,7 @@ export default function FocusRouteVisualizer({
   return (
     <div className={`relative w-full overflow-hidden rounded-2xl bg-black ${className}`}>
       {/* 2D SVG */}
-      <svg ref={svgRef} viewBox="0 0 1000 160" className="h-full w-full" preserveAspectRatio="none">
+      <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet">
         <defs>
           {/* Gradients */}
           <linearGradient id="focusStroke" x1="0" y1="0" x2="1" y2="0">
@@ -348,10 +354,12 @@ export default function FocusRouteVisualizer({
       {/* Badges */}
       <div className="absolute bottom-4 left-4 z-10 flex gap-2">
         <div className="rounded-full bg-black/60 px-3 py-1 text-xs text-white/70 backdrop-blur border border-white/10">
-          Focus Mode
+          <span className="hidden sm:inline">Focus Mode</span>
+          <span className="sm:hidden">2D</span>
         </div>
         <div className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs text-emerald-300 backdrop-blur border border-emerald-500/20">
-          2D
+          <span className="hidden sm:inline">2D</span>
+          <span className="sm:hidden">Mobile</span>
         </div>
         {currentZone && (
           <div
@@ -372,6 +380,23 @@ export default function FocusRouteVisualizer({
         <div className="absolute top-4 right-4 z-10 text-right">
           <div className="text-2xl font-bold text-white">{Math.round(currentPower)}</div>
           <div className="text-xs text-white/50">watts</div>
+        </div>
+      )}
+
+      {/* Desktop enhancements */}
+      {isDesktop && (
+        <div className="absolute top-4 left-4 z-10">
+          <div className="rounded-lg bg-black/60 px-4 py-3 backdrop-blur-md border border-white/10">
+            <div className="flex items-center gap-2 mb-2">
+              <svg className="h-4 w-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="text-xs text-white/70">Desktop Mode</span>
+            </div>
+            <div className="text-xs text-white/50">
+              Enhanced visuals and interactions
+            </div>
+          </div>
         </div>
       )}
     </div>
