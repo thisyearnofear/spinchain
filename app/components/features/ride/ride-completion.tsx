@@ -99,6 +99,38 @@ export function RideCompletion({
             : `Total Time: ${formatTime(elapsedTime)}`}
         </p>
 
+        {/* SPIN Token Explanation */}
+        <div className="mb-4 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-semibold text-white">🎉 SPIN Token Earnings</span>
+            <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-500/30 text-amber-300">
+              How It Works
+            </span>
+          </div>
+          <p className="text-white/60 mb-2">Earn SPIN tokens based on your performance:</p>
+          <ul className="text-white/60 space-y-1 pl-4">
+            <li className="flex items-start gap-2">
+              <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <span>Effort Score (800/1000): Higher effort = more tokens</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <span>Duration (1:38): Longer workouts = higher rewards</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <span>Consistency: Steady effort throughout = bonus tokens</span>
+            </li>
+          </ul>
+          <p className="text-white/60 mt-2">Your 800 effort score earned you 0 SPIN tokens.</p>
+        </div>
+
         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80">
           <span className={`h-2 w-2 rounded-full ${
             telemetrySource === "live-bike"
@@ -119,6 +151,43 @@ export function RideCompletion({
           <Stat label="Avg HR" value={avgHeartRate} />
           <Stat label="Avg Power" value={`${avgPower}W`} />
           <Stat label="Effort" value={avgEffort} highlight />
+        </div>
+
+        {/* Improvement Tips */}
+        <div className="mb-4 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-semibold text-white">🚀 Boost Your Earnings</span>
+            <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-green-500/30 text-green-300">
+              Next Time
+            </span>
+          </div>
+          <p className="text-white/60 mb-2">Improve your SPIN earnings with these tips:</p>
+          <ul className="text-white/60 space-y-1 pl-4">
+            <li className="flex items-start gap-2">
+              <svg className="h-4 w-4 text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <span>Increase effort score: Push harder during intervals</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <svg className="h-4 w-4 text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <span>Extend duration: Add 5-10 minutes to your workout</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <svg className="h-4 w-4 text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <span>Maintain consistency: Keep effort above 700 throughout</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <svg className="h-4 w-4 text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <span>Complete more classes: Regular workouts = bonus rewards</span>
+            </li>
+          </ul>
         </div>
 
         {/* Actions */}
@@ -205,6 +274,32 @@ export function RideCompletion({
               </button>
             )}
           </div>
+
+          {/* Performance Context */}
+<div className="mt-4 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-semibold text-white">📊 Your Performance</span>
+            <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-blue-500/30 text-blue-300">
+              Context
+            </span>
+          </div>
+          <p className="text-white/60 mb-2">Here's how you performed:</p>
+          <div className="grid grid-cols-2 gap-2 text-white/60">
+            <div>
+              <p className="font-semibold text-white">Effort Score</p>
+              <p className="text-sm">800/1000</p>
+            </div>
+            <div>
+              <p className="font-semibold text-white">Duration</p>
+              <p className="text-sm">1:38</p>
+            </div>
+          </div>
+          <p className="text-white/60 mt-2">Aim for 900+ effort score to earn 50+ SPIN tokens!</p>
+          <div className="mt-3 flex items-center justify-between text-white/60">
+            <span>Current SPIN Earned:</span>
+            <span className="font-bold text-amber-400">0 SPIN</span>
+          </div>
+        </div>
         )}
       </div>
     </div>
