@@ -1,21 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import { BulletList, MetricTile, SurfaceCard, Tag } from "@/app/components/ui/ui";
-import { WelcomeModal } from "@/app/components/features/common/welcome-modal";
+import { WelcomeModal, resetOnboarding } from "@/app/components/features/common/welcome-modal";
 import { InstructorModeSelector } from "@/app/components/features/class/instructor-mode-selector";
 import { FadeIn, StaggerContainer, Parallax, ScaleIn } from "@/app/components/ui/scroll-animations";
 import { AnimatedCard, EnergyPulse, Floating, MagneticButton } from "@/app/components/ui/animated-card";
 import { RouteShowcase } from "@/app/components/features/route/route-showcase";
 import Link from "next/link";
 
-export default function Home() {
+function HomeContent() {
+  const searchParams = useSearchParams();
   const [showWelcome, setShowWelcome] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
+    // ?reset=true clears onboarding state — useful between test sessions
+    if (searchParams.get("reset") === "true") {
+      resetOnboarding();
+      localStorage.removeItem("spin-welcome-seen");
+      localStorage.removeItem("spin-guest-mode");
+    }
     const hasSeenWelcome = localStorage.getItem("spin-welcome-seen");
     if (!hasSeenWelcome) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -472,5 +480,13 @@ export default function Home() {
         </FadeIn>
       </main>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeContent />
+    </Suspense>
   );
 }

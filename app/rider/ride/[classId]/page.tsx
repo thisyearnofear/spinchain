@@ -329,6 +329,9 @@ export default function LiveRidePage() {
   const { isConnected: walletConnected } = useAccount();
   const [rewardMode, setRewardMode] = useState<RewardMode>("zk-batch");
 
+  // Guest mode — reward selector is disabled; user must connect wallet to earn
+  const isGuestMode = typeof window !== "undefined" && localStorage.getItem("spin-guest-mode") === "true" && !walletConnected;
+
   // Rewards — mode selectable, defaults to zk-batch
   const rewards = useRewards({
     mode: rewardMode,
@@ -671,6 +674,12 @@ export default function LiveRidePage() {
     setIsStarting(true);
     playCountdown(3);
 
+    // Pre-ride ClearNode connectivity check for Yellow mode
+    if (rewardMode === "yellow-stream" && !rewards.clearNodeConnected) {
+      // Non-blocking warning — ride can still start but rewards may not stream
+      console.warn("[Ride] Yellow mode selected but ClearNode is not connected. Rewards may not stream.");
+    }
+
     // Initialize rewards (gracefully handles no-wallet for zk-batch)
     try {
       await rewards.startEarning();
@@ -904,15 +913,16 @@ export default function LiveRidePage() {
               <div className="flex items-center gap-2 ml-2">
                 {/* Reward Mode Selector (pre-ride) / Active Mode Badge (during ride) */}
                 {!isRiding ? (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" title={isGuestMode ? "Connect wallet to earn rewards" : undefined}>
                     {(["zk-batch", "yellow-stream"] as RewardMode[]).map((m) => (
                       <button
                         key={m}
                         onClick={() => {
+                          if (isGuestMode) return;
                           if (m === "yellow-stream" && !walletConnected) return;
                           setRewardMode(m);
                         }}
-                        disabled={m === "yellow-stream" && !walletConnected}
+                        disabled={isGuestMode || (m === "yellow-stream" && !walletConnected)}
                         className={`rounded-lg px-2 py-1.5 text-[10px] sm:text-xs font-medium backdrop-blur transition-all min-h-[36px] ${
                           rewardMode === m
                             ? "bg-white/20 text-white border border-white/30"
@@ -952,9 +962,11 @@ export default function LiveRidePage() {
                       <>
                         <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
                         <span className="text-indigo-300">ZK</span>
-                        {rewards.formattedReward !== "0" && (
+                        {rewards.formattedReward !== "0" ? (
                           <span className="text-indigo-200 font-bold">{rewards.formattedReward} SPIN</span>
-                        )}
+                        ) : rewards.isActive ? (
+                          <span className="text-indigo-300/60 italic">Proof pending…</span>
+                        ) : null}
                       </>
                     )}
                   </div>

@@ -15,7 +15,7 @@ const steps = [
   {
     icon: "💰",
     title: "Earn As You Ride",
-    description: "Connect your heart rate monitor or power meter. The harder you work, the more SPIN you earn. Rewards are calculated automatically and sent to your wallet instantly after class.",
+    description: "Connect your heart rate monitor or power meter. The harder you work, the more SPIN you earn. Choose instant Yellow streaming rewards or private ZK batch rewards — both send SPIN to your wallet automatically.",
     cta: "Next",
   },
   {
