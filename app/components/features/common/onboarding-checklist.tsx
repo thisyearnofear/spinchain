@@ -74,7 +74,7 @@ export function OnboardingChecklist() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-3xl font-bold text-white mb-1">Get Started</h2>
-          <p className="text-sm text-white/70 mt-1">
+          <p className="text-sm text-white/90 mt-1">
             Complete these 3 steps to start earning SPIN
           </p>
         </div>
@@ -96,20 +96,20 @@ export function OnboardingChecklist() {
             }`}
           >
             <div className="flex items-start justify-between mb-4">
-              <div className={`rounded-xl p-2.5 ${step.isDone ? "bg-gradient-to-r from-emerald-400 to-emerald-300 text-white shadow-sm" : "bg-white/10 text-[color:var(--muted)]"}`}>
+              <div className={`rounded-xl p-2.5 ${step.isDone ? "bg-gradient-to-r from-emerald-400 to-emerald-300 text-white shadow-sm" : "bg-white/15 text-white/80"}`}>
                 <step.icon className="h-5 w-5" />
               </div>
               {step.isDone ? (
                 <CheckCircle2 className="h-5 w-5 text-emerald-400 animate-pulse" />
               ) : (
-                <Circle className="h-5 w-5 text-white/30 group-hover:text-white/50 transition-colors" />
+                <Circle className="h-5 w-5 text-white/50 group-hover:text-white/70 transition-colors" />
               )}
             </div>
 
             <h3 className={`font-bold text-xl ${step.isDone ? "text-emerald-400" : "text-white"}`}>
               {step.title}
             </h3>
-            <p className="text-sm text-white/70 mt-2 leading-relaxed">
+            <p className="text-sm text-white/90 mt-2 leading-relaxed">
               {step.description}
             </p>
 
@@ -118,8 +118,8 @@ export function OnboardingChecklist() {
                 href={step.action}
                 className="mt-4 flex w-full items-center justify-between rounded-2xl bg-gradient-to-r from-white/10 to-white/5 px-4 py-3 text-sm font-medium text-white hover:from-white/20 hover:to-white/15 transition-all active:scale-95"
               >
-                <span className="text-white/90">{step.actionLabel}</span>
-                <ArrowRight className="h-4 w-4 text-white/70" />
+                <span className="text-white">{step.actionLabel}</span>
+                <ArrowRight className="h-4 w-4 text-white/90" />
               </Link>
             )}
 
@@ -133,7 +133,7 @@ export function OnboardingChecklist() {
       {allDone && (
         <button 
           onClick={() => setIsVisible(false)}
-          className="mt-8 w-full text-center text-sm text-white/60 hover:text-white/90 transition-colors hover:scale-105"
+          className="mt-8 w-full text-center text-sm text-white/80 hover:text-white transition-colors hover:scale-105"
         >
           Dismiss checklist
         </button>
@@ -155,7 +155,7 @@ function EnhancedCheckCircle({ className }: { className?: string }) {
 function EnhancedCircle({ className }: { className?: string }) {
   return (
     <div className="relative">
-      <Circle className={`h-5 w-5 text-white/30 ${className}`} />
+      <Circle className={`h-5 w-5 text-white/50 ${className}`} />
       <div className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-white/20 animate-pulse" />
     </div>
   );

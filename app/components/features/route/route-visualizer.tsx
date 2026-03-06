@@ -273,16 +273,29 @@ function RiderMarker({
           {equipment ? (
              <Model url={equipment.modelUrl} scale={equipment.type === "vehicle" ? 2 : 1.2} />
           ) : (
-            /* Fallback to cone if no model */
-            <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <coneGeometry args={[0.8, 2, 8]} />
-              <meshStandardMaterial
-                color={styles.riderColor}
-                emissive={styles.riderColor}
-                emissiveIntensity={4}
-                toneMapped={false}
-              />
-            </mesh>
+            /* Stylized cyclist fallback */
+            <group rotation={[Math.PI / 2, 0, 0]}>
+              {/* Body */}
+              <mesh position={[0, 0, 0.2]}>
+                <capsuleGeometry args={[0.45, 1.0, 8, 16]} />
+                <meshStandardMaterial
+                  color={styles.riderColor}
+                  emissive={styles.riderColor}
+                  emissiveIntensity={3}
+                  toneMapped={false}
+                />
+              </mesh>
+              {/* Head */}
+              <mesh position={[0, 0, 1.2]}>
+                <sphereGeometry args={[0.35, 16, 16]} />
+                <meshStandardMaterial
+                  color={styles.riderColor}
+                  emissive={styles.riderColor}
+                  emissiveIntensity={3}
+                  toneMapped={false}
+                />
+              </mesh>
+            </group>
           )}
 
           {/* Pulsing Aura */}
@@ -527,19 +540,22 @@ function Scene({
     // Reset loop ref if progress resets
     if (nextProgress < 0.01) lastBeatRef.current = -1;
 
-    // Camera follow logic
-    if (progress > 0) {
-      const riderPos = curve.getPointAt(nextProgress);
-      const tangent = curve.getTangentAt(nextProgress);
-      const offset = tangent
-        .clone()
-        .multiplyScalar(-30)
-        .add(new Vector3(0, 15, 0));
-      const targetCamPos = riderPos.clone().add(offset);
+    // Camera follow logic — offset accounts for group position [0, -10, 0]
+    // Always track rider so it's never obscured by the road geometry
+    const riderPos = curve.getPointAt(nextProgress);
+    riderPos.y -= 10; // match group offset
+    const tangent = curve.getTangentAt(nextProgress);
+    // Chase camera: behind and above the rider
+    const offset = tangent
+      .clone()
+      .multiplyScalar(-18)
+      .add(new Vector3(0, 14, 0));
+    const targetCamPos = riderPos.clone().add(offset);
 
-      state.camera.position.lerp(targetCamPos, 0.05);
-      state.camera.lookAt(riderPos);
-    }
+    // Faster lerp when riding, gentle when previewing
+    const lerpSpeed = progress > 0 ? 0.1 : 0.03;
+    state.camera.position.lerp(targetCamPos, lerpSpeed);
+    state.camera.lookAt(riderPos);
   });
 
   // Adaptive particle count based on quality
@@ -549,7 +565,7 @@ function Scene({
 
   return (
     <>
-      <PerspectiveCamera makeDefault position={[50, 40, 80]} fov={55} />
+      <PerspectiveCamera makeDefault position={[0, 12, 35]} fov={60} />
       <ambientLight intensity={0.5} />
       <pointLight
         position={[10, 50, 10]}
@@ -557,7 +573,7 @@ function Scene({
         color={theme === "mars" ? "#ef4444" : theme === "rainbow" ? "#ff00ff" : "#9b7bff"}
         castShadow={quality?.shadows}
       />
-      <fog attach="fog" args={[styles.fog, 20, 250]} />
+      <fog attach="fog" args={[styles.fog, 40, 250]} />
 
       <Environment preset={styles.envPreset} />
       
@@ -607,15 +623,18 @@ function Scene({
         )}
       </group>
 
-      <OrbitControls
-        autoRotate={progress === 0}
-        autoRotateSpeed={0.5}
-        maxPolarAngle={Math.PI / 2}
-        minDistance={20}
-        maxDistance={150}
-        enablePan={false}
-        enableDamping={quality?.particleCount ? quality.particleCount > 200 : true}
-      />
+      {/* OrbitControls only in preview; during a ride the camera follows the rider */}
+      {progress === 0 && (
+        <OrbitControls
+          autoRotate
+          autoRotateSpeed={0.5}
+          maxPolarAngle={Math.PI / 2}
+          minDistance={20}
+          maxDistance={150}
+          enablePan={false}
+          enableDamping={quality?.particleCount ? quality.particleCount > 200 : true}
+        />
+      )}
     </>
   );
 }
@@ -718,56 +737,17 @@ export default function RouteVisualizer({
         </Canvas>
       </Suspense>
 
-      {/* Rider HUD Overlay - Responsive sizing */}
-      {progress > 0 && (
-        <div className="absolute inset-x-0 top-0 z-20 pointer-events-none p-3 md:p-6">
-          <div className="flex gap-2 md:gap-4">
-            <div className="rounded-lg md:rounded-xl bg-black/40 border border-white/10 backdrop-blur-md p-2 md:p-3 flex flex-col min-w-[60px] md:min-w-[80px]">
-              <span className="text-[8px] md:text-[10px] uppercase tracking-wider text-white/50 font-bold">
-                HR
-              </span>
-              <span className="text-xl md:text-2xl font-black text-white">{stats.hr}</span>
-            </div>
-            <div className="rounded-lg md:rounded-xl bg-black/40 border border-white/10 backdrop-blur-md p-2 md:p-3 flex flex-col min-w-[60px] md:min-w-[80px]">
-              <span className="text-[8px] md:text-[10px] uppercase tracking-wider text-white/50 font-bold">
-                Power
-              </span>
-              <span className="text-xl md:text-2xl font-black text-[color:var(--brand)]">
-                {stats.power}w
-              </span>
-            </div>
-            <div className="rounded-lg md:rounded-xl bg-black/40 border border-white/10 backdrop-blur-md p-2 md:p-3 flex flex-col min-w-[60px] md:min-w-[80px]">
-              <span className="text-[8px] md:text-[10px] uppercase tracking-wider text-white/50 font-bold">
-                RPM
-              </span>
-              <span className="text-xl md:text-2xl font-black text-white">
-                {stats.cadence}
-              </span>
-            </div>
+      {/* Overlay UI — only show in preview mode to avoid duplicating the ride HUD */}
+      {progress === 0 && (
+        <div className="absolute bottom-4 left-4 z-10 flex gap-2">
+          <div className="rounded-full bg-black/60 px-3 py-1 text-xs text-white/70 backdrop-blur border border-white/10">
+            Interactive Preview
+          </div>
+          <div className="rounded-full bg-indigo-500/20 px-3 py-1 text-xs text-indigo-300 backdrop-blur border border-indigo-500/20">
+            WebGL
           </div>
         </div>
       )}
-
-      {/* Overlay UI */}
-      <div className="absolute bottom-4 left-4 z-10 flex gap-2">
-        <div className="rounded-full bg-black/60 px-3 py-1 text-xs text-white/70 backdrop-blur border border-white/10">
-          {progress > 0 ? "Live View" : "Interactive Preview"}
-        </div>
-        <div className="rounded-full bg-indigo-500/20 px-3 py-1 text-xs text-indigo-300 backdrop-blur border border-indigo-500/20">
-          WebGL
-        </div>
-      </div>
-
-      <div className="absolute bottom-4 right-4 z-10">
-        <div className="flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs text-white/70 backdrop-blur border border-white/10">
-          <span
-            className={`block h-2 w-2 rounded-full ${progress > 0 ? "animate-pulse bg-green-400" : "bg-yellow-400"}`}
-          />
-          {progress > 0
-            ? `${Math.round(progress * 100)}% Complete`
-            : "Preview Mode"}
-        </div>
-      </div>
     </div>
   );
 }
