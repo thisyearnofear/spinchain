@@ -12,7 +12,7 @@
 
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useYellowSettlement } from "@/app/hooks/evm/use-yellow-settlement";
 import type { TelemetryPoint } from "@/app/lib/zk/oracle";
@@ -32,6 +32,7 @@ import {
   useYellowStreaming,
   getStreamingStatus,
   calculateStreamingRate,
+  isClearNodeConnected,
   // ZK
   useZKRewards,
   createBatchAccumulator,
@@ -97,6 +98,9 @@ export interface UseRewardsReturn {
   
   // Updates history (Yellow mode)
   updates?: SignedRewardUpdate[];
+
+  // ClearNode WebSocket connection status (Yellow mode only)
+  clearNodeConnected?: boolean;
 }
 
 // ============================================================================
@@ -126,23 +130,21 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   // ============================================================================
   
   const startEarning = useCallback(async (): Promise<void> => {
-    if (!rider) {
-      throw new Error("Wallet not connected");
-    }
-
     switch (mode) {
       case "yellow-stream": {
+        if (!rider) throw new Error("Wallet required for Yellow streaming");
+        const riderAddr = rider;
         // Create message signer from wallet
         const signer = async (message: string): Promise<string> => {
           if (!window.ethereum) throw new Error("MetaMask not available");
           return (await window.ethereum.request({
             method: "personal_sign",
-            params: [message, rider],
+            params: [message, riderAddr],
           })) as string;
         };
 
         await yellow.startStreaming(
-          rider,
+          riderAddr,
           instructor,
           classId as `0x${string}`,
           depositAmount,
@@ -324,6 +326,17 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
     return calculateStreamingRate(yellow.streamState);
   }, [mode, yellow.streamState]);
 
+  // Poll ClearNode WebSocket status every 3s (Yellow mode only)
+  const [clearNodeConnected, setClearNodeConnected] = useState<boolean | undefined>(
+    mode === "yellow-stream" ? isClearNodeConnected() : undefined
+  );
+  useEffect(() => {
+    if (mode !== "yellow-stream") return;
+    setClearNodeConnected(isClearNodeConnected());
+    const id = setInterval(() => setClearNodeConnected(isClearNodeConnected()), 3000);
+    return () => clearInterval(id);
+  }, [mode]);
+
   // ============================================================================
   // Return
   // ============================================================================
@@ -356,6 +369,9 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
     // ZK-specific
     privacyScore: zk.lastResult?.privacyScore,
     privacyLevel: zk.lastResult?.privacyLevel,
+
+    // ClearNode status
+    clearNodeConnected: mode === "yellow-stream" ? clearNodeConnected : undefined,
   };
 }
 

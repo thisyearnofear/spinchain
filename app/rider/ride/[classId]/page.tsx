@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useClass, createPracticeClassMetadata, generateMockRouteData, type ClassWithRoute } from "../../../hooks/evm/use-class-data";
 import dynamic from "next/dynamic";
 import FocusRouteVisualizer from "../../../components/features/route/focus-route-visualizer";
+import { useAccount } from "wagmi";
 
 const RouteVisualizer = dynamic(
   () => import("../../../components/features/route/route-visualizer"),
@@ -16,7 +17,7 @@ import { useDeviceType, useOrientation, useActualViewportHeight } from "../../..
 import { useWorkoutAudio } from "../../../hooks/ai/use-workout-audio";
 import { useCoachVoice } from "../../../hooks/common/use-coach-voice";
 import { useAiInstructor } from "../../../hooks/ai/use-ai-instructor";
-import { useRewards } from "../../../hooks/rewards/use-rewards";
+import { useRewards, type RewardMode, REWARD_MODES } from "../../../hooks/rewards/use-rewards";
 import { useZKClaim } from "../../../hooks/evm/use-zk-claim";
 import { ANALYTICS_EVENTS, trackEvent } from "../../../lib/analytics/events";
 import { YellowRewardTicker } from "../../../components/features/common/yellow-reward-ticker";
@@ -324,9 +325,13 @@ export default function LiveRidePage() {
     );
   };
 
-  // Yellow Rewards - Real-time streaming
+  // Reward mode selection — default to zk-batch, yellow-stream available as beta for wallet users
+  const { isConnected: walletConnected } = useAccount();
+  const [rewardMode, setRewardMode] = useState<RewardMode>("zk-batch");
+
+  // Rewards — mode selectable, defaults to zk-batch
   const rewards = useRewards({
-    mode: "yellow-stream",
+    mode: rewardMode,
     classId: classId as string,
     instructor: (classData?.instructor as `0x${string}`) || "0x0",
     depositAmount: BigInt(0), // Demo mode - no real deposit required
@@ -665,12 +670,13 @@ export default function LiveRidePage() {
     setIsStarting(true);
     playCountdown(3);
 
-    // Initialize Yellow rewards channel
+    // Initialize rewards (gracefully handles no-wallet for zk-batch)
     try {
       await rewards.startEarning();
-      console.log("[Ride] Yellow rewards channel opened");
+      console.log("[Ride] Rewards channel opened, mode:", rewardMode);
     } catch (err) {
-      console.warn("[Ride] Failed to open rewards channel:", err);
+      // Non-blocking — guest users can still ride without earning
+      console.warn("[Ride] Rewards init skipped:", err);
     }
 
     // Start ride after countdown finishes
@@ -894,6 +900,41 @@ export default function LiveRidePage() {
               </div>
 
               <div className="flex items-center gap-2 ml-2">
+                {/* Reward Mode Selector */}
+                {!isRiding && (
+                  <div className="flex items-center gap-1">
+                    {(["zk-batch", "yellow-stream"] as RewardMode[]).map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          if (m === "yellow-stream" && !walletConnected) return;
+                          setRewardMode(m);
+                        }}
+                        disabled={m === "yellow-stream" && !walletConnected}
+                        className={`rounded-lg px-2 py-1.5 text-[10px] sm:text-xs font-medium backdrop-blur transition-all min-h-[36px] ${
+                          rewardMode === m
+                            ? "bg-white/20 text-white border border-white/30"
+                            : "bg-white/5 text-white/40 border border-transparent hover:bg-white/10 hover:text-white/60"
+                        } disabled:opacity-30 disabled:cursor-not-allowed`}
+                      >
+                        {m === "zk-batch" ? "ZK" : "Yellow"}
+                        {m === "yellow-stream" && (
+                          <>
+                            <span className="ml-1 text-[8px] text-yellow-400">β</span>
+                            {rewardMode === "yellow-stream" && (
+                              <span
+                                className={`ml-1 inline-block h-1.5 w-1.5 rounded-full ${
+                                  rewards.clearNodeConnected ? "bg-emerald-400" : "bg-zinc-500"
+                                }`}
+                                title={rewards.clearNodeConnected ? "ClearNode connected" : "ClearNode offline"}
+                              />
+                            )}
+                          </>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {/* Reset UI prefs (useful for testing / getting back to defaults) */}
                 <button
                   onClick={() => {

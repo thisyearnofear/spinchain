@@ -38,7 +38,7 @@ export const ACTIVE_NETWORK = ACTIVE_CHAIN_ID === AVALANCHE_MAINNET.id ? AVALANC
 
 // ============================================================================
 // CONTRACT ADDRESSES
-// Populate these after running contracts/DEPLOY_REMIX.md
+// Populated from .env.local — see contracts/DEPLOY.md for deployment guide
 // ============================================================================
 
 export const CONTRACT_ADDRESSES = {
@@ -55,7 +55,7 @@ export const CONTRACT_ADDRESSES = {
     "0x0000000000000000000000000000000000000000") as `0x${string}`,
 
   /** Noir-generated UltraVerifier (or MockUltraVerifier on testnet) */
-  ULTRA_VERIFIER: (process.env.NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS ??
+  ULTRA_VERIFIER: (process.env.NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS ??
     "0x0000000000000000000000000000000000000000") as `0x${string}`,
 
   /** EffortThresholdVerifier — wraps UltraVerifier with replay protection */

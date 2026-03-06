@@ -1,232 +1,146 @@
-# Deployment Guide: Avalanche via Remix IDE
+# Deployment Guide: Avalanche via Foundry (Forge)
 
-## Network Config (add to MetaMask)
-
-| Field            | Fuji Testnet                                      | Mainnet                              |
-|------------------|---------------------------------------------------|--------------------------------------|
-| Network Name     | Avalanche Fuji                                    | Avalanche C-Chain                    |
-| RPC URL          | `https://api.avax-test.network/ext/bc/C/rpc`      | `https://api.avax.network/ext/bc/C/rpc` |
-| Chain ID         | 43113                                             | 43114                                |
-| Currency         | AVAX                                              | AVAX                                 |
-| Explorer         | https://testnet.snowtrace.io                      | https://snowtrace.io                 |
-
-Get testnet AVAX: https://faucet.avax.network
+> **Status**: Contracts deployed to Avalanche Fuji testnet (chain 43113).
+> All addresses below are live. For mainnet, repeat the steps with the mainnet RPC URL.
 
 ---
 
-## Remix Setup
+## Deployed Contracts — Fuji Testnet (chain 43113)
 
-1. Go to **https://remix.ethereum.org**
-2. **File Explorer → Create Workspace** (blank template)
-3. Copy each `.sol` file from `contracts/evm/` into Remix
-4. In **Solidity Compiler** tab:
-   - Compiler: `0.8.24`
-   - Enable optimization: ✅, runs: `200`
-5. In **Deploy & Run** tab:
-   - Environment: **Injected Provider – MetaMask**
-   - Confirm MetaMask is on the correct network
+| Contract            | Address                                        |
+|---------------------|------------------------------------------------|
+| `SpinToken`         | `0xbd73026ECe5c9D44D4f31a96B6d2d3ca9981a4eA`  |
+| `IncentiveEngine`   | `0xA0CCbF6F940685e2495a5FE6F13820f32Db68EDC`  |
+| `ClassFactory`      | `0x7B9283Fb889e6033e6d0fbe3E96D0C5734DC932a`  |
+| `TreasurySplitter`  | `0x9AB33e974Dbb6D9a11C5116Ce2E2e04471c482A0`  |
+| `YellowSettlement`  | `0xc6A203fB3a02F3F6886233B9b3b7A148CD3fedbe`  |
+| `MockUltraVerifier` | `0x5f98A8018f75ca80F46DE9758157AED719589dEC`  |
 
-> **Note on imports**: Remix resolves `@openzeppelin/contracts` automatically via its npm CDN.
-> `DemandSurgeHook.sol` uses Uniswap v4-core/v4-periphery imports that Remix cannot resolve —
-> skip it for now and deploy it separately via Foundry when v4 launches on Avalanche.
+Verify on Snowtrace: https://testnet.snowtrace.io
 
 ---
 
-## Deployment Order
+## Network Config
 
-> **Fuji MVP note**: If you plan to use Yellow streaming settlement, deploy `YellowSettlement.sol` and set `NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS`.
-
-### Step 1 — MockUltraVerifier *(testnet only)*
-
-> For mainnet, generate the real verifier: `cd circuits/effort_threshold && nargo codegen-verifier`
-
-**File**: `MockUltraVerifier.sol`  
-**Constructor args**: none  
-**⚠️ Never use MockUltraVerifier on mainnet — it accepts any proof as valid.**
+| Field        | Fuji Testnet                                 | Mainnet                                 |
+|--------------|----------------------------------------------|-----------------------------------------|
+| Network Name | Avalanche Fuji                               | Avalanche C-Chain                       |
+| RPC URL      | `https://api.avax-test.network/ext/bc/C/rpc` | `https://api.avax.network/ext/bc/C/rpc` |
+| Chain ID     | `43113`                                      | `43114`                                 |
+| Symbol       | `AVAX`                                       | `AVAX`                                  |
+| Explorer     | https://testnet.snowtrace.io                 | https://snowtrace.io                    |
 
 ---
 
-### Step 2 — SpinToken
+## Prerequisites
 
-**File**: `SpinToken.sol`  
-**Constructor**:
-| Param   | Value                  |
-|---------|------------------------|
-| `owner_` | Your deployer wallet  |
+```bash
+# Install Foundry
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
 
-> The owner of SpinToken is the **only** address that can call `mint()`.
-> You will transfer ownership to IncentiveEngine in Step 6.
-
----
-
-### Step 3 — EffortThresholdVerifier
-
-**File**: `contracts/verifiers/EffortThresholdVerifier.sol`  
-**Constructor**:
-| Param          | Value                              |
-|----------------|------------------------------------|
-| `ultraVerifier_` | MockUltraVerifier address (Step 1) |
-
----
-
-### Step 4 — IncentiveEngine
-
-**File**: `IncentiveEngine.sol`  
-**Constructor**:
-| Param              | Value                                     |
-|--------------------|-------------------------------------------|
-| `owner_`           | Your deployer wallet                      |
-| `spinToken_`       | SpinToken address (Step 2)                |
-| `attestationSigner_` | Your deployer wallet (acts as AI signer for MVP) |
-| `effortVerifier_`  | EffortThresholdVerifier address (Step 3)  |
-
----
-
-### Step 5 — TreasurySplitter *(optional for MVP)*
-
-**File**: `TreasurySplitter.sol`  
-**Constructor**:
-| Param           | Value                                          |
-|-----------------|------------------------------------------------|
-| `owner_`        | Your deployer wallet                           |
-| `wallets`       | `["0xYourAddress","0xPlatformAddress"]`        |
-| `bps`           | `[9000, 1000]` *(90% instructor, 10% platform)* |
-| `usePullPattern_` | `true` *(safer: recipients withdraw themselves)* |
-
----
-
-### Step 6 — BiometricOracle *(Chainlink integration)*
-
-**File**: `BiometricOracle.sol`  
-**Constructor**:
-| Param              | Value                                          |
-|--------------------|------------------------------------------------|
-| `router_`          | Chainlink Functions Router (Fuji: TBD)         |
-| `donId_`           | `0x66756e2d6176616c616e6368652d667569692d31` (fun-avalanche-fuji-1) |
-| `subscriptionId_`  | Your Chainlink subscription ID                 |
-| `gasLimit_`        | `300000`                                       |
-
-> Get Chainlink subscription at https://functions.chain.link
-
----
-
-### Step 7 — YellowSettlement *(required for Yellow streaming MVP)*
-
-**File**: `YellowSettlement.sol`  
-**Constructor**:
-| Param     | Value                         |
-|----------|-------------------------------|
-| `owner_` | Your deployer wallet          |
-| `token_` | SpinToken address (Step 2)    |
-| `engine_`| IncentiveEngine (Step 4)      |
-
----
-
-### Step 8 — ClassFactory
-
-**File**: `ClassFactory.sol`  
-**Constructor args**: none
-
----
-
-### Step 9 — Transfer SpinToken Ownership to IncentiveEngine
-
-In Remix, select **SpinToken** → **transferOwnership**:
-```
-newOwner = <IncentiveEngine address from Step 4>
-```
-
-> This allows IncentiveEngine to mint SPIN rewards.
-> You lose the ability to call `mint()` directly — that is intentional.
-> You can still call all other admin functions via IncentiveEngine's `onlyOwner`.
-
----
-
-### Step 10 — Configure IncentiveEngine with BiometricOracle
-
-In Remix, select **IncentiveEngine** → **setBiometricOracle**:
-```
-oracle_ = <BiometricOracle address from Step 6>
+# Install Solidity dependencies
+cd contracts/evm
+forge install
 ```
 
 ---
 
-## Post-Deployment: Update Environment Variables
+## Environment Setup
 
-Add to your `.env.local`:
+Create `contracts/evm/.env`:
 
 ```env
-# Network (Fuji)
-NEXT_PUBLIC_AVALANCHE_CHAIN_ID=43113
-NEXT_PUBLIC_AVALANCHE_EXPLORER_URL=https://testnet.snowtrace.io
+AVALANCHE_PRIVATE_KEY=0x<your_64_char_hex_private_key>
+```
 
-# Deployed contracts
+Get testnet AVAX: https://faucet.avax.network (requires GitHub/Twitter auth, sends 2 AVAX).
+Deployer wallet needs at least **0.5 AVAX** for gas.
+
+---
+
+## Build
+
+```bash
+cd contracts/evm
+forge build
+```
+
+All 6 deployable contracts compile with Solc 0.8.24 + `via_ir = true` (set in `foundry.toml`).
+
+---
+
+## Deploy
+
+```bash
+cd contracts/evm
+forge script src/deploy.s.sol:DeployScript \
+  --rpc-url https://api.avax-test.network/ext/bc/C/rpc \
+  --broadcast \
+  -vvvv
+```
+
+The deploy script (`src/deploy.s.sol`) executes in order:
+
+1. Deploy `MockUltraVerifier`
+2. Deploy `SpinToken`
+3. Deploy `IncentiveEngine` (receives SpinToken + MockUltraVerifier addresses)
+4. Deploy `TreasurySplitter`
+5. Deploy `YellowSettlement`
+6. Deploy `ClassFactory` (receives IncentiveEngine address)
+7. Transfer `SpinToken` ownership → `IncentiveEngine` (so it can mint rewards)
+
+Broadcast receipts saved to `broadcast/deploy.s.sol/43113/run-latest.json`.
+
+---
+
+## After Deployment — Update Frontend
+
+Copy deployed addresses into `.env.local` at the project root:
+
+```env
 NEXT_PUBLIC_SPIN_TOKEN_ADDRESS=0x...
 NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=0x...
 NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=0x...
-NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=0x...         # MockUltraVerifier for testnet
-NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x...
+NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS=0x...
 NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=0x...
 NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS=0x...
-NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=0x...
-
-# Chainlink configuration
-NEXT_PUBLIC_CHAINLINK_ROUTER=0x...
-NEXT_PUBLIC_CHAINLINK_DON_ID=fun-avalanche-fuji-1
-NEXT_PUBLIC_CHAINLINK_SUBSCRIPTION_ID=123
-
-# Stablecoin addresses
-NEXT_PUBLIC_USDC_ADDRESS=0x5425890298aed601595a70AB815c96711a31Bc65
-NEXT_PUBLIC_USDT_ADDRESS=0x...
-
-# Payment configuration
-NEXT_PUBLIC_DEFAULT_PAYMENT_METHOD=usdc
-NEXT_PUBLIC_DEFAULT_INSTRUCTOR_SHARE=8000
-NEXT_PUBLIC_DEFAULT_PROTOCOL_FEE=2000
+NEXT_PUBLIC_AVALANCHE_CHAIN_ID=43113
 ```
 
-These are read by `app/config.ts` → `CONTRACTS`.
+The frontend reads all addresses from these env vars via `app/lib/contracts.ts` (single source of truth — do not hardcode addresses elsewhere).
 
 ---
 
-## Create Your First Class (smoke test)
+## Contracts NOT in the deploy script
 
-Call `ClassFactory.createClass()` with:
-
-| Param             | Example Value                              |
-|-------------------|--------------------------------------------|
-| `name`            | `"Morning Burn"`                           |
-| `symbol`          | `"SPIN1"`                                  |
-| `classMetadata`   | `'{"version":"2.0","name":"Morning Burn"}'`|
-| `startTime`       | Unix timestamp 1 hour from now             |
-| `endTime`         | Unix timestamp 2 hours from now            |
-| `maxRiders`       | `20`                                       |
-| `basePrice`       | `10000000` *(10 USDC, 6 decimals)*         |
-| `maxPrice`        | `50000000` *(50 USDC, 6 decimals)*         |
-| `instructor`      | Your wallet or AI agent address            |
-| `treasury`        | Protocol treasury address                  |
-| `incentiveEngine` | IncentiveEngine address                    |
-| `spinToken`       | SpinToken address                          |
-| `paymentToken`    | USDC address: `0x5425890298aed601595a70AB815c96711a31Bc65` (Fuji) or `0x0` for native AVAX   |
-| `instructorShareBps` | `8000` *(80% to instructor)*            |
-
-Copy the deployed `SpinClass` address from the transaction logs and update
-`app/rider/page.tsx` for live testing.
+| Contract            | Reason                                                         |
+|---------------------|----------------------------------------------------------------|
+| `DemandSurgeHook`   | Requires Uniswap v4-core/v4-periphery — deploy separately      |
+| `BiometricOracle`   | Requires Chainlink Functions subscription — deploy separately   |
+| Real `UltraVerifier`| Generated by Noir (`nargo codegen-verifier`) — use `MockUltraVerifier` on testnet |
 
 ---
 
-## Verification on Snowtrace
+## ZK Verifier (Mainnet)
 
-1. In Remix: **Plugin Manager → activate "Flattener"**
-2. Right-click the `.sol` file → **Flatten**
-3. Go to Snowtrace → contract address → **Verify & Publish**
-4. Paste the flattened source, select compiler `v0.8.24`, enable optimization (200 runs)
+To generate the real UltraVerifier from the Noir circuit:
+
+```bash
+cd circuits/effort_threshold
+nargo codegen-verifier
+# outputs: contracts/evm/UltraVerifier.sol
+```
+
+Then deploy `UltraVerifier.sol` and update `NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS` with the real address.
 
 ---
 
-## What's NOT deployable via Remix
+## Mainnet Checklist
 
-| Contract            | Reason                                      | Alternative               |
-|---------------------|---------------------------------------------|---------------------------|
-| `DemandSurgeHook`   | Needs Uniswap v4-core/v4-periphery imports  | Deploy with Foundry       |
-| Real `UltraVerifier`| Generated by Noir (`nargo codegen-verifier`)| Use MockUltraVerifier for testnet |
+- [ ] Replace `MockUltraVerifier` with real Noir-generated `UltraVerifier`
+- [ ] Set `NEXT_PUBLIC_AVALANCHE_CHAIN_ID=43114` in `.env.local`
+- [ ] Fund deployer wallet with mainnet AVAX
+- [ ] Run forge script with mainnet RPC URL
+- [ ] Update `.env.local` with mainnet addresses
+- [ ] Verify contracts on Snowtrace (`--verify` flag in forge script)

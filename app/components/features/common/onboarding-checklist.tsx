@@ -70,16 +70,16 @@ export function OnboardingChecklist() {
   }
 
   return (
-    <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/60 p-8 backdrop-blur-xl shadow-2xl">
+    <div className="rounded-3xl border border-[color:var(--border)] bg-gradient-to-br from-purple-900/20 to-indigo-900/20 p-8 backdrop-blur-xl shadow-2xl">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-[color:var(--foreground)]">Get Started</h2>
-          <p className="text-sm text-[color:var(--muted)] mt-1">
+          <h2 className="text-3xl font-bold text-white mb-1">Get Started</h2>
+          <p className="text-sm text-white/70 mt-1">
             Complete these 3 steps to start earning SPIN
           </p>
         </div>
         {allDone && (
-          <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-500 border border-emerald-500/20">
+          <span className="rounded-full bg-gradient-to-r from-emerald-400 to-emerald-300 px-4 py-2 text-xs font-bold text-white shadow-lg">
             COMPLETED
           </span>
         )}
@@ -91,35 +91,35 @@ export function OnboardingChecklist() {
             key={step.id}
             className={`relative group rounded-2xl border p-5 transition-all duration-300 ${
               step.isDone 
-                ? "bg-emerald-500/5 border-emerald-500/20" 
-                : "bg-white/5 border-white/10 hover:border-white/20"
+                ? "bg-gradient-to-br from-emerald-500/10 to-emerald-400/5 border-emerald-500/20 shadow-[0_8px_25px_rgba(0,255,85,0.1)]" 
+                : "bg-white/5 border-white/10 hover:border-white/20 hover:shadow-[0_8px_25px_rgba(255,255,255,0.1)]"
             }`}
           >
             <div className="flex items-start justify-between mb-4">
-              <div className={`rounded-xl p-2.5 ${step.isDone ? "bg-emerald-500/20 text-emerald-500" : "bg-white/10 text-[color:var(--muted)]"}`}>
+              <div className={`rounded-xl p-2.5 ${step.isDone ? "bg-gradient-to-r from-emerald-400 to-emerald-300 text-white shadow-sm" : "bg-white/10 text-[color:var(--muted)]"}`}>
                 <step.icon className="h-5 w-5" />
               </div>
               {step.isDone ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                <CheckCircle2 className="h-5 w-5 text-emerald-400 animate-pulse" />
               ) : (
-                <Circle className="h-5 w-5 text-white/20" />
+                <Circle className="h-5 w-5 text-white/30 group-hover:text-white/50 transition-colors" />
               )}
             </div>
 
-            <h3 className={`font-bold ${step.isDone ? "text-emerald-500" : "text-[color:var(--foreground)]"}`}>
+            <h3 className={`font-bold text-xl ${step.isDone ? "text-emerald-400" : "text-white"}`}>
               {step.title}
             </h3>
-            <p className="text-xs text-[color:var(--muted)] mt-1 leading-relaxed">
+            <p className="text-sm text-white/70 mt-2 leading-relaxed">
               {step.description}
             </p>
 
             {!step.isDone && step.action && (
               <Link 
                 href={step.action}
-                className="mt-4 flex w-full items-center justify-between rounded-lg bg-white/10 px-3 py-2 text-xs font-medium text-white hover:bg-white/20 transition-all active:scale-95"
+                className="mt-4 flex w-full items-center justify-between rounded-2xl bg-gradient-to-r from-white/10 to-white/5 px-4 py-3 text-sm font-medium text-white hover:from-white/20 hover:to-white/15 transition-all active:scale-95"
               >
-                <span>{step.actionLabel}</span>
-                <ArrowRight className="h-3.5 w-3.5" />
+                <span className="text-white/90">{step.actionLabel}</span>
+                <ArrowRight className="h-4 w-4 text-white/70" />
               </Link>
             )}
 
@@ -133,11 +133,30 @@ export function OnboardingChecklist() {
       {allDone && (
         <button 
           onClick={() => setIsVisible(false)}
-          className="mt-8 w-full text-center text-xs text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+          className="mt-8 w-full text-center text-sm text-white/60 hover:text-white/90 transition-colors hover:scale-105"
         >
           Dismiss checklist
         </button>
       )}
+    </div>
+  );
+}
+
+// Enhanced with better visual feedback and animations
+function EnhancedCheckCircle({ className }: { className?: string }) {
+  return (
+    <div className="relative">
+      <CheckCircle2 className={`h-5 w-5 text-emerald-400 animate-pulse ${className}`} />
+      <div className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+    </div>
+  );
+}
+
+function EnhancedCircle({ className }: { className?: string }) {
+  return (
+    <div className="relative">
+      <Circle className={`h-5 w-5 text-white/30 ${className}`} />
+      <div className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-white/20 animate-pulse" />
     </div>
   );
 }

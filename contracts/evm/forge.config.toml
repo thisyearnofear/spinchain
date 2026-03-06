@@ -1,0 +1,23 @@
+# Foundry configuration for Avalanche Fuji deployment
+# https://book.getfoundry.sh/reference/config
+
+[foundry]
+# Path to the Solidity compiler
+solc = { url = "https://solc-bin.ethereum.org/bin/solc-v0.8.24+commit.9f5d9b5a.js" }
+
+[foundry.contracts]
+# Path to the contracts directory
+path = "contracts/evm"
+
+[foundry.networks]
+# Avalanche Fuji testnet configuration
+fuji = { url = "https://api.avax-test.network/ext/bc/C/rpc", chainId = 43113 }
+
+[foundry.accounts]
+# Account configuration - will be set via environment variables
+deployer = { privateKey = "DEPLOYER_PRIVATE_KEY" }
+
+[foundry.settings]
+# Compiler settings
+optimizer = { enabled = true, runs = 200 }
+metadata = { useLiteralContent = true }

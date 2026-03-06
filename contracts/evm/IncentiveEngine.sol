@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -132,8 +133,9 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
 
         bytes32 message = keccak256(
             abi.encodePacked("SPIN_ATTESTATION", spinClass, rider, rewardAmount, classId, claimHash, timestamp)
-        ).toEthSignedMessageHash();
-        address recovered = message.recover(signature);
+        );
+        message = MessageHashUtils.toEthSignedMessageHash(message);
+        address recovered = ECDSA.recover(message, signature);
         if (recovered != attestationSigner) revert InvalidSignature();
 
         // Apply tier multiplier

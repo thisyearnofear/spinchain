@@ -27,56 +27,22 @@ Every class payment triggers:
 - **Used for**: Treasury swaps (USDC→SPIN buyback)
 - **NOT used for**: SPIN bridging (independent tokens by design)
 
-## Deployment (Remix)
+## Deployment
 
-### 1. Deploy TieredRewards.sol (Library)
-No constructor. Used by other contracts.
+> See [`contracts/DEPLOY.md`](../contracts/DEPLOY.md) for the full Foundry-based deployment guide.
 
-### 2. Deploy SpinToken.sol
-```solidity
-constructor(address owner_)
-// Example: deployer address as owner
-```
+### Deployed Contracts — Fuji Testnet (chain 43113)
 
-### 3. Deploy IncentiveEngine.sol
-```solidity
-constructor(
-    address owner_,      // deployer
-    address token_,      // SpinToken address
-    address signer_,     // attestation signer (can be deployer initially)
-    address verifier_    // ZK verifier (can be address(0) initially)
-)
-```
+| Contract            | Address                                        |
+|---------------------|------------------------------------------------|
+| `SpinToken`         | `0xbd73026ECe5c9D44D4f31a96B6d2d3ca9981a4eA`  |
+| `IncentiveEngine`   | `0xA0CCbF6F940685e2495a5FE6F13820f32Db68EDC`  |
+| `ClassFactory`      | `0x7B9283Fb889e6033e6d0fbe3E96D0C5734DC932a`  |
+| `TreasurySplitter`  | `0x9AB33e974Dbb6D9a11C5116Ce2E2e04471c482A0`  |
+| `YellowSettlement`  | `0xc6A203fB3a02F3F6886233B9b3b7A148CD3fedbe`  |
+| `MockUltraVerifier` | `0x5f98A8018f75ca80F46DE9758157AED719589dEC`  |
 
-### 4. Deploy SpinClass.sol
-```solidity
-constructor(
-    address owner_,          // deployer
-    string memory name_,     // "SpinClass"
-    string memory symbol_,   // "SPINCLASS"
-    string memory classMetadata_,  // IPFS CID or URI
-    uint256 startTime_,      // unix timestamp
-    uint256 endTime_,        // unix timestamp
-    uint256 maxRiders_,      // e.g., 50
-    uint256 basePrice_,      // in wei (e.g., 0.01 AVAX = 10000000000000000)
-    uint256 maxPrice_,       // in wei
-    address treasury_,       // treasury address
-    address incentiveEngine_, // IncentiveEngine address
-    address spinToken_       // SpinToken address
-)
-```
-
-### 5. Configuration
-```solidity
-// Transfer token ownership to IncentiveEngine
-SpinToken.transferOwnership(IncentiveEngine_address)
-
-// Set attestation signer (if different from deployer)
-IncentiveEngine.setAttestationSigner(signer_address)
-
-// Set ZK verifier (when ready)
-IncentiveEngine.setVerifier(verifier_address)
-```
+`SpinToken` ownership is held by `IncentiveEngine` (minting is gated to reward distribution only).
 
 ## Key Functions
 

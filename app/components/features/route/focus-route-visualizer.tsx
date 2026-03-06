@@ -55,7 +55,7 @@ export default function FocusRouteVisualizer({
   const riderRef = useRef<SVGGElement>(null);
 
   // Calculate path data and points
-  const { pathD, points, min, max, pathElement } = useMemo(() => {
+  const { pathD, points, min, max, pathElement, width, height, isDesktop } = useMemo(() => {
     const values = elevationProfile.length > 0 ? elevationProfile : [0];
     const min = Math.min(...values);
     const max = Math.max(...values);
@@ -81,7 +81,7 @@ export default function FocusRouteVisualizer({
 
     const pathD = `M ${points.map((p) => `${p.x},${p.y}`).join(" L ")}`;
 
-    return { pathD, points, min, max, pathElement: pathD };
+    return { pathD, points, min, max, pathElement: pathD, width, height, isDesktop };
   }, [elevationProfile]);
 
   const clampedProgress = Math.min(1, Math.max(0, progress));
@@ -265,10 +265,11 @@ export default function FocusRouteVisualizer({
           style={{ mixBlendMode: "screen" }}
         />
 
-        {/* Story beats */}
+        {/* Story beats with enhanced gamification */}
         {storyBeats.map((beat, idx) => {
           const x = 12 + beat.progress * (1000 - 24);
           const isCompleted = beat.progress < clampedProgress;
+          const isCurrent = Math.abs(beat.progress - clampedProgress) < 0.02;
           const color =
             beat.type === "sprint"
               ? "#ef4444"
@@ -277,50 +278,263 @@ export default function FocusRouteVisualizer({
                 : beat.type === "rest"
                   ? "#60a5fa"
                   : "#a78bfa";
-          
+
+          // Enhanced visual feedback for achievements
+          const beatSize = isCurrent ? 8 : isCompleted ? 4 : 6;
+          const beatOpacity = isCurrent ? 1 : isCompleted ? 0.3 : 0.9;
+          const lineOpacity = isCompleted ? 0.05 : 0.2;
+
+          // Achievement badge for completed beats
+          const showBadge = isCompleted && beat.progress < clampedProgress - 0.05;
+
           return (
             <g key={`${beat.progress}-${idx}`} opacity={isCompleted ? 0.3 : 1}>
+              {/* Achievement badge for completed beats */}
+              {showBadge && (
+                <g opacity={0.8}>
+                  <circle
+                    cx={x}
+                    cy={30}
+                    r="12"
+                    fill="url(#achievementGradient)"
+                    className="transition-all duration-300"
+                  />
+                  <text
+                    x={x}
+                    y={34}
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="10"
+                    fontWeight="bold"
+                    className="text-white/90"
+                  >
+                    🏆
+                  </text>
+                </g>
+              )}
+
+              {/* Main beat indicator */}
               <line
                 x1={x}
                 y1={18}
                 x2={x}
                 y2={150}
                 stroke={color}
-                strokeOpacity={isCompleted ? "0.1" : "0.25"}
+                strokeOpacity={lineOpacity}
                 strokeWidth="2"
+                className="transition-opacity duration-300"
               />
               <circle
                 cx={x}
                 cy={18}
-                r={isCompleted ? 4 : 6}
+                r={beatSize}
                 fill={color}
-                fillOpacity={isCompleted ? 0.3 : 0.9}
+                fillOpacity={beatOpacity}
+                className="transition-all duration-300"
               />
+
+              {/* Current beat highlight */}
+              {isCurrent && (
+                <g className="animate-pulse">
+                  <circle
+                    cx={x}
+                    cy={18}
+                    r="10"
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="2"
+                    opacity="0.3"
+                  />
+                  <text
+                    x={x}
+                    y={34}
+                    textAnchor="middle"
+                    fill={color}
+                    fontSize="10"
+                    fontWeight="bold"
+                    className="text-white/90"
+                  >
+                    {beat.label}
+                  </text>
+                </g>
+              )}
             </g>
           );
         })}
 
+        {/* Achievement gradient */}
+        <defs>
+          <linearGradient id="achievementGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ffeb3b" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#ff9800" stopOpacity="0.8" />
+          </linearGradient>
+        </defs>
+
         {/* Progress bar background */}
         <rect x="12" y="154" width={1000 - 24} height="4" rx="2" fill="#374151" />
 
-        {/* Progress bar fill */}
-        <rect
-          x="12"
-          y="154"
-          width={completionWidth}
-          height="4"
-          rx="2"
-          fill={currentZoneColor || "#8b5cf6"}
-          className="transition-all duration-300"
-        />
+        {/* Enhanced progress bar with gamification */}
+        <g>
+          {/* Progress fill with gradient */}
+          <rect
+            x="12"
+            y="154"
+            width={completionWidth}
+            height="4"
+            rx="2"
+            fill="url(#progressGradient)"
+            className="transition-all duration-300"
+          />
 
-        {/* Min/Max labels */}
-        <text x="12" y="18" fill="rgba(255,255,255,0.45)" fontSize="12">
-          {Math.round(min)}m
-        </text>
-        <text x="988" y="18" textAnchor="end" fill="rgba(255,255,255,0.45)" fontSize="12">
-          {Math.round(max)}m
-        </text>
+          {/* Progress milestones */}
+          {[0.25, 0.5, 0.75, 1].map((milestone, i) => {
+            const milestoneX = 12 + milestone * (1000 - 24);
+            const isCompleted = clampedProgress >= milestone;
+            const showMilestone = isCompleted || clampedProgress > milestone - 0.1;
+
+            if (!showMilestone) return null;
+
+            return (
+              <g key={i} opacity={isCompleted ? 1 : 0.5}>
+                <line
+                  x1={milestoneX}
+                  y1="154"
+                  x2={milestoneX}
+                  y2="158"
+                  stroke={isCompleted ? "#8b5cf6" : "#374151"}
+                  strokeWidth="2"
+                  className="transition-opacity duration-300"
+                />
+                {isCompleted && (
+                  <text
+                    x={milestoneX}
+                    y="148"
+                    textAnchor="middle"
+                    fill="#8b5cf6"
+                    fontSize="9"
+                    fontWeight="bold"
+                    className="text-white/90"
+                  >
+                    {i === 0 ? "25%" : i === 1 ? "50%" : i === 2 ? "75%" : "100%"}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </g>
+
+        {/* Progress gradient */}
+        <defs>
+          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#8b5cf6" />
+            <stop offset="50%" stopColor="#6366f1" />
+            <stop offset="100%" stopColor="#ec4899" />
+          </linearGradient>
+        </defs>
+
+        {/* Enhanced labels with gamification */}
+        <g className="transition-opacity duration-300">
+          {/* Min/Max labels */}
+          <text x="12" y="18" fill="rgba(255,255,255,0.7)" fontSize="12">
+            {Math.round(min)}m
+          </text>
+          <text x="988" y="18" textAnchor="end" fill="rgba(255,255,255,0.7)" fontSize="12">
+            {Math.round(max)}m
+          </text>
+
+          {/* Achievement milestones */}
+          {clampedProgress >= 0.25 && (
+            <g opacity={clampedProgress >= 0.25 ? 1 : 0.5}>
+              <circle
+                cx="250"
+                cy="30"
+                r="6"
+                fill="url(#achievementGradient)"
+                className="transition-all duration-300"
+              />
+              <text
+                x="250"
+                y="34"
+                textAnchor="middle"
+                fill="white"
+                fontSize="9"
+                fontWeight="bold"
+                className="text-white/90"
+              >
+                🚀
+              </text>
+            </g>
+          )}
+
+          {clampedProgress >= 0.5 && (
+            <g opacity={clampedProgress >= 0.5 ? 1 : 0.5}>
+              <circle
+                cx="500"
+                cy="30"
+                r="6"
+                fill="url(#achievementGradient)"
+                className="transition-all duration-300"
+              />
+              <text
+                x="500"
+                y="34"
+                textAnchor="middle"
+                fill="white"
+                fontSize="9"
+                fontWeight="bold"
+                className="text-white/90"
+              >
+                🏅
+              </text>
+            </g>
+          )}
+
+          {clampedProgress >= 0.75 && (
+            <g opacity={clampedProgress >= 0.75 ? 1 : 0.5}>
+              <circle
+                cx="750"
+                cy="30"
+                r="6"
+                fill="url(#achievementGradient)"
+                className="transition-all duration-300"
+              />
+              <text
+                x="750"
+                y="34"
+                textAnchor="middle"
+                fill="white"
+                fontSize="9"
+                fontWeight="bold"
+                className="text-white/90"
+              >
+                🔥
+              </text>
+            </g>
+          )}
+
+          {clampedProgress >= 0.95 && (
+            <g opacity={clampedProgress >= 0.95 ? 1 : 0.5}>
+              <circle
+                cx="988"
+                cy="30"
+                r="6"
+                fill="url(#achievementGradient)"
+                className="transition-all duration-300"
+              />
+              <text
+                x="988"
+                y="34"
+                textAnchor="end"
+                fill="white"
+                fontSize="9"
+                fontWeight="bold"
+                className="text-white/90"
+              >
+                🎉
+              </text>
+            </g>
+          )}
+        </g>
 
         {/* Rider avatar - animated via CSS transforms */}
         <g

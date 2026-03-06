@@ -178,13 +178,18 @@ export default function InstructorPage() {
               </p>
             </a>
 
-            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6">
-              <span className="text-3xl mb-4 block">📊</span>
-              <h3 className="font-semibold text-[color:var(--foreground)] mb-2">Analytics</h3>
+            <a
+              href="/instructor/yellow"
+              className="group rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-6 hover:border-yellow-500/50 transition-colors"
+            >
+              <span className="text-3xl mb-4 block">💛</span>
+              <h3 className="font-semibold text-[color:var(--foreground)] mb-2">
+                Yellow Settlements
+              </h3>
               <p className="text-sm text-[color:var(--muted)]">
-                Coming soon: Detailed class performance insights
+                Co-sign rider sessions and settle rewards on Avalanche
               </p>
-            </div>
+            </a>
           </div>
         )}
       </main>

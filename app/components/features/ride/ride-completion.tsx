@@ -255,51 +255,53 @@ export function RideCompletion({
         )}
 
         {!isPracticeMode && (
-          <div className="mt-5 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">
-            <p className="font-semibold text-white">Free included</p>
-            <p>Live telemetry + ride summary</p>
-            <p className="mt-2 font-semibold text-white">Premium unlock</p>
-            <p>Historical trends, zone breakdowns, and AI coaching insights</p>
-            {onUpgrade && (
-              <button
-                onClick={() => {
-                  trackEvent(ANALYTICS_EVENTS.PREMIUM_UPSELL_CLICKED, {
-                    source: 'ride-completion',
-                  });
-                  onUpgrade();
-                }}
-                className="mt-3 w-full rounded-lg border border-indigo-300/40 bg-indigo-500/20 px-3 py-2 text-xs font-semibold text-indigo-100 transition hover:bg-indigo-500/30"
-              >
-                Unlock Advanced Analytics
-              </button>
-            )}
-          </div>
+          <>
+            <div className="mt-5 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">
+              <p className="font-semibold text-white">Free included</p>
+              <p>Live telemetry + ride summary</p>
+              <p className="mt-2 font-semibold text-white">Premium unlock</p>
+              <p>Historical trends, zone breakdowns, and AI coaching insights</p>
+              {onUpgrade && (
+                <button
+                  onClick={() => {
+                    trackEvent(ANALYTICS_EVENTS.PREMIUM_UPSELL_CLICKED, {
+                      source: 'ride-completion',
+                    });
+                    onUpgrade();
+                  }}
+                  className="mt-3 w-full rounded-lg border border-indigo-300/40 bg-indigo-500/20 px-3 py-2 text-xs font-semibold text-indigo-100 transition hover:bg-indigo-500/30"
+                >
+                  Unlock Advanced Analytics
+                </button>
+              )}
+            </div>
 
-          {/* Performance Context */}
-<div className="mt-4 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">
-          <div className="flex items-center justify-between mb-1">
-            <span className="font-semibold text-white">📊 Your Performance</span>
-            <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-blue-500/30 text-blue-300">
-              Context
-            </span>
-          </div>
-          <p className="text-white/60 mb-2">Here's how you performed:</p>
-          <div className="grid grid-cols-2 gap-2 text-white/60">
-            <div>
-              <p className="font-semibold text-white">Effort Score</p>
-              <p className="text-sm">800/1000</p>
+            {/* Performance Context */}
+            <div className="mt-4 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-semibold text-white">📊 Your Performance</span>
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-blue-500/30 text-blue-300">
+                  Context
+                </span>
+              </div>
+              <p className="text-white/60 mb-2">Here's how you performed:</p>
+              <div className="grid grid-cols-2 gap-2 text-white/60">
+                <div>
+                  <p className="font-semibold text-white">Effort Score</p>
+                  <p className="text-sm">800/1000</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-white">Duration</p>
+                  <p className="text-sm">1:38</p>
+                </div>
+              </div>
+              <p className="text-white/60 mt-2">Aim for 900+ effort score to earn 50+ SPIN tokens!</p>
+              <div className="mt-3 flex items-center justify-between text-white/60">
+                <span>Current SPIN Earned:</span>
+                <span className="font-bold text-amber-400">0 SPIN</span>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold text-white">Duration</p>
-              <p className="text-sm">1:38</p>
-            </div>
-          </div>
-          <p className="text-white/60 mt-2">Aim for 900+ effort score to earn 50+ SPIN tokens!</p>
-          <div className="mt-3 flex items-center justify-between text-white/60">
-            <span>Current SPIN Earned:</span>
-            <span className="font-bold text-amber-400">0 SPIN</span>
-          </div>
-        </div>
+          </>
         )}
       </div>
     </div>

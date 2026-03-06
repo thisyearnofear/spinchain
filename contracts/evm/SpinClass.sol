@@ -83,7 +83,7 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
     event IncentiveEngineUpdated(address indexed engine);
     event SpinTokenUpdated(address indexed token);
     event RevenueSettled(address indexed treasury, uint256 amount);
-    event ClassCancelled(uint256 timestamp);
+    event ClassCancelledAt(uint256 timestamp);
     event TicketRefunded(address indexed rider, uint256 indexed tokenId, uint256 amount, bool inStable);
     event TransferLocked(uint256 tokenId);
     event InstructorMetadataSet(string key, string value);
@@ -325,7 +325,7 @@ contract SpinClass is ERC721, Ownable, ReentrancyGuard, Pausable {
     function cancelClass() external onlyOwner {
         if (block.timestamp >= startTime) revert ClassEnded();
         cancelled = true;
-        emit ClassCancelled(block.timestamp);
+        emit ClassCancelledAt(block.timestamp);
     }
 
     /// @notice Claim refund for a cancelled class

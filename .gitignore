@@ -29,6 +29,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+debug.log
+.output.txt
 
 # env files (can opt-in for committing if needed)
 .env
@@ -58,3 +60,14 @@ move/**/Published.toml
 *.swp
 *.swo
 circuits/*/target/
+
+# Mobile (Capacitor)
+# Keep ios/ and android/ at root for Capacitor compatibility
+# Use mobile/ for custom mobile-specific code
+mobile/
+
+# Foundry build artifacts
+contracts/evm/cache/
+contracts/evm/out/
+contracts/evm/lib/
+contracts/evm/node_modules/

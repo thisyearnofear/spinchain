@@ -1,0 +1,1 @@
+../SpinToken.sol
