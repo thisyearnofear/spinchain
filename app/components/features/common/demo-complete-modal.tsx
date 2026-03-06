@@ -26,6 +26,8 @@ interface DemoCompleteModalProps {
     maxHeartRate: number;
     effortScore: number;
     spinEarned: string;
+    /** When true, spinEarned reflects real Yellow streaming rewards (not a projection) */
+    rewardsWereActive?: boolean;
   };
 }
 
@@ -143,7 +145,9 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs text-[color:var(--muted)] mb-0.5">
-                        You would have earned
+                        {stats.rewardsWereActive && parseFloat(stats.spinEarned) > 0
+                          ? "You earned"
+                          : "You would have earned"}
                       </p>
                       <p className="text-2xl font-bold text-yellow-400">
                         {stats.spinEarned} <span className="text-base">SPIN</span>

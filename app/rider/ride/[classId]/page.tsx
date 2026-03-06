@@ -168,7 +168,7 @@ export default function LiveRidePage() {
     },
     {
       title: "Effort Score",
-      content: "The Effort Score (top right) is what determines your SPIN rewards. Keep it high to earn more!",
+      content: "The Effort Score (bottom right) is what determines your SPIN rewards. Keep it high to earn more!",
       position: "top-20 right-10",
     },
     {
@@ -345,6 +345,7 @@ export default function LiveRidePage() {
     maxHeartRate: 0,
     effortScore: 0,
     spinEarned: "0",
+    rewardsWereActive: false,
   });
 
   // Track last spoken beat to avoid repeats
@@ -732,6 +733,7 @@ export default function LiveRidePage() {
         maxHeartRate: maxHR,
         effortScore: Math.min(1000, Math.round((avgHR / 200) * 1000)),
         spinEarned: spinEarned || "12.5", // Fallback for demo
+        rewardsWereActive: rewards.isActive && parseFloat(spinEarned) > 0,
       });
       setIsExiting(false);
       setShowDemoModal(true);
@@ -900,8 +902,8 @@ export default function LiveRidePage() {
               </div>
 
               <div className="flex items-center gap-2 ml-2">
-                {/* Reward Mode Selector */}
-                {!isRiding && (
+                {/* Reward Mode Selector (pre-ride) / Active Mode Badge (during ride) */}
+                {!isRiding ? (
                   <div className="flex items-center gap-1">
                     {(["zk-batch", "yellow-stream"] as RewardMode[]).map((m) => (
                       <button
@@ -933,6 +935,28 @@ export default function LiveRidePage() {
                         )}
                       </button>
                     ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-[10px] font-medium text-white/80 backdrop-blur">
+                    {rewardMode === "yellow-stream" ? (
+                      <>
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          rewards.clearNodeConnected ? "bg-yellow-400 animate-pulse" : "bg-zinc-500"
+                        }`} />
+                        <span className="text-yellow-300">Yellow</span>
+                        {rewards.formattedReward !== "0" && (
+                          <span className="text-yellow-400 font-bold">{rewards.formattedReward} SPIN</span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                        <span className="text-indigo-300">ZK</span>
+                        {rewards.formattedReward !== "0" && (
+                          <span className="text-indigo-200 font-bold">{rewards.formattedReward} SPIN</span>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
                 {/* Reset UI prefs (useful for testing / getting back to defaults) */}
@@ -1284,6 +1308,7 @@ export default function LiveRidePage() {
           onUpgrade={!isPracticeMode ? () => router.push("/rider/journey?upgrade=analytics") : undefined}
           onClaimRewards={!isPracticeMode ? handleClaimRewards : undefined}
           zkProofStatus={!isPracticeMode ? { isGenerating: isGeneratingProof, isSuccess: zkSuccess, privacyScore, privacyLevel, error: zkError } : undefined}
+          spinEarned={rewards.formattedReward}
         />
       )}
 

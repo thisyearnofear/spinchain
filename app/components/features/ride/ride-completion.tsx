@@ -33,6 +33,7 @@ interface RideCompletionProps {
   onUpgrade?: () => void;
   onClaimRewards?: () => void;
   zkProofStatus?: ZKProofStatus;
+  spinEarned?: string;
 }
 
 export function RideCompletion({
@@ -47,6 +48,7 @@ export function RideCompletion({
   onUpgrade,
   onClaimRewards,
   zkProofStatus,
+  spinEarned = "0",
 }: RideCompletionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -113,13 +115,13 @@ export function RideCompletion({
               <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
-              <span>Effort Score (800/1000): Higher effort = more tokens</span>
+              <span>Effort Score ({avgEffort}/1000): Higher effort = more tokens</span>
             </li>
             <li className="flex items-start gap-2">
               <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
-              <span>Duration (1:38): Longer workouts = higher rewards</span>
+              <span>Duration ({formatTime(elapsedTime)}): Longer workouts = higher rewards</span>
             </li>
             <li className="flex items-start gap-2">
               <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -128,7 +130,7 @@ export function RideCompletion({
               <span>Consistency: Steady effort throughout = bonus tokens</span>
             </li>
           </ul>
-          <p className="text-white/60 mt-2">Your 800 effort score earned you 0 SPIN tokens.</p>
+          <p className="text-white/60 mt-2">Your {avgEffort} effort score earned you {spinEarned} SPIN tokens.</p>
         </div>
 
         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80">
@@ -288,18 +290,19 @@ export function RideCompletion({
               <div className="grid grid-cols-2 gap-2 text-white/60">
                 <div>
                   <p className="font-semibold text-white">Effort Score</p>
-                  <p className="text-sm">800/1000</p>
+                  <p className="text-sm">{avgEffort}/1000</p>
                 </div>
                 <div>
                   <p className="font-semibold text-white">Duration</p>
-                  <p className="text-sm">1:38</p>
+                  <p className="text-sm">{formatTime(elapsedTime)}</p>
                 </div>
               </div>
               <p className="text-white/60 mt-2">Aim for 900+ effort score to earn 50+ SPIN tokens!</p>
               <div className="mt-3 flex items-center justify-between text-white/60">
                 <span>Current SPIN Earned:</span>
-                <span className="font-bold text-amber-400">0 SPIN</span>
+                <span className="font-bold text-amber-400">{spinEarned} SPIN</span>
               </div>
+              <p className="text-white/40 text-[10px] mt-1">Claim rewards after your ride to receive SPIN tokens.</p>
             </div>
           </>
         )}
