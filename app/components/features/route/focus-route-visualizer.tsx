@@ -1,618 +1,699 @@
 "use client";
 
-import { useMemo, useRef, useEffect } from "react";
+import { useId, useMemo, type CSSProperties } from "react";
 import type { StoryBeat } from "@/app/routes/builder/gpx-uploader";
+import { useViewport } from "@/app/lib/responsive";
+import { AVATARS, EQUIPMENT } from "../../../lib/selection-library";
+import type { IntervalPhase } from "../../../lib/workout-plan";
+import type { RiderStats } from "./route-visualizer";
+import { StreetViewPreview } from "./street-view-preview";
+import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-theme";
 
-// Power zone definitions (standard cycling zones)
-const POWER_ZONES = {
-  1: { color: "#3b82f6", label: "Recovery" },      // Blue
-  2: { color: "#22c55e", label: "Endurance" },     // Green
-  3: { color: "#eab308", label: "Tempo" },         // Yellow
-  4: { color: "#f97316", label: "Threshold" },     // Orange
-  5: { color: "#ef4444", label: "VO2 Max" },       // Red
-} as const;
-
-type PowerZone = keyof typeof POWER_ZONES;
+type RouteCoordinate = {
+  lat: number;
+  lng: number;
+  ele?: number | null;
+};
 
 type Props = {
   elevationProfile: number[];
-  progress: number; // 0..1
+  progress: number;
   storyBeats: StoryBeat[];
   className?: string;
-  // Enhanced props for effort visualization
-  currentPower?: number; // Current watts
-  powerZones?: PowerZone[]; // Zone for each elevation point
-  recentPower?: number[]; // Last N power readings for line width
-  ftp?: number; // Functional threshold power for zone calculation
+  currentPower?: number;
+  recentPower?: number[];
+  ftp?: number;
+  theme?: VisualizerTheme;
+  stats?: RiderStats;
+  avatarId?: string;
+  equipmentId?: string;
+  routeName?: string;
+  routeStartCoordinate?: RouteCoordinate | null;
+  currentCoordinate?: RouteCoordinate | null;
+  intervalPhase?: IntervalPhase | null;
 };
 
-/**
- * FocusRouteVisualizer (2D)
- *
- * Mobile-first alternative to WebGL. Designed for:
- * - low battery usage
- * - low CPU/GPU load
- * - clear workout feedback (progress + beats)
- * 
- * Enhanced with:
- * - Animated rider avatar
- * - Power zone coloring
- * - Effort-based line width
- * - Completed section dimming
- * - Upcoming terrain preview
- */
+const POWER_ZONES = [
+  { maxRatio: 0.55, color: "#60a5fa", label: "Recovery" },
+  { maxRatio: 0.75, color: "#34d399", label: "Endurance" },
+  { maxRatio: 0.9, color: "#facc15", label: "Tempo" },
+  { maxRatio: 1.05, color: "#fb923c", label: "Threshold" },
+  { maxRatio: Number.POSITIVE_INFINITY, color: "#f87171", label: "VO2" },
+] as const;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getPowerZone(power: number, ftp: number) {
+  const ratio = ftp > 0 ? power / ftp : 0;
+  return POWER_ZONES.find((zone) => ratio <= zone.maxRatio) ?? POWER_ZONES[POWER_ZONES.length - 1];
+}
+
+function samplePoints(points: Array<{ x: number; y: number }>, count: number, scale: number, baseline: number) {
+  const stride = Math.max(1, Math.floor(points.length / count));
+  return points.filter((_, index) => index % stride === 0).map((point, index) => ({
+    x: point.x,
+    y: baseline + (point.y - baseline) * scale + Math.sin(index * 0.8) * 6,
+  }));
+}
+
+function BeatGlyph({
+  theme,
+  beatType,
+  color,
+  isActive,
+}: {
+  theme: VisualizerTheme;
+  beatType: StoryBeat["type"];
+  color: string;
+  isActive: boolean;
+}) {
+  const strokeWidth = isActive ? 2.2 : 1.8;
+  const inner =
+    beatType === "sprint" ? (
+      <path d="M -2 -5 L 2 -1 L -1 -1 L 3 5" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    ) : beatType === "climb" ? (
+      <path d="M -5 4 L -1 -2 L 1 1 L 5 -5" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    ) : beatType === "rest" ? (
+      <circle cx="0" cy="0" r="3.2" fill="white" fillOpacity="0.92" />
+    ) : (
+      <path d="M -4 0 L 0 -4 L 4 0 L 0 4 Z" fill="white" fillOpacity="0.92" />
+    );
+
+  if (theme === "neon") {
+    return (
+      <g>
+        <rect x="-9" y="-9" width="18" height="18" rx="4" transform="rotate(45)" fill={`${color}30`} stroke={color} strokeWidth={strokeWidth} />
+        {inner}
+      </g>
+    );
+  }
+
+  if (theme === "alpine") {
+    return (
+      <g>
+        <path d="M 0 -11 L 10 8 L -10 8 Z" fill={`${color}35`} stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" />
+        {inner}
+      </g>
+    );
+  }
+
+  if (theme === "mars") {
+    return (
+      <g>
+        <circle cx="0" cy="0" r="9" fill={`${color}20`} stroke={color} strokeWidth={strokeWidth} />
+        <ellipse cx="0" cy="0" rx="12" ry="5" fill="none" stroke={`${color}99`} strokeWidth="1.2" />
+        {inner}
+      </g>
+    );
+  }
+
+  if (theme === "anime") {
+    return (
+      <g>
+        <circle cx="0" cy="0" r="9" fill={`${color}28`} stroke={color} strokeWidth={strokeWidth} />
+        <path d="M 0 -12 L 3 -3 L 12 0 L 3 3 L 0 12 L -3 3 L -12 0 L -3 -3 Z" fill={`${color}30`} stroke={color} strokeWidth="1.2" />
+        {inner}
+      </g>
+    );
+  }
+
+  return (
+    <g>
+      <path d="M 0 -11 L 10 0 L 0 11 L -10 0 Z" fill={`${color}26`} stroke={color} strokeWidth={strokeWidth} />
+      <path d="M -7 0 L 0 -7 L 7 0 L 0 7 Z" fill="none" stroke={`${color}aa`} strokeWidth="1.2" />
+      {inner}
+    </g>
+  );
+}
+
 export default function FocusRouteVisualizer({
   elevationProfile,
   progress,
   storyBeats,
   className = "",
-  currentPower,
-  powerZones,
+  currentPower = 0,
   recentPower,
-  ftp = 200, // Default FTP for demo
+  ftp = 200,
+  theme = "neon",
+  stats = { hr: 0, power: 0, cadence: 0 },
+  avatarId,
+  equipmentId,
+  routeName = "Focus Route",
+  routeStartCoordinate,
+  currentCoordinate,
+  intervalPhase = null,
 }: Props) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const riderRef = useRef<SVGGElement>(null);
+  const viewport = useViewport();
+  const gradientId = useId().replace(/:/g, "");
+  const styles = THEMES[theme];
+  const avatar = useMemo(() => AVATARS.find((item) => item.id === avatarId), [avatarId]);
+  const equipment = useMemo(() => EQUIPMENT.find((item) => item.id === equipmentId), [equipmentId]);
 
-  // Calculate path data and points
-  const { pathD, points, min, max, pathElement, width, height, isDesktop } = useMemo(() => {
-    const values = elevationProfile.length > 0 ? elevationProfile : [0];
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const range = Math.max(1, max - min);
+  const width = Math.max(360, viewport.width);
+  const height = Math.max(320, viewport.height);
+  const padX = Math.max(24, width * 0.05);
+  const routeTop = height * 0.24;
+  const routeBottom = height * 0.78;
+  const horizonY = height * 0.42;
+  const values = useMemo(() => (elevationProfile.length > 0 ? elevationProfile : [0]), [elevationProfile]);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = Math.max(1, max - min);
+  const clampedProgress = clamp(progress, 0, 1);
+  const displayedPower = currentPower || stats.power || 0;
+  const powerTrend = useMemo(() => {
+    if (!recentPower || recentPower.length < 2) return 0;
+    const first = recentPower[0] ?? 0;
+    const last = recentPower[recentPower.length - 1] ?? 0;
+    return last - first;
+  }, [recentPower]);
+  const avgRecentPower = useMemo(() => {
+    if (!recentPower || recentPower.length === 0) return displayedPower;
+    return recentPower.reduce((sum, sample) => sum + sample, 0) / recentPower.length;
+  }, [displayedPower, recentPower]);
+  const effortRatio = ftp > 0 ? avgRecentPower / ftp : 0;
+  const routeStroke = clamp(18 + effortRatio * 10, 18, 30);
+  const routeHalo = clamp(28 + effortRatio * 18, 28, 48);
+  const currentZone = getPowerZone(displayedPower, ftp);
 
-    // Adaptive dimensions based on container size
-    const containerWidth = 1000; // Default mobile width
-    const containerHeight = 160; // Default mobile height
-    const pad = 12;
-
-    // Calculate responsive dimensions
-    const isDesktop = window.innerWidth > 768;
-    const width = isDesktop ? Math.min(1400, window.innerWidth * 0.8) : containerWidth;
-    const height = isDesktop ? 200 : containerHeight;
-
-    const step = (width - pad * 2) / Math.max(1, values.length - 1);
-    const points = values.map((v, i) => {
-      const x = pad + i * step;
-      const t = (v - min) / range;
-      const y = height - pad - t * (height - pad * 2);
-      return { x, y, elevation: v };
+  const points = useMemo(() => {
+    const step = values.length > 1 ? (width - padX * 2) / (values.length - 1) : 0;
+    return values.map((value, index) => {
+      const x = padX + index * step;
+      const normalized = (value - min) / range;
+      const y = routeBottom - normalized * (routeBottom - routeTop);
+      return { x, y, elevation: value };
     });
+  }, [min, padX, range, routeBottom, routeTop, values, width]);
 
-    const pathD = `M ${points.map((p) => `${p.x},${p.y}`).join(" L ")}`;
+  const routePath = useMemo(
+    () => `M ${points.map((point) => `${point.x},${point.y}`).join(" L ")}`,
+    [points],
+  );
+  const routeFillPath = useMemo(
+    () => `${routePath} L ${width - padX},${height} L ${padX},${height} Z`,
+    [height, padX, routePath, width],
+  );
+  const terrainBack = useMemo(() => {
+    const sampled = samplePoints(points, 18, styles.terrainBackScale, horizonY);
+    return `M ${padX},${height} L ${sampled.map((point) => `${point.x},${point.y}`).join(" L ")} L ${width - padX},${height} Z`;
+  }, [height, horizonY, padX, points, styles.terrainBackScale, width]);
+  const terrainFront = useMemo(() => {
+    const sampled = samplePoints(points, 24, styles.terrainFrontScale, horizonY + 40);
+    return `M ${padX},${height} L ${sampled.map((point) => `${point.x},${point.y}`).join(" L ")} L ${width - padX},${height} Z`;
+  }, [height, horizonY, padX, points, styles.terrainFrontScale, width]);
 
-    return { pathD, points, min, max, pathElement: pathD, width, height, isDesktop };
-  }, [elevationProfile]);
-
-  const clampedProgress = Math.min(1, Math.max(0, progress));
-
-  // Calculate rider position along path
   const riderPosition = useMemo(() => {
-    const index = Math.floor(clampedProgress * (points.length - 1));
+    const index = Math.floor(clampedProgress * Math.max(0, points.length - 1));
     const nextIndex = Math.min(index + 1, points.length - 1);
-    const localProgress = (clampedProgress * (points.length - 1)) - index;
-
-    const current = points[index];
-    const next = points[nextIndex];
-
-    if (!current || !next) return { x: 12, y: 80, rotation: 0 };
-
+    const localProgress = clamp(clampedProgress * Math.max(0, points.length - 1) - index, 0, 1);
+    const current = points[index] ?? { x: padX, y: routeBottom };
+    const next = points[nextIndex] ?? current;
     const x = current.x + (next.x - current.x) * localProgress;
     const y = current.y + (next.y - current.y) * localProgress;
-
-    // Calculate slope for rider rotation
-    const dx = next.x - current.x;
-    const dy = next.y - current.y;
-    const rotation = (Math.atan2(dy, dx) * 180) / Math.PI;
-
+    const rotation = (Math.atan2(next.y - current.y, Math.max(1, next.x - current.x)) * 180) / Math.PI;
     return { x, y, rotation };
-  }, [points, clampedProgress]);
+  }, [clampedProgress, padX, points, routeBottom]);
 
-  // Calculate effort-based line width
-  const avgRecentPower = useMemo(() => {
-    if (!recentPower || recentPower.length === 0) return null;
-    return recentPower.reduce((a, b) => a + b, 0) / recentPower.length;
-  }, [recentPower]);
+  const beatMarkers = useMemo(
+    () =>
+      storyBeats.map((beat) => {
+        const x = padX + beat.progress * (width - padX * 2);
+        const beatIndex = Math.min(points.length - 1, Math.max(0, Math.round(beat.progress * Math.max(0, points.length - 1))));
+        const pathPoint = points[beatIndex] ?? { y: routeBottom };
+        const color =
+          beat.type === "sprint"
+            ? "#fb7185"
+            : beat.type === "climb"
+              ? "#facc15"
+              : beat.type === "rest"
+                ? "#60a5fa"
+                : styles.lineColor;
+        return {
+          ...beat,
+          x,
+          y: Math.max(routeTop + 18, pathPoint.y - 52),
+          color,
+          isActive: Math.abs(beat.progress - clampedProgress) < 0.02,
+          isPassed: beat.progress < clampedProgress,
+        };
+      }),
+    [clampedProgress, padX, points, routeBottom, routeTop, storyBeats, styles.lineColor, width],
+  );
 
-  const effortWidth = useMemo(() => {
-    if (!avgRecentPower || !ftp) return 4;
-    const intensity = avgRecentPower / ftp;
-    // Width ranges from 4 (base) to 12 (max effort)
-    return Math.min(12, 4 + intensity * 8);
-  }, [avgRecentPower, ftp]);
-
-  // Generate segmented path for zone coloring
-  const zoneSegments = useMemo(() => {
-    if (!powerZones || powerZones.length === 0) return null;
-
-    const segments: { d: string; color: string }[] = [];
-    
-    for (let i = 0; i < points.length - 1; i++) {
-      const start = points[i];
-      const end = points[i + 1];
-      const zone = powerZones[i] || 2; // Default to endurance
-      const color = POWER_ZONES[zone]?.color || POWER_ZONES[2].color;
-      
-      segments.push({
-        d: `M ${start.x},${start.y} L ${end.x},${end.y}`,
-        color,
-      });
-    }
-
-    return segments;
-  }, [points, powerZones]);
-
-  // Animate rider using CSS transforms (60fps friendly)
-  useEffect(() => {
-    if (riderRef.current) {
-      const { x, y, rotation } = riderPosition;
-      riderRef.current.style.transform = `translate(${x}px, ${y}px) rotate(${rotation}deg)`;
-    }
-  }, [riderPosition]);
-
-  // Calculate completion mask
-  const completionWidth = clampedProgress * (1000 - 24);
-  const upcomingStart = Math.min(1, clampedProgress + 0.1) * (1000 - 24);
-
-  // Get current zone for display
-  const currentZoneIndex = Math.floor(clampedProgress * (powerZones?.length || 1));
-  const currentZone = powerZones?.[currentZoneIndex];
-  const currentZoneColor = currentZone ? POWER_ZONES[currentZone]?.color : null;
+  const nextBeat = beatMarkers.find((beat) => beat.progress >= clampedProgress) ?? beatMarkers[beatMarkers.length - 1];
+  const currentSlope = useMemo(() => {
+    const index = Math.min(points.length - 2, Math.max(0, Math.floor(clampedProgress * Math.max(1, points.length - 1))));
+    const current = points[index];
+    const next = points[index + 1];
+    if (!current || !next) return 0;
+    return ((current.elevation - next.elevation) / Math.max(1, next.x - current.x)) * 120;
+  }, [clampedProgress, points]);
+  const completionWidth = padX + clampedProgress * (width - padX * 2);
+  const routePreviewCoordinate = routeStartCoordinate ?? currentCoordinate ?? null;
+  const nextBeatDistance = nextBeat ? Math.max(0, Math.round((nextBeat.progress - clampedProgress) * 100)) : 0;
+  const horizonPatternOpacity = clamp(styles.patternOpacity + effortRatio * 0.04, styles.patternOpacity, styles.patternOpacity + 0.08);
+  const isGridTheme = styles.atmosphere === "grid" || styles.atmosphere === "prism";
+  const isMistTheme = styles.atmosphere === "mist";
+  const isDustTheme = styles.atmosphere === "dust";
+  const isSunTheme = styles.atmosphere === "sun";
+  const isPrismTheme = styles.atmosphere === "prism";
+  const roadDashStroke = theme === "anime" ? "rgba(255,255,255,0.82)" : "rgba(255,255,255,0.14)";
+  const routeBaseStroke = theme === "anime" ? `${styles.roadColor}f5` : `url(#${gradientId}-route-base)`;
+  const beatPulseDuration = clamp(60 / Math.max(stats.cadence || 72, 48), 0.42, 1.1);
+  const routeSyncStyle = {
+    ["--focus-route-duration" as string]: `${beatPulseDuration}s`,
+    ["--focus-route-delay" as string]: "-0.08s",
+  } as CSSProperties;
+  const phaseAccent =
+    intervalPhase === "sprint"
+      ? "#fb7185"
+      : intervalPhase === "recovery" || intervalPhase === "cooldown"
+        ? "#60a5fa"
+        : intervalPhase === "interval"
+          ? "#f97316"
+          : intervalPhase === "warmup"
+            ? "#34d399"
+            : currentZone.color;
+  const primaryMetric =
+    intervalPhase === "sprint"
+      ? { label: "Cadence", value: `${Math.round(stats.cadence)}`, unit: "rpm" }
+      : intervalPhase === "recovery" || intervalPhase === "cooldown"
+        ? { label: "Heart Rate", value: `${Math.round(stats.hr)}`, unit: "bpm" }
+        : { label: "Power", value: `${Math.round(displayedPower)}`, unit: "watts" };
+  const secondaryMetric =
+    intervalPhase === "sprint"
+      ? { label: "Power", value: `${Math.round(displayedPower)}`, unit: "watts" }
+      : intervalPhase === "recovery" || intervalPhase === "cooldown"
+        ? { label: "Cadence", value: `${Math.round(stats.cadence)}`, unit: "rpm" }
+        : { label: "Heart Rate", value: `${Math.round(stats.hr)}`, unit: "bpm" };
+  const tertiaryMetric =
+    intervalPhase === "warmup"
+      ? { label: "Trend", value: `${powerTrend >= 0 ? "+" : ""}${Math.round(powerTrend)}`, unit: "W" }
+      : { label: "Zone", value: currentZone.label, unit: "target" };
+  const phaseLabel = intervalPhase ? intervalPhase.charAt(0).toUpperCase() + intervalPhase.slice(1) : "Cruise";
 
   return (
-    <div className={`relative w-full overflow-hidden rounded-2xl bg-black ${className}`}>
-      {/* 2D SVG */}
-      <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet">
+    <div
+      className={`relative w-full overflow-hidden rounded-2xl bg-black ${className}`}
+      style={{
+        background: `linear-gradient(180deg, ${styles.skyTop} 0%, ${styles.skyBottom} 50%, #030712 100%)`,
+      }}
+    >
+      <div className="focus-aurora absolute -left-[10%] top-[-12%] h-[58%] w-[72%] rounded-full blur-3xl"
+        style={{ background: `radial-gradient(circle, ${styles.horizonGlow}44 0%, transparent 68%)` }}
+      />
+      <div className="focus-aurora absolute right-[-18%] top-[8%] h-[44%] w-[58%] rounded-full blur-3xl"
+        style={{ background: `radial-gradient(circle, ${currentZone.color}2f 0%, transparent 66%)`, animationDelay: "-6s" }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(circle at 50% 35%, ${styles.horizonGlow}55 0%, transparent 42%)`,
+        }}
+      />
+      {isGridTheme ? (
+        <>
+          <div
+            className="focus-scanline absolute inset-0 opacity-30"
+            style={{
+              backgroundImage: `linear-gradient(90deg, transparent 0%, ${styles.horizonGlow}1c 40%, ${styles.horizonGlow}30 50%, ${styles.horizonGlow}1c 60%, transparent 100%)`,
+              mixBlendMode: "screen",
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `linear-gradient(rgba(255,255,255,${horizonPatternOpacity}) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,${horizonPatternOpacity * 0.8}) 1px, transparent 1px)`,
+              backgroundSize: `${Math.max(44, width * 0.045)}px ${Math.max(44, width * 0.045)}px`,
+              maskImage: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.9) 32%, rgba(0,0,0,0.95) 78%, transparent 100%)",
+              opacity: styles.patternOpacity,
+            }}
+          />
+        </>
+      ) : null}
+      {isMistTheme ? (
+        <>
+          <div className="focus-aurora absolute left-[-8%] top-[18%] h-28 w-[42%] rounded-full blur-3xl"
+            style={{ background: "rgba(255,255,255,0.18)", animationDuration: "20s" }}
+          />
+          <div className="focus-aurora absolute right-[-6%] top-[26%] h-24 w-[36%] rounded-full blur-3xl"
+            style={{ background: "rgba(255,255,255,0.14)", animationDelay: "-10s", animationDuration: "22s" }}
+          />
+        </>
+      ) : null}
+      {isDustTheme ? (
+        <>
+          <div className="focus-aurora absolute right-[10%] top-[14%] h-40 w-40 rounded-full blur-2xl"
+            style={{ background: `${styles.horizonGlow}44`, animationDuration: "18s" }}
+          />
+          <div className="absolute inset-x-0 top-[18%] h-28 opacity-40"
+            style={{ background: `linear-gradient(180deg, ${styles.horizonGlow}22 0%, transparent 100%)` }}
+          />
+        </>
+      ) : null}
+      {isSunTheme ? (
+        <div className="absolute left-1/2 top-[12%] h-36 w-36 -translate-x-1/2 rounded-full blur-sm"
+          style={{ background: `radial-gradient(circle, rgba(255,255,255,0.92) 0%, ${styles.horizonGlow}88 30%, transparent 72%)` }}
+        />
+      ) : null}
+      {isPrismTheme ? (
+        <div
+          className="focus-scanline absolute inset-0 opacity-30"
+          style={{
+            backgroundImage: `linear-gradient(120deg, transparent 0%, ${styles.lineColor}26 22%, transparent 36%, ${styles.horizonGlow}26 50%, transparent 64%, ${currentZone.color}20 78%, transparent 100%)`,
+            mixBlendMode: "screen",
+          }}
+        />
+      ) : null}
+
+      <svg viewBox={`0 0 ${width} ${height}`} className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
         <defs>
-          {/* Gradients */}
-          <linearGradient id="focusStroke" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#22c55e" />
-            <stop offset="50%" stopColor="#eab308" />
-            <stop offset="100%" stopColor="#ef4444" />
+          <linearGradient id={`${gradientId}-route-base`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={`${styles.roadColor}ee`} />
+            <stop offset="100%" stopColor={`${styles.terrainAccent}ee`} />
           </linearGradient>
-
-          <linearGradient id="focusFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+          <linearGradient id={`${gradientId}-route-line`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={styles.lineColor} />
+            <stop offset="50%" stopColor={currentZone.color} />
+            <stop offset="100%" stopColor={styles.riderColor} />
           </linearGradient>
-
-          <linearGradient id="upcomingGlow" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0" />
-            <stop offset="50%" stopColor="#8b5cf6" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+          <linearGradient id={`${gradientId}-terrain-back`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={`${styles.terrainAccent}55`} />
+            <stop offset="100%" stopColor={`${styles.terrainColor}00`} />
           </linearGradient>
-
-          {/* Glow filter for effort visualization */}
-          <filter id="effortGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
+          <linearGradient id={`${gradientId}-terrain-front`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={`${styles.terrainColor}ee`} />
+            <stop offset="100%" stopColor="#020617" />
+          </linearGradient>
+          <linearGradient id={`${gradientId}-fill`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={`${styles.horizonGlow}44`} />
+            <stop offset="100%" stopColor={`${styles.terrainColor}00`} />
+          </linearGradient>
+          <linearGradient id={`${gradientId}-progress`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={styles.lineColor} />
+            <stop offset="100%" stopColor={currentZone.color} />
+          </linearGradient>
+          <filter id={`${gradientId}-glow`} x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="10" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-
-          {/* Clip path for completed section */}
-          <clipPath id="completedClip">
-            <rect x="0" y="0" width={completionWidth + 12} height="160" />
-          </clipPath>
-
-          <clipPath id="upcomingClip">
-            <rect x={upcomingStart + 12} y="0" width={100} height="160" />
+          <clipPath id={`${gradientId}-progress-clip`}>
+            <rect x="0" y="0" width={completionWidth} height={height} />
           </clipPath>
         </defs>
 
-        {/* Background */}
-        <rect x="0" y="0" width="1000" height="160" fill="#000" />
+        <path d={terrainBack} fill={`url(#${gradientId}-terrain-back)`} />
+        <path d={terrainFront} fill={`url(#${gradientId}-terrain-front)`} />
 
-        {/* Area fill */}
-        <path d={`${pathD} L 988,148 L 12,148 Z`} fill="url(#focusFill)" />
-
-        {/* Completed section (dimmed) */}
-        {completionWidth > 0 && (
-          <path
-            d={pathD}
-            fill="none"
-            stroke="#4b5563"
-            strokeWidth={effortWidth}
-            strokeLinejoin="round"
-            strokeOpacity="0.4"
-            clipPath="url(#completedClip)"
-          />
-        )}
-
-        {/* Zone-colored segments (active section) */}
-        {zoneSegments ? (
-          zoneSegments.map((seg, i) => {
-            const segProgress = i / zoneSegments.length;
-            const isCompleted = segProgress < clampedProgress;
-            const isUpcoming = segProgress > clampedProgress + 0.1;
-            
-            if (isCompleted || isUpcoming) return null;
-
-            return (
-              <path
-                key={i}
-                d={seg.d}
-                fill="none"
-                stroke={seg.color}
-                strokeWidth={effortWidth}
-                strokeLinecap="round"
-                filter={avgRecentPower && avgRecentPower > ftp * 1.2 ? "url(#effortGlow)" : undefined}
-              />
-            );
-          })
-        ) : (
-          /* Fallback: gradient stroke when no zone data */
-          <path
-            d={pathD}
-            fill="none"
-            stroke="url(#focusStroke)"
-            strokeWidth={effortWidth}
-            strokeLinejoin="round"
-            style={{
-              clipPath: `inset(0 ${100 - clampedProgress * 100}% 0 0)`,
-            }}
-          />
-        )}
-
-        {/* Upcoming terrain glow */}
-        <rect
-          x={upcomingStart + 12}
-          y="0"
-          width="100"
-          height="160"
-          fill="url(#upcomingGlow)"
-          style={{ mixBlendMode: "screen" }}
-        />
-
-        {/* Story beats with enhanced gamification */}
-        {storyBeats.map((beat, idx) => {
-          const x = 12 + beat.progress * (1000 - 24);
-          const isCompleted = beat.progress < clampedProgress;
-          const isCurrent = Math.abs(beat.progress - clampedProgress) < 0.02;
-          const color =
-            beat.type === "sprint"
-              ? "#ef4444"
-              : beat.type === "climb"
-                ? "#eab308"
-                : beat.type === "rest"
-                  ? "#60a5fa"
-                  : "#a78bfa";
-
-          // Enhanced visual feedback for achievements
-          const beatSize = isCurrent ? 8 : isCompleted ? 4 : 6;
-          const beatOpacity = isCurrent ? 1 : isCompleted ? 0.3 : 0.9;
-          const lineOpacity = isCompleted ? 0.05 : 0.2;
-
-          // Achievement badge for completed beats
-          const showBadge = isCompleted && beat.progress < clampedProgress - 0.05;
-
+        {Array.from({ length: theme === "anime" ? 4 : 6 }).map((_, index) => {
+          const y = horizonY + index * ((height - horizonY) / 7);
           return (
-            <g key={`${beat.progress}-${idx}`} opacity={isCompleted ? 0.3 : 1}>
-              {/* Achievement badge for completed beats */}
-              {showBadge && (
-                <g opacity={0.8}>
-                  <circle
-                    cx={x}
-                    cy={30}
-                    r="12"
-                    fill="url(#achievementGradient)"
-                    className="transition-all duration-300"
-                  />
-                  <text
-                    x={x}
-                    y={34}
-                    textAnchor="middle"
-                    fill="white"
-                    fontSize="10"
-                    fontWeight="bold"
-                    className="text-white/90"
-                  >
-                    🏆
-                  </text>
-                </g>
-              )}
-
-              {/* Main beat indicator */}
-              <line
-                x1={x}
-                y1={18}
-                x2={x}
-                y2={150}
-                stroke={color}
-                strokeOpacity={lineOpacity}
-                strokeWidth="2"
-                className="transition-opacity duration-300"
-              />
-              <circle
-                cx={x}
-                cy={18}
-                r={beatSize}
-                fill={color}
-                fillOpacity={beatOpacity}
-                className="transition-all duration-300"
-              />
-
-              {/* Current beat highlight */}
-              {isCurrent && (
-                <g className="animate-pulse">
-                  <circle
-                    cx={x}
-                    cy={18}
-                    r="10"
-                    fill="none"
-                    stroke={color}
-                    strokeWidth="2"
-                    opacity="0.3"
-                  />
-                  <text
-                    x={x}
-                    y={34}
-                    textAnchor="middle"
-                    fill={color}
-                    fontSize="10"
-                    fontWeight="bold"
-                    className="text-white/90"
-                  >
-                    {beat.label}
-                  </text>
-                </g>
-              )}
-            </g>
+            <line
+              key={index}
+              x1={0}
+              y1={y}
+              x2={width}
+              y2={y}
+              stroke={theme === "anime" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.06)"}
+              strokeDasharray={`${Math.max(24, width * 0.02)} ${Math.max(14, width * 0.012)}`}
+            />
           );
         })}
 
-        {/* Achievement gradient */}
-        <defs>
-          <linearGradient id="achievementGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ffeb3b" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#ff9800" stopOpacity="0.8" />
-          </linearGradient>
-        </defs>
+        <path d={routeFillPath} fill={`url(#${gradientId}-fill)`} />
+        <path
+          d={routePath}
+          fill="none"
+          stroke="rgba(15,23,42,0.9)"
+          strokeWidth={routeHalo}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d={routePath}
+          fill="none"
+          stroke={routeBaseStroke}
+          strokeWidth={routeStroke}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d={routePath}
+          fill="none"
+          stroke={roadDashStroke}
+          strokeWidth={Math.max(2, routeStroke * 0.08)}
+          strokeDasharray={`${Math.max(18, width * 0.018)} ${Math.max(12, width * 0.012)}`}
+          strokeLinecap="round"
+          opacity={styles.routeDashOpacity}
+        />
+        <path
+          d={routePath}
+          fill="none"
+          stroke={`url(#${gradientId}-progress)`}
+          strokeWidth={Math.max(5, routeStroke * 0.33)}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          filter={`url(#${gradientId}-glow)`}
+          clipPath={`url(#${gradientId}-progress-clip)`}
+          className="focus-route-sync"
+          style={routeSyncStyle}
+        />
 
-        {/* Progress bar background */}
-        <rect x="12" y="154" width={1000 - 24} height="4" rx="2" fill="#374151" />
+        {beatMarkers.map((beat, index) => {
+          const beatDistance = Math.abs(beat.progress - clampedProgress);
+          const isApproaching = beat.progress >= clampedProgress && beatDistance <= 0.12;
+          const syncScale = clamp(1.22 - beatDistance * 3.4, 0.94, 1.24);
+          const syncOpacity = clamp(1 - beatDistance * 4.6, 0.26, 0.94);
+          const syncClass = beat.isActive || isApproaching ? "focus-beat-sync" : theme === "anime" || theme === "rainbow" ? "focus-float" : undefined;
 
-        {/* Enhanced progress bar with gamification */}
-        <g>
-          {/* Progress fill with gradient */}
-          <rect
-            x="12"
-            y="154"
-            width={completionWidth}
-            height="4"
-            rx="2"
-            fill="url(#progressGradient)"
-            className="transition-all duration-300"
-          />
-
-          {/* Progress milestones */}
-          {[0.25, 0.5, 0.75, 1].map((milestone, i) => {
-            const milestoneX = 12 + milestone * (1000 - 24);
-            const isCompleted = clampedProgress >= milestone;
-            const showMilestone = isCompleted || clampedProgress > milestone - 0.1;
-
-            if (!showMilestone) return null;
-
-            return (
-              <g key={i} opacity={isCompleted ? 1 : 0.5}>
-                <line
-                  x1={milestoneX}
-                  y1="154"
-                  x2={milestoneX}
-                  y2="158"
-                  stroke={isCompleted ? "#8b5cf6" : "#374151"}
-                  strokeWidth="2"
-                  className="transition-opacity duration-300"
-                />
-                {isCompleted && (
-                  <text
-                    x={milestoneX}
-                    y="148"
-                    textAnchor="middle"
-                    fill="#8b5cf6"
-                    fontSize="9"
-                    fontWeight="bold"
-                    className="text-white/90"
-                  >
-                    {i === 0 ? "25%" : i === 1 ? "50%" : i === 2 ? "75%" : "100%"}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </g>
-
-        {/* Progress gradient */}
-        <defs>
-          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#8b5cf6" />
-            <stop offset="50%" stopColor="#6366f1" />
-            <stop offset="100%" stopColor="#ec4899" />
-          </linearGradient>
-        </defs>
-
-        {/* Enhanced labels with gamification */}
-        <g className="transition-opacity duration-300">
-          {/* Min/Max labels */}
-          <text x="12" y="18" fill="rgba(255,255,255,0.7)" fontSize="12">
-            {Math.round(min)}m
-          </text>
-          <text x="988" y="18" textAnchor="end" fill="rgba(255,255,255,0.7)" fontSize="12">
-            {Math.round(max)}m
-          </text>
-
-          {/* Achievement milestones */}
-          {clampedProgress >= 0.25 && (
-            <g opacity={clampedProgress >= 0.25 ? 1 : 0.5}>
-              <circle
-                cx="250"
-                cy="30"
-                r="6"
-                fill="url(#achievementGradient)"
-                className="transition-all duration-300"
-              />
-              <text
-                x="250"
-                y="34"
-                textAnchor="middle"
-                fill="white"
-                fontSize="9"
-                fontWeight="bold"
-                className="text-white/90"
-              >
-                🚀
-              </text>
-            </g>
-          )}
-
-          {clampedProgress >= 0.5 && (
-            <g opacity={clampedProgress >= 0.5 ? 1 : 0.5}>
-              <circle
-                cx="500"
-                cy="30"
-                r="6"
-                fill="url(#achievementGradient)"
-                className="transition-all duration-300"
-              />
-              <text
-                x="500"
-                y="34"
-                textAnchor="middle"
-                fill="white"
-                fontSize="9"
-                fontWeight="bold"
-                className="text-white/90"
-              >
-                🏅
-              </text>
-            </g>
-          )}
-
-          {clampedProgress >= 0.75 && (
-            <g opacity={clampedProgress >= 0.75 ? 1 : 0.5}>
-              <circle
-                cx="750"
-                cy="30"
-                r="6"
-                fill="url(#achievementGradient)"
-                className="transition-all duration-300"
-              />
-              <text
-                x="750"
-                y="34"
-                textAnchor="middle"
-                fill="white"
-                fontSize="9"
-                fontWeight="bold"
-                className="text-white/90"
-              >
-                🔥
-              </text>
-            </g>
-          )}
-
-          {clampedProgress >= 0.95 && (
-            <g opacity={clampedProgress >= 0.95 ? 1 : 0.5}>
-              <circle
-                cx="988"
-                cy="30"
-                r="6"
-                fill="url(#achievementGradient)"
-                className="transition-all duration-300"
-              />
-              <text
-                x="988"
-                y="34"
-                textAnchor="end"
-                fill="white"
-                fontSize="9"
-                fontWeight="bold"
-                className="text-white/90"
-              >
-                🎉
-              </text>
-            </g>
-          )}
-        </g>
-
-        {/* Rider avatar - animated via CSS transforms */}
-        <g
-          ref={riderRef}
-          className="will-change-transform"
-          style={{
-            transform: `translate(${riderPosition.x}px, ${riderPosition.y}px) rotate(${riderPosition.rotation}deg)`,
-            transition: "transform 0.1s linear",
-          }}
-        >
-          {/* Bike/rider icon */}
-          <g transform="translate(-12, -12)">
-            {/* Wheels */}
-            <circle cx="6" cy="18" r="5" fill="none" stroke={currentZoneColor || "#fff"} strokeWidth="2" />
-            <circle cx="18" cy="18" r="5" fill="none" stroke={currentZoneColor || "#fff"} strokeWidth="2" />
-            {/* Frame */}
-            <path
-              d="M6 18 L10 10 L16 10 L18 18 M10 10 L8 6 M16 10 L14 6"
-              fill="none"
-              stroke={currentZoneColor || "#fff"}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          return (
+          <g
+            key={`${beat.progress}-${index}`}
+            opacity={beat.isPassed ? 0.42 : 1}
+            className={syncClass}
+            style={
+              syncClass === "focus-beat-sync"
+                ? ({
+                    ["--focus-beat-duration" as string]: `${beatPulseDuration}s`,
+                    ["--focus-beat-delay" as string]: `${index * -0.06}s`,
+                    transformBox: "fill-box",
+                    transformOrigin: "center",
+                  } as CSSProperties)
+                : undefined
+            }
+          >
+            <line
+              x1={beat.x}
+              y1={beat.y + 10}
+              x2={beat.x}
+              y2={Math.min(routeBottom + 36, beat.y + 78)}
+              stroke={beat.color}
+              strokeOpacity={beat.isActive ? 0.88 : isApproaching ? syncOpacity : 0.28}
+              strokeWidth={beat.isActive ? 2.8 : isApproaching ? 2.1 : 1.5}
             />
-            {/* Rider dot */}
-            <circle cx="11" cy="6" r="3" fill={currentZoneColor || "#fff"} />
+            <g transform={`translate(${beat.x} ${beat.y})`}>
+              {(beat.isActive || isApproaching) && (
+                <circle
+                  cx="0"
+                  cy="0"
+                  r={12 * syncScale}
+                  fill={beat.color}
+                  fillOpacity={beat.isActive ? 0.18 : 0.1}
+                />
+              )}
+              <BeatGlyph theme={theme} beatType={beat.type} color={beat.color} isActive={beat.isActive} />
+            </g>
+            <text
+              x={beat.x}
+              y={beat.y - 16}
+              textAnchor="middle"
+              fill="rgba(255,255,255,0.84)"
+              fontSize={Math.max(10, width * 0.008)}
+              fontWeight="700"
+              opacity={beat.isActive ? 1 : isApproaching ? syncOpacity : 0.84}
+            >
+              {beat.label}
+            </text>
+          </g>
+          );
+        })}
+
+        <g className="focus-float" transform={`translate(${riderPosition.x} ${riderPosition.y}) rotate(${riderPosition.rotation})`}>
+          <circle
+            cx="0"
+            cy="0"
+            r={clamp(20 + stats.cadence * 0.08, 20, 34)}
+            fill={currentZone.color}
+            fillOpacity="0.16"
+            filter={`url(#${gradientId}-glow)`}
+            className="focus-pulse"
+          />
+          <g transform="translate(-16 -16)">
+            <rect x="0" y="8" width="32" height="16" rx="8" fill="rgba(15,23,42,0.9)" stroke={styles.riderColor} strokeWidth="1.5" />
+            <path d="M6 16 L12 8 L20 8 L26 16" fill="none" stroke={currentZone.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="10" cy="22" r="5" fill="none" stroke={styles.riderColor} strokeWidth="1.5" />
+            <circle cx="22" cy="22" r="5" fill="none" stroke={styles.riderColor} strokeWidth="1.5" />
           </g>
         </g>
       </svg>
 
-      {/* Badges */}
-      <div className="absolute bottom-4 left-4 z-10 flex gap-2">
-        <div className="rounded-full bg-black/60 px-3 py-1 text-xs text-white/70 backdrop-blur border border-white/10">
-          <span className="hidden sm:inline">Focus Mode</span>
-          <span className="sm:hidden">2D</span>
-        </div>
-        <div className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs text-emerald-300 backdrop-blur border border-emerald-500/20">
-          <span className="hidden sm:inline">2D</span>
-          <span className="sm:hidden">Mobile</span>
-        </div>
-        {currentZone && (
-          <div
-            className="rounded-full px-3 py-1 text-xs backdrop-blur border"
-            style={{
-              backgroundColor: `${POWER_ZONES[currentZone].color}20`,
-              borderColor: `${POWER_ZONES[currentZone].color}40`,
-              color: POWER_ZONES[currentZone].color,
-            }}
-          >
-            {POWER_ZONES[currentZone].label}
+      <div className="absolute left-4 top-4 z-10 max-w-sm">
+        <div
+          className="rounded-[1.75rem] border border-white/10 px-4 py-4 backdrop-blur-xl shadow-2xl"
+          style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.84) 100%)`, boxShadow: `0 24px 80px ${styles.horizonGlow}18` }}
+        >
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-white/55">
+            <span>Focus View</span>
+            <span className="h-1 w-1 rounded-full bg-white/40" />
+            <span>{styles.worldLabel}</span>
           </div>
-        )}
+          <div className="mt-2 text-xl font-semibold text-white">{routeName}</div>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/72">
+            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1">
+              {avatar?.name ?? "Rider"}
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1">
+              {equipment?.name ?? "Bike"}
+            </span>
+            <span className="rounded-full border px-3 py-1" style={{ borderColor: `${currentZone.color}66`, color: currentZone.color }}>
+              {currentZone.label}
+            </span>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2 text-[11px] text-white/70">
+            <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
+              <div className="uppercase tracking-[0.2em] text-white/35">View</div>
+              <div className="mt-1 text-sm font-semibold text-white">2D Cinema</div>
+            </div>
+            <div
+              className="rounded-2xl border px-3 py-2"
+              style={{ borderColor: `${phaseAccent}30`, background: `${phaseAccent}14` }}
+            >
+              <div className="uppercase tracking-[0.2em] text-white/45">Phase</div>
+              <div className="mt-1 text-sm font-semibold" style={{ color: phaseAccent }}>{phaseLabel}</div>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
+              <div className="uppercase tracking-[0.2em] text-white/35">Target</div>
+              <div className="mt-1 text-sm font-semibold text-white">{tertiaryMetric.value}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Current power display */}
-      {currentPower && (
-        <div className="absolute top-4 right-4 z-10 text-right">
-          <div className="text-2xl font-bold text-white">{Math.round(currentPower)}</div>
-          <div className="text-xs text-white/50">watts</div>
-        </div>
-      )}
-
-      {/* Desktop enhancements */}
-      {isDesktop && (
-        <div className="absolute top-4 left-4 z-10">
-          <div className="rounded-lg bg-black/60 px-4 py-3 backdrop-blur-md border border-white/10">
-            <div className="flex items-center gap-2 mb-2">
-              <svg className="h-4 w-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span className="text-xs text-white/70">Desktop Mode</span>
+      <div className="absolute right-4 top-4 z-10 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-3">
+        <div
+          className="rounded-[1.75rem] border border-white/10 p-4 backdrop-blur-xl shadow-2xl"
+          style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.86) 100%)`, boxShadow: `0 24px 80px ${phaseAccent}20` }}
+        >
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">{primaryMetric.label}</div>
+              <div className="mt-1 text-3xl font-semibold" style={{ color: phaseAccent }}>{primaryMetric.value}</div>
+              <div className="text-xs text-white/55">{primaryMetric.unit}</div>
             </div>
-            <div className="text-xs text-white/50">
-              Enhanced visuals and interactions
+            <div className="text-right text-xs text-white/68">
+              <div>{secondaryMetric.label}: {secondaryMetric.value} {secondaryMetric.unit}</div>
+              <div>{tertiaryMetric.label}: {tertiaryMetric.value}</div>
+              <div className={powerTrend >= 0 ? "text-emerald-300" : "text-rose-300"}>
+                {powerTrend >= 0 ? "+" : ""}
+                {Math.round(powerTrend)} W trend
+              </div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="focus-route-sync h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${clamp(((intervalPhase === "sprint" ? stats.cadence / 120 : displayedPower / Math.max(ftp, 1)) * 100), 0, 100)}%`,
+                  background: `linear-gradient(90deg, ${styles.lineColor} 0%, ${phaseAccent} 100%)`,
+                  ...routeSyncStyle,
+                }}
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-white/45">
+            <span>Energy Lane</span>
+            <span style={{ color: phaseAccent }}>{phaseLabel}</span>
+          </div>
+        </div>
+
+        {routePreviewCoordinate ? (
+          <div
+            className="overflow-hidden rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl"
+            style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.88) 100%)` }}
+          >
+            <StreetViewPreview
+              lat={routePreviewCoordinate.lat}
+              lng={routePreviewCoordinate.lng}
+              width={420}
+              height={180}
+              className="h-40 w-full rounded-none object-cover"
+              alt={`${routeName} street view`}
+            />
+            <div className="grid grid-cols-3 gap-3 px-4 py-3 text-xs text-white/70">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">Grade</div>
+                <div className="mt-1 text-sm font-semibold text-white">{currentSlope >= 0 ? "+" : ""}{currentSlope.toFixed(1)}%</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">Progress</div>
+                <div className="mt-1 text-sm font-semibold text-white">{Math.round(clampedProgress * 100)}%</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">Elevation</div>
+                <div className="mt-1 text-sm font-semibold text-white">{Math.round(currentCoordinate?.ele ?? routeStartCoordinate?.ele ?? min)} m</div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="absolute inset-x-4 bottom-4 z-10">
+        <div
+          className="rounded-[1.75rem] border border-white/10 px-4 py-4 backdrop-blur-xl shadow-2xl"
+          style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.9) 100%)` }}
+        >
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">Route Progress</div>
+              <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="focus-route-sync h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${clamp(clampedProgress * 100, 0, 100)}%`,
+                    background: `linear-gradient(90deg, ${styles.lineColor} 0%, ${currentZone.color} 100%)`,
+                    ...routeSyncStyle,
+                  }}
+                />
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-[11px] text-white/55">
+                <span className="inline-block h-2 w-2 rounded-full focus-pulse" style={{ backgroundColor: currentZone.color }} />
+                <span>{nextBeat ? `${nextBeatDistance}% to ${nextBeat.label}` : "Cruising"}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-xs text-white/72 md:min-w-[20rem]">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">Low</div>
+                <div className="mt-1 text-sm font-semibold text-white">{Math.round(min)} m</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">High</div>
+                <div className="mt-1 text-sm font-semibold text-white">{Math.round(max)} m</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">Next Beat</div>
+                <div className="mt-1 text-sm font-semibold text-white">{nextBeat?.label ?? "Cruise"}</div>
+              </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

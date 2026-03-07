@@ -13,14 +13,14 @@ const RouteVisualizer = dynamic(
 );
 import { RideControls } from "../../../components/features/ride/ride-controls";
 import { RideCompletion } from "../../../components/features/ride/ride-completion";
-import { useDeviceType, useOrientation, useActualViewportHeight } from "../../../lib/responsive";
+import { RideHUD } from "../../../components/features/ride/ride-hud";
+import { useDeviceType, useOrientation, useActualViewportHeight, usePerformanceTier } from "../../../lib/responsive";
 import { useWorkoutAudio } from "../../../hooks/ai/use-workout-audio";
 import { useCoachVoice } from "../../../hooks/common/use-coach-voice";
 import { useAiInstructor } from "../../../hooks/ai/use-ai-instructor";
-import { useRewards, type RewardMode, REWARD_MODES } from "../../../hooks/rewards/use-rewards";
+import { useRewards, type RewardMode } from "../../../hooks/rewards/use-rewards";
 import { useZKClaim } from "../../../hooks/evm/use-zk-claim";
 import { ANALYTICS_EVENTS, trackEvent } from "../../../lib/analytics/events";
-import { YellowRewardTicker } from "../../../components/features/common/yellow-reward-ticker";
 import { DemoCompleteModal } from "../../../components/features/common/demo-complete-modal";
 import {
   type WorkoutPlan,
@@ -135,6 +135,7 @@ export default function LiveRidePage() {
   const deviceType = useDeviceType();
   const orientation = useOrientation();
   const viewportHeight = useActualViewportHeight();
+  const performanceTier = usePerformanceTier();
 
   // Ride state
   const [isRiding, setIsRiding] = useState(false);
@@ -144,6 +145,8 @@ export default function LiveRidePage() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showHUD] = useState(true);
   const [hudMode, setHudMode] = useState<"full" | "compact" | "minimal">("full");
+  const hudModePreferenceRef = useRef<"system" | "stored" | "manual">("system");
+  const viewModePreferenceRef = useRef<"system" | "stored" | "manual">("system");
 
   // Onboarding Tutorial State
   const [showTutorial, setShowTutorial] = useState(false);
@@ -197,6 +200,7 @@ export default function LiveRidePage() {
     try {
       const stored = window.localStorage.getItem("spinchain:ride:hudMode");
       if (stored === "full" || stored === "compact" || stored === "minimal") {
+        hudModePreferenceRef.current = "stored";
         setHudMode(stored);
       }
     } catch {
@@ -204,7 +208,7 @@ export default function LiveRidePage() {
     }
   }, []);
   const [viewMode, setViewMode] = useState<"immersive" | "focus">(
-    deviceType === "mobile" ? "focus" : "immersive"
+    deviceType === "desktop" || performanceTier === "high" ? "immersive" : "focus"
   );
 
   // Persisted preference (client-only)
@@ -212,12 +216,37 @@ export default function LiveRidePage() {
     try {
       const stored = window.localStorage.getItem("spinchain:ride:viewMode");
       if (stored === "focus" || stored === "immersive") {
+        viewModePreferenceRef.current = "stored";
         setViewMode(stored);
       }
     } catch {
       // ignore
     }
   }, []);
+
+  const applyViewMode = (next: "immersive" | "focus", source: "system" | "manual") => {
+    setViewMode(next);
+    viewModePreferenceRef.current = source;
+    if (source === "manual") {
+      try {
+        window.localStorage.setItem("spinchain:ride:viewMode", next);
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const applyHudMode = (next: "full" | "compact" | "minimal", source: "system" | "manual") => {
+    setHudMode(next);
+    hudModePreferenceRef.current = source;
+    if (source === "manual") {
+      try {
+        window.localStorage.setItem("spinchain:ride:hudMode", next);
+      } catch {
+        // ignore
+      }
+    }
+  };
 
   // Accessibility: prefer reduced motion => default to focus mode + minimal HUD
   useEffect(() => {
@@ -229,11 +258,6 @@ export default function LiveRidePage() {
       if (mq.matches) {
         setViewMode("focus");
         setHudMode("minimal");
-        try {
-          window.localStorage.setItem("spinchain:ride:hudMode", "minimal");
-        } catch {
-          // ignore
-        }
       }
     };
 
@@ -262,6 +286,7 @@ export default function LiveRidePage() {
     speed: 0,
     effort: 0,
   });
+  const [recentPowerHistory, setRecentPowerHistory] = useState<number[]>([]);
   const telemetryRawRef = useRef({
     heartRate: 0,
     power: 0,
@@ -276,6 +301,23 @@ export default function LiveRidePage() {
 
   // Telemetry averages for completion screen
   const telemetrySamples = useRef<{ hr: number; power: number; effort: number }[]>([]);
+  const routeCoordinates = useMemo(
+    () => classData?.route?.route.coordinates ?? [],
+    [classData?.route?.route.coordinates],
+  );
+  const routeElevationProfile = useMemo(
+    () => routeCoordinates.map((coordinate) => coordinate.ele || 0),
+    [routeCoordinates],
+  );
+  const routeProgress = isRiding || rideProgress > 0 ? rideProgress / 100 : 0;
+  const currentRouteCoordinate = useMemo(() => {
+    if (routeCoordinates.length === 0) return null;
+    const index = Math.min(
+      routeCoordinates.length - 1,
+      Math.max(0, Math.round(routeProgress * Math.max(0, routeCoordinates.length - 1))),
+    );
+    return routeCoordinates[index] ?? null;
+  }, [routeCoordinates, routeProgress]);
 
   // Rate-limit reward recording to avoid async pressure on mobile
   const lastRewardRecordMsRef = useRef(0);
@@ -370,6 +412,9 @@ export default function LiveRidePage() {
   const intervalRemaining = workoutPlan
     ? getIntervalRemaining(workoutPlan.intervals, elapsedTime)
     : 0;
+  const routeTheme = currentInterval
+    ? PHASE_TO_THEME[currentInterval.phase]
+    : (classData?.metadata?.route.theme as "neon" | "alpine" | "mars" | "anime" | "rainbow") || "neon";
 
   // Track interval transitions for audio cues
   const lastIntervalRef = useRef<number>(-1);
@@ -390,6 +435,11 @@ export default function LiveRidePage() {
 
     return () => clearInterval(id);
   }, [isRiding, deviceType]);
+
+  useEffect(() => {
+    if (telemetry.power <= 0) return;
+    setRecentPowerHistory((previous) => [...previous.slice(-19), telemetry.power]);
+  }, [telemetry.power]);
 
   // Handle BLE metrics updates
   const handleBleMetrics = async (metrics: {
@@ -475,19 +525,23 @@ export default function LiveRidePage() {
     }
   };
 
-  // Auto-adjust HUD + default view mode based on device
+  // Auto-adjust HUD and view mode only while following system defaults.
   useEffect(() => {
-    if (deviceType === "mobile") {
-      setHudMode("compact");
-      // Default to Focus mode on mobile for battery + performance
-      setViewMode("focus");
-    } else if (deviceType === "tablet") {
-      setHudMode(orientation === "portrait" ? "compact" : "full");
-    } else {
-      setHudMode("full");
-      setViewMode("immersive");
+    if (hudModePreferenceRef.current === "system") {
+      if (deviceType === "mobile") {
+        setHudMode("compact");
+      } else if (deviceType === "tablet") {
+        setHudMode(orientation === "portrait" ? "compact" : "full");
+      } else {
+        setHudMode("full");
+      }
     }
-  }, [deviceType, orientation]);
+
+    if (viewModePreferenceRef.current === "system") {
+      const shouldUseImmersive = deviceType === "desktop" || performanceTier === "high";
+      setViewMode(shouldUseImmersive ? "immersive" : "focus");
+    }
+  }, [deviceType, orientation, performanceTier]);
 
   useEffect(() => {
     if (isRiding || rideProgress > 0 || trackedEntryViewRef.current) return;
@@ -695,6 +749,7 @@ export default function LiveRidePage() {
       setIsStarting(false);
       setRideProgress(0);
       setElapsedTime(0);
+      setRecentPowerHistory([]);
       telemetrySamples.current = [];
       lastSpokenBeatRef.current = null;
       lastIntervalRef.current = -1;
@@ -763,15 +818,8 @@ export default function LiveRidePage() {
   };
 
   const cycleHudMode = () => {
-    setHudMode((prev) => {
-      const next = prev === "full" ? "compact" : prev === "compact" ? "minimal" : "full";
-      try {
-        window.localStorage.setItem("spinchain:ride:hudMode", next);
-      } catch {
-        // ignore
-      }
-      return next;
-    });
+    const next = hudMode === "full" ? "compact" : hudMode === "compact" ? "minimal" : "full";
+    applyHudMode(next, "manual");
   };
 
   useEffect(() => {
@@ -820,17 +868,28 @@ export default function LiveRidePage() {
       <div className="absolute inset-0">
         {viewMode === "focus" ? (
           <FocusRouteVisualizer
-            elevationProfile={classData.route.route.coordinates.map((c) => c.ele || 0)}
+            elevationProfile={routeElevationProfile}
             storyBeats={classData.route.route.storyBeats}
-            progress={isRiding || rideProgress > 0 ? rideProgress / 100 : 0}
+            progress={routeProgress}
+            currentPower={telemetry.power}
+            recentPower={recentPowerHistory}
+            ftp={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
+            theme={routeTheme}
+            stats={{ hr: telemetry.heartRate, power: telemetry.power, cadence: telemetry.cadence }}
+            avatarId={searchParams.get("avatarId") || undefined}
+            equipmentId={searchParams.get("equipmentId") || undefined}
+            routeName={classData.metadata?.route.name || classData.name}
+            routeStartCoordinate={routeCoordinates[0] ?? null}
+            currentCoordinate={currentRouteCoordinate}
+            intervalPhase={currentInterval?.phase ?? null}
             className="h-full w-full"
           />
         ) : (
           <RouteVisualizer
-            elevationProfile={classData.route.route.coordinates.map((c) => c.ele || 0)}
-            theme={currentInterval ? PHASE_TO_THEME[currentInterval.phase] : (classData.metadata?.route.theme as 'neon' | 'alpine' | 'mars' | 'anime' | 'rainbow') || "neon"}
+            elevationProfile={routeElevationProfile}
+            theme={routeTheme}
             storyBeats={classData.route.route.storyBeats}
-            progress={isRiding || rideProgress > 0 ? rideProgress / 100 : 0}
+            progress={routeProgress}
             stats={{ hr: telemetry.heartRate, power: telemetry.power, cadence: telemetry.cadence }}
             avatarId={searchParams.get("avatarId") || undefined}
             equipmentId={searchParams.get("equipmentId") || undefined}
@@ -981,9 +1040,16 @@ export default function LiveRidePage() {
                       // ignore
                     }
 
-                    // Re-apply device defaults
-                    setHudMode(deviceType === "mobile" ? "compact" : "full");
-                    setViewMode(deviceType === "mobile" ? "focus" : "immersive");
+                    hudModePreferenceRef.current = "system";
+                    viewModePreferenceRef.current = "system";
+                    applyHudMode(
+                      deviceType === "mobile" ? "compact" : orientation === "portrait" && deviceType === "tablet" ? "compact" : "full",
+                      "system",
+                    );
+                    applyViewMode(
+                      deviceType === "desktop" || performanceTier === "high" ? "immersive" : "focus",
+                      "system",
+                    );
                   }}
                   className="hidden sm:inline-flex rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/60 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
                   aria-label="Reset ride UI preferences"
@@ -996,17 +1062,7 @@ export default function LiveRidePage() {
                 </span>
                 {/* View Mode Toggle */}
                 <button
-                  onClick={() =>
-                    setViewMode((v) => {
-                      const next = v === "immersive" ? "focus" : "immersive";
-                      try {
-                        window.localStorage.setItem("spinchain:ride:viewMode", next);
-                      } catch {
-                        // ignore
-                      }
-                      return next;
-                    })
-                  }
+                  onClick={() => applyViewMode(viewMode === "immersive" ? "focus" : "immersive", "manual")}
                   className="rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
                   aria-label="Toggle view mode"
                 >
@@ -1073,111 +1129,18 @@ export default function LiveRidePage() {
           </div>
 
           {/* Center - Telemetry (Responsive Layout) - Only show when riding */}
-          {hudMode !== "minimal" && (isRiding || rideProgress > 0) && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-3 sm:p-6">
-              {/* Mobile: Single Column */}
-              {deviceType === "mobile" && hudMode === "compact" && (
-                <div className="flex flex-col gap-2 w-full max-w-[200px]">
-                  {/* Yellow Rewards Ticker */}
-                  {rewards.isActive && (
-                    <YellowRewardTicker
-                      streamState={rewards.streamState!}
-                      mode={rewards.mode}
-                      symbol="SPIN"
-                      compact
-                    />
-                  )}
-
-                  {/* Primary Metric - Large */}
-                  <div className="rounded-xl bg-black/70 backdrop-blur-xl border border-white/20 p-4 text-center">
-                    <p className="text-xs uppercase tracking-wider text-white/50 mb-1">Heart Rate</p>
-                    <p className="text-4xl font-bold text-red-400">
-                      {telemetry.heartRate}
-                    </p>
-                  </div>
-
-                  {/* Secondary Metrics - Small */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-lg bg-black/60 backdrop-blur-xl border border-white/10 p-2 text-center">
-                      <p className="text-[10px] sm:text-xs uppercase text-white/40">Power</p>
-                      <p className="text-xl font-bold text-yellow-400">{telemetry.power}</p>
-                    </div>
-                    <div className="rounded-lg bg-black/60 backdrop-blur-xl border border-white/10 p-2 text-center">
-                      <p className="text-[10px] sm:text-xs uppercase text-white/40">RPM</p>
-                      <p className="text-xl font-bold text-blue-400">{telemetry.cadence}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tablet Portrait: 1x4 Column */}
-              {deviceType === "tablet" && orientation === "portrait" && (
-                <div className="flex flex-col gap-3 w-full max-w-xs">
-                  {[
-                    { label: "Heart Rate", value: telemetry.heartRate, unit: "bpm", color: "text-red-400" },
-                    { label: "Power", value: telemetry.power, unit: "W", color: "text-yellow-400" },
-                    { label: "Cadence", value: telemetry.cadence, unit: "rpm", color: "text-blue-400" },
-                    { label: "Speed", value: telemetry.speed.toFixed(1), unit: "km/h", color: "text-green-400" },
-                  ].map((metric) => (
-                    <div key={metric.label} className="rounded-xl bg-black/60 backdrop-blur-xl border border-white/20 p-3">
-                      <p className="text-xs uppercase tracking-wider text-white/50 mb-1">{metric.label}</p>
-                      <p className={`text-3xl font-bold ${metric.color}`}>
-                        {metric.value}
-                        <span className="text-sm text-white/50 ml-2">{metric.unit}</span>
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Desktop/Tablet Landscape: 2x2 Grid + Yellow Ticker */}
-              {(deviceType === "desktop" || (deviceType === "tablet" && orientation === "landscape")) && hudMode === "full" && (
-                <div className="flex flex-col gap-4">
-                  {/* Yellow Rewards Ticker */}
-                  {rewards.isActive && rewards.streamState && (
-                    <div className="flex justify-center">
-                      <YellowRewardTicker
-                        streamState={rewards.streamState}
-                        mode={rewards.mode}
-                        symbol="SPIN"
-                      />
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4 sm:gap-6">
-                    <div className="rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 p-4 sm:p-6 min-w-[160px] sm:min-w-[180px]">
-                      <p className="text-xs uppercase tracking-wider text-white/50 mb-2">Heart Rate</p>
-                      <p className="text-4xl sm:text-5xl font-bold text-red-400">
-                        {telemetry.heartRate}
-                        <span className="text-lg sm:text-xl text-white/50 ml-2">bpm</span>
-                      </p>
-                    </div>
-                    <div className="rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 p-4 sm:p-6 min-w-[160px] sm:min-w-[180px]">
-                      <p className="text-xs uppercase tracking-wider text-white/50 mb-2">Power</p>
-                      <p className="text-4xl sm:text-5xl font-bold text-yellow-400">
-                        {telemetry.power}
-                        <span className="text-lg sm:text-xl text-white/50 ml-2">W</span>
-                      </p>
-                    </div>
-                    <div className="rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 p-4 sm:p-6 min-w-[160px] sm:min-w-[180px]">
-                      <p className="text-xs uppercase tracking-wider text-white/50 mb-2">Cadence</p>
-                      <p className="text-4xl sm:text-5xl font-bold text-blue-400">
-                        {telemetry.cadence}
-                        <span className="text-lg sm:text-xl text-white/50 ml-2">rpm</span>
-                      </p>
-                    </div>
-                    <div className="rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 p-4 sm:p-6 min-w-[160px] sm:min-w-[180px]">
-                      <p className="text-xs uppercase tracking-wider text-white/50 mb-2">Speed</p>
-                      <p className="text-4xl sm:text-5xl font-bold text-green-400">
-                        {telemetry.speed.toFixed(1)}
-                        <span className="text-lg sm:text-xl text-white/50 ml-2">km/h</span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          <RideHUD
+            telemetry={telemetry}
+            deviceType={deviceType}
+            orientation={orientation}
+            hudMode={hudMode}
+            isRiding={isRiding}
+            rideProgress={rideProgress}
+            rewardsActive={rewards.isActive}
+            rewardsStreamState={rewards.streamState ?? null}
+            rewardsMode={rewards.mode}
+            intervalPhase={currentInterval?.phase ?? null}
+          />
 
           {/* Bottom - Controls (Mobile Optimized) */}
           <div className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"}`}>

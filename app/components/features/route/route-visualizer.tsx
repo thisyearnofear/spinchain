@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useDeviceType, useAdaptiveQuality, usePerformanceTier } from "@/app/lib/responsive";
+import { useAdaptiveQuality, usePerformanceTier } from "@/app/lib/responsive";
 import {
   CatmullRomCurve3,
   Vector3,
@@ -24,74 +24,11 @@ import {
   useGLTF,
   Clone,
 } from "@react-three/drei";
-
-const THEMES = {
-  neon: {
-    fog: "#07090f",
-    roadColor: "#1f2937",
-    roadEmissive: "#6d7cff",
-    roadEmissiveIntensity: 0.2,
-    lineColor: "#6ef3c6",
-    riderColor: "#ffffff",
-    grid: true,
-    stars: true,
-    envPreset: "city" as const,
-    particleColor: "#4fd1c5",
-  },
-  alpine: {
-    fog: "#caccf0",
-    roadColor: "#4a5568",
-    roadEmissive: "#000000",
-    roadEmissiveIntensity: 0,
-    lineColor: "#2d3748",
-    riderColor: "#fbbf24",
-    grid: false,
-    stars: false,
-    envPreset: "forest" as const,
-    particleColor: "#ffffff",
-  },
-  mars: {
-    fog: "#451a1a",
-    roadColor: "#7f1d1d",
-    roadEmissive: "#ef4444",
-    roadEmissiveIntensity: 0.1,
-    lineColor: "#fca5a5",
-    riderColor: "#fbbf24",
-    grid: false,
-    stars: true,
-    envPreset: "sunset" as const,
-    particleColor: "#f87171",
-  },
-  anime: {
-    fog: "#ffdeeb",
-    roadColor: "#ffffff",
-    roadEmissive: "#ff90b3",
-    roadEmissiveIntensity: 0.5,
-    lineColor: "#ff4d8d",
-    riderColor: "#ff4d8d",
-    grid: false,
-    stars: false,
-    envPreset: "apartment" as const,
-    particleColor: "#ffc0cb",
-  },
-  rainbow: {
-    fog: "#1a0b2e",
-    roadColor: "#2d1a4a",
-    roadEmissive: "#ff00ff",
-    roadEmissiveIntensity: 0.8,
-    lineColor: "#00ffff",
-    riderColor: "#ffffff",
-    grid: true,
-    stars: true,
-    envPreset: "night" as const,
-    particleColor: "#ff00ff",
-  },
-};
-
-export type VisualizerTheme = keyof typeof THEMES;
+import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-theme";
+export type { VisualizerTheme } from "./visualizer-theme";
 
 // Import Selection types
-import { AVATARS, EQUIPMENT, WORLDS, type AvatarAsset, type EquipmentAsset, type WorldAsset } from "../../../lib/selection-library";
+import { AVATARS, EQUIPMENT, type AvatarAsset, type EquipmentAsset } from "../../../lib/selection-library";
 
 // Import StoryBeat types from gpx-uploader for consistency
 import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../../../routes/builder/gpx-uploader";
@@ -666,7 +603,6 @@ export default function RouteVisualizer({
   equipmentId?: string;
   quality?: "low" | "medium" | "high";
 }) {
-  const deviceType = useDeviceType();
   const adaptiveQuality = useAdaptiveQuality();
   const performanceTier = usePerformanceTier();
   

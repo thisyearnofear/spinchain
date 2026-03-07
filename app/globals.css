@@ -218,3 +218,98 @@ body {
     display: none;
   }
 }
+
+@keyframes focusAuroraDrift {
+  0% {
+    transform: translate3d(-6%, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6%, -3%, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(-4%, 2%, 0) scale(1.02);
+  }
+}
+
+@keyframes focusScanline {
+  0% {
+    transform: translateX(-15%);
+  }
+  100% {
+    transform: translateX(15%);
+  }
+}
+
+@keyframes focusPulse {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes focusFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes focusBeatSync {
+  0%, 100% {
+    opacity: 0.58;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.14);
+  }
+}
+
+@keyframes focusRouteSync {
+  0%, 100% {
+    opacity: 0.74;
+    filter: saturate(0.95) brightness(0.96);
+  }
+  50% {
+    opacity: 1;
+    filter: saturate(1.15) brightness(1.08);
+  }
+}
+
+.focus-aurora {
+  animation: focusAuroraDrift 16s ease-in-out infinite;
+  will-change: transform;
+}
+
+.focus-scanline {
+  animation: focusScanline 9s linear infinite alternate;
+  will-change: transform;
+}
+
+.focus-pulse {
+  animation: focusPulse 2.6s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.focus-float {
+  animation: focusFloat 4s ease-in-out infinite;
+  will-change: transform;
+}
+
+.focus-beat-sync {
+  animation: focusBeatSync var(--focus-beat-duration, 0.75s) ease-in-out infinite;
+  animation-delay: var(--focus-beat-delay, 0s);
+  will-change: transform, opacity;
+}
+
+.focus-route-sync {
+  animation: focusRouteSync var(--focus-route-duration, 0.75s) ease-in-out infinite;
+  animation-delay: var(--focus-route-delay, 0s);
+  will-change: opacity, filter;
+}
