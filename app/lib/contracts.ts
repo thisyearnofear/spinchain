@@ -68,6 +68,14 @@ export const CONTRACT_ADDRESSES = {
 
   /** Yellow state channel settlement */
   YELLOW_SETTLEMENT: (process.env.NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS ??
+    "0xc6A203fB3a02F3F6886233B9b3b7A148CD3fedbe") as `0x${string}`,
+
+  /** Chainlink Runtime Environment (CRE) Biometric Oracle */
+  BIOMETRIC_ORACLE: (process.env.NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS ??
+    "0x0000000000000000000000000000000000000000") as `0x${string}`,
+
+  /** Chainlink CRE Forwarder contract */
+  CRE_FORWARDER: (process.env.NEXT_PUBLIC_CHAINLINK_FORWARDER ??
     "0x0000000000000000000000000000000000000000") as `0x${string}`,
 } as const;
 
@@ -76,10 +84,55 @@ export const CLASS_FACTORY_ADDRESS = CONTRACT_ADDRESSES.CLASS_FACTORY;
 export const INCENTIVE_ENGINE_ADDRESS = CONTRACT_ADDRESSES.INCENTIVE_ENGINE;
 export const SPIN_TOKEN_ADDRESS = CONTRACT_ADDRESSES.SPIN_TOKEN;
 export const YELLOW_SETTLEMENT_ADDRESS = CONTRACT_ADDRESSES.YELLOW_SETTLEMENT;
+export const BIOMETRIC_ORACLE_ADDRESS = CONTRACT_ADDRESSES.BIOMETRIC_ORACLE;
 
 // ============================================================================
 // CONTRACT ABIs
 // ============================================================================
+
+export const BIOMETRIC_ORACLE_ABI = [
+  {
+    type: "function",
+    name: "requestVerification",
+    inputs: [
+      { name: "classId", type: "bytes32" },
+      { name: "threshold", type: "uint16" },
+      { name: "duration", type: "uint16" },
+    ],
+    outputs: [{ name: "requestId", type: "bytes32" }],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "getVerifiedScore",
+    inputs: [
+      { name: "classId", type: "bytes32" },
+      { name: "rider", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint16" }],
+    stateMutability: "view",
+  },
+  {
+    type: "event",
+    name: "VerificationRequested",
+    inputs: [
+      { indexed: true, name: "requestId", type: "bytes32" },
+      { indexed: true, name: "rider", type: "address" },
+      { indexed: true, name: "classId", type: "bytes32" },
+      { name: "threshold", type: "uint16" },
+      { name: "duration", type: "uint16" },
+    ],
+  },
+  {
+    type: "event",
+    name: "VerificationFulfilled",
+    inputs: [
+      { indexed: true, name: "requestId", type: "bytes32" },
+      { name: "verified", type: "bool" },
+      { name: "effortScore", type: "uint16" },
+    ],
+  },
+] as const;
 
 export const SPIN_TOKEN_ABI = [
   {

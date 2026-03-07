@@ -27,6 +27,16 @@ git commit --no-verify
 
 ---
 
+## 🔗 Chainlink Runtime Environment (CRE) ✅ DEPLOYED
+SpinChain leverages the next-generation **Chainlink Runtime Environment (CRE)** to orchestrate decentralized biometric verification. This replaces legacy oracle patterns with a unified, confidential, and consensus-verified workflow.
+
+- **Decentralized Data Orchestration**: CRE monitors on-chain `VerificationRequested` events and triggers off-chain telemetry fetching.
+- **Confidential HTTP**: Securely fetches private heart rate and power data from wearable APIs using **Confidential HTTP**, ensuring API keys and PII never touch a public blockchain.
+- **Off-Chain Computation**: Logic for "Qualifying Minutes" and "Effort Score" is executed within the CRE, providing a trustless alternative to centralized backends.
+- **Low-Latency Settlement**: Verified reports are written back to `BiometricOracle.sol` on Avalanche Fuji, enabling instant reward claims in the `IncentiveEngine`.
+
+---
+
 ## 🚀 Key Features
 
 ### 1. Route Worlds (3D Specialized)

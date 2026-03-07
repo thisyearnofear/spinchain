@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useAccount, useReadContract } from "wagmi";
 import { useTransaction } from "./use-transaction";
 import { CONTRACTS, CHAINLINK_CONFIG } from "@/app/config";
-import type { TelemetryPoint } from "@/app/lib/zk/oracle";
+import { BIOMETRIC_ORACLE_ABI, INCENTIVE_ENGINE_ABI } from "@/app/lib/contracts";
 
 interface ChainlinkVerificationParams {
   classId: `0x${string}`;
@@ -12,12 +13,13 @@ interface ChainlinkVerificationParams {
 }
 
 export function useChainlinkVerification() {
+  const { address } = useAccount();
   const [isVerifying, setIsVerifying] = useState(false);
   const [requestId, setRequestId] = useState<`0x${string}` | null>(null);
 
   const requestTx = useTransaction({
-    successMessage: "Verification requested",
-    pendingMessage: "Requesting Chainlink verification...",
+    successMessage: "Verification requested via Chainlink CRE",
+    pendingMessage: "Requesting decentralized biometric verification...",
   });
 
   const claimTx = useTransaction({
@@ -34,33 +36,18 @@ export function useChainlinkVerification() {
       setIsVerifying(true);
 
       try {
-        // Request verification from Chainlink oracle
-        // The CRE workflow will detect this event and fetch telemetry automatically
-        await requestTx.write({
+        const hash = await requestTx.write({
           address: CONTRACTS.avalanche.biometricOracle,
-          abi: [
-            {
-              name: "requestVerification",
-              type: "function",
-              stateMutability: "nonpayable",
-              inputs: [
-                { name: "classId", type: "bytes32" },
-                { name: "threshold", type: "uint16" },
-                { name: "duration", type: "uint16" },
-              ],
-              outputs: [{ name: "requestId", type: "bytes32" }],
-            },
-          ],
+          abi: BIOMETRIC_ORACLE_ABI,
           functionName: "requestVerification",
           args: [classId, threshold, duration],
         });
 
-        // Store request ID for polling
-        // In production, this would come from transaction logs
-        setRequestId(classId); // Simplified
+        // Store classId as temporary requestId for lookup
+        setRequestId(classId);
 
         setIsVerifying(false);
-        return true;
+        return hash;
       } catch (error) {
         setIsVerifying(false);
         throw error;
@@ -76,15 +63,7 @@ export function useChainlinkVerification() {
     async (classId: `0x${string}`) => {
       await claimTx.write({
         address: CONTRACTS.avalanche.incentiveEngine,
-        abi: [
-          {
-            name: "submitChainlinkProof",
-            type: "function",
-            stateMutability: "nonpayable",
-            inputs: [{ name: "classId", type: "bytes32" }],
-            outputs: [],
-          },
-        ],
+        abi: INCENTIVE_ENGINE_ABI,
         functionName: "submitChainlinkProof",
         args: [classId],
       });
@@ -93,27 +72,30 @@ export function useChainlinkVerification() {
   );
 
   /**
-   * Check verification status
+   * Check verification status from the BiometricOracle
    */
-  const checkVerificationStatus = useCallback(
-    async (classId: `0x${string}`, rider: `0x${string}`): Promise<number> => {
-      // This would use useReadContract in production
-      // Returns effort score (0 if not verified)
-      return 0; // Simplified
-    },
-    []
-  );
+  const { data: verifiedScore, refetch: refetchStatus } = useReadContract({
+    address: CONTRACTS.avalanche.biometricOracle,
+    abi: BIOMETRIC_ORACLE_ABI,
+    functionName: "getVerifiedScore",
+    args: requestId && address ? [requestId, address] : undefined,
+    query: {
+      enabled: !!requestId && !!address,
+    }
+  });
 
   return {
     // Actions
     requestVerification,
     claimRewards,
-    checkVerificationStatus,
+    checkVerificationStatus: refetchStatus,
 
     // State
     isVerifying,
     isClaiming: claimTx.isPending,
     requestId,
+    verifiedScore: verifiedScore ? Number(verifiedScore) : 0,
+    isVerified: verifiedScore ? Number(verifiedScore) > 0 : false,
     isSuccess: claimTx.isSuccess,
     hash: claimTx.hash,
     error: requestTx.error || claimTx.error,

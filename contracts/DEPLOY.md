@@ -15,6 +15,30 @@
 | `TreasurySplitter`  | `0x9AB33e974Dbb6D9a11C5116Ce2E2e04471c482A0`  |
 | `YellowSettlement`  | `0xc6A203fB3a02F3F6886233B9b3b7A148CD3fedbe`  |
 | `MockUltraVerifier` | `0x5f98A8018f75ca80F46DE9758157AED719589dEC`  |
+| `BiometricOracle`   | `0x794b684532B03D510167d6438596644026859733`  |
+
+---
+
+## 🔗 Chainlink CRE Deployment (Biometric Oracle)
+
+1. **Deploy BiometricOracle.sol**:
+   ```bash
+   forge create src/BiometricOracle.sol:BiometricOracle \
+     --rpc-url $FUJI_RPC \
+     --private-key $PRIVATE_KEY \
+     --constructor-args <CRE_FORWARDER_ADDRESS> <WORKFLOW_ID>
+   ```
+
+2. **Deploy CRE Workflow**:
+   - Ensure `app/lib/chainlink/cre/cre.json` is configured with the deployed oracle address.
+   - Use the Chainlink CRE CLI or Dashboard to deploy the `biometric-workflow.ts`.
+
+3. **Register Oracle in IncentiveEngine**:
+   ```bash
+   cast send $INCENTIVE_ENGINE "setBiometricOracle(address)" $BIOMETRIC_ORACLE_ADDRESS \
+     --rpc-url $FUJI_RPC \
+     --private-key $PRIVATE_KEY
+   ```
 
 Verify on Snowtrace: https://testnet.snowtrace.io
 

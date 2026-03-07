@@ -1,11 +1,16 @@
+import { 
+  CONTRACT_ADDRESSES, 
+  ACTIVE_NETWORK,
+  BIOMETRIC_ORACLE_ADDRESS 
+} from "@/app/lib/contracts";
+
 export const CONTRACTS = {
   // Avalanche Fuji Testnet Addresses
-  // Replace these with your actual deployed addresses from Remix/Hardhat
   avalanche: {
-    spinToken: "0x0000000000000000000000000000000000000000",
-    incentiveEngine: "0x0000000000000000000000000000000000000000",
-    classFactory: "0x0000000000000000000000000000000000000000",
-    biometricOracle: "0x0000000000000000000000000000000000000000",
+    spinToken: CONTRACT_ADDRESSES.SPIN_TOKEN,
+    incentiveEngine: CONTRACT_ADDRESSES.INCENTIVE_ENGINE,
+    classFactory: CONTRACT_ADDRESSES.CLASS_FACTORY,
+    biometricOracle: BIOMETRIC_ORACLE_ADDRESS,
     // Stablecoin addresses (Avalanche Fuji Testnet)
     usdc: "0x5425890298aed601595a70AB815c96711a31Bc65", // Fuji USDC
     usdt: "0x0000000000000000000000000000000000000000", // Deploy mock or use bridge
@@ -13,8 +18,8 @@ export const CONTRACTS = {
 } as const;
 
 export const CHAIN_CONFIG = {
-  defaultChainId: 43113, // Avalanche Fuji
-  explorerUrl: "https://testnet.snowtrace.io",
+  defaultChainId: ACTIVE_NETWORK.id,
+  explorerUrl: ACTIVE_NETWORK.explorerUrl,
 } as const;
 
 export const SUI_CONFIG = {
