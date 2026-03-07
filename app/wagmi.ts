@@ -1,24 +1,7 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import type { Config } from "wagmi";
+import { createConfig, http, type Config } from "wagmi";
 import { avalanche, avalancheFuji, mainnet } from "wagmi/chains";
 import { createStorage } from "wagmi";
-
-// IMPORTANT:
-// Some wallet-related libraries (e.g. WalletConnect) may reference browser-only
-// globals like `indexedDB` even when used with `ssr: true`. During `next build`,
-// Next.js will evaluate modules on the server when generating the SSR bundle.
-//
-// To avoid build-time crashes like `ReferenceError: indexedDB is not defined`,
-// we provide a minimal server-side stub for `indexedDB`.
-// It is only used during SSR; the real IndexedDB API will be available in-browser.
-
-if (typeof window === "undefined") {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const g = globalThis as any;
-  if (typeof g.indexedDB === "undefined") {
-    g.indexedDB = undefined;
-  }
-}
 
 // Custom storage that handles mobile browser quirks better
 const storage = createStorage({
@@ -51,11 +34,27 @@ const storage = createStorage({
   },
 });
 
-export const config: Config = getDefaultConfig({
-  appName: "SpinChain",
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "YOUR_PROJECT_ID",
-  chains: [avalancheFuji, avalanche, mainnet],
-  ssr: true,
-  storage,
-  syncConnectedChain: true,
-});
+export function createServerWagmiConfig(): Config {
+  return createConfig({
+    chains: [avalancheFuji, avalanche, mainnet],
+    transports: {
+      [avalancheFuji.id]: http(),
+      [avalanche.id]: http(),
+      [mainnet.id]: http(),
+    },
+    ssr: true,
+    storage,
+    multiInjectedProviderDiscovery: false,
+  });
+}
+
+export function createBrowserWagmiConfig(): Config {
+  return getDefaultConfig({
+    appName: "SpinChain",
+    projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "YOUR_PROJECT_ID",
+    chains: [avalancheFuji, avalanche, mainnet],
+    ssr: true,
+    storage,
+    syncConnectedChain: true,
+  });
+}

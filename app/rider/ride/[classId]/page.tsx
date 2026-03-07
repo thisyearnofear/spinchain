@@ -50,6 +50,26 @@ interface PracticeClassConfig {
   instructor: string;
 }
 
+function getSystemHudMode(
+  deviceType: "mobile" | "tablet" | "desktop",
+  orientation: "portrait" | "landscape",
+  prefersReducedMotion: boolean,
+): "full" | "compact" | "minimal" {
+  if (prefersReducedMotion) return "minimal";
+  if (deviceType === "mobile") return "compact";
+  if (deviceType === "tablet") return orientation === "portrait" ? "compact" : "full";
+  return "full";
+}
+
+function getSystemViewMode(
+  deviceType: "mobile" | "tablet" | "desktop",
+  performanceTier: "high" | "medium" | "low",
+  prefersReducedMotion: boolean,
+): "immersive" | "focus" {
+  if (prefersReducedMotion) return "focus";
+  return deviceType === "desktop" || performanceTier === "high" ? "immersive" : "focus";
+}
+
 export default function LiveRidePage() {
   const params = useParams();
   const router = useRouter();
@@ -136,6 +156,7 @@ export default function LiveRidePage() {
   const orientation = useOrientation();
   const viewportHeight = useActualViewportHeight();
   const performanceTier = usePerformanceTier();
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   // Ride state
   const [isRiding, setIsRiding] = useState(false);
@@ -208,7 +229,7 @@ export default function LiveRidePage() {
     }
   }, []);
   const [viewMode, setViewMode] = useState<"immersive" | "focus">(
-    deviceType === "desktop" || performanceTier === "high" ? "immersive" : "focus"
+    getSystemViewMode(deviceType, performanceTier, false)
   );
 
   // Persisted preference (client-only)
@@ -255,10 +276,7 @@ export default function LiveRidePage() {
     if (!mq) return;
 
     const apply = () => {
-      if (mq.matches) {
-        setViewMode("focus");
-        setHudMode("minimal");
-      }
+      setPrefersReducedMotion(mq.matches);
     };
 
     apply();
@@ -528,20 +546,13 @@ export default function LiveRidePage() {
   // Auto-adjust HUD and view mode only while following system defaults.
   useEffect(() => {
     if (hudModePreferenceRef.current === "system") {
-      if (deviceType === "mobile") {
-        setHudMode("compact");
-      } else if (deviceType === "tablet") {
-        setHudMode(orientation === "portrait" ? "compact" : "full");
-      } else {
-        setHudMode("full");
-      }
+      setHudMode(getSystemHudMode(deviceType, orientation, prefersReducedMotion));
     }
 
     if (viewModePreferenceRef.current === "system") {
-      const shouldUseImmersive = deviceType === "desktop" || performanceTier === "high";
-      setViewMode(shouldUseImmersive ? "immersive" : "focus");
+      setViewMode(getSystemViewMode(deviceType, performanceTier, prefersReducedMotion));
     }
-  }, [deviceType, orientation, performanceTier]);
+  }, [deviceType, orientation, performanceTier, prefersReducedMotion]);
 
   useEffect(() => {
     if (isRiding || rideProgress > 0 || trackedEntryViewRef.current) return;
@@ -1043,11 +1054,11 @@ export default function LiveRidePage() {
                     hudModePreferenceRef.current = "system";
                     viewModePreferenceRef.current = "system";
                     applyHudMode(
-                      deviceType === "mobile" ? "compact" : orientation === "portrait" && deviceType === "tablet" ? "compact" : "full",
+                      getSystemHudMode(deviceType, orientation, prefersReducedMotion),
                       "system",
                     );
                     applyViewMode(
-                      deviceType === "desktop" || performanceTier === "high" ? "immersive" : "focus",
+                      getSystemViewMode(deviceType, performanceTier, prefersReducedMotion),
                       "system",
                     );
                   }}
@@ -1255,16 +1266,56 @@ export default function LiveRidePage() {
       {/* Story Beat Alert - Mobile Optimized */}
       {currentBeat && isRiding && (
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-in fade-in slide-in-from-top-4 duration-500 pointer-events-none px-4 w-full max-w-[90%] sm:max-w-md">
-          <div className="rounded-2xl bg-black/95 backdrop-blur-xl border-2 border-yellow-400 p-6 sm:p-8 text-center">
-            <div className={`h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 rounded-full flex items-center justify-center ${currentBeat.type === "climb" ? "bg-yellow-500/20 text-yellow-400" :
-              currentBeat.type === "sprint" ? "bg-red-500/20 text-red-400" : "bg-blue-500/20 text-blue-400"
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/15 bg-black/85 p-6 text-center shadow-[0_32px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:p-8">
+            <div
+              className={`absolute inset-0 opacity-60 ${
+                currentBeat.type === "climb"
+                  ? "bg-[radial-gradient(circle_at_top,_rgba(250,204,21,0.25),_transparent_60%)]"
+                  : currentBeat.type === "sprint"
+                    ? "bg-[radial-gradient(circle_at_top,_rgba(251,113,133,0.28),_transparent_60%)]"
+                    : "bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.24),_transparent_60%)]"
+              }`}
+            />
+            <div className="relative">
+              <div className="mb-2 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.28em] text-white/45">
+                <span>Story Beat</span>
+                <span className="h-1 w-1 rounded-full bg-white/30" />
+                <span>{routeTheme}</span>
+              </div>
+              <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border ${
+                currentBeat.type === "climb"
+                  ? "border-yellow-400/35 bg-yellow-500/10 text-yellow-300"
+                  : currentBeat.type === "sprint"
+                    ? "border-rose-400/35 bg-rose-500/10 text-rose-300"
+                    : "border-sky-400/35 bg-sky-500/10 text-sky-300"
               }`}>
-              <svg className="h-6 w-6 sm:h-8 sm:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+                <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {currentBeat.type === "climb" ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 16l5-8 3 4 6-8" />
+                  ) : currentBeat.type === "sprint" ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12h10M12 7v10" />
+                  )}
+                </svg>
+              </div>
+              <h2 className="mb-2 text-2xl font-bold text-white sm:text-3xl">{currentBeat.label}</h2>
+              <p className="text-sm uppercase tracking-[0.28em] text-white/60">{currentBeat.type}</p>
+              <div className="mt-5 grid grid-cols-3 gap-2 text-xs text-white/72">
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">Phase</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{currentInterval?.phase ?? "Cruise"}</div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">Progress</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{rideProgress.toFixed(0)}%</div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">Effort</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{telemetry.effort}</div>
+                </div>
+              </div>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">{currentBeat.label}</h2>
-            <p className="text-base sm:text-lg text-white/70 uppercase tracking-wider">{currentBeat.type}</p>
           </div>
         </div>
       )}
