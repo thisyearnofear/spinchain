@@ -37,16 +37,18 @@ SpinChain now supports stablecoin payments (USDT/USDC) for class tickets with su
 **Contract**: `BiometricOracle.sol`
 
 - Verifies off-chain biometric data (heart rate, power, cadence)
-- Uses Chainlink Functions for tamper-proof verification
-- Proves effort without exposing raw health data
-- Returns effort score (0-1000) for reward calculation
+- Uses **Chainlink Runtime Environment (CRE)** for decentralized orchestration
+- Proves effort without exposing raw health data via **Confidential HTTP**
+- Returns effort score (0-1000) for reward calculation with BFT consensus
 
 **Verification Flow**:
-1. Rider completes class with BLE device telemetry
-2. Encrypted data sent to Chainlink Functions
-3. Oracle validates: "HR > threshold for X minutes"
-4. Returns verified effort score
-5. Rider claims SPIN rewards via `IncentiveEngine.submitChainlinkProof()`
+1. Rider completes class; biometric data is available via Wearable API
+2. Rider calls `BiometricOracle.requestVerification(classId, threshold, duration)`
+3. Chainlink DON detects the `VerificationRequested` event (EVM Trigger)
+4. CRE Workflow fetches telemetry via **Confidential HTTP** (Privacy-Preserving)
+5. DON nodes reach consensus on effort score off-chain
+6. CRE Forwarder submits verified report to `BiometricOracle.fulfillCREReport()`
+7. Rider claims SPIN rewards via `IncentiveEngine.submitChainlinkProof()`
 
 ### 4. Enhanced IncentiveEngine
 
@@ -85,11 +87,11 @@ SpinChain now supports stablecoin payments (USDT/USDC) for class tickets with su
 - Added `chainlinkClaimsUsed` mapping (prevent double claims)
 - Added `setBiometricOracle()` admin function
 
-### BiometricOracle.sol (NEW)
-- Chainlink Functions client
-- Encrypts telemetry data
-- Verifies effort thresholds
-- Returns effort scores for rewards
+### BiometricOracle.sol (UPDATED)
+- Chainlink Runtime Environment (CRE) workflow
+- Confidential HTTP telemetry fetching
+- Verifies effort thresholds off-chain
+- Returns effort scores for rewards with BFT consensus
 
 ## Frontend Integration
 
@@ -102,8 +104,8 @@ SpinChain now supports stablecoin payments (USDT/USDC) for class tickets with su
 - Supports: native AVAX, USDC, USDT
 
 **`use-chainlink-verification.ts`**:
-- `requestVerification()` - Submit telemetry to Chainlink
-- `claimRewards()` - Claim after verification completes
+- `requestVerification()` - Trigger CRE workflow detection
+- `claimRewards()` - Claim after CRE workflow fulfills result
 - `checkVerificationStatus()` - Poll for results
 
 ### Updated Hooks
@@ -123,23 +125,18 @@ SpinChain now supports stablecoin payments (USDT/USDC) for class tickets with su
 NEXT_PUBLIC_USDC_ADDRESS=0x5425890298aed601595a70AB815c96711a31Bc65
 NEXT_PUBLIC_USDT_ADDRESS=0x...
 
-# Chainlink configuration
+# Chainlink Runtime Environment (CRE) Configuration
 NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=0x...
-NEXT_PUBLIC_CHAINLINK_ROUTER=0x...
-NEXT_PUBLIC_CHAINLINK_DON_ID=fun-avalanche-fuji-1
-NEXT_PUBLIC_CHAINLINK_SUBSCRIPTION_ID=123
-
-# Payment defaults
-NEXT_PUBLIC_DEFAULT_PAYMENT_METHOD=usdc
-NEXT_PUBLIC_DEFAULT_INSTRUCTOR_SHARE=8000
-NEXT_PUBLIC_DEFAULT_PROTOCOL_FEE=2000
+NEXT_PUBLIC_CHAINLINK_FORWARDER=0x...
+NEXT_PUBLIC_CHAINLINK_WORKFLOW_ID=0x...
+WEARABLE_API_KEY=your_key_here
 ```
 
 ### Config Updates
 
 **`app/config.ts`**:
 - Added `PAYMENT_CONFIG` with defaults
-- Added `CHAINLINK_CONFIG` for oracle
+- Added `CHAINLINK_CONFIG` (Forwarder, WorkflowID)
 - Added stablecoin addresses to `CONTRACTS`
 
 ## Usage Examples

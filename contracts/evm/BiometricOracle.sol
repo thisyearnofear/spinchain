@@ -1,22 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsClient.sol";
-import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title BiometricOracle
-/// @notice Chainlink Functions oracle for verifying off-chain biometric data
-/// @dev Validates heart rate, power, cadence from BLE devices without exposing raw data
+/// @notice Chainlink Runtime Environment (CRE) oracle for verifying off-chain biometric data
+/// @dev Migrated from Functions to CRE for enhanced privacy and consensus-verified computation
 /// @custom:security-contact security@spinchain.xyz
-contract BiometricOracle is FunctionsClient, Ownable {
-    using FunctionsRequest for FunctionsRequest.Request;
-
+contract BiometricOracle is Ownable {
     // ============ Errors ============
     error UnexpectedRequestID(bytes32 requestId);
     error InvalidThreshold();
     error InvalidDuration();
     error VerificationFailed();
+    error UnauthorizedForwarder();
+    error UnauthorizedWorkflow();
 
     // ============ Structs ============
     struct VerificationRequest {
@@ -30,57 +28,47 @@ contract BiometricOracle is FunctionsClient, Ownable {
     }
 
     // ============ State ============
-    bytes32 public donId;
-    uint64 public subscriptionId;
-    uint32 public gasLimit;
+    address public creForwarder;
+    bytes32 public authorizedWorkflowId;
     
     mapping(bytes32 => VerificationRequest) public requests;
     mapping(address => bytes32[]) public riderRequests;
     mapping(bytes32 => uint16) public verifiedEffortScores; // classId+rider => score
 
     // ============ Events ============
-    event VerificationRequested(bytes32 indexed requestId, address indexed rider, bytes32 indexed classId);
+    event VerificationRequested(
+        bytes32 indexed requestId, 
+        address indexed rider, 
+        bytes32 indexed classId,
+        uint16 threshold,
+        uint16 duration
+    );
     event VerificationFulfilled(bytes32 indexed requestId, bool verified, uint16 effortScore);
-    event ConfigUpdated(bytes32 donId, uint64 subscriptionId, uint32 gasLimit);
+    event CREConfigUpdated(address forwarder, bytes32 workflowId);
 
     constructor(
-        address router_,
-        bytes32 donId_,
-        uint64 subscriptionId_,
-        uint32 gasLimit_
-    ) FunctionsClient(router_) Ownable(msg.sender) {
-        donId = donId_;
-        subscriptionId = subscriptionId_;
-        gasLimit = gasLimit_;
+        address creForwarder_,
+        bytes32 workflowId_
+    ) Ownable(msg.sender) {
+        creForwarder = creForwarder_;
+        authorizedWorkflowId = workflowId_;
     }
 
-    /// @notice Request biometric verification via Chainlink Functions
+    /// @notice Request biometric verification via CRE
+    /// @dev Emits an event that the CRE workflow trigger monitors
     /// @param classId Unique class identifier
-    /// @param encryptedData Encrypted telemetry data (heart rate, power, cadence)
     /// @param threshold Minimum effort threshold (e.g., HR > 150)
     /// @param duration Duration in minutes
-    /// @return requestId Chainlink request ID
+    /// @return requestId Generated request ID
     function requestVerification(
         bytes32 classId,
-        bytes calldata encryptedData,
         uint16 threshold,
         uint16 duration
     ) external returns (bytes32 requestId) {
         if (threshold == 0) revert InvalidThreshold();
         if (duration == 0) revert InvalidDuration();
 
-        // Build Chainlink Functions request
-        FunctionsRequest.Request memory req;
-        req.initializeRequestForInlineJavaScript(_getVerificationSource());
-        req.addSecretsReference(encryptedData);
-        
-        // Send request
-        requestId = _sendRequest(
-            req.encodeCBOR(),
-            subscriptionId,
-            gasLimit,
-            donId
-        );
+        requestId = keccak256(abi.encodePacked(msg.sender, classId, block.timestamp));
 
         // Store request metadata
         requests[requestId] = VerificationRequest({
@@ -95,29 +83,28 @@ contract BiometricOracle is FunctionsClient, Ownable {
 
         riderRequests[msg.sender].push(requestId);
         
-        emit VerificationRequested(requestId, msg.sender, classId);
+        emit VerificationRequested(requestId, msg.sender, classId, threshold, duration);
     }
 
-    /// @notice Chainlink callback - fulfills verification request
-    function fulfillRequest(
+    /// @notice CRE callback - fulfills verification request
+    /// @param requestId The original request ID
+    /// @param workflowId The ID of the workflow that generated this report
+    /// @param verified Whether the biometric criteria were met
+    /// @param effortScore Calculated effort score (0-1000)
+    function fulfillCREReport(
         bytes32 requestId,
-        bytes memory response,
-        bytes memory err
-    ) internal override {
+        bytes32 workflowId,
+        bool verified,
+        uint16 effortScore
+    ) external {
+        if (msg.sender != creForwarder) revert UnauthorizedForwarder();
+        if (workflowId != authorizedWorkflowId) revert UnauthorizedWorkflow();
+
         VerificationRequest storage req = requests[requestId];
         if (req.timestamp == 0) revert UnexpectedRequestID(requestId);
+        if (req.fulfilled) return; // Prevent double fulfillment
         
         req.fulfilled = true;
-
-        if (err.length > 0) {
-            req.verified = false;
-            emit VerificationFulfilled(requestId, false, 0);
-            return;
-        }
-
-        // Decode response: (bool verified, uint16 effortScore)
-        (bool verified, uint16 effortScore) = abi.decode(response, (bool, uint16));
-        
         req.verified = verified;
         
         if (verified) {
@@ -139,39 +126,13 @@ contract BiometricOracle is FunctionsClient, Ownable {
         return riderRequests[rider];
     }
 
-    /// @notice Update Chainlink configuration
+    /// @notice Update CRE configuration
     function updateConfig(
-        bytes32 donId_,
-        uint64 subscriptionId_,
-        uint32 gasLimit_
+        address creForwarder_,
+        bytes32 workflowId_
     ) external onlyOwner {
-        donId = donId_;
-        subscriptionId = subscriptionId_;
-        gasLimit = gasLimit_;
-        emit ConfigUpdated(donId_, subscriptionId_, gasLimit_);
-    }
-
-    /// @notice JavaScript source code for Chainlink Functions
-    /// @dev Validates biometric data meets threshold without exposing raw values
-    function _getVerificationSource() internal pure returns (string memory) {
-        return
-            "const threshold = parseInt(args[0]);"
-            "const duration = parseInt(args[1]);"
-            "const telemetryData = JSON.parse(secrets.encryptedData);"
-            ""
-            "let qualifyingMinutes = 0;"
-            "let totalEffort = 0;"
-            ""
-            "for (const point of telemetryData) {"
-            "  if (point.heartRate >= threshold) {"
-            "    qualifyingMinutes++;"
-            "    totalEffort += point.heartRate + (point.power || 0) * 0.5;"
-            "  }"
-            "}"
-            ""
-            "const verified = qualifyingMinutes >= duration;"
-            "const effortScore = Math.min(1000, Math.floor(totalEffort / telemetryData.length));"
-            ""
-            "return Functions.encodeUint256(verified ? 1 : 0) + Functions.encodeUint256(effortScore);";
+        creForwarder = creForwarder_;
+        authorizedWorkflowId = workflowId_;
+        emit CREConfigUpdated(creForwarder_, workflowId_);
     }
 }

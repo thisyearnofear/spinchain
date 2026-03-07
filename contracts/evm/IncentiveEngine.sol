@@ -188,7 +188,7 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     }
 
     /// @notice Claim rewards via Chainlink oracle verification (tamper-proof biometrics)
-    /// @dev Uses Chainlink Functions to verify off-chain biometric data
+    /// @dev Uses Chainlink Runtime Environment (CRE) to verify off-chain biometric data
     function submitChainlinkProof(
         bytes32 classId
     ) external nonReentrant whenNotPaused {

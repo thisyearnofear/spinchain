@@ -7,7 +7,6 @@ import type { TelemetryPoint } from "@/app/lib/zk/oracle";
 
 interface ChainlinkVerificationParams {
   classId: `0x${string}`;
-  telemetryData: TelemetryPoint[];
   threshold: number;
   duration: number;
 }
@@ -27,42 +26,16 @@ export function useChainlinkVerification() {
   });
 
   /**
-   * Encrypt telemetry data for Chainlink Functions
-   */
-  const encryptTelemetry = useCallback(
-    async (data: TelemetryPoint[]): Promise<string> => {
-      // In production, this would use Chainlink's encryption
-      // For now, we'll use a simple JSON encoding
-      const jsonData = JSON.stringify(
-        data.map((point) => ({
-          heartRate: point.heartRate,
-          power: point.power,
-          cadence: point.cadence,
-          timestamp: point.timestamp,
-        }))
-      );
-
-      // Base64 encode for transport
-      return Buffer.from(jsonData).toString("base64");
-    },
-    []
-  );
-
-  /**
-   * Request biometric verification via Chainlink oracle
+   * Request biometric verification via Chainlink Runtime Environment (CRE)
+   * CRE now fetches telemetry directly via Confidential HTTP, so no encrypted data payload is needed.
    */
   const requestVerification = useCallback(
-    async ({ classId, telemetryData, threshold, duration }: ChainlinkVerificationParams) => {
+    async ({ classId, threshold, duration }: ChainlinkVerificationParams) => {
       setIsVerifying(true);
 
       try {
-        // Encrypt telemetry data
-        const encryptedData = await encryptTelemetry(telemetryData);
-
-        // Convert to bytes
-        const encryptedBytes = `0x${Buffer.from(encryptedData).toString("hex")}` as `0x${string}`;
-
         // Request verification from Chainlink oracle
+        // The CRE workflow will detect this event and fetch telemetry automatically
         await requestTx.write({
           address: CONTRACTS.avalanche.biometricOracle,
           abi: [
@@ -72,7 +45,6 @@ export function useChainlinkVerification() {
               stateMutability: "nonpayable",
               inputs: [
                 { name: "classId", type: "bytes32" },
-                { name: "encryptedData", type: "bytes" },
                 { name: "threshold", type: "uint16" },
                 { name: "duration", type: "uint16" },
               ],
@@ -80,7 +52,7 @@ export function useChainlinkVerification() {
             },
           ],
           functionName: "requestVerification",
-          args: [classId, encryptedBytes, threshold, duration],
+          args: [classId, threshold, duration],
         });
 
         // Store request ID for polling
@@ -94,7 +66,7 @@ export function useChainlinkVerification() {
         throw error;
       }
     },
-    [encryptTelemetry, requestTx]
+    [requestTx]
   );
 
   /**

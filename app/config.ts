@@ -37,12 +37,10 @@ export const ZK_CONFIG = {
   // Circuit type: "effort_threshold" | "composite"
   defaultCircuit: "effort_threshold" as const,
 } as const;
-
 export const CHAINLINK_CONFIG = {
-  // Chainlink Functions configuration for biometric oracle
-  router: process.env.NEXT_PUBLIC_CHAINLINK_ROUTER || "0x0000000000000000000000000000000000000000",
-  donId: process.env.NEXT_PUBLIC_CHAINLINK_DON_ID || "",
-  subscriptionId: process.env.NEXT_PUBLIC_CHAINLINK_SUBSCRIPTION_ID || "0",
+  // Chainlink Runtime Environment (CRE) configuration for biometric oracle
+  forwarder: process.env.NEXT_PUBLIC_CHAINLINK_FORWARDER || "0x0000000000000000000000000000000000000000",
+  workflowId: process.env.NEXT_PUBLIC_CHAINLINK_WORKFLOW_ID || "0x0000000000000000000000000000000000000000000000000000000000000000",
   gasLimit: 300000,
 } as const;
 
