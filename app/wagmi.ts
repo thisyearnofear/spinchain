@@ -1,5 +1,5 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { createConfig, http, type Config } from "wagmi";
+import { http, type Config } from "wagmi";
 import { avalanche, avalancheFuji, mainnet } from "wagmi/chains";
 import { createStorage } from "wagmi";
 
@@ -34,25 +34,16 @@ const storage = createStorage({
   },
 });
 
-export function createServerWagmiConfig(): Config {
-  return createConfig({
+export function createBrowserWagmiConfig(): Config {
+  return getDefaultConfig({
+    appName: "SpinChain",
+    projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "YOUR_PROJECT_ID",
     chains: [avalancheFuji, avalanche, mainnet],
     transports: {
       [avalancheFuji.id]: http(),
       [avalanche.id]: http(),
       [mainnet.id]: http(),
     },
-    ssr: true,
-    storage,
-    multiInjectedProviderDiscovery: false,
-  });
-}
-
-export function createBrowserWagmiConfig(): Config {
-  return getDefaultConfig({
-    appName: "SpinChain",
-    projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "YOUR_PROJECT_ID",
-    chains: [avalancheFuji, avalanche, mainnet],
     ssr: true,
     storage,
     syncConnectedChain: true,

@@ -1,0 +1,5 @@
+{
+  "ORACLE_ADDRESS": "0x794b684532B03D510167d6438596644026859733",
+  "WORKFLOW_ID": "0xSpinChainBiometricWorkflowV1",
+  "schedule": "*/30 * * * * *"
+}

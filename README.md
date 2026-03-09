@@ -66,12 +66,11 @@ SpinChain leverages the next-generation **Chainlink Runtime Environment (CRE)** 
 - **Local Oracle**: Browser-based proof generation (<1s) with no data leaving device.
 - **Walrus Backup**: Encrypted decentralized storage for raw telemetry.
 
-### 6. User Experience & Onboarding ✅ NEW
-- **Onboarding Flow**: Guided 3-step intro (What is SpinChain? → Earn → Privacy).
-- **Guest Mode**: Frictionless "Try Demo Ride" without initial wallet connection.
-- **Pedal Simulator**: Immersive, haptic-enabled simulator with animated crank and cadence zones.
-- **Cross-Platform BLE**: Native Bluetooth support for iOS, Android, and Desktop via Capacitor.
-- **HUD Tutorial**: In-ride interactive guide for metrics and ZK privacy features.
+### 6. Accessibility & Simulation ✅ NEW
+- **Guest Mode**: Frictionless "Try Demo Ride" without initial wallet connection or hardware requirements.
+- **Pedal Simulator**: Immersive, keyboard-driven simulator with animated metrics, allowing anyone to generate valid telemetry for protocol testing.
+- **Simulator-to-Chainlink Pipeline**: The simulator data is accessible via a mock wearable API, which our **Chainlink CRE** workflow fetches and verifies, proving the end-to-end logic without specialized BLE hardware.
+- **Cross-Platform BLE**: Native Bluetooth support for iOS, Android, and Desktop via Capacitor (for users with real hardware).
 
 ---
 

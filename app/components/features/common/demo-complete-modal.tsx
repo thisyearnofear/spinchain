@@ -16,6 +16,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useAccount } from "wagmi";
 
 interface DemoCompleteModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ interface DemoCompleteModalProps {
 }
 
 export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalProps) {
+  const { isConnected } = useAccount();
   const [confettiPositions] = useState(() =>
     Array.from({ length: 20 }, (_, i) => ({
       index: i,
@@ -145,10 +147,11 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs text-[color:var(--muted)] mb-0.5">
-                        {stats.rewardsWereActive && parseFloat(stats.spinEarned) > 0
+                        {isConnected && stats.rewardsWereActive && parseFloat(stats.spinEarned) > 0
                           ? "You earned"
                           : "You would have earned"}
                       </p>
+
                       <p className="text-2xl font-bold text-yellow-400">
                         {stats.spinEarned} <span className="text-base">SPIN</span>
                       </p>

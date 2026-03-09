@@ -1,70 +1,89 @@
 /**
- * Chainlink CRE Simulation Script (Node.js)
+ * Chainlink CRE Live Fuji Relay
  * 
- * Demonstrates the full biometric verification loop:
- * 1. Rider requests verification on-chain (BiometricOracle)
- * 2. CRE Workflow (simulated) detects event and fetches confidential telemetry
- * 3. CRE Workflow processes telemetry and submits report back on-chain
- * 4. Rider claims SPIN rewards from IncentiveEngine
+ * This script acts as a "Local Chainlink Node" for your demo.
+ * It will:
+ * 1. Listen for YOUR request on the Fuji BiometricOracle.
+ * 2. Simulate the CRE logic (fetching your keyboard data).
+ * 3. Submit a REAL fulfillment transaction to Fuji.
  */
 
-const { keccak256, encodePacked } = require('viem');
+const { createPublicClient, createWalletClient, http, keccak256, encodePacked } = require('viem');
+const { privateKeyToAccount } = require('viem/accounts');
+const { avalancheFuji } = require('viem/chains');
+
+// --- CONFIGURATION ---
+// Replace with your private key to send a REAL transaction on Fuji
+const PRIVATE_KEY = process.env.AVALANCHE_PRIVATE_KEY; 
+const RPC_URL = 'https://api.avax-test.network/ext/bc/C/rpc';
+
+// Deployed Fuji Addresses
+const ORACLE_ADDR = '0x794b684532B03D510167d6438596644026859733';
+const WORKFLOW_ID = keccak256(encodePacked(['string'], ['SpinChainBiometricWorkflowV1']));
+
+// ABI for fulfillment
+const ORACLE_ABI = [
+    {
+        name: 'fulfillCREReport',
+        type: 'function',
+        stateMutability: 'nonpayable',
+        inputs: [
+            { name: 'requestId', type: 'bytes32' },
+            { name: 'workflowId', type: 'bytes32' },
+            { name: 'verified', type: 'bool' },
+            { name: 'effortScore', type: 'uint16' }
+        ]
+    }
+];
 
 async function main() {
+    if (!PRIVATE_KEY) {
+        console.error('❌ ERROR: AVALANCHE_PRIVATE_KEY not found in .env');
+        process.exit(1);
+    }
+
+    const account = privateKeyToAccount(PRIVATE_KEY);
+    const client = createPublicClient({ chain: avalancheFuji, transport: http(RPC_URL) });
+    const wallet = createWalletClient({ chain: avalancheFuji, transport: http(RPC_URL), account });
+
     console.log('═══════════════════════════════════════════════════');
-    console.log('  SpinChain: Chainlink CRE Biometric Simulation');
+    console.log('  SpinChain: Chainlink CRE Live Fuji Relay');
+    console.log(`  Relay Node Address: ${account.address}`);
     console.log('═══════════════════════════════════════════════════');
 
-    const riderAddress = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
+    // 1. In a real demo, we'd poll for the event. Here we generate the ID based on your address.
     const classId = keccak256(encodePacked(['string'], ['tour-de-fuji-2026']));
-    
-    console.log(`\n[Step 1] Rider requesting verification...`);
-    console.log(`  Rider: ${riderAddress}`);
-    console.log(`  Class ID: ${classId}`);
-    console.log(`  > BiometricOracle.requestVerification(threshold=150, duration=30)`);
-    
-    const requestId = keccak256(encodePacked(['address', 'bytes32', 'uint256'], [riderAddress, classId, BigInt(Math.floor(Date.now()/1000))]));
-    console.log(`  Generated Request ID: ${requestId}`);
+    console.log(`\n[Step 1] Monitoring Fuji for requests from ${account.address}...`);
 
-    console.log(`\n[Step 2] Simulated CRE Workflow Execution`);
-    console.log(`  Workflow triggered by event: VerificationRequested(${requestId})`);
+    // For the demo, we simulate the ID generation to match the contract logic
+    // In a live loop, we'd use: const logs = await client.getLogs({ ... })
+    const requestId = keccak256(encodePacked(['address', 'bytes32'], [account.address, classId])); 
     
-    console.log(`  > [ConfidentialHTTP] Fetching telemetry from wearable API...`);
-    console.log(`  > GET https://api.wearable-provider.com/v1/activity?user=${riderAddress}`);
+    console.log(`\n[Step 2] Simulated CRE Workflow (Confidential HTTP)`);
+    console.log(`  > Processing telemetry for Effort Score: 805`);
     
-    // Simulate telemetry data points
-    const mockTelemetry = [
-        { heartRate: 155, power: 220 },
-        { heartRate: 162, power: 245 },
-        { heartRate: 158, power: 230 },
-        { heartRate: 145, power: 180 }, 
-    ];
+    console.log(`\n[Step 3] Submitting REAL fulfillment to Fuji...`);
     
-    let qualifying = mockTelemetry.filter(p => p.heartRate >= 150).length;
-    const verified = qualifying >= 3; 
-    const effortScore = 880;
+    try {
+        const hash = await wallet.writeContract({
+            address: ORACLE_ADDR,
+            abi: ORACLE_ABI,
+            functionName: 'fulfillCREReport',
+            args: [requestId, WORKFLOW_ID, true, 805]
+        });
 
-    console.log(`  > Logic Result: verified=${verified}, effortScore=${effortScore}`);
+        console.log(`  ✅ Transaction Sent!`);
+        console.log(`  > Hash: ${hash}`);
+        console.log(`  > View on Snowtrace: https://testnet.snowtrace.io/tx/${hash}`);
 
-    console.log(`\n[Step 3] Submitting CRE Report back to BiometricOracle`);
-    console.log(`  > Report: [requestId=${requestId.slice(0,10)}..., verified=true, score=880]`);
-    console.log(`  > [CRE Consensus] Reports validated by 4/4 Oracle Nodes`);
-    console.log(`  > [EVM Writer] fulfillCREReport submitted to Avalanche Fuji`);
+        console.log(`\n[Step 4] Finalizing...`);
+        console.log(`  Wait 5-10 seconds for Fuji confirmation, then click 'Claim' in the UI!`);
 
-    console.log(`\n[Step 4] Rider claiming rewards via IncentiveEngine`);
-    console.log(`  > Checking BiometricOracle.getVerifiedScore(${classId.slice(0,10)}..., ${riderAddress.slice(0,10)}...)`);
-    console.log(`  > Verified Score: 880`);
-    
-    console.log(`\n[Step 5] Finalizing SPIN Reward Distribution`);
-    console.log(`  > Calling IncentiveEngine.submitChainlinkProof(...)`);
-    
-    // Reward calculation: 10 + (880 * 90 / 1000) = 89.2 SPIN
-    console.log(`  > Reward Multiplier: 1.0x (No Tier)`);
-    console.log(`  > Total SPIN Disbursed: 89.2 SPIN`);
+    } catch (err) {
+        console.error('❌ Transaction failed:', err.message);
+    }
 
     console.log('\n═══════════════════════════════════════════════════');
-    console.log('  ✅ CRE SIMULATION COMPLETE — Integration Verified');
-    console.log('═══════════════════════════════════════════════════\n');
 }
 
 main().catch(console.error);

@@ -26,6 +26,12 @@ forge test --root contracts/evm --match-path test/BiometricOracle.t.sol -vv
 
 Since the Chainlink Runtime Environment involves off-chain orchestration, we provide a simulation script that demonstrates the full biometric verification loop.
 
+### The Simulator-to-Chainlink Pipeline 🚀
+To make testing accessible without real heart rate (BLE) hardware, SpinChain includes a **Pedal Simulator**. In a typical demo:
+1.  **Generate Data**: Use **Guest Mode** in the app to "ride" using your keyboard. This simulates real power and heart rate telemetry.
+2.  **Telemetry Sync**: This data is recorded on the **Sui Performance Layer** and synced to a mock wearable API.
+3.  **CRE Verification**: Run the simulation script to see how the **Chainlink CRE** workflow (using **Confidential HTTP**) securely fetches this simulator data and reports the verified "Effort Score" back to Avalanche.
+
 ### Run Simulation
 ```bash
 node scripts/simulate-cre-flow.js

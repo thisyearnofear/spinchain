@@ -788,8 +788,14 @@ export default function LiveRidePage() {
       ? Math.max(...samples.map(s => s.hr))
       : 0;
 
-    // Finalize Yellow rewards
+    // Finalize rewards logic
     let spinEarned = "0";
+    const effortScore = Math.min(1000, Math.round((avgHR / 200) * 1000));
+    
+    // Calculate potential reward based on IncentiveEngine.sol logic:
+    // Base: 10 SPIN, Bonus: (effortScore * 90) / 1000
+    const potentialReward = 10 + (effortScore * 90) / 1000;
+    
     if (rewards.isActive) {
       try {
         const result = await rewards.finalizeRewards();
@@ -800,15 +806,18 @@ export default function LiveRidePage() {
       }
     }
 
+    // Use actual reward if earned, otherwise show potential for guest/practice mode
+    const displaySpin = spinEarned !== "0" ? spinEarned : potentialReward.toFixed(1);
+
     // Show demo complete modal for practice mode
     if (isPracticeMode) {
       setDemoStats({
         duration: elapsedTime,
         avgHeartRate: avgHR,
         maxHeartRate: maxHR,
-        effortScore: Math.min(1000, Math.round((avgHR / 200) * 1000)),
-        spinEarned: spinEarned || "12.5", // Fallback for demo
-        rewardsWereActive: rewards.isActive && parseFloat(spinEarned) > 0,
+        effortScore,
+        spinEarned: displaySpin,
+        rewardsWereActive: true, // Show "You would have earned" with the calculated amount
       });
       setIsExiting(false);
       setShowDemoModal(true);

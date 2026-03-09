@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, useAccount, type Config } from 'wagmi';
-import { createBrowserWagmiConfig, createServerWagmiConfig } from './wagmi';
+import { createBrowserWagmiConfig } from './wagmi';
 import { SuiProvider } from './sui-provider';
 import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
@@ -91,16 +91,12 @@ function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
 // Inner providers that need theme context
 function InnerProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => getQueryClient());
-  const [wagmiConfig, setWagmiConfig] = useState<Config>(() => createServerWagmiConfig());
-
-  useEffect(() => {
-    setWagmiConfig(createBrowserWagmiConfig());
-  }, []);
+  const [wagmiConfig] = useState(() => createBrowserWagmiConfig());
 
   return (
     <QueryClientProvider client={queryClient}>
       <SuiProvider>
-        <WagmiProvider config={wagmiConfig} reconnectOnMount={false}>
+        <WagmiProvider config={wagmiConfig} reconnectOnMount={true}>
           <RainbowKitThemeWrapper>
             <ToastProvider>
               {children}

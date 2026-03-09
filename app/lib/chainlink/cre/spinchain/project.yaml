@@ -1,0 +1,18 @@
+# ==========================================================================
+# CRE PROJECT SETTINGS FILE
+# ==========================================================================
+# Project-specific settings for CRE CLI targets.
+
+staging-settings:
+  rpcs:
+    - chain-name: avalanche-testnet-fuji
+      url: https://api.avax-test.network/ext/bc/C/rpc
+  experimental-chains:
+    - chain-selector: 14767482510784806043
+      rpc-url: "https://api.avax-test.network/ext/bc/C/rpc"
+      forwarder: "0x0000000000000000000000000000000000000000" # Placeholder
+
+production-settings:
+  rpcs:
+    - chain-name: avalanche-testnet-fuji
+      url: https://api.avax-test.network/ext/bc/C/rpc
