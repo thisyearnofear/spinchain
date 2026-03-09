@@ -18,6 +18,7 @@ import { useDeviceType, useOrientation, useActualViewportHeight, usePerformanceT
 import { useWorkoutAudio } from "../../../hooks/ai/use-workout-audio";
 import { useCoachVoice } from "../../../hooks/common/use-coach-voice";
 import { useAiInstructor } from "../../../hooks/ai/use-ai-instructor";
+import { useAgentReasoner } from "../../../hooks/ai/use-agent-reasoner";
 import { useRewards, type RewardMode } from "../../../hooks/rewards/use-rewards";
 import { useZKClaim } from "../../../hooks/evm/use-zk-claim";
 import { ANALYTICS_EVENTS, trackEvent } from "../../../lib/analytics/events";
@@ -328,6 +329,12 @@ export default function LiveRidePage() {
     [routeCoordinates],
   );
   const routeProgress = isRiding || rideProgress > 0 ? rideProgress / 100 : 0;
+  const visualizerMode: "preview" | "ride" | "finished" =
+    rideProgress >= 100
+      ? "finished"
+      : (isRiding || rideProgress > 0)
+        ? "ride"
+        : "preview";
   const currentRouteCoordinate = useMemo(() => {
     if (routeCoordinates.length === 0) return null;
     const index = Math.min(
@@ -351,11 +358,18 @@ export default function LiveRidePage() {
   });
 
   // AI Instructor
+  const agentName = classData?.instructor || 'Coach';
   const { logs: aiLogs, isActive: aiActive, setIsActive: setAiActive } = useAiInstructor(
-    classData?.instructor || 'Coach',
+    agentName,
     aiPersonality || 'data',
     null // No Sui session in practice/standalone mode
   );
+
+  const { state: reasonerState, lastDecision, thoughtLog, reason: triggerReasoning } = useAgentReasoner({
+    agentName,
+    personality: aiPersonality || 'data',
+    enabled: aiActive,
+  });
 
   // ZK Proof + Privacy
   const {
@@ -702,6 +716,29 @@ export default function LiveRidePage() {
     }
   }, [aiLogs, isSpeaking, speak]);
 
+  // Periodic agent reasoning during ride
+  useEffect(() => {
+    if (!isRiding || !aiActive) return;
+
+    const interval = setInterval(() => {
+      triggerReasoning({
+        telemetry: {
+          avgBpm: telemetry.heartRate,
+          resistance: telemetry.power,
+          duration: elapsedTime,
+        },
+        market: {
+          ticketsSold: classData?.ticketsSold ?? 0,
+          revenue: 0,
+          capacity: classData?.maxRiders ?? 50,
+        },
+        recentDecisions: thoughtLog.slice(0, 3),
+      });
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [isRiding, aiActive, telemetry.heartRate, telemetry.power, elapsedTime, classData?.ticketsSold, classData?.maxRiders, thoughtLog, triggerReasoning]);
+
   // Compute averages for completion
   const telemetryAverages = useMemo(() => {
     const samples = telemetrySamples.current;
@@ -910,6 +947,7 @@ export default function LiveRidePage() {
             theme={routeTheme}
             storyBeats={classData.route.route.storyBeats}
             progress={routeProgress}
+            mode={visualizerMode}
             stats={{ hr: telemetry.heartRate, power: telemetry.power, cadence: telemetry.cadence }}
             avatarId={searchParams.get("avatarId") || undefined}
             equipmentId={searchParams.get("equipmentId") || undefined}
@@ -1160,6 +1198,7 @@ export default function LiveRidePage() {
             rewardsStreamState={rewards.streamState ?? null}
             rewardsMode={rewards.mode}
             intervalPhase={currentInterval?.phase ?? null}
+            aiLog={aiLogs[0]}
           />
 
           {/* Bottom - Controls (Mobile Optimized) */}
@@ -1241,30 +1280,54 @@ export default function LiveRidePage() {
                 onSimulatorMetrics={handleSimulatorMetrics}
               />
 
-              {/* Audio/Coach Status */}
-              {isRiding && (audioConfigured || aiActive) && (
-                <div className="mt-2 flex items-center justify-center gap-3 text-xs">
-                  {isSpeaking && (
-                    <span className="flex items-center gap-1.5 text-indigo-400">
-                      <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
-                      Coach speaking
-                    </span>
-                  )}
-                  {aiActive && (
-                    <span className="flex items-center gap-1.5 text-amber-400">
-                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                      AI Active
-                    </span>
-                  )}
+              {/* Agent Reasoning HUD */}
+              {isRiding && aiActive && (
+                <div className="mt-2 max-w-sm mx-auto">
+                  <div className="rounded-xl border border-indigo-500/25 bg-black/70 backdrop-blur-xl px-3 py-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm">🧠</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+                        {agentName}
+                      </span>
+                      <span className={`ml-auto inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
+                        reasonerState === "thinking"
+                          ? "bg-amber-500/20 text-amber-300"
+                          : reasonerState === "acting"
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : "bg-white/10 text-white/40"
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          reasonerState === "thinking"
+                            ? "bg-amber-400 animate-pulse"
+                            : reasonerState === "acting"
+                              ? "bg-emerald-400 animate-pulse"
+                              : "bg-white/30"
+                        }`} />
+                        {reasonerState === "thinking" ? "Reasoning…" : reasonerState === "acting" ? "Acting" : "Monitoring"}
+                      </span>
+                    </div>
+                    {lastDecision ? (
+                      <p className="text-[11px] leading-relaxed text-white/70 line-clamp-2">
+                        &ldquo;{lastDecision.reasoning || lastDecision.thoughtProcess}&rdquo;
+                      </p>
+                    ) : thoughtLog.length > 0 ? (
+                      <p className="text-[11px] leading-relaxed text-white/70 line-clamp-2">
+                        &ldquo;{thoughtLog[0]}&rdquo;
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-white/40 italic">
+                        Analyzing telemetry stream…
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* Latest AI Coach Message */}
-              {isRiding && aiLogs.length > 0 && aiLogs[0].type === 'action' && (
-                <div className="mt-2 max-w-sm mx-auto">
-                  <div className="rounded-lg bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 text-xs text-indigo-300 text-center truncate">
-                    {aiLogs[0].message}
-                  </div>
+              {/* Coach voice indicator */}
+              {isRiding && isSpeaking && (
+                <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[10px] text-indigo-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                  Speaking
                 </div>
               )}
             </div>
@@ -1344,6 +1407,8 @@ export default function LiveRidePage() {
           onClaimRewards={!isPracticeMode ? handleClaimRewards : undefined}
           zkProofStatus={!isPracticeMode ? { isGenerating: isGeneratingProof, isSuccess: zkSuccess, privacyScore, privacyLevel, error: zkError } : undefined}
           spinEarned={rewards.formattedReward}
+          agentName={agentName}
+          agentPersonality={aiPersonality || "data"}
         />
       )}
 

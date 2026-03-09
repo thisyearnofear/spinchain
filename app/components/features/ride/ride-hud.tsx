@@ -23,6 +23,7 @@ interface RideHUDProps {
   rewardsStreamState: RewardStreamState | null;
   rewardsMode: "yellow-stream" | "zk-batch" | "sui-native";
   intervalPhase?: IntervalPhase | null;
+  aiLog?: { type: string; message: string; timestamp: number } | null;
 }
 
 function getPhaseAccent(phase?: IntervalPhase | null) {
@@ -78,6 +79,7 @@ export function RideHUD({
   rewardsStreamState,
   rewardsMode,
   intervalPhase,
+  aiLog,
 }: RideHUDProps) {
   // Don't show if minimal mode or not riding
   if (hudMode === "minimal" || (!isRiding && rideProgress === 0)) {
@@ -87,6 +89,24 @@ export function RideHUD({
   const phaseAccent = getPhaseAccent(intervalPhase);
   const phaseMetrics = getPhaseMetrics(telemetry, intervalPhase);
   const phaseLabel = intervalPhase ? intervalPhase.charAt(0).toUpperCase() + intervalPhase.slice(1) : "Cruise";
+
+  // Agent Intelligence Section
+  const agentInsight = (
+    <div className="mt-2 flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-700">
+      <div className="flex items-center gap-2 mb-1">
+        <div className="relative">
+          <span className="flex h-2 w-2 rounded-full bg-indigo-400 absolute -top-0.5 -right-0.5 animate-ping" />
+          <span className="flex h-2 w-2 rounded-full bg-indigo-500 relative" />
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300/80">
+          Agent Reasoning
+        </span>
+      </div>
+      <div className="max-w-[240px] rounded-xl bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 text-[11px] text-indigo-200 leading-relaxed text-center backdrop-blur-md italic">
+        {aiLog?.message || "Analyzing Sui telemetry stream..."}
+      </div>
+    </div>
+  );
 
   // Mobile Compact Layout
   if (deviceType === "mobile" && hudMode === "compact") {
@@ -116,6 +136,8 @@ export function RideHUD({
               </div>
             ))}
           </div>
+          
+          {isRiding && agentInsight}
         </div>
       </div>
     );
@@ -173,6 +195,12 @@ export function RideHUD({
           <MetricCard label={phaseMetrics.secondary[1].label} value={phaseMetrics.secondary[1].value} unit={phaseMetrics.secondary[1].unit} color={phaseMetrics.secondary[1].color} />
           <MetricCard label="Speed" value={telemetry.speed.toFixed(1)} unit="km/h" color="text-green-400" />
         </div>
+
+        {isRiding && (
+          <div className="flex justify-center mt-2">
+            {agentInsight}
+          </div>
+        )}
       </div>
     </div>
   );

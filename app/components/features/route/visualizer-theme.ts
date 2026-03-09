@@ -24,6 +24,12 @@ export const VISUALIZER_THEMES = {
     terrainFrontScale: 0.62,
     patternOpacity: 0.24,
     routeDashOpacity: 0.8,
+    props: {
+      type: "building" as const,
+      color: "#6d7cff",
+      count: 40,
+      scale: [2, 8, 2] as [number, number, number],
+    },
   },
   alpine: {
     fog: "#caccf0",
@@ -48,6 +54,12 @@ export const VISUALIZER_THEMES = {
     terrainFrontScale: 0.76,
     patternOpacity: 0.08,
     routeDashOpacity: 0.36,
+    props: {
+      type: "tree" as const,
+      color: "#22543d",
+      count: 120,
+      scale: [0.5, 2, 0.5] as [number, number, number],
+    },
   },
   mars: {
     fog: "#451a1a",
@@ -72,6 +84,12 @@ export const VISUALIZER_THEMES = {
     terrainFrontScale: 0.56,
     patternOpacity: 0.12,
     routeDashOpacity: 0.52,
+    props: {
+      type: "rock" as const,
+      color: "#92400e",
+      count: 80,
+      scale: [1, 1, 1] as [number, number, number],
+    },
   },
   anime: {
     fog: "#ffdeeb",
@@ -96,6 +114,12 @@ export const VISUALIZER_THEMES = {
     terrainFrontScale: 0.68,
     patternOpacity: 0.05,
     routeDashOpacity: 0.28,
+    props: {
+      type: "blossom" as const,
+      color: "#fbcfe8",
+      count: 200,
+      scale: [0.3, 0.3, 0.3] as [number, number, number],
+    },
   },
   rainbow: {
     fog: "#1a0b2e",
@@ -120,6 +144,12 @@ export const VISUALIZER_THEMES = {
     terrainFrontScale: 0.58,
     patternOpacity: 0.18,
     routeDashOpacity: 0.88,
+    props: {
+      type: "crystal" as const,
+      color: "#00ffff",
+      count: 60,
+      scale: [0.5, 3, 0.5] as [number, number, number],
+    },
   },
 } as const;
 

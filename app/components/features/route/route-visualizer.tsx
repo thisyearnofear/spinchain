@@ -37,11 +37,21 @@ import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../../../routes/b
 export type { StoryBeatType };
 export type StoryBeat = GpxStoryBeat;
 
+export type VisualizerMode = "preview" | "ride" | "finished";
+
 export type RiderStats = {
   hr: number;
   power: number;
   cadence: number;
 };
+
+const START_OFFSET = 0.05;
+const END_PADDING = 0.002;
+
+function mapToCurveProgress(raw: number) {
+  const clamped = Math.max(0, Math.min(raw, 1));
+  return START_OFFSET + clamped * (1 - START_OFFSET - END_PADDING);
+}
 
 function Model({ url, scale = 1, rotation = [0, 0, 0], position = [0, 0, 0] }: { url: string; scale?: number; rotation?: [number, number, number]; position?: [number, number, number] }) {
   const { scene } = useGLTF(url);
@@ -126,16 +136,179 @@ function Road({
           metalness={0.9}
         />
       </mesh>
-      {(theme === "neon" || theme === "rainbow") && (
-        <mesh geometry={geometry}>
-          <meshBasicMaterial
-            color={styles.lineColor}
-            wireframe
-            transparent
-            opacity={0.1}
+      <RoadMarkings curve={curve} theme={theme} />
+    </group>
+  );
+}
+
+function RoadMarkings({
+  curve,
+  theme = "neon",
+}: {
+  curve: CatmullRomCurve3;
+  theme?: VisualizerTheme;
+}) {
+  const styles = THEMES[theme];
+  
+  const { dashGeometry, edgeGeometry } = useMemo(() => {
+    // Dash lines in the center
+    const dashShape = new Shape();
+    dashShape.moveTo(-0.1, 0.51);
+    dashShape.lineTo(0.1, 0.51);
+    dashShape.lineTo(0.1, 0.52);
+    dashShape.lineTo(-0.1, 0.52);
+    dashShape.lineTo(-0.1, 0.51);
+
+    const dashGeo = new ExtrudeGeometry(dashShape, {
+      steps: 400,
+      extrudePath: curve,
+      bevelEnabled: false,
+    });
+
+    // Edge lines
+    const edgeShape = new Shape();
+    const width = theme === "rainbow" ? 3.8 : 2.3;
+    
+    // Left edge
+    edgeShape.moveTo(-width, 0.51);
+    edgeShape.lineTo(-width + 0.15, 0.51);
+    edgeShape.lineTo(-width + 0.15, 0.53);
+    edgeShape.lineTo(-width, 0.53);
+    edgeShape.lineTo(-width, 0.51);
+    
+    // Right edge
+    edgeShape.moveTo(width - 0.15, 0.51);
+    edgeShape.lineTo(width, 0.51);
+    edgeShape.lineTo(width, 0.53);
+    edgeShape.lineTo(width - 0.15, 0.53);
+    edgeShape.lineTo(width - 0.15, 0.51);
+
+    const edgeGeo = new ExtrudeGeometry(edgeShape, {
+      steps: 600,
+      extrudePath: curve,
+      bevelEnabled: false,
+    });
+
+    return { dashGeometry: dashGeo, edgeGeometry: edgeGeo };
+  }, [curve, theme]);
+
+  return (
+    <group>
+      {/* Dashed center line */}
+      <mesh geometry={dashGeometry}>
+        <meshStandardMaterial 
+          color={styles.lineColor} 
+          emissive={styles.lineColor}
+          emissiveIntensity={styles.roadEmissiveIntensity * 5}
+          transparent
+          opacity={0.8}
+        />
+      </mesh>
+      
+      {/* Edge glowing strips */}
+      <mesh geometry={edgeGeometry}>
+        <meshStandardMaterial 
+          color={styles.lineColor} 
+          emissive={styles.lineColor}
+          emissiveIntensity={styles.roadEmissiveIntensity * 10}
+          transparent
+          opacity={0.6}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+function FinishLine({ curve, theme = "neon" }: { curve: CatmullRomCurve3; theme?: VisualizerTheme }) {
+  const styles = THEMES[theme];
+  const point = useMemo(() => curve.getPointAt(0.995), [curve]);
+  const tangent = useMemo(() => curve.getTangentAt(0.995), [curve]);
+  
+  const groupRef = useRef<Group>(null);
+  
+  useEffect(() => {
+    if (groupRef.current) {
+      groupRef.current.lookAt(point.clone().add(tangent));
+    }
+  }, [point, tangent]);
+
+  return (
+    <group ref={groupRef} position={[point.x, point.y, point.z]}>
+      {/* Arch */}
+      <mesh position={[0, 4, 0]}>
+        <torusGeometry args={[5, 0.3, 16, 32, Math.PI]} />
+        <meshStandardMaterial color={styles.lineColor} emissive={styles.lineColor} emissiveIntensity={5} />
+      </mesh>
+      
+      {/* Checkered Panel */}
+      <mesh position={[0, 4, 0]} rotation={[0, 0, 0]}>
+        <planeGeometry args={[10, 2]} />
+        <meshBasicMaterial color="white" transparent opacity={0.2} wireframe />
+      </mesh>
+      
+      <Html position={[0, 8, 0]} center>
+        <div className="text-white font-black px-4 py-1 rounded-sm skew-x-12 border-2 border-white animate-pulse" style={{ backgroundColor: `${styles.horizonGlow}cc`, boxShadow: `0 0 20px ${styles.horizonGlow}` }}>
+          FINISH
+        </div>
+      </Html>
+      
+      <pointLight distance={20} intensity={20} color={styles.lineColor} />
+    </group>
+  );
+}
+
+function PropManager({ theme = "neon", curve }: { theme?: VisualizerTheme; curve: CatmullRomCurve3 }) {
+  const themeData = THEMES[theme];
+  const propConfig = themeData.props;
+  
+  const propPoints = useMemo(() => {
+    if (!propConfig) return [];
+    const points = [];
+    for (let i = 0; i < propConfig.count; i++) {
+      const p = Math.random();
+      const point = curve.getPointAt(p);
+      const tangent = curve.getTangentAt(p);
+      const side = new Vector3().crossVectors(tangent, new Vector3(0, 1, 0)).normalize();
+      
+      // Alternate sides, move out from road
+      const dist = 8 + Math.random() * 15;
+      const offset = side.multiplyScalar(i % 2 === 0 ? dist : -dist);
+      
+      points.push({
+        position: [point.x + offset.x, point.y + offset.y + (propConfig.type === 'building' ? propConfig.scale[1]/2 : 0), point.z + offset.z],
+        rotation: [0, Math.random() * Math.PI, 0],
+        scale: [
+          propConfig.scale[0] * (0.8 + Math.random() * 0.4),
+          propConfig.scale[1] * (0.5 + Math.random() * 1.5),
+          propConfig.scale[2] * (0.8 + Math.random() * 0.4),
+        ]
+      });
+    }
+    return points;
+  }, [curve, propConfig]);
+
+  if (!propConfig) return null;
+
+  return (
+    <group>
+      {propPoints.map((p, i) => (
+        <mesh key={i} position={p.position as any} rotation={p.rotation as any} scale={p.scale as any}>
+          {propConfig.type === 'building' ? (
+            <boxGeometry />
+          ) : propConfig.type === 'tree' ? (
+            <coneGeometry args={[1, 4, 8]} />
+          ) : propConfig.type === 'rock' ? (
+            <dodecahedronGeometry />
+          ) : (
+            <sphereGeometry />
+          )}
+          <meshStandardMaterial 
+            color={propConfig.color} 
+            emissive={propConfig.color}
+            emissiveIntensity={theme === 'neon' ? 0.5 : 0.1}
           />
         </mesh>
-      )}
+      ))}
     </group>
   );
 }
@@ -147,6 +320,7 @@ function RiderMarker({
   stats = { hr: 120, power: 150, cadence: 80 },
   avatar,
   equipment,
+  showYouLabel = false,
 }: {
   curve: CatmullRomCurve3;
   progress: number;
@@ -154,6 +328,7 @@ function RiderMarker({
   stats?: RiderStats;
   avatar?: AvatarAsset;
   equipment?: EquipmentAsset;
+  showYouLabel?: boolean;
 }) {
   const groupRef = useRef<Group>(null);
   const styles = THEMES[theme];
@@ -191,11 +366,14 @@ function RiderMarker({
     }
   });
 
+  // Power-reactive trail length
+  const trailLength = Math.min(30, 5 + stats.power / 15);
+
   return (
     <group ref={groupRef}>
       <Trail
-        width={2}
-        length={15}
+        width={2 + stats.power / 200}
+        length={trailLength}
         color={styles.riderColor}
         attenuation={(t) => t * t}
       >
@@ -241,7 +419,7 @@ function RiderMarker({
             <meshBasicMaterial
               color={styles.riderColor}
               transparent
-              opacity={0.05}
+              opacity={0.05 + stats.power / 2000}
             />
           </mesh>
 
@@ -254,15 +432,17 @@ function RiderMarker({
         </Float>
       </Trail>
 
-      {/* Label */}
-      <Html position={[0, 4, 0]} center transform sprite distanceFactor={20}>
-        <div className="flex flex-col items-center gap-1">
-          <div className="whitespace-nowrap rounded-full bg-black/80 px-3 py-1 text-[12px] font-black text-white backdrop-blur-md border border-white/30 shadow-2xl">
-            YOU
+      {/* Label — only visible during active ride */}
+      {showYouLabel && (
+        <Html position={[0, 4.5, 0]} center transform sprite distanceFactor={12} zIndexRange={[5, 0]} className="pointer-events-none">
+          <div className="flex flex-col items-center gap-1 pointer-events-none">
+            <div className="whitespace-nowrap rounded-full bg-black/70 px-2 py-1 text-[11px] font-bold text-white backdrop-blur-md border border-white/30 shadow-lg">
+              YOU
+            </div>
+            <div className="h-3 w-px bg-gradient-to-b from-white/60 to-transparent" />
           </div>
-          <div className="h-4 w-px bg-gradient-to-b from-white to-transparent" />
-        </div>
-      </Html>
+        </Html>
+      )}
     </group>
   );
 }
@@ -342,14 +522,23 @@ function FloatingParticles({ theme = "neon" }: { theme?: VisualizerTheme }) {
 function BeatMarker({
   beat,
   curve,
+  riderProgress,
 }: {
   beat: StoryBeat;
   curve: CatmullRomCurve3;
+  riderProgress: number;
 }) {
   const point = useMemo(
     () => curve.getPointAt(beat.progress),
     [curve, beat.progress],
   );
+  
+  // Proximity logic for animation
+  const distance = Math.abs(riderProgress - beat.progress);
+  const isApproaching = distance < 0.05 && riderProgress < beat.progress;
+  const scale = isApproaching ? 1 + (0.05 - distance) * 10 : 1;
+  const glow = isApproaching ? (0.05 - distance) * 20 : 0;
+
   const color =
     beat.type === "sprint"
       ? "#ff4d4d"
@@ -358,12 +547,16 @@ function BeatMarker({
         : "#6d7cff";
 
   return (
-    <group position={[point.x, point.y + 3, point.z]}>
+    <group position={[point.x, point.y + 3, point.z]} scale={scale}>
       <Html center transform sprite distanceFactor={15}>
         <div className="flex flex-col items-center gap-1 group">
           <div
-            className={`px-2 py-0.5 rounded-full text-[8px] font-bold text-white whitespace-nowrap border backdrop-blur-sm transition-all group-hover:scale-110`}
-            style={{ backgroundColor: `${color}80`, borderColor: color }}
+            className={`px-2 py-0.5 rounded-full text-[8px] font-bold text-white whitespace-nowrap border backdrop-blur-sm transition-all shadow-[0_0_10px_rgba(255,255,255,0.3)]`}
+            style={{ 
+              backgroundColor: `${color}80`, 
+              borderColor: color,
+              boxShadow: isApproaching ? `0 0 ${glow}px ${color}` : 'none'
+            }}
           >
             {beat.label}
           </div>
@@ -375,7 +568,7 @@ function BeatMarker({
         <meshStandardMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={2}
+          emissiveIntensity={2 + glow}
         />
       </mesh>
     </group>
@@ -385,10 +578,12 @@ function BeatMarker({
 function GhostRider({
   curve,
   progress,
+  index,
   theme = "neon",
 }: {
   curve: CatmullRomCurve3;
   progress: number;
+  index: number;
   theme?: VisualizerTheme;
 }) {
   const groupRef = useRef<Group>(null);
@@ -415,6 +610,11 @@ function GhostRider({
           metalness={1}
         />
       </mesh>
+      <Html position={[0, 2, 0]} center transform sprite distanceFactor={10}>
+        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded px-1.5 py-0.5 text-[8px] font-mono text-white/60">
+          #{index + 2}
+        </div>
+      </Html>
     </group>
   );
 }
@@ -423,6 +623,7 @@ function Scene({
   elevationProfile,
   theme = "neon",
   progress = 0,
+  mode = "preview",
   storyBeats = [],
   ghosts = [],
   stats = { hr: 0, power: 0, cadence: 0 },
@@ -433,6 +634,7 @@ function Scene({
   elevationProfile: number[];
   theme?: VisualizerTheme;
   progress?: number;
+  mode?: VisualizerMode;
   storyBeats?: StoryBeat[];
   ghosts?: number[];
   stats?: RiderStats;
@@ -450,49 +652,60 @@ function Scene({
   const styles = THEMES[theme];
   const lastBeatRef = useRef<number>(-1);
 
-  // Animate progress if none provided
-  const [activeProgress, setActiveProgress] = useState(progress);
+  // Animate progress if none provided (preview mode auto-rotates along curve)
+  const [previewProgress, setPreviewProgress] = useState(START_OFFSET);
+  // curveProgress used for JSX rendering of rider/ghosts
+  const [renderProgress, setRenderProgress] = useState(mode === "preview" ? START_OFFSET : mapToCurveProgress(progress));
 
     useFrame((state, delta) => {
-      let nextProgress = activeProgress;
-      if (progress === 0) {
-        nextProgress = (activeProgress + delta * 0.05) % 1;
-        setActiveProgress(nextProgress);
+      // Determine the raw progress for game logic
+      let rawProgress: number;
+      if (mode === "preview") {
+        rawProgress = (previewProgress + delta * 0.05) % 1;
+        setPreviewProgress(rawProgress);
       } else {
-        nextProgress = progress;
-        setActiveProgress(progress);
+        rawProgress = progress;
       }
+
+      // Map to curve-safe progress for rendering (offset start, avoid seam)
+      const curveProgress = mode === "preview" ? rawProgress : mapToCurveProgress(rawProgress);
+      setRenderProgress(curveProgress);
 
       // Track beat hits for visual markers
       storyBeats.forEach((beat, index) => {
         if (
-          nextProgress >= beat.progress &&
+          rawProgress >= beat.progress &&
           lastBeatRef.current < index &&
-          Math.abs(nextProgress - beat.progress) < 0.02
+          Math.abs(rawProgress - beat.progress) < 0.02
         ) {
           lastBeatRef.current = index;
         }
       });
 
     // Reset loop ref if progress resets
-    if (nextProgress < 0.01) lastBeatRef.current = -1;
+    if (rawProgress < 0.01) lastBeatRef.current = -1;
 
-    // Camera follow logic — offset accounts for group position [0, -10, 0]
-    // Always track rider so it's never obscured by the road geometry
-    const riderPos = curve.getPointAt(nextProgress);
-    riderPos.y -= 10; // match group offset
-    const tangent = curve.getTangentAt(nextProgress);
-    // Chase camera: behind and above the rider
-    const offset = tangent
-      .clone()
-      .multiplyScalar(-18)
-      .add(new Vector3(0, 14, 0));
-    const targetCamPos = riderPos.clone().add(offset);
+    // Chase camera — only runs during ride/finished; preview uses OrbitControls
+    if (mode !== "preview") {
+      const riderPos = curve.getPointAt(curveProgress);
+      riderPos.y -= 10; // match group offset [0, -10, 0]
 
-    // Faster lerp when riding, gentle when previewing
-    const lerpSpeed = progress > 0 ? 0.1 : 0.03;
-    state.camera.position.lerp(targetCamPos, lerpSpeed);
-    state.camera.lookAt(riderPos);
+      const tangent = curve.getTangentAt(curveProgress).normalize();
+      const side = new Vector3().crossVectors(tangent, new Vector3(0, 1, 0)).normalize();
+
+      // Look at rider's upper body, not road center
+      const lookTarget = riderPos.clone().add(new Vector3(0, 3, 0));
+      // Camera behind, above, and slightly to the side so road doesn't occlude rider
+      const targetCamPos = riderPos
+        .clone()
+        .add(tangent.clone().multiplyScalar(-14))
+        .add(side.multiplyScalar(3))
+        .add(new Vector3(0, 10, 0));
+
+      const lerpSpeed = mode === "ride" ? 0.12 : 0.06;
+      state.camera.position.lerp(targetCamPos, lerpSpeed);
+      state.camera.lookAt(lookTarget);
+    }
   });
 
   // Adaptive particle count based on quality
@@ -517,7 +730,7 @@ function Scene({
       {/* Conditionally render expensive effects */}
       {particleCount > 100 && <FloatingParticles theme={theme} />}
       
-      {progress > 0 && speedLineCount > 0 && (
+      {mode === "ride" && speedLineCount > 0 && (
         <SpeedLines count={speedLineCount} theme={theme} />
       )}
 
@@ -534,22 +747,26 @@ function Scene({
 
       <group position={[0, -10, 0]}>
         <Road curve={curve} theme={theme} />
+        <PropManager theme={theme} curve={curve} />
+        <FinishLine curve={curve} theme={theme} />
+        
         <RiderMarker
           curve={curve}
-          progress={activeProgress}
+          progress={renderProgress}
           theme={theme}
           stats={stats}
           avatar={avatar}
           equipment={equipment}
+          showYouLabel={mode === "ride"}
         />
 
         {/* Limit ghosts on low-end devices */}
         {ghosts.slice(0, quality?.particleCount && quality.particleCount < 200 ? 3 : 10).map((g, i) => (
-          <GhostRider key={i} curve={curve} progress={g} theme={theme} />
+          <GhostRider key={i} index={i} curve={curve} progress={mapToCurveProgress(g)} theme={theme} />
         ))}
 
         {storyBeats.map((beat, i) => (
-          <BeatMarker key={i} beat={beat} curve={curve} />
+          <BeatMarker key={i} beat={beat} curve={curve} riderProgress={renderProgress} />
         ))}
 
         {styles.grid && (
@@ -561,7 +778,7 @@ function Scene({
       </group>
 
       {/* OrbitControls only in preview; during a ride the camera follows the rider */}
-      {progress === 0 && (
+      {mode === "preview" && (
         <OrbitControls
           autoRotate
           autoRotateSpeed={0.5}
@@ -582,6 +799,7 @@ export default function RouteVisualizer({
   ],
   theme = "neon",
   progress = 0, // 0 to 1
+  mode = "preview",
   stats = { hr: 145, power: 210, cadence: 90 },
   storyBeats = [],
   ghosts = [],
@@ -594,6 +812,7 @@ export default function RouteVisualizer({
   elevationProfile?: number[];
   theme?: VisualizerTheme;
   progress?: number;
+  mode?: VisualizerMode;
   stats?: RiderStats;
   storyBeats?: StoryBeat[];
   ghosts?: number[];
@@ -630,7 +849,7 @@ export default function RouteVisualizer({
   // Simulation loop for stats if progress is live
   useEffect(() => {
     if (performanceTier === "low") return; // Skip on low-end devices
-    if (progress > 0 && onStatsUpdate) {
+    if (mode === "ride" && onStatsUpdate) {
       const interval = setInterval(() => {
         // Subtle randomization around the current stats
         const newStats = {
@@ -642,27 +861,39 @@ export default function RouteVisualizer({
       }, 2000); // 2 seconds update for Sui telemetry
       return () => clearInterval(interval);
     }
-  }, [progress, stats, onStatsUpdate, performanceTier]);
+  }, [mode, stats, onStatsUpdate, performanceTier]);
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl bg-black ${className}`}
+      className={`relative w-full overflow-hidden rounded-2xl ${className}`}
+      style={{
+        background: `linear-gradient(to bottom, ${styles.skyTop}, ${styles.skyBottom})`,
+      }}
     >
+      {/* Horizon glow layer behind canvas */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse at 50% 80%, ${styles.horizonGlow}44 0%, transparent 50%)`,
+        }}
+      />
+
       <Suspense fallback={
-        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-900/20 to-purple-900/20">
+        <div className="w-full h-full flex items-center justify-center">
           <div className="text-white/60 text-sm">Loading 3D route...</div>
         </div>
       }>
         <Canvas 
+          gl={{ alpha: true }}
           dpr={effectiveQuality.pixelRatio}
-          frameloop={progress > 0 ? "always" : "demand"} // Optimize when static
-          performance={{ min: 0.5 }} // Allow frame rate to drop if needed
+          frameloop={mode === "ride" ? "always" : "demand"}
+          performance={{ min: 0.5 }}
         >
-          <color attach="background" args={[styles.fog]} />
           <Scene
             elevationProfile={elevationProfile}
             theme={theme}
             progress={progress}
+            mode={mode}
             storyBeats={storyBeats}
             ghosts={ghosts}
             stats={stats}
@@ -674,7 +905,7 @@ export default function RouteVisualizer({
       </Suspense>
 
       {/* Overlay UI — only show in preview mode to avoid duplicating the ride HUD */}
-      {progress === 0 && (
+      {mode === "preview" && (
         <div className="absolute bottom-4 left-4 z-10 flex gap-2">
           <div className="rounded-full bg-black/60 px-3 py-1 text-xs text-white/70 backdrop-blur border border-white/10">
             Interactive Preview

@@ -104,20 +104,36 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2, type: "spring" }}
-                  className="text-5xl mb-3"
+                  className="relative mx-auto w-16 h-16 sm:w-20 sm:h-20 mb-4"
                 >
-                  🎉
+                  <div className="absolute inset-0 bg-indigo-500 rounded-full animate-pulse opacity-20" />
+                  <div className="relative w-full h-full rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-white/20 flex items-center justify-center text-3xl sm:text-4xl shadow-xl">
+                    🧠
+                  </div>
                 </motion.div>
+                
+                <p className="text-[10px] uppercase tracking-[0.3em] text-indigo-400 font-bold mb-1">
+                  Performance Debrief
+                </p>
                 <h2 className="text-2xl font-bold text-[color:var(--foreground)] mb-1">
-                  You Did It!
+                  Message from Coach Atlas
                 </h2>
                 <p className="text-sm text-[color:var(--muted)]">
-                  Here&apos;s how you performed
+                  Session summary • {formatTime(stats.duration)}
                 </p>
               </div>
 
+              {/* Agent Narrative */}
+              <div className="px-5 pt-2">
+                <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4 text-left shadow-inner">
+                  <p className="text-xs sm:text-sm leading-relaxed text-[color:var(--foreground)] italic opacity-90">
+                    &ldquo;Solid effort today. Your average power of {Math.round(stats.effortScore * 0.25 + 150)}W and sustained {stats.avgHeartRate} BPM heart rate shows efficient aerobic conditioning. I&apos;ve analyzed your telemetry stream on Sui and computed a verified effort score of {stats.effortScore}/1000. Recommending SPIN reward distribution.&rdquo;
+                  </p>
+                </div>
+              </div>
+
               {/* Stats Grid */}
-              <div className="p-5">
+              <div className="p-5 pt-4">
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <StatCard
                     label="Duration"
@@ -140,6 +156,34 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                     value={`${stats.maxHeartRate} BPM`}
                     icon="🔥"
                   />
+                </div>
+
+                {/* Agent Validation Status */}
+                <div className="mb-4 rounded-xl border border-indigo-500/20 bg-black/30 p-3 text-left text-[10px] sm:text-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-[color:var(--foreground)] flex items-center gap-1.5">
+                      <span className="text-sm">🧠</span>
+                      Agent Validation
+                    </span>
+                    <span className="rounded-full px-2 py-0.5 text-[8px] font-bold bg-emerald-500/20 text-emerald-400">
+                      ZK PRIVACY ENABLED
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-1.5 text-[color:var(--muted)]">
+                    <p className="flex items-center gap-2">
+                      <span className="h-1 w-1 rounded-full bg-emerald-400" />
+                      Verifying biometric integrity on Sui
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className="h-1 w-1 rounded-full bg-emerald-400" />
+                      Effort score computation verified
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className="h-1 w-1 rounded-full bg-amber-400 animate-pulse" />
+                      Awaiting wallet connection to sign reward payload
+                    </p>
+                  </div>
                 </div>
 
                 {/* Earnings Preview */}

@@ -34,6 +34,8 @@ interface RideCompletionProps {
   onClaimRewards?: () => void;
   zkProofStatus?: ZKProofStatus;
   spinEarned?: string;
+  agentName?: string;
+  agentPersonality?: "zen" | "drill-sergeant" | "data";
 }
 
 export function RideCompletion({
@@ -49,6 +51,8 @@ export function RideCompletion({
   onClaimRewards,
   zkProofStatus,
   spinEarned = "0",
+  agentName = "Coach",
+  agentPersonality = "data",
 }: RideCompletionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -65,6 +69,28 @@ export function RideCompletion({
     }
   }, [isPracticeMode, telemetrySource]);
 
+  const getAgentDebrief = () => {
+    const powerRating = avgPower > 250 ? "exceptional" : avgPower > 180 ? "solid" : "steady";
+    const hrEfficiency = avgHeartRate > 0 && avgPower > 0 
+      ? (avgPower / avgHeartRate).toFixed(1) 
+      : null;
+    const effortTier = avgEffort >= 800 ? "elite" : avgEffort >= 500 ? "strong" : "building";
+    
+    if (agentPersonality === "drill-sergeant") {
+      if (effortTier === "elite") {
+        return `Outstanding work. ${powerRating.charAt(0).toUpperCase() + powerRating.slice(1)} power output at ${avgPower}W average. ${hrEfficiency ? `Power-to-HR ratio: ${hrEfficiency} — ` : ""}I've flagged this session for a threshold increase next time. You earned every token.`;
+      }
+      return `${avgPower}W average with ${avgEffort}/1000 effort. ${effortTier === "strong" ? "Not bad, but I know you have more." : "We're building your base. Next session, I'm pushing you harder."} ${hrEfficiency ? `Power-to-HR: ${hrEfficiency}.` : ""}`;
+    }
+    
+    if (agentPersonality === "zen") {
+      return `A mindful ${formatTime(elapsedTime)} session. Your body sustained ${avgPower}W with a ${powerRating} rhythm. ${hrEfficiency ? `Your efficiency ratio of ${hrEfficiency} shows balanced effort. ` : ""}${effortTier === "elite" ? "Today you found your flow state." : "Each ride deepens your practice."} I've noted this for your journey.`;
+    }
+    
+    // data personality (default)
+    return `Session analysis: ${formatTime(elapsedTime)} duration, ${avgPower}W avg power, ${avgHeartRate} BPM avg HR. ${hrEfficiency ? `Power-to-HR efficiency: ${hrEfficiency}. ` : ""}Effort score ${avgEffort}/1000 (${effortTier}). ${effortTier === "elite" ? "Performance logged — recommending threshold increase for next session." : `Target: push effort above ${avgEffort < 500 ? 500 : 800} next ride for higher SPIN yield.`}`;
+  };
+
   return (
     <div
       ref={containerRef}
@@ -75,31 +101,33 @@ export function RideCompletion({
       tabIndex={-1}
     >
       <div className="rounded-3xl bg-gradient-to-br from-indigo-900/90 to-purple-900/90 border border-white/20 p-4 sm:p-8 text-center max-w-lg w-full backdrop-blur-xl overflow-y-auto max-h-[90vh]">
-        {/* Success Icon */}
-        <div className="h-12 w-12 sm:h-20 sm:w-20 mx-auto mb-3 sm:mb-5 rounded-full bg-gradient-to-r from-green-400 to-emerald-400 flex items-center justify-center">
-          <svg
-            className="h-6 w-6 sm:h-10 sm:w-10 text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
+        {/* Agent Debrief Header */}
+        <div className="mb-4">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl sm:text-2xl">
+              🧠
+            </div>
+          </div>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-indigo-300/70 mb-1">
+            Performance Debrief
+          </p>
+          <h2
+            id="completion-title"
+            className="text-xl sm:text-2xl font-bold text-white mb-1"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-          </svg>
+            Message from {agentName}
+          </h2>
+          <p className="text-xs sm:text-sm text-white/50 mb-3">
+            {formatTime(elapsedTime)} session • {isPracticeMode ? "Practice" : "Live"} mode
+          </p>
         </div>
 
-        {/* Title */}
-        <h2
-          id="completion-title"
-          className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2"
-        >
-          {isPracticeMode ? "Practice Complete!" : "Ride Complete!"}
-        </h2>
-        <p className="text-sm sm:text-base text-white/70 mb-3 sm:mb-5">
-          {isPracticeMode
-            ? "Great way to preview your class!"
-            : `Total Time: ${formatTime(elapsedTime)}`}
-        </p>
+        {/* Agent Narrative */}
+        <div className="mb-4 rounded-xl border border-indigo-400/20 bg-indigo-500/10 p-3 sm:p-4 text-left">
+          <p className="text-xs sm:text-sm leading-relaxed text-white/80 italic">
+            &ldquo;{getAgentDebrief()}&rdquo;
+          </p>
+        </div>
 
         {/* SPIN Token Explanation */}
         <div className="mb-4 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">
@@ -215,22 +243,25 @@ export function RideCompletion({
               onClick={onClaimRewards}
               disabled={zkProofStatus?.isGenerating || zkProofStatus?.isSuccess}
               className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
-              aria-label="Claim rewards with ZK proof"
+              aria-label="Request agent validation of rewards"
             >
               {zkProofStatus?.isGenerating
-                ? 'Generating Proof…'
+                ? '🧠 Agent Validating…'
                 : zkProofStatus?.isSuccess
-                  ? '✓ Rewards Claimed'
-                  : 'Claim Rewards'}
+                  ? '✓ Agent Approved'
+                  : '🧠 Request Agent Validation'}
             </button>
           )}
         </div>
 
-        {/* ZK Privacy Proof Status */}
+        {/* Agent Validation Status */}
         {!isPracticeMode && zkProofStatus && (
-          <div className="mt-4 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs">
-            <div className="flex items-center justify-between mb-1">
-              <span className="font-semibold text-white">🔒 ZK Privacy Proof</span>
+          <div className="mt-4 rounded-xl border border-indigo-500/20 bg-black/30 p-3 text-left text-xs">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-white flex items-center gap-1.5">
+                <span className="text-sm">🧠</span>
+                Agent Validation
+              </span>
               <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                 zkProofStatus.privacyLevel === 'high'
                   ? 'bg-emerald-500/30 text-emerald-300'
@@ -241,17 +272,54 @@ export function RideCompletion({
                 {zkProofStatus.privacyLevel.toUpperCase()} PRIVACY
               </span>
             </div>
+
             {zkProofStatus.isGenerating && (
-              <p className="text-white/60">Generating proof — your raw biometrics stay private…</p>
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="h-5 w-5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+                  <span className="text-indigo-300 font-medium">{agentName} is reviewing your session…</span>
+                </div>
+                <div className="space-y-1 text-white/50 pl-7">
+                  <p className="flex items-center gap-1.5">
+                    <span className="h-1 w-1 rounded-full bg-emerald-400" />
+                    Verifying biometric integrity
+                  </p>
+                  <p className="flex items-center gap-1.5">
+                    <span className="h-1 w-1 rounded-full bg-amber-400 animate-pulse" />
+                    Computing effort score via ZK circuit
+                  </p>
+                  <p className="flex items-center gap-1.5">
+                    <span className="h-1 w-1 rounded-full bg-white/20" />
+                    Signing reward payload for Chainlink CRE
+                  </p>
+                </div>
+              </div>
             )}
+
             {zkProofStatus.isSuccess && (
-              <p className="text-emerald-300">Proof verified on-chain. Privacy score: {zkProofStatus.privacyScore}/100</p>
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="h-5 w-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <svg className="h-3 w-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="text-emerald-300 font-medium">{agentName} approved — {spinEarned} SPIN released</span>
+                </div>
+                <p className="text-white/50 pl-7">
+                  ZK proof verified on-chain • Privacy score: {zkProofStatus.privacyScore}/100
+                </p>
+              </div>
             )}
+
             {zkProofStatus.error && (
-              <p className="text-red-300">Proof failed — falling back to signed attestation.</p>
+              <p className="text-red-300">{agentName} validation failed — falling back to signed attestation.</p>
             )}
+
             {!zkProofStatus.isGenerating && !zkProofStatus.isSuccess && !zkProofStatus.error && (
-              <p className="text-white/60">Claim rewards to generate a ZK proof of your effort.</p>
+              <p className="text-white/50">
+                Request validation to have {agentName} review, sign, and submit your effort proof to the Chainlink CRE.
+              </p>
             )}
           </div>
         )}
