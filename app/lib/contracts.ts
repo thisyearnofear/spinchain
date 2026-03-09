@@ -44,19 +44,19 @@ export const ACTIVE_NETWORK = ACTIVE_CHAIN_ID === AVALANCHE_MAINNET.id ? AVALANC
 export const CONTRACT_ADDRESSES = {
   /** ERC-20 SPIN reward token */
   SPIN_TOKEN: (process.env.NEXT_PUBLIC_SPIN_TOKEN_ADDRESS ??
-    "0xbd73026ECe5c9D44D4f31a96B6d2d3ca9981a4eA") as `0x${string}`,
+    "0x64465eB31EF60C44Fa82638d11Dd7FE49f5f7d5F") as `0x${string}`,
 
   /** Distributes SPIN rewards via ECDSA attestation or ZK proof */
   INCENTIVE_ENGINE: (process.env.NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS ??
-    "0xA0CCbF6F940685e2495a5FE6F13820f32Db68EDC") as `0x${string}`,
+    "0x522636f2AEF7C8271557F1A0470d2F2e6eA6b59D") as `0x${string}`,
 
   /** Factory that deploys per-class SpinClass contracts */
   CLASS_FACTORY: (process.env.NEXT_PUBLIC_CLASS_FACTORY_ADDRESS ??
-    "0x7B9283Fb889e6033e6d0fbe3E96D0C5734DC932a") as `0x${string}`,
+    "0x42f3f1954e3CB988c3F9adBb9E68b168F9B6330C") as `0x${string}`,
 
   /** Noir-generated UltraVerifier (or MockUltraVerifier on testnet) */
   ULTRA_VERIFIER: (process.env.NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS ??
-    "0x5f98A8018f75ca80F46DE9758157AED719589dEC") as `0x${string}`,
+    "0xF0C7eEF04f685a7bB1d42B3B9470a45D4Dc80c00") as `0x${string}`,
 
   /** EffortThresholdVerifier — wraps UltraVerifier with replay protection */
   EFFORT_VERIFIER: (process.env.NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS ??
@@ -64,19 +64,19 @@ export const CONTRACT_ADDRESSES = {
 
   /** Revenue splitter for instructor/platform split */
   TREASURY_SPLITTER: (process.env.NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS ??
-    "0x9AB33e974Dbb6D9a11C5116Ce2E2e04471c482A0") as `0x${string}`,
+    "0x8AAe2Ef551296c0FaeA0e3F8a5aE32CA12f5D9da") as `0x${string}`,
 
   /** Yellow state channel settlement */
   YELLOW_SETTLEMENT: (process.env.NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS ??
-    "0xc6A203fB3a02F3F6886233B9b3b7A148CD3fedbe") as `0x${string}`,
+    "0x724b2dFf32C4dAfcF44988fA3Ca1606d0e05b26c") as `0x${string}`,
 
   /** Chainlink Runtime Environment (CRE) Biometric Oracle */
   BIOMETRIC_ORACLE: (process.env.NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS ??
-    "0x794b684532B03D510167d6438596644026859733") as `0x${string}`,
+    "0xfF9E54946F65A356e5db7fA2fC3ab43a839a7901") as `0x${string}`,
 
   /** Chainlink CRE Forwarder contract */
   CRE_FORWARDER: (process.env.NEXT_PUBLIC_CHAINLINK_FORWARDER ??
-    "0x2e7371a5d032489e4f60216d8d898a4c10805963") as `0x${string}`,
+    "0x29FA4181620358dA180CAD770dB1696fbA78F1Cd") as `0x${string}`,
 } as const;
 
 // Legacy named exports (used throughout the codebase)

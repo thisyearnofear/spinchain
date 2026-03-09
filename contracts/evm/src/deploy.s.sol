@@ -8,6 +8,7 @@ import {ClassFactory} from "./ClassFactory.sol";
 import {MockUltraVerifier} from "./MockUltraVerifier.sol";
 import {TreasurySplitter} from "./TreasurySplitter.sol";
 import {YellowSettlement} from "./YellowSettlement.sol";
+import {BiometricOracle} from "./BiometricOracle.sol";
 
 contract DeployScript is Script {
     function run() external {
@@ -33,6 +34,16 @@ contract DeployScript is Script {
             address(mockUltraVerifier)
         );
         console.log("IncentiveEngine:", address(incentiveEngine));
+
+        // BiometricOracle(forwarder, workflowId)
+        console.log("Deploying BiometricOracle...");
+        bytes32 workflowId = 0x5370696e436861696e42696f6d6574726963576f726b666c6f77563100000000;
+        BiometricOracle biometricOracle = new BiometricOracle(deployer, workflowId);
+        console.log("BiometricOracle:", address(biometricOracle));
+
+        // Link Oracle to Engine
+        console.log("Linking BiometricOracle to IncentiveEngine...");
+        incentiveEngine.setBiometricOracle(address(biometricOracle));
 
         // TreasurySplitter(owner, wallets[], bps[], usePullPattern)
         console.log("Deploying TreasurySplitter...");
@@ -70,5 +81,6 @@ contract DeployScript is Script {
         console.log("NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS=", address(mockUltraVerifier));
         console.log("NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=", address(treasurySplitter));
         console.log("NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS=", address(yellowSettlement));
+        console.log("NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=", address(biometricOracle));
     }
 }

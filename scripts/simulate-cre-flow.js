@@ -18,8 +18,8 @@ const PRIVATE_KEY = process.env.AVALANCHE_PRIVATE_KEY;
 const RPC_URL = 'https://api.avax-test.network/ext/bc/C/rpc';
 
 // Deployed Fuji Addresses
-const ORACLE_ADDR = '0x794b684532B03D510167d6438596644026859733';
-const WORKFLOW_ID = keccak256(encodePacked(['string'], ['SpinChainBiometricWorkflowV1']));
+const ORACLE_ADDR = '0xfF9E54946F65A356e5db7fA2fC3ab43a839a7901';
+const WORKFLOW_ID = '0x5370696e436861696e42696f6d6574726963576f726b666c6f77563100000000';
 
 // ABI for fulfillment
 const ORACLE_ABI = [
