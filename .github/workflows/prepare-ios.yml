@@ -1,0 +1,52 @@
+name: Prepare iOS Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    name: Prepare iOS Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Next.js app
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_RPC_URL: ${{ secrets.NEXT_PUBLIC_RPC_URL }}
+          NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID }}
+
+      - name: Sync Capacitor
+        run: pnpm exec cap sync ios
+
+      - name: Upload iOS project
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-project
+          path: ios/
+          retention-days: 2
+
+      - name: Create deployment tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "ios-build-ready" >> $GITHUB_STEP_SUMMARY
+          echo "## iOS Build Ready" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The iOS project has been prepared. To build with Xcode Cloud:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Open Xcode" >> $GITHUB_STEP_SUMMARY
+          echo "2. Go to Xcode > Settings > Accounts" >> $GITHUB_STEP_SUMMARY
+          echo "3. Add your Apple Developer account" >> $GITHUB_STEP_SUMMARY
+          echo "4. Open the workspace: ios/App.xcworkspace" >> $GITHUB_STEP_SUMMARY
+          echo "5. Product > Archive to start Xcode Cloud build" >> $GITHUB_STEP_SUMMARY

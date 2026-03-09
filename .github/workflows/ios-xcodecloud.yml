@@ -1,0 +1,53 @@
+name: Build iOS with Xcode Cloud
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'ios-*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build with Xcode Cloud
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Next.js
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_RPC_URL: ${{ secrets.NEXT_PUBLIC_RPC_URL }}
+          NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID }}
+
+      - name: Sync Capacitor
+        run: pnpm exec cap sync ios
+
+      - name: Build iOS (TestFlight)
+        uses: ios-actions/build-with-xcodecloud@v1
+        with:
+          workspace: ios/App.xcworkspace
+          scheme: App
+          configuration: Release
+          app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          app-store-connect-api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          app-store-connect-api-key: ${{ secrets.APP_STORE_CONNECT_API_KEY_PRIVATE_KEY }}
+          team-id: ${{ secrets.IOS_TEAM_ID }}
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release
+          path: ios/App/build/Release-iphoneos/App.ipa
