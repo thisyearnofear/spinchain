@@ -1243,6 +1243,49 @@ export default function LiveRidePage() {
                     </div>
                   )}
 
+                  {/* AI Feedback - below interval phase banner */}
+                  {isRiding && aiActive && (
+                    <div className="mb-2">
+                      <div className="rounded-xl border border-indigo-500/25 bg-black/70 backdrop-blur-xl px-3 py-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm">🧠</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+                            {agentName}
+                          </span>
+                          <span className={`ml-auto inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
+                            reasonerState === "thinking"
+                              ? "bg-amber-500/20 text-amber-300"
+                              : reasonerState === "acting"
+                                ? "bg-emerald-500/20 text-emerald-300"
+                                : "bg-white/10 text-white/40"
+                          }`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${
+                              reasonerState === "thinking"
+                                ? "bg-amber-400 animate-pulse"
+                                : reasonerState === "acting"
+                                  ? "bg-emerald-400 animate-pulse"
+                                  : "bg-white/30"
+                            }`} />
+                            {reasonerState === "thinking" ? "Reasoning…" : reasonerState === "acting" ? "Acting" : "Monitoring"}
+                          </span>
+                        </div>
+                        {lastDecision ? (
+                          <p className="text-[11px] leading-relaxed text-white/70 line-clamp-2">
+                            &ldquo;{lastDecision.reasoning || lastDecision.thoughtProcess}&rdquo;
+                          </p>
+                        ) : thoughtLog.length > 0 ? (
+                          <p className="text-[11px] leading-relaxed text-white/70 line-clamp-2">
+                            &ldquo;{thoughtLog[0]}&rdquo;
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-white/40 italic">
+                            Analyzing telemetry stream…
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Main stats row */}
                   <div className="flex items-center justify-between text-white">
                     <div className="text-left">
@@ -1251,7 +1294,18 @@ export default function LiveRidePage() {
                     </div>
                     <div className="text-center">
                       <p className="text-[10px] sm:text-sm text-white/50">Time</p>
-                      <p className="text-xl sm:text-2xl font-bold">{formatTime(elapsedTime)}</p>
+                      <div className="flex items-center gap-2 justify-center">
+                        <p className="text-xl sm:text-2xl font-bold">{formatTime(elapsedTime)}</p>
+                        {isRiding && (
+                          <button
+                            onClick={pauseRide}
+                            className="rounded-full bg-white/20 backdrop-blur px-3 py-1 text-xs font-semibold text-white transition-all active:scale-95 touch-manipulation"
+                            aria-label="Pause ride"
+                          >
+                            ⏸ Pause
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] sm:text-sm text-white/50">Effort</p>
@@ -1280,48 +1334,7 @@ export default function LiveRidePage() {
                 onSimulatorMetrics={handleSimulatorMetrics}
               />
 
-              {/* Agent Reasoning HUD */}
-              {isRiding && aiActive && (
-                <div className="mt-2 max-w-sm mx-auto">
-                  <div className="rounded-xl border border-indigo-500/25 bg-black/70 backdrop-blur-xl px-3 py-2">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm">🧠</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
-                        {agentName}
-                      </span>
-                      <span className={`ml-auto inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
-                        reasonerState === "thinking"
-                          ? "bg-amber-500/20 text-amber-300"
-                          : reasonerState === "acting"
-                            ? "bg-emerald-500/20 text-emerald-300"
-                            : "bg-white/10 text-white/40"
-                      }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          reasonerState === "thinking"
-                            ? "bg-amber-400 animate-pulse"
-                            : reasonerState === "acting"
-                              ? "bg-emerald-400 animate-pulse"
-                              : "bg-white/30"
-                        }`} />
-                        {reasonerState === "thinking" ? "Reasoning…" : reasonerState === "acting" ? "Acting" : "Monitoring"}
-                      </span>
-                    </div>
-                    {lastDecision ? (
-                      <p className="text-[11px] leading-relaxed text-white/70 line-clamp-2">
-                        &ldquo;{lastDecision.reasoning || lastDecision.thoughtProcess}&rdquo;
-                      </p>
-                    ) : thoughtLog.length > 0 ? (
-                      <p className="text-[11px] leading-relaxed text-white/70 line-clamp-2">
-                        &ldquo;{thoughtLog[0]}&rdquo;
-                      </p>
-                    ) : (
-                      <p className="text-[11px] text-white/40 italic">
-                        Analyzing telemetry stream…
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* Agent Reasoning HUD moved above interval banner - removed from here */}
 
               {/* Coach voice indicator */}
               {isRiding && isSpeaking && (

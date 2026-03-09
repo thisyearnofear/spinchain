@@ -85,9 +85,9 @@ export function RideControls({
         </div>
       )}
 
-      {/* Main Controls */}
-      <div className="flex items-center justify-center gap-3">
-        {!isRiding ? (
+      {/* Main Controls - Start/Resume only; Pause is shown inline with the Time stat during a ride */}
+      {!isRiding && (
+        <div className="flex items-center justify-center gap-3">
           <button
             onClick={onStartRide}
             disabled={isStarting || !canStartRide}
@@ -103,16 +103,8 @@ export function RideControls({
               <span>{rideProgress > 0 ? "Resume" : "Start Ride"}</span>
             )}
           </button>
-        ) : (
-          <button
-            onClick={onPauseRide}
-            className="rounded-full bg-white/20 backdrop-blur px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white transition-all active:scale-95 touch-manipulation min-h-[56px]"
-            aria-label="Pause ride"
-          >
-            Pause
-          </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* BLE Status */}
       {bleConnected && (
