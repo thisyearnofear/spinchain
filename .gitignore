@@ -61,6 +61,13 @@ move/**/Published.toml
 *.swo
 circuits/*/target/
 
+# AI coding assistants
+.junie/
+.orchids/
+.cursor/
+.cody/
+.windsurf/
+
 # Mobile (Capacitor)
 # Keep ios/ and android/ at root for Capacitor compatibility
 # Use mobile/ for custom mobile-specific code

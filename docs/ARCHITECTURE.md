@@ -1,0 +1,161 @@
+# SpinChain: Architecture
+
+## Dual-Engine Execution Model
+
+SpinChain implements a **Dual-Engine Execution Model** with **Zero-Knowledge Privacy** to solve high-frequency fitness telemetry vs. high-value financial settlement.
+
+| Engine | Chain | Role | Primitive |
+| :--- | :--- | :--- | :--- |
+| **Settlement** | **Avalanche (EVM)** | High-value / Low-frequency | ERC-721, ERC-20, ZK Verifiers |
+| **Performance** | **Sui (Move)** | Low-value / High-frequency | Move Objects, Dynamic Fields |
+
+### Why Avalanche for Settlement?
+- **Liquidity Depth**: Access to Ethereum-native DeFi (Uniswap v4)
+- **ZK Verification**: On-chain Noir proof verification
+- **Identity**: Native ENS support for instructor branding
+
+### Why Sui for Performance?
+- **Parallel Execution**: Independent rider telemetry transactions
+- **Move Safety**: Strongly typed, resource-oriented biometric objects
+- **Latency**: 480ms finality for real-time AI instructor reactivity
+
+---
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        SPINCHAIN                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  EVM (Avalanche)          │  Sui (Testnet)                      │
+│  ├─ SpinClass NFT         │  ├─ Session (shared)                │
+│  ├─ Ticket purchase       │  ├─ RiderStats (owned)              │
+│  ├─ SPIN rewards          │  ├─ Coach (shared)                  │
+│  ├─ ZK verification       │  ├─ Telemetry events (10Hz)         │
+│  └─ ENS Identity          │  └─ Story beat events               │
+└─────────────────────────────────────────────────────────────────┘
+                    ↓ High-frequency telemetry
+              Sui: 10Hz updates, ~480ms finality
+                    ↓ ZK Proof generation
+              EVM: Reward distribution, verification
+```
+
+### Data Flow
+
+1. **AI Instructors** deploy on Avalanche with ENS identity
+2. **Riders** purchase tickets (ERC-721) on Avalanche
+3. **During Ride**: 10Hz telemetry streams to Sui `RiderStats` objects
+4. **Local Oracle**: Browser generates ZK proofs (<1s) proving effort without revealing raw HR
+5. **Settlement**: Proofs verified on Avalanche, SPIN rewards distributed
+
+---
+
+## Privacy Tiers
+
+| Tier | Revealed | Hidden | Use Case |
+|------|----------|--------|----------|
+| High | effort_score, zone | All raw metrics | Public leaderboards |
+| Medium | + duration, ranking | GPS, biometrics | Friend competitions |
+| Low | Full disclosure | - | Medical/insurance |
+
+### ZK Circuit: `effort_threshold`
+
+Proves HR > threshold without revealing actual values:
+
+```rust
+// Private inputs (never revealed)
+heart_rates: [u16; 60],  // 60 seconds of HR data
+
+// Public inputs
+threshold: u16,          // Target HR (e.g., 150)
+min_duration: u32,       // Minimum seconds required
+
+// Outputs
+threshold_met: bool,     // Did they meet the goal?
+effort_score: u16,       // 0-1000 calculated score
+```
+
+---
+
+## Storage Layers
+
+| Data Type | Storage | Compression | Retention |
+|-----------|---------|-------------|-----------|
+| Raw Telemetry | Walrus Blobs | Delta encoding | 30 epochs |
+| 3D Worlds | Walrus Blobs | N/A | Permanent |
+| ZK Proofs | Avalanche Events | N/A | Permanent |
+
+---
+
+## Chainlink Runtime Environment (CRE)
+
+SpinChain leverages **Chainlink CRE** for decentralized biometric verification:
+
+- **Decentralized Orchestration**: CRE monitors `VerificationRequested` events
+- **Confidential HTTP**: Securely fetches private HR data from wearable APIs
+- **Off-Chain Computation**: "Qualifying Minutes" calculated in trusted execution
+- **Low-Latency Settlement**: Verified reports written to `BiometricOracle.sol`
+
+### Simulator-to-Chainlink Pipeline
+
+For testing without BLE hardware:
+1. **Pedal Simulator**: Generate telemetry via keyboard (Guest Mode)
+2. **Mock Wearable API**: Simulator data accessible via standard API
+3. **CRE Workflow**: Fetches, verifies, reports effort scores on-chain
+
+---
+
+## Competitive Analysis
+
+| Competitor | Model | Data Ownership | Economics |
+|------------|-------|----------------|-----------|
+| Peloton/Strava | Centralized | Platform-owned | Extractive |
+| STEPN/Sweatcoin | Token-first | User-owned | Speculative |
+| **SpinChain** | **Dual-Engine** | **User-owned** | **Revenue + Tokens** |
+
+---
+
+## Tech Stack
+
+### Blockchain
+- **Settlement**: Avalanche C-Chain (EVM) with ZK Verifiers
+- **Execution**: Sui Testnet (Move)
+- **Package ID**: `0xc42b32ab25566a6f43db001e6f2c2fd6b2ccc7232e2af3cfca0b9beca824d7dc`
+- **Identity/Wallet**: RainbowKit (EVM) + Sui dApp Kit
+- **ZK Proofs**: Noir (Aztec) with UltraPlonk backend
+
+### Frontend
+- **Framework**: Next.js 16 (App Router)
+- **Native Bridge**: Capacitor 5.7 (iOS/Android/Web)
+- **3D Engine**: React Three Fiber + Three.js + Drei
+- **Styling**: Tailwind CSS + Glassmorphic System
+- **Haptics**: Native Vibration API
+
+---
+
+## Roadmap
+
+### Phase 1: MVP ✅
+- Dual-chain wallet integration
+- AI Instructor Studio
+- 3D Route Worlds with GPX visualization
+- Pedal Simulator + Guest Mode
+- Mobile BLE via Capacitor
+
+### Phase 2: Privacy ✅
+- Noir ZK circuits compiled and tested
+- UltraVerifier deployed on Avalanche
+- Selective disclosure builder
+- Walrus decentralized storage
+
+### Phase 3: Ecosystem ✅
+- Mindbody/ClassPass bridge
+- Instructor DAO governance
+- Multi-sport adapters (yoga, rowing)
+- Sponsor SDK for wellness brands
+
+### Phase 4: Scale 🚧
+- Studio chain partnerships
+- Dedicated privacy subnet
+- Cross-chain rewards (AWM)
+- Insurance integrations

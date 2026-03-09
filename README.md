@@ -1,169 +1,85 @@
 # SpinChain: The Dual-Engine Fitness Protocol
 
-SpinChain is a hybrid fitness protocol that combines the liquidity depth of **Avalanche** with the parallel execution speed of **Sui**. It enables **AI Agents** to run autonomous spin classes with real-time biometric telemetry, turning fitness into programmable financial events.
+SpinChain combines **Avalanche** settlement with **Sui** parallel execution to enable AI-powered fitness classes with real-time biometric telemetry and ZK privacy.
 
 ---
 
-## 🔒 Security: Pre-Commit Hook
+## Quick Start
 
-This repository includes a **pre-commit hook** that prevents accidentally committing secrets (API keys, private keys, `.env.local` files, etc.).
-
-### Setup
 ```bash
-# The hook is already installed. To verify or reinstall:
-./scripts/setup-hooks.sh
+pnpm install
+cp .env.local.template .env.local
+pnpm run dev
 ```
 
-### What it blocks
-- Private keys (Sui `suiprivkey1...`, Ethereum 64-char hex, generic)
-- API keys (Google `AIza...`, GitHub `ghp_...`, AWS `AKIA...`, generic)
-- High-entropy secrets in `KEY=`, `SECRET=`, `TOKEN=` patterns
-- `.env.local`, `.env.production`, `.env.development` files
+Open [http://localhost:3000](http://localhost:3000)
 
-### Bypass (emergency only)
+---
+
+## Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Dual-Engine** | Avalanche (settlement) + Sui (10Hz telemetry) |
+| **AI Instructors** | Autonomous agents with dynamic pricing (Uniswap v4) |
+| **Route Worlds** | 3D WebGL visualization from GPX data |
+| **ZK Privacy** | Prove effort without revealing raw biometrics |
+| **Guest Mode** | Try demo rides without wallet or hardware |
+| **Mobile BLE** | Native iOS/Android via Capacitor |
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  EVM (Avalanche)          │  Sui (Testnet)              │
+│  ├─ SpinClass NFT         │  ├─ Session (shared)        │
+│  ├─ Ticket purchase       │  ├─ RiderStats (owned)      │
+│  ├─ SPIN rewards          │  ├─ Telemetry events (10Hz) │
+│  └─ ZK verification       │  └─ Story beat events       │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Chainlink CRE** orchestrates decentralized biometric verification using Confidential HTTP to fetch private wearable data without exposing it on-chain.
+
+---
+
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [Architecture](docs/ARCHITECTURE.md) | Dual-engine design, ZK privacy, tech stack |
+| [Getting Started](docs/GETTING_STARTED.md) | Setup, onboarding, testing, troubleshooting |
+| [Features](docs/FEATURES.md) | AI, routes, mobile/BLE, agentic finance |
+| [Deployment](docs/DEPLOYMENT.md) | Contracts, Sui, ZK verifier, mobile apps |
+
+---
+
+## Security
+
+Pre-commit hook blocks secret commits (API keys, private keys, `.env.*` files).
+
 ```bash
+# Verify hook is installed
+./scripts/setup-hooks.sh
+
+# Emergency bypass
 git commit --no-verify
 ```
 
 ---
 
-## 🔗 Chainlink Runtime Environment (CRE) ✅ DEPLOYED
-SpinChain leverages the next-generation **Chainlink Runtime Environment (CRE)** to orchestrate decentralized biometric verification. This replaces legacy oracle patterns with a unified, confidential, and consensus-verified workflow.
+## Tech Stack
 
-- **Decentralized Data Orchestration**: CRE monitors on-chain `VerificationRequested` events and triggers off-chain telemetry fetching.
-- **Confidential HTTP**: Securely fetches private heart rate and power data from wearable APIs using **Confidential HTTP**, ensuring API keys and PII never touch a public blockchain.
-- **Off-Chain Computation**: Logic for "Qualifying Minutes" and "Effort Score" is executed within the CRE, providing a trustless alternative to centralized backends.
-- **Low-Latency Settlement**: Verified reports are written back to `BiometricOracle.sol` on Avalanche Fuji, enabling instant reward claims in the `IncentiveEngine`.
-
----
-
-## 🚀 Key Features
-
-### 1. Route Worlds (3D Specialized)
-- **Interactive Visualization**: High-fidelity 3D WebGL route visualization using GPX data.
-- **AI Route Generation**: Natural language route creation via Gemini integration.
-- **Automated Discovery**: AI/Gradient-based detection of climbs and descents.
-- **Ghost Riders**: Real-time social presence without compromising individual privacy.
-- **Audio Triggers**: Synchronized acoustic cues for high-intensity intervals.
-- **Voice-Guided Rides**: Real-time voice coaching and story beat announcements.
-- **Street View Previews**: Interactive route previews via Google Maps Static API.
-
-### 2. AI Instructor Studio
-- **Agentic Finance**: Deploy autonomous AI instructors (e.g., "Coach Atlas") that manage their own schedules and P&L.
-- **Dual-Chain Logic**: Agents coordinate settlement on Avalanche and performance tuning on Sui Testnet.
-- **Liquidity Hooks**: Automated management of class token liquidity via **Uniswap v4 hooks** (`DemandSurgeHook.sol`).
-
-### 3. The Hybrid Architecture
-- **Settlement Layer (Avalanche)**: Handling tickets, rewards, identity (ENS), and **ZK proof verification**.
-- **Performance Layer (Sui Testnet)**: Processing high-frequency biometric data (10Hz).
-    - **Package ID**: `0x9f693e5143b4c80e7acb4f5fb4e2c62648f036c8fe70044fdcd5688fb9f8681d`
-- **Storage Layer (Walrus)**: Decentralized hosting for 3D worlds and raw session logs.
-
-### 4. Zero-Knowledge Privacy ✅ IMPLEMENTED
-- **Noir Circuits**: Production ZK circuits proving effort without revealing health data.
-- **Selective Disclosure**: Prove "HR > 150" without revealing raw heart rate or biometric data.
-- **On-Chain Verification**: Solidity verifier contracts on Avalanche C-Chain.
-- **Local Oracle**: Browser-based proof generation (<1s) with no data leaving device.
-- **Walrus Backup**: Encrypted decentralized storage for raw telemetry.
-
-### 6. Accessibility & Simulation ✅ NEW
-- **Guest Mode**: Frictionless "Try Demo Ride" without initial wallet connection or hardware requirements.
-- **Pedal Simulator**: Immersive, keyboard-driven simulator with animated metrics, allowing anyone to generate valid telemetry for protocol testing.
-- **Simulator-to-Chainlink Pipeline**: The simulator data is accessible via a mock wearable API, which our **Chainlink CRE** workflow fetches and verifies, proving the end-to-end logic without specialized BLE hardware.
-- **Cross-Platform BLE**: Native Bluetooth support for iOS, Android, and Desktop via Capacitor (for users with real hardware).
+- **Blockchain**: Avalanche (EVM), Sui (Move), Chainlink CRE
+- **Frontend**: Next.js 16, React Three Fiber, Tailwind CSS
+- **Mobile**: Capacitor 5.7, BLE plugin
+- **ZK**: Noir circuits, UltraPlonk verifier
+- **AI**: Venice AI (default), Gemini 3 (fallback)
 
 ---
 
-## 🏗️ Technical Architecture
+## License
 
-### Blockchain Stack
-- **Settlement**: Avalanche C-Chain (EVM) with ZK Verifiers
-- **Execution**: Sui (Move)
-- **Contracts**: Solidity 0.8.24+ & Sui Move
-- **Identity/Wallet**: RainbowKit (EVM) + Sui dApp Kit
-- **ZK Proofs**: Noir (Aztec) with UltraPlonk backend
-
-### Frontend & Visualization
-- **Framework**: Next.js 16 (App Router)
-- **Native Bridge**: Capacitor 5.7 (iOS/Android/Web)
-- **3D Engine**: React Three Fiber + Three.js + Drei
-- **Styling**: Tailwind CSS + Custom Glassmorphic System
-- **Haptics**: Native Vibration API integration
-
-### Privacy & ZK Stack
-- **Circuits**: Noir (`circuits/effort_threshold/`)
-- **Proving**: Browser-based UltraPlonk (barretenberg)
-- **Verification**: `EffortThresholdVerifier.sol` on Avalanche
-- **Storage**: Sui Walrus for encrypted telemetry
-
----
-
-## 🛠️ Getting Started
-
-### Installation
-```bash
-npm install
-# or
-pnpm install
-```
-
-### Environment Setup
-Create a `.env` file based on `.env.example`:
-```env
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_id
-NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x...
-```
-
-### Compile ZK Circuits (Optional)
-```bash
-# Install Noir
-curl -L https://noirup.dev | bash
-noirup
-
-# Compile circuits
-cd circuits/effort_threshold
-nargo compile
-nargo test
-```
-
-### Development
-```bash
-npm run dev
-```
-Open [http://localhost:3000](http://localhost:3000) to view the protocol dashboard.
-
----
-
-## 📚 Documentation
-- [**Architecture Overview**](./docs/ARCHITECTURE_OVERVIEW.md): Core architecture, dual-engine design, and roadmap.
-- [**Onboarding & First Ride**](./docs/ONBOARDING_GUIDE.md): Guided user flow, Guest Mode, and Simulator UX.
-- [**AI Integration**](./docs/AI_INTEGRATION.md): AI features, route generation, and agentic finance implementation.
-- [**SUI Integration**](./docs/SUI_INTEGRATION.md): Sui deployment details, on-chain artifacts, and performance layer.
-- [**ZK & Security**](./docs/ZK_SECURITY.md): Zero-knowledge privacy, security considerations, and BLE integration.
-- [**Implementation Guides**](./docs/IMPLEMENTATION_GUIDES.md): Mobile optimization, development workflows, and best practices.
-
----
-
-## 🔐 ZK Proof Quick Example
-
-```typescript
-import { useZKClaim } from '@/app/hooks/use-zk-claim';
-
-// Generate ZK proof (browser, <1s)
-const { generateProof, submitProof } = useZKClaim();
-
-const proofResult = await generateProof(
-  165,    // max heart rate
-  150,    // threshold
-  10      // duration (minutes)
-);
-
-// Submit to Avalanche verifier
-await submitProof(params, proofResult.proof);
-// → Verifies without revealing actual HR data!
-```
-
----
-
-## ⚖️ License
 MIT © 2026 SpinChain Protocol
