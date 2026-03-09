@@ -133,22 +133,13 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
     switch (mode) {
       case "yellow-stream": {
         if (!rider) throw new Error("Wallet required for Yellow streaming");
-        const riderAddr = rider;
-        // Create message signer from wallet
-        const signer = async (message: string): Promise<string> => {
-          if (!window.ethereum) throw new Error("MetaMask not available");
-          return (await window.ethereum.request({
-            method: "personal_sign",
-            params: [message, riderAddr],
-          })) as string;
-        };
 
         await yellow.startStreaming(
-          riderAddr,
+          rider,
           instructor,
           classId as `0x${string}`,
           depositAmount,
-          signer
+          yellowSettlement.signUpdate
         );
         break;
       }
@@ -219,7 +210,20 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
         }
 
         // Rider signs the final state (EIP-712). Instructor will co-sign later in /instructor/yellow.
-        const effortScore = 0; // MVP: you can compute this from updates later.
+        const avgHeartRate = updates.length > 0 
+          ? updates.reduce((sum, u) => sum + u.heartRate, 0) / updates.length 
+          : 0;
+        const avgPower = updates.length > 0 
+          ? updates.reduce((sum, u) => sum + u.power, 0) / updates.length 
+          : 0;
+        
+        const { calculateEffortScore } = await import("@/app/lib/rewards/calculator");
+        const effortScore = Math.floor(calculateEffortScore({
+          heartRate: avgHeartRate,
+          power: avgPower,
+          durationSeconds: updates.length * 10, // 10s intervals
+        }));
+
         const riderSig = await yellowSettlement.signFinalState({
           channelId: closedChannel.id as `0x${string}`,
           classId: closedChannel.classId,

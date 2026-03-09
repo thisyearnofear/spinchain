@@ -84,19 +84,21 @@ export async function openRewardChannel(
   classId: `0x${string}`,
   depositAmount: bigint,
   callbacks: ChannelCallbacks = {},
+  extraParticipants: `0x${string}`[] = [],
 ): Promise<RewardChannel> {
   globalState.callbacks = callbacks;
   globalState.sequence = 0;
 
   let channelId: string = classId;
+  const allParticipants = [rider, instructor, ...extraParticipants];
 
   try {
-    const session = await createSession(rider, instructor, classId);
+    const session = await createSession(rider, instructor, classId, extraParticipants);
     channelId = session.appSessionId;
     console.log("[Yellow] App Session created:", channelId);
   } catch (err) {
     console.warn("[Yellow] ClearNode unavailable, using local mode:", err);
-    // Generate a deterministic local ID for offline/demo mode
+    // ... (local ID logic remains same)
     const { keccak256, encodeAbiParameters, parseAbiParameters } =
       await import("viem");
     const chainIdHex = (await window.ethereum?.request({
@@ -127,6 +129,7 @@ export async function openRewardChannel(
     id: channelId,
     rider,
     instructor,
+    participants: allParticipants,
     classId,
     openedAt: Date.now(),
     depositAmount,
@@ -157,8 +160,8 @@ export async function closeRewardChannel(
     await closeSession(
       channel.id as `0x${string}`,
       channel.rider,
-      channel.instructor,
       finalReward,
+      channel.participants || [channel.rider, channel.instructor],
     );
     console.log("[Yellow] App Session closed:", channel.id);
   } catch (err) {

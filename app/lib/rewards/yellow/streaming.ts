@@ -32,6 +32,18 @@ import { STREAMING_INTERVAL } from "./index";
 // Types
 // ============================================================================
 
+export type UpdateSigner = (params: {
+  channelId: `0x${string}`;
+  classId: `0x${string}`;
+  rider: `0x${string}`;
+  instructor: `0x${string}`;
+  timestamp: number;
+  sequence: number;
+  accumulatedReward: bigint;
+  heartRate: number;
+  power: number;
+}) => Promise<string>;
+
 export interface UseYellowStreamingReturn {
   // State
   channel: RewardChannel | null;
@@ -44,7 +56,8 @@ export interface UseYellowStreamingReturn {
     instructor: `0x${string}`,
     classId: `0x${string}`,
     depositAmount: bigint,
-    messageSigner: MessageSigner,
+    signUpdate: UpdateSigner,
+    extraParticipants?: `0x${string}`[],
   ) => Promise<void>;
 
   sendUpdate: (
@@ -83,7 +96,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
   // Refs for interval management
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastTelemetryRef = useRef<TelemetryPoint | null>(null);
-  const messageSignerRef = useRef<MessageSigner | null>(null);
+  const signUpdateRef = useRef<UpdateSigner | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -108,13 +121,14 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
       instructor: `0x${string}`,
       classId: `0x${string}`,
       depositAmount: bigint,
-      messageSigner: MessageSigner,
+      signUpdate: UpdateSigner,
+      extraParticipants: `0x${string}`[] = [],
     ): Promise<void> => {
       setIsConnecting(true);
       setError(null);
 
       try {
-        messageSignerRef.current = messageSigner;
+        signUpdateRef.current = signUpdate;
 
         const callbacks: ChannelCallbacks = {
           onOpen: (ch) => {
@@ -142,6 +156,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
           classId,
           depositAmount,
           callbacks,
+          extraParticipants,
         );
 
         setChannel(ch);
@@ -216,10 +231,20 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
         instructorSignature: undefined,
       };
 
-      // Sign the update with wallet (for on-chain settlement proof)
+      // Sign the update with wallet (for EIP-712 on-chain settlement proof)
       let signature: string;
       try {
-        signature = await messageSignerRef.current!(JSON.stringify(update));
+        signature = await signUpdateRef.current!({
+          channelId: channel.id as unknown as `0x${string}`,
+          classId: channel.classId,
+          rider: channel.rider,
+          instructor: channel.instructor,
+          timestamp: now,
+          sequence,
+          accumulatedReward: newAccumulated,
+          heartRate: telemetry.heartRate,
+          power: telemetry.power,
+        });
       } catch (err) {
         console.error("[YellowStreaming] Failed to sign update:", err);
         return null;
@@ -235,7 +260,6 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
         submitState(
           channel.id as `0x${string}`,
           channel.rider,
-          channel.instructor,
           newAccumulated,
           sequence,
           {
@@ -243,6 +267,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
             power: telemetry.power,
             timestamp: now,
           },
+          channel.participants || [channel.rider, channel.instructor],
         ).catch((err) => {
           console.warn("[YellowStreaming] ClearNode update failed:", err);
         });

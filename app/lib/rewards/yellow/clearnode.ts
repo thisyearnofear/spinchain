@@ -31,7 +31,7 @@ import {
 } from "@erc7824/nitrolite";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import type { Hex, Address } from "viem";
-import { YELLOW_CLEARNODE_URL, SPINCHAIN_PROTOCOL } from "./index";
+import { YELLOW_CLEARNODE_URL, SPINCHAIN_PROTOCOL, DEFAULT_CHANNEL_PARAMS } from "./index";
 
 // ============================================================================
 // Session Key (ephemeral key for ClearNode RPC signing)
@@ -55,6 +55,10 @@ function getOrCreateSessionKey(): { privateKey: Hex; address: Address } {
 
 let ws: WebSocket | null = null;
 let rpcSigner: NitroliteMessageSigner | null = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_BASE_DELAY = 1000;
+let heartbeatInterval: NodeJS.Timeout | null = null;
 
 const pendingRequests = new Map<
   number,
@@ -69,21 +73,49 @@ export async function connectClearNode(
   url: string = YELLOW_CLEARNODE_URL,
 ): Promise<WebSocket> {
   if (ws?.readyState === WebSocket.OPEN) return ws;
+  if (ws?.readyState === WebSocket.CONNECTING) {
+    return new Promise((resolve, reject) => {
+      const check = setInterval(() => {
+        if (ws?.readyState === WebSocket.OPEN) {
+          clearInterval(check);
+          resolve(ws);
+        } else if (ws?.readyState === WebSocket.CLOSED) {
+          clearInterval(check);
+          reject(new Error("Connection failed while waiting"));
+        }
+      }, 100);
+    });
+  }
 
   return new Promise((resolve, reject) => {
+    console.log(`[ClearNode] Connecting to ${url}...`);
     const socket = new WebSocket(url);
 
     socket.onopen = () => {
       console.log("[ClearNode] Connected");
+      reconnectAttempts = 0;
       const { privateKey } = getOrCreateSessionKey();
       rpcSigner = createECDSAMessageSigner(privateKey);
       ws = socket;
+      
+      // Setup heartbeat
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      heartbeatInterval = setInterval(() => {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ method: "ping", jsonrpc: "2.0", id: 0 }));
+        }
+      }, 30000);
+
       resolve(socket);
     };
 
     socket.onmessage = (event) => {
       try {
         const parsed = JSON.parse(event.data as string);
+        
+        // Handle pong/heartbeat
+        if (parsed.id === 0) return;
+
         const reqId = getRequestId(parsed);
         if (reqId !== undefined) {
           const pending = pendingRequests.get(reqId);
@@ -103,14 +135,34 @@ export async function connectClearNode(
       }
     };
 
-    socket.onerror = () => {
-      reject(new Error("ClearNode connection failed"));
+    socket.onerror = (err) => {
+      console.error("[ClearNode] WebSocket error:", err);
     };
 
     socket.onclose = () => {
       console.log("[ClearNode] Disconnected");
       ws = null;
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+
+      // Exponential backoff reconnection
+      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        const delay = RECONNECT_BASE_DELAY * Math.pow(2, reconnectAttempts);
+        reconnectAttempts++;
+        console.log(`[ClearNode] Reconnecting in ${delay}ms... (Attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+        setTimeout(() => connectClearNode(url), delay);
+      }
     };
+
+    // Timeout for initial connection
+    setTimeout(() => {
+      if (socket.readyState === WebSocket.CONNECTING) {
+        socket.close();
+        reject(new Error("ClearNode connection timeout"));
+      }
+    }, 10000);
   });
 }
 
@@ -155,26 +207,35 @@ export async function createSession(
   rider: Address,
   instructor: Address,
   classId: string,
+  extraParticipants: Address[] = [],
 ): Promise<{ appSessionId: Hex; version: number }> {
   await connectClearNode();
   if (!rpcSigner) throw new Error("Signer not initialized");
 
   const requestId = generateRequestId();
+  const allParticipants = [rider, instructor, ...extraParticipants];
+
+  // Dynamic weights: 100 total, divided among participants
+  const weight = Math.floor(100 / allParticipants.length);
+  const weights = allParticipants.map(() => weight);
+  // Adjust last weight to ensure total is exactly 100
+  weights[weights.length - 1] += 100 - weights.reduce((a, b) => a + b, 0);
 
   const definition: RPCAppDefinition = {
     application: SPINCHAIN_PROTOCOL,
     protocol: RPCProtocolVersion.NitroRPC_0_4,
-    participants: [rider, instructor],
-    weights: [50, 50],
-    quorum: 100,
-    challenge: 0,
+    participants: allParticipants,
+    weights,
+    quorum: 100, // Still require unanimous for high-value rewards
+    challenge: 60,
     nonce: Date.now(),
   };
 
-  const allocations: RPCAppSessionAllocation[] = [
-    { participant: rider, asset: "spin", amount: "0" },
-    { participant: instructor, asset: "spin", amount: "0" },
-  ];
+  const allocations: RPCAppSessionAllocation[] = allParticipants.map((p, i) => ({
+    participant: p,
+    asset: "spin",
+    amount: i === 0 ? "0" : "0", // Rider is at index 0
+  }));
 
   const msg = await createAppSessionMessage(
     rpcSigner,
@@ -197,10 +258,10 @@ export async function createSession(
 export async function submitState(
   appSessionId: Hex,
   rider: Address,
-  instructor: Address,
   accumulatedReward: bigint,
   version: number,
   sessionData: object,
+  allParticipants: Address[],
 ): Promise<{ version: number }> {
   if (!ws || ws.readyState !== WebSocket.OPEN || !rpcSigner) {
     throw new Error("ClearNode not connected");
@@ -208,18 +269,17 @@ export async function submitState(
 
   const requestId = generateRequestId();
 
+  const allocations = allParticipants.map((p) => ({
+    participant: p,
+    asset: "spin",
+    amount: p.toLowerCase() === rider.toLowerCase() ? accumulatedReward.toString() : "0",
+  })) as RPCAppSessionAllocation[];
+
   const params = {
     app_session_id: appSessionId,
     intent: RPCAppStateIntent.Operate,
     version,
-    allocations: [
-      {
-        participant: rider,
-        asset: "spin",
-        amount: accumulatedReward.toString(),
-      },
-      { participant: instructor, asset: "spin", amount: "0" },
-    ] as RPCAppSessionAllocation[],
+    allocations,
     session_data: JSON.stringify(sessionData),
   };
 
@@ -236,8 +296,8 @@ export async function submitState(
 export async function closeSession(
   appSessionId: Hex,
   rider: Address,
-  instructor: Address,
   finalReward: bigint,
+  allParticipants: Address[],
 ): Promise<void> {
   if (!ws || ws.readyState !== WebSocket.OPEN || !rpcSigner) {
     throw new Error("ClearNode not connected");
@@ -245,18 +305,17 @@ export async function closeSession(
 
   const requestId = generateRequestId();
 
+  const allocations = allParticipants.map((p) => ({
+    participant: p,
+    asset: "spin",
+    amount: p.toLowerCase() === rider.toLowerCase() ? finalReward.toString() : "0",
+  })) as RPCAppSessionAllocation[];
+
   const msg = await createCloseAppSessionMessage(
     rpcSigner,
     {
       app_session_id: appSessionId,
-      allocations: [
-        {
-          participant: rider,
-          asset: "spin",
-          amount: finalReward.toString(),
-        },
-        { participant: instructor, asset: "spin", amount: "0" },
-      ],
+      allocations,
     },
     requestId,
   );
@@ -264,10 +323,24 @@ export async function closeSession(
   await sendRpc(msg, requestId);
 }
 
+// ============================================================================
+// Cache
+// ============================================================================
+
+const sessionCache = new Map<string, { data: RPCAppSession[]; timestamp: number }>();
+const CACHE_TTL = 5000; // 5 seconds
+
 export async function getSessions(
   participant: Address,
   status?: "open" | "closed",
 ): Promise<RPCAppSession[]> {
+  const cacheKey = `${participant}:${status}`;
+  const cached = sessionCache.get(cacheKey);
+  
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+
   await connectClearNode();
 
   const requestId = generateRequestId();
@@ -283,9 +356,19 @@ export async function getSessions(
     rpcStatus,
     requestId,
   );
-  const response = await sendRpc(msg, requestId);
-  const parsed = parseGetAppSessionsResponse(response);
-  return parsed.params.appSessions;
+  
+  try {
+    const response = await sendRpc(msg, requestId);
+    const parsed = parseGetAppSessionsResponse(response);
+    const sessions = parsed.params.appSessions;
+    
+    sessionCache.set(cacheKey, { data: sessions, timestamp: Date.now() });
+    return sessions;
+  } catch (err) {
+    // If request fails but we have stale cache, return it as fallback
+    if (cached) return cached.data;
+    throw err;
+  }
 }
 
 export function isClearNodeConnected(): boolean {

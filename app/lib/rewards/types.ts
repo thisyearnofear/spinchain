@@ -86,13 +86,15 @@ export const REWARD_MODES: Record<RewardMode, RewardModeConfig> = {
 // ============================================================================
 
 export interface RewardChannel {
-  /** Unique channel ID */
+  /** Unique channel id */
   id: string;
   /** Rider address */
   rider: `0x${string}`;
-  /** Instructor address */
+  /** Instructor address (primary) */
   instructor: `0x${string}`;
-  /** Class ID */
+  /** All participants (for multi-party Yellow sessions) */
+  participants?: `0x${string}`[];
+  /** Class id */
   classId: `0x${string}`;
   /** Channel opened timestamp */
   openedAt: number;
