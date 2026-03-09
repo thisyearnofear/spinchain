@@ -102,7 +102,7 @@ export const initWorkflow = (config: Config) => {
   return [
     handler(
       cron.trigger({ schedule: "*/30 * * * * *" }),
-      onCronTrigger
+      onCronTrigger as Parameters<typeof handler>[1]
     ),
   ];
 };
