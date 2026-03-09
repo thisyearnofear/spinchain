@@ -119,18 +119,36 @@ export function RideHUD({
 
   // Agent Intelligence Section
   const agentInsight = (
-    <div className="mt-2 flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-700">
-      <div className="flex items-center gap-2 mb-1">
+    <div className="mt-4 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      <div className="flex items-center gap-2 mb-2">
         <div className="relative">
-          <span className="flex h-2 w-2 rounded-full bg-indigo-400 absolute -top-0.5 -right-0.5 animate-ping" />
-          <span className="flex h-2 w-2 rounded-full bg-indigo-500 relative" />
+          <span className="flex h-2.5 w-2.5 rounded-full bg-indigo-400 absolute -top-0.5 -right-0.5 animate-ping opacity-75" />
+          <span className="flex h-2.5 w-2.5 rounded-full bg-indigo-500 relative shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
         </div>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300/80">
-          Agent Reasoning
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">
+          Neural Intelligence Stream
         </span>
       </div>
-      <div className="max-w-[240px] rounded-xl bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 text-[11px] text-indigo-200 leading-relaxed text-center backdrop-blur-md italic">
-        {aiLog?.message || "Analyzing Sui telemetry stream..."}
+
+      <div className="relative group max-w-[280px]">
+        {/* Tactical Border Glow */}
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/20 via-sky-500/20 to-indigo-500/20 rounded-xl blur opacity-30 group-hover:opacity-100 transition duration-1000"></div>
+
+        <div className="relative rounded-xl bg-black/40 border border-indigo-500/30 px-4 py-3 backdrop-blur-2xl shadow-2xl">
+          <div className="flex gap-1.5 mb-2">
+            <div className="h-1 w-8 rounded-full bg-indigo-500/40" />
+            <div className="h-1 w-2 rounded-full bg-indigo-500/20" />
+          </div>
+
+          <p className="text-[12px] text-indigo-100/90 leading-relaxed font-mono italic tracking-tight">
+            <span className="text-indigo-400 mr-2 font-black">▶</span>
+            {aiLog?.message || "Optimizing Sui telemetry packets for maximum yield..."}
+          </p>
+
+          <div className="mt-2 flex justify-end">
+            <span className="text-[8px] font-bold text-indigo-400/50 uppercase tracking-tighter italic">Process Node: 0xSUI_ALPHA</span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -141,7 +159,7 @@ export function RideHUD({
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-3">
         <div className="flex flex-col gap-2 w-full max-w-[200px]">
           <MobileStatusBadges status={mobileBridgeStatus} />
-          
+
           {rewardsActive && rewardsStreamState && (
             <YellowRewardTicker
               streamState={rewardsStreamState}
@@ -165,7 +183,7 @@ export function RideHUD({
               </div>
             ))}
           </div>
-          
+
           {isRiding && agentInsight}
         </div>
       </div>
@@ -253,12 +271,42 @@ function MetricCard({
   emphasized?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl bg-black/60 backdrop-blur-xl border p-4 sm:p-6 min-w-[160px] sm:min-w-[180px] ${emphasized ? "border-white/35 shadow-[0_0_40px_rgba(255,255,255,0.08)]" : "border-white/20"}`}>
-      <p className="text-xs uppercase tracking-wider text-white/50 mb-2">{label}</p>
-      <p className={`text-4xl sm:text-5xl font-bold ${color}`}>
-        {value}
-        <span className="text-lg sm:text-xl text-white/50 ml-2">{unit}</span>
-      </p>
+    <div className={`
+      relative group rounded-2xl overflow-hidden
+      bg-black/40 backdrop-blur-2xl border
+      p-4 sm:p-6 min-w-[160px] sm:min-w-[190px]
+      transition-all duration-500 hover:scale-[1.02]
+      ${emphasized
+        ? "border-white/30 shadow-[0_0_50px_rgba(255,255,255,0.05)] ring-1 ring-white/10"
+        : "border-white/10 hover:border-white/20"}
+    `}>
+      {/* Decorative inner glow */}
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] sm:text-xs uppercase font-black tracking-[0.2em] text-white/40 drop-shadow-sm">{label}</p>
+        <div className="flex gap-1">
+          <span className={`h-1 w-1 rounded-full ${color.replace('text-', 'bg-')} animate-pulse opacity-50`} />
+          <span className={`h-1 w-3 rounded-full ${color.replace('text-', 'bg-')} opacity-20`} />
+        </div>
+      </div>
+
+      <div className="relative">
+        <p className={`text-4xl sm:text-6xl font-black tracking-tighter ${color} drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]`}>
+          {value}
+          <span className="text-sm sm:text-base font-medium text-white/30 ml-2 tracking-normal">{unit}</span>
+        </p>
+      </div>
+
+      {/* Subtle data pulse indicator at bottom */}
+      <div className="absolute bottom-1 right-3 flex items-center gap-1.5 opacity-30">
+        <span className="text-[8px] font-mono text-white/50 uppercase">Live</span>
+        <div className="flex gap-0.5">
+          {[1, 2, 3].map(i => (
+            <div key={i} className={`w-0.5 h-1.5 bg-current ${color} animate-bounce`} style={{ animationDelay: `${i * 0.15}s` }} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

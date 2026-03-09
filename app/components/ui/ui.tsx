@@ -51,28 +51,31 @@ export function SurfaceCard({
 }: CardProps) {
   return (
     <div
-      className={`rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 ${className}`}
+      className={`relative rounded-3xl border border-white/10 bg-black/40 p-8 backdrop-blur-2xl shadow-2xl overflow-hidden group transition-all duration-500 hover:border-white/20 ${className}`}
     >
+      {/* Subtle inner highlight */}
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" />
+
       {eyebrow ? (
-        <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
+        <p className="text-[10px] uppercase tracking-[0.3em] font-black text-[color:var(--muted)] mb-4">
           {eyebrow}
         </p>
       ) : null}
       {title ? (
         <h3
-          className={`text-lg font-semibold text-[color:var(--foreground)] ${eyebrow ? "mt-3" : ""}`}
+          className={`text-2xl font-black text-[color:var(--foreground)] tracking-tight ${eyebrow ? "" : "mt-0"}`}
         >
           {title}
         </h3>
       ) : null}
       {description ? (
         <p
-          className={`text-sm text-[color:var(--muted)] ${title ? "mt-2" : ""}`}
+          className={`text-sm text-[color:var(--muted)] leading-relaxed ${title ? "mt-3" : ""}`}
         >
           {description}
         </p>
       ) : null}
-      {children}
+      <div className="relative z-10">{children}</div>
     </div>
   );
 }
@@ -85,15 +88,18 @@ type MetricProps = {
 
 export function MetricTile({ label, value, detail }: MetricProps) {
   return (
-    <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3">
-      <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
-        {label}
-      </p>
-      <p className="mt-2 text-lg font-semibold text-[color:var(--foreground)]">
+    <div className="relative rounded-2xl border border-white/10 bg-black/40 p-5 px-6 group transition-all duration-300 hover:border-white/20">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] uppercase tracking-[0.25em] font-black text-[color:var(--muted)]">
+          {label}
+        </p>
+        <div className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent)] animate-pulse opacity-20 group-hover:opacity-100 transition-opacity" />
+      </div>
+      <p className="text-3xl font-black text-[color:var(--foreground)] tracking-tighter">
         {value}
       </p>
       {detail ? (
-        <p className="text-xs text-[color:var(--muted)]">{detail}</p>
+        <p className="mt-1 text-[10px] font-bold text-[color:var(--muted)] uppercase tracking-tighter italic opacity-60 group-hover:opacity-100 transition-opacity">{detail}</p>
       ) : null}
     </div>
   );
@@ -124,20 +130,21 @@ type TagProps = {
 
 export function Tag({ children, color, className = "" }: TagProps) {
   const colorClasses = {
-    blue: "border-blue-500/30 bg-blue-500/10 text-blue-400",
-    indigo: "border-indigo-500/30 bg-indigo-500/10 text-indigo-400",
-    amber: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-    green: "border-green-500/30 bg-green-500/10 text-green-400",
+    blue: "border-blue-500/20 bg-blue-500/5 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.1)]",
+    indigo: "border-indigo-500/20 bg-indigo-500/5 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.1)]",
+    amber: "border-amber-500/20 bg-amber-500/5 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.1)]",
+    green: "border-green-500/20 bg-green-500/5 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.1)]",
   };
 
   const baseClass = color
     ? colorClasses[color]
-    : "border-[color:var(--border)] bg-[color:var(--surface-strong)] text-[color:var(--muted)]";
+    : "border-white/10 bg-white/5 text-white/50 shadow-sm";
 
   return (
     <span
-      className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.2em] ${baseClass} ${className}`}
+      className={`inline-flex items-center rounded-full border px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.25em] backdrop-blur-sm transition-all hover:scale-105 active:scale-95 ${baseClass} ${className}`}
     >
+      <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current opacity-20" />
       {children}
     </span>
   );
@@ -206,8 +213,9 @@ type GlassCardProps = {
 export function GlassCard({ children, className = "" }: GlassCardProps) {
   return (
     <div
-      className={`rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 backdrop-blur-md ${className}`}
+      className={`relative rounded-3xl border border-white/10 bg-black/30 backdrop-blur-3xl shadow-2xl overflow-hidden ${className}`}
     >
+      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
       {children}
     </div>
   );

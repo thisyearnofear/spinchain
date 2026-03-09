@@ -87,14 +87,14 @@ function HomeContent() {
     <div className="min-h-screen bg-[color:var(--background)] overflow-x-hidden">
       {/* Welcome Modal */}
       {showWelcome && (
-        <WelcomeModal 
+        <WelcomeModal
           onComplete={handleWelcomeComplete}
           onExploreAsGuest={handleExploreAsGuest}
         />
       )}
 
       {/* Animated background gradient */}
-      <div 
+      <div
         className="fixed inset-0 pointer-events-none transition-all duration-700 ease-out"
         style={{
           background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, var(--gradient-from) 0%, transparent 50%),
@@ -103,27 +103,40 @@ function HomeContent() {
       />
 
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-20 px-6 pb-20 pt-10 lg:px-12">
-        
+
         {/* Hero */}
         <FadeIn>
           <header className="flex flex-col items-start justify-between gap-8 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 shadow-[0_20px_80px_rgba(0,0,0,0.15)] backdrop-blur">
             <PrimaryNav />
-            
+            {/* Neural Activity Callout */}
+            <div className="w-full flex justify-center -mt-4 mb-2">
+              <div className="flex items-center gap-2.5 px-3 py-1 rounded-full bg-indigo-500/5 border border-indigo-500/10 backdrop-blur-sm shadow-sm animate-pulse">
+                <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-300">
+                  Neural Activity Stream Active • 1,247 Nodes Synced
+                </span>
+              </div>
+            </div>
+
             {/* Clear What-We-Do Statement */}
-            <div className="w-full text-center py-8 border-y border-[color:var(--border)]">
-              <h1 className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)] mb-3">
-                Elevate Your Spin. Earn Onchain.
+            <div className="w-full text-center py-10 border-y border-white/5 relative overflow-hidden">
+              {/* Decorative background light */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
+
+              <h1 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tighter drop-shadow-2xl">
+                Elevate Your Spin.<br />
+                <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">Earn Onchain.</span>
               </h1>
-              <p className="text-lg text-[color:var(--muted)] max-w-2xl mx-auto">
-                Transform any spin bike into an immersive experience. 
-                <span className="text-[color:var(--accent)] font-medium">Earn SPIN tokens</span> as you crush your goals.
+              <p className="text-xl text-white/50 max-w-2xl mx-auto font-medium leading-relaxed">
+                Transform any spin bike into a high-performance 3D experience.
+                <span className="text-white/80"> Earn SPIN tokens</span> as you crush your goals in the Neural Metaverse.
               </p>
             </div>
-            
+
             {/* Live Stats Ticker */}
-            <div className="w-full flex flex-wrap justify-center gap-8 py-4 border-y border-[color:var(--border)]">
+            <div className="w-full flex flex-wrap justify-center gap-10 py-6 border-b border-white/5 bg-white/2 backdrop-blur-sm rounded-b-2xl">
               {liveStats.map((stat, i) => (
-                <motion.div 
+                <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -141,12 +154,12 @@ function HomeContent() {
                 </motion.div>
               ))}
             </div>
-            
+
             {/* Persona Selection - Primary CTA */}
             <div className="w-full grid lg:grid-cols-2 gap-6 mt-4">
               {/* Rider Card */}
               <AnimatedCard glowColor="var(--accent)">
-                <Link 
+                <Link
                   href="/rider"
                   className="group block relative overflow-hidden p-8 h-full"
                 >
@@ -205,7 +218,7 @@ function HomeContent() {
                 Choose Your Path
               </h2>
               <p className="text-[color:var(--muted)] mt-2 max-w-xl mx-auto">
-                Whether you prefer hands-on creativity or autonomous AI coaching, 
+                Whether you prefer hands-on creativity or autonomous AI coaching,
                 SpinChain supports your teaching style.
               </p>
             </div>
@@ -225,11 +238,11 @@ function HomeContent() {
           </FadeIn>
           <StaggerContainer className="grid gap-6 md:grid-cols-3" staggerDelay={0.15}>
             {howItWorks.map((item) => (
-              <div 
+              <div
                 key={item.step}
                 className="group rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 text-center hover:border-[color:var(--accent)]/30 transition-colors"
               >
-                <motion.span 
+                <motion.span
                   className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[color:var(--accent)]/10 text-[color:var(--accent)] font-semibold mb-4"
                   whileHover={{ scale: 1.1, rotate: 5 }}
                 >
@@ -271,7 +284,7 @@ function HomeContent() {
                   </div>
                 </div>
               </FadeIn>
-              
+
               {/* Mock Dashboard */}
               <ScaleIn delay={0.2}>
                 <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-6">
@@ -289,7 +302,7 @@ function HomeContent() {
                       Live
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-6 mb-6">
                     <div className="relative grid h-24 w-24 place-items-center rounded-full bg-[conic-gradient(from_180deg,var(--success)_0deg,var(--success)_260deg,var(--surface-elevated)_260deg)]">
                       <div className="grid h-18 w-18 place-items-center rounded-full bg-[color:var(--surface-strong)] text-sm font-semibold text-[color:var(--foreground)]">
@@ -299,7 +312,7 @@ function HomeContent() {
                     <div className="space-y-1">
                       <p className="text-sm text-[color:var(--muted)]">Effort zone</p>
                       <p className="text-lg font-semibold text-[color:var(--foreground)]">HR 148 • 32 min</p>
-                      <motion.p 
+                      <motion.p
                         className="text-xs text-[color:var(--success)]"
                         animate={{ opacity: [1, 0.5, 1] }}
                         transition={{ duration: 2, repeat: Infinity }}
@@ -308,7 +321,7 @@ function HomeContent() {
                       </motion.p>
                     </div>
                   </div>
-                  
+
                   <div className="grid gap-3 sm:grid-cols-3">
                     {riderHighlights.map((item) => (
                       <MetricTile key={item.label} {...item} />
@@ -339,7 +352,7 @@ function HomeContent() {
                   "Instant SPIN rewards",
                   "Compete with friends",
                 ].map((item, i) => (
-                  <motion.div 
+                  <motion.div
                     key={item}
                     initial={{ opacity: 0, x: -10 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -347,7 +360,7 @@ function HomeContent() {
                     viewport={{ once: true }}
                     className="flex items-center gap-3 text-sm text-[color:var(--foreground)]/80"
                   >
-                    <motion.span 
+                    <motion.span
                       className="h-2 w-2 rounded-full bg-[color:var(--accent)]"
                       whileHover={{ scale: 1.5 }}
                     />
@@ -372,7 +385,7 @@ function HomeContent() {
                   "Sponsor reward pools",
                   "AI-powered route creation",
                 ].map((item, i) => (
-                  <motion.div 
+                  <motion.div
                     key={item}
                     initial={{ opacity: 0, x: -10 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -380,7 +393,7 @@ function HomeContent() {
                     viewport={{ once: true }}
                     className="flex items-center gap-3 text-sm text-[color:var(--foreground)]/80"
                   >
-                    <motion.span 
+                    <motion.span
                       className="h-2 w-2 rounded-full bg-[color:var(--accent)]"
                       whileHover={{ scale: 1.5 }}
                     />
@@ -412,7 +425,7 @@ function HomeContent() {
                 <span className="text-[color:var(--foreground)] font-semibold">10,000+</span> riders earning rewards
               </p>
             </div>
-            
+
             <div className="grid grid-cols-3 gap-8 max-w-lg mx-auto">
               {[
                 { value: "$2.4M", label: "Rewards paid" },
@@ -449,7 +462,7 @@ function HomeContent() {
                 ease: "linear",
               }}
             />
-            
+
             <div className="relative">
               <h2 className="text-3xl lg:text-4xl font-bold text-[color:var(--foreground)] mb-4">
                 Ready to start?

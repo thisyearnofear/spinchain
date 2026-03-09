@@ -99,33 +99,41 @@ function CompactTicker({ amount, symbol, status, className }: CompactTickerProps
   return (
     <div
       className={`
-        flex items-center gap-2 
-        rounded-lg bg-black/70 backdrop-blur-xl 
-        border border-white/20 
-        px-3 py-2
+        flex items-center gap-3
+        rounded-xl bg-black/40 backdrop-blur-2xl 
+        border border-white/10 px-4 py-2.5
+        shadow-2xl relative overflow-hidden group
         ${className}
       `}
     >
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+
       {/* Status indicator */}
-      <span className={`text-xs ${status.color}`}>{status.icon}</span>
-      
+      <div className="relative">
+        <span className={`text-sm ${status.color} relative z-10`}>{status.icon}</span>
+        <span className="absolute inset-0 bg-white/20 blur-md rounded-full animate-pulse" />
+      </div>
+
       {/* Amount */}
-      <div className="flex items-baseline gap-1">
+      <div className="flex items-baseline gap-1.5">
         <motion.span
           key={amount}
-          initial={{ opacity: 0.5, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-lg font-bold text-white"
+          initial={{ opacity: 0.5, y: -5, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="text-xl font-black text-white tracking-tighter"
         >
           {amount}
         </motion.span>
-        <span className="text-xs text-white/50">{symbol}</span>
+        <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{symbol}</span>
       </div>
-      
-      {/* Yellow badge */}
-      <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">
-        Yellow
-      </span>
+
+      {/* State Badge */}
+      <div className="flex items-center gap-1.5 pl-2 border-l border-white/10">
+        <div className="h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
+        <span className="text-[9px] font-black text-yellow-400/80 uppercase tracking-tighter">
+          STREAMING
+        </span>
+      </div>
     </div>
   );
 }
@@ -171,64 +179,80 @@ function FullTicker({
   return (
     <div
       className={`
-        rounded-xl bg-black/70 backdrop-blur-xl 
-        border border-white/20 
-        p-4 min-w-[200px]
+        relative rounded-2xl bg-black/40 backdrop-blur-3xl 
+        border border-white/10 
+        p-5 min-w-[240px] shadow-2xl overflow-hidden group
         ${className}
       `}
     >
+      {/* Dynamic Golden Aura Background */}
+      <div className="absolute -top-24 -right-24 w-48 h-48 bg-yellow-500/10 rounded-full blur-[60px] group-hover:bg-yellow-500/20 transition-all duration-1000" />
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent opacity-30" />
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className={`text-sm ${status.color}`}>{status.icon}</span>
-          <span className="text-xs uppercase tracking-wider text-white/50">
-            Live Rewards
+      <div className="flex items-center justify-between mb-4 relative z-10">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1 rounded bg-yellow-500/10 border border-yellow-500/20">
+            <span className={`text-sm ${status.color}`}>{status.icon}</span>
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40">
+            Real-time Accrual
           </span>
         </div>
-        <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">
-          Yellow
-        </span>
+        <div className="flex items-center gap-2 py-0.5 px-2 rounded-full bg-yellow-500/10 border border-yellow-500/20">
+          <span className="h-1 w-1 rounded-full bg-yellow-400 animate-pulse" />
+          <span className="text-[9px] font-bold text-yellow-400/90 uppercase tracking-tighter">
+            Yellow L3
+          </span>
+        </div>
       </div>
 
       {/* Main amount */}
-      <div className="flex items-baseline gap-2 mb-2">
+      <div className="flex items-baseline gap-2.5 mb-2 relative z-10">
         <AnimatePresence mode="wait">
           <motion.span
             key={amount}
-            initial={{ opacity: 0.5, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0.5, scale: 1.05 }}
-            transition={{ duration: 0.2 }}
-            className="text-3xl font-bold text-white"
+            initial={{ opacity: 0.5, scale: 0.9, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 1.1, y: -10 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="text-4xl font-black text-white tracking-tighter drop-shadow-lg"
           >
             {amount}
           </motion.span>
         </AnimatePresence>
-        <span className="text-sm text-white/50">{symbol}</span>
+        <span className="text-sm font-bold text-yellow-500/80 uppercase tracking-widest">{symbol}</span>
       </div>
 
       {/* Rate */}
-      <div className="flex items-center gap-2 text-xs text-white/40 mb-3">
-        <span>+{rate} {symbol}/min</span>
+      <div className="flex items-center gap-2 text-[10px] font-mono text-white/50 mb-5 relative z-10">
+        <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-yellow-500/70">+{rate} {symbol}/min</span>
         {timeSinceUpdate && (
-          <span className="text-white/20">• Updated {timeSinceUpdate}</span>
+          <span className="opacity-40 tracking-tight italic text-[9px]">Synced {timeSinceUpdate}</span>
         )}
       </div>
 
-      {/* Progress bar */}
-      <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+      {/* Tactical Progress Visualizer */}
+      <div className="relative h-1 w-full bg-white/5 rounded-full overflow-hidden mb-3">
+        <div className="absolute inset-0 bg-yellow-500/5" />
         <motion.div
-          className="h-full bg-gradient-to-r from-yellow-500 to-amber-400"
+          className="h-full bg-gradient-to-r from-yellow-600 via-amber-400 to-yellow-300 relative"
           initial={{ width: "0%" }}
-          animate={{ width: `${Math.min((updateCount % 6) * 20, 100)}%` }}
-          transition={{ duration: 0.5 }}
-        />
+          animate={{ width: `${Math.min((updateCount % 8) * 12.5, 100)}%` }}
+          transition={{ duration: 0.8, ease: "circOut" }}
+        >
+          {/* Animated glow on progress head */}
+          <div className="absolute right-0 top-0 h-full w-4 bg-white/40 blur-sm" />
+        </motion.div>
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between mt-2 text-[10px] text-white/30">
-        <span>{updateCount} updates</span>
-        <span>State Channel</span>
+      {/* Footer / Meta Info */}
+      <div className="flex items-center justify-between text-[9px] font-bold text-white/20 uppercase tracking-widest relative z-10">
+        <div className="flex items-center gap-1.5">
+          <span className="opacity-50">Packet Hash:</span>
+          <span className="text-white/40 font-mono">0x{Math.floor(updateCount * 1337).toString(16).padStart(4, '0')}</span>
+        </div>
+        <span>State Channel Active</span>
       </div>
     </div>
   );

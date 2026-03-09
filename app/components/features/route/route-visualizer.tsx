@@ -10,7 +10,18 @@ import {
   ExtrudeGeometry,
   Group,
   PointLight,
+  MathUtils,
+  Color,
+  PerspectiveCamera as ThreePerspectiveCamera,
 } from "three";
+import {
+  EffectComposer,
+  Bloom,
+  Vignette,
+  ChromaticAberration,
+  Noise,
+} from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
 import { useMemo, useRef, useState, useEffect, Suspense } from "react";
 import {
   OrbitControls,
@@ -23,6 +34,7 @@ import {
   Trail,
   useGLTF,
   Clone,
+  Text,
 } from "@react-three/drei";
 import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-theme";
 export type { VisualizerTheme } from "./visualizer-theme";
@@ -99,12 +111,33 @@ function useRouteCurve(elevationProfile: number[]) {
 function Road({
   curve,
   theme = "neon",
+  stats = { hr: 0, power: 0, cadence: 0 },
 }: {
   curve: CatmullRomCurve3;
   theme?: VisualizerTheme;
+  stats?: RiderStats;
 }) {
   const meshRef = useRef<Mesh>(null);
   const styles = THEMES[theme];
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+    const material = meshRef.current.material as any;
+
+    // Dynamic emissive pulsing based on cadence
+    const pulse = 0.5 + Math.sin(state.clock.elapsedTime * (stats.cadence / 20)) * 0.5;
+    const baseEmissive = styles.roadEmissiveIntensity || 0;
+
+    // Boost effect when sprinting
+    const sprintFactor = Math.min(1, stats.power / 600);
+    material.emissiveIntensity = baseEmissive + (pulse * 0.1) + (sprintFactor * 0.4);
+
+    // Dynamic color shift if on rainbow theme
+    if (theme === 'rainbow') {
+      const hue = (state.clock.elapsedTime / 10) % 1;
+      material.emissive.setHSL(hue, 1, 0.5);
+    }
+  });
 
   const geometry = useMemo(() => {
     const shape = new Shape();
@@ -149,7 +182,7 @@ function RoadMarkings({
   theme?: VisualizerTheme;
 }) {
   const styles = THEMES[theme];
-  
+
   const { dashGeometry, edgeGeometry } = useMemo(() => {
     // Dash lines in the center
     const dashShape = new Shape();
@@ -168,14 +201,14 @@ function RoadMarkings({
     // Edge lines
     const edgeShape = new Shape();
     const width = theme === "rainbow" ? 3.8 : 2.3;
-    
+
     // Left edge
     edgeShape.moveTo(-width, 0.51);
     edgeShape.lineTo(-width + 0.15, 0.51);
     edgeShape.lineTo(-width + 0.15, 0.53);
     edgeShape.lineTo(-width, 0.53);
     edgeShape.lineTo(-width, 0.51);
-    
+
     // Right edge
     edgeShape.moveTo(width - 0.15, 0.51);
     edgeShape.lineTo(width, 0.51);
@@ -196,19 +229,19 @@ function RoadMarkings({
     <group>
       {/* Dashed center line */}
       <mesh geometry={dashGeometry}>
-        <meshStandardMaterial 
-          color={styles.lineColor} 
+        <meshStandardMaterial
+          color={styles.lineColor}
           emissive={styles.lineColor}
           emissiveIntensity={styles.roadEmissiveIntensity * 5}
           transparent
           opacity={0.8}
         />
       </mesh>
-      
+
       {/* Edge glowing strips */}
       <mesh geometry={edgeGeometry}>
-        <meshStandardMaterial 
-          color={styles.lineColor} 
+        <meshStandardMaterial
+          color={styles.lineColor}
           emissive={styles.lineColor}
           emissiveIntensity={styles.roadEmissiveIntensity * 10}
           transparent
@@ -223,9 +256,9 @@ function FinishLine({ curve, theme = "neon" }: { curve: CatmullRomCurve3; theme?
   const styles = THEMES[theme];
   const point = useMemo(() => curve.getPointAt(0.995), [curve]);
   const tangent = useMemo(() => curve.getTangentAt(0.995), [curve]);
-  
+
   const groupRef = useRef<Group>(null);
-  
+
   useEffect(() => {
     if (groupRef.current) {
       groupRef.current.lookAt(point.clone().add(tangent));
@@ -239,28 +272,45 @@ function FinishLine({ curve, theme = "neon" }: { curve: CatmullRomCurve3; theme?
         <torusGeometry args={[5, 0.3, 16, 32, Math.PI]} />
         <meshStandardMaterial color={styles.lineColor} emissive={styles.lineColor} emissiveIntensity={5} />
       </mesh>
-      
+
       {/* Checkered Panel */}
       <mesh position={[0, 4, 0]} rotation={[0, 0, 0]}>
         <planeGeometry args={[10, 2]} />
         <meshBasicMaterial color="white" transparent opacity={0.2} wireframe />
       </mesh>
-      
+
       <Html position={[0, 8, 0]} center>
         <div className="text-white font-black px-4 py-1 rounded-sm skew-x-12 border-2 border-white animate-pulse" style={{ backgroundColor: `${styles.horizonGlow}cc`, boxShadow: `0 0 20px ${styles.horizonGlow}` }}>
           FINISH
         </div>
       </Html>
-      
+
       <pointLight distance={20} intensity={20} color={styles.lineColor} />
     </group>
   );
 }
 
-function PropManager({ theme = "neon", curve }: { theme?: VisualizerTheme; curve: CatmullRomCurve3 }) {
+function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme; curve: CatmullRomCurve3; stats: RiderStats }) {
   const themeData = THEMES[theme];
   const propConfig = themeData.props;
-  
+
+  const meshGroupRef = useRef<Group>(null);
+
+  useFrame((state) => {
+    if (!meshGroupRef.current) return;
+
+    // Pulse props with the beat
+    const pulse = 1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.05;
+    meshGroupRef.current.children.forEach((child: any) => {
+      if (child.material) {
+        // Only pulse if themed for it
+        if (theme === 'neon' || theme === 'rainbow') {
+          const baseIntensity = theme === 'neon' ? 0.5 : 0.8;
+          child.material.emissiveIntensity = baseIntensity + (pulse - 1) * 2;
+        }
+      }
+    });
+  });
   const propPoints = useMemo(() => {
     if (!propConfig) return [];
     const points = [];
@@ -269,13 +319,13 @@ function PropManager({ theme = "neon", curve }: { theme?: VisualizerTheme; curve
       const point = curve.getPointAt(p);
       const tangent = curve.getTangentAt(p);
       const side = new Vector3().crossVectors(tangent, new Vector3(0, 1, 0)).normalize();
-      
+
       // Alternate sides, move out from road
       const dist = 8 + Math.random() * 15;
       const offset = side.multiplyScalar(i % 2 === 0 ? dist : -dist);
-      
+
       points.push({
-        position: [point.x + offset.x, point.y + offset.y + (propConfig.type === 'building' ? propConfig.scale[1]/2 : 0), point.z + offset.z],
+        position: [point.x + offset.x, point.y + offset.y + (propConfig.type === 'building' ? propConfig.scale[1] / 2 : 0), point.z + offset.z],
         rotation: [0, Math.random() * Math.PI, 0],
         scale: [
           propConfig.scale[0] * (0.8 + Math.random() * 0.4),
@@ -290,7 +340,7 @@ function PropManager({ theme = "neon", curve }: { theme?: VisualizerTheme; curve
   if (!propConfig) return null;
 
   return (
-    <group>
+    <group ref={meshGroupRef}>
       {propPoints.map((p, i) => (
         <mesh key={i} position={p.position as any} rotation={p.rotation as any} scale={p.scale as any}>
           {propConfig.type === 'building' ? (
@@ -302,13 +352,162 @@ function PropManager({ theme = "neon", curve }: { theme?: VisualizerTheme; curve
           ) : (
             <sphereGeometry />
           )}
-          <meshStandardMaterial 
-            color={propConfig.color} 
+          <meshStandardMaterial
+            color={propConfig.color}
             emissive={propConfig.color}
             emissiveIntensity={theme === 'neon' ? 0.5 : 0.1}
           />
         </mesh>
       ))}
+    </group>
+  );
+}
+
+function PostEffects({ theme = "neon", stats }: { theme: VisualizerTheme; stats: RiderStats; mode: VisualizerMode }) {
+  const styles = THEMES[theme];
+
+  // Dynamic intensities based on user exertion
+  const powerFactor = Math.min(1, stats.power / 600);
+  const bloomIntensity = 0.5 + powerFactor * 2.0;
+
+  // Use reactive values instead of conditional mounting for performance and type safety
+  const chromaticOffset = stats.power > 300 ? powerFactor * 0.005 : 0;
+  const noiseOpacity = theme === 'neon' ? 0.03 : 0;
+
+  return (
+    <EffectComposer multisampling={qualityMap[qualityLevel(stats)].msaa ? 8 : 0}>
+      <Bloom
+        intensity={bloomIntensity}
+        luminanceThreshold={0.4}
+        luminanceSmoothing={1}
+        mipmapBlur
+      />
+
+      <Vignette eskil={false} offset={0.15} darkness={0.8} />
+
+      <ChromaticAberration
+        offset={[chromaticOffset, chromaticOffset]}
+        blendFunction={BlendFunction.NORMAL}
+      />
+
+      <Noise opacity={noiseOpacity} blendFunction={BlendFunction.OVERLAY} />
+    </EffectComposer>
+  );
+}
+
+// Simple quality check helper for postprocessing
+const qualityLevel = (stats: any) => stats.cadence > 0 ? 'high' : 'standard';
+const qualityMap: any = {
+  high: { msaa: true },
+  standard: { msaa: false }
+};
+
+function HoloMap({ curve, progress, theme }: { curve: CatmullRomCurve3, progress: number, theme: VisualizerTheme }) {
+  const styles = THEMES[theme];
+
+  return (
+    <group position={[0, 1.2, 1.5]} rotation={[-Math.PI / 4, 0, 0]} scale={0.012}>
+      {/* Mini Route Path */}
+      <mesh>
+        <tubeGeometry args={[curve, 64, 2, 8, true]} />
+        <meshBasicMaterial color={styles.lineColor} transparent opacity={0.3} wireframe />
+      </mesh>
+
+      {/* Rider Position Dot */}
+      <mesh position={curve.getPointAt(progress)}>
+        <sphereGeometry args={[8, 16, 16]} />
+        <meshBasicMaterial color="#ffffff" />
+        <pointLight intensity={20} color={styles.lineColor} />
+      </mesh>
+
+      {/* Background Plate */}
+      <mesh position={[0, 0, -5]}>
+        <planeGeometry args={[150, 150]} />
+        <meshBasicMaterial color={styles.lineColor} transparent opacity={0.05} side={2} />
+      </mesh>
+    </group>
+  );
+}
+
+function BeatFlare({ progress, beatProgress, color }: { progress: number, beatProgress: number, color: string }) {
+  const distance = Math.abs(progress - beatProgress);
+  const isActive = distance < 0.03;
+  const intensity = isActive ? (0.03 - distance) * 1000 : 0;
+
+  if (!isActive) return null;
+
+  return (
+    <group>
+      <mesh position={[0, 50, 0]}>
+        <cylinderGeometry args={[0.2, 2, 100, 8]} />
+        <meshBasicMaterial color={color} transparent opacity={0.2} />
+      </mesh>
+      <pointLight position={[0, 5, 0]} intensity={intensity / 10} color={color} distance={40} />
+    </group>
+  );
+}
+
+function HoloHUD({ stats, theme, curve, progress }: { stats: RiderStats; theme: VisualizerTheme; curve: CatmullRomCurve3; progress: number }) {
+  const styles = THEMES[theme];
+  const groupRef = useRef<Group>(null);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    // Subtle breathing animation for the holographic panel
+    const breathe = Math.sin(state.clock.elapsedTime * 2) * 0.1;
+    groupRef.current.position.y = 1.8 + breathe;
+    groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
+  });
+
+  return (
+    <group ref={groupRef} position={[0, 1.8, -1.5]}>
+      {/* Background Glass Panel */}
+      <mesh rotation={[0, 0, 0]}>
+        <planeGeometry args={[2.2, 1.4]} />
+        <meshBasicMaterial
+          color={styles.lineColor}
+          transparent
+          opacity={0.15}
+          side={2}
+        />
+      </mesh>
+
+      {/* Border Glow */}
+      <mesh rotation={[0, 0, 0]} position={[0, 0, 0.01]}>
+        <planeGeometry args={[2.22, 1.42]} />
+        <meshBasicMaterial color={styles.lineColor} wireframe transparent opacity={0.4} />
+      </mesh>
+
+      {/* Mini-Map Integration */}
+      <HoloMap curve={curve} progress={progress} theme={theme} />
+
+      <Html transform distanceFactor={5} position={[0, 0.2, 0.02]} scale={0.12}>
+        <div className="flex flex-col items-center justify-center p-4 min-w-[350px] select-none pointer-events-none">
+          <div className="flex items-center gap-8 mb-4">
+            <div className="text-center">
+              <div className="text-[18px] font-black uppercase tracking-widest text-white/40">Power</div>
+              <div className="text-[58px] font-black leading-none text-white">{stats.power}<span className="text-[20px] ml-1 opacity-50">W</span></div>
+            </div>
+            <div className="w-px h-12 bg-white/20" />
+            <div className="text-center">
+              <div className="text-[18px] font-black uppercase tracking-widest text-white/40">Cadence</div>
+              <div className="text-[58px] font-black leading-none text-white">{stats.cadence}<span className="text-[20px] ml-1 opacity-50">RPM</span></div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between w-full border-t border-white/10 pt-4">
+            <div className="flex flex-col items-start">
+              <span className="text-[12px] uppercase text-white/40 font-bold">Progress</span>
+              <span className="text-[24px] text-white font-black">{(progress * 100).toFixed(1)}%</span>
+            </div>
+            {stats.hr > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40">
+                <span className="text-[14px] font-bold text-rose-400">♥ {stats.hr} BPM</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </Html>
     </group>
   );
 }
@@ -371,6 +570,9 @@ function RiderMarker({
 
   return (
     <group ref={groupRef}>
+      {/* Immerive 3D HUD that follows the rider */}
+      {showYouLabel && <HoloHUD stats={stats} theme={theme} curve={curve} progress={progress} />}
+
       <Trail
         width={2 + stats.power / 200}
         length={trailLength}
@@ -384,9 +586,9 @@ function RiderMarker({
               <Model url={avatar.modelUrl} scale={1.5} rotation={[0, Math.PI, 0]} />
             </group>
           )}
-          
+
           {equipment ? (
-             <Model url={equipment.modelUrl} scale={equipment.type === "vehicle" ? 2 : 1.2} />
+            <Model url={equipment.modelUrl} scale={equipment.type === "vehicle" ? 2 : 1.2} />
           ) : (
             /* Stylized cyclist fallback */
             <group rotation={[Math.PI / 2, 0, 0]}>
@@ -494,25 +696,34 @@ function LineInstance({ line, color }: { line: SpeedLineData; color: string }) {
 
   return (
     <mesh ref={ref} position={line.position} rotation={[0, 0, 0]}>
-      <boxGeometry args={[0.05, 0.05, 10 * line.scale]} />
-      <meshBasicMaterial color={color} transparent opacity={0.3} />
+      <boxGeometry args={[0.05, 0.05, 12 * line.scale]} />
+      <meshBasicMaterial color={color} transparent opacity={0.5} />
     </mesh>
   );
 }
 
-function FloatingParticles({ theme = "neon" }: { theme?: VisualizerTheme }) {
+function FloatingParticles({ theme = "neon", stats }: { theme?: VisualizerTheme; stats: RiderStats }) {
   const styles = THEMES[theme];
+  const starsRef = useRef<any>(null);
 
-  // Simplified ambient particles using Drei's Stars for now as it's more performant than custom loop without InstancedMesh setup
+  useFrame((state) => {
+    if (!starsRef.current) return;
+    // Stars move faster when rider is pushing more power
+    const speed = 0.5 + (stats.power / 200);
+    starsRef.current.rotation.y += 0.0001 * speed;
+    starsRef.current.rotation.z += 0.0002 * speed;
+  });
+
   if (!styles.stars) return null;
 
   return (
     <Stars
+      ref={starsRef}
       radius={120}
       depth={50}
-      count={3000}
-      factor={4}
-      saturation={0}
+      count={4000}
+      factor={6}
+      saturation={theme === 'rainbow' ? 1 : 0}
       fade
       speed={1}
     />
@@ -532,7 +743,7 @@ function BeatMarker({
     () => curve.getPointAt(beat.progress),
     [curve, beat.progress],
   );
-  
+
   // Proximity logic for animation
   const distance = Math.abs(riderProgress - beat.progress);
   const isApproaching = distance < 0.05 && riderProgress < beat.progress;
@@ -552,8 +763,8 @@ function BeatMarker({
         <div className="flex flex-col items-center gap-1 group">
           <div
             className={`px-2 py-0.5 rounded-full text-[8px] font-bold text-white whitespace-nowrap border backdrop-blur-sm transition-all shadow-[0_0_10px_rgba(255,255,255,0.3)]`}
-            style={{ 
-              backgroundColor: `${color}80`, 
+            style={{
+              backgroundColor: `${color}80`,
               borderColor: color,
               boxShadow: isApproaching ? `0 0 ${glow}px ${color}` : 'none'
             }}
@@ -571,6 +782,7 @@ function BeatMarker({
           emissiveIntensity={2 + glow}
         />
       </mesh>
+      <BeatFlare progress={riderProgress} beatProgress={beat.progress} color={color} />
     </group>
   );
 }
@@ -619,6 +831,35 @@ function GhostRider({
   );
 }
 
+function WelcomeSign({ theme, name, curve }: { theme: VisualizerTheme; name?: string; curve: CatmullRomCurve3 }) {
+  const styles = THEMES[theme];
+  const point = useMemo(() => curve.getPointAt(0.01), [curve]);
+  const tangent = useMemo(() => curve.getTangentAt(0.01), [curve]);
+
+  const groupRef = useRef<Group>(null);
+  useEffect(() => {
+    if (groupRef.current) {
+      groupRef.current.lookAt(point.clone().add(tangent));
+    }
+  }, [point, tangent]);
+
+  return (
+    <group ref={groupRef} position={[point.x, point.y + 6, point.z]}>
+      <Text
+        fontSize={2}
+        color={styles.lineColor}
+        maxWidth={20}
+        textAlign="center"
+        anchorX="center"
+        anchorY="middle"
+      >
+        {`WELCOME ${name?.toUpperCase() || 'CHAMP'}\nTO ${styles.worldLabel.toUpperCase()}`}
+      </Text>
+      <pointLight intensity={10} color={styles.lineColor} distance={20} />
+    </group>
+  );
+}
+
 function Scene({
   elevationProfile,
   theme = "neon",
@@ -630,6 +871,7 @@ function Scene({
   avatar,
   equipment,
   quality,
+  userDisplayName,
 }: {
   elevationProfile: number[];
   theme?: VisualizerTheme;
@@ -647,6 +889,7 @@ function Scene({
     particleCount: number;
     fps: number;
   };
+  userDisplayName?: string;
 }) {
   const curve = useRouteCurve(elevationProfile);
   const styles = THEMES[theme];
@@ -657,30 +900,30 @@ function Scene({
   // curveProgress used for JSX rendering of rider/ghosts
   const [renderProgress, setRenderProgress] = useState(mode === "preview" ? START_OFFSET : mapToCurveProgress(progress));
 
-    useFrame((state, delta) => {
-      // Determine the raw progress for game logic
-      let rawProgress: number;
-      if (mode === "preview") {
-        rawProgress = (previewProgress + delta * 0.05) % 1;
-        setPreviewProgress(rawProgress);
-      } else {
-        rawProgress = progress;
+  useFrame((state, delta) => {
+    // Determine the raw progress for game logic
+    let rawProgress: number;
+    if (mode === "preview") {
+      rawProgress = (previewProgress + delta * 0.05) % 1;
+      setPreviewProgress(rawProgress);
+    } else {
+      rawProgress = progress;
+    }
+
+    // Map to curve-safe progress for rendering (offset start, avoid seam)
+    const curveProgress = mode === "preview" ? rawProgress : mapToCurveProgress(rawProgress);
+    setRenderProgress(curveProgress);
+
+    // Track beat hits for visual markers
+    storyBeats.forEach((beat, index) => {
+      if (
+        rawProgress >= beat.progress &&
+        lastBeatRef.current < index &&
+        Math.abs(rawProgress - beat.progress) < 0.02
+      ) {
+        lastBeatRef.current = index;
       }
-
-      // Map to curve-safe progress for rendering (offset start, avoid seam)
-      const curveProgress = mode === "preview" ? rawProgress : mapToCurveProgress(rawProgress);
-      setRenderProgress(curveProgress);
-
-      // Track beat hits for visual markers
-      storyBeats.forEach((beat, index) => {
-        if (
-          rawProgress >= beat.progress &&
-          lastBeatRef.current < index &&
-          Math.abs(rawProgress - beat.progress) < 0.02
-        ) {
-          lastBeatRef.current = index;
-        }
-      });
+    });
 
     // Reset loop ref if progress resets
     if (rawProgress < 0.01) lastBeatRef.current = -1;
@@ -705,6 +948,23 @@ function Scene({
       const lerpSpeed = mode === "ride" ? 0.12 : 0.06;
       state.camera.position.lerp(targetCamPos, lerpSpeed);
       state.camera.lookAt(lookTarget);
+
+      // SENSE OF SPEED: Dynamic FOV based on power
+      const cam = state.camera as ThreePerspectiveCamera;
+      if (cam.fov !== undefined) {
+        const baseFov = 60;
+        const targetFov = baseFov + Math.min(25, (stats.power / 400) * 20);
+        cam.fov = MathUtils.lerp(cam.fov, targetFov, 0.05);
+        cam.updateProjectionMatrix();
+      }
+
+      // SENSE OF SPEED: Camera shake when pushing hard
+      if (stats.power > 350) {
+        const shake = Math.min(1, (stats.power - 350) / 450);
+        const rand = (Math.random() - 0.5) * shake * 0.15;
+        state.camera.position.x += rand;
+        state.camera.position.y += rand * 0.5;
+      }
     }
   });
 
@@ -726,10 +986,13 @@ function Scene({
       <fog attach="fog" args={[styles.fog, 40, 250]} />
 
       <Environment preset={styles.envPreset} />
-      
+
+      {/* Dynamic atmospheric effects */}
+      <PostEffects theme={theme} stats={stats} mode={mode} />
+
       {/* Conditionally render expensive effects */}
-      {particleCount > 100 && <FloatingParticles theme={theme} />}
-      
+      {particleCount > 100 && <FloatingParticles theme={theme} stats={stats} />}
+
       {mode === "ride" && speedLineCount > 0 && (
         <SpeedLines count={speedLineCount} theme={theme} />
       )}
@@ -746,10 +1009,11 @@ function Scene({
       )}
 
       <group position={[0, -10, 0]}>
-        <Road curve={curve} theme={theme} />
-        <PropManager theme={theme} curve={curve} />
+        <Road curve={curve} theme={theme} stats={stats} />
+        <PropManager theme={theme} curve={curve} stats={stats} />
         <FinishLine curve={curve} theme={theme} />
-        
+        <WelcomeSign theme={theme} name={userDisplayName} curve={curve} />
+
         <RiderMarker
           curve={curve}
           progress={renderProgress}
@@ -808,6 +1072,7 @@ export default function RouteVisualizer({
   avatarId,
   equipmentId,
   quality,
+  userDisplayName,
 }: {
   elevationProfile?: number[];
   theme?: VisualizerTheme;
@@ -821,10 +1086,11 @@ export default function RouteVisualizer({
   avatarId?: string;
   equipmentId?: string;
   quality?: "low" | "medium" | "high";
+  userDisplayName?: string;
 }) {
   const adaptiveQuality = useAdaptiveQuality();
   const performanceTier = usePerformanceTier();
-  
+
   // Determine effective quality settings
   const effectiveQuality = useMemo(() => {
     if (quality) {
@@ -842,7 +1108,7 @@ export default function RouteVisualizer({
   }, [quality, adaptiveQuality]);
 
   const styles = THEMES[theme];
-  
+
   const avatar = useMemo(() => AVATARS.find(a => a.id === avatarId), [avatarId]);
   const equipment = useMemo(() => EQUIPMENT.find(e => e.id === equipmentId), [equipmentId]);
 
@@ -883,7 +1149,7 @@ export default function RouteVisualizer({
           <div className="text-white/60 text-sm">Loading 3D route...</div>
         </div>
       }>
-        <Canvas 
+        <Canvas
           gl={{ alpha: true }}
           dpr={effectiveQuality.pixelRatio}
           frameloop={mode === "ride" ? "always" : "demand"}
@@ -900,6 +1166,7 @@ export default function RouteVisualizer({
             avatar={avatar}
             equipment={equipment}
             quality={effectiveQuality}
+            userDisplayName={userDisplayName}
           />
         </Canvas>
       </Suspense>
