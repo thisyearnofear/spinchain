@@ -10,6 +10,7 @@ export interface TelemetryData {
   cadence: number;
   speed: number;
   effort: number;
+  source?: 'ble' | 'healthkit' | 'simulated';
 }
 
 interface RideHUDProps {
@@ -24,6 +25,10 @@ interface RideHUDProps {
   rewardsMode: "yellow-stream" | "zk-batch" | "sui-native";
   intervalPhase?: IntervalPhase | null;
   aiLog?: { type: string; message: string; timestamp: number } | null;
+  mobileBridgeStatus?: {
+    isBackgroundActive: boolean;
+    isHealthKitActive: boolean;
+  };
 }
 
 function getPhaseAccent(phase?: IntervalPhase | null) {
@@ -64,6 +69,27 @@ function getPhaseMetrics(telemetry: TelemetryData, phase?: IntervalPhase | null)
   };
 }
 
+function MobileStatusBadges({ status }: { status?: RideHUDProps["mobileBridgeStatus"] }) {
+  if (!status || (!status.isBackgroundActive && !status.isHealthKitActive)) return null;
+
+  return (
+    <div className="flex gap-2 mb-3">
+      {status.isBackgroundActive && (
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-300 uppercase tracking-wider">
+          <span className="h-1 w-1 rounded-full bg-indigo-400 animate-pulse" />
+          Background Sync
+        </div>
+      )}
+      {status.isHealthKitActive && (
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-[10px] font-bold text-rose-300 uppercase tracking-wider">
+          <span className="h-1 w-1 rounded-full bg-rose-400 animate-pulse" />
+          HealthKit HR
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * RideHUD - Telemetry display with responsive layouts
  * Shows heart rate, power, cadence, speed based on device and HUD mode
@@ -80,6 +106,7 @@ export function RideHUD({
   rewardsMode,
   intervalPhase,
   aiLog,
+  mobileBridgeStatus,
 }: RideHUDProps) {
   // Don't show if minimal mode or not riding
   if (hudMode === "minimal" || (!isRiding && rideProgress === 0)) {
@@ -113,6 +140,8 @@ export function RideHUD({
     return (
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-3">
         <div className="flex flex-col gap-2 w-full max-w-[200px]">
+          <MobileStatusBadges status={mobileBridgeStatus} />
+          
           {rewardsActive && rewardsStreamState && (
             <YellowRewardTicker
               streamState={rewardsStreamState}
@@ -173,6 +202,10 @@ export function RideHUD({
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
       <div className="flex flex-col gap-4">
+        <div className="flex justify-center">
+          <MobileStatusBadges status={mobileBridgeStatus} />
+        </div>
+
         {rewardsActive && rewardsStreamState && (
           <div className="flex justify-center">
             <YellowRewardTicker

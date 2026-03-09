@@ -15,6 +15,7 @@ import {
 } from "@/app/lib/rewards";
 import { useYellowSettlement } from "@/app/hooks/evm/use-yellow-settlement";
 import { useERC7715 } from "@/app/hooks/evm/use-erc7715";
+import { isClearNodeConnected } from "@/app/lib/rewards/yellow/clearnode";
 
 export default function InstructorYellowSettlementsPage() {
   const toast = useToast();
@@ -153,7 +154,7 @@ export default function InstructorYellowSettlementsPage() {
                     One-Click Enabled
                   </Tag>
                 )}
-                {clearNodeStatus(yellow.clearNodeConnected)}
+                {clearNodeStatus(isClearNodeConnected())}
               </div>
 
               {!isConnected && (

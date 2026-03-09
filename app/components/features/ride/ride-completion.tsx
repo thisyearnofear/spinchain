@@ -354,7 +354,7 @@ export function RideCompletion({
                   Context
                 </span>
               </div>
-              <p className="text-white/60 mb-2">Here's how you performed:</p>
+              <p className="text-white/60 mb-2">Here&apos;s how you performed:</p>
               <div className="grid grid-cols-2 gap-2 text-white/60">
                 <div>
                   <p className="font-semibold text-white">Effort Score</p>

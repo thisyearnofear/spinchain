@@ -7,6 +7,8 @@ import { bleService } from '../ble/service';
 import { BLE_SERVICES, BLE_CHARACTERISTICS } from '../ble/constants';
 import { BleParser } from '../ble/parser';
 import { ANALYTICS_EVENTS, trackEvent } from '../analytics/events';
+import { getHealthService, type HealthData } from './health';
+import { backgroundManager } from './background';
 import type {
   FitnessMetrics,
   BleDevice,
@@ -230,6 +232,7 @@ class NativeBleService implements UnifiedBleService {
     this.initialized = true;
   }
 
+
   private async connectNativeDevice(deviceId: string, name?: string): Promise<BleDevice | null> {
     this.updateStatus('connecting');
     this.userInitiatedDisconnect = false;
@@ -242,6 +245,13 @@ class NativeBleService implements UnifiedBleService {
         },
         { timeout: 15000 },
       );
+
+      // Start background session for native persistence
+      backgroundManager.startSession({
+        id: `ride-${deviceId}-${Date.now()}`,
+        onPause: () => console.log("[BleService] Entering background..."),
+        onResume: () => console.log("[BleService] Resumed from background."),
+      });
 
       const services = await BleClient.getServices(deviceId);
       const serviceUuids = services.map((service) => service.uuid);
@@ -268,8 +278,7 @@ class NativeBleService implements UnifiedBleService {
       this.callbacks.onDeviceConnected?.(mapped);
       this.callbacks.onStatusChange?.(this.status);
       return mapped;
-    } catch (error) {
-      this.handleNativeError(error);
+    } catch (_error) {
       return null;
     }
   }
@@ -278,6 +287,7 @@ class NativeBleService implements UnifiedBleService {
     this.notificationStreams = [];
 
     let hasStream = false;
+    let hasHeartRate = false;
 
     const attach = async (
       service: string,
@@ -288,6 +298,7 @@ class NativeBleService implements UnifiedBleService {
         await BleClient.startNotifications(deviceId, service, characteristic, onValue);
         this.notificationStreams.push({ service, characteristic });
         hasStream = true;
+        if (service === BLE_SERVICES.HEART_RATE) hasHeartRate = true;
       } catch {
         // Keep trying other service/characteristic pairs.
       }
@@ -310,6 +321,17 @@ class NativeBleService implements UnifiedBleService {
       BLE_CHARACTERISTICS.HEART_RATE_MEASUREMENT,
       (value) => this.mergeMetrics({ heartRate: BleParser.parseHeartRate(value) }),
     );
+
+    // iOS Production Readiness: HealthKit Fallback for Heart Rate
+    const health = getHealthService();
+    if (!hasHeartRate && health.isAvailable()) {
+      console.log("[NativeBle] BLE Heart Rate missing, starting HealthKit bridge fallback...");
+      health.startHeartRateStreaming((data: HealthData) => {
+        if (data.heartRate) {
+          this.mergeMetrics({ heartRate: data.heartRate });
+        }
+      }).catch(err => console.error("[NativeBle] HealthKit bridge error:", err));
+    }
 
     if (!hasStream) {
       throw new Error('No supported telemetry notifications available on this device');
@@ -349,6 +371,7 @@ class NativeBleService implements UnifiedBleService {
 
     const lastKnownName = this.device?.name;
     this.stopMetricsWatchdog();
+    backgroundManager.stopSession();
     this.status = 'disconnected';
     this.device = null;
     this.metrics = null;
@@ -364,6 +387,7 @@ class NativeBleService implements UnifiedBleService {
     const deviceId = this.device?.id;
     this.stopMetricsWatchdog();
     this.clearReconnectTimer();
+    backgroundManager.stopSession();
 
     if (deviceId) {
       for (const stream of this.notificationStreams) {

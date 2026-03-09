@@ -15,6 +15,8 @@ export const ANALYTICS_EVENTS = {
   RIDE_COMPLETED: 'ride_completed',
   PREMIUM_UPSELL_VIEWED: 'premium_upsell_viewed',
   PREMIUM_UPSELL_CLICKED: 'premium_upsell_clicked',
+  SESSION_RESUMED: 'session_resumed',
+  SESSION_PAUSED: 'session_paused',
 } as const;
 
 type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
