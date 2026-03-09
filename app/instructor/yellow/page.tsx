@@ -14,6 +14,7 @@ import {
   type PendingYellowSettlement,
 } from "@/app/lib/rewards";
 import { useYellowSettlement } from "@/app/hooks/evm/use-yellow-settlement";
+import { useERC7715 } from "@/app/hooks/evm/use-erc7715";
 
 export default function InstructorYellowSettlementsPage() {
   const toast = useToast();
@@ -24,6 +25,8 @@ export default function InstructorYellowSettlementsPage() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const yellow = useYellowSettlement();
+  const erc7715 = useERC7715();
+  const [hasSessionPermission, setHasSessionPermission] = useState(false);
 
   useEffect(() => {
     // Sync with Yellow SDK on mount
@@ -109,6 +112,21 @@ export default function InstructorYellowSettlementsPage() {
     }
   };
 
+  const handleGrantPermissions = async () => {
+    try {
+      const resp = await erc7715.requestCoSignPermissions({
+        label: "SpinChain Instructor Session",
+        expiry: Math.floor(Date.now() / 1000) + 7200, // 2h class session
+      });
+      if (resp) {
+        setHasSessionPermission(true);
+        toast.success("Permission Granted", "App can now auto-settle for this session");
+      }
+    } catch (e) {
+      toast.error("Permission Refused", "Smart Account authorization is required for auto-settle");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[color:var(--background)]">
       <div className="fixed inset-0 bg-gradient-radial pointer-events-none" />
@@ -130,12 +148,33 @@ export default function InstructorYellowSettlementsPage() {
                 <Tag>Avalanche Fuji</Tag>
                 <Tag>EIP-712</Tag>
                 <Tag>Batch Processing</Tag>
+                {hasSessionPermission && (
+                  <Tag className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                    One-Click Enabled
+                  </Tag>
+                )}
                 {clearNodeStatus(yellow.clearNodeConnected)}
               </div>
 
               {!isConnected && (
                 <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
                   Connect instructor wallet to authorize settlements.
+                </div>
+              )}
+
+              {isConnected && !hasSessionPermission && (
+                <div className="mt-6 flex items-center justify-between rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-indigo-300">Enable One-Click Settle</h4>
+                    <p className="text-xs text-indigo-300/80">Grant session permissions to auto-authorize rider rewards.</p>
+                  </div>
+                  <button
+                    onClick={handleGrantPermissions}
+                    disabled={erc7715.isRequesting}
+                    className="rounded-xl bg-indigo-500 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-600 transition-colors"
+                  >
+                    {erc7715.isRequesting ? "Authorizing..." : "Grant Permission"}
+                  </button>
                 </div>
               )}
 

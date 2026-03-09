@@ -6,8 +6,7 @@ const useRemoteServer = Boolean(remoteServerUrl);
 const config: CapacitorConfig = {
   appId: 'com.spinchain.app',
   appName: 'SpinChain',
-  // Local fallback for native shell assets; production should set CAPACITOR_SERVER_URL.
-  webDir: 'public',
+  webDir: 'out',
   server: useRemoteServer
     ? {
         url: remoteServerUrl,
