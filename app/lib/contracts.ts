@@ -44,19 +44,19 @@ export const ACTIVE_NETWORK = ACTIVE_CHAIN_ID === AVALANCHE_MAINNET.id ? AVALANC
 export const CONTRACT_ADDRESSES = {
   /** ERC-20 SPIN reward token */
   SPIN_TOKEN: (process.env.NEXT_PUBLIC_SPIN_TOKEN_ADDRESS ??
-    "0x0000000000000000000000000000000000000000") as `0x${string}`,
+    "0xbd73026ECe5c9D44D4f31a96B6d2d3ca9981a4eA") as `0x${string}`,
 
   /** Distributes SPIN rewards via ECDSA attestation or ZK proof */
   INCENTIVE_ENGINE: (process.env.NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS ??
-    "0x0000000000000000000000000000000000000000") as `0x${string}`,
+    "0xA0CCbF6F940685e2495a5FE6F13820f32Db68EDC") as `0x${string}`,
 
   /** Factory that deploys per-class SpinClass contracts */
   CLASS_FACTORY: (process.env.NEXT_PUBLIC_CLASS_FACTORY_ADDRESS ??
-    "0x0000000000000000000000000000000000000000") as `0x${string}`,
+    "0x7B9283Fb889e6033e6d0fbe3E96D0C5734DC932a") as `0x${string}`,
 
   /** Noir-generated UltraVerifier (or MockUltraVerifier on testnet) */
   ULTRA_VERIFIER: (process.env.NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS ??
-    "0x0000000000000000000000000000000000000000") as `0x${string}`,
+    "0x5f98A8018f75ca80F46DE9758157AED719589dEC") as `0x${string}`,
 
   /** EffortThresholdVerifier — wraps UltraVerifier with replay protection */
   EFFORT_VERIFIER: (process.env.NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS ??
@@ -64,7 +64,7 @@ export const CONTRACT_ADDRESSES = {
 
   /** Revenue splitter for instructor/platform split */
   TREASURY_SPLITTER: (process.env.NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS ??
-    "0x0000000000000000000000000000000000000000") as `0x${string}`,
+    "0x9AB33e974Dbb6D9a11C5116Ce2E2e04471c482A0") as `0x${string}`,
 
   /** Yellow state channel settlement */
   YELLOW_SETTLEMENT: (process.env.NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS ??
@@ -72,11 +72,11 @@ export const CONTRACT_ADDRESSES = {
 
   /** Chainlink Runtime Environment (CRE) Biometric Oracle */
   BIOMETRIC_ORACLE: (process.env.NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS ??
-    "0x0000000000000000000000000000000000000000") as `0x${string}`,
+    "0x794b684532B03D510167d6438596644026859733") as `0x${string}`,
 
   /** Chainlink CRE Forwarder contract */
   CRE_FORWARDER: (process.env.NEXT_PUBLIC_CHAINLINK_FORWARDER ??
-    "0x0000000000000000000000000000000000000000") as `0x${string}`,
+    "0x2e7371a5d032489e4f60216d8d898a4c10805963") as `0x${string}`,
 } as const;
 
 // Legacy named exports (used throughout the codebase)
