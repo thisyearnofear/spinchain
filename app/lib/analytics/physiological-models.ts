@@ -59,8 +59,98 @@ export function estimateWPrime(weightKg: number, level: 'beginner' | 'intermedia
 }
 
 /**
- * Get W'bal as a percentage (0-100)
+ * Virtual Drivetrain - Simulated gears for spin bikes
  */
+export interface GearConfig {
+  front: number[]; // Chainrings (e.g. [50, 34])
+  rear: number[];  // Cassette (e.g. [11, 12, 13, 14, 15, 17, 19, 21, 23, 25, 28])
+}
+
+export const DEFAULT_ROAD_GEARS: GearConfig = {
+  front: [50, 34],
+  rear: [11, 12, 13, 14, 15, 17, 19, 21, 23, 25, 28],
+};
+
+/**
+ * Maps a single "Gear Number" (1-N) to a specific front/rear combination.
+ * 1 = Lowest (e.g. 34-28), N = Highest (e.g. 50-11)
+ */
+export function getGearRatio(gearNum: number, config: GearConfig = DEFAULT_ROAD_GEARS): { ratio: number; label: string } {
+  const totalGears = config.front.length * config.rear.length;
+  const index = Math.max(1, Math.min(totalGears, gearNum)) - 1;
+
+  // Sort all possible combinations by ratio
+  const combos: { f: number, r: number, ratio: number }[] = [];
+  config.front.forEach(f => {
+    config.rear.forEach(r => {
+      combos.push({ f, r, ratio: f / r });
+    });
+  });
+  combos.sort((a, b) => a.ratio - b.ratio);
+
+  const selected = combos[index];
+  return {
+    ratio: selected.ratio,
+    label: `${selected.f}/${selected.r}`,
+  };
+}
+
+/**
+ * Calculate "Virtual Speed" based on cadence, gear ratio, and wheel size.
+ * Formula: Cadence * Ratio * WheelCircumference * 60 / 1000000 = km/h
+ * 
+ * @param cadence Pedal RPM
+ * @param gearRatio Front/Rear ratio
+ * @param wheelDiameterMm Standard 700c is ~700mm
+ */
+export function calculateVirtualSpeed(
+  cadence: number,
+  gearRatio: number,
+  wheelDiameterMm: number = 700
+): number {
+  if (cadence <= 0) return 0;
+  const circumference = wheelDiameterMm * Math.PI; // mm
+  const distancePerMinute = cadence * gearRatio * circumference; // mm/min
+  const speedKmh = (distancePerMinute * 60) / 1000000;
+  return Number(speedKmh.toFixed(1));
+}
+
+/**
+ * Physics-based Power to Speed (Advanced fallback)
+ * Uses simplified drag/gravity model when no cadence is available
+ */
+export function powerToSpeed(
+  power: number,
+  weightKg: number = 80,
+  gradientPct: number = 0,
+  cda: number = 0.35, // Coefficient of Drag * Frontal Area
+  crr: number = 0.005 // Rolling Resistance
+): number {
+  if (power <= 0) return 0;
+
+  const GRAVITY = 9.81;
+  const RHO = 1.225; // Air density kg/m^3
+
+  // Simplified iterative solve for Velocity (v)
+  // Power = (Gravity * Weight * (sin(atan(grad)) + Crr * cos(atan(grad))) * v) + (0.5 * Rho * CdA * v^3)
+  // For most trainer apps, we use a pre-calculated lookup or simple cubic solver
+  // Here we use a linear approximation for hackathon performance:
+  const gradDec = gradientPct / 100;
+  const gravityForce = weightKg * GRAVITY * (gradDec + crr);
+
+  // Start with a guess
+  let v = 5; // 5 m/s (~18 km/h)
+  for (let i = 0; i < 5; i++) {
+    const p_guess = (gravityForce * v) + (0.5 * RHO * cda * Math.pow(v, 3));
+    v = v * Math.pow(power / p_guess, 0.33); // Cubic scaling factor
+  }
+
+  return Number((v * 3.6).toFixed(1)); // Convert m/s to km/h
+}
+
+/**
+ * Get W'bal as a percentage (0-100)
+...
 export function getWBalPercentage(current: number, max: number): number {
   return (current / max) * 100;
 }

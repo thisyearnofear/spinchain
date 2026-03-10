@@ -22,7 +22,7 @@ const steps = [
     icon: "🔒",
     title: "Privacy Built-In",
     description: "Unlike other fitness apps, we never see your raw health data. We use zero-knowledge proofs to verify you hit your goals—so you get rewards without sacrificing privacy.",
-    cta: "Start Exploring",
+    cta: "Get Started",
   },
 ];
 
@@ -80,14 +80,33 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
   const isLastStep = currentStep === steps.length - 1;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 shadow-2xl">
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="welcome-title"
+    >
+      <div className="w-full max-w-lg rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 md:p-8 shadow-2xl">
+        {/* Skip button - more prominent */}
+        <button
+          onClick={handleSkip}
+          className="absolute top-4 right-4 p-2 rounded-full text-[color:var(--muted)] hover:text-[color:var(--foreground)] hover:bg-[color:var(--surface-elevated)] transition-all"
+          aria-label="Skip welcome tour"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
         {/* Progress dots */}
-        <div className="flex justify-center gap-2 mb-8">
+        <div className="flex justify-center gap-2 mb-6" role="tablist" aria-label="Welcome steps">
           {steps.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentStep(i)}
+              role="tab"
+              aria-selected={i === currentStep}
+              aria-label={`Step ${i + 1}`}
               className={`h-2 rounded-full transition-all ${
                 i === currentStep
                   ? "w-8 bg-[color:var(--accent)]"
@@ -99,11 +118,11 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
 
         {/* Content */}
         <div className="text-center">
-          <span className="text-6xl mb-6 block">{step.icon}</span>
-          <h2 className="text-2xl font-bold text-[color:var(--foreground)] mb-4">
+          <span className="text-5xl md:text-6xl mb-6 block" aria-hidden="true">{step.icon}</span>
+          <h2 id="welcome-title" className="text-xl md:text-2xl font-bold text-[color:var(--foreground)] mb-3">
             {step.title}
           </h2>
-          <p className="text-[color:var(--muted)] leading-relaxed mb-8">
+          <p className="text-sm md:text-base text-[color:var(--muted)] leading-relaxed mb-6">
             {step.description}
           </p>
         </div>
@@ -117,6 +136,13 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
             {step.cta}
           </LoadingButton>
           
+          <button
+            onClick={handleSkip}
+            className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+          >
+            Skip for now
+          </button>
+          
           {isLastStep && (
             <button
               onClick={handleGuestMode}
@@ -125,17 +151,10 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
               Explore as Guest →
             </button>
           )}
-          
-          <button
-            onClick={handleSkip}
-            className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
-          >
-            Skip tour
-          </button>
         </div>
 
         {/* Step indicator */}
-        <p className="text-center text-xs text-[color:var(--muted)] mt-6">
+        <p className="text-center text-xs text-[color:var(--muted)] mt-4">
           Step {currentStep + 1} of {steps.length}
         </p>
       </div>

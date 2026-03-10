@@ -36,6 +36,9 @@ import {
   calculateNextWBal,
   DEFAULT_WBAL_CONFIG,
   getWBalPercentage,
+  getGearRatio,
+  calculateVirtualSpeed,
+  DEFAULT_ROAD_GEARS,
   type WBalConfig
 } from "../../../lib/analytics/physiological-models";
 
@@ -312,6 +315,8 @@ export default function LiveRidePage() {
     effort: 0,
     wBal: DEFAULT_WBAL_CONFIG.wPrime,
     wBalPercentage: 100,
+    currentGear: 10,
+    gearRatio: 1.0,
   });
   const [recentPowerHistory, setRecentPowerHistory] = useState<number[]>([]);
   const telemetryRawRef = useRef({
@@ -322,11 +327,14 @@ export default function LiveRidePage() {
     effort: 0,
     wBal: DEFAULT_WBAL_CONFIG.wPrime,
     wBalPercentage: 100,
+    currentGear: 10,
+    gearRatio: 1.0,
   });
 
   // Physiological Model Refs
   const wBalRef = useRef<number>(DEFAULT_WBAL_CONFIG.wPrime);
   const wBalConfigRef = useRef<WBalConfig>(DEFAULT_WBAL_CONFIG);
+  const [currentGear, setCurrentGear] = useState(10); // Start in middle gear
   const lastWBalUpdateMsRef = useRef<number>(0);
   
   const lastTelemetryCommitMsRef = useRef(0);
@@ -473,6 +481,26 @@ export default function LiveRidePage() {
   // Track interval transitions for audio cues
   const lastIntervalRef = useRef<number>(-1);
 
+  // Keyboard Shifting (Virtual Gears)
+  useEffect(() => {
+    if (typeof window === "undefined" || !isRiding) return;
+    
+    const totalGears = DEFAULT_ROAD_GEARS.front.length * DEFAULT_ROAD_GEARS.rear.length;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowUp") {
+        setCurrentGear(prev => Math.min(totalGears, prev + 1));
+        playSound?.("click");
+      } else if (e.key === "ArrowDown") {
+        setCurrentGear(prev => Math.max(1, prev - 1));
+        playSound?.("click");
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isRiding, playSound]);
+
   // Commit buffered telemetry into React state at a fixed rate to reduce rerenders
   useEffect(() => {
     if (!isRiding) return;
@@ -503,11 +531,18 @@ export default function LiveRidePage() {
       wBalRef.current = nextWBal;
       const percentage = getWBalPercentage(nextWBal, wBalConfigRef.current.wPrime);
       
+      // Calculate Virtual Speed based on Gear
+      const { ratio } = getGearRatio(currentGear);
+      const virtualSpeed = calculateVirtualSpeed(telemetryRawRef.current.cadence, ratio);
+      
       // Sync with raw ref for consistent display
       telemetryRawRef.current = {
         ...telemetryRawRef.current,
+        speed: virtualSpeed > 0 ? virtualSpeed : telemetryRawRef.current.speed,
         wBal: nextWBal,
         wBalPercentage: percentage,
+        currentGear,
+        gearRatio: ratio,
       };
       
       setTelemetry(telemetryRawRef.current);

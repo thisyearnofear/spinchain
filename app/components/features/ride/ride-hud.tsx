@@ -10,6 +10,8 @@ export interface TelemetryData {
   cadence: number;
   speed: number;
   effort: number;
+  currentGear?: number;
+  gearRatio?: number;
   source?: 'ble' | 'healthkit' | 'simulated';
 }
 
@@ -89,9 +91,28 @@ function MobileStatusBadges({ status }: { status?: RideHUDProps["mobileBridgeSta
     </div>
   );
 }
+function GearBadge({ gear, ratio }: { gear?: number; ratio?: number }) {
+  if (!gear) return null;
+  return (
+    <div className="flex flex-col items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 backdrop-blur-xl shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all animate-in zoom-in duration-300">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="text-[8px] font-black text-indigo-400/70 uppercase tracking-widest">Gear</span>
+        <div className="flex gap-0.5">
+          <div className="w-1 h-1 rounded-full bg-indigo-400/40" />
+          <div className="w-1 h-1 rounded-full bg-indigo-400" />
+        </div>
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span className="text-xl font-black text-indigo-300 tracking-tighter">{gear}</span>
+        {ratio && <span className="text-[9px] font-mono text-indigo-400/50 italic">{ratio.toFixed(2)}</span>}
+      </div>
+    </div>
+  );
+}
 
 /**
  * RideHUD - Telemetry display with responsive layouts
+...
  * Shows heart rate, power, cadence, speed based on device and HUD mode
  */
 export function RideHUD({
@@ -184,6 +205,10 @@ export function RideHUD({
             ))}
           </div>
 
+          <div className="flex justify-center -mt-1">
+            <GearBadge gear={telemetry.currentGear} ratio={telemetry.gearRatio} />
+          </div>
+
           {isRiding && agentInsight}
         </div>
       </div>
@@ -211,6 +236,9 @@ export function RideHUD({
               </p>
             </div>
           ))}
+          <div className="flex justify-center mt-2">
+            <GearBadge gear={telemetry.currentGear} ratio={telemetry.gearRatio} />
+          </div>
         </div>
       </div>
     );
@@ -234,10 +262,11 @@ export function RideHUD({
           </div>
         )}
 
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center gap-4">
           <div className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-white/70 backdrop-blur ${phaseAccent.border} ${phaseAccent.bg}`}>
             {phaseLabel}
           </div>
+          <GearBadge gear={telemetry.currentGear} ratio={telemetry.gearRatio} />
         </div>
 
         <div className="grid grid-cols-2 gap-4 sm:gap-6">

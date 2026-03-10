@@ -29,6 +29,8 @@ export interface FitnessMetrics {
   resistance?: number; // 0-100%
   wBal?: number; // Remaining anaerobic energy in Joules
   wBalPercentage?: number; // 0-100%
+  currentGear?: number; // 1 to totalGears
+  gearRatio?: number; // Front/Rear ratio
   timestamp: number; // Unix timestamp
 }
 

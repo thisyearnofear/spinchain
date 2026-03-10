@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { PrimaryNav } from "@/app/components/layout/nav";
-import { BulletList, MetricTile, SurfaceCard, Tag } from "@/app/components/ui/ui";
+import { MetricTile, SurfaceCard, Tag } from "@/app/components/ui/ui";
 import { WelcomeModal, resetOnboarding } from "@/app/components/features/common/welcome-modal";
 import { InstructorModeSelector } from "@/app/components/features/class/instructor-mode-selector";
 import { FadeIn, StaggerContainer, Parallax, ScaleIn } from "@/app/components/ui/scroll-animations";
@@ -102,22 +102,23 @@ function HomeContent() {
         }}
       />
 
-      <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-20 px-6 pb-20 pt-10 lg:px-12">
+      <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-16 md:gap-20 px-6 pb-20 pt-10 lg:px-12">
 
         {/* Hero */}
         <FadeIn>
-          <header className="flex flex-col items-start justify-between gap-8 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-6 py-8 md:px-8 md:py-10 shadow-[0_20px_80px_rgba(0,0,0,0.15)] backdrop-blur">
+          <header className="flex flex-col items-start justify-between gap-6 md:gap-8 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-6 py-6 md:px-8 md:py-8 shadow-[0_20px_80px_rgba(0,0,0,0.15)] backdrop-blur">
             <PrimaryNav />
+            
             {/* Clear What-We-Do Statement */}
             <div className="w-full text-center py-8 md:py-12 border-y border-[color:var(--border)] relative overflow-hidden">
               {/* Decorative background light */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[color:var(--accent)]/5 blur-[120px] pointer-events-none" />
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[color:var(--foreground)] mb-6 drop-shadow-2xl leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[color:var(--foreground)] mb-5 md:mb-6 drop-shadow-2xl leading-tight">
                 Elevate Your Spin.<br />
                 <span className="bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] bg-clip-text text-transparent">Earn Onchain.</span>
               </h1>
-              <p className="text-lg md:text-xl text-[color:var(--muted)] max-w-2xl mx-auto font-medium leading-relaxed">
+              <p className="text-base md:text-lg lg:text-xl text-[color:var(--muted)] max-w-2xl mx-auto font-medium leading-relaxed px-4">
                 Transform any spin bike into a high-performance 3D experience.
                 <span className="text-[color:var(--foreground)]"> Earn SPIN tokens</span> as you crush your goals.
               </p>
@@ -125,7 +126,7 @@ function HomeContent() {
 
             {/* Community Stats Ticker */}
             <div 
-              className="w-full flex flex-wrap justify-center gap-6 md:gap-10 py-6 bg-[color:var(--surface)]/50 backdrop-blur-sm rounded-b-2xl"
+              className="w-full flex flex-wrap justify-center gap-6 md:gap-10 py-5 md:py-6 bg-[color:var(--surface)]/50 backdrop-blur-sm rounded-b-2xl"
               role="region"
               aria-label="Community statistics"
             >
@@ -139,7 +140,7 @@ function HomeContent() {
                 >
                   <div className="text-center">
                     <motion.p 
-                      className="text-2xl font-bold text-[color:var(--foreground)]"
+                      className="text-xl md:text-2xl font-bold text-[color:var(--foreground)]"
                       animate={{ scale: [1, 1.02, 1] }}
                       transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
                     >
@@ -152,26 +153,27 @@ function HomeContent() {
             </div>
 
             {/* Persona Selection - Primary CTA */}
-            <div className="w-full grid lg:grid-cols-2 gap-6 mt-4">
+            <div className="w-full grid lg:grid-cols-2 gap-4 md:gap-6 mt-2">
               {/* Rider Card */}
               <AnimatedCard glowColor="var(--accent)">
                 <Link
                   href="/rider"
-                  className="group block relative overflow-hidden p-8 h-full"
+                  className="group block relative overflow-hidden p-6 md:p-8 h-full"
+                  aria-label="Start riding - find classes and earn rewards"
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[color:var(--accent)]/20 to-transparent rounded-bl-full" />
                   <Floating delay={0}>
-                    <span className="text-5xl mb-4 block">🚴</span>
+                    <span className="text-4xl md:text-5xl mb-4 block" aria-hidden="true">🚴</span>
                   </Floating>
-                  <h2 className="text-2xl font-semibold text-[color:var(--foreground)] mb-2">
+                  <h2 className="text-xl md:text-2xl font-semibold text-[color:var(--foreground)] mb-2">
                     I Want to Ride
                   </h2>
-                  <p className="text-[color:var(--muted)] mb-6">
+                  <p className="text-sm md:text-base text-[color:var(--muted)] mb-5 md:mb-6">
                     Join live classes, track your effort, and earn rewards automatically
                   </p>
-                  <MagneticButton className="inline-flex items-center gap-2 text-[color:var(--accent)] font-medium pointer-events-none">
+                  <MagneticButton className="inline-flex items-center gap-2 text-[color:var(--accent)] font-medium pointer-events-none group-hover:text-[color:var(--accent-strong)] transition-colors">
                     Find Classes
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>
                   </MagneticButton>
@@ -180,40 +182,42 @@ function HomeContent() {
 
               {/* Instructor Card */}
               <AnimatedCard glowColor="var(--accent-strong)">
-                <div className="p-8 h-full">
+                <a
+                  href="#instructor-modes"
+                  className="group block relative overflow-hidden p-6 md:p-8 h-full"
+                  aria-label="Become an instructor - teach classes and earn"
+                >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[color:var(--accent-strong)]/20 to-transparent rounded-bl-full" />
                   <Floating delay={0.5}>
-                    <span className="text-5xl mb-4 block">🎓</span>
+                    <span className="text-4xl md:text-5xl mb-4 block" aria-hidden="true">🎓</span>
                   </Floating>
-                  <h2 className="text-2xl font-semibold text-[color:var(--foreground)] mb-2">
+                  <h2 className="text-xl md:text-2xl font-semibold text-[color:var(--foreground)] mb-2">
                     I Want to Teach
                   </h2>
-                  <p className="text-[color:var(--muted)] mb-6">
+                  <p className="text-sm md:text-base text-[color:var(--muted)] mb-5 md:mb-6">
                     Host classes, set your price, and earn from every rider
                   </p>
-                  <MagneticButton className="inline-flex items-center gap-2 text-[color:var(--accent)] font-medium">
-                    <a href="#instructor-modes" className="flex items-center gap-2">
-                      See How It Works
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                      </svg>
-                    </a>
+                  <MagneticButton className="inline-flex items-center gap-2 text-[color:var(--accent)] font-medium group-hover:text-[color:var(--accent-strong)] transition-colors">
+                    See How It Works
+                    <svg className="w-4 h-4 group-hover:translate-y-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
                   </MagneticButton>
-                </div>
+                </a>
               </AnimatedCard>
             </div>
           </header>
         </FadeIn>
 
-        {/* Instructor Mode Selector - NEW */}
+        {/* Instructor Mode Selector */}
         <section id="instructor-modes">
           <FadeIn direction="up">
             <div className="text-center mb-8">
               <Tag>Two Ways to Teach</Tag>
-              <h2 className="text-3xl font-bold text-[color:var(--foreground)] mt-4">
+              <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)] mt-4">
                 Choose Your Path
               </h2>
-              <p className="text-[color:var(--muted)] mt-2 max-w-xl mx-auto">
+              <p className="text-sm md:text-base text-[color:var(--muted)] mt-2 max-w-xl mx-auto">
                 Whether you prefer hands-on creativity or autonomous AI coaching,
                 SpinChain supports your teaching style.
               </p>
@@ -225,29 +229,29 @@ function HomeContent() {
         {/* How It Works */}
         <section>
           <FadeIn direction="up">
-            <div className="text-center mb-12">
+            <div className="text-center mb-10 md:mb-12">
               <Tag>Simple as 1-2-3</Tag>
-              <h2 className="text-3xl font-bold text-[color:var(--foreground)] mt-4">
+              <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)] mt-4">
                 How It Works
               </h2>
             </div>
           </FadeIn>
-          <StaggerContainer className="grid gap-6 md:grid-cols-3" staggerDelay={0.15}>
+          <StaggerContainer className="grid gap-4 md:gap-6 md:grid-cols-3" staggerDelay={0.15}>
             {howItWorks.map((item) => (
               <div
                 key={item.step}
-                className="group rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 text-center hover:border-[color:var(--accent)]/30 transition-colors"
+                className="group rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-5 md:p-6 text-center hover:border-[color:var(--accent)]/30 transition-colors"
               >
                 <motion.span
-                  className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[color:var(--accent)]/10 text-[color:var(--accent)] font-semibold mb-4"
+                  className="inline-flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-[color:var(--accent)]/10 text-[color:var(--accent)] font-semibold mb-3 md:mb-4"
                   whileHover={{ scale: 1.1, rotate: 5 }}
                 >
                   {item.step}
                 </motion.span>
-                <h3 className="text-lg font-semibold text-[color:var(--foreground)] mb-2">
+                <h3 className="text-base md:text-lg font-semibold text-[color:var(--foreground)] mb-2">
                   {item.title}
                 </h3>
-                <p className="text-sm text-[color:var(--muted)]">
+                <p className="text-xs md:text-sm text-[color:var(--muted)]">
                   {item.description}
                 </p>
               </div>
@@ -257,23 +261,23 @@ function HomeContent() {
 
         {/* Live Preview Card */}
         <Parallax speed={0.3}>
-          <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 p-8 backdrop-blur">
-            <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8">
+          <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 p-6 md:p-8 backdrop-blur" aria-label="Live workout preview">
+            <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 md:gap-8">
               <FadeIn direction="left">
                 <div>
-                  <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2 mb-3 md:mb-4">
                     <EnergyPulse size="sm" />
                     <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--accent)]">
                       Live Preview
                     </p>
                   </div>
-                  <h2 className="text-3xl font-semibold text-[color:var(--foreground)] mb-4">
+                  <h2 className="text-2xl md:text-3xl font-semibold text-[color:var(--foreground)] mb-3 md:mb-4">
                     Your workout, rewarded
                   </h2>
-                  <p className="text-[color:var(--muted)] mb-6 leading-relaxed">
+                  <p className="text-sm md:text-base text-[color:var(--muted)] mb-5 md:mb-6 leading-relaxed">
                     See your effort translate to rewards in real-time. Heart rate, power, and progress—all in one beautiful dashboard.
                   </p>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-2 md:gap-3">
                     <Tag>Real-time tracking</Tag>
                     <Tag>Instant rewards</Tag>
                     <Tag>Private by default</Tag>
@@ -283,13 +287,13 @@ function HomeContent() {
 
               {/* Mock Dashboard */}
               <ScaleIn delay={0.2}>
-                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-6">
-                  <div className="flex items-center justify-between mb-6">
+                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-5 md:p-6">
+                  <div className="flex items-center justify-between mb-5 md:mb-6">
                     <div>
                       <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
                         Current Session
                       </p>
-                      <h3 className="text-lg font-semibold text-[color:var(--foreground)]">
+                      <h3 className="text-base md:text-lg font-semibold text-[color:var(--foreground)]">
                         Alpine Climb
                       </h3>
                     </div>
@@ -299,15 +303,15 @@ function HomeContent() {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-6 mb-6">
-                    <div className="relative grid h-24 w-24 place-items-center rounded-full bg-[conic-gradient(from_180deg,var(--success)_0deg,var(--success)_260deg,var(--surface-elevated)_260deg)]">
-                      <div className="grid h-18 w-18 place-items-center rounded-full bg-[color:var(--surface-strong)] text-sm font-semibold text-[color:var(--foreground)]">
+                  <div className="flex items-center gap-4 md:gap-6 mb-5 md:mb-6">
+                    <div className="relative grid h-20 w-20 md:h-24 md:w-24 place-items-center rounded-full bg-[conic-gradient(from_180deg,var(--success)_0deg,var(--success)_260deg,var(--surface-elevated)_260deg)]">
+                      <div className="grid h-16 w-16 md:h-18 md:w-18 place-items-center rounded-full bg-[color:var(--surface-strong)] text-sm font-semibold text-[color:var(--foreground)]">
                         82%
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-sm text-[color:var(--muted)]">Effort zone</p>
-                      <p className="text-lg font-semibold text-[color:var(--foreground)]">HR 148 • 32 min</p>
+                      <p className="text-xs md:text-sm text-[color:var(--muted)]">Effort zone</p>
+                      <p className="text-base md:text-lg font-semibold text-[color:var(--foreground)]">HR 148 • 32 min</p>
                       <motion.p
                         className="text-xs text-[color:var(--success)]"
                         animate={{ opacity: [1, 0.5, 1] }}
@@ -318,7 +322,7 @@ function HomeContent() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="grid gap-2 md:gap-3 sm:grid-cols-3">
                     {riderHighlights.map((item) => (
                       <MetricTile key={item.label} {...item} />
                     ))}
@@ -329,11 +333,11 @@ function HomeContent() {
           </section>
         </Parallax>
 
-        {/* Route Showcase - NEW */}
+        {/* Route Showcase */}
         <RouteShowcase />
 
         {/* Features Grid */}
-        <section className="grid gap-6 lg:grid-cols-2">
+        <section className="grid gap-4 md:gap-6 lg:grid-cols-2">
           <FadeIn direction="left">
             <SurfaceCard
               eyebrow="For Riders"
@@ -341,7 +345,7 @@ function HomeContent() {
               description="From Alpine climbs to city sprints—every route is an immersive experience. Your effort is private, your rewards are real."
               className="rounded-3xl h-full"
             >
-              <div className="mt-6 grid gap-3">
+              <div className="mt-5 md:mt-6 grid gap-2 md:gap-3">
                 {[
                   "3D immersive routes",
                   "Private health data",
@@ -354,7 +358,7 @@ function HomeContent() {
                     whileInView={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.1 }}
                     viewport={{ once: true }}
-                    className="flex items-center gap-3 text-sm text-[color:var(--foreground)]/80"
+                    className="flex items-center gap-3 text-xs md:text-sm text-[color:var(--foreground)]/80"
                   >
                     <motion.span
                       className="h-2 w-2 rounded-full bg-[color:var(--accent)]"
@@ -374,7 +378,7 @@ function HomeContent() {
               description="Set your own pricing, keep more of what you earn, and build a community that values your craft."
               className="rounded-3xl bg-[color:var(--surface-strong)] h-full"
             >
-              <div className="mt-6 grid gap-3">
+              <div className="mt-5 md:mt-6 grid gap-2 md:gap-3">
                 {[
                   "Dynamic ticket pricing",
                   "Automatic revenue splits",
@@ -387,7 +391,7 @@ function HomeContent() {
                     whileInView={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.1 }}
                     viewport={{ once: true }}
-                    className="flex items-center gap-3 text-sm text-[color:var(--foreground)]/80"
+                    className="flex items-center gap-3 text-xs md:text-sm text-[color:var(--foreground)]/80"
                   >
                     <motion.span
                       className="h-2 w-2 rounded-full bg-[color:var(--accent)]"
@@ -403,8 +407,8 @@ function HomeContent() {
 
         {/* Social Proof */}
         <FadeIn>
-          <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-8 text-center">
-            <div className="flex items-center justify-center gap-4 mb-6">
+          <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 md:p-8 text-center" aria-label="Community social proof">
+            <div className="flex items-center justify-center gap-3 md:gap-4 mb-5 md:mb-6">
               <div className="flex -space-x-3">
                 {[1, 2, 3, 4].map((i) => (
                   <motion.div
@@ -413,16 +417,16 @@ function HomeContent() {
                     whileInView={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.1, type: "spring" }}
                     viewport={{ once: true }}
-                    className="w-10 h-10 rounded-full bg-gradient-to-br from-[color:var(--accent)] to-[color:var(--accent-strong)] border-2 border-[color:var(--background)]"
+                    className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-[color:var(--accent)] to-[color:var(--accent-strong)] border-2 border-[color:var(--background)]"
                   />
                 ))}
               </div>
-              <p className="text-[color:var(--muted)]">
+              <p className="text-sm md:text-base text-[color:var(--muted)]">
                 <span className="text-[color:var(--foreground)] font-semibold">10,000+</span> riders earning rewards
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-8 max-w-lg mx-auto">
+            <div className="grid grid-cols-3 gap-4 md:gap-8 max-w-lg mx-auto">
               {[
                 { value: "$2.4M", label: "Rewards paid" },
                 { value: "50K+", label: "Classes" },
@@ -435,7 +439,7 @@ function HomeContent() {
                   transition={{ delay: i * 0.1 }}
                   viewport={{ once: true }}
                 >
-                  <p className="text-3xl font-bold text-[color:var(--foreground)]">{stat.value}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)]">{stat.value}</p>
                   <p className="text-xs text-[color:var(--muted)] mt-1">{stat.label}</p>
                 </motion.div>
               ))}
@@ -445,7 +449,7 @@ function HomeContent() {
 
         {/* Final CTA */}
         <FadeIn>
-          <section className="rounded-3xl border border-[color:var(--border)] bg-gradient-to-br from-[color:var(--surface)] to-[color:var(--surface-strong)] p-8 lg:p-12 text-center relative overflow-hidden">
+          <section className="rounded-3xl border border-[color:var(--border)] bg-gradient-to-br from-[color:var(--surface)] to-[color:var(--surface-strong)] p-6 md:p-8 lg:p-12 text-center relative overflow-hidden" aria-label="Get started call to action">
             {/* Animated background */}
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-[color:var(--accent)]/5 via-transparent to-[color:var(--accent-strong)]/5"
@@ -460,17 +464,17 @@ function HomeContent() {
             />
 
             <div className="relative">
-              <h2 className="text-3xl lg:text-4xl font-bold text-[color:var(--foreground)] mb-4">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[color:var(--foreground)] mb-3 md:mb-4">
                 Ready to start?
               </h2>
-              <p className="text-[color:var(--muted)] mb-8 max-w-xl mx-auto">
+              <p className="text-sm md:text-base text-[color:var(--muted)] mb-6 md:mb-8 max-w-xl mx-auto">
                 Join thousands of riders and instructors who are already part of the future of fitness.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
                 <MagneticButton className="w-full sm:w-auto">
                   <a
                     href="/rider"
-                    className="inline-block w-full px-8 py-3 rounded-full bg-[color:var(--accent)] text-white font-semibold hover:opacity-90 transition-opacity"
+                    className="inline-block w-full px-6 md:px-8 py-2.5 md:py-3 rounded-full bg-[color:var(--accent)] text-white font-semibold hover:opacity-90 transition-opacity"
                   >
                     Start Riding
                   </a>
@@ -478,7 +482,7 @@ function HomeContent() {
                 <MagneticButton className="w-full sm:w-auto">
                   <a
                     href="#instructor-modes"
-                    className="inline-block w-full px-8 py-3 rounded-full border border-[color:var(--border)] text-[color:var(--foreground)] font-medium hover:border-[color:var(--accent)]/50 transition-colors"
+                    className="inline-block w-full px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-[color:var(--border)] text-[color:var(--foreground)] font-medium hover:border-[color:var(--accent)]/50 transition-colors"
                   >
                     Become an Instructor
                   </a>
