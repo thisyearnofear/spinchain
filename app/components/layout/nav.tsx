@@ -146,7 +146,7 @@ export function PrimaryNav() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex flex-col lg:flex-row lg:items-center gap-4 overflow-hidden"
+            className="flex flex-col lg:flex-row lg:items-center gap-4 overflow-visible"
           >
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="flex items-center gap-2">
