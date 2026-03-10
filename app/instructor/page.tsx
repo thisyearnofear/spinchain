@@ -56,9 +56,9 @@ export default function InstructorPage() {
           className="bg-[color:var(--surface-strong)]"
         >
           <div className="mt-6 flex flex-wrap gap-3">
-            <Tag>Dynamic pricing</Tag>
-            <Tag>Private metrics</Tag>
-            <Tag>Auto payouts</Tag>
+            <Tag color="indigo">Dynamic pricing</Tag>
+            <Tag color="green">Private metrics</Tag>
+            <Tag color="amber">Auto payouts</Tag>
           </div>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             {liveSignals.map((signal) => (
@@ -66,7 +66,7 @@ export default function InstructorPage() {
                 key={signal.title}
                 className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-4"
               >
-                <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
+                <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--foreground)]/80">
                   {signal.title}
                 </p>
                 <p className="mt-2 text-lg font-semibold text-[color:var(--foreground)]">

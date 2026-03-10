@@ -57,7 +57,7 @@ export function SurfaceCard({
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" />
 
       {eyebrow ? (
-        <p className="text-[10px] uppercase tracking-[0.3em] font-black text-[color:var(--muted)] mb-4">
+        <p className="text-[10px] uppercase tracking-[0.3em] font-black text-[color:var(--foreground)]/90 mb-4">
           {eyebrow}
         </p>
       ) : null}
@@ -70,7 +70,7 @@ export function SurfaceCard({
       ) : null}
       {description ? (
         <p
-          className={`text-sm text-[color:var(--muted)] leading-relaxed ${title ? "mt-3" : ""}`}
+          className={`text-sm text-[color:var(--foreground)]/75 leading-relaxed ${title ? "mt-3" : ""}`}
         >
           {description}
         </p>
