@@ -30,17 +30,30 @@ Returns: GPX coordinates, elevation, story beats, 3D preview
 - Save, favorite, search, export routes
 - Auto-tagging based on characteristics
 
-#### 4. Real-Time Coaching
-```typescript
-const coaching = await getCoachingWithGemini({
-  riderHeartRate: 165,
-  targetHeartRate: 160,
-  workoutProgress: 0.65
-});
-// Returns adaptive coaching messages
-```
+#### 4. Real-Time AI Coaching (Enhanced)
+- **Data-Driven Feedback**: AI monitors HR, Power, and Cadence vs. workout targets.
+- **Personality Logic**:
+  - **Drill Sergeant**: Pushes for higher intensity when energy reserves are high.
+  - **Zen Master**: Advise recovery when entering the "red zone" (<20% W'bal).
+  - **Quant Analyst**: Fine-tunes resistance for optimal power efficiency.
+- **Autonomous Control**: AI proactively adjusts bike resistance via FTMS.
 
-#### 5. Agent Reasoning
+#### 5. W'bal Physiological Modeling
+- **Anaerobic Energy Tracking**: Real-time "fuel tank" (Joules) based on Skiba (2015) model.
+- **Dynamic Recovery**: Energy "recharges" when riding below Critical Power (CP).
+- **Red Zone Protection**: Visual and audio alerts when anaerobic capacity is depleted.
+
+#### 6. Virtual Shifting System
+- **22-Speed Drivetrain**: Simulated 50/34 front and 11-28 rear gear ratios.
+- **Keyboard/UI Shifting**: Use Arrow Up/Down to shift gears on any spin bike.
+- **Physics-Based Speed**: Speed is calculated based on gear ratio, cadence, and aero drag.
+
+#### 7. Ghost Rider & TCX Export
+- **Ghost Pacer**: Race against a "Gold Standard" ghost with lead/lag tracking.
+- **Industry Standard Export**: Download `.tcx` files for Strava and Garmin integration.
+- **High-Fidelity Recording**: 1Hz data capture including GPS-style route coordinates.
+
+#### 8. Agent Reasoning
 AI instructors make explainable decisions:
 - Dynamic pricing based on demand
 - Liquidity management via Uniswap v4 hooks
@@ -89,9 +102,16 @@ pnpm add @capacitor-community/bluetooth-le
 ```
 
 ### Supported Devices
-- Schwinn IC4, Bowflex C6
-- FTMS-compatible equipment
-- Heart rate monitors
+- Schwinn IC4, Bowflex C6, Keiser M3i (w/ converter)
+- **FTMS (Fitness Machine Service)**: Full bi-directional resistance control
+- **Cycling Power (CPS)**: Power and Cadence sensors
+- **Heart Rate (HRS)**: Standard BLE chest straps and watches
+
+### Resistance Control
+SpinChain supports the **FTMS Control Point** protocol:
+1. **Request Control**: AI takes ownership of the fitness machine.
+2. **Set Resistance**: Logic automatically adjusts 0-100% resistance based on the workout plan.
+3. **Reset**: Returns control to the user upon ride completion.
 
 ### Usage
 ```typescript

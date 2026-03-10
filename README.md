@@ -21,11 +21,13 @@ Open [http://localhost:3000](http://localhost:3000)
 | Feature | Description |
 |---------|-------------|
 | **Dual-Engine** | Avalanche (settlement) + Sui (10Hz telemetry) |
-| **AI Instructors** | Autonomous agents with dynamic pricing (Uniswap v4) |
+| **Autonomous AI** | Agents adjust machine resistance via bi-directional FTMS |
+| **Performance AI** | Real-time W'bal (energy) modeling and physics-based speed |
+| **Virtual Shifting** | 22-speed drivetrain simulation for any spin bike |
+| **Ghost Pacer** | Compete against recorded performances with lead/lag tracking |
 | **Route Worlds** | 3D WebGL visualization from GPX data |
 | **ZK Privacy** | Prove effort without revealing raw biometrics |
-| **Guest Mode** | Try demo rides without wallet or hardware |
-| **Mobile BLE** | Native iOS/Android via Capacitor |
+| **Data Portability** | One-click TCX export for Strava/Garmin integration |
 
 ---
 

@@ -77,6 +77,29 @@ effort_score: u16,       // 0-1000 calculated score
 
 ---
 
+## Physiological Intelligence
+
+SpinChain implements industry-standard sports science models to drive the AI Coach:
+
+### 1. Skiba W'bal (Differential Model)
+Tracks the depletion and recovery of anaerobic work capacity (W').
+- **Depletion**: When Power > Critical Power (CP).
+- **Recovery**: Proportional to the remaining capacity and the difference between CP and current Power.
+- **AI Integration**: Personalities adjust resistance to protect or utilize this "fuel tank."
+
+### 2. Virtual Drivetrain
+Simulates real-world gearing for fixed-resistance spin bikes.
+- **Ratio Mapping**: Front/Rear combinations from 11-28 cassettes.
+- **Physics HUD**: Calculates virtual speed based on gear ratio and cadence (RPM).
+
+### 3. Physics-Based Speed Model
+Fallback speed calculation using aerodynamic drag and gravity:
+- **Drag**: $0.5 \cdot \rho \cdot CdA \cdot v^3$
+- **Gravity**: $Weight \cdot g \cdot (Gradient + Crr)$
+- Used to provide realistic pacer and route progress metrics.
+
+---
+
 ## Storage Layers
 
 | Data Type | Storage | Compression | Retention |
