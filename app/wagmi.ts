@@ -49,7 +49,7 @@ export function createBrowserWagmiConfig(): Config {
       [avalanche.id]: http(AVALANCHE_MAINNET_RPC),
       [mainnet.id]: http(ETHEREUM_MAINNET_RPC),
     },
-    ssr: true,
+    ssr: false,
     storage,
     syncConnectedChain: true,
   });

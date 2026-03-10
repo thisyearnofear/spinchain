@@ -7,7 +7,7 @@
  * - ORGANIZED: Domain-driven exports grouped by concern
  */
 
-import type { RouteResponse } from "./ai-service";
+import type { RouteResponse } from "./gemini-client";
 import { YELLOW_SETTLEMENT_ABI as YELLOW_SETTLEMENT_CONTRACT_ABI } from "./contracts/yellow-settlement";
 
 // ============================================================================
