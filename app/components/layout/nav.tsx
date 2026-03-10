@@ -53,7 +53,7 @@ function SettingsDropdown() {
   };
 
   return (
-    <div className="relative z-50" ref={dropdownRef}>
+    <div className="relative z-[100]" ref={dropdownRef}>
       <button
         onClick={handleToggle}
         aria-label="Settings"
@@ -75,7 +75,7 @@ function SettingsDropdown() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-64 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-xl backdrop-blur-xl p-4"
+            className="absolute right-0 top-full mt-2 w-64 max-w-[90vw] rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-xl backdrop-blur-xl p-4"
             style={{ zIndex: 9999 }}
             data-testid="settings-dropdown"
           >
