@@ -37,7 +37,7 @@ const storage = createStorage({
 // Custom RPC URLs that support CORS
 const ETHEREUM_MAINNET_RPC = process.env.NEXT_PUBLIC_ETHEREUM_RPC_URL || "https://rpc.ankr.com/eth";
 const AVALANCHE_RPC = process.env.NEXT_PUBLIC_AVALANCHE_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
-const AVALANCHE_MAINNET_RPC = process.env.NEXT_PUBLIC_AVALANCHE_MAINNET_RPC_URL || "https://api.avax.com/ext/bc/C/rpc";
+const AVALANCHE_MAINNET_RPC = process.env.NEXT_PUBLIC_AVALANCHE_MAINNET_RPC_URL || "https://rpc.ankr.com/avalanche";
 
 export function createBrowserWagmiConfig(): Config {
   return getDefaultConfig({
