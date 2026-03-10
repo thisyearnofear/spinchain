@@ -15,9 +15,13 @@ import Link from "next/link";
 function HomeContent() {
   const searchParams = useSearchParams();
   const [showWelcome, setShowWelcome] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Set mounted to true - this runs after hydration
+    setMounted(true);
+    
     // ?reset=true clears onboarding state — useful between test sessions
     if (searchParams.get("reset") === "true") {
       resetOnboarding();
@@ -26,7 +30,6 @@ function HomeContent() {
     }
     const hasSeenWelcome = localStorage.getItem("spin-welcome-seen");
     if (!hasSeenWelcome) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowWelcome(true);
     }
 
@@ -40,7 +43,7 @@ function HomeContent() {
 
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+  }, [searchParams]);
 
   const handleWelcomeComplete = () => {
     localStorage.setItem("spin-welcome-seen", "true");

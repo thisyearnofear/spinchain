@@ -35,15 +35,16 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [hasSeenModal, setHasSeenModal] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Set mounted to true - this runs after hydration
+    setMounted(true);
+    
     const onboarded = localStorage.getItem(ONBOARDING_KEY);
     if (!onboarded) {
-      // Use a microtask to defer the state update
-      Promise.resolve().then(() => {
-        setIsOpen(true);
-        setHasSeenModal(false);
-      });
+      setIsOpen(true);
+      setHasSeenModal(false);
     }
   }, []);
 
@@ -73,6 +74,11 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
     setHasSeenModal(true);
     onExploreAsGuest?.();
   };
+
+  // Don't render anything until mounted to avoid hydration mismatch
+  if (!mounted) {
+    return null;
+  }
 
   if (hasSeenModal || !isOpen) return null;
 

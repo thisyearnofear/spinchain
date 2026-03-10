@@ -31,39 +31,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Use a microtask to defer the state update
-    Promise.resolve().then(() => {
-      setMounted(true);
-    });
+    setMounted(true);
 
-    // Load saved theme
+    // Load saved theme - only on client after mount
     const saved = localStorage.getItem(STORAGE_KEY) as Theme | null;
     if (saved) {
-      // Use a microtask to defer the state update
-      Promise.resolve().then(() => {
-        setThemeState(saved);
-      });
+      setThemeState(saved);
     } else {
-      // Use a microtask to defer the state update
-      Promise.resolve().then(() => {
-        setResolvedTheme(getSystemTheme());
-      });
+      setResolvedTheme(getSystemTheme());
     }
 
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
       if (theme === 'system') {
-        // Use a microtask to defer the state update
-        Promise.resolve().then(() => {
-          setResolvedTheme(getSystemTheme());
-        });
+        setResolvedTheme(getSystemTheme());
       }
     };
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+  }, []); // Only run once on mount
 
   useEffect(() => {
     if (!mounted) return;
@@ -82,10 +70,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (!mounted) return;
     
     const newResolvedTheme = theme === 'system' ? getSystemTheme() : theme;
-    // Use a microtask to defer the state update
-    Promise.resolve().then(() => {
-      setResolvedTheme(newResolvedTheme);
-    });
+    setResolvedTheme(newResolvedTheme);
   }, [theme, mounted]);
 
   const setTheme = (newTheme: Theme) => {

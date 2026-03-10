@@ -45,7 +45,10 @@ function useWalletReconnection() {
 
   useEffect(() => {
     // Initialize background manager for native session persistence
-    backgroundManager.initialize();
+    // Only run on client-side
+    if (typeof window !== 'undefined') {
+      backgroundManager.initialize();
+    }
     
     // On mobile, wallet connections can be flaky after page navigation
     // This ensures we attempt reconnection once on mount
