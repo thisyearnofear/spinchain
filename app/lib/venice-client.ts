@@ -5,7 +5,7 @@
  * Used as default provider when Gemini 3 credits are unavailable
  */
 
-import { RouteRequest, RouteResponse, CoachingContext, CoachingResponse, AgentDecision } from "./gemini-client";
+import type { RouteRequest, RouteResponse, CoachingContext, CoachingResponse, AgentDecision } from "./ai-types";
 
 const VENICE_API_URL = "https://api.venice.ai/api/v1";
 const DEFAULT_MODEL = "llama-3.3-70b";

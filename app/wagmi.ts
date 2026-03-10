@@ -49,7 +49,7 @@ export function createBrowserWagmiConfig(): Config {
       [avalanche.id]: http(AVALANCHE_MAINNET_RPC),
       [mainnet.id]: http(ETHEREUM_MAINNET_RPC),
     },
-    ssr: false,
+    ssr: true, // Enable SSR mode for Next.js - prevents hydration mismatch
     storage,
     syncConnectedChain: true,
   });

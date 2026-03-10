@@ -20,12 +20,15 @@ import {
   getCoachingWithGemini,
   agentReasoningWithGemini,
   generateRouteStream,
+} from "./gemini-client";
+
+import type {
   RouteRequest,
   RouteResponse,
   CoachingContext,
   CoachingResponse,
   AgentDecision,
-} from "./gemini-client";
+} from "./ai-types";
 
 import {
   generateRouteWithVenice,
