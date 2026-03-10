@@ -26,6 +26,7 @@ export interface FitnessMetrics {
   heartRate: number; // BPM
   speed: number; // km/h
   distance: number; // km
+  resistance?: number; // 0-100%
   timestamp: number; // Unix timestamp
 }
 

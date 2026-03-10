@@ -358,12 +358,18 @@ export default function LiveRidePage() {
   });
 
   // AI Instructor
+  const { setResistance } = useUnifiedBle();
+  const [aiActive, setAiActive] = useState(false);
   const agentName = classData?.instructor || 'Coach';
-  const { logs: aiLogs, isActive: aiActive, setIsActive: setAiActive } = useAiInstructor(
+  const { logs: aiLogs, addLog: addAiLog } = useAiInstructor({
     agentName,
-    aiPersonality || 'data',
-    null // No Sui session in practice/standalone mode
-  );
+    personality: aiPersonality || 'data',
+    sessionObjectId: null, // No Sui session in practice/standalone mode
+    metrics: telemetry,
+    currentInterval,
+    isEnabled: aiActive,
+    setResistance,
+  });
 
   const { state: reasonerState, lastDecision, thoughtLog, reason: triggerReasoning } = useAgentReasoner({
     agentName,

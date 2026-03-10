@@ -5,7 +5,7 @@ import { BleClient } from '@capacitor-community/bluetooth-le';
 import { isNativeApp, hasNativeBluetooth } from './platform';
 import { bleService } from '../ble/service';
 import { BLE_SERVICES, BLE_CHARACTERISTICS } from '../ble/constants';
-import { BleParser } from '../ble/parser';
+import { BleParser, BleEncoder } from '../ble/parser';
 import { ANALYTICS_EVENTS, trackEvent } from '../analytics/events';
 import { getHealthService, type HealthData } from './health';
 import { backgroundManager } from './background';
@@ -45,6 +45,7 @@ export interface UnifiedBleService {
   connect(): Promise<BleDevice | null>;
   disconnect(): void;
   autoConnect(): Promise<boolean>;
+  setResistance(level: number): Promise<boolean>;
   removeSavedDevice(deviceId: string): void;
   clearSavedDevices(): void;
 }
@@ -88,6 +89,10 @@ class WebBleService implements UnifiedBleService {
 
   async autoConnect(): Promise<boolean> {
     return bleService.autoConnect();
+  }
+
+  async setResistance(level: number): Promise<boolean> {
+    return bleService.setResistance(level);
   }
 
   removeSavedDevice(deviceId: string): void {
@@ -213,6 +218,38 @@ class NativeBleService implements UnifiedBleService {
     }
 
     return false;
+  }
+
+  async setResistance(level: number): Promise<boolean> {
+    if (!this.device || this.status !== 'connected') return false;
+
+    try {
+      // 1. Request control
+      const reqCmd = BleEncoder.encodeRequestControl();
+      await BleClient.write(
+        this.device.id,
+        BLE_SERVICES.FITNESS_MACHINE,
+        BLE_CHARACTERISTICS.FITNESS_MACHINE_CONTROL_POINT,
+        new DataView(reqCmd.buffer)
+      );
+
+      // 2. Set resistance
+      const resCmd = BleEncoder.encodeSetResistance(level);
+      await BleClient.write(
+        this.device.id,
+        BLE_SERVICES.FITNESS_MACHINE,
+        BLE_CHARACTERISTICS.FITNESS_MACHINE_CONTROL_POINT,
+        new DataView(resCmd.buffer)
+      );
+
+      if (this.metrics) {
+        this.metrics = { ...this.metrics, resistance: level };
+      }
+      return true;
+    } catch (error) {
+      console.warn('[NativeBle] Failed to set resistance:', error);
+      return false;
+    }
   }
 
   removeSavedDevice(deviceId: string): void {
@@ -554,6 +591,7 @@ export function useUnifiedBle() {
     connect: service.connect.bind(service),
     disconnect: service.disconnect.bind(service),
     autoConnect: service.autoConnect.bind(service),
+    setResistance: service.setResistance.bind(service),
     removeSavedDevice: service.removeSavedDevice.bind(service),
     clearSavedDevices: service.clearSavedDevices.bind(service),
   };

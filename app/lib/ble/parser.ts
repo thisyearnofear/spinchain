@@ -37,8 +37,11 @@ export class BleParser {
       offset += 3;
     }
 
-    // Bit 5 resistance level present (skip)
-    if ((flags & (1 << 5)) !== 0) offset += 2;
+    // Bit 5 resistance level present (Sint16, 0.1 unitless)
+    if ((flags & (1 << 5)) !== 0) {
+      parsed.resistance = value.getInt16(offset, true);
+      offset += 2;
+    }
 
     // Bit 6 instant power present (Sint16, watts)
     if ((flags & (1 << 6)) !== 0) {
@@ -75,5 +78,40 @@ export class BleParser {
   public static parseCyclingPower(value: DataView): Partial<FitnessMetrics> {
     if (value.byteLength < 4) return {};
     return { power: value.getInt16(2, true) };
+  }
+}
+
+/**
+ * BleEncoder - Encode commands to send to Fitness Machine (FTMS).
+ */
+export class BleEncoder {
+  // FTMS Control Point OpCodes
+  private static readonly OP_REQUEST_CONTROL = 0x00;
+  private static readonly OP_RESET = 0x01;
+  private static readonly OP_SET_RESISTANCE = 0x04;
+
+  /**
+   * Encodes a "Request Control" command.
+   * Required before sending other control commands.
+   */
+  public static encodeRequestControl(): Uint8Array {
+    return new Uint8Array([this.OP_REQUEST_CONTROL]);
+  }
+
+  /**
+   * Encodes a "Reset" command.
+   */
+  public static encodeReset(): Uint8Array {
+    return new Uint8Array([this.OP_RESET]);
+  }
+
+  /**
+   * Encodes a "Set Resistance Level" command (0x04).
+   * @param level Resistance level (0-100% usually, mapped to 0-200 or device specific)
+   * FTMS Spec: Resistance level is Uint8.
+   */
+  public static encodeSetResistance(level: number): Uint8Array {
+    const normalized = Math.max(0, Math.min(255, Math.round(level)));
+    return new Uint8Array([this.OP_SET_RESISTANCE, normalized]);
   }
 }

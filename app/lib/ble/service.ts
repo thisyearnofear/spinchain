@@ -10,7 +10,7 @@ import {
   CONNECTION_CONFIG,
   DATA_CONFIG
 } from './constants';
-import { BleParser } from './parser';
+import { BleParser, BleEncoder } from './parser';
 import type {
   BleDevice,
   FitnessMetrics,
@@ -169,6 +169,46 @@ export class BleService {
 
   public getCurrentMetrics(): FitnessMetrics | null {
     return this.state.metrics;
+  }
+
+  /**
+   * Set the resistance level of the fitness machine (FTMS).
+   * @param level Resistance level (0-100% or device specific)
+   */
+  public async setResistance(level: number): Promise<boolean> {
+    if (!this.deviceId || !this.state.isConnected) return false;
+
+    try {
+      // 1. Request control (OpCode 0x00) - Required by FTMS spec before any other control
+      const requestControlCmd = BleEncoder.encodeRequestControl();
+      // BleClient.write expects an ArrayBuffer, DataView, or string.
+      // We pass the buffer of our encoded Uint8Array.
+      await BleClient.write(
+        this.deviceId,
+        BLE_SERVICES.FITNESS_MACHINE,
+        BLE_CHARACTERISTICS.FITNESS_MACHINE_CONTROL_POINT,
+        new DataView(requestControlCmd.buffer)
+      );
+
+      // 2. Set resistance (OpCode 0x04)
+      const setResistanceCmd = BleEncoder.encodeSetResistance(level);
+      await BleClient.write(
+        this.deviceId,
+        BLE_SERVICES.FITNESS_MACHINE,
+        BLE_CHARACTERISTICS.FITNESS_MACHINE_CONTROL_POINT,
+        new DataView(setResistanceCmd.buffer)
+      );
+
+      // Update local metrics state with target resistance
+      if (this.state.metrics) {
+        this.state.metrics = { ...this.state.metrics, resistance: level };
+      }
+
+      return true;
+    } catch (error) {
+      console.warn('[BLE] Failed to set resistance:', error);
+      return false;
+    }
   }
 
   public getState(): BleServiceState {

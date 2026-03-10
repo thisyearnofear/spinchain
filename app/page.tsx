@@ -77,10 +77,10 @@ function HomeContent() {
     },
   ];
 
-  const liveStats = [
-    { label: "Active Riders", value: "1,247", change: "+12%" },
-    { label: "Classes Today", value: "42", change: "Live" },
-    { label: "SPIN Distributed", value: "50K", change: "+8%" },
+  const communityStats = [
+    { label: "Total Riders", value: "10K+" },
+    { label: "Classes Hosted", value: "50K+" },
+    { label: "Rewards Paid", value: "$2.4M" },
   ];
 
   return (
@@ -108,16 +108,6 @@ function HomeContent() {
         <FadeIn>
           <header className="flex flex-col items-start justify-between gap-8 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 shadow-[0_20px_80px_rgba(0,0,0,0.15)] backdrop-blur">
             <PrimaryNav />
-            {/* Neural Activity Callout */}
-            <div className="w-full flex justify-center -mt-4 mb-2">
-              <div className="flex items-center gap-2.5 px-3 py-1 rounded-full bg-indigo-500/5 border border-indigo-500/10 backdrop-blur-sm shadow-sm animate-pulse">
-                <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-300">
-                  Neural Activity Stream Active • 1,247 Nodes Synced
-                </span>
-              </div>
-            </div>
-
             {/* Clear What-We-Do Statement */}
             <div className="w-full text-center py-10 border-y border-white/5 relative overflow-hidden">
               {/* Decorative background light */}
@@ -133,9 +123,9 @@ function HomeContent() {
               </p>
             </div>
 
-            {/* Live Stats Ticker */}
+            {/* Community Stats Ticker */}
             <div className="w-full flex flex-wrap justify-center gap-10 py-6 border-b border-white/5 bg-white/2 backdrop-blur-sm rounded-b-2xl">
-              {liveStats.map((stat, i) => (
+              {communityStats.map((stat, i) => (
                 <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 10 }}
@@ -143,14 +133,10 @@ function HomeContent() {
                   transition={{ delay: 0.5 + i * 0.1 }}
                   className="flex items-center gap-3"
                 >
-                  {stat.change === "Live" && <EnergyPulse size="sm" />}
                   <div className="text-center">
                     <p className="text-2xl font-bold text-[color:var(--foreground)]">{stat.value}</p>
                     <p className="text-xs text-[color:var(--muted)] uppercase tracking-wider">{stat.label}</p>
                   </div>
-                  {stat.change !== "Live" && (
-                    <span className="text-xs text-[color:var(--success)]">{stat.change}</span>
-                  )}
                 </motion.div>
               ))}
             </div>
