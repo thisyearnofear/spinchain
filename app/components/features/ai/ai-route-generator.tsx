@@ -280,108 +280,105 @@ export function AIRouteGenerator({
         </div>
       )}
       
-      {/* Loading State Preview */}
+      {/* Loading State Preview - Neural Activity Aesthetic */}
       {isGenerating && (
-        <div className="animate-in fade-in slide-in-from-top-2 duration-300 rounded-xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 p-6 backdrop-blur">
-          <div className="flex items-center gap-4 mb-4">
+        <div className="animate-in fade-in zoom-in-95 duration-500 rounded-3xl border border-indigo-500/30 bg-black/40 p-8 backdrop-blur-3xl relative overflow-hidden">
+          {/* Tactical Background Glow */}
+          <div className="absolute -inset-10 bg-indigo-500/10 blur-3xl animate-pulse" />
+          
+          <div className="relative flex items-center gap-6 mb-6">
             <div className="relative">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-500/20 border-t-indigo-500" />
+              <div className="h-16 w-16 animate-spin rounded-full border-4 border-indigo-500/10 border-t-indigo-500" />
+              <div className="absolute inset-0 m-auto h-8 w-8 bg-indigo-500/20 rounded-full animate-ping" />
               <svg className="absolute inset-0 m-auto h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-white">Generating your route...</p>
-              <p className="text-xs text-white/60 mt-1">AI is analyzing terrain and creating story beats</p>
+              <div className="flex items-center gap-2 mb-1">
+                 <span className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
+                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400">Neural Synthesis</p>
+              </div>
+              <h4 className="text-xl font-black text-white tracking-tighter">Constructing Route World...</h4>
+              <p className="text-xs text-white/50 font-medium mt-1">AI is analyzing terrain geometry and plotting story beats.</p>
             </div>
           </div>
           
-          {/* Progress Indicators */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 flex-1 rounded-full bg-white/10 overflow-hidden">
-                <div className="h-full w-3/4 rounded-full bg-indigo-400 animate-pulse" />
-              </div>
-              <span className="text-xs text-white/60">Analyzing...</span>
+          {/* Progress Indicators - Tactical Terminal Look */}
+          <div className="relative space-y-3 font-mono">
+            <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-indigo-300/60 mb-1">
+               <span>Processing Elevation Delta</span>
+               <span className="animate-pulse">74%</span>
             </div>
+            <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+              <div className="h-full bg-indigo-500/60 rounded-full animate-[progress_3s_ease-in-out_infinite]" style={{ width: '70%' }} />
+            </div>
+            <div className="flex gap-2 mt-4">
+               <div className="h-1 flex-1 bg-indigo-500/20 rounded-full" />
+               <div className="h-1 flex-1 bg-indigo-500/40 rounded-full animate-pulse" />
+               <div className="h-1 flex-1 bg-white/5 rounded-full" />
+               <div className="h-1 flex-1 bg-white/5 rounded-full" />
+            </div>
+          </div>
+          
+          <div className="mt-6 text-[8px] text-white/20 uppercase tracking-[0.5em] w-full text-center">
+             Encryption: SUI-Native-v2 // Node: 0xREDACTED
           </div>
         </div>
       )}
 
-      {/* Route Summary with Enhanced Animation */}
+      {/* Route Summary with Enhanced Animation - Vision Pro Aesthetic */}
       {route && gpxSummary && (
-        <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-3">
+        <div className="animate-in fade-in slide-in-from-top-4 duration-700 space-y-4">
           {/* Main Route Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 p-5 backdrop-blur">
-            {/* Glow Effect */}
-            <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-indigo-500/20 blur-3xl" />
+          <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-black/40 p-8 backdrop-blur-3xl shadow-2xl">
+            {/* Tactical Glow Effect */}
+            <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl opacity-50 group-hover:opacity-100 transition duration-1000" />
             
             <div className="relative">
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between mb-6">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted)] mb-2">
-                    Generated Route
-                  </p>
-                  <h3 className="text-xl font-bold text-white mb-1.5 leading-tight">
+                  <div className="flex items-center gap-2 mb-3">
+                     <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                     <p className="text-[10px] uppercase tracking-[0.4em] text-indigo-400 font-black">
+                       Synthesis Complete
+                     </p>
+                  </div>
+                  <h3 className="text-3xl font-black text-white mb-2 tracking-tighter leading-none">
                     {route.name}
                   </h3>
-                  <p className="text-sm text-white/70 leading-relaxed">
+                  <p className="text-sm text-white/70 leading-relaxed max-w-lg font-medium">
                     {route.description}
                   </p>
                 </div>
                 
-                {/* Difficulty Badge */}
-                <div className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${
+                {/* Difficulty Badge - Tactical */}
+                <div className={`rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest border transition-all ${
                   difficulty === "hard" 
-                    ? "bg-red-500/20 text-red-400 ring-1 ring-red-500/30"
+                    ? "bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
                     : difficulty === "moderate"
-                    ? "bg-yellow-500/20 text-yellow-400 ring-1 ring-yellow-500/30"
-                    : "bg-green-500/20 text-green-400 ring-1 ring-green-500/30"
+                    ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.1)]"
+                    : "bg-green-500/10 text-green-400 border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]"
                 }`}>
                   {difficulty}
                 </div>
               </div>
 
-              {/* Stats Grid with Icons */}
-              <div className="grid grid-cols-3 gap-3 mt-5">
-                <div className="group rounded-xl bg-white/5 p-3.5 transition-all hover:bg-white/10">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <svg className="h-3.5 w-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                    <p className="text-[10px] uppercase tracking-wider text-white/50 font-medium">Distance</p>
+              {/* Stats Grid with Tactical Icons */}
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: "Distance", value: route.estimatedDistance.toFixed(1), unit: "km", color: "text-blue-400" },
+                  { label: "Duration", value: route.estimatedDuration, unit: "min", color: "text-purple-400" },
+                  { label: "Elevation", value: route.elevationGain, unit: "m", color: "text-emerald-400" },
+                ].map((stat) => (
+                  <div key={stat.label} className="group/stat rounded-2xl bg-white/5 border border-white/5 p-4 transition-all hover:bg-white/10 hover:border-white/10">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold mb-1.5">{stat.label}</p>
+                    <p className={`text-2xl font-black ${stat.color} tracking-tighter`}>
+                      {stat.value}
+                      <span className="text-[10px] font-normal text-white/30 ml-1 uppercase">{stat.unit}</span>
+                    </p>
                   </div>
-                  <p className="text-2xl font-bold text-white">
-                    {route.estimatedDistance.toFixed(1)}
-                    <span className="text-sm font-normal text-white/50 ml-1">km</span>
-                  </p>
-                </div>
-                
-                <div className="group rounded-xl bg-white/5 p-3.5 transition-all hover:bg-white/10">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <svg className="h-3.5 w-3.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-[10px] uppercase tracking-wider text-white/50 font-medium">Duration</p>
-                  </div>
-                  <p className="text-2xl font-bold text-white">
-                    {route.estimatedDuration}
-                    <span className="text-sm font-normal text-white/50 ml-1">min</span>
-                  </p>
-                </div>
-                
-                <div className="group rounded-xl bg-white/5 p-3.5 transition-all hover:bg-white/10">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <svg className="h-3.5 w-3.5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                    <p className="text-[10px] uppercase tracking-wider text-white/50 font-medium">Climb</p>
-                  </div>
-                  <p className="text-2xl font-bold text-white">
-                    {route.elevationGain}
-                    <span className="text-sm font-normal text-white/50 ml-1">m</span>
-                  </p>
-                </div>
+                ))}
               </div>
             </div>
           </div>

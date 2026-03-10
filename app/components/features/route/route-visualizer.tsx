@@ -407,20 +407,32 @@ function HoloMap({ curve, progress, theme }: { curve: CatmullRomCurve3, progress
 
   return (
     <group position={[0, 1.2, 1.5]} rotation={[-Math.PI / 4, 0, 0]} scale={0.012}>
-      {/* Mini Route Path */}
+      {/* Tactical Border for Map */}
+      <mesh position={[0, 0, -6]}>
+        <planeGeometry args={[160, 160]} />
+        <meshBasicMaterial color={styles.lineColor} wireframe transparent opacity={0.1} />
+      </mesh>
+
+      {/* Mini Route Path - Glowing Neon */}
       <mesh>
-        <tubeGeometry args={[curve, 64, 2, 8, true]} />
-        <meshBasicMaterial color={styles.lineColor} transparent opacity={0.3} wireframe />
+        <tubeGeometry args={[curve, 64, 2.5, 8, true]} />
+        <meshStandardMaterial
+          color={styles.lineColor}
+          emissive={styles.lineColor}
+          emissiveIntensity={10}
+          transparent
+          opacity={0.8}
+        />
       </mesh>
 
-      {/* Rider Position Dot */}
+      {/* Rider Position Dot - High Intensity Flare */}
       <mesh position={curve.getPointAt(progress)}>
-        <sphereGeometry args={[8, 16, 16]} />
+        <sphereGeometry args={[10, 16, 16]} />
         <meshBasicMaterial color="#ffffff" />
-        <pointLight intensity={20} color={styles.lineColor} />
+        <pointLight intensity={50} color={styles.lineColor} distance={100} />
       </mesh>
 
-      {/* Background Plate */}
+      {/* Background Plate - Deep Glass */}
       <mesh position={[0, 0, -5]}>
         <planeGeometry args={[150, 150]} />
         <meshBasicMaterial color={styles.lineColor} transparent opacity={0.05} side={2} />
@@ -453,58 +465,67 @@ function HoloHUD({ stats, theme, curve, progress }: { stats: RiderStats; theme: 
 
   useFrame((state) => {
     if (!groupRef.current) return;
-    // Subtle breathing animation for the holographic panel
-    const breathe = Math.sin(state.clock.elapsedTime * 2) * 0.1;
-    groupRef.current.position.y = 1.8 + breathe;
-    groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
+    // High-performance breathing animation
+    const breathe = Math.sin(state.clock.elapsedTime * 2.5) * 0.08;
+    groupRef.current.position.y = 1.9 + breathe;
+    groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.4) * 0.08;
   });
 
   return (
-    <group ref={groupRef} position={[0, 1.8, -1.5]}>
-      {/* Background Glass Panel */}
+    <group ref={groupRef} position={[0, 1.9, -1.8]}>
+      {/* Background Vision Pro Glass Panel */}
       <mesh rotation={[0, 0, 0]}>
-        <planeGeometry args={[2.2, 1.4]} />
+        <planeGeometry args={[2.4, 1.6]} />
         <meshBasicMaterial
           color={styles.lineColor}
           transparent
-          opacity={0.15}
+          opacity={0.08}
           side={2}
         />
       </mesh>
 
-      {/* Border Glow */}
-      <mesh rotation={[0, 0, 0]} position={[0, 0, 0.01]}>
-        <planeGeometry args={[2.22, 1.42]} />
-        <meshBasicMaterial color={styles.lineColor} wireframe transparent opacity={0.4} />
+      {/* Diegetic Outer Glow */}
+      <mesh rotation={[0, 0, 0]} position={[0, 0, -0.01]}>
+        <planeGeometry args={[2.5, 1.7]} />
+        <meshBasicMaterial color={styles.lineColor} transparent opacity={0.05} />
       </mesh>
 
       {/* Mini-Map Integration */}
       <HoloMap curve={curve} progress={progress} theme={theme} />
 
-      <Html transform distanceFactor={5} position={[0, 0.2, 0.02]} scale={0.12}>
-        <div className="flex flex-col items-center justify-center p-4 min-w-[350px] select-none pointer-events-none">
-          <div className="flex items-center gap-8 mb-4">
+      <Html transform distanceFactor={5.5} position={[0, 0.2, 0.02]} scale={0.1}>
+        <div className="flex flex-col items-center justify-center p-6 min-w-[380px] select-none pointer-events-none bg-black/40 backdrop-blur-3xl rounded-3xl border border-white/10">
+          <div className="flex items-center gap-10 mb-6">
             <div className="text-center">
-              <div className="text-[18px] font-black uppercase tracking-widest text-white/40">Power</div>
-              <div className="text-[58px] font-black leading-none text-white">{stats.power}<span className="text-[20px] ml-1 opacity-50">W</span></div>
+              <div className="text-[14px] font-black uppercase tracking-[0.4em] text-white/40 mb-1">Power</div>
+              <div className="text-[72px] font-black leading-none text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">{stats.power}<span className="text-[24px] ml-1 opacity-40 font-bold">W</span></div>
             </div>
-            <div className="w-px h-12 bg-white/20" />
+            <div className="w-[2px] h-16 bg-white/10 rounded-full" />
             <div className="text-center">
-              <div className="text-[18px] font-black uppercase tracking-widest text-white/40">Cadence</div>
-              <div className="text-[58px] font-black leading-none text-white">{stats.cadence}<span className="text-[20px] ml-1 opacity-50">RPM</span></div>
+              <div className="text-[14px] font-black uppercase tracking-[0.4em] text-white/40 mb-1">Cadence</div>
+              <div className="text-[72px] font-black leading-none text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">{stats.cadence}<span className="text-[24px] ml-1 opacity-40 font-bold">RPM</span></div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between w-full border-t border-white/10 pt-4">
-            <div className="flex flex-col items-start">
-              <span className="text-[12px] uppercase text-white/40 font-bold">Progress</span>
-              <span className="text-[24px] text-white font-black">{(progress * 100).toFixed(1)}%</span>
+          <div className="flex items-center justify-between w-full border-t border-white/5 pt-5">
+            <div className="flex flex-col items-start gap-1">
+              <span className="text-[10px] uppercase text-white/40 font-black tracking-[0.3em]">Neural Progress</span>
+              <div className="flex items-center gap-3">
+                <div className="h-1.5 w-32 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-white/40 rounded-full" style={{ width: `${progress * 100}%` }} />
+                </div>
+                <span className="text-[20px] text-white font-black">{(progress * 100).toFixed(1)}%</span>
+              </div>
             </div>
             {stats.hr > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40">
-                <span className="text-[14px] font-bold text-rose-400">♥ {stats.hr} BPM</span>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 backdrop-blur-xl">
+                <span className="text-[14px] font-black text-rose-400 uppercase tracking-tighter">♥ {stats.hr} BPM</span>
               </div>
             )}
+          </div>
+          
+          <div className="mt-4 text-[8px] font-mono text-white/20 uppercase tracking-[0.5em] w-full text-center">
+             System Node: Active-0xSui
           </div>
         </div>
       </Html>

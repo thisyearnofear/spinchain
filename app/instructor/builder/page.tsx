@@ -82,72 +82,124 @@ function PricingCurveVisualizer({
   const areaD = `${pathD} L ${width - padding},${height - padding} L ${padding},${height - padding} Z`;
 
   return (
-    <div className="relative h-64 w-full overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-4">
-      <div className="absolute left-4 top-4 z-10">
-        <p className="text-xs font-medium uppercase tracking-wider text-[color:var(--muted)]">
-          Price Trajectory
-        </p>
-        <p className="text-lg font-bold text-[color:var(--foreground)]">
-          {data.basePrice} ETH → {data.maxPrice} ETH
-        </p>
+    <div className="group relative h-64 w-full overflow-hidden rounded-3xl border border-white/10 bg-black/40 p-6 backdrop-blur-3xl shadow-2xl">
+      {/* Tactical Border Glow */}
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-indigo-500/20 rounded-3xl blur opacity-30 group-hover:opacity-70 transition duration-1000"></div>
+      
+      <div className="relative">
+        <div className="absolute left-6 top-6 z-10">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400">
+              Price Trajectory
+            </p>
+          </div>
+          <p className="text-2xl font-black text-white tracking-tighter">
+            {data.basePrice} ETH <span className="text-white/30">→</span> {data.maxPrice} ETH
+          </p>
+        </div>
+
+        <svg className="h-full w-full" viewBox={`0 0 ${width} ${height}`}>
+          <defs>
+            <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#6ef3c6" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#6ef3c6" stopOpacity="0" />
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+              <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Grid lines - Tactical */}
+          <line
+            x1={padding}
+            y1={height - padding}
+            x2={width - padding}
+            y2={height - padding}
+            stroke="#ffffff"
+            strokeOpacity="0.08"
+          />
+          <line
+            x1={padding}
+            y1={padding}
+            x2={padding}
+            y2={height - padding}
+            stroke="#ffffff"
+            strokeOpacity="0.08"
+          />
+
+          {/* Horizontal grid lines */}
+          {[0.25, 0.5, 0.75].map((y) => (
+            <line
+              key={y}
+              x1={padding}
+              y1={padding + y * (height - 2 * padding)}
+              x2={width - padding}
+              y2={padding + y * (height - 2 * padding)}
+              stroke="#ffffff"
+              strokeOpacity="0.04"
+              strokeDasharray="4 4"
+            />
+          ))}
+
+          {/* The Curve - Glowing */}
+          <path d={areaD} fill="url(#curveGradient)" />
+          <path
+            d={pathD}
+            fill="none"
+            stroke="#6ef3c6"
+            strokeWidth="3"
+            strokeLinecap="round"
+            filter="url(#glow)"
+            className="drop-shadow-[0_0_10px_rgba(110,243,198,0.5)]"
+          />
+
+          {/* Current price indicator dot */}
+          {capacity > 0 && (
+            <circle
+              cx={padding + (capacity / 100) * (width - 2 * padding)}
+              cy={height - padding - (data.curveType === "linear" ? capacity / 100 : (capacity / 100) ** 2) * (height - 2 * padding)}
+              r="6"
+              fill="#6ef3c6"
+              className="animate-pulse"
+            />
+          )}
+
+          {/* Labels - Mono-spaced telemetry look */}
+          <text
+            x={width - padding}
+            y={height - 8}
+            textAnchor="end"
+            fontSize="10"
+            fontFamily="mono"
+            fill="rgba(255,255,255,0.4)"
+            className="uppercase tracking-wider"
+          >
+            [{capacity} sold]
+          </text>
+          <text
+            x={padding}
+            y={height - 8}
+            textAnchor="start"
+            fontSize="10"
+            fontFamily="mono"
+            fill="rgba(255,255,255,0.4)"
+            className="uppercase tracking-wider"
+          >
+            [0 sold]
+          </text>
+        </svg>
       </div>
-
-      <svg className="h-full w-full" viewBox={`0 0 ${width} ${height}`}>
-        <defs>
-          <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6ef3c6" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="#6ef3c6" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
-        {/* Grid lines */}
-        <line
-          x1={padding}
-          y1={height - padding}
-          x2={width - padding}
-          y2={height - padding}
-          stroke="#ffffff"
-          strokeOpacity="0.1"
-        />
-        <line
-          x1={padding}
-          y1={padding}
-          x2={padding}
-          y2={height - padding}
-          stroke="#ffffff"
-          strokeOpacity="0.1"
-        />
-
-        {/* The Curve */}
-        <path d={areaD} fill="url(#curveGradient)" />
-        <path
-          d={pathD}
-          fill="none"
-          stroke="#6ef3c6"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
-
-        {/* Labels */}
-        <text
-          x={width - padding}
-          y={height - 5}
-          textAnchor="end"
-          fontSize="10"
-          fill="rgba(255,255,255,0.5)"
-        >
-          {capacity} sold
-        </text>
-        <text
-          x={padding}
-          y={height - 5}
-          textAnchor="start"
-          fontSize="10"
-          fill="rgba(255,255,255,0.5)"
-        >
-          0 sold
-        </text>
-      </svg>
+      
+      {/* Corner accents */}
+      <div className="absolute top-0 left-0 w-8 h-8 border-l-2 border-t-2 border-white/10 rounded-tl-2xl" />
+      <div className="absolute top-0 right-0 w-8 h-8 border-r-2 border-t-2 border-white/10 rounded-tr-2xl" />
+      <div className="absolute bottom-0 left-0 w-8 h-8 border-l-2 border-b-2 border-white/10 rounded-bl-2xl" />
+      <div className="absolute bottom-0 right-0 w-8 h-8 border-r-2 border-b-2 border-white/10 rounded-br-2xl" />
     </div>
   );
 }
@@ -316,30 +368,35 @@ export default function InstructorBuilderPage() {
       </AnimatePresence>
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">
-        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
+        <div className="group relative rounded-3xl border border-white/10 bg-black/40 px-8 py-10 backdrop-blur-3xl shadow-2xl overflow-hidden">
+          {/* Tactical glow */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 rounded-3xl blur opacity-30"></div>
           <PrimaryNav />
         </div>
 
         {/* Header */}
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div>
-            <h1 className="text-3xl font-bold text-[color:var(--foreground)]">Class Builder</h1>
-            <p className="mt-1 text-[color:var(--muted)]">
+            <h1 className="text-4xl font-black text-white tracking-tighter">Class Builder</h1>
+            <p className="mt-2 text-white/50 font-medium">
               Configure your programmable class contract.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 p-1.5 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl">
             {steps.map((s) => (
               <div
                 key={s.number}
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${step === s.number
-                  ? "bg-indigo-500 text-white"
-                  : step > s.number
-                    ? "bg-indigo-500/20 text-indigo-300"
-                    : "bg-[color:var(--surface)] text-[color:var(--muted)]"
-                  }`}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-widest transition-all ${
+                  step === s.number
+                    ? "bg-white text-black shadow-lg"
+                    : step > s.number
+                      ? "bg-indigo-500/20 text-indigo-300"
+                      : "text-white/40 hover:text-white"
+                }`}
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[color:var(--surface-strong)] text-xs">
+                <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
+                  step === s.number ? "bg-black/10" : "bg-white/10"
+                }`}>
                   {s.number}
                 </span>
                 <span className="hidden sm:inline">{s.title}</span>
@@ -353,10 +410,15 @@ export default function InstructorBuilderPage() {
           <div className="space-y-6">
             {/* Step 0: Route Selection */}
             {step === 0 && (
-              <div className="space-y-4">
-                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 flex items-center gap-3">
-                  <span className="text-xl">💡</span>
-                  <p className="text-sm text-indigo-300 font-medium">{onboardingTips[0]}</p>
+              <div className="space-y-6">
+                <div className="group relative rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-5 backdrop-blur-xl overflow-hidden">
+                  <div className="absolute -inset-1 bg-indigo-500/10 blur-xl opacity-50"></div>
+                  <div className="relative flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                      <span className="text-2xl">💡</span>
+                    </div>
+                    <p className="text-sm text-indigo-200 font-medium">{onboardingTips[0]}</p>
+                  </div>
                 </div>
                 <RouteSelectionStep
                   onRouteSelected={handleRouteSelected}
@@ -366,60 +428,73 @@ export default function InstructorBuilderPage() {
             )}
 
             {step === 1 && (
-              <GlassCard className="space-y-6 p-8">
-                <SectionHeader
-                  eyebrow="Step 1"
-                  title="Class Details"
-                  description={onboardingTips[1]}
-                />
-                <div className="grid gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[color:var(--foreground)]">
-                      Class Name
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] placeholder:text-[color:var(--muted)] focus:border-indigo-500 focus:outline-none"
-                    />
+              <div className="group relative rounded-3xl border border-white/10 bg-black/40 p-8 backdrop-blur-3xl shadow-2xl overflow-hidden">
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-blue-500/10 rounded-3xl blur opacity-30"></div>
+                <div className="relative space-y-6">
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                      <span className="text-lg">📋</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-400">Step 1</p>
+                      <h2 className="text-2xl font-black text-white tracking-tighter">Class Details</h2>
+                    </div>
                   </div>
-                  <div className="grid gap-6 sm:grid-cols-2">
+                  <p className="text-sm text-white/50 font-medium mb-6">{onboardingTips[1]}</p>
+                  <div className="grid gap-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-[color:var(--foreground)]">
-                        Date & Time
+                      <label className="text-xs font-black uppercase tracking-widest text-white/40">
+                        Class Name
                       </label>
                       <input
-                        type="datetime-local"
-                        name="date"
-                        value={formData.date}
+                        type="text"
+                        name="name"
+                        value={formData.name}
                         onChange={handleInputChange}
-                        className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-white placeholder:text-white/20 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-[color:var(--foreground)]">
-                        Max Capacity
-                      </label>
-                      <input
-                        type="number"
-                        name="capacity"
-                        value={formData.capacity}
-                        onChange={handleInputChange}
-                        className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
-                      />
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase tracking-widest text-white/40">
+                          Date & Time
+                        </label>
+                        <input
+                          type="datetime-local"
+                          name="date"
+                          value={formData.date}
+                          onChange={handleInputChange}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all [color-scheme:dark]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase tracking-widest text-white/40">
+                          Max Capacity
+                        </label>
+                        <input
+                          type="number"
+                          name="capacity"
+                          value={formData.capacity}
+                          onChange={handleInputChange}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </GlassCard>
+              </div>
             )}
 
             {step === 2 && (
-              <div className="space-y-4">
-                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 flex items-center gap-3">
-                  <span className="text-xl">🎨</span>
-                  <p className="text-sm text-indigo-300 font-medium">{onboardingTips[2]}</p>
+              <div className="space-y-6">
+                <div className="group relative rounded-2xl border border-pink-500/20 bg-pink-500/5 p-5 backdrop-blur-xl overflow-hidden">
+                  <div className="absolute -inset-1 bg-pink-500/10 blur-xl opacity-50"></div>
+                  <div className="relative flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
+                      <span className="text-2xl">🎨</span>
+                    </div>
+                    <p className="text-sm text-pink-200 font-medium">{onboardingTips[2]}</p>
+                  </div>
                 </div>
                 <SelectionGarage
                   onSelectionChange={(selection) => {
@@ -440,197 +515,230 @@ export default function InstructorBuilderPage() {
             )}
 
             {step === 3 && (
-              <GlassCard className="space-y-6 p-8">
-                <SectionHeader
-                  eyebrow="Step 3"
-                  title="Token Economics"
-                  description={onboardingTips[3]}
-                />
-                <PricingCurveVisualizer
-                  data={formData}
-                  capacity={formData.capacity}
-                />
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[color:var(--foreground)]">
-                      Base Price (ETH)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      name="basePrice"
-                      value={formData.basePrice}
-                      onChange={handleInputChange}
-                      className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
-                    />
+              <div className="group relative rounded-3xl border border-white/10 bg-black/40 p-8 backdrop-blur-3xl shadow-2xl overflow-hidden">
+                <div className="absolute -inset-1 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-green-500/10 rounded-3xl blur opacity-30"></div>
+                <div className="relative space-y-6">
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="h-10 w-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                      <span className="text-lg">💰</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-green-400">Step 3</p>
+                      <h2 className="text-2xl font-black text-white tracking-tighter">Token Economics</h2>
+                    </div>
+                  </div>
+                  <p className="text-sm text-white/50 font-medium mb-6">{onboardingTips[3]}</p>
+                  <PricingCurveVisualizer
+                    data={formData}
+                    capacity={formData.capacity}
+                  />
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-white/40">
+                        Base Price (ETH)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        name="basePrice"
+                        value={formData.basePrice}
+                        onChange={handleInputChange}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-white/40">
+                        Max Price (ETH)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        name="maxPrice"
+                        value={formData.maxPrice}
+                        onChange={handleInputChange}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-[color:var(--foreground)]">
-                      Max Price (ETH)
+                    <label className="text-xs font-black uppercase tracking-widest text-white/40">
+                      Curve Logic
                     </label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      name="maxPrice"
-                      value={formData.maxPrice}
+                    <select
+                      name="curveType"
+                      value={formData.curveType}
                       onChange={handleInputChange}
-                      className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
-                    />
+                      className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                    >
+                      <option value="linear" className="bg-black">Linear (Constant ramp)</option>
+                      <option value="exponential" className="bg-black">
+                        Exponential (Early bird advantage)
+                      </option>
+                    </select>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[color:var(--foreground)]">
-                    Curve Logic
-                  </label>
-                  <select
-                    name="curveType"
-                    value={formData.curveType}
-                    onChange={handleInputChange}
-                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
-                  >
-                    <option value="linear">Linear (Constant ramp)</option>
-                    <option value="exponential">
-                      Exponential (Early bird advantage)
-                    </option>
-                  </select>
-                </div>
-              </GlassCard>
+              </div>
             )}
 
             {step === 4 && (
-              <GlassCard className="space-y-6 p-8">
-                <SectionHeader
-                  eyebrow="Step 4"
-                  title="Incentives"
-                  description={onboardingTips[4]}
-                />
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[color:var(--foreground)]">
-                      Effort Score Threshold
-                    </label>
-                    <input
-                      type="number"
-                      name="rewardThreshold"
-                      value={formData.rewardThreshold}
-                      onChange={handleInputChange}
-                      className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
-                    />
-                    <p className="text-xs text-[color:var(--muted)]">
-                      Riders must beat this score to earn rewards.
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[color:var(--foreground)]">
-                      Reward Amount (SPIN)
-                    </label>
-                    <input
-                      type="number"
-                      name="rewardAmount"
-                      value={formData.rewardAmount}
-                      onChange={handleInputChange}
-                      className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-3 text-[color:var(--foreground)] focus:border-indigo-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Sui Toggle */}
-                <div className="flex items-center justify-between rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
-                  <div className="flex gap-3">
-                    <div className="grid h-10 w-10 place-items-center rounded-full bg-cyan-500/20 text-cyan-400">
-                      💧
+              <div className="group relative rounded-3xl border border-white/10 bg-black/40 p-8 backdrop-blur-3xl shadow-2xl overflow-hidden">
+                <div className="absolute -inset-1 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 rounded-3xl blur opacity-30"></div>
+                <div className="relative space-y-6">
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                      <span className="text-lg">🎯</span>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-[color:var(--foreground)]">Enable Sui Performance Node</h4>
-                      <p className="text-xs text-[color:var(--muted)]">High-frequency telemetry & live leaderboards.</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-amber-400">Step 4</p>
+                      <h2 className="text-2xl font-black text-white tracking-tighter">Incentives</h2>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setFormData(prev => ({ ...prev, suiPerformance: !prev.suiPerformance }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.suiPerformance ? 'bg-cyan-500' : 'bg-[color:var(--surface-strong)]'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.suiPerformance ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
+                  <p className="text-sm text-white/50 font-medium mb-6">{onboardingTips[4]}</p>
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-white/40">
+                        Effort Score Threshold
+                      </label>
+                      <input
+                        type="number"
+                        name="rewardThreshold"
+                        value={formData.rewardThreshold}
+                        onChange={handleInputChange}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                      />
+                      <p className="text-xs text-white/40">
+                        Riders must beat this score to earn rewards.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-white/40">
+                        Reward Amount (SPIN)
+                      </label>
+                      <input
+                        type="number"
+                        name="rewardAmount"
+                        value={formData.rewardAmount}
+                        onChange={handleInputChange}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Sui Toggle - Enhanced */}
+                  <div className="group/toggle relative rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-6 overflow-hidden">
+                    <div className="absolute -inset-1 bg-cyan-500/5 blur-xl opacity-50"></div>
+                    <div className="relative flex items-center justify-between">
+                      <div className="flex gap-4">
+                        <div className="h-12 w-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                          <span className="text-xl">💧</span>
+                        </div>
+                        <div>
+                          <h4 className="font-black text-white uppercase tracking-wider text-sm">Enable Sui Performance Node</h4>
+                          <p className="text-xs text-white/40 mt-1">High-frequency telemetry & live leaderboards.</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setFormData(prev => ({ ...prev, suiPerformance: !prev.suiPerformance }))}
+                        className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${formData.suiPerformance ? 'bg-cyan-500 shadow-lg shadow-cyan-500/30' : 'bg-white/10 border border-white/10'}`}
+                      >
+                        <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${formData.suiPerformance ? 'translate-x-7' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </GlassCard>
+              </div>
             )}
 
             {step === 5 && (
-              <GlassCard className="space-y-6 p-8">
-                <SectionHeader
-                  eyebrow="Step 5"
-                  title="Review & Deploy"
-                  description={onboardingTips[5]}
-                />
-                <div className="grid gap-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 text-sm">
-                  <div className="flex justify-between border-b border-[color:var(--border)] pb-2">
-                    <span className="text-[color:var(--muted)]">Class</span>
-                    <span className="font-semibold text-[color:var(--foreground)]">
-                      {formData.name}
-                    </span>
+              <div className="group relative rounded-3xl border border-white/10 bg-black/40 p-8 backdrop-blur-3xl shadow-2xl overflow-hidden">
+                <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 rounded-3xl blur opacity-30"></div>
+                <div className="relative space-y-6">
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                      <span className="text-lg">🚀</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-400">Step 5</p>
+                      <h2 className="text-2xl font-black text-white tracking-tighter">Review & Deploy</h2>
+                    </div>
                   </div>
-                  <div className="flex justify-between border-b border-[color:var(--border)] pb-2">
-                    <span className="text-[color:var(--muted)]">Ticket Supply</span>
-                    <span className="font-semibold text-[color:var(--foreground)]">
-                      {formData.capacity}
-                    </span>
+                  <p className="text-sm text-white/50 font-medium mb-6">{onboardingTips[5]}</p>
+                  
+                  {/* Contract Spec Summary - Enhanced */}
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+                    <div className="grid gap-4">
+                      <div className="flex justify-between items-center py-2 border-b border-white/5">
+                        <span className="text-xs font-black uppercase tracking-widest text-white/40">Class</span>
+                        <span className="font-bold text-white">
+                          {formData.name}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-white/5">
+                        <span className="text-xs font-black uppercase tracking-widest text-white/40">Ticket Supply</span>
+                        <span className="font-bold text-white">
+                          {formData.capacity}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-white/5">
+                        <span className="text-xs font-black uppercase tracking-widest text-white/40">Pricing Range</span>
+                        <span className="font-bold text-white">
+                          {formData.basePrice} - {formData.maxPrice} ETH
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-xs font-black uppercase tracking-widest text-white/40">Rewards</span>
+                        <span className="font-bold text-white">
+                          {formData.rewardAmount} SPIN @ {formData.rewardThreshold}{" "}
+                          Effort
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between border-b border-[color:var(--border)] pb-2">
-                    <span className="text-[color:var(--muted)]">Pricing Range</span>
-                    <span className="font-semibold text-[color:var(--foreground)]">
-                      {formData.basePrice} - {formData.maxPrice} ETH
-                    </span>
+                  
+                  <div className="flex items-center gap-4 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5">
+                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-bold text-blue-400">i</span>
+                    </div>
+                    <p className="text-sm text-blue-200">
+                      Deploying will create a new SpinClass contract and mint the
+                      ownership NFT to your wallet.
+                    </p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[color:var(--muted)]">Rewards</span>
-                    <span className="font-semibold text-[color:var(--foreground)]">
-                      {formData.rewardAmount} SPIN @ {formData.rewardThreshold}{" "}
-                      Effort
-                    </span>
+                  
+                  <div className="flex items-center gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-lg">🎓</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-amber-200">Try Before You Deploy</p>
+                      <p className="text-sm text-amber-300/70">Preview your class with AI coaching and see how it feels.</p>
+                    </div>
+                    <button
+                      onClick={startPractice}
+                      disabled={!selectedRoute || !userAddress}
+                      className="rounded-xl bg-amber-500/20 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-amber-300 hover:bg-amber-500/30 transition disabled:opacity-50"
+                    >
+                      Practice Run
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 text-sm text-blue-200">
-                  <div className="grid h-6 w-6 place-items-center rounded-full bg-blue-500/20 text-xs font-bold">
-                    i
-                  </div>
-                  <p>
-                    Deploying will create a new SpinClass contract and mint the
-                    ownership NFT to your wallet.
-                  </p>
-                </div>
-                <div className="flex items-center gap-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
-                  <div className="grid h-6 w-6 place-items-center rounded-full bg-amber-500/20 text-xs font-bold text-amber-400">
-                    🎓
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-amber-200 font-medium">Try Before You Deploy</p>
-                    <p className="text-amber-300/70">Preview your class with AI coaching and see how it feels.</p>
-                  </div>
-                  <button
-                    onClick={startPractice}
-                    disabled={!selectedRoute || !userAddress}
-                    className="rounded-lg bg-amber-500/20 px-4 py-2 text-sm font-semibold text-amber-300 hover:bg-amber-500/30 transition disabled:opacity-50"
-                  >
-                    Practice Run
-                  </button>
-                </div>
-              </GlassCard>
+              </div>
             )}
 
-            <div className="flex justify-between pt-4">
+            <div className="flex justify-between pt-6">
               <button
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
                 disabled={step === 0}
-                className="rounded-full border border-[color:var(--border)] px-6 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:bg-[color:var(--surface)] disabled:opacity-50"
+                className="rounded-full border border-white/10 bg-white/5 px-8 py-3 text-xs font-black uppercase tracking-widest text-white/40 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
               >
-                Back
+                ← Back
               </button>
               {step < 5 ? (
                 <button
                   onClick={() => setStep((s) => Math.min(5, s + 1))}
-                  className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-white/10 transition hover:bg-gray-100"
+                  className="rounded-full bg-white px-8 py-3 text-xs font-black uppercase tracking-widest text-black shadow-lg shadow-white/20 transition hover:bg-gray-100 hover:scale-105"
                 >
-                  Next Step
+                  Next Step →
                 </button>
               ) : (
                 <button
@@ -651,18 +759,33 @@ export default function InstructorBuilderPage() {
                     });
                   }}
                   disabled={isPending || !userAddress}
-                  className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-8 py-2 text-sm font-semibold text-[color:var(--foreground)] shadow-lg shadow-indigo-500/30 transition hover:opacity-90 disabled:opacity-50"
+                  className="group relative rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-10 py-3 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-500/30 transition hover:opacity-90 hover:scale-105 disabled:opacity-50 overflow-hidden"
                 >
-                  {isPending ? "Deploying..." : "Deploy Contract"}
+                  <span className="relative z-10">{isPending ? "Deploying..." : "Deploy Contract"}</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               )}
             </div>
 
             {hash && (
-              <div className="mt-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 text-sm text-[color:var(--muted)]">
-                <p>Transaction Hash: <span className="font-mono text-xs text-indigo-500">{hash}</span></p>
-                {isSuccess && <p className="mt-2 text-green-400 font-medium">✨ Class contract deployed successfully!</p>}
-                {deployError && <p className="mt-2 text-red-400 font-medium">❌ Deployment failed: {deployError.message}</p>}
+              <div className="group relative mt-6 rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-3xl overflow-hidden">
+                <div className="absolute -inset-1 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-green-500/10 rounded-2xl blur opacity-30"></div>
+                <div className="relative">
+                  <p className="text-xs font-black uppercase tracking-widest text-white/40 mb-2">Transaction Hash</p>
+                  <p className="font-mono text-sm text-indigo-400 break-all">{hash}</p>
+                  {isSuccess && (
+                    <div className="flex items-center gap-2 mt-3">
+                      <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                      <p className="text-sm font-bold text-green-400">✨ Class contract deployed successfully!</p>
+                    </div>
+                  )}
+                  {deployError && (
+                    <div className="flex items-center gap-2 mt-3">
+                      <span className="h-2 w-2 rounded-full bg-red-400" />
+                      <p className="text-sm font-bold text-red-400">❌ Deployment failed: {deployError.message}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
