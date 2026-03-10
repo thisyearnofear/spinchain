@@ -81,9 +81,9 @@ function HomeContent() {
   ];
 
   const communityStats = [
-    { label: "Total Riders", value: "10K+" },
-    { label: "Classes Hosted", value: "50K+" },
-    { label: "Rewards Paid", value: "$2.4M" },
+    { label: "Total Riders", value: "10K+", subtitle: "Year 1 target" },
+    { label: "Classes Hosted", value: "50K+", subtitle: "Year 1 target" },
+    { label: "Rewards Paid", value: "$2.4M", subtitle: "Year 1 target" },
   ];
 
   return (
@@ -150,6 +150,9 @@ function HomeContent() {
                       {stat.value}
                     </motion.p>
                     <p className="text-xs text-[color:var(--muted)] uppercase tracking-wider">{stat.label}</p>
+                    {stat.subtitle && (
+                      <p className="text-[10px] text-[color:var(--accent)] font-medium mt-0.5">{stat.subtitle}</p>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -425,7 +428,7 @@ function HomeContent() {
                 ))}
               </div>
               <p className="text-sm md:text-base text-[color:var(--muted)]">
-                <span className="text-[color:var(--foreground)] font-semibold">10,000+</span> riders earning rewards
+                <span className="text-[color:var(--foreground)] font-semibold">10,000+</span> riders earning rewards <span className="text-[10px] text-[color:var(--accent)]">(Year 1 target)</span>
               </p>
             </div>
 
@@ -444,6 +447,7 @@ function HomeContent() {
                 >
                   <p className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)]">{stat.value}</p>
                   <p className="text-xs text-[color:var(--muted)] mt-1">{stat.label}</p>
+                  <p className="text-[10px] text-[color:var(--accent)] font-medium mt-0.5">Year 1 target</p>
                 </motion.div>
               ))}
             </div>
@@ -471,7 +475,7 @@ function HomeContent() {
                 Ready to start?
               </h2>
               <p className="text-sm md:text-base text-[color:var(--muted)] mb-6 md:mb-8 max-w-xl mx-auto">
-                Join thousands of riders and instructors who are already part of the future of fitness.
+                Join our growing community and be part of the future of fitness.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
                 <MagneticButton className="w-full sm:w-auto">
