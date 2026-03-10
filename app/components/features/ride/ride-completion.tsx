@@ -50,6 +50,7 @@ export function RideCompletion({
   onDeploy,
   onUpgrade,
   onClaimRewards,
+  onExportTCX,
   zkProofStatus,
   spinEarned = "0",
   agentName = "Coach",
@@ -217,12 +218,9 @@ export function RideCompletion({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
               <span>Complete more classes: Regular workouts = bonus rewards</span>
-            onUpgrade,
-            onClaimRewards,
-            onExportTCX,
-            zkProofStatus,
-            spinEarned = "0",
-            ...
+            </li>
+          </ul>
+
                   {/* Actions */}
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <button
@@ -244,13 +242,14 @@ export function RideCompletion({
                     )}
 
                     {isPracticeMode && onDeploy ? (
-              onClick={onDeploy}
-              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
-              aria-label="Deploy class"
-            >
-              Deploy Class
-            </button>
-          ) : (
+                      <button
+                        onClick={onDeploy}
+                        className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
+                        aria-label="Deploy class"
+                      >
+                        Deploy Class
+                      </button>
+                    ) : (
             <button
               onClick={onClaimRewards}
               disabled={zkProofStatus?.isGenerating || zkProofStatus?.isSuccess}
@@ -387,6 +386,7 @@ export function RideCompletion({
           </>
         )}
       </div>
+    </div>
     </div>
   );
 }

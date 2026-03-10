@@ -92,6 +92,8 @@ function MobileStatusBadges({ status }: { status?: RideHUDProps["mobileBridgeSta
       )}
     </div>
   );
+}
+
 function GhostLeadLag({ leadLagTime, distanceGap }: { leadLagTime: number; distanceGap: number }) {
   const isLeading = leadLagTime < 0; // Negative leadLagTime means ghost is behind (in our logic)
   const absTime = Math.abs(leadLagTime);
@@ -115,7 +117,6 @@ function GhostLeadLag({ leadLagTime, distanceGap }: { leadLagTime: number; dista
 }
 
 function GearBadge({ gear, ratio }: { gear?: number; ratio?: number }) {
-...
   if (!gear) return null;
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 backdrop-blur-xl shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all animate-in zoom-in duration-300">
