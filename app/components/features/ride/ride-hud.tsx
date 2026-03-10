@@ -3,6 +3,7 @@
 import { YellowRewardTicker } from "@/app/components/features/common/yellow-reward-ticker";
 import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
 import type { IntervalPhase } from "@/app/lib/workout-plan";
+import type { GhostState } from "@/app/lib/analytics/ghost-service";
 
 export interface TelemetryData {
   heartRate: number;
@@ -17,6 +18,7 @@ export interface TelemetryData {
 
 interface RideHUDProps {
   telemetry: TelemetryData;
+  ghostState?: GhostState;
   deviceType: "mobile" | "tablet" | "desktop";
   orientation: "portrait" | "landscape";
   hudMode: "full" | "compact" | "minimal";
@@ -90,8 +92,30 @@ function MobileStatusBadges({ status }: { status?: RideHUDProps["mobileBridgeSta
       )}
     </div>
   );
+function GhostLeadLag({ leadLagTime, distanceGap }: { leadLagTime: number; distanceGap: number }) {
+  const isLeading = leadLagTime < 0; // Negative leadLagTime means ghost is behind (in our logic)
+  const absTime = Math.abs(leadLagTime);
+  const color = isLeading ? "text-emerald-400" : "text-rose-400";
+  const label = isLeading ? "Lead" : "Lag";
+
+  return (
+    <div className="flex flex-col items-center justify-center rounded-xl border border-white/20 bg-black/40 px-3 py-1.5 backdrop-blur-xl transition-all">
+      <span className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-0.5">Ghost Pacer</span>
+      <div className="flex items-baseline gap-1.5">
+        <span className={`text-lg font-black ${color} tracking-tighter`}>
+          {isLeading ? "+" : "-"}{absTime.toFixed(1)}s
+        </span>
+        <span className="text-[10px] font-bold text-white/60 uppercase">{label}</span>
+      </div>
+      <div className="text-[9px] font-mono text-white/30">
+        {Math.abs(distanceGap).toFixed(0)}m {isLeading ? "ahead" : "behind"}
+      </div>
+    </div>
+  );
 }
+
 function GearBadge({ gear, ratio }: { gear?: number; ratio?: number }) {
+...
   if (!gear) return null;
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 backdrop-blur-xl shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all animate-in zoom-in duration-300">
@@ -117,6 +141,7 @@ function GearBadge({ gear, ratio }: { gear?: number; ratio?: number }) {
  */
 export function RideHUD({
   telemetry,
+  ghostState,
   deviceType,
   orientation,
   hudMode,
@@ -205,8 +230,14 @@ export function RideHUD({
             ))}
           </div>
 
-          <div className="flex justify-center -mt-1">
+          <div className="flex justify-center -mt-1 gap-2">
             <GearBadge gear={telemetry.currentGear} ratio={telemetry.gearRatio} />
+            {ghostState && (
+              <GhostLeadLag 
+                leadLagTime={ghostState.leadLagTime} 
+                distanceGap={ghostState.distanceGap} 
+              />
+            )}
           </div>
 
           {isRiding && agentInsight}
@@ -236,8 +267,14 @@ export function RideHUD({
               </p>
             </div>
           ))}
-          <div className="flex justify-center mt-2">
+          <div className="flex justify-center mt-2 gap-3">
             <GearBadge gear={telemetry.currentGear} ratio={telemetry.gearRatio} />
+            {ghostState && (
+              <GhostLeadLag 
+                leadLagTime={ghostState.leadLagTime} 
+                distanceGap={ghostState.distanceGap} 
+              />
+            )}
           </div>
         </div>
       </div>
@@ -267,6 +304,12 @@ export function RideHUD({
             {phaseLabel}
           </div>
           <GearBadge gear={telemetry.currentGear} ratio={telemetry.gearRatio} />
+          {ghostState && (
+            <GhostLeadLag 
+              leadLagTime={ghostState.leadLagTime} 
+              distanceGap={ghostState.distanceGap} 
+            />
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4 sm:gap-6">

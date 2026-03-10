@@ -41,6 +41,8 @@ import {
   DEFAULT_ROAD_GEARS,
   type WBalConfig
 } from "../../../lib/analytics/physiological-models";
+import { downloadTCX, type RideRecordPoint } from "../../../lib/analytics/ride-recorder";
+import { calculateGhostState, generateMockGhost, type GhostPerformance, type GhostState } from "../../../lib/analytics/ghost-service";
 
 interface PracticeClassConfig {
   name: string;
@@ -337,6 +339,14 @@ export default function LiveRidePage() {
   const [currentGear, setCurrentGear] = useState(10); // Start in middle gear
   const lastWBalUpdateMsRef = useRef<number>(0);
   
+  // Ghost Rider State
+  const [ghostPerformance, setGhostPerformance] = useState<GhostPerformance | null>(null);
+  const [ghostState, setGhostState] = useState<GhostState>({
+    leadLagTime: 0,
+    distanceGap: 0,
+    ghostPoint: null,
+  });
+  
   const lastTelemetryCommitMsRef = useRef(0);
   const trackedEntryViewRef = useRef(false);
   const trackedLiveTelemetryRef = useRef(false);
@@ -344,10 +354,19 @@ export default function LiveRidePage() {
 
   // Telemetry averages for completion screen
   const telemetrySamples = useRef<{ hr: number; power: number; effort: number }[]>([]);
+  const ridePointsRef = useRef<RideRecordPoint[]>([]);
   const routeCoordinates = useMemo(
     () => classData?.route?.route.coordinates ?? [],
     [classData?.route?.route.coordinates],
   );
+
+  useEffect(() => {
+    if (routeCoordinates.length > 0 && !ghostPerformance) {
+      const mock = generateMockGhost(routeCoordinates, 25); // 25 km/h target
+      setGhostPerformance(mock);
+    }
+  }, [routeCoordinates, ghostPerformance]);
+
   const routeElevationProfile = useMemo(
     () => routeCoordinates.map((coordinate) => coordinate.ele || 0),
     [routeCoordinates],
@@ -544,6 +563,32 @@ export default function LiveRidePage() {
         currentGear,
         gearRatio: ratio,
       };
+      
+      // Record point for TCX export (at ~1Hz)
+      if (Math.round(now / 1000) !== Math.round(lastTelemetryCommitMsRef.current / 1000)) {
+        const currentCoord = currentRouteCoordinate;
+        ridePointsRef.current.push({
+          timestamp: now,
+          heartRate: telemetryRawRef.current.heartRate,
+          power: telemetryRawRef.current.power,
+          cadence: telemetryRawRef.current.cadence,
+          speed: telemetryRawRef.current.speed,
+          distance: telemetryRawRef.current.distance,
+          latitude: currentCoord?.lat,
+          longitude: currentCoord?.lng,
+          altitude: currentCoord?.ele,
+        });
+      }
+      
+      // Update Ghost Rider position and lead/lag
+      if (ghostPerformance) {
+        const nextGhost = calculateGhostState(
+          ghostPerformance.points,
+          telemetryRawRef.current.distance * 1000,
+          elapsedTime
+        );
+        setGhostState(nextGhost);
+      }
       
       setTelemetry(telemetryRawRef.current);
     }, intervalMs);
@@ -1282,6 +1327,7 @@ export default function LiveRidePage() {
             rewardsMode={rewards.mode}
             intervalPhase={currentInterval?.phase ?? null}
             aiLog={aiLogs[0]}
+            ghostState={ghostState}
           />
 
           {/* Bottom - Controls (Mobile Optimized) */}
@@ -1505,6 +1551,14 @@ export default function LiveRidePage() {
           spinEarned={rewards.formattedReward}
           agentName={agentName}
           agentPersonality={aiPersonality || "data"}
+          onExportTCX={() => {
+            downloadTCX({
+              id: classId,
+              name: classData?.name || "SpinChain Ride",
+              startTime: classData?.startTime ? classData.startTime * 1000 : Date.now(),
+              instructor: classData?.instructor,
+            }, ridePointsRef.current);
+          }}
         />
       )}
 

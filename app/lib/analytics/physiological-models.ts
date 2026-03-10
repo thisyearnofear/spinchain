@@ -150,7 +150,7 @@ export function powerToSpeed(
 
 /**
  * Get W'bal as a percentage (0-100)
-...
+ */
 export function getWBalPercentage(current: number, max: number): number {
   return (current / max) * 100;
 }
