@@ -34,15 +34,20 @@ const storage = createStorage({
   },
 });
 
+// Custom RPC URLs that support CORS
+const ETHEREUM_MAINNET_RPC = process.env.NEXT_PUBLIC_ETHEREUM_RPC_URL || "https://rpc.ankr.com/eth";
+const AVALANCHE_RPC = process.env.NEXT_PUBLIC_AVALANCHE_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
+const AVALANCHE_MAINNET_RPC = process.env.NEXT_PUBLIC_AVALANCHE_MAINNET_RPC_URL || "https://api.avax.com/ext/bc/C/rpc";
+
 export function createBrowserWagmiConfig(): Config {
   return getDefaultConfig({
     appName: "SpinChain",
     projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "YOUR_PROJECT_ID",
     chains: [avalancheFuji, avalanche, mainnet],
     transports: {
-      [avalancheFuji.id]: http(),
-      [avalanche.id]: http(),
-      [mainnet.id]: http(),
+      [avalancheFuji.id]: http(AVALANCHE_RPC),
+      [avalanche.id]: http(AVALANCHE_MAINNET_RPC),
+      [mainnet.id]: http(ETHEREUM_MAINNET_RPC),
     },
     ssr: true,
     storage,
