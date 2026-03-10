@@ -75,7 +75,7 @@ function SettingsDropdown() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 w-64 max-w-[90vw] rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-xl backdrop-blur-xl p-4"
+            className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-64 max-w-[90vw] rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-xl backdrop-blur-xl p-4"
             style={{ zIndex: 9999 }}
             data-testid="settings-dropdown"
           >
@@ -150,14 +150,16 @@ export function PrimaryNav() {
           >
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="flex items-center gap-2">
-                <SettingsDropdown />
                 <ConnectWallet />
                 {showSuiWallet && <SuiWalletButton />}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2">
                 <NavLink href="/routes" onClick={closeMobileMenu}>Routes</NavLink>
-                <NavLink href="/instructor" onClick={closeMobileMenu}>Teach</NavLink>
+                <div className="flex items-center gap-2">
+                  <NavLink href="/instructor" onClick={closeMobileMenu}>Teach</NavLink>
+                  <SettingsDropdown />
+                </div>
               </div>
             </div>
 
