@@ -139,14 +139,30 @@ export function PrimaryNav() {
         <MobileMenuButton isOpen={isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
       </div>
 
+      {/* Desktop: always visible via CSS; Mobile: toggled via AnimatePresence */}
+      <div className="hidden lg:flex lg:items-center gap-4 overflow-visible">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <ConnectWallet />
+            {showSuiWallet && <SuiWalletButton />}
+          </div>
+          <div className="flex items-center gap-2">
+            <NavLink href="/routes">Routes</NavLink>
+            <NavLink href="/instructor">Teach</NavLink>
+            <SettingsDropdown />
+          </div>
+        </div>
+        <PrimaryCTA href="/rider">Start Riding</PrimaryCTA>
+      </div>
+
       <AnimatePresence mode="wait">
-        {(isMobileMenuOpen || typeof window !== "undefined" && window.innerWidth >= 1024) && (
+        {isMobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex flex-col lg:flex-row lg:items-center gap-4 overflow-visible"
+            className="flex flex-col gap-4 overflow-visible lg:hidden"
           >
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="flex items-center gap-2">

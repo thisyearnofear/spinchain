@@ -20,6 +20,7 @@ import { useCoachVoice } from "../../../hooks/common/use-coach-voice";
 import { useAiInstructor } from "../../../hooks/ai/use-ai-instructor";
 import { useAgentReasoner } from "../../../hooks/ai/use-agent-reasoner";
 import { useRewards, type RewardMode } from "../../../hooks/rewards/use-rewards";
+import { useUnifiedBle } from "../../../lib/mobile-bridge";
 import { useZKClaim } from "../../../hooks/evm/use-zk-claim";
 import { ANALYTICS_EVENTS, trackEvent } from "../../../lib/analytics/events";
 import { DemoCompleteModal } from "../../../components/features/common/demo-complete-modal";
