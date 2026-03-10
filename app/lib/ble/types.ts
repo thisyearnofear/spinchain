@@ -27,6 +27,8 @@ export interface FitnessMetrics {
   speed: number; // km/h
   distance: number; // km
   resistance?: number; // 0-100%
+  wBal?: number; // Remaining anaerobic energy in Joules
+  wBalPercentage?: number; // 0-100%
   timestamp: number; // Unix timestamp
 }
 

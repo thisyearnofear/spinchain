@@ -62,6 +62,7 @@ export function useAiInstructor({
       const hr = metrics.heartRate;
       const power = metrics.power;
       const cadence = metrics.cadence;
+      const wBalPct = metrics.wBalPercentage ?? 100;
       
       const targetHrZone = currentInterval?.targetHrZone;
       const targetRpm = currentInterval?.targetRpm;
@@ -75,8 +76,8 @@ export function useAiInstructor({
           addLog(message, "action");
           triggerBeat("Leg Speed Attack!", "sprint", 8);
           lastActionTimestamp.current = now;
-        } else if (hr < 130 && canTakeAction) {
-          const message = `${agentName}: "Your heart rate is too low for this phase. Increasing resistance. DIG DEEPER!"`;
+        } else if (hr < 130 && wBalPct > 80 && canTakeAction) {
+          const message = `${agentName}: "You have plenty of fuel left in the tank! Increasing resistance. DIG DEEPER!"`;
           addLog(message, "action");
           setResistance?.(metrics.resistance ? Math.min(100, metrics.resistance + 10) : 50);
           triggerBeat("Intensity Surge", "climb", 7);
@@ -86,8 +87,9 @@ export function useAiInstructor({
       
       else if (personality === "zen") {
         // Recovery/Flow focus: Calm if over-exerting
-        if (hr > 175 && canTakeAction) {
-          const message = `${agentName}: "Your heart is racing beyond the zone. Lowering resistance. Soften your grip. Breathe deep."`;
+        if ((hr > 175 || wBalPct < 20) && canTakeAction) {
+          const status = wBalPct < 20 ? "Your energy is nearly depleted." : "Your heart is racing beyond the zone.";
+          const message = `${agentName}: "${status} Lowering resistance. Soften your grip. Breathe deep."`;
           addLog(message, "action");
           setResistance?.(metrics.resistance ? Math.max(0, metrics.resistance - 15) : 20);
           triggerBeat("Find Your Center", "rest", 3);
@@ -124,7 +126,7 @@ export function useAiInstructor({
 
       // 3. Fallback/Standard Monitoring
       if (now - lastActionTimestamp.current > 30000) { // Log status every 30s if no actions
-        addLog(`Monitoring: HR:${hr} | PWR:${power} | RPM:${cadence}`, "info");
+        addLog(`Monitoring: HR:${hr} | PWR:${power} | W'bal:${Math.round(wBalPct)}%`, "info");
       }
 
     }, 5000); // Check every 5 seconds

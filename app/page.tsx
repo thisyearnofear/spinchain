@@ -106,25 +106,29 @@ function HomeContent() {
 
         {/* Hero */}
         <FadeIn>
-          <header className="flex flex-col items-start justify-between gap-8 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 shadow-[0_20px_80px_rgba(0,0,0,0.15)] backdrop-blur">
+          <header className="flex flex-col items-start justify-between gap-8 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-6 py-8 md:px-8 md:py-10 shadow-[0_20px_80px_rgba(0,0,0,0.15)] backdrop-blur">
             <PrimaryNav />
             {/* Clear What-We-Do Statement */}
-            <div className="w-full text-center py-10 border-y border-white/5 relative overflow-hidden">
+            <div className="w-full text-center py-8 md:py-12 border-y border-[color:var(--border)] relative overflow-hidden">
               {/* Decorative background light */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[color:var(--accent)]/5 blur-[120px] pointer-events-none" />
 
-              <h1 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tighter drop-shadow-2xl">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[color:var(--foreground)] mb-6 drop-shadow-2xl leading-tight">
                 Elevate Your Spin.<br />
-                <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">Earn Onchain.</span>
+                <span className="bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] bg-clip-text text-transparent">Earn Onchain.</span>
               </h1>
-              <p className="text-xl text-white/50 max-w-2xl mx-auto font-medium leading-relaxed">
+              <p className="text-lg md:text-xl text-[color:var(--muted)] max-w-2xl mx-auto font-medium leading-relaxed">
                 Transform any spin bike into a high-performance 3D experience.
-                <span className="text-white/80"> Earn SPIN tokens</span> as you crush your goals in the Neural Metaverse.
+                <span className="text-[color:var(--foreground)]"> Earn SPIN tokens</span> as you crush your goals.
               </p>
             </div>
 
             {/* Community Stats Ticker */}
-            <div className="w-full flex flex-wrap justify-center gap-10 py-6 border-b border-white/5 bg-white/2 backdrop-blur-sm rounded-b-2xl">
+            <div 
+              className="w-full flex flex-wrap justify-center gap-6 md:gap-10 py-6 bg-[color:var(--surface)]/50 backdrop-blur-sm rounded-b-2xl"
+              role="region"
+              aria-label="Community statistics"
+            >
               {communityStats.map((stat, i) => (
                 <motion.div
                   key={stat.label}
@@ -134,7 +138,13 @@ function HomeContent() {
                   className="flex items-center gap-3"
                 >
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-[color:var(--foreground)]">{stat.value}</p>
+                    <motion.p 
+                      className="text-2xl font-bold text-[color:var(--foreground)]"
+                      animate={{ scale: [1, 1.02, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
+                    >
+                      {stat.value}
+                    </motion.p>
                     <p className="text-xs text-[color:var(--muted)] uppercase tracking-wider">{stat.label}</p>
                   </div>
                 </motion.div>

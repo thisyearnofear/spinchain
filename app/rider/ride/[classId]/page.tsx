@@ -32,6 +32,12 @@ import {
   getIntervalProgress,
   getIntervalRemaining,
 } from "../../../lib/workout-plan";
+import {
+  calculateNextWBal,
+  DEFAULT_WBAL_CONFIG,
+  getWBalPercentage,
+  type WBalConfig
+} from "../../../lib/analytics/physiological-models";
 
 interface PracticeClassConfig {
   name: string;
@@ -304,6 +310,8 @@ export default function LiveRidePage() {
     cadence: 0,
     speed: 0,
     effort: 0,
+    wBal: DEFAULT_WBAL_CONFIG.wPrime,
+    wBalPercentage: 100,
   });
   const [recentPowerHistory, setRecentPowerHistory] = useState<number[]>([]);
   const telemetryRawRef = useRef({
@@ -312,7 +320,15 @@ export default function LiveRidePage() {
     cadence: 0,
     speed: 0,
     effort: 0,
+    wBal: DEFAULT_WBAL_CONFIG.wPrime,
+    wBalPercentage: 100,
   });
+
+  // Physiological Model Refs
+  const wBalRef = useRef<number>(DEFAULT_WBAL_CONFIG.wPrime);
+  const wBalConfigRef = useRef<WBalConfig>(DEFAULT_WBAL_CONFIG);
+  const lastWBalUpdateMsRef = useRef<number>(0);
+  
   const lastTelemetryCommitMsRef = useRef(0);
   const trackedEntryViewRef = useRef(false);
   const trackedLiveTelemetryRef = useRef(false);
@@ -467,7 +483,33 @@ export default function LiveRidePage() {
     const id = setInterval(() => {
       const now = Date.now();
       if (now - lastTelemetryCommitMsRef.current < intervalMs) return;
+      
+      const deltaSeconds = lastWBalUpdateMsRef.current > 0 
+        ? (now - lastWBalUpdateMsRef.current) / 1000 
+        : intervalMs / 1000;
+      
+      lastWBalUpdateMsRef.current = now;
       lastTelemetryCommitMsRef.current = now;
+      
+      // Update Physiological Model (W'bal)
+      const power = telemetryRawRef.current.power;
+      const nextWBal = calculateNextWBal(
+        wBalRef.current,
+        power,
+        deltaSeconds,
+        wBalConfigRef.current
+      );
+      
+      wBalRef.current = nextWBal;
+      const percentage = getWBalPercentage(nextWBal, wBalConfigRef.current.wPrime);
+      
+      // Sync with raw ref for consistent display
+      telemetryRawRef.current = {
+        ...telemetryRawRef.current,
+        wBal: nextWBal,
+        wBalPercentage: percentage,
+      };
+      
       setTelemetry(telemetryRawRef.current);
     }, intervalMs);
 
