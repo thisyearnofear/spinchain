@@ -1,20 +1,33 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PrimaryNav } from "../../components/layout/nav";
-import { getBadges, getClassLeaderboard, getPRs, getRideHistory, getStreakStats, type RideSummary } from "../../lib/analytics/ride-history";
+import {
+  getBadges,
+  getLeaderboardSnapshot,
+  getPRs,
+  getRetentionSignals,
+  getRideHistory,
+  processRideSyncQueue,
+  type LeaderboardSnapshot,
+  type RideSummary,
+} from "../../lib/analytics/ride-history";
 
 function JourneyContent() {
   const searchParams = useSearchParams();
   const [rides] = useState<RideSummary[]>(() => getRideHistory());
+  const [leaderboard, setLeaderboard] = useState<LeaderboardSnapshot | null>(null);
   const isCompletedLanding = searchParams.get("completed") === "true";
 
-  const streaks = useMemo(() => getStreakStats(rides), [rides]);
+  const retention = useMemo(() => getRetentionSignals(rides), [rides]);
   const prs = useMemo(() => getPRs(rides), [rides]);
   const badges = useMemo(() => getBadges(rides), [rides]);
   const latestClassId = rides[0]?.classId ?? "";
-  const leaderboard = useMemo(() => getClassLeaderboard(rides, latestClassId), [rides, latestClassId]);
+  useEffect(() => {
+    void processRideSyncQueue();
+    void getLeaderboardSnapshot(rides, latestClassId).then(setLeaderboard);
+  }, [rides, latestClassId]);
 
   const recent = rides.slice(0, 8);
 
@@ -34,9 +47,20 @@ function JourneyContent() {
 
         <div className="grid gap-6 md:grid-cols-4">
           <StatCard label="Total Rides" value={rides.length.toString()} />
-          <StatCard label="Daily Streak" value={`${streaks.daily} days`} />
-          <StatCard label="Weekly Streak" value={`${streaks.weekly} weeks`} />
+          <StatCard label="Daily Streak" value={`${retention.streaks.daily} days`} />
+          <StatCard label="Weekly Streak" value={`${retention.streaks.weekly} weeks`} />
           <StatCard label="Best Effort" value={`${prs.bestEffort}/1000`} />
+        </div>
+
+        <div className="rounded-3xl border border-cyan-400/20 bg-cyan-500/10 p-6">
+          <h3 className="text-lg font-bold text-white">Weekly Goal</h3>
+          <p className="mt-2 text-sm text-cyan-100/90">
+            {retention.weeklyGoal.completedRides}/{retention.weeklyGoal.targetRides} rides completed this week.
+            {" "}
+            {retention.weeklyGoal.remainingRides > 0
+              ? `${retention.weeklyGoal.remainingRides} to go.`
+              : "Goal complete — momentum unlocked."}
+          </p>
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
@@ -74,12 +98,22 @@ function JourneyContent() {
 
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
             <h3 className="text-lg font-bold text-white">Class Leaderboard</h3>
-            <p className="mt-1 text-xs text-white/50">Privacy-preserving ranking from your local ride summaries + proof metadata.</p>
+            <p className="mt-1 text-xs text-white/50">
+              {leaderboard?.source === "remote"
+                ? "Off-chain indexed class rankings, periodically anchored on-chain for verification."
+                : "Showing local fallback while waiting for relay/index sync."}
+            </p>
+            {leaderboard?.commitment.epoch ? (
+              <p className="mt-1 text-[11px] text-white/50">
+                Commitment epoch #{leaderboard.commitment.epoch}
+                {leaderboard.commitment.txHash ? ` • ${leaderboard.commitment.txHash.slice(0, 8)}...` : ""}
+              </p>
+            ) : null}
             <div className="mt-4 space-y-2">
-              {leaderboard.length === 0 ? (
+              {(leaderboard?.entries.length ?? 0) === 0 ? (
                 <p className="text-sm text-white/60">No leaderboard entries yet.</p>
               ) : (
-                leaderboard.map((entry) => (
+                leaderboard?.entries.map((entry) => (
                   <div key={`${entry.rank}-${entry.riderLabel}`} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/80">
                     <span>#{entry.rank} {entry.riderLabel}</span>
                     <span>{entry.effort} effort • {entry.verified ? "✓" : "~"} {entry.proofType}</span>
@@ -92,6 +126,9 @@ function JourneyContent() {
 
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
           <h3 className="text-lg font-bold text-white">Ride History</h3>
+          {retention.unlockedBadges.length > 0 && (
+            <p className="mt-1 text-xs text-white/50">Latest unlock: {retention.unlockedBadges.at(-1)?.name}</p>
+          )}
           <div className="mt-4 space-y-3">
             {rides.length === 0 ? (
               <p className="text-sm text-white/60">No rides yet. Complete your first class to start your journey history.</p>

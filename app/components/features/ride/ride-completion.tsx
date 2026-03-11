@@ -39,6 +39,8 @@ interface RideCompletionProps {
   spinEarned?: string;
   agentName?: string;
   agentPersonality?: "zen" | "drill-sergeant" | "data";
+  syncStatus?: "local_only" | "queued" | "relayed" | "anchored" | "failed";
+  primaryAction?: "view_history" | "ride_again";
 }
 
 export function RideCompletion({
@@ -59,6 +61,8 @@ export function RideCompletion({
   spinEarned = "0",
   agentName = "Coach",
   agentPersonality = "data",
+  syncStatus = "local_only",
+  primaryAction = "view_history",
 }: RideCompletionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -228,18 +232,32 @@ export function RideCompletion({
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <button
-            onClick={onExit}
-            className="flex-1 rounded-full border border-white/20 bg-white/10 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-white/20"
-            aria-label={isPracticeMode ? "Back to builder" : "View history"}
-          >
-            {isPracticeMode ? "Back to Builder" : "View History"}
-          </button>
+          {primaryAction === "view_history" ? (
+            <button
+              onClick={onExit}
+              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
+              aria-label={isPracticeMode ? "Back to builder" : "View history"}
+            >
+              {isPracticeMode ? "Back to Builder" : "View History"}
+            </button>
+          ) : (
+            <button
+              onClick={onExit}
+              className="flex-1 rounded-full border border-white/20 bg-white/10 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-white/20"
+              aria-label={isPracticeMode ? "Back to builder" : "View history"}
+            >
+              {isPracticeMode ? "Back to Builder" : "View History"}
+            </button>
+          )}
 
           {onRideAgain && (
             <button
               onClick={onRideAgain}
-              className="flex-1 rounded-full border border-cyan-500/40 bg-cyan-500/10 py-2.5 sm:py-3 text-sm sm:text-base text-cyan-200 font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-cyan-500/20"
+              className={`flex-1 rounded-full py-2.5 sm:py-3 text-sm sm:text-base font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] ${
+                primaryAction === "ride_again"
+                  ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/40 hover:opacity-90"
+                  : "border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20"
+              }`}
               aria-label="Ride again"
             >
               Ride Again
@@ -291,6 +309,14 @@ export function RideCompletion({
         </div>
 
         {/* Agent Validation Status */}
+        <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3 text-left text-xs text-white/70">
+          Sync status: {syncStatus.replace("_", " ")}
+          {syncStatus === "queued" ? " • queued for relay" : ""}
+          {syncStatus === "relayed" ? " • relay acknowledged" : ""}
+          {syncStatus === "anchored" ? " • on-chain commitment anchored" : ""}
+          {syncStatus === "failed" ? " • retry from Journey when online" : ""}
+        </div>
+
         {!isPracticeMode && zkProofStatus && (
           <div className="mt-4 rounded-xl border border-indigo-500/20 bg-black/30 p-3 text-left text-xs">
             <div className="flex items-center justify-between mb-2">

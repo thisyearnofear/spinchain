@@ -10,6 +10,25 @@ import {
 } from "@/app/lib/contracts";
 import type { PendingYellowSettlement } from "@/app/lib/rewards/yellow/pending-store";
 
+function normalizeWalletError(err: unknown): Error {
+  if (err instanceof Error) return err;
+
+  if (typeof err === "object" && err !== null) {
+    const maybeWalletError = err as { code?: number; message?: string };
+    if (maybeWalletError.code === 4001) {
+      return new Error(
+        maybeWalletError.message ||
+          "Wallet signature was rejected or no wallet account is connected.",
+      );
+    }
+    if (typeof maybeWalletError.message === "string") {
+      return new Error(maybeWalletError.message);
+    }
+  }
+
+  return new Error(String(err));
+}
+
 // EIP-712 types must match YellowSettlement.sol
 const DOMAIN = {
   name: "SpinChainYellowSettlement",
@@ -60,27 +79,35 @@ export function useYellowSettlement() {
       finalReward: bigint;
       effortScore: number;
     }) => {
-      const signature = await signTypedDataAsync({
-        domain: {
-          ...DOMAIN,
-          chainId: ACTIVE_NETWORK.id,
-          verifyingContract: YELLOW_SETTLEMENT_ADDRESS,
-        },
-        types: CHANNEL_STATE_TYPES,
-        primaryType: "ChannelState",
-        message: {
-          channelId: params.channelId,
-          rider: params.rider,
-          instructor: params.instructor,
-          classId: params.classId,
-          finalReward: params.finalReward,
-          effortScore: params.effortScore,
-        },
-      });
+      if (!address) {
+        throw new Error("Connect wallet to sign Yellow settlement state.");
+      }
 
-      return signature;
+      try {
+        const signature = await signTypedDataAsync({
+          domain: {
+            ...DOMAIN,
+            chainId: ACTIVE_NETWORK.id,
+            verifyingContract: YELLOW_SETTLEMENT_ADDRESS,
+          },
+          types: CHANNEL_STATE_TYPES,
+          primaryType: "ChannelState",
+          message: {
+            channelId: params.channelId,
+            rider: params.rider,
+            instructor: params.instructor,
+            classId: params.classId,
+            finalReward: params.finalReward,
+            effortScore: params.effortScore,
+          },
+        });
+
+        return signature;
+      } catch (err) {
+        throw normalizeWalletError(err);
+      }
     },
-    [signTypedDataAsync]
+    [address, signTypedDataAsync]
   );
 
   const signUpdate = useCallback(
@@ -95,30 +122,38 @@ export function useYellowSettlement() {
       heartRate: number;
       power: number;
     }) => {
-      const signature = await signTypedDataAsync({
-        domain: {
-          ...DOMAIN,
-          chainId: ACTIVE_NETWORK.id,
-          verifyingContract: YELLOW_SETTLEMENT_ADDRESS,
-        },
-        types: SIGNED_UPDATE_TYPES,
-        primaryType: "SignedUpdate",
-        message: {
-          channelId: params.channelId,
-          classId: params.classId,
-          rider: params.rider,
-          instructor: params.instructor,
-          timestamp: BigInt(Math.floor(params.timestamp / 1000)),
-          sequence: BigInt(params.sequence),
-          accumulatedReward: params.accumulatedReward,
-          heartRate: params.heartRate,
-          power: params.power,
-        },
-      });
+      if (!address) {
+        throw new Error("Connect wallet to sign Yellow reward updates.");
+      }
 
-      return signature;
+      try {
+        const signature = await signTypedDataAsync({
+          domain: {
+            ...DOMAIN,
+            chainId: ACTIVE_NETWORK.id,
+            verifyingContract: YELLOW_SETTLEMENT_ADDRESS,
+          },
+          types: SIGNED_UPDATE_TYPES,
+          primaryType: "SignedUpdate",
+          message: {
+            channelId: params.channelId,
+            classId: params.classId,
+            rider: params.rider,
+            instructor: params.instructor,
+            timestamp: BigInt(Math.floor(params.timestamp / 1000)),
+            sequence: BigInt(params.sequence),
+            accumulatedReward: params.accumulatedReward,
+            heartRate: params.heartRate,
+            power: params.power,
+          },
+        });
+
+        return signature;
+      } catch (err) {
+        throw normalizeWalletError(err);
+      }
     },
-    [signTypedDataAsync]
+    [address, signTypedDataAsync]
   );
 
   const settleOnChain = useCallback(

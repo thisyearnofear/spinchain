@@ -107,12 +107,22 @@ function NavLink({ href, children, onClick }: { href: string; children: React.Re
   );
 }
 
-function PrimaryCTA({ href, children, onClick }: { href: string; children: React.ReactNode; onClick?: () => void }) {
+function PrimaryCTA({
+  href,
+  children,
+  onClick,
+  className,
+}: {
+  href: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+}) {
   return (
     <a
       href={href}
       onClick={onClick}
-      className="block w-full text-center rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[color:var(--glow)]"
+      className={`block w-full text-center rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[color:var(--glow)] ${className ?? ""}`}
     >
       {children}
     </a>

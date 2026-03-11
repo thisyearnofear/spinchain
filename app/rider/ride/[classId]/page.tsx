@@ -45,7 +45,7 @@ import {
 } from "../../../lib/analytics/physiological-models";
 import { downloadTCX, type RideRecordPoint } from "../../../lib/analytics/ride-recorder";
 import { calculateGhostState, generateMockGhost, type GhostPerformance, type GhostState } from "../../../lib/analytics/ghost-service";
-import { saveRideSummary } from "../../../lib/analytics/ride-history";
+import { createCanonicalRideSummary, enqueueRideSync, getRetentionSignals, processRideSyncQueue, saveRideSummary, type RideSyncStatus } from "../../../lib/analytics/ride-history";
 
 interface PracticeClassConfig {
   name: string;
@@ -167,6 +167,7 @@ export default function LiveRidePage() {
 
   const { classData: fetchedClassData, isLoading } = useClass(classId as `0x${string}`);
   const classData = isPracticeMode ? practiceClassData : fetchedClassData;
+  const [loadStartedAt] = useState(() => Date.now());
   const deviceType = useDeviceType();
   const orientation = useOrientation();
   const viewportHeight = useActualViewportHeight();
@@ -356,6 +357,8 @@ export default function LiveRidePage() {
     wBalPercentage: 100,
     currentGear: 10,
     gearRatio: 1.0,
+    distance: 0,
+    timestamp: Date.now(),
   });
   const [recentPowerHistory, setRecentPowerHistory] = useState<number[]>([]);
   const telemetryRawRef = useRef({
@@ -368,6 +371,8 @@ export default function LiveRidePage() {
     wBalPercentage: 100,
     currentGear: 10,
     gearRatio: 1.0,
+    distance: 0,
+    timestamp: Date.now(),
   });
 
   // Physiological Model Refs
@@ -506,7 +511,7 @@ export default function LiveRidePage() {
   };
 
   // Reward mode selection — default to zk-batch, yellow-stream available as beta for wallet users
-  const { isConnected: walletConnected } = useAccount();
+  const { isConnected: walletConnected, address } = useAccount();
   const [rewardMode, setRewardMode] = useState<RewardMode>("zk-batch");
 
   // Guest mode — reward selector is disabled; user must connect wallet to earn
@@ -522,6 +527,8 @@ export default function LiveRidePage() {
 
   // Demo complete modal state
   const [showDemoModal, setShowDemoModal] = useState(false);
+  const [completionSyncStatus, setCompletionSyncStatus] = useState<RideSyncStatus>("local_only");
+  const [completionPrimaryAction, setCompletionPrimaryAction] = useState<"view_history" | "ride_again">("view_history");
   const [demoStats, setDemoStats] = useState({
     duration: 0,
     avgHeartRate: 0,
@@ -555,10 +562,10 @@ export default function LiveRidePage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowUp") {
         setCurrentGear(prev => Math.min(totalGears, prev + 1));
-        playSound?.("click");
+        playSound?.("resistanceUp");
       } else if (e.key === "ArrowDown") {
         setCurrentGear(prev => Math.max(1, prev - 1));
-        playSound?.("click");
+        playSound?.("resistanceDown");
       }
     };
     
@@ -604,10 +611,12 @@ export default function LiveRidePage() {
       telemetryRawRef.current = {
         ...telemetryRawRef.current,
         speed: virtualSpeed > 0 ? virtualSpeed : telemetryRawRef.current.speed,
+        distance: telemetryRawRef.current.distance + ((virtualSpeed * deltaSeconds) / 3600),
         wBal: nextWBal,
         wBalPercentage: percentage,
         currentGear,
         gearRatio: ratio,
+        timestamp: now,
       };
       
       // Record point for TCX export (at ~1Hz)
@@ -654,14 +663,19 @@ export default function LiveRidePage() {
     cadence?: number;
     speed?: number;
     effort?: number;
+    distance?: number;
+    timestamp?: number;
   }) => {
     // Buffer raw telemetry (do not trigger React rerender here)
     telemetryRawRef.current = {
+      ...telemetryRawRef.current,
       heartRate: metrics.heartRate ?? telemetryRawRef.current.heartRate,
       power: metrics.power ?? telemetryRawRef.current.power,
       cadence: metrics.cadence ?? telemetryRawRef.current.cadence,
       speed: metrics.speed ?? telemetryRawRef.current.speed,
       effort: metrics.effort ?? telemetryRawRef.current.effort,
+      distance: metrics.distance ?? telemetryRawRef.current.distance,
+      timestamp: metrics.timestamp ?? Date.now(),
     };
     if (metrics.heartRate || metrics.power) {
       setBleConnected(true);
@@ -708,11 +722,18 @@ export default function LiveRidePage() {
     cadence: number;
     speed: number;
     effort: number;
+    distance?: number;
+    timestamp?: number;
   }) => {
 
-    telemetryRawRef.current = metrics;
+    telemetryRawRef.current = {
+      ...telemetryRawRef.current,
+      ...metrics,
+      distance: metrics.distance ?? telemetryRawRef.current.distance,
+      timestamp: metrics.timestamp ?? Date.now(),
+    };
     // Simulator is a user-driven control; update UI immediately for responsiveness
-    setTelemetry(metrics);
+    setTelemetry(telemetryRawRef.current);
 
     // Advance ride progress cadence-weighted: no pedaling = no progress.
     // Each simulator tick is 0.5s; scale by cadence vs target (80 RPM).
@@ -1081,8 +1102,9 @@ export default function LiveRidePage() {
     );
     const totalSamples = Math.max(1, samples.length);
 
-    saveRideSummary({
+    const canonicalSummary = createCanonicalRideSummary({
       id: summaryId,
+      riderId: address ?? "guest",
       classId,
       className: classData?.name || practiceConfig?.name || "SpinChain Ride",
       instructor: classData?.instructor || practiceConfig?.instructor || agentName,
@@ -1111,6 +1133,12 @@ export default function LiveRidePage() {
         status: walletConnected ? (zkSuccess ? "confirmed" : "pending") : "skipped",
       },
     });
+    const saved = saveRideSummary(canonicalSummary);
+    const latest = saved.find((ride) => ride.id === canonicalSummary.id) ?? canonicalSummary;
+    const queued = enqueueRideSync(latest);
+    setCompletionSyncStatus(queued.sync.status);
+    setCompletionPrimaryAction(getRetentionSignals(saved).ctaPrimary);
+    void processRideSyncQueue();
 
     if (isPracticeMode) {
       setDemoStats({
@@ -1154,12 +1182,79 @@ export default function LiveRidePage() {
     });
   }, [bleConnected, classId, isPracticeMode, rideProgress, useSimulator]);
 
+  const loadingDurationMs = Date.now() - loadStartedAt;
+  const isLikelyStuck = loadingDurationMs > 12000;
+
+  const loadingStats = [
+    {
+      label: "Class",
+      value: isPracticeMode
+        ? practiceConfig?.name || "Practice Ride"
+        : classId.slice(0, 6).concat("…"),
+    },
+    {
+      label: "Mode",
+      value: isPracticeMode ? "Practice" : "Live Class",
+    },
+    {
+      label: "Rewards",
+      value: rewardMode === "yellow-stream" ? "Yellow Stream" : rewardMode === "zk-batch" ? "ZK Batch" : "Sui Native",
+    },
+  ];
+
+  const loadingTips = [
+    "Warm-up tip: keep cadence steady for better early effort scoring.",
+    "Stay in control zones first, then push for sprint windows.",
+    "No wallet connected? You can still ride in practice mode.",
+  ];
+
   if (isLoading && !isPracticeMode) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-12 w-12 sm:h-16 sm:w-16 mx-auto animate-spin rounded-full border-4 border-white/20 border-t-white mb-4" />
-          <p className="text-sm sm:text-base text-white/60">Loading route...</p>
+      <div className="fixed inset-0 bg-black flex items-center justify-center p-4">
+        <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-cyan-300" />
+            <div>
+              <p className="text-base font-semibold text-white">Preparing your ride experience</p>
+              <p className="text-xs text-white/60">Loading route, coach profile, and reward pipeline…</p>
+            </div>
+          </div>
+
+          <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {loadingStats.map((stat) => (
+              <div key={stat.label} className="rounded-lg border border-white/10 bg-black/30 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-white/50">{stat.label}</p>
+                <p className="mt-1 truncate text-sm font-medium text-white">{stat.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-lg border border-cyan-300/20 bg-cyan-500/10 p-3">
+            <p className="text-[11px] uppercase tracking-wide text-cyan-100/80">Rider insight</p>
+            <p className="mt-1 text-sm text-cyan-50">{loadingTips[Math.floor((loadingDurationMs / 2500) % loadingTips.length)]}</p>
+          </div>
+
+          {isLikelyStuck && (
+            <div className="mt-4 rounded-lg border border-amber-300/30 bg-amber-500/10 p-3">
+              <p className="text-sm text-amber-100">
+                This is taking longer than expected. If your wallet isn’t connected yet, you can continue in practice mode.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  onClick={() => router.push("/rider?mode=practice")}
+                  className="rounded-md bg-amber-300/90 px-3 py-1.5 text-xs font-semibold text-black hover:bg-amber-200"
+                >
+                  Open Practice Mode
+                </button>
+                <button
+                  onClick={() => router.push("/rider")}
+                  className="rounded-md border border-white/20 px-3 py-1.5 text-xs font-semibold text-white/80 hover:text-white"
+                >
+                  Back to Classes
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1483,8 +1578,6 @@ export default function LiveRidePage() {
             intervalPhase={currentInterval?.phase ?? null}
             aiLog={aiLogs[0]}
             ghostState={ghostState}
-            yellowSequence={rewards.streamState?.updateCount ?? 0}
-            sessionAddress={rewards.channel?.rider?.slice(0, 10) + "..."}
           />
 
           {/* Bottom - Controls (Mobile Optimized) */}
@@ -1573,7 +1666,7 @@ export default function LiveRidePage() {
                         </div>
                         {lastDecision ? (
                           <p className="text-[11px] leading-relaxed text-white/70 line-clamp-2">
-                            &ldquo;{lastDecision.reasoning || lastDecision.thoughtProcess}&rdquo;
+                            &ldquo;{lastDecision.thoughtProcess}&rdquo;
                           </p>
                         ) : thoughtLog.length > 0 ? (
                           <p className="text-[11px] leading-relaxed text-white/70 line-clamp-2">
@@ -1750,6 +1843,8 @@ export default function LiveRidePage() {
           spinEarned={rewards.formattedReward}
           agentName={agentName}
           agentPersonality={aiPersonality || "data"}
+          syncStatus={completionSyncStatus}
+          primaryAction={completionPrimaryAction}
           onExportTCX={() => {
             downloadTCX({
               id: classId,
