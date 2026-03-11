@@ -26,7 +26,9 @@ import {
   type MessageSigner,
 } from "./channel";
 import { submitState, isClearNodeConnected } from "./clearnode";
-import { STREAMING_INTERVAL } from "./index";
+
+// Update interval (milliseconds) - defined locally to avoid circular import with ./index
+const STREAMING_INTERVAL = 10000; // 10 seconds
 
 // ============================================================================
 // Types
