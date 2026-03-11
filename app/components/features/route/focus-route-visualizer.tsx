@@ -708,8 +708,8 @@ export default function FocusRouteVisualizer({
         ) : null}
       </div>
 
-      {/* Bottom Panel - Route Progress */}
-      <div className="absolute inset-x-4 bottom-4 z-10" id="focus-bottom-panel">
+      {/* Bottom Panel - Route Progress — offset above the ride controls bar */}
+      <div className="absolute inset-x-4 bottom-[140px] sm:bottom-[160px] z-10" id="focus-bottom-panel">
         <div
           className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.9) 100%)` }}

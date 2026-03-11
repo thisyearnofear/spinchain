@@ -45,6 +45,7 @@ import {
 } from "../../../lib/analytics/physiological-models";
 import { downloadTCX, type RideRecordPoint } from "../../../lib/analytics/ride-recorder";
 import { calculateGhostState, generateMockGhost, type GhostPerformance, type GhostState } from "../../../lib/analytics/ghost-service";
+import { saveRideSummary } from "../../../lib/analytics/ride-history";
 
 interface PracticeClassConfig {
   name: string;
@@ -1061,6 +1062,56 @@ export default function LiveRidePage() {
     const displaySpin = spinEarned !== "0" ? spinEarned : potentialReward.toFixed(1);
 
     // Show demo complete modal for practice mode
+    const telemetrySource = bleConnected ? "live-bike" : (isPracticeMode && useSimulator) ? "simulator" : "estimated";
+
+    const threshold = classData?.metadata?.rewards?.threshold ?? 180;
+    const summaryId = `${classId}-${Date.now()}`;
+    const zoneThreshold = Math.max(160, Math.round(threshold * 0.8));
+    const zoneSprint = Math.max(190, Math.round(threshold * 1.05));
+    const hrValues = samples.map((sample) => sample.hr);
+    const zoneCounts = hrValues.reduce(
+      (acc, hr) => {
+        if (hr >= zoneSprint) acc.sprint += 1;
+        else if (hr >= zoneThreshold) acc.threshold += 1;
+        else if (hr >= 120) acc.endurance += 1;
+        else acc.recovery += 1;
+        return acc;
+      },
+      { recovery: 0, endurance: 0, threshold: 0, sprint: 0 },
+    );
+    const totalSamples = Math.max(1, samples.length);
+
+    saveRideSummary({
+      id: summaryId,
+      classId,
+      className: classData?.name || practiceConfig?.name || "SpinChain Ride",
+      instructor: classData?.instructor || practiceConfig?.instructor || agentName,
+      completedAt: Date.now(),
+      durationSec: elapsedTime,
+      avgHeartRate: avgHR,
+      avgPower: telemetryAverages.avgPower,
+      avgEffort: telemetryAverages.avgEffort,
+      spinEarned: Number(displaySpin),
+      telemetrySource,
+      effortTier: telemetryAverages.avgEffort >= 800 ? "platinum" : telemetryAverages.avgEffort >= 650 ? "gold" : telemetryAverages.avgEffort >= 500 ? "silver" : "bronze",
+      zones: {
+        recovery: Math.round((zoneCounts.recovery / totalSamples) * 100),
+        endurance: Math.round((zoneCounts.endurance / totalSamples) * 100),
+        threshold: Math.round((zoneCounts.threshold / totalSamples) * 100),
+        sprint: Math.round((zoneCounts.sprint / totalSamples) * 100),
+      },
+      proof: {
+        mode: rewardMode === "sui-native" ? "none" : rewardMode,
+        isVerified: zkSuccess,
+        privacyScore,
+        privacyLevel,
+      },
+      onChain: {
+        attempted: walletConnected,
+        status: walletConnected ? (zkSuccess ? "confirmed" : "pending") : "skipped",
+      },
+    });
+
     if (isPracticeMode) {
       setDemoStats({
         duration: elapsedTime,
@@ -1437,8 +1488,8 @@ export default function LiveRidePage() {
           />
 
           {/* Bottom - Controls (Mobile Optimized) */}
-          <div className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"}`}>
-            <div className="max-w-7xl mx-auto">
+          <div className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${!isRiding && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`}>
+            <div className={`max-w-7xl mx-auto ${!isRiding && deviceType === "desktop" ? "overflow-y-auto flex-1 min-h-0" : ""}`}>
               {/* Progress Info + Interval Status */}
               {hudMode !== "minimal" && (
                 <div className="mb-3 sm:mb-4">
@@ -1682,6 +1733,16 @@ export default function LiveRidePage() {
           avgEffort={telemetryAverages.avgEffort}
           telemetrySource={bleConnected ? "live-bike" : (isPracticeMode && useSimulator) ? "simulator" : "estimated"}
           onExit={exitRide}
+          onRideAgain={() => router.push(`/rider/ride/${classId}`)}
+          onShare={() => {
+            if (typeof window === "undefined") return;
+            const text = `Just finished ${classData?.name || "a SpinChain ride"} — ${telemetryAverages.avgEffort}/1000 effort, ${rewards.formattedReward} SPIN.`;
+            if (navigator.share) {
+              navigator.share({ title: "SpinChain Ride Complete", text, url: window.location.origin + "/rider/journey" }).catch(() => {});
+              return;
+            }
+            navigator.clipboard.writeText(text).catch(() => {});
+          }}
           onDeploy={isPracticeMode ? () => router.push("/instructor/builder") : undefined}
           onUpgrade={!isPracticeMode ? () => router.push("/rider/journey?upgrade=analytics") : undefined}
           onClaimRewards={!isPracticeMode ? handleClaimRewards : undefined}

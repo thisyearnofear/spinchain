@@ -29,6 +29,8 @@ interface RideCompletionProps {
   avgEffort: number;
   telemetrySource: "live-bike" | "simulator" | "estimated";
   onExit: () => void;
+  onRideAgain?: () => void;
+  onShare?: () => void;
   onDeploy?: () => void;
   onUpgrade?: () => void;
   onClaimRewards?: () => void;
@@ -47,6 +49,8 @@ export function RideCompletion({
   avgEffort,
   telemetrySource,
   onExit,
+  onRideAgain,
+  onShare,
   onDeploy,
   onUpgrade,
   onClaimRewards,
@@ -220,36 +224,57 @@ export function RideCompletion({
               <span>Complete more classes: Regular workouts = bonus rewards</span>
             </li>
           </ul>
+        </div>
 
-                  {/* Actions */}
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                    <button
-                      onClick={onExit}
-                      className="flex-1 rounded-full border border-white/20 bg-white/10 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-white/20"
-                      aria-label={isPracticeMode ? "Back to builder" : "View journey"}
-                    >
-                      {isPracticeMode ? "Back to Builder" : "View Journey"}
-                    </button>
+        {/* Actions */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <button
+            onClick={onExit}
+            className="flex-1 rounded-full border border-white/20 bg-white/10 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-white/20"
+            aria-label={isPracticeMode ? "Back to builder" : "View history"}
+          >
+            {isPracticeMode ? "Back to Builder" : "View History"}
+          </button>
 
-                    {onExportTCX && (
-                      <button
-                        onClick={onExportTCX}
-                        className="flex-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 py-2.5 sm:py-3 text-sm sm:text-base text-indigo-300 font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-indigo-500/20"
-                        aria-label="Export activity as TCX"
-                      >
-                        Export TCX
-                      </button>
-                    )}
+          {onRideAgain && (
+            <button
+              onClick={onRideAgain}
+              className="flex-1 rounded-full border border-cyan-500/40 bg-cyan-500/10 py-2.5 sm:py-3 text-sm sm:text-base text-cyan-200 font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-cyan-500/20"
+              aria-label="Ride again"
+            >
+              Ride Again
+            </button>
+          )}
 
-                    {isPracticeMode && onDeploy ? (
-                      <button
-                        onClick={onDeploy}
-                        className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
-                        aria-label="Deploy class"
-                      >
-                        Deploy Class
-                      </button>
-                    ) : (
+          {onShare && (
+            <button
+              onClick={onShare}
+              className="flex-1 rounded-full border border-fuchsia-500/40 bg-fuchsia-500/10 py-2.5 sm:py-3 text-sm sm:text-base text-fuchsia-200 font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-fuchsia-500/20"
+              aria-label="Share ride"
+            >
+              Share
+            </button>
+          )}
+
+          {onExportTCX && (
+            <button
+              onClick={onExportTCX}
+              className="flex-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 py-2.5 sm:py-3 text-sm sm:text-base text-indigo-300 font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-indigo-500/20"
+              aria-label="Export activity as TCX"
+            >
+              Export TCX
+            </button>
+          )}
+
+          {isPracticeMode && onDeploy ? (
+            <button
+              onClick={onDeploy}
+              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
+              aria-label="Deploy class"
+            >
+              Deploy Class
+            </button>
+          ) : (
             <button
               onClick={onClaimRewards}
               disabled={zkProofStatus?.isGenerating || zkProofStatus?.isSuccess}
@@ -386,7 +411,6 @@ export function RideCompletion({
           </>
         )}
       </div>
-    </div>
     </div>
   );
 }

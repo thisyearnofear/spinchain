@@ -106,7 +106,7 @@ export function RideControls({
 
       {/* Main Controls - Start/Resume only; Pause is shown inline with the Time stat during a ride */}
       {!isRiding && (
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-3 sm:sticky sm:bottom-0 sm:pt-3 sm:pb-1 sm:bg-gradient-to-t sm:from-black/80 sm:to-transparent">
           <button
             onClick={onStartRide}
             disabled={isStarting || !canStartRide}
