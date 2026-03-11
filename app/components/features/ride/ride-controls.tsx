@@ -2,7 +2,9 @@
 
 import { DeviceSelector } from "@/app/components/features/ble/device-selector";
 import { PedalSimulator } from "@/app/components/features/common/pedal-simulator";
+import { CollapseToggle } from "@/app/components/features/common/collapse-toggle";
 import { PRESET_WORKOUTS, type WorkoutPlan } from "@/app/lib/workout-plan";
+import type { PanelState, PanelKey } from "@/app/hooks/ui/use-panel-state";
 
 interface RideControlsProps {
   isRiding: boolean;
@@ -33,11 +35,18 @@ interface RideControlsProps {
     speed: number;
     effort: number;
   }) => void;
+  // Collapsible panel state
+  panelState?: PanelState;
+  onTogglePanel?: (key: PanelKey) => void;
 }
 
 /**
  * RideControls - Pre-ride setup and ride controls
  * Includes workout plan selector, input mode toggle, and start/pause buttons
+ * 
+ * Core Principles:
+ * - ENHANCEMENT FIRST: Extended with collapsible behavior
+ * - DRY: Uses shared CollapseToggle component
  */
 export function RideControls({
   isRiding,
@@ -56,7 +65,13 @@ export function RideControls({
   onSetUseSimulator,
   onBleMetrics,
   onSimulatorMetrics,
+  panelState,
+  onTogglePanel,
 }: RideControlsProps) {
+  // Default to expanded if no panel state provided (backward compatible)
+  const isWorkoutExpanded = panelState?.workoutPlan ?? true;
+  const isInputModeExpanded = panelState?.inputMode ?? true;
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Pre-ride Setup */}
@@ -66,6 +81,8 @@ export function RideControls({
           <WorkoutSelector
             workoutPlan={workoutPlan}
             onSelect={onSetWorkoutPlan}
+            isCollapsed={!isWorkoutExpanded}
+            onToggle={() => onTogglePanel?.('workoutPlan')}
           />
 
           {/* Input Mode Toggle */}
@@ -73,6 +90,8 @@ export function RideControls({
             useSimulator={useSimulator}
             deviceType={deviceType}
             onSelect={onSetUseSimulator}
+            isCollapsed={!isInputModeExpanded}
+            onToggle={() => onTogglePanel?.('inputMode')}
           />
 
           {/* BLE Device Selector - only shown when not using simulator */}
@@ -128,16 +147,61 @@ export function RideControls({
   );
 }
 
+interface CollapsiblePanelProps {
+  isCollapsed: boolean;
+  onToggle?: () => void;
+}
+
 function WorkoutSelector({
   workoutPlan,
   onSelect,
+  isCollapsed,
+  onToggle,
 }: {
   workoutPlan: WorkoutPlan | null;
   onSelect: (plan: WorkoutPlan | null) => void;
-}) {
+} & CollapsiblePanelProps) {
+  // Collapsed preview badge
+  if (isCollapsed) {
+    return (
+      <button
+        onClick={onToggle}
+        className="w-full rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 p-3 flex items-center justify-between hover:bg-white/5 transition-colors"
+        aria-label="Expand Workout Plan"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-wider text-white/50">Workout Plan</span>
+          {workoutPlan && (
+            <span className="text-xs text-indigo-400 font-medium">
+              {workoutPlan.name}
+            </span>
+          )}
+          {!workoutPlan && (
+            <span className="text-xs text-white/40">Free Ride</span>
+          )}
+        </div>
+        <CollapseToggle
+          isCollapsed={true}
+          onToggle={() => {}}
+          label="Workout Plan"
+        />
+      </button>
+    );
+  }
+
   return (
-    <div className="rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 p-3">
-      <p className="text-[10px] uppercase tracking-wider text-white/50 mb-2">Workout Plan</p>
+    <div
+      className="rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 p-3"
+      id="workout-plan-panel"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] uppercase tracking-wider text-white/50">Workout Plan</p>
+        <CollapseToggle
+          isCollapsed={false}
+          onToggle={onToggle ?? (() => {})}
+          label="Workout Plan"
+        />
+      </div>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {PRESET_WORKOUTS.map((preset) => (
           <button
@@ -177,14 +241,49 @@ function InputModeSelector({
   useSimulator,
   deviceType,
   onSelect,
+  isCollapsed,
+  onToggle,
 }: {
   useSimulator: boolean;
   deviceType: string;
   onSelect: (use: boolean) => void;
-}) {
+} & CollapsiblePanelProps) {
+  // Collapsed preview badge
+  if (isCollapsed) {
+    return (
+      <button
+        onClick={onToggle}
+        className="w-full rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 p-3 flex items-center justify-between hover:bg-white/5 transition-colors"
+        aria-label="Expand Input Mode"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-wider text-white/50">Input Mode</span>
+          <span className="text-xs">
+            {useSimulator ? '⌨️ Simulator' : '🚴 BLE Device'}
+          </span>
+        </div>
+        <CollapseToggle
+          isCollapsed={true}
+          onToggle={() => {}}
+          label="Input Mode"
+        />
+      </button>
+    );
+  }
+
   return (
-    <div className="rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 p-3">
-      <p className="text-[10px] uppercase tracking-wider text-white/50 mb-2">Input Mode</p>
+    <div
+      className="rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 p-3"
+      id="input-mode-panel"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] uppercase tracking-wider text-white/50">Input Mode</p>
+        <CollapseToggle
+          isCollapsed={false}
+          onToggle={onToggle ?? (() => {})}
+          label="Input Mode"
+        />
+      </div>
       <div className="flex gap-2">
         <button
           onClick={() => onSelect(false)}

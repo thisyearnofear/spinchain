@@ -157,6 +157,18 @@ const { metrics, status, scanAndConnect } = useBleData();
 
 **Touch**: All buttons ≥ 44x44px (Apple HIG)
 
+### Collapsible UI Panels
+Reduce visual clutter during rides by collapsing data panels:
+
+- **Preview Badges**: Collapsed panels show key metrics at a glance (e.g., "Zone 3" for workout, "ERG" for input mode)
+- **Keyboard Shortcut**: Press `C` to toggle all panels globally
+- **Persistent State**: Panel states saved to localStorage and restored on reload
+- **Device-Aware Defaults**: Mobile starts with focus panels collapsed; desktop starts expanded
+- **Components**:
+  - Workout Plan selector
+  - Input Mode selector (ERG/Level/Free Ride)
+  - Focus View panels (left, right, bottom)
+
 ---
 
 ## Agentic Finance (Uniswap v4)

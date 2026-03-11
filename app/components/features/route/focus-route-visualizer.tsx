@@ -8,6 +8,8 @@ import type { IntervalPhase } from "../../../lib/workout-plan";
 import type { RiderStats } from "./route-visualizer";
 import { StreetViewPreview } from "./street-view-preview";
 import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-theme";
+import { CollapseToggle } from "@/app/components/features/common/collapse-toggle";
+import type { PanelState, PanelKey } from "@/app/hooks/ui/use-panel-state";
 
 type RouteCoordinate = {
   lat: number;
@@ -31,6 +33,9 @@ type Props = {
   routeStartCoordinate?: RouteCoordinate | null;
   currentCoordinate?: RouteCoordinate | null;
   intervalPhase?: IntervalPhase | null;
+  // Collapsible panel state
+  panelState?: PanelState;
+  onTogglePanel?: (key: PanelKey) => void;
 };
 
 const POWER_ZONES = [
@@ -144,6 +149,8 @@ export default function FocusRouteVisualizer({
   routeStartCoordinate,
   currentCoordinate,
   intervalPhase = null,
+  panelState,
+  onTogglePanel,
 }: Props) {
   const viewport = useViewport();
   const gradientId = useId().replace(/:/g, "");
@@ -543,84 +550,131 @@ export default function FocusRouteVisualizer({
         </g>
       </svg>
 
-      <div className="absolute left-4 top-4 z-10 max-w-sm">
+      {/* Left Panel - Route Info */}
+      <div className="absolute left-4 top-4 z-10 max-w-sm" id="focus-left-panel">
         <div
-          className="rounded-[1.75rem] border border-white/10 px-4 py-4 backdrop-blur-xl shadow-2xl"
+          className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.84) 100%)`, boxShadow: `0 24px 80px ${styles.horizonGlow}18` }}
         >
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-white/55">
-            <span>Focus View</span>
-            <span className="h-1 w-1 rounded-full bg-white/40" />
-            <span>{styles.worldLabel}</span>
-          </div>
-          <div className="mt-2 text-xl font-semibold text-white">{routeName}</div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/72">
-            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1">
-              {avatar?.name ?? "Rider"}
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1">
-              {equipment?.name ?? "Bike"}
-            </span>
-            <span className="rounded-full border px-3 py-1" style={{ borderColor: `${currentZone.color}66`, color: currentZone.color }}>
-              {currentZone.label}
-            </span>
-          </div>
-          <div className="mt-4 grid grid-cols-3 gap-2 text-[11px] text-white/70">
-            <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
-              <div className="uppercase tracking-[0.2em] text-white/35">View</div>
-              <div className="mt-1 text-sm font-semibold text-white">2D Cinema</div>
+          {/* Header - Always visible */}
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-white/55">
+              <span>Focus View</span>
+              <span className="h-1 w-1 rounded-full bg-white/40" />
+              <span>{styles.worldLabel}</span>
             </div>
-            <div
-              className="rounded-2xl border px-3 py-2"
-              style={{ borderColor: `${phaseAccent}30`, background: `${phaseAccent}14` }}
-            >
-              <div className="uppercase tracking-[0.2em] text-white/45">Phase</div>
-              <div className="mt-1 text-sm font-semibold" style={{ color: phaseAccent }}>{phaseLabel}</div>
-            </div>
-            <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
-              <div className="uppercase tracking-[0.2em] text-white/35">Target</div>
-              <div className="mt-1 text-sm font-semibold text-white">{tertiaryMetric.value}</div>
-            </div>
+            <CollapseToggle
+              isCollapsed={!(panelState?.focusLeft ?? true)}
+              onToggle={() => onTogglePanel?.('focusLeft')}
+              label="Focus View Info"
+            />
           </div>
+          
+          {/* Collapsible Content */}
+          {!(panelState?.focusLeft === false) && (
+            <div className="px-4 pb-4">
+              <div className="text-xl font-semibold text-white">{routeName}</div>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/72">
+                <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1">
+                  {avatar?.name ?? "Rider"}
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1">
+                  {equipment?.name ?? "Bike"}
+                </span>
+                <span className="rounded-full border px-3 py-1" style={{ borderColor: `${currentZone.color}66`, color: currentZone.color }}>
+                  {currentZone.label}
+                </span>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-[11px] text-white/70">
+                <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
+                  <div className="uppercase tracking-[0.2em] text-white/35">View</div>
+                  <div className="mt-1 text-sm font-semibold text-white">2D Cinema</div>
+                </div>
+                <div
+                  className="rounded-2xl border px-3 py-2"
+                  style={{ borderColor: `${phaseAccent}30`, background: `${phaseAccent}14` }}
+                >
+                  <div className="uppercase tracking-[0.2em] text-white/45">Phase</div>
+                  <div className="mt-1 text-sm font-semibold" style={{ color: phaseAccent }}>{phaseLabel}</div>
+                </div>
+                <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
+                  <div className="uppercase tracking-[0.2em] text-white/35">Target</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{tertiaryMetric.value}</div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Collapsed preview badge */}
+          {panelState?.focusLeft === false && (
+            <div className="px-4 pb-3 flex items-center gap-2">
+              <span className="text-xs text-white/60">{routeName}</span>
+              <span className="text-xs" style={{ color: currentZone.color }}>{currentZone.label}</span>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Right Panel - Power/Metrics */}
       <div className="absolute right-4 top-4 z-10 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-3">
         <div
-          className="rounded-[1.75rem] border border-white/10 p-4 backdrop-blur-xl shadow-2xl"
+          className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.86) 100%)`, boxShadow: `0 24px 80px ${phaseAccent}20` }}
+          id="focus-right-panel"
         >
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">{primaryMetric.label}</div>
-              <div className="mt-1 text-3xl font-semibold" style={{ color: phaseAccent }}>{primaryMetric.value}</div>
+          {/* Header - Always visible */}
+          <div className="flex items-center justify-between p-4 pb-2">
+            <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">{primaryMetric.label}</div>
+            <CollapseToggle
+              isCollapsed={!(panelState?.focusRight ?? true)}
+              onToggle={() => onTogglePanel?.('focusRight')}
+              label="Power Metrics"
+            />
+          </div>
+          
+          {/* Collapsed preview - show primary metric only */}
+          {panelState?.focusRight === false && (
+            <div className="px-4 pb-3">
+              <div className="text-2xl font-semibold" style={{ color: phaseAccent }}>{primaryMetric.value}</div>
               <div className="text-xs text-white/55">{primaryMetric.unit}</div>
             </div>
-            <div className="text-right text-xs text-white/68">
-              <div>{secondaryMetric.label}: {secondaryMetric.value} {secondaryMetric.unit}</div>
-              <div>{tertiaryMetric.label}: {tertiaryMetric.value}</div>
-              <div className={powerTrend >= 0 ? "text-emerald-300" : "text-rose-300"}>
-                {powerTrend >= 0 ? "+" : ""}
-                {Math.round(powerTrend)} W trend
+          )}
+          
+          {/* Expanded content */}
+          {!(panelState?.focusRight === false) && (
+            <div className="px-4 pb-4">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <div className="mt-1 text-3xl font-semibold" style={{ color: phaseAccent }}>{primaryMetric.value}</div>
+                  <div className="text-xs text-white/55">{primaryMetric.unit}</div>
+                </div>
+                <div className="text-right text-xs text-white/68">
+                  <div>{secondaryMetric.label}: {secondaryMetric.value} {secondaryMetric.unit}</div>
+                  <div>{tertiaryMetric.label}: {tertiaryMetric.value}</div>
+                  <div className={powerTrend >= 0 ? "text-emerald-300" : "text-rose-300"}>
+                    {powerTrend >= 0 ? "+" : ""}
+                    {Math.round(powerTrend)} W trend
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4">
+                <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="focus-route-sync h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${clamp(((intervalPhase === "sprint" ? stats.cadence / 120 : displayedPower / Math.max(ftp, 1)) * 100), 0, 100)}%`,
+                      background: `linear-gradient(90deg, ${styles.lineColor} 0%, ${phaseAccent} 100%)`,
+                      ...routeSyncStyle,
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-white/45">
+                <span>Energy Lane</span>
+                <span style={{ color: phaseAccent }}>{phaseLabel}</span>
               </div>
             </div>
-          </div>
-          <div className="mt-4">
-            <div className="h-2 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="focus-route-sync h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${clamp(((intervalPhase === "sprint" ? stats.cadence / 120 : displayedPower / Math.max(ftp, 1)) * 100), 0, 100)}%`,
-                  background: `linear-gradient(90deg, ${styles.lineColor} 0%, ${phaseAccent} 100%)`,
-                  ...routeSyncStyle,
-                }}
-              />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-white/45">
-            <span>Energy Lane</span>
-            <span style={{ color: phaseAccent }}>{phaseLabel}</span>
-          </div>
+          )}
         </div>
 
         {routePreviewCoordinate ? (
@@ -654,44 +708,81 @@ export default function FocusRouteVisualizer({
         ) : null}
       </div>
 
-      <div className="absolute inset-x-4 bottom-4 z-10">
+      {/* Bottom Panel - Route Progress */}
+      <div className="absolute inset-x-4 bottom-4 z-10" id="focus-bottom-panel">
         <div
-          className="rounded-[1.75rem] border border-white/10 px-4 py-4 backdrop-blur-xl shadow-2xl"
+          className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.9) 100%)` }}
         >
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">Route Progress</div>
-              <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/10">
+          {/* Collapsed state - thin progress bar only */}
+          {panelState?.focusBottom === false && (
+            <div className="p-2">
+              <div className="h-2 overflow-hidden rounded-full bg-white/10">
                 <div
-                  className="focus-route-sync h-full rounded-full transition-all duration-300"
+                  className="h-full rounded-full transition-all duration-300"
                   style={{
                     width: `${clamp(clampedProgress * 100, 0, 100)}%`,
                     background: `linear-gradient(90deg, ${styles.lineColor} 0%, ${currentZone.color} 100%)`,
-                    ...routeSyncStyle,
                   }}
                 />
               </div>
-              <div className="mt-2 flex items-center gap-2 text-[11px] text-white/55">
-                <span className="inline-block h-2 w-2 rounded-full focus-pulse" style={{ backgroundColor: currentZone.color }} />
-                <span>{nextBeat ? `${nextBeatDistance}% to ${nextBeat.label}` : "Cruising"}</span>
+              <div className="mt-1 flex items-center justify-between">
+                <button
+                  onClick={() => onTogglePanel?.('focusBottom')}
+                  className="text-[10px] text-white/40 hover:text-white/60 transition-colors"
+                  aria-label="Expand Route Progress"
+                >
+                  {Math.round(clampedProgress * 100)}%
+                </button>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-xs text-white/72 md:min-w-[20rem]">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">Low</div>
-                <div className="mt-1 text-sm font-semibold text-white">{Math.round(min)} m</div>
+          )}
+          
+          {/* Expanded content */}
+          {!(panelState?.focusBottom === false) && (
+            <div className="px-4 py-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">Route Progress</div>
+                <CollapseToggle
+                  isCollapsed={false}
+                  onToggle={() => onTogglePanel?.('focusBottom')}
+                  label="Route Progress"
+                />
               </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">High</div>
-                <div className="mt-1 text-sm font-semibold text-white">{Math.round(max)} m</div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">Next Beat</div>
-                <div className="mt-1 text-sm font-semibold text-white">{nextBeat?.label ?? "Cruise"}</div>
+              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="focus-route-sync h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: `${clamp(clampedProgress * 100, 0, 100)}%`,
+                        background: `linear-gradient(90deg, ${styles.lineColor} 0%, ${currentZone.color} 100%)`,
+                        ...routeSyncStyle,
+                      }}
+                    />
+                  </div>
+                  <div className="mt-2 flex items-center gap-2 text-[11px] text-white/55">
+                    <span className="inline-block h-2 w-2 rounded-full focus-pulse" style={{ backgroundColor: currentZone.color }} />
+                    <span>{nextBeat ? `${nextBeatDistance}% to ${nextBeat.label}` : "Cruising"}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-xs text-white/72 md:min-w-[20rem]">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">Low</div>
+                    <div className="mt-1 text-sm font-semibold text-white">{Math.round(min)} m</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">High</div>
+                    <div className="mt-1 text-sm font-semibold text-white">{Math.round(max)} m</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">Next Beat</div>
+                    <div className="mt-1 text-sm font-semibold text-white">{nextBeat?.label ?? "Cruise"}</div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

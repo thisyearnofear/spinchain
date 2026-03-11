@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useClass, createPracticeClassMetadata, generateMockRouteData, type ClassWithRoute } from "../../../hooks/evm/use-class-data";
 import dynamic from "next/dynamic";
 import FocusRouteVisualizer from "../../../components/features/route/focus-route-visualizer";
 import { useAccount } from "wagmi";
+import { usePanelState } from "../../../hooks/ui/use-panel-state";
 
 const RouteVisualizer = dynamic(
   () => import("../../../components/features/route/route-visualizer"),
@@ -170,6 +171,27 @@ export default function LiveRidePage() {
   const viewportHeight = useActualViewportHeight();
   const performanceTier = usePerformanceTier();
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  // Collapsible panel state
+  const panelState = usePanelState(deviceType);
+
+  // Keyboard shortcut for collapse all (C key)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'c' || e.key === 'C') {
+        // Only toggle if not in an input field
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+        e.preventDefault();
+        if (panelState.isAllCollapsed) {
+          panelState.expandAll();
+        } else {
+          panelState.collapseAll();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [panelState]);
 
   // Ride state
   const [isRiding, setIsRiding] = useState(false);
@@ -1082,6 +1104,8 @@ export default function LiveRidePage() {
             currentCoordinate={currentRouteCoordinate}
             intervalPhase={currentInterval?.phase ?? null}
             className="h-full w-full"
+            panelState={panelState.state}
+            onTogglePanel={panelState.toggle}
           />
         ) : (
           <RouteVisualizer
@@ -1230,6 +1254,21 @@ export default function LiveRidePage() {
                     )}
                   </div>
                 )}
+                {/* Collapse/Expand All Panels */}
+                <button
+                  onClick={() => {
+                    if (panelState.isAllCollapsed) {
+                      panelState.expandAll();
+                    } else {
+                      panelState.collapseAll();
+                    }
+                  }}
+                  className="hidden sm:inline-flex rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/60 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
+                  aria-label={panelState.isAllCollapsed ? "Expand all panels" : "Collapse all panels"}
+                  title="Press C to toggle (keyboard shortcut)"
+                >
+                  {panelState.isAllCollapsed ? "▢ Expand" : "▤ Collapse"}
+                </button>
                 {/* Reset UI prefs (useful for testing / getting back to defaults) */}
                 <button
                   onClick={() => {
@@ -1250,6 +1289,7 @@ export default function LiveRidePage() {
                       getSystemViewMode(deviceType, performanceTier, prefersReducedMotion),
                       "system",
                     );
+                    panelState.reset();
                   }}
                   className="hidden sm:inline-flex rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/60 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
                   aria-label="Reset ride UI preferences"
@@ -1475,6 +1515,8 @@ export default function LiveRidePage() {
                 onSetUseSimulator={setUseSimulator}
                 onBleMetrics={handleBleMetrics}
                 onSimulatorMetrics={handleSimulatorMetrics}
+                panelState={panelState.state}
+                onTogglePanel={panelState.toggle}
               />
 
               {/* Agent Reasoning HUD moved above interval banner - removed from here */}
