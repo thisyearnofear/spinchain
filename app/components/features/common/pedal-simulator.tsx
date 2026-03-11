@@ -107,16 +107,31 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
         if (showInstructions) setShowInstructions(false);
     }, [showInstructions]);
 
-    // Keyboard controls (desktop)
+    // Keyboard controls - enable on desktop and tablet, disable on pure touch mobile
     useEffect(() => {
-        if (!isActive || deviceType === 'mobile') return;
+        if (!isActive) return;
+        
+        // Check if this is a touch-only device (actual mobile without keyboard)
+        // We want to allow keyboard on devices that have both touch AND keyboard (e.g., tablets, laptops with touch)
+        const hasTouchSupport = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const isPureMobileTouch = deviceType === 'mobile' && !hasTouchSupport;
+        
+        // Skip keyboard only on pure mobile touch devices (no keyboard attached)
+        if (isPureMobileTouch) return;
+        
         const handleKeyDown = (e: KeyboardEvent) => {
+            // Don't capture if user is typing in an input
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+            if (e.target instanceof HTMLElement && e.target.isContentEditable) return;
+            
             if (e.repeat) return;
             if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); recordPedalStroke('left'); }
             else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); recordPedalStroke('right'); }
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        
+        // Use capture phase to ensure we get the events first
+        window.addEventListener('keydown', handleKeyDown, { capture: true });
+        return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
     }, [isActive, deviceType, recordPedalStroke]);
 
     // Metrics loop

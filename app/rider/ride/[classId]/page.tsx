@@ -704,10 +704,16 @@ export default function LiveRidePage() {
     // Simulator is a user-driven control; update UI immediately for responsiveness
     setTelemetry(metrics);
 
-    // Also update ride progress based on cadence
-    if (isRiding && classData) {
+    // Advance ride progress cadence-weighted: no pedaling = no progress.
+    // Each simulator tick is 0.5s; scale by cadence vs target (80 RPM).
+    // At target cadence the rider advances at normal pace; below = slower; above = faster (capped at 1.5×).
+    if (isRiding && classData && metrics.cadence > 0) {
+      const TARGET_CADENCE = 80;
+      const cadenceRatio = Math.min(metrics.cadence / TARGET_CADENCE, 1.5);
+      const tickSeconds = 0.5 * cadenceRatio;
+
       setElapsedTime(prev => {
-        const newTime = prev + 1;
+        const newTime = prev + tickSeconds;
         const duration = (classData.metadata?.duration || 45) * 60;
         const newProgress = Math.min((newTime / duration) * 100, 100);
         setRideProgress(newProgress);
@@ -1053,7 +1059,7 @@ export default function LiveRidePage() {
     });
   }, [bleConnected, classId, isPracticeMode, rideProgress, useSimulator]);
 
-  if (isLoading) {
+  if (isLoading && !isPracticeMode) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
         <div className="text-center">
