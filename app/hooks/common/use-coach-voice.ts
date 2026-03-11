@@ -15,7 +15,7 @@ import {
   generateSpeech,
   COACH_VOICES,
   INTENSITY_VOICE_SETTINGS,
-  isElevenLabsConfigured,
+  checkElevenLabsConfigured,
   getAudioMixer,
   VoiceSettings,
 } from '@/app/lib/elevenlabs';
@@ -34,9 +34,7 @@ export interface UseCoachVoiceReturn {
   isConfigured: boolean;
 }
 
-// Cache for generated audio (memory-efficient LRU could be added)
-const audioCache = new Map<string, ArrayBuffer>();
-const CACHE_SIZE_LIMIT = 50;
+const AUDIO_CACHE_NAME = 'elevenlabs-audio-v1';
 
 export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoiceReturn {
   const { personality = 'drill', intensity = 0.5 } = options;
@@ -44,12 +42,12 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [isConfigured] = useState(() => isElevenLabsConfigured());
+  const [isConfigured, setIsConfigured] = useState(false);
   
   const currentLayerId = useRef<string | null>(null);
   const mixerRef = useRef(getAudioMixer());
 
-  // Initialize mixer on mount
+  // Initialize mixer and check configuration on mount
   useEffect(() => {
     const init = async () => {
       try {
@@ -57,6 +55,8 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
       } catch (err) {
         console.warn('Audio mixer init failed (needs user interaction first):', err);
       }
+      const configured = await checkElevenLabsConfigured();
+      setIsConfigured(configured);
     };
     init();
   }, []);
@@ -99,11 +99,19 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
       // Ensure mixer is initialized
       await mixerRef.current.resume();
 
-      // Check cache
-      const cacheKey = `${personality}:${intensity}:${emotion}:${text}`;
-      let audioBuffer = audioCache.get(cacheKey);
+      // Check persistent Cache API, fall back to generating
+      const roundedIntensity = Math.round(intensity * 10) / 10;
+      const cacheKey = `${personality}:${roundedIntensity}:${emotion}:${text}`;
+      let audioBuffer: ArrayBuffer | undefined;
 
-      // Generate if not cached
+      try {
+        const cache = await caches.open(AUDIO_CACHE_NAME);
+        const cached = await cache.match(cacheKey);
+        if (cached) audioBuffer = await cached.arrayBuffer();
+      } catch {
+        // Cache API unavailable (e.g. non-secure context) — continue without it
+      }
+
       if (!audioBuffer) {
         const voice = COACH_VOICES[personality];
         audioBuffer = await generateSpeech({
@@ -112,12 +120,14 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
           voice_settings: getVoiceSettings(emotion),
         });
 
-        // Cache with LRU eviction
-        if (audioCache.size >= CACHE_SIZE_LIMIT) {
-          const firstKey = audioCache.keys().next().value;
-          if (firstKey) audioCache.delete(firstKey);
+        try {
+          const cache = await caches.open(AUDIO_CACHE_NAME);
+          await cache.put(cacheKey, new Response(audioBuffer.slice(0), {
+            headers: { 'Content-Type': 'audio/mpeg' },
+          }));
+        } catch {
+          // Cache API unavailable — skip persisting
         }
-        audioCache.set(cacheKey, audioBuffer);
       }
 
       // Create and play layer

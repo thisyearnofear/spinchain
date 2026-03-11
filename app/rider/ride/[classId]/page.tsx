@@ -536,6 +536,15 @@ export default function LiveRidePage() {
   // Track interval transitions for audio cues
   const lastIntervalRef = useRef<number>(-1);
 
+  // Coach message overlay — last spoken text, cleared after 4s
+  const [lastCoachMessage, setLastCoachMessage] = useState<string | null>(null);
+  const coachMessageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cadence drift detection — track how long cadence has been below target
+  const cadenceDriftMsRef = useRef<number>(0);
+  const lastCadenceCheckRef = useRef<number>(Date.now());
+  const lastDriftNudgeRef = useRef<string | null>(null);
+
   // Keyboard Shifting (Virtual Gears)
   useEffect(() => {
     if (typeof window === "undefined" || !isRiding) return;
@@ -828,6 +837,9 @@ export default function LiveRidePage() {
     if (interval.coachCue) {
       const emotion = PHASE_DEFAULTS[interval.phase].coachEmotion;
       speak(interval.coachCue, emotion);
+      setLastCoachMessage(interval.coachCue);
+      if (coachMessageTimerRef.current) clearTimeout(coachMessageTimerRef.current);
+      coachMessageTimerRef.current = setTimeout(() => setLastCoachMessage(null), 4000);
     }
   }, [isRiding, workoutPlan, currentIntervalIndex, playSound, speak]);
 
@@ -844,7 +856,7 @@ export default function LiveRidePage() {
     if (!beats) return undefined;
     return beats.find((beat) => {
       const beatProgress = beat.progress * 100;
-      return rideProgress >= beatProgress && rideProgress < beatProgress + 1;
+      return rideProgress >= beatProgress && rideProgress < beatProgress + 3;
     });
   }, [classData?.route?.route.storyBeats, rideProgress]);
 
@@ -870,12 +882,15 @@ export default function LiveRidePage() {
         : currentBeat.type === 'rest' ? 'calm' as const
           : 'focused' as const;
     speak(currentBeat.label, emotion);
+    setLastCoachMessage(currentBeat.label);
+    if (coachMessageTimerRef.current) clearTimeout(coachMessageTimerRef.current);
+    coachMessageTimerRef.current = setTimeout(() => setLastCoachMessage(null), 4000);
   }, [currentBeat, isRiding, playSound, speak]);
 
-  // Activate AI instructor when riding
+  // Activate AI instructor when riding — always on in practice/demo mode
   useEffect(() => {
-    setAiActive(isRiding && !!classData?.metadata?.ai?.enabled);
-  }, [isRiding, classData?.metadata?.ai?.enabled, setAiActive]);
+    setAiActive(isRiding && (isPracticeMode || !!classData?.metadata?.ai?.enabled));
+  }, [isRiding, isPracticeMode, classData?.metadata?.ai?.enabled, setAiActive]);
 
   // Speak AI instructor actions
   useEffect(() => {
@@ -883,8 +898,37 @@ export default function LiveRidePage() {
     const latest = aiLogs[0];
     if (latest.type === 'action' && !isSpeaking) {
       speak(latest.message, 'intense');
+      setLastCoachMessage(latest.message);
+      if (coachMessageTimerRef.current) clearTimeout(coachMessageTimerRef.current);
+      coachMessageTimerRef.current = setTimeout(() => setLastCoachMessage(null), 4000);
     }
   }, [aiLogs, isSpeaking, speak]);
+
+  // Cadence drift detection — nudge rider if below target RPM for >8s
+  useEffect(() => {
+    if (!isRiding || !currentInterval?.targetRpm) return;
+    const [minRpm] = currentInterval.targetRpm;
+    const now = Date.now();
+    const delta = now - lastCadenceCheckRef.current;
+    lastCadenceCheckRef.current = now;
+
+    if (telemetry.cadence < minRpm - 10) {
+      cadenceDriftMsRef.current += delta;
+    } else {
+      cadenceDriftMsRef.current = 0;
+    }
+
+    const intervalKey = `${currentIntervalIndex}-${currentInterval.phase}`;
+    if (cadenceDriftMsRef.current >= 8000 && lastDriftNudgeRef.current !== intervalKey) {
+      lastDriftNudgeRef.current = intervalKey;
+      cadenceDriftMsRef.current = 0;
+      const nudge = 'Pick up the pace!';
+      speak(nudge, 'intense');
+      setLastCoachMessage(nudge);
+      if (coachMessageTimerRef.current) clearTimeout(coachMessageTimerRef.current);
+      coachMessageTimerRef.current = setTimeout(() => setLastCoachMessage(null), 4000);
+    }
+  }, [isRiding, telemetry.cadence, currentInterval, currentIntervalIndex, speak]);
 
   // Periodic agent reasoning during ride
   useEffect(() => {
@@ -1416,6 +1460,22 @@ export default function LiveRidePage() {
                       <span className="text-xs sm:text-sm font-mono text-white/70">
                         {formatTime(Math.ceil(intervalRemaining))} left
                       </span>
+                      {/* Coming up next */}
+                      {workoutPlan && currentIntervalIndex < workoutPlan.intervals.length - 1 && (() => {
+                        const next = workoutPlan.intervals[currentIntervalIndex + 1];
+                        return (
+                          <span className="hidden sm:flex items-center gap-1 text-[10px] text-white/40">
+                            <span>Next:</span>
+                            <span className={`font-semibold ${
+                              next.phase === 'sprint' ? 'text-red-400'
+                              : next.phase === 'recovery' ? 'text-blue-400'
+                              : next.phase === 'interval' ? 'text-yellow-400'
+                              : 'text-white/60'
+                            }`}>{next.phase}</span>
+                            <span>{formatTime(next.durationSeconds)}</span>
+                          </span>
+                        );
+                      })()}
                       {/* Target RPM zone comparison */}
                       {currentInterval.targetRpm && (
                         <div className="flex items-center gap-1.5">
@@ -1539,6 +1599,20 @@ export default function LiveRidePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Coach message text overlay — shown for 4s after any spoken cue */}
+      {lastCoachMessage && isRiding && !currentBeat && (
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none px-4 w-full max-w-[90%] sm:max-w-sm animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="rounded-2xl border border-white/15 bg-black/75 backdrop-blur-xl px-5 py-3 text-center shadow-lg">
+            <p className="text-sm sm:text-base font-semibold text-white leading-snug">&ldquo;{lastCoachMessage}&rdquo;</p>
+          </div>
+        </div>
+      )}
+
+      {/* Sprint flash border — pulses red on sprint phase entry */}
+      {isRiding && currentInterval?.phase === 'sprint' && (
+        <div className="absolute inset-0 pointer-events-none rounded-none border-4 border-red-500/60 animate-pulse" />
       )}
 
       {/* Story Beat Alert - Mobile Optimized */}

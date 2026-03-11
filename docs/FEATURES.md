@@ -249,3 +249,17 @@ const HIGH_PRIVACY = {
 - 10-minute rolling telemetry buffer
 - Walrus encrypted backup
 - No data leaves device without consent
+
+---
+
+## Yellow Network (Real-time Rewards)
+
+### State Channel Settlement
+SpinChain uses **Yellow Network** state channels to enable high-frequency reward accrual during workouts.
+
+- **Nitro RPC**: Real-time telemetry updates via WebSocket to ClearNode.
+- **Micro-Rewards**: SPIN tokens accrue every second based on effort.
+- **Batch Settlement**: Instructors batch co-signed sessions on Avalanche Fuji to save up to 85% gas.
+- **ERC-7715 Permissions**: One-click authorization for instructor co-signing.
+
+See [Yellow Network Integration](./YELLOW_NETWORK.md) for full technical details.

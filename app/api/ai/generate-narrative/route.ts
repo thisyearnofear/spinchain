@@ -1,15 +1,11 @@
 /**
  * Next.js API Route for AI Narrative Generation
- * Powered by Gemini 3.0 Flash Preview
- * 
- * HACKATHON ENHANCEMENT:
- * - Multidimensional narrative generation (narrative + atmosphere + intensity)
- * - Context-aware descriptions based on elevation profile
- * - Structured output for UI components
+ * Venice AI (privacy-first, default) → Gemini fallback
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { generateNarrativeWithGemini } from "@/app/lib/gemini-client";
+import { generateNarrativeWithVenice } from "@/app/lib/venice-client";
 
 export const runtime = "edge";
 
@@ -44,35 +40,45 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate API key
+    const VENICE_API_KEY = process.env.VENICE_API_KEY;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    if (!GEMINI_API_KEY) {
+    if (!VENICE_API_KEY && !GEMINI_API_KEY) {
       return NextResponse.json(
-        { error: "Configuration error", message: "GEMINI_API_KEY not configured" },
+        { error: "Configuration error", message: "No AI provider configured. Set VENICE_API_KEY or GEMINI_API_KEY." },
         { status: 503 }
       );
     }
 
-    console.log(`[Gemini 3] Generating narrative for "${theme}" theme, ${duration}min route`);
-    
     const startTime = Date.now();
-    
-    const result = await generateNarrativeWithGemini(
-      elevationProfile,
-      theme,
-      duration,
-      routeName
-    );
-    
+    let result: { narrative: string; atmosphere: string; intensity: string };
+    let providerUsed = "venice";
+
+    if (VENICE_API_KEY) {
+      console.log(`[Venice] Generating narrative for "${theme}" theme, ${duration}min route`);
+      try {
+        result = await generateNarrativeWithVenice(elevationProfile, theme, duration, routeName);
+      } catch (veniceErr) {
+        console.warn("[Venice] Narrative failed, falling back to Gemini:", veniceErr);
+        if (!GEMINI_API_KEY) throw veniceErr;
+        result = await generateNarrativeWithGemini(elevationProfile, theme, duration, routeName);
+        providerUsed = "gemini";
+      }
+    } else {
+      console.log(`[Gemini] Generating narrative for "${theme}" theme, ${duration}min route`);
+      result = await generateNarrativeWithGemini(elevationProfile, theme, duration, routeName);
+      providerUsed = "gemini";
+    }
+
     const duration_ms = Date.now() - startTime;
-    console.log(`[Gemini 3] Narrative generated in ${duration_ms}ms`);
+    console.log(`[${providerUsed}] Narrative generated in ${duration_ms}ms`);
 
     return NextResponse.json({
       ...result,
       _meta: {
         generatedAt: new Date().toISOString(),
         duration: duration_ms,
-        model: "gemini-3.0-flash-preview",
+        model: providerUsed === "venice" ? "llama-3.3-70b" : "gemini-3.0-flash-preview",
+        provider: providerUsed,
         inputStats: {
           elevationPoints: elevationProfile.length,
           elevationGain: Math.max(...elevationProfile) - Math.min(...elevationProfile),
@@ -103,11 +109,12 @@ export async function POST(req: NextRequest) {
  * Health check
  */
 export async function GET() {
-  const hasApiKey = !!process.env.GEMINI_API_KEY;
+  const hasApiKey = !!process.env.VENICE_API_KEY || !!process.env.GEMINI_API_KEY;
   
   return NextResponse.json({
     status: hasApiKey ? "ready" : "not_configured",
-    model: "gemini-3.0-flash-preview",
+    provider: process.env.VENICE_API_KEY ? "venice" : "gemini",
+    model: process.env.VENICE_API_KEY ? "llama-3.3-70b" : "gemini-3.0-flash-preview",
     features: [
       "multidimensional_narrative",
       "context_aware_descriptions",

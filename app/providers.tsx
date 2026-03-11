@@ -93,24 +93,38 @@ function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
         learnMoreUrl: "https://spinchain.xyz",
       }}
     >
-      {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
+      {mounted ? children : <div style={{ visibility: 'hidden' }} />}
     </RainbowKitProvider>
   );
 }
 
 // Inner providers that need theme context
 function InnerProviders({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
   const [queryClient] = useState(() => getQueryClient());
-  const [wagmiConfig] = useState(() => createBrowserWagmiConfig());
+  const [wagmiConfig, setWagmiConfig] = useState<Config | null>(null);
+
+  useEffect(() => {
+    setWagmiConfig(createBrowserWagmiConfig());
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !wagmiConfig) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <SuiProvider>
+          <div style={{ visibility: 'hidden' }} />
+        </SuiProvider>
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
       <SuiProvider>
         <WagmiProvider config={wagmiConfig} reconnectOnMount={true}>
           <RainbowKitThemeWrapper>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
+            {children}
           </RainbowKitThemeWrapper>
         </WagmiProvider>
       </SuiProvider>
@@ -121,9 +135,11 @@ function InnerProviders({ children }: { children: React.ReactNode }) {
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
-      <InnerProviders>
-        {children}
-      </InnerProviders>
+      <ToastProvider>
+        <InnerProviders>
+          {children}
+        </InnerProviders>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

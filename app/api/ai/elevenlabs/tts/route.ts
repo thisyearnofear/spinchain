@@ -73,7 +73,6 @@ export async function POST(req: NextRequest) {
     return new Response(audioBuffer, {
       headers: {
         "Content-Type": "audio/mpeg",
-        "Cache-Control": "public, max-age=3600",
       },
     });
 

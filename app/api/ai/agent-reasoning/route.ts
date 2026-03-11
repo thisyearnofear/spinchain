@@ -1,16 +1,11 @@
 /**
  * Next.js API Route for Agent Reasoning
- * Powered by Gemini 3.0 Flash Preview
- * 
- * HACKATHON ENHANCEMENT:
- * - Structured reasoning with confidence scores
- * - Dual-objective optimization (performance + revenue)
- * - Explainable AI decisions
- * - Gemini 3 JSON mode for reliable output
+ * Venice AI (privacy-first, default) → Gemini fallback
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { agentReasoningWithGemini, AgentDecision } from "@/app/lib/gemini-client";
+import { agentReasoningWithVenice } from "@/app/lib/venice-client";
 
 export const runtime = "edge";
 
@@ -49,31 +44,45 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate API key
+    const VENICE_API_KEY = process.env.VENICE_API_KEY;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    if (!GEMINI_API_KEY) {
+    if (!VENICE_API_KEY && !GEMINI_API_KEY) {
       return NextResponse.json(
-        { error: "Configuration error", message: "GEMINI_API_KEY not configured" },
+        { error: "Configuration error", message: "No AI provider configured. Set VENICE_API_KEY or GEMINI_API_KEY." },
         { status: 503 }
       );
     }
 
-    console.log(`[Gemini 3] Agent reasoning: ${agentName} (${personality})`);
-    console.log(`[Gemini 3] Context: ${context.market.ticketsSold}/${context.market.capacity} tickets, ${context.telemetry.avgBpm} BPM avg`);
-
     const startTime = Date.now();
-    
-    const decision = await agentReasoningWithGemini(agentName, personality, context);
-    
+    let decision: AgentDecision;
+    let providerUsed = "venice";
+
+    if (VENICE_API_KEY) {
+      console.log(`[Venice] Agent reasoning: ${agentName} (${personality})`);
+      try {
+        decision = await agentReasoningWithVenice(agentName, personality, context);
+      } catch (veniceErr) {
+        console.warn("[Venice] Agent reasoning failed, falling back to Gemini:", veniceErr);
+        if (!GEMINI_API_KEY) throw veniceErr;
+        decision = await agentReasoningWithGemini(agentName, personality, context);
+        providerUsed = "gemini";
+      }
+    } else {
+      console.log(`[Gemini] Agent reasoning: ${agentName} (${personality})`);
+      decision = await agentReasoningWithGemini(agentName, personality, context);
+      providerUsed = "gemini";
+    }
+
     const duration_ms = Date.now() - startTime;
-    console.log(`[Gemini 3] Decision in ${duration_ms}ms: ${decision.action} (${Math.round(decision.confidence * 100)}% confidence)`);
+    console.log(`[${providerUsed}] Decision in ${duration_ms}ms: ${decision.action} (${Math.round(decision.confidence * 100)}% confidence)`);
 
     return NextResponse.json({
       ...decision,
       _meta: {
         generatedAt: new Date().toISOString(),
         duration: duration_ms,
-        model: "gemini-3.0-flash-preview",
+        model: providerUsed === "venice" ? "llama-3.3-70b" : "gemini-3.0-flash-preview",
+        provider: providerUsed,
         agent: agentName,
         personality,
       },
@@ -100,11 +109,12 @@ export async function POST(req: NextRequest) {
  * Health check and capabilities
  */
 export async function GET() {
-  const hasApiKey = !!process.env.GEMINI_API_KEY;
+  const hasApiKey = !!process.env.VENICE_API_KEY || !!process.env.GEMINI_API_KEY;
   
   return NextResponse.json({
     status: hasApiKey ? "ready" : "not_configured",
-    model: "gemini-3.0-flash-preview",
+    provider: process.env.VENICE_API_KEY ? "venice" : "gemini",
+    model: process.env.VENICE_API_KEY ? "llama-3.3-70b" : "gemini-3.0-flash-preview",
     features: [
       "structured_reasoning",
       "confidence_scoring",
