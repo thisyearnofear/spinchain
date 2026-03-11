@@ -392,6 +392,26 @@ export default function LiveRidePage() {
   const lastRewardRecordMsRef = useRef(0);
   const pendingRewardRecordRef = useRef(false);
 
+  // Workout plan state
+  const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(
+    () => PRESET_WORKOUTS[1] // Default to HIIT 45 for demo; will be selectable
+  );
+
+  // Current interval tracking (derived from elapsed time)
+  const currentIntervalIndex = workoutPlan
+    ? getCurrentInterval(workoutPlan.intervals, elapsedTime)
+    : -1;
+  const currentInterval = workoutPlan?.intervals[currentIntervalIndex] ?? null;
+  const intervalProgress = workoutPlan
+    ? getIntervalProgress(workoutPlan.intervals, elapsedTime)
+    : 0;
+  const intervalRemaining = workoutPlan
+    ? getIntervalRemaining(workoutPlan.intervals, elapsedTime)
+    : 0;
+  const routeTheme = currentInterval
+    ? PHASE_TO_THEME[currentInterval.phase]
+    : (classData?.metadata?.route.theme as "neon" | "alpine" | "mars" | "anime" | "rainbow") || "neon";
+
   // Audio hooks
   const aiPersonality = classData?.metadata?.ai?.personality;
   const coachPersonality = aiPersonality === 'drill-sergeant' ? 'drill' : aiPersonality === 'zen' ? 'zen' : 'data';
@@ -477,26 +497,6 @@ export default function LiveRidePage() {
 
   // Track last spoken beat to avoid repeats
   const lastSpokenBeatRef = useRef<string | null>(null);
-
-  // Workout plan state
-  const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(
-    () => PRESET_WORKOUTS[1] // Default to HIIT 45 for demo; will be selectable
-  );
-
-  // Current interval tracking (derived from elapsed time)
-  const currentIntervalIndex = workoutPlan
-    ? getCurrentInterval(workoutPlan.intervals, elapsedTime)
-    : -1;
-  const currentInterval = workoutPlan?.intervals[currentIntervalIndex] ?? null;
-  const intervalProgress = workoutPlan
-    ? getIntervalProgress(workoutPlan.intervals, elapsedTime)
-    : 0;
-  const intervalRemaining = workoutPlan
-    ? getIntervalRemaining(workoutPlan.intervals, elapsedTime)
-    : 0;
-  const routeTheme = currentInterval
-    ? PHASE_TO_THEME[currentInterval.phase]
-    : (classData?.metadata?.route.theme as "neon" | "alpine" | "mars" | "anime" | "rainbow") || "neon";
 
   // Track interval transitions for audio cues
   const lastIntervalRef = useRef<number>(-1);
