@@ -1,0 +1,12 @@
+
+> spinchain@0.1.0 dev /Users/udingethe/Dev/spinchain
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.68.103:3000
+- Environments: .env.local, .env
+
+✓ Starting...
+✓ Ready in 1469ms
+ ELIFECYCLE  Command failed.

@@ -164,10 +164,44 @@ export function RideHUD({
   const phaseMetrics = getPhaseMetrics(telemetry, intervalPhase);
   const phaseLabel = intervalPhase ? intervalPhase.charAt(0).toUpperCase() + intervalPhase.slice(1) : "Cruise";
 
+  // Yellow Protocol Monitor (Technical Stats for Accelerator)
+  const yellowMonitor = rewardsMode === "yellow-stream" && isRiding && (
+    <div className="mt-4 flex flex-col items-center animate-in fade-in zoom-in duration-500">
+      <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 backdrop-blur-md shadow-lg w-full max-w-[280px]">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest">
+            Nitrolite Protocol v0.4
+          </span>
+          <div className="flex items-center gap-1">
+            <span className="h-1 w-1 rounded-full bg-yellow-400 animate-ping" />
+            <span className="text-[8px] font-mono text-yellow-400/80">L3_LIVE</span>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-black/40 rounded p-1.5 border border-yellow-500/10">
+            <p className="text-[8px] text-yellow-500/60 uppercase font-bold">Sequence</p>
+            <p className="text-sm font-mono font-bold text-yellow-200">#{yellowSequence}</p>
+          </div>
+          <div className="bg-black/40 rounded p-1.5 border border-yellow-500/10">
+            <p className="text-[8px] text-yellow-500/60 uppercase font-bold">Session Key</p>
+            <p className="text-[9px] font-mono text-yellow-200 truncate">{sessionAddress}</p>
+          </div>
+        </div>
+        
+        <div className="mt-1.5 flex items-center justify-between text-[7px] font-mono text-yellow-500/40 uppercase">
+          <span>Quorum: Unanimous (100)</span>
+          <span>Settlement: EIP-712</span>
+        </div>
+      </div>
+    </div>
+  );
+
   // Agent Intelligence Section
   const agentInsight = (
     <div className="mt-4 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      <div className="flex items-center gap-2 mb-2">
+      {yellowMonitor}
+      <div className="flex items-center gap-2 mb-2 mt-4">
         <div className="relative">
           <span className="flex h-2.5 w-2.5 rounded-full bg-indigo-400 absolute -top-0.5 -right-0.5 animate-ping opacity-75" />
           <span className="flex h-2.5 w-2.5 rounded-full bg-indigo-500 relative shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
@@ -189,11 +223,17 @@ export function RideHUD({
 
           <p className="text-[12px] text-indigo-100/90 leading-relaxed font-mono italic tracking-tight">
             <span className="text-indigo-400 mr-2 font-black">▶</span>
-            {aiLog?.message || "Optimizing Sui telemetry packets for maximum yield..."}
+            {aiLog?.message || "DePIN for Biometrics: Optimizing Sui telemetry packets for maximum yield..."}
           </p>
 
-          <div className="mt-2 flex justify-end">
-            <span className="text-[8px] font-bold text-indigo-400/50 uppercase tracking-tighter italic">Process Node: 0xSUI_ALPHA</span>
+          <div className="mt-2 flex justify-between items-center">
+            {rewardsMode === "yellow-stream" && (
+              <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md bg-yellow-500/10 border border-yellow-500/20">
+                <span className="h-1 w-1 rounded-full bg-yellow-400 animate-pulse" />
+                <span className="text-[8px] font-black text-yellow-400 uppercase tracking-tighter">Yellow Live</span>
+              </div>
+            )}
+            <span className="text-[8px] font-bold text-indigo-400/50 uppercase tracking-tighter italic ml-auto">Process Node: 0xSUI_ALPHA</span>
           </div>
         </div>
       </div>

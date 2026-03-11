@@ -55,6 +55,10 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     IBiometricOracle public biometricOracle;
     address public attestationSigner;
     
+    // Protocol Fee
+    uint256 public protocolFeeBps = 250; // 2.5%
+    address public treasury;
+    
     mapping(bytes32 => bool) public usedAttestations;
     mapping(uint256 => uint256) public dailyMinted; // day => amount
     mapping(address => uint256) public totalClaimed; // rider => total rewards
@@ -66,16 +70,19 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     event RewardTokenUpdated(address indexed token);
     event VerifierUpdated(address indexed verifier);
     event BiometricOracleUpdated(address indexed oracle);
+    event TreasuryUpdated(address indexed treasury);
+    event ProtocolFeeUpdated(uint256 bps);
     event RewardClaimed(address indexed rider, address indexed spinClass, uint256 amount, bytes32 attestationId);
     event ZKRewardClaimed(address indexed rider, bytes32 indexed classId, uint256 amount, uint16 effortScore);
     event ChainlinkRewardClaimed(address indexed rider, bytes32 indexed classId, uint256 amount, uint16 effortScore);
     event TierRewardBoost(address indexed rider, TieredRewards.Tier tier, uint256 baseAmount, uint256 boostedAmount);
 
-    constructor(address owner_, address token_, address signer_, address verifier_) Ownable(owner_) {
+    constructor(address owner_, address token_, address signer_, address verifier_, address treasury_) Ownable(owner_) {
         rewardToken = ISpinToken(token_);
         spinToken = IERC20(token_);
         attestationSigner = signer_;
         verifier = IEffortThresholdVerifier(verifier_);
+        treasury = treasury_;
     }
 
     function setAttestationSigner(address signer_) external onlyOwner {
@@ -97,6 +104,17 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     function setBiometricOracle(address oracle_) external onlyOwner {
         biometricOracle = IBiometricOracle(oracle_);
         emit BiometricOracleUpdated(oracle_);
+    }
+
+    function setTreasury(address treasury_) external onlyOwner {
+        treasury = treasury_;
+        emit TreasuryUpdated(treasury_);
+    }
+
+    function setProtocolFee(uint256 bps) external onlyOwner {
+        require(bps <= 1000, "Fee too high"); // Max 10%
+        protocolFeeBps = bps;
+        emit ProtocolFeeUpdated(bps);
     }
 
     /// @notice Get user's current tier based on SPIN balance
@@ -237,7 +255,15 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
         if (dailyMinted[today] + amount > DAILY_MINT_LIMIT) revert DailyLimitExceeded();
         
         dailyMinted[today] += amount;
-        rewardToken.mint(to, amount);
+
+        if (protocolFeeBps > 0 && treasury != address(0)) {
+            uint256 fee = (amount * protocolFeeBps) / 10000;
+            uint256 riderAmount = amount - fee;
+            rewardToken.mint(to, riderAmount);
+            rewardToken.mint(treasury, fee);
+        } else {
+            rewardToken.mint(to, amount);
+        }
     }
 
     // ============ Admin ============

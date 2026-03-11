@@ -202,7 +202,7 @@ function FullTicker({
         <div className="flex items-center gap-2 py-0.5 px-2 rounded-full bg-yellow-500/10 border border-yellow-500/20">
           <span className="h-1 w-1 rounded-full bg-yellow-400 animate-pulse" />
           <span className="text-[9px] font-bold text-yellow-400/90 uppercase tracking-tighter">
-            Yellow L3
+            Yellow State Channel (Live)
           </span>
         </div>
       </div>

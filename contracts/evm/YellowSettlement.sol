@@ -75,6 +75,10 @@ contract YellowSettlement is EIP712, ReentrancyGuard, Ownable {
     // ============ State ============
     ISpinToken public rewardToken;
     IIncentiveEngine public incentiveEngine;
+
+    // Protocol Fee
+    uint256 public protocolFeeBps = 250; // 2.5%
+    address public treasury;
     
     mapping(bytes32 => ChannelState) public channels;
     mapping(uint256 => uint256) public dailyMinted; // day => amount
@@ -90,6 +94,8 @@ contract YellowSettlement is EIP712, ReentrancyGuard, Ownable {
     );
     event RewardTokenUpdated(address indexed token);
     event IncentiveEngineUpdated(address indexed engine);
+    event TreasuryUpdated(address indexed treasury);
+    event ProtocolFeeUpdated(uint256 bps);
 
     // ============ Constructor ============
     // ============ EIP-712 ============
@@ -107,10 +113,12 @@ contract YellowSettlement is EIP712, ReentrancyGuard, Ownable {
     constructor(
         address owner_,
         address token_,
-        address engine_
+        address engine_,
+        address treasury_
     ) EIP712("SpinChainYellowSettlement", "1") Ownable(owner_) {
         rewardToken = ISpinToken(token_);
         incentiveEngine = IIncentiveEngine(engine_);
+        treasury = treasury_;
     }
 
     // ============ Admin ============
@@ -122,6 +130,17 @@ contract YellowSettlement is EIP712, ReentrancyGuard, Ownable {
     function setIncentiveEngine(address engine_) external onlyOwner {
         incentiveEngine = IIncentiveEngine(engine_);
         emit IncentiveEngineUpdated(engine_);
+    }
+
+    function setTreasury(address treasury_) external onlyOwner {
+        treasury = treasury_;
+        emit TreasuryUpdated(treasury_);
+    }
+
+    function setProtocolFee(uint256 bps) external onlyOwner {
+        require(bps <= 1000, "Fee too high"); // Max 10%
+        protocolFeeBps = bps;
+        emit ProtocolFeeUpdated(bps);
     }
 
     // ============ Settlement ============
@@ -343,6 +362,14 @@ contract YellowSettlement is EIP712, ReentrancyGuard, Ownable {
         }
         
         dailyMinted[today] += amount;
-        rewardToken.mint(to, amount);
+        
+        if (protocolFeeBps > 0 && treasury != address(0)) {
+            uint256 fee = (amount * protocolFeeBps) / 10000;
+            uint256 riderAmount = amount - fee;
+            rewardToken.mint(to, riderAmount);
+            rewardToken.mint(treasury, fee);
+        } else {
+            rewardToken.mint(to, amount);
+        }
     }
 }

@@ -232,11 +232,11 @@ export default function LiveRidePage() {
     },
     {
       title: "Yellow Rewards (β)",
-      content: "Enable Yellow mode for instant, real-time rewards via state channels. Or use ZK for privacy-first batch rewards.",
+      content: "Enable Yellow mode for instant, real-time rewards via state channels. Or use Sovereign mode for privacy-first batch rewards.",
       position: "bottom-48 left-10",
     },
     {
-      title: "ZK Privacy",
+      title: "Sovereign Health Data",
       content: "Notice the shield icon? Your raw health data never leaves this device. Only a private proof is sent to the blockchain.",
       position: "bottom-40 right-10",
     },
@@ -1212,7 +1212,7 @@ export default function LiveRidePage() {
                             : "bg-white/5 text-white/40 border border-transparent hover:bg-white/10 hover:text-white/60"
                         } disabled:opacity-30 disabled:cursor-not-allowed`}
                       >
-                        {m === "zk-batch" ? "ZK" : "Yellow"}
+                        {m === "zk-batch" ? "Sovereign" : "Yellow"}
                         {m === "yellow-stream" && (
                           <>
                             <span className="ml-1 text-[8px] text-yellow-400">β</span>
@@ -1244,7 +1244,7 @@ export default function LiveRidePage() {
                     ) : (
                       <>
                         <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                        <span className="text-indigo-300">ZK</span>
+                        <span className="text-indigo-300">Sovereign</span>
                         {rewards.formattedReward !== "0" ? (
                           <span className="text-indigo-200 font-bold">{rewards.formattedReward} SPIN</span>
                         ) : rewards.isActive ? (
@@ -1382,6 +1382,8 @@ export default function LiveRidePage() {
             intervalPhase={currentInterval?.phase ?? null}
             aiLog={aiLogs[0]}
             ghostState={ghostState}
+            yellowSequence={rewards.streamState?.updateCount ?? 0}
+            sessionAddress={rewards.channel?.rider?.slice(0, 10) + "..."}
           />
 
           {/* Bottom - Controls (Mobile Optimized) */}

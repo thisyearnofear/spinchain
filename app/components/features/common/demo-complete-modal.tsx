@@ -166,18 +166,18 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                       Agent Validation
                     </span>
                     <span className="rounded-full px-2 py-0.5 text-[8px] font-bold bg-emerald-500/20 text-emerald-400">
-                      ZK PRIVACY ENABLED
+                      SOVEREIGN PRIVACY ENABLED
                     </span>
                   </div>
                   
                   <div className="space-y-1.5 text-[color:var(--muted)]">
                     <p className="flex items-center gap-2">
                       <span className="h-1 w-1 rounded-full bg-emerald-400" />
-                      Verifying biometric integrity on Sui
+                      Verifying biometric integrity on Sui (Parallel Execution)
                     </p>
                     <p className="flex items-center gap-2">
                       <span className="h-1 w-1 rounded-full bg-emerald-400" />
-                      Effort score computation verified
+                      Sovereign effort score computation verified
                     </p>
                     <p className="flex items-center gap-2">
                       <span className="h-1 w-1 rounded-full bg-amber-400 animate-pulse" />
@@ -219,7 +219,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                         <p className="text-zinc-400 mt-0.5">Real-time streaming • Instant rewards</p>
                       </div>
                       <div className="bg-indigo-500/5 rounded p-1.5">
-                        <span className="text-indigo-400 font-semibold">ZK Mode</span>
+                        <span className="text-indigo-400 font-semibold">Sovereign Mode</span>
                         <p className="text-zinc-400 mt-0.5">Privacy-first • Batch settlement</p>
                       </div>
                     </div>
@@ -251,7 +251,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                 <div className="space-y-2 mb-4">
                   <BenefitRow icon="🚴" text="Book live classes with top instructors" />
                   <BenefitRow icon="💰" text="Earn SPIN tokens for every workout" />
-                  <BenefitRow icon="🔒" text="Privacy-first: ZK proofs protect your data" />
+                  <BenefitRow icon="🔒" text="Sovereign Health Data: Local proofs protect you" />
                   <BenefitRow icon="⚡" text="Yellow: Real-time rewards via state channels" />
                   <BenefitRow icon="🌐" text="Cross-chain: Avalanche + Sui dual engine" />
                 </div>
