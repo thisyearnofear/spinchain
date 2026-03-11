@@ -48,49 +48,80 @@ export default function InstructorPage() {
           </div>
         )}
 
-        {/* Quick Stats */}
-        <SurfaceCard
-          eyebrow="Instructor Console"
-          title="Your teaching dashboard"
-          description="Create immersive classes and build your community."
-          className="bg-[color:var(--surface-strong)]"
-        >
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Tag color="indigo">Dynamic pricing</Tag>
-            <Tag color="green">Private metrics</Tag>
-            <Tag color="amber">Auto payouts</Tag>
-          </div>
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            {liveSignals.map((signal) => (
-              <div
-                key={signal.title}
-                className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-4"
-              >
-                <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--foreground)]/80">
-                  {signal.title}
-                </p>
-                <p className="mt-2 text-lg font-semibold text-[color:var(--foreground)]">
-                  {signal.value}
-                </p>
+        {/* Hospitality & Performance Section */}
+        <section className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="group relative rounded-3xl border border-white/10 bg-black/40 p-8 backdrop-blur-3xl shadow-2xl overflow-hidden">
+              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 rounded-3xl blur opacity-30"></div>
+              
+              <div className="relative">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h2 className="text-2xl font-black text-white tracking-tighter">Your Business Overview</h2>
+                    <p className="text-sm text-white/40">Hospitality metrics for the last 30 days.</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                    <span className="text-lg">📈</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                  <div>
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Retention</p>
+                    <p className="text-2xl font-black text-white tracking-tighter">84%</p>
+                    <p className="text-[10px] text-green-400 font-bold mt-1">+12% vs LY</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Avg Rating</p>
+                    <p className="text-2xl font-black text-white tracking-tighter">4.92</p>
+                    <div className="flex items-center gap-0.5 mt-1">
+                      {[1, 2, 3, 4, 5].map(i => <span key={i} className="text-[10px] text-yellow-400">★</span>)}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Occupancy</p>
+                    <p className="text-2xl font-black text-white tracking-tighter">92%</p>
+                    <p className="text-[10px] text-indigo-400 font-bold mt-1">Near Capacity</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">New Riders</p>
+                    <p className="text-2xl font-black text-white tracking-tighter">142</p>
+                    <p className="text-[10px] text-white/30 font-bold mt-1">This month</p>
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-          
-          {/* Analytics Link */}
-          {isConnected && (
-            <div className="mt-6">
-              <a
-                href="/instructor/analytics"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium hover:opacity-90 transition-opacity"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                View Full Analytics
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <a href="/instructor/builder" className="group rounded-2xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition-all">
+                <h3 className="font-bold text-white mb-1">List a New Class</h3>
+                <p className="text-xs text-white/40">Create a scheduled or AI-hosted experience.</p>
+              </a>
+              <a href="/instructor/ai" className="group rounded-2xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition-all">
+                <h3 className="font-bold text-white mb-1">Optimize Pacing</h3>
+                <p className="text-xs text-white/40">Update your AI Coach coaching cues.</p>
               </a>
             </div>
-          )}
-        </SurfaceCard>
+          </div>
+
+          <div className="space-y-6">
+            <SurfaceCard eyebrow="Earnings" title="Real-time Revenue" className="bg-indigo-500/10 border-indigo-500/20">
+              <div className="mt-4">
+                <p className="text-3xl font-black text-white tracking-tighter">3.82 ETH</p>
+                <p className="text-xs text-white/40 mb-6">~$9,450.20 Available</p>
+                <button className="w-full py-3 rounded-xl bg-white text-black text-xs font-black uppercase tracking-widest hover:bg-gray-100 transition-all">
+                  Withdraw Funds
+                </button>
+              </div>
+            </SurfaceCard>
+            
+            <SurfaceCard eyebrow="Insights" title="Coach Atlas Says" className="bg-amber-500/10 border-amber-500/20">
+              <p className="text-xs text-amber-200/80 leading-relaxed italic">
+                &quot;Riders are dropping off around the 35-minute mark on Alpine routes. Suggest adding a sprint beat to maintain engagement.&quot;
+              </p>
+            </SurfaceCard>
+          </div>
+        </section>
 
         {/* Create Class CTA */}
         {!showWizard && (
@@ -171,10 +202,10 @@ export default function InstructorPage() {
             >
               <span className="text-3xl mb-4 block">🤖</span>
               <h3 className="font-semibold text-[color:var(--foreground)] mb-2">
-                Agentic Finance
+                AI Coach Settings
               </h3>
               <p className="text-sm text-[color:var(--muted)]">
-                Deploy autonomous instructors and optimize revenue with V4 hooks
+                Configure your autonomous twin to teach 24/7
               </p>
             </a>
 
@@ -184,10 +215,10 @@ export default function InstructorPage() {
             >
               <span className="text-3xl mb-4 block">💛</span>
               <h3 className="font-semibold text-[color:var(--foreground)] mb-2">
-                Yellow Settlements
+                Revenue & Settlements
               </h3>
               <p className="text-sm text-[color:var(--muted)]">
-                Co-sign rider sessions and settle rewards on Avalanche
+                Manage payouts and view rider reward distributions
               </p>
             </a>
           </div>

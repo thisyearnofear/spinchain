@@ -226,9 +226,9 @@ export default function InstructorBuilderPage() {
     "Start by choosing a race track for your riders.",
     "Give your class a name and schedule it on the calendar.",
     "Pick your character, bike, and world theme.",
-    "Set the ticket price curve - early birds pay less!",
+    "Set the ticket pricing - early birds pay less!",
     "Define how much riders can earn for their effort.",
-    "Review everything and deploy your smart contract."
+    "Review everything and launch your class to the schedule."
   ];
 
   // ... rest of the component
@@ -247,11 +247,11 @@ export default function InstructorBuilderPage() {
 
   const steps = [
     { number: 0, title: "Route" },
-    { number: 1, title: "Basics" },
-    { number: 2, title: "Character & Gear" }, // NEW
-    { number: 3, title: "Economics" },
-    { number: 4, title: "AI & Rewards" },
-    { number: 5, title: "Deploy" },
+    { number: 1, title: "Details" },
+    { number: 2, title: "Visuals" }, // NEW
+    { number: 3, title: "Pricing" },
+    { number: 4, title: "Rewards" },
+    { number: 5, title: "Launch" },
   ];
   
   // Auto-populate from route
@@ -346,7 +346,7 @@ export default function InstructorBuilderPage() {
               </p>
               
               <div className="space-y-4 mb-8">
-                {["Select Track", "Identity & Gear", "Program Economics"].map((item, i) => (
+                {["Select Track", "Identity & Visuals", "Pricing & Launch"].map((item, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm text-white/80">
                     <div className="h-5 w-5 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px] font-bold text-indigo-400">
                       {i + 1}
@@ -377,9 +377,9 @@ export default function InstructorBuilderPage() {
         {/* Header */}
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div>
-            <h1 className="text-4xl font-black text-white tracking-tighter">Class Builder</h1>
+            <h1 className="text-4xl font-black text-white tracking-tighter">Class Creator</h1>
             <p className="mt-2 text-white/50 font-medium">
-              Configure your programmable class contract.
+              Design your immersive fitness experience.
             </p>
           </div>
           <div className="flex gap-2 p-1.5 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl">
@@ -624,17 +624,17 @@ export default function InstructorBuilderPage() {
                     </div>
                   </div>
 
-                  {/* Sui Toggle - Enhanced */}
+                  {/* Live Leaderboard Toggle */}
                   <div className="group/toggle relative rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-6 overflow-hidden">
                     <div className="absolute -inset-1 bg-cyan-500/5 blur-xl opacity-50"></div>
                     <div className="relative flex items-center justify-between">
                       <div className="flex gap-4">
                         <div className="h-12 w-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-                          <span className="text-xl">💧</span>
+                          <span className="text-xl">🏆</span>
                         </div>
                         <div>
-                          <h4 className="font-black text-white uppercase tracking-wider text-sm">Enable Sui Performance Node</h4>
-                          <p className="text-xs text-white/40 mt-1">High-frequency telemetry & live leaderboards.</p>
+                          <h4 className="font-black text-white uppercase tracking-wider text-sm">Enable Live Leaderboard</h4>
+                          <p className="text-xs text-white/40 mt-1">Real-time ranking updates during class.</p>
                         </div>
                       </div>
                       <button

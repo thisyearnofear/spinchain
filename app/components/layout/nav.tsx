@@ -119,40 +119,105 @@ function PrimaryCTA({ href, children, onClick }: { href: string; children: React
   );
 }
 
+function ModeToggle({ isInstructor, onToggle }: { isInstructor: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className={`group relative flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
+        isInstructor 
+          ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/30" 
+          : "bg-white/5 text-white/40 border border-white/10 hover:text-white"
+      }`}
+    >
+      <span className="relative flex h-2 w-2">
+        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isInstructor ? "bg-indigo-400" : "bg-white/20"}`}></span>
+        <span className={`relative inline-flex rounded-full h-2 w-2 ${isInstructor ? "bg-indigo-500" : "bg-white/30"}`}></span>
+      </span>
+      {isInstructor ? "Switch to Riding" : "Switch to Coaching"}
+    </button>
+  );
+}
+
 export function PrimaryNav() {
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const showSuiWallet = useSuiWalletVisible();
+  
+  // Airbnb-style context detection
+  const isInstructorMode = pathname?.startsWith("/instructor") || pathname?.startsWith("/agent");
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  const handleModeToggle = () => {
+    window.location.href = isInstructorMode ? "/rider" : "/instructor";
+  };
 
   return (
     <nav className="flex w-full flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
       <div className="flex items-center justify-between">
         <a href="/" className="flex items-center gap-3 group" aria-label="SpinChain Home">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] text-xl font-semibold text-white">
-            🚴
+          <span className={`grid h-11 w-11 place-items-center rounded-2xl text-xl font-semibold text-white shadow-lg transition-transform group-hover:scale-105 ${
+            isInstructorMode 
+              ? "bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] shadow-indigo-500/20" 
+              : "bg-[linear-gradient(135deg,#6ef3c6,#3b82f6)] shadow-emerald-500/20"
+          }`}>
+            {isInstructorMode ? "🎓" : "🚴"}
           </span>
-          <p className="text-lg font-semibold text-[color:var(--foreground)]">
-            SpinChain
-          </p>
+          <div>
+            <p className="text-lg font-black text-[color:var(--foreground)] tracking-tighter">
+              SpinChain
+            </p>
+            <p className={`text-[9px] font-bold uppercase tracking-[0.2em] -mt-1 ${isInstructorMode ? "text-indigo-400" : "text-emerald-400"}`}>
+              {isInstructorMode ? "Instructor Console" : "Rider Experience"}
+            </p>
+          </div>
         </a>
-        <MobileMenuButton isOpen={isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+        <div className="flex items-center gap-2 lg:hidden">
+          <ModeToggle isInstructor={isInstructorMode} onToggle={handleModeToggle} />
+          <MobileMenuButton isOpen={isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+        </div>
       </div>
 
-      {/* Desktop: always visible via CSS; Mobile: toggled via AnimatePresence */}
-      <div className="hidden lg:flex lg:items-center gap-4 overflow-visible">
-        <div className="flex items-center gap-3">
+      {/* Desktop Navigation */}
+      <div className="hidden lg:flex lg:items-center gap-6 overflow-visible">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <ConnectWallet />
             {showSuiWallet && <SuiWalletButton />}
           </div>
+          
+          <div className="h-6 w-px bg-white/10 mx-1" />
+          
           <div className="flex items-center gap-2">
-            <NavLink href="/routes">Routes</NavLink>
-            <NavLink href="/instructor">Teach</NavLink>
+            {isInstructorMode ? (
+              <>
+                <NavLink href="/instructor/builder">Create Class</NavLink>
+                <NavLink href="/instructor/analytics">Analytics</NavLink>
+                <NavLink href="/instructor/ai">AI Coach</NavLink>
+              </>
+            ) : (
+              <>
+                <NavLink href="/rider">Explore</NavLink>
+                <NavLink href="/rider/journey">My Activity</NavLink>
+                <NavLink href="/routes">Routes</NavLink>
+              </>
+            )}
             <SettingsDropdown />
           </div>
         </div>
-        <PrimaryCTA href="/rider">Start Riding</PrimaryCTA>
+        
+        <div className="flex items-center gap-3">
+          <ModeToggle isInstructor={isInstructorMode} onToggle={handleModeToggle} />
+          {isInstructorMode ? (
+            <PrimaryCTA href="/instructor/builder" className="bg-indigo-600 shadow-indigo-500/20">
+              New Class
+            </PrimaryCTA>
+          ) : (
+            <PrimaryCTA href="/rider" className="bg-emerald-500 shadow-emerald-500/20">
+              Find a Ride
+            </PrimaryCTA>
+          )}
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
@@ -164,22 +229,40 @@ export function PrimaryNav() {
             transition={{ duration: 0.2 }}
             className="flex flex-col gap-4 overflow-visible lg:hidden"
           >
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-white/40 uppercase">Account</span>
                 <ConnectWallet />
-                {showSuiWallet && <SuiWalletButton />}
               </div>
-
-              <div className="flex flex-col sm:flex-row gap-2">
-                <NavLink href="/routes" onClick={closeMobileMenu}>Routes</NavLink>
-                <div className="flex items-center gap-2">
-                  <NavLink href="/instructor" onClick={closeMobileMenu}>Teach</NavLink>
-                  <SettingsDropdown />
-                </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                {isInstructorMode ? (
+                  <>
+                    <NavLink href="/instructor/builder" onClick={closeMobileMenu}>Create</NavLink>
+                    <NavLink href="/instructor/analytics" onClick={closeMobileMenu}>Analytics</NavLink>
+                    <NavLink href="/instructor/ai" onClick={closeMobileMenu}>AI Coach</NavLink>
+                    <SettingsDropdown />
+                  </>
+                ) : (
+                  <>
+                    <NavLink href="/rider" onClick={closeMobileMenu}>Explore</NavLink>
+                    <NavLink href="/rider/journey" onClick={closeMobileMenu}>Activity</NavLink>
+                    <NavLink href="/routes" onClick={closeMobileMenu}>Routes</NavLink>
+                    <SettingsDropdown />
+                  </>
+                )}
               </div>
             </div>
 
-            <PrimaryCTA href="/rider" onClick={closeMobileMenu}>Start Riding</PrimaryCTA>
+            {isInstructorMode ? (
+              <PrimaryCTA href="/instructor/builder" onClick={closeMobileMenu} className="bg-indigo-600">
+                New Class
+              </PrimaryCTA>
+            ) : (
+              <PrimaryCTA href="/rider" onClick={closeMobileMenu} className="bg-emerald-500">
+                Find a Ride
+              </PrimaryCTA>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

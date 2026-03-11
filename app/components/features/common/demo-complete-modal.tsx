@@ -163,25 +163,25 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-semibold text-[color:var(--foreground)] flex items-center gap-1.5">
                       <span className="text-sm">🧠</span>
-                      Agent Validation
+                      Coach Validation
                     </span>
                     <span className="rounded-full px-2 py-0.5 text-[8px] font-bold bg-emerald-500/20 text-emerald-400">
-                      SOVEREIGN PRIVACY ENABLED
+                      PRIVATE VERIFICATION COMPLETE
                     </span>
                   </div>
                   
                   <div className="space-y-1.5 text-[color:var(--muted)]">
                     <p className="flex items-center gap-2">
                       <span className="h-1 w-1 rounded-full bg-emerald-400" />
-                      Verifying biometric integrity on Sui (Parallel Execution)
+                      Verifying effort data (Privacy Preserved)
                     </p>
                     <p className="flex items-center gap-2">
                       <span className="h-1 w-1 rounded-full bg-emerald-400" />
-                      Sovereign effort score computation verified
+                      Effort score privately verified
                     </p>
                     <p className="flex items-center gap-2">
                       <span className="h-1 w-1 rounded-full bg-amber-400 animate-pulse" />
-                      Awaiting wallet connection to sign reward payload
+                      Ready to claim rewards
                     </p>
                   </div>
                 </div>
@@ -211,16 +211,16 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                   {/* Yellow vs ZK Mode Info */}
                   <div className="mt-3 pt-3 border-t border-yellow-500/20">
                     <p className="text-[10px] text-yellow-300/80 mb-2">
-                      ⚡ Powered by <span className="font-semibold">Yellow Network</span> state channels
+                      ⚡ Powered by <span className="font-semibold">Live Performance</span> technology
                     </p>
                     <div className="grid grid-cols-2 gap-2 text-[10px]">
                       <div className="bg-yellow-500/5 rounded p-1.5">
-                        <span className="text-yellow-400 font-semibold">Yellow Mode</span>
+                        <span className="text-yellow-400 font-semibold">Live Mode</span>
                         <p className="text-zinc-400 mt-0.5">Real-time streaming • Instant rewards</p>
                       </div>
                       <div className="bg-indigo-500/5 rounded p-1.5">
-                        <span className="text-indigo-400 font-semibold">Sovereign Mode</span>
-                        <p className="text-zinc-400 mt-0.5">Privacy-first • Batch settlement</p>
+                        <span className="text-indigo-400 font-semibold">Standard Mode</span>
+                        <p className="text-zinc-400 mt-0.5">Privacy-first • Verified results</p>
                       </div>
                     </div>
                   </div>
@@ -251,8 +251,8 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                 <div className="space-y-2 mb-4">
                   <BenefitRow icon="🚴" text="Book live classes with top instructors" />
                   <BenefitRow icon="💰" text="Earn SPIN tokens for every workout" />
-                  <BenefitRow icon="🔒" text="Sovereign Health Data: Local proofs protect you" />
-                  <BenefitRow icon="⚡" text="Yellow: Real-time rewards via state channels" />
+                  <BenefitRow icon="🔒" text="Private Health Data: Local proofs protect you" />
+                  <BenefitRow icon="⚡" text="Live: Real-time rewards via state channels" />
                   <BenefitRow icon="🌐" text="Cross-chain: Avalanche + Sui dual engine" />
                 </div>
 

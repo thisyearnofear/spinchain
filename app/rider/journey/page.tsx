@@ -24,11 +24,11 @@ function JourneyContent() {
   }
 
   const journeySteps = [
-    "Connect wearable + privacy preferences",
-    "Buy ticket (wallet abstracted)",
-    "Ride with live effort feedback",
-    "Generate proof + earn rewards",
-    "Share proof card",
+    "Connect devices & set privacy",
+    "Secure your ticket",
+    "Ride with live coaching",
+    "Verify effort & earn rewards",
+    "Share your achievement",
   ];
 
   return (
@@ -46,11 +46,11 @@ function JourneyContent() {
               </svg>
             </div>
             <h2 className="text-3xl font-bold text-white mb-2">Ride Complete! 🎉</h2>
-            <p className="text-white/70 mb-6">Your effort has been recorded and rewards are being processed.</p>
+            <p className="text-white/70 mb-6">Your effort has been verified and rewards are on the way.</p>
             <div className="flex flex-wrap justify-center gap-3">
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/20 text-green-400 text-sm">
                 <span className="w-2 h-2 rounded-full bg-green-400" />
-                Proof Generated
+                Effort Verified
               </span>
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/20 text-purple-400 text-sm">
                 <span className="w-2 h-2 rounded-full bg-purple-400" />
@@ -62,17 +62,17 @@ function JourneyContent() {
 
         <SurfaceCard
           eyebrow="Rider Journey"
-          title={isCompleted ? "Your Journey" : "From ticket to proof in one flow"}
+          title={isCompleted ? "Your Journey" : "From ticket to trophy in one flow"}
           description={isCompleted 
             ? "You've completed all steps! Here's what happened:"
-            : "Every rider action is designed to keep health data private while unlocking rewards."
+            : "Every action is designed to keep your health data private while unlocking real rewards."
           }
           className="bg-[color:var(--surface-strong)]"
         >
           <div className="mt-6 flex flex-wrap gap-3">
-            <Tag>Privacy-first</Tag>
-            <Tag>1-click ticket</Tag>
-            <Tag>Auto rewards</Tag>
+            <Tag>Privacy-First</Tag>
+            <Tag>Instant Access</Tag>
+            <Tag>Auto Rewards</Tag>
           </div>
           <div className="mt-6">
             <BulletList items={journeySteps} />
@@ -82,18 +82,18 @@ function JourneyContent() {
         <div className="grid gap-6 lg:grid-cols-2">
           <SurfaceCard
             eyebrow="Onboarding"
-            title="Consent + device linking"
-            description="Riders control what metrics are shared and can opt out per class."
+            title="Setup & Preferences"
+            description="You control which metrics are shared. Opt out anytime."
           >
             <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/80">
-              HR data stays on device. Only proof of thresholds is submitted.
+              HR data stays on your device. Only your results are verified.
             </div>
           </SurfaceCard>
 
           <SurfaceCard
             eyebrow="Ticketing"
-            title="Mint attendance NFT"
-            description="Tickets are programmable, transferable, and verifiable."
+            title="Secure Your Ticket"
+            description="Tickets unlock the class and are yours to keep or transfer."
           >
             <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/80">
               Early-bird pricing + loyalty discounts applied automatically.
@@ -104,8 +104,8 @@ function JourneyContent() {
         <div className="grid gap-6 lg:grid-cols-2">
           <SurfaceCard
             eyebrow="Live Ride"
-            title="Effort feedback, no wallet prompts"
-            description="Live progress ring with private proof generation."
+            title="Live Coaching & Feedback"
+            description="Real-time progress ring with private verification."
           >
             <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/80">
               Effort zone tracking • streak updates • pacing cues
@@ -114,8 +114,8 @@ function JourneyContent() {
 
           <SurfaceCard
             eyebrow="Rewards"
-            title="Claim rewards automatically"
-            description="Proofs mint rewards and unlock discounts."
+            title="Claim Your Rewards"
+            description="Completing the ride unlocks SPIN tokens and perks."
           >
             <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/80">
               10 SPIN + 20% off next class (7-day window)
@@ -125,12 +125,12 @@ function JourneyContent() {
 
         <SurfaceCard
           eyebrow="Share Card"
-          title="Proof of effort, shareable anywhere"
-          description="A single card for social + onchain verification."
+          title="Share Your Success"
+          description="A beautiful card to celebrate your effort."
         >
           <SectionHeader
             eyebrow="Export"
-            title="Generate story-ready proof"
+            title="Generate Story-Ready Proof"
             description="Auto-branded with instructor + class info."
             actions={
               <>
@@ -138,13 +138,13 @@ function JourneyContent() {
                   onClick={() => setShowPreview(true)}
                   className="rounded-full border border-white/10 px-5 py-2 text-sm font-medium text-white/70 transition hover:text-white"
                 >
-                  Preview card
+                  Preview Card
                 </button>
                 <button
                   onClick={handleShareProof}
                   className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20"
                 >
-                  {shareStatus === "copied" ? "Copied! ✓" : "Share proof"}
+                  {shareStatus === "copied" ? "Copied! ✓" : "Share"}
                 </button>
               </>
             }
@@ -183,7 +183,7 @@ function JourneyContent() {
                   </div>
                 </div>
                 <div className="mb-4 rounded-xl bg-indigo-500/10 px-4 py-3 text-xs text-indigo-300">
-                  🔒 ZK proof — no raw biometrics shared
+                  🔒 Private Verification — no raw biometrics shared
                 </div>
                 <button
                   onClick={() => setShowPreview(false)}

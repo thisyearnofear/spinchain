@@ -75,7 +75,7 @@ export function InstructorWizard() {
     setIsSubmitting(false);
     alert(
       formData.mode === "agentic"
-        ? "Agentic Class Deployed to Sui & Avalanche!"
+        ? "Coachy Class Created & Scheduled!"
         : "Class created successfully!",
     );
   };
@@ -243,8 +243,7 @@ export function InstructorWizard() {
                 </div>
                 <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-[10px] text-blue-300">
                   <TrendingUp size={12} className="inline mr-2" />
-                  Agent will automatically adjust resistance via Sui Move based
-                  on 10Hz rider telemetry.
+                  Coachy will automatically adjust resistance based on real-time rider effort.
                 </div>
               </div>
             )}
@@ -328,7 +327,7 @@ export function InstructorWizard() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-[color:var(--foreground)]">
-                      Uniswap v4 Hooks
+                      Smart Pricing
                     </span>
                     <Tag>Demand Surge</Tag>
                   </div>
@@ -391,7 +390,7 @@ export function InstructorWizard() {
 
             <SurfaceCard className="p-4">
               <h4 className="text-xs uppercase tracking-wider text-[color:var(--muted)] mb-3">
-                Economics
+                Pricing & Revenue
               </h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
@@ -406,7 +405,7 @@ export function InstructorWizard() {
                   </span>
                   <span className="text-[color:var(--foreground)]">
                     {formData.enableDynamicPricing
-                      ? "Uniswap v4 Hook"
+                      ? "Smart Pricing (v4)"
                       : "Fixed"}
                   </span>
                 </div>
@@ -415,8 +414,7 @@ export function InstructorWizard() {
 
             <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[10px] text-indigo-300">
               <Zap size={12} className="inline mr-2" />
-              Deployment will trigger a transaction on Avalanche (Class Ticket
-              NFT) and initialize state on Sui (Performance Layer).
+              Launching will create your class ticket and enable the live leaderboard.
             </div>
           </div>
         );
@@ -475,10 +473,10 @@ export function InstructorWizard() {
       <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 backdrop-blur-xl p-6 sm:p-8 shadow-2xl">
         <h2 className="text-xl font-bold text-[color:var(--foreground)] mb-6 tracking-tight">
           {step === "basics" && "Class Foundation"}
-          {step === "mode" && "Teaching Architecture"}
+          {step === "mode" && "Teaching Style"}
           {step === "route" && "Experience Design"}
-          {step === "pricing" && "Economic Configuration"}
-          {step === "review" && "Final Settlement Review"}
+          {step === "pricing" && "Pricing & Revenue"}
+          {step === "review" && "Review Details"}
         </h2>
 
         {renderStep()}

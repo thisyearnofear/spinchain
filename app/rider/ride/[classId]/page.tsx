@@ -221,28 +221,28 @@ export default function LiveRidePage() {
   // Tutorial Content
   const tutorialSteps = [
     {
-      title: "Welcome to the HUD",
-      content: "This is your control center. Track your power, cadence, and heart rate in real-time.",
+      title: "Welcome to your HUD",
+      content: "This is your performance center. Track your power, cadence, and heart rate as you ride.",
       position: "top-1/4 left-1/2 -translate-x-1/2",
     },
     {
-      title: "Effort Score",
-      content: "The Effort Score (bottom right) is what determines your SPIN rewards. Keep it high to earn more!",
+      title: "Earn as you sweat",
+      content: "Your Effort Score (bottom right) determines your SPIN rewards. The harder you work, the more you earn!",
       position: "top-20 right-10",
     },
     {
-      title: "Yellow Rewards (β)",
-      content: "Enable Yellow mode for instant, real-time rewards via state channels. Or use Sovereign mode for privacy-first batch rewards.",
+      title: "Real-time Rewards",
+      content: "Enable 'Live Mode' for instant rewards during your ride, or 'Standard Mode' for private, batched rewards.",
       position: "bottom-48 left-10",
     },
     {
-      title: "Sovereign Health Data",
-      content: "Notice the shield icon? Your raw health data never leaves this device. Only a private proof is sent to the blockchain.",
+      title: "Private & Secure",
+      content: "Your health data is private. We only verify your effort on the blockchain without ever seeing your raw biometrics.",
       position: "bottom-40 right-10",
     },
     {
       title: "Ready to Start?",
-      content: "Link your device or use the simulator to begin your ride.",
+      content: "Link your bike or use the simulator to begin your journey.",
       position: "bottom-32 left-1/2 -translate-x-1/2",
     }
   ];
@@ -1262,7 +1262,7 @@ export default function LiveRidePage() {
                             : "bg-white/5 text-white/40 border border-transparent hover:bg-white/10 hover:text-white/60"
                         } disabled:opacity-30 disabled:cursor-not-allowed`}
                       >
-                        {m === "zk-batch" ? "Sovereign" : "Yellow"}
+                        {m === "zk-batch" ? "Standard" : "Live"}
                         {m === "yellow-stream" && (
                           <>
                             <span className="ml-1 text-[8px] text-yellow-400">β</span>
@@ -1271,7 +1271,7 @@ export default function LiveRidePage() {
                                 className={`ml-1 inline-block h-1.5 w-1.5 rounded-full ${
                                   rewards.clearNodeConnected ? "bg-emerald-400" : "bg-zinc-500"
                                 }`}
-                                title={rewards.clearNodeConnected ? "ClearNode connected" : "ClearNode offline"}
+                                title={rewards.clearNodeConnected ? "Connection Active" : "Offline"}
                               />
                             )}
                           </>
@@ -1286,7 +1286,7 @@ export default function LiveRidePage() {
                         <span className={`h-1.5 w-1.5 rounded-full ${
                           rewards.clearNodeConnected ? "bg-yellow-400 animate-pulse" : "bg-zinc-500"
                         }`} />
-                        <span className="text-yellow-300">Yellow</span>
+                        <span className="text-yellow-300">Live</span>
                         {rewards.formattedReward !== "0" && (
                           <span className="text-yellow-400 font-bold">{rewards.formattedReward} SPIN</span>
                         )}
@@ -1294,11 +1294,11 @@ export default function LiveRidePage() {
                     ) : (
                       <>
                         <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                        <span className="text-indigo-300">Sovereign</span>
+                        <span className="text-indigo-300">Standard</span>
                         {rewards.formattedReward !== "0" ? (
                           <span className="text-indigo-200 font-bold">{rewards.formattedReward} SPIN</span>
                         ) : rewards.isActive ? (
-                          <span className="text-indigo-300/60 italic">Proof pending…</span>
+                          <span className="text-indigo-300/60 italic">Processing…</span>
                         ) : null}
                       </>
                     )}

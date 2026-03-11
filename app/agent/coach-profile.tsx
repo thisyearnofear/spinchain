@@ -308,13 +308,13 @@ export function CoachProfile({
           <div className="flex items-center gap-2 mb-3">
             <MessageSquare className="h-3 w-3 text-indigo-400" />
             <span className="text-[10px] font-bold uppercase text-indigo-300">
-              Cognitive Stream ({reasoningState})
+              Coach&apos;s Thoughts ({reasoningState})
             </span>
           </div>
           <div className="space-y-2 max-h-32 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
             {thoughtLog.length === 0 ? (
               <p className="text-[10px] text-white/30 italic">
-                Waiting for reasoning...
+                Analyzing class data...
               </p>
             ) : (
               thoughtLog.map((thought, i) => (
@@ -339,9 +339,9 @@ export function CoachProfile({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-4">
         <div>
-          <h3 className="text-lg font-semibold text-white">Agent Genesis</h3>
+          <h3 className="text-lg font-semibold text-white">Coach Setup</h3>
           <p className="text-xs text-white/50">
-            Configure & Deploy Instructor Twin
+            Configure your AI co-pilot
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -364,7 +364,7 @@ export function CoachProfile({
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-white/40">
-                Agent Name
+                Coach Name
               </label>
               <input
                 type="text"
@@ -375,7 +375,7 @@ export function CoachProfile({
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-white/40">
-                Personality Matrix
+                Coaching Style
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -508,7 +508,7 @@ export function CoachProfile({
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-white/40">
-                Operational Mandate
+                Coaching Strategy
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {strategies.map((s) => (
@@ -547,7 +547,7 @@ export function CoachProfile({
                 onClick={() => setStep("review")}
                 className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 p-3 text-sm font-bold text-white hover:bg-white/10"
               >
-                Review Genesis <ArrowRight size={16} />
+                Review Setup <ArrowRight size={16} />
               </button>
             </div>
           </div>
@@ -593,14 +593,14 @@ export function CoachProfile({
                     <Zap className="h-4 w-4" />
                   )}
                   <span>
-                    {isLoading ? "Broadcasting..." : "Initiate Genesis"}
+                    {isLoading ? "Activating..." : "Activate Coach"}
                   </span>
                 </div>
                 <div className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/20 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
               </button>
             ) : (
               <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 p-4 text-center text-xs text-yellow-200">
-                Connect Sui Wallet to Finalize Agent Deployment
+                Connect Sui Wallet to Activate Coach
               </div>
             )}
             <button
