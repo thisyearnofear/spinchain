@@ -209,6 +209,11 @@ export default function LiveRidePage() {
       position: "top-20 right-10",
     },
     {
+      title: "Yellow Rewards (β)",
+      content: "Enable Yellow mode for instant, real-time rewards via state channels. Or use ZK for privacy-first batch rewards.",
+      position: "bottom-48 left-10",
+    },
+    {
       title: "ZK Privacy",
       content: "Notice the shield icon? Your raw health data never leaves this device. Only a private proof is sent to the blockchain.",
       position: "bottom-40 right-10",
@@ -300,8 +305,16 @@ export default function LiveRidePage() {
   // BLE Device Connection
   const [bleConnected, setBleConnected] = useState(false);
   // Simulator mode is a user choice — Capacitor BLE works natively on iOS/Android/web
-  const [useSimulator, setUseSimulator] = useState(false);
+  // Auto-enable simulator in demo mode (?demo=true URL param)
+  const [useSimulator, setUseSimulator] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get("demo") === "true" || urlParams.get("sim") === "true";
+  });
   const [connectionHint, setConnectionHint] = useState<string | null>(null);
+
+  // Auto-start ride in demo mode
+  const autoStartDemo = searchParams.get("auto") === "true";
 
   useEffect(() => {
     if (bleConnected || useSimulator) {

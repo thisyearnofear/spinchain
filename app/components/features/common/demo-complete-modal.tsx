@@ -207,6 +207,44 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                       </p>
                     </div>
                   </div>
+                  
+                  {/* Yellow vs ZK Mode Info */}
+                  <div className="mt-3 pt-3 border-t border-yellow-500/20">
+                    <p className="text-[10px] text-yellow-300/80 mb-2">
+                      ⚡ Powered by <span className="font-semibold">Yellow Network</span> state channels
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                      <div className="bg-yellow-500/5 rounded p-1.5">
+                        <span className="text-yellow-400 font-semibold">Yellow Mode</span>
+                        <p className="text-zinc-400 mt-0.5">Real-time streaming • Instant rewards</p>
+                      </div>
+                      <div className="bg-indigo-500/5 rounded p-1.5">
+                        <span className="text-indigo-400 font-semibold">ZK Mode</span>
+                        <p className="text-zinc-400 mt-0.5">Privacy-first • Batch settlement</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Platform Stats - For Investors */}
+                <div className="rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-3 mb-4">
+                  <p className="text-[10px] uppercase tracking-wider text-indigo-300 font-semibold mb-2">
+                    📊 Platform Statistics
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-lg font-bold text-indigo-400">10.2K</p>
+                      <p className="text-[10px] text-zinc-400">Total Riders</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-indigo-400">48.7K</p>
+                      <p className="text-[10px] text-zinc-400">Classes</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-yellow-400">$2.4M</p>
+                      <p className="text-[10px] text-zinc-400">Rewards</p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Benefits */}
@@ -214,6 +252,8 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                   <BenefitRow icon="🚴" text="Book live classes with top instructors" />
                   <BenefitRow icon="💰" text="Earn SPIN tokens for every workout" />
                   <BenefitRow icon="🔒" text="Privacy-first: ZK proofs protect your data" />
+                  <BenefitRow icon="⚡" text="Yellow: Real-time rewards via state channels" />
+                  <BenefitRow icon="🌐" text="Cross-chain: Avalanche + Sui dual engine" />
                 </div>
 
                 {/* CTAs */}
