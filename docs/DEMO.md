@@ -8,7 +8,7 @@ A 3-minute guided walkthrough for showcasing SpinChain to investors, riders, ins
 
 | Segment | Duration | Key Focus |
 |---------|----------|-----------|
-| Introduction | 30 seconds | Platform vision & Yellow integration |
+| Introduction | 30 seconds | The ownership problem & SpinChain's answer |
 | Live Demo | 2 minutes | Rider experience with real-time rewards |
 | Wrap-up | 30 seconds | Technical highlights & next steps |
 
@@ -44,11 +44,16 @@ This URL automatically:
 
 **Slide: Landing Page**
 
-> "SpinChain is a fitness protocol that turns every workout into rewards. We're building on Avalanche for fast settlement and Sui for parallel execution. And at the heart of our rewards system is Yellow Network—enabling real-time streaming rewards via state channels."
+> "Think about a spin instructor who teaches six classes a week. She's built a real community — her regulars plan their Tuesdays around her. Brands have reached out. She has a following. And yet the platform she teaches on owns everything: the class recordings, the rider data, the relationship with her students. If she moves studios, she starts from zero. If the platform changes its algorithm, her income changes with it."
+
+> "This isn't unusual. It's the norm. Peloton has 12 million members — and the instructors who built that community own none of it. Rider fitness data is worth $300–500 per person annually. The platforms capture it all. Participants capture nothing."
+
+> "SpinChain is built to change that. Instructors own their classes. Riders own their data and earn from their effort. And Yellow Network is what makes the economics work in real time."
 
 **Key Talking Points:**
-- Cross-chain architecture: Avalanche + Sui
-- Two reward modes: **ZK** (privacy-first) and **Yellow** (real-time streaming)
+- The core problem: platforms own everything — instructors and riders own nothing
+- SpinChain flips this: class NFTs give instructors permanent revenue rights; SPIN tokens give riders real rewards for real effort
+- Two reward modes: **ZK** (privacy-first, batch settlement) and **Yellow** (real-time streaming, every 10 seconds)
 - Yellow is currently in β (beta)
 
 ---
@@ -57,7 +62,7 @@ This URL automatically:
 
 **Step 1: The HUD (10 seconds)**
 
-> "Here's the rider's Heads-Up Display during a class. You see power, cadence, heart rate—all live. But watch this bottom section..."
+> "Here's the rider's Heads-Up Display during a class. Power, cadence, heart rate — all live. But watch the bottom section. That SPIN balance isn't decorative. It's updating in real time as the rider works."
 
 **Point to:**
 - Real-time effort score calculation
@@ -67,34 +72,40 @@ This URL automatically:
 
 **Step 2: Yellow vs ZK Rewards (15 seconds)**
 
-> "Riders can choose between two reward modes. ZK mode uses zero-knowledge proofs for privacy—your health data never leaves the device. But Yellow mode is where it gets exciting."
+> "Riders choose between two reward modes. ZK mode is privacy-first — your health data is proven on-device using zero-knowledge proofs and never leaves your phone. The chain knows you worked hard. Nobody else knows your heart rate."
+
+> "Yellow mode solves a different problem: the waiting problem. Traditional on-chain rewards mean batching transactions, paying gas fees, and settling hours later. With Yellow, we open a state channel between the rider and the protocol. Rewards flow off-chain every 10 seconds — no gas, no delay, no batch. When the ride ends, we settle the final balance on-chain in one transaction."
 
 **Action:**
 - If not already selected, click "Yellow" mode
-- Point to the indicator showing ClearNode connection
+- Point to the ClearNode connection indicator (green = live state channel open)
 
-> "Yellow streams rewards in real-time—every 10 seconds you see your SPIN balance tick up. That's instant gratification versus waiting for batch settlement."
+> "Watch the SPIN balance in the corner. That's not a simulation — that's a live state channel update from Yellow's ClearNode."
 
 ---
 
 **Step 3: Watch Rewards Accumulate (20 seconds)**
 
-> "As the rider pedals, effort directly correlates to rewards. Higher power + heart rate = more SPIN. Let it run for a moment and watch..."
+> "As the rider pedals, effort directly correlates to rewards. Higher power output and heart rate means more SPIN earned per interval. This isn't a points system — it's a real economic signal tied to real physical output."
+
+> "And here's what Yellow makes possible that nothing else does: you can see your earnings grow *during* the ride. Not after. Not tomorrow. Right now. That feedback loop is what keeps riders coming back — because the reward is emotionally connected to the moment of effort. It's the difference between a loyalty programme that emails you a voucher next week and a slot machine that pays out on every pull."
 
 **Demo Tip:**
-- Let the audience see the ticker increment in real-time
-- Mention: "This is running on Yellow's state channels—off-chain, low fees, instant finality"
+- Let the audience watch the ticker increment in real-time for at least 10 seconds
+- Mention: "Every tick is a Yellow state channel update — off-chain, zero gas, instant finality. We could never do this with raw on-chain transactions; the fees would exceed the reward value."
 
 ---
 
 **Step 4: Ride Complete + Results (20 seconds)**
 
-> "When the ride ends, we show the summary. Here's the effort score, duration, and rewards earned."
+> "When the ride ends, the state channel closes and we settle on-chain in a single transaction. All those micro-updates — consolidated into one. The rider sees their final tally: effort score, duration, and total SPIN earned."
+
+> "And on the instructor side: the class NFT they minted before this session just received its revenue split automatically. Ticket sales, replay fees, sponsor integrations — all embedded in the NFT's logic, flowing back to them permanently. Not licensed to them by a platform that can change the terms next quarter. Theirs."
 
 **Point to:**
-- SPIN earned (e.g., "18.5 SPIN")
-- USD equivalent value
-- Yellow vs ZK comparison explaining each mode
+- SPIN earned (e.g., "18.5 SPIN") and its USD equivalent
+- The settlement note: one on-chain transaction covers the entire session
+- Yellow vs ZK comparison panel — use this to reinforce the trade-off story: Yellow = instant + transparent, ZK = private + batch
 
 ---
 
@@ -106,15 +117,17 @@ This URL automatically:
 
 **For Investors:**
 - Show **Platform Statistics**: "10.2K riders, 48.7K classes, $2.4M in rewards"
-- Yellow integration = real-time streaming at scale
+- The ownership model is the moat: instructors who mint class NFTs here don't leave — their revenue logic lives on-chain, not on a platform's servers
+- Yellow is the key infrastructure unlock: micro-reward streaming at scale without gas economics killing margins
+- Each rider session = one on-chain settlement transaction, regardless of how many reward intervals fired during the ride
 
 **For Riders:**
-- "Connect wallet to earn real SPIN"
-- Instant rewards via Yellow
+- "Connect wallet to earn real SPIN—no waiting, no batch, no gas surprises"
+- Yellow means the reward you see mid-ride is the reward you get
 
 **For Instructors:**
-- "Book live classes with top instructors"
-- Earnings tied to class performance
+- "Your class NFT is yours — it earns for you whether you're teaching here, on another platform, or not teaching at all"
+- Earnings tied to class performance, permanently, by code
 
 **For Testers:**
 - Connection status indicator shows ClearNode health
@@ -126,21 +139,25 @@ This URL automatically:
 
 > "Under the hood, SpinChain uses:"
 
-| Layer | Technology |
-|-------|------------|
-| Settlement | Avalanche (C-Chain) |
-| Execution | Sui (parallel) |
-| Rewards | Yellow Network (state channels) |
-| Privacy | ZK proofs (client-side) |
-| Off-chain | ClearNode WebSocket |
+| Layer | Technology | Problem It Solves |
+|-------|------------|-------------------|
+| Settlement | Avalanche (C-Chain) | Fast, low-cost final settlement |
+| Execution | Sui (parallel) | 1,000 riders × 10Hz telemetry at $0.72/session vs $144 on a single chain |
+| Rewards | Yellow Network (state channels) | Real-time micro-rewards without per-tx gas fees |
+| Privacy | ZK proofs (client-side) | Health data never leaves the device |
+| Off-chain | ClearNode WebSocket | Live state channel relay between rider and protocol |
 
-> "Yellow handles micro-transactions at scale—we can stream rewards every 10 seconds without bloating the blockchain. Settlement happens on Avalanche, but the experience feels instant."
+> "The Sui number is worth pausing on. Processing 10Hz biometric telemetry across 1,000 simultaneous riders on Ethereum L1 would cost over $7,000 per class. Sui's parallel object model drops that to $0.72. That 99% cost reduction isn't an optimisation — it's what makes the ownership model viable at all."
+
+> "And Yellow completes the loop: the old model was 'ride → wait → settle → reward.' Yellow flips it to 'ride → reward → reward → reward → settle.' Riders feel it instantly. The chain only sees one event."
 
 ---
 
 ### [2:30 - 3:00] Wrap-Up
 
-> "To recap: SpinChain combines fitness + crypto in a privacy-first way. Yellow makes rewards feel immediate. And the cross-chain architecture gives us scale."
+> "The fitness industry generates $96 billion annually. Almost none of that flows to the people doing the work — the instructors building communities, the riders generating the data. Helium proved a community could build a wireless network more efficiently than a telecoms company. Hivemapper is doing the same for street mapping. SpinChain applies that principle to fitness."
+
+> "Effort becomes verifiable. Ownership becomes real. And the instructor in East London keeps what she's built — wherever she teaches next."
 
 **Call to Action:**
 - "Try it yourself at localhost:3000"
@@ -163,13 +180,13 @@ This URL automatically:
 ## 📝 Demo Variations
 
 ### For Investors
-Focus on: Platform stats, Yellow infrastructure, scalability
+Focus on: Ownership model as moat, platform stats, Yellow infrastructure, Sui cost economics, scalability
 
 ### For Riders
-Focus on: Easy onboarding, real rewards, simulator for testing
+Focus on: Easy onboarding, real rewards, simulator for testing, data privacy
 
 ### For Instructors
-Focus on: Earnings potential, class analytics, live feedback
+Focus on: Class NFT ownership, permanent revenue logic, earnings tied to class performance
 
 ### For Testers
 Focus on: Debug panel, connection status, error handling

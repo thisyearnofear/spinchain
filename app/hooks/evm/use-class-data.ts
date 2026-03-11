@@ -128,9 +128,12 @@ export function useClass(classAddress: `0x${string}`) {
   //   functionName: 'classMetadata',
   // });
 
+  const isRealAddress = /^0x[0-9a-fA-F]{40}$/.test(classAddress);
+
   useEffect(() => {
+    if (!isRealAddress) return;
     loadClassData();
-  }, [classAddress]);
+  }, [classAddress, isRealAddress]);
 
   const loadClassData = async () => {
     setIsLoading(true);

@@ -73,7 +73,10 @@ function Model({ url, scale = 1, rotation = [0, 0, 0], position = [0, 0, 0] }: {
 /**
  * Generates a mock route curve based on elevation data/seeds
  */
+const DEFAULT_ELEVATION_PROFILE = [120, 180, 140, 210, 260, 220, 280, 240, 300, 260, 320, 280];
+
 function useRouteCurve(elevationProfile: number[]) {
+  const profile = elevationProfile.length > 0 ? elevationProfile : DEFAULT_ELEVATION_PROFILE;
   return useMemo(() => {
     // Generate points in a loop or winding path
     const points: Vector3[] = [];
@@ -90,22 +93,22 @@ function useRouteCurve(elevationProfile: number[]) {
       const z = Math.sin(angle) * r;
 
       // Map elevation to Y, smoothed
-      const elevIndex = Math.floor(t * (elevationProfile.length - 1));
+      const elevIndex = Math.floor(t * (profile.length - 1));
       const nextElevIndex = Math.min(
         elevIndex + 1,
-        elevationProfile.length - 1,
+        profile.length - 1,
       );
-      const elevAlpha = (t * (elevationProfile.length - 1)) % 1;
+      const elevAlpha = (t * (profile.length - 1)) % 1;
 
-      const h1 = elevationProfile[elevIndex] || 0;
-      const h2 = elevationProfile[nextElevIndex] || 0;
+      const h1 = profile[elevIndex] || 0;
+      const h2 = profile[nextElevIndex] || 0;
       const height = h1 + (h2 - h1) * elevAlpha;
 
       points.push(new Vector3(x, height / 4, z));
     }
 
     return new CatmullRomCurve3(points, true); // Closed loop for this visualizer
-  }, [elevationProfile]);
+  }, [profile]);
 }
 
 function Road({
@@ -562,6 +565,9 @@ function RiderMarker({
     // Get position on curve
     const point = curve.getPointAt(progress);
     const tangent = curve.getTangentAt(progress);
+
+    // Guard against NaN positions from degenerate curves
+    if (isNaN(point.x) || isNaN(point.y) || isNaN(point.z)) return;
 
     // Update position
     groupRef.current.position.copy(point);
