@@ -180,6 +180,14 @@ export default function LiveRidePage() {
   // Collapsible panel state
   const panelState = usePanelState(deviceType);
 
+  // Mobile: Start with all panels collapsed to maximize ride visibility
+  // Users can expand one panel at a time using accordion behavior
+  useEffect(() => {
+    if (deviceType === "mobile" && !isRiding) {
+      panelState.collapseAll();
+    }
+  }, [deviceType]); // Only run once on mount when deviceType is determined
+
   // Keyboard shortcut for collapse all (C key)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -208,6 +216,22 @@ export default function LiveRidePage() {
   const [hudMode, setHudMode] = useState<"full" | "compact" | "minimal">("full");
   const hudModePreferenceRef = useRef<"system" | "stored" | "manual">("system");
   const viewModePreferenceRef = useRef<"system" | "stored" | "manual">("system");
+
+  // Mobile widget panel visibility - default to hidden on mobile when riding to maximize ride view
+  const [widgetsVisible, setWidgetsVisible] = useState(true);
+  
+  // On mobile, default widgets to hidden when riding starts
+  useEffect(() => {
+    if (typeof window !== "undefined" && deviceType === "mobile") {
+      // Small delay to let the UI settle, then hide widgets on mobile
+      const timer = setTimeout(() => {
+        if (isRiding) {
+          setWidgetsVisible(false);
+        }
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [deviceType]); // Only run once when deviceType is determined
 
   // Onboarding Tutorial State
   const [showTutorial, setShowTutorial] = useState(false);
@@ -1330,6 +1354,9 @@ export default function LiveRidePage() {
             className="h-full w-full"
             panelState={panelState.state}
             onTogglePanel={panelState.toggle}
+            useAccordion={deviceType === "mobile"}
+            onExpandOne={panelState.expandOne}
+            onHaptic={deviceType === "mobile" ? haptic.trigger : undefined}
           />
         ) : (
           <RouteVisualizer
@@ -1344,6 +1371,34 @@ export default function LiveRidePage() {
             quality={deviceType === "mobile" ? "low" : "high"}
             className="h-full w-full"
           />
+        )}
+
+        {/* Mini Stats Bar - Mobile: Always visible during ride */}
+        {isRiding && deviceType === "mobile" && (
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between rounded-xl border border-white/10 bg-black/80 backdrop-blur-xl px-4 py-2 pointer-events-none z-40">
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-wider text-white/40">Time</span>
+                <span className="text-sm font-bold text-white">{formatTime(elapsedTime)}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-wider text-white/40">Progress</span>
+                <span className="text-sm font-bold text-white">{Math.round(rideProgress)}%</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              {telemetry.heartRate > 0 && (
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase tracking-wider text-white/40">HR</span>
+                  <span className="text-sm font-bold text-rose-400">{telemetry.heartRate}</span>
+                </div>
+              )}
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-wider text-white/40">Watts</span>
+                <span className="text-sm font-bold text-yellow-400">{telemetry.power}</span>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Progress Bar - Segmented by workout intervals */}
@@ -1388,11 +1443,11 @@ export default function LiveRidePage() {
 
       {/* HUD Overlay */}
       {showHUD && (
-        <div className="absolute inset-0 pointer-events-none z-40">
+        <div className="absolute inset-0 pointer-events-none z-30">
           {/* Top Bar - Mobile Optimized */}
-          <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-top z-50">
+          <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-top z-[45]">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 z-50 relative">
                 <div className="flex items-center gap-2 mb-0.5">
                   <h1 className="text-lg sm:text-2xl font-bold text-white truncate">
                     {classData.name}
@@ -1602,6 +1657,7 @@ export default function LiveRidePage() {
           </div>
 
           {/* Center - Telemetry (Responsive Layout) - Only show when riding */}
+          {(!isRiding || deviceType !== "mobile" || widgetsVisible) && (
           <RideHUD
             telemetry={telemetry}
             deviceType={deviceType}
@@ -1616,9 +1672,31 @@ export default function LiveRidePage() {
             aiLog={aiLogs[0]}
             ghostState={ghostState}
           />
+          )}
 
           {/* Bottom - Controls (Mobile Optimized) */}
-          <div className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${!isRiding && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`}>
+          {deviceType === "mobile" && isRiding && (
+            // Floating toggle button to show/hide widgets on mobile
+            <button
+              onClick={() => {
+                haptic.trigger("light");
+                setWidgetsVisible(!widgetsVisible);
+              }}
+              className="absolute right-4 bottom-24 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-black/70 backdrop-blur-xl border border-white/20 shadow-lg transition-transform active:scale-95"
+              aria-label={widgetsVisible ? "Hide widgets" : "Show widgets"}
+            >
+              {widgetsVisible ? (
+                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          )}
+          <div className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom transition-all duration-300 ${deviceType === "mobile" && isRiding && !widgetsVisible ? "translate-y-full opacity-0" : ""} ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${!isRiding && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`}>
             <div className={`max-w-7xl mx-auto ${!isRiding && deviceType === "desktop" ? "overflow-y-auto flex-1 min-h-0" : ""}`}>
               {/* Progress Info + Interval Status */}
               {hudMode !== "minimal" && (

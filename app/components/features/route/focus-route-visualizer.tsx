@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, type CSSProperties } from "react";
+import { useId, useMemo, useCallback, type CSSProperties } from "react";
 import type { StoryBeat } from "@/app/routes/builder/gpx-uploader";
 import { useViewport } from "@/app/lib/responsive";
 import { AVATARS, EQUIPMENT } from "../../../lib/selection-library";
@@ -36,6 +36,12 @@ type Props = {
   // Collapsible panel state
   panelState?: PanelState;
   onTogglePanel?: (key: PanelKey) => void;
+  /** Use accordion behavior - only one panel expanded at a time (for mobile) */
+  useAccordion?: boolean;
+  /** Expand one panel while collapsing others (for accordion mode) */
+  onExpandOne?: (key: PanelKey) => void;
+  /** Trigger haptic feedback - called on panel toggle in accordion mode */
+  onHaptic?: (type: "light" | "medium" | "heavy") => void;
 };
 
 const POWER_ZONES = [
@@ -151,12 +157,30 @@ export default function FocusRouteVisualizer({
   intervalPhase = null,
   panelState,
   onTogglePanel,
+  useAccordion = false,
+  onExpandOne,
+  onHaptic,
 }: Props) {
   const viewport = useViewport();
   const gradientId = useId().replace(/:/g, "");
   const styles = THEMES[theme];
   const avatar = useMemo(() => AVATARS.find((item) => item.id === avatarId), [avatarId]);
   const equipment = useMemo(() => EQUIPMENT.find((item) => item.id === equipmentId), [equipmentId]);
+
+  // Handler for accordion behavior - uses expandOne on mobile, toggle on desktop
+  const handleToggle = useCallback((key: PanelKey) => {
+    // Trigger haptic feedback on mobile when toggling panels
+    if (useAccordion && onHaptic) {
+      onHaptic("light");
+    }
+    if (useAccordion && onExpandOne) {
+      // Mobile: accordion behavior - expand one, collapse others
+      onExpandOne(key);
+    } else if (onTogglePanel) {
+      // Desktop: normal toggle behavior
+      onTogglePanel(key);
+    }
+  }, [useAccordion, onExpandOne, onTogglePanel, onHaptic]);
 
   const width = Math.max(360, viewport.width);
   const height = Math.max(320, viewport.height);
@@ -551,7 +575,7 @@ export default function FocusRouteVisualizer({
       </svg>
 
       {/* Left Panel - Route Info */}
-      <div className="absolute left-4 top-4 z-10 max-w-sm" id="focus-left-panel">
+      <div className="absolute left-4 top-4 z-40 max-w-sm" id="focus-left-panel">
         <div
           className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.84) 100%)`, boxShadow: `0 24px 80px ${styles.horizonGlow}18` }}
@@ -565,7 +589,7 @@ export default function FocusRouteVisualizer({
             </div>
             <CollapseToggle
               isCollapsed={!(panelState?.focusLeft ?? true)}
-              onToggle={() => onTogglePanel?.('focusLeft')}
+              onToggle={() => handleToggle('focusLeft')}
               label="Focus View Info"
             />
           </div>
@@ -616,7 +640,7 @@ export default function FocusRouteVisualizer({
       </div>
 
       {/* Right Panel - Power/Metrics */}
-      <div className="absolute right-4 top-4 z-10 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-3">
+      <div className="absolute right-4 top-4 z-40 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-3">
         <div
           className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.86) 100%)`, boxShadow: `0 24px 80px ${phaseAccent}20` }}
@@ -627,7 +651,7 @@ export default function FocusRouteVisualizer({
             <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">{primaryMetric.label}</div>
             <CollapseToggle
               isCollapsed={!(panelState?.focusRight ?? true)}
-              onToggle={() => onTogglePanel?.('focusRight')}
+              onToggle={() => handleToggle('focusRight')}
               label="Power Metrics"
             />
           </div>
@@ -709,7 +733,7 @@ export default function FocusRouteVisualizer({
       </div>
 
       {/* Bottom Panel - Route Progress — offset above the ride controls bar */}
-      <div className="absolute inset-x-4 bottom-[140px] sm:bottom-[160px] z-10" id="focus-bottom-panel">
+      <div className="absolute inset-x-4 bottom-[140px] sm:bottom-[160px] z-40" id="focus-bottom-panel">
         <div
           className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.9) 100%)` }}
@@ -728,7 +752,7 @@ export default function FocusRouteVisualizer({
               </div>
               <div className="mt-1 flex items-center justify-between">
                 <button
-                  onClick={() => onTogglePanel?.('focusBottom')}
+                  onClick={() => handleToggle('focusBottom')}
                   className="text-[10px] text-white/40 hover:text-white/60 transition-colors"
                   aria-label="Expand Route Progress"
                 >
@@ -745,7 +769,7 @@ export default function FocusRouteVisualizer({
                 <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">Route Progress</div>
                 <CollapseToggle
                   isCollapsed={false}
-                  onToggle={() => onTogglePanel?.('focusBottom')}
+                  onToggle={() => handleToggle('focusBottom')}
                   label="Route Progress"
                 />
               </div>

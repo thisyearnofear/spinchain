@@ -95,6 +95,8 @@ export interface UsePanelStateReturn {
   toggle: (key: PanelKey) => void;
   /** Set a specific panel to expanded */
   expand: (key: PanelKey) => void;
+  /** Set a specific panel to expanded, collapsing all others (accordion behavior) */
+  expandOne: (key: PanelKey) => void;
   /** Set a specific panel to collapsed */
   collapse: (key: PanelKey) => void;
   /** Expand all panels */
@@ -135,6 +137,19 @@ export function usePanelState(
     setState((prev) => ({ ...prev, [key]: true }));
   }, []);
 
+  const expandOne = useCallback((key: PanelKey) => {
+    // Accordion behavior: expand one panel, collapse all others
+    const defaultState: PanelState = {
+      workoutPlan: false,
+      inputMode: false,
+      deviceSelector: false,
+      focusLeft: false,
+      focusRight: false,
+      focusBottom: false,
+    };
+    setState({ ...defaultState, [key]: true });
+  }, []);
+
   const collapse = useCallback((key: PanelKey) => {
     setState((prev) => ({ ...prev, [key]: false }));
   }, []);
@@ -172,6 +187,7 @@ export function usePanelState(
     state,
     toggle,
     expand,
+    expandOne,
     collapse,
     expandAll,
     collapseAll,

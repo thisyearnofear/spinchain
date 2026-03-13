@@ -462,23 +462,25 @@ function MobileCompactHUD({
   const currentMetric = metrics.find((m) => m.key === visibleWidget) || metrics[0];
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-3">
-      {/* Status indicators at top - minimal */}
-      <div className="flex items-center gap-2 mb-4 pointer-events-auto">
-        {/* Connection status */}
-        {mobileBridgeStatus?.isBackgroundActive && (
-          <span className="flex items-center gap-1 text-[10px] text-emerald-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Connected
-          </span>
-        )}
-        {/* Rewards ticker if active */}
-        {rewardsActive && rewardsStreamState && rewardsMode && (
-          <YellowRewardTicker streamState={rewardsStreamState} mode={rewardsMode} symbol="SPIN" compact />
-        )}
-      </div>
+    <div className="absolute inset-0 flex flex-col items-center justify-end pointer-events-none p-2 pb-8">
+      {/* Status indicators at top - minimal - only show when expanded */}
+      {expanded && (
+        <div className="flex items-center gap-2 mb-3 pointer-events-auto">
+          {/* Connection status */}
+          {mobileBridgeStatus?.isBackgroundActive && (
+            <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Connected
+            </span>
+          )}
+          {/* Rewards ticker if active */}
+          {rewardsActive && rewardsStreamState && rewardsMode && (
+            <YellowRewardTicker streamState={rewardsStreamState} mode={rewardsMode} symbol="SPIN" compact />
+          )}
+        </div>
+      )}
 
-      {/* Main floating pill - tap to cycle/expand */}
+      {/* Main floating pill - tap to cycle/expand - more minimal on mobile */}
       <button
         onClick={handleTap}
         onTouchStart={handleTouchStart}
@@ -489,36 +491,34 @@ function MobileCompactHUD({
         onMouseUp={() => clearTimeout((window as any).__longPress)}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onMouseLeave={() => clearTimeout((window as any).__longPress)}
-        className={`pointer-events-auto relative rounded-full border bg-black/80 backdrop-blur-xl transition-all duration-300 ${
-          expanded ? "w-full max-w-xs p-4" : "px-4 py-3"
+        className={`pointer-events-auto relative rounded-full border bg-black/60 backdrop-blur-md transition-all duration-300 shadow-lg ${
+          expanded ? "w-full max-w-xs p-4" : "px-3 py-2"
         } ${phaseAccent.border}`}
       >
         {!expanded ? (
-          // Collapsed: show single metric
-          <div className="flex items-center gap-3">
-            <span className={`text-xs uppercase tracking-wider ${currentMetric.color}`}>{currentMetric.label}</span>
-            <span className={`text-xl font-bold ${currentMetric.color}`}>
+          // Collapsed: show single metric - more compact
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] uppercase tracking-wider ${currentMetric.color}`}>{currentMetric.label}</span>
+            <span className={`text-lg font-bold ${currentMetric.color}`}>
               {currentMetric.value}
-              <span className="text-xs font-medium text-white/40 ml-1">{currentMetric.unit}</span>
+              <span className="text-[10px] font-medium text-white/40 ml-0.5">{currentMetric.unit}</span>
             </span>
-            {/* Tap hint */}
-            <span className="text-[8px] text-white/30">Tap ↗</span>
           </div>
         ) : (
-          // Expanded: show all metrics in a grid
-          <div className="flex flex-col gap-3">
+          // Expanded: show all metrics in a grid - more compact
+          <div className="flex flex-col gap-2">
             {/* Primary metric */}
             <div className="text-center">
-              <p className="text-xs uppercase tracking-wider text-white/50">{phaseMetrics.primary.label}</p>
-              <p className={`text-4xl font-bold ${phaseMetrics.primary.color}`}>{phaseMetrics.primary.value}</p>
+              <p className="text-[10px] uppercase tracking-wider text-white/50">{phaseMetrics.primary.label}</p>
+              <p className={`text-3xl font-bold ${phaseMetrics.primary.color}`}>{phaseMetrics.primary.value}</p>
               <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">{phaseLabel}</p>
             </div>
             {/* Secondary metrics grid */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5">
               {phaseMetrics.secondary.map((metric) => (
-                <div key={metric.label} className="rounded-lg border border-white/10 bg-white/5 p-2 text-center">
+                <div key={metric.label} className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-center">
                   <p className="text-[8px] uppercase text-white/40">{metric.label}</p>
-                  <p className={`text-lg font-bold ${metric.color}`}>{metric.value}</p>
+                  <p className={`text-base font-bold ${metric.color}`}>{metric.value}</p>
                 </div>
               ))}
             </div>
@@ -533,9 +533,9 @@ function MobileCompactHUD({
         )}
       </button>
 
-      {/* Agent insight at bottom */}
-      {isRiding && agentInsight && (
-        <div className="mt-4 pointer-events-auto">
+      {/* Agent insight at bottom - only when expanded */}
+      {isRiding && agentInsight && expanded && (
+        <div className="mt-2 pointer-events-auto">
           {agentInsight}
         </div>
       )}
