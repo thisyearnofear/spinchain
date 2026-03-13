@@ -180,14 +180,6 @@ export default function LiveRidePage() {
   // Collapsible panel state
   const panelState = usePanelState(deviceType);
 
-  // Mobile: Start with all panels collapsed to maximize ride visibility
-  // Users can expand one panel at a time using accordion behavior
-  useEffect(() => {
-    if (deviceType === "mobile" && !isRiding) {
-      panelState.collapseAll();
-    }
-  }, [deviceType]); // Only run once on mount when deviceType is determined
-
   // Keyboard shortcut for collapse all (C key)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -217,21 +209,51 @@ export default function LiveRidePage() {
   const hudModePreferenceRef = useRef<"system" | "stored" | "manual">("system");
   const viewModePreferenceRef = useRef<"system" | "stored" | "manual">("system");
 
+  // Mobile accordion: when expanding a panel on mobile, collapse others (one at a time)
+  const handleTogglePanel = useCallback((key: Parameters<typeof panelState.toggle>[0]) => {
+    if (deviceType === "mobile") {
+      // On mobile, use accordion behavior - expand one, collapse others
+      const isCurrentlyExpanded = panelState.state[key];
+      if (isCurrentlyExpanded) {
+        // If already expanded, just collapse it
+        panelState.collapse(key);
+      } else {
+        // If collapsed, expand it and collapse others
+        panelState.expandOne(key);
+      }
+    } else {
+      // On desktop/tablet, use normal toggle
+      panelState.toggle(key);
+    }
+  }, [deviceType, panelState]);
+
+  // Mobile: Start with all panels collapsed when riding to maximize ride visibility
+  // Users can expand one panel at a time using accordion behavior
+  useEffect(() => {
+    if (deviceType === "mobile" && isRiding) {
+      // Collapse all panels when ride starts on mobile to maximize view
+      panelState.collapseAll();
+    } else if (deviceType === "mobile" && !isRiding) {
+      // When not riding, allow panels to be expanded
+      panelState.reset();
+    }
+  }, [deviceType, isRiding, panelState]);
+
   // Mobile widget panel visibility - default to hidden on mobile when riding to maximize ride view
   const [widgetsVisible, setWidgetsVisible] = useState(true);
   
   // On mobile, default widgets to hidden when riding starts
   useEffect(() => {
     if (typeof window !== "undefined" && deviceType === "mobile") {
-      // Small delay to let the UI settle, then hide widgets on mobile
-      const timer = setTimeout(() => {
-        if (isRiding) {
-          setWidgetsVisible(false);
-        }
-      }, 1500);
-      return () => clearTimeout(timer);
+      if (isRiding) {
+        // Hide widgets when ride starts
+        setWidgetsVisible(false);
+      } else {
+        // Show widgets when not riding
+        setWidgetsVisible(true);
+      }
     }
-  }, [deviceType]); // Only run once when deviceType is determined
+  }, [deviceType, isRiding]);
 
   // Onboarding Tutorial State
   const [showTutorial, setShowTutorial] = useState(false);
@@ -1353,7 +1375,7 @@ export default function LiveRidePage() {
             intervalPhase={currentInterval?.phase ?? null}
             className="h-full w-full"
             panelState={panelState.state}
-            onTogglePanel={panelState.toggle}
+            onTogglePanel={handleTogglePanel}
             useAccordion={deviceType === "mobile"}
             onExpandOne={panelState.expandOne}
             onHaptic={deviceType === "mobile" ? haptic.trigger : undefined}
@@ -1473,6 +1495,22 @@ export default function LiveRidePage() {
               </div>
 
               <div className="flex items-center gap-2 ml-2">
+                {/* Training Mode Toggle - allow wallet-connected users to test experience */}
+                {!isRiding && walletConnected && !isPracticeMode && (
+                  <button
+                    onClick={() => setUseSimulator(!useSimulator)}
+                    className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-medium backdrop-blur transition-all border ${
+                      useSimulator
+                        ? "border-amber-500/50 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+                        : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80"
+                    }`}
+                    title={useSimulator ? "Disable Training Mode" : "Enable Training Mode to test experience without bike"}
+                  >
+                    <span className={useSimulator ? "animate-pulse" : ""}>🎯</span>
+                    <span className="hidden sm:inline">{useSimulator ? "Training" : "Train?"}</span>
+                    {useSimulator && <span className="text-amber-400/60 ml-0.5 text-[9px]">No rewards</span>}
+                  </button>
+                )}
                 {/* Training Mode Badge - shown when simulator is active in a paid class with wallet connected */}
                 {isTrainingMode && !isRiding && (
                   <div className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[10px] font-medium text-amber-300 backdrop-blur animate-pulse">
@@ -1846,7 +1884,7 @@ export default function LiveRidePage() {
                 onSimulatorMetrics={handleSimulatorMetrics}
                 onHaptic={haptic.trigger}
                 panelState={panelState.state}
-                onTogglePanel={panelState.toggle}
+                onTogglePanel={handleTogglePanel}
               />
 
               {/* Agent Reasoning HUD moved above interval banner - removed from here */}

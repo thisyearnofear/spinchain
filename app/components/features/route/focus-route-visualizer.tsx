@@ -574,8 +574,8 @@ export default function FocusRouteVisualizer({
         </g>
       </svg>
 
-      {/* Left Panel - Route Info */}
-      <div className="absolute left-4 top-4 z-40 max-w-sm" id="focus-left-panel">
+      {/* Left Panel - Route Info - Hidden on mobile when collapsed */}
+      <div className="absolute left-4 top-4 z-30 max-w-sm hidden md:block" id="focus-left-panel">
         <div
           className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.84) 100%)`, boxShadow: `0 24px 80px ${styles.horizonGlow}18` }}
@@ -639,8 +639,8 @@ export default function FocusRouteVisualizer({
         </div>
       </div>
 
-      {/* Right Panel - Power/Metrics */}
-      <div className="absolute right-4 top-4 z-40 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-3">
+      {/* Right Panel - Power/Metrics - Hidden on mobile */}
+      <div className="absolute right-4 top-4 z-30 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-3 hidden md:flex" id="focus-right-panel">
         <div
           className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.86) 100%)`, boxShadow: `0 24px 80px ${phaseAccent}20` }}
@@ -732,8 +732,8 @@ export default function FocusRouteVisualizer({
         ) : null}
       </div>
 
-      {/* Bottom Panel - Route Progress — offset above the ride controls bar */}
-      <div className="absolute inset-x-4 bottom-[140px] sm:bottom-[160px] z-40" id="focus-bottom-panel">
+      {/* Bottom Panel - Route Progress - More compact on mobile */}
+      <div className="absolute inset-x-4 bottom-[100px] sm:bottom-[160px] z-30" id="focus-bottom-panel">
         <div
           className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.9) 100%)` }}
