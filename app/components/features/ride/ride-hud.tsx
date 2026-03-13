@@ -381,7 +381,23 @@ function MobileCompactHUD({
   agentInsight?: React.ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [visibleWidget, setVisibleWidget] = useState<"primary" | "power" | "heartrate" | "cadence">("primary");
+  const [visibleWidget, setVisibleWidget] = useState<"primary" | "power" | "heartrate" | "cadence">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("mobile-widget-preference");
+      if (saved && ["primary", "power", "heartrate", "cadence"].includes(saved)) {
+        return saved as "primary" | "power" | "heartrate" | "cadence";
+      }
+    }
+    return "primary";
+  });
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+
+  // Persist widget preference to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("mobile-widget-preference", visibleWidget);
+    }
+  }, [visibleWidget]);
 
   // Auto-cycle through widgets every 5 seconds when not expanded
   useEffect(() => {
@@ -396,7 +412,7 @@ function MobileCompactHUD({
     return () => clearInterval(interval);
   }, [expanded, isRiding]);
 
-  // Tap to cycle when collapsed
+  // Tap to cycle when collapsed, long-press to expand
   const handleTap = () => {
     if (expanded) {
       setExpanded(false);
@@ -407,6 +423,29 @@ function MobileCompactHUD({
         return widgets[(currentIdx + 1) % widgets.length];
       });
     }
+  };
+
+  // Swipe gesture handling
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart) return;
+    const deltaX = e.changedTouches[0].clientX - touchStart.x;
+    const deltaY = e.changedTouches[0].clientY - touchStart.y;
+    
+    // Only trigger if horizontal swipe is dominant
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
+      setVisibleWidget((prev) => {
+        const widgets: typeof prev[] = ["primary", "power", "heartrate", "cadence"];
+        const currentIdx = widgets.indexOf(prev);
+        const direction = deltaX > 0 ? 1 : -1; // Right swipe = next, left swipe = prev
+        const newIdx = (currentIdx + direction + widgets.length) % widgets.length;
+        return widgets[newIdx];
+      });
+    }
+    setTouchStart(null);
   };
 
   const metrics = [
@@ -438,6 +477,8 @@ function MobileCompactHUD({
       {/* Main floating pill - tap to cycle/expand */}
       <button
         onClick={handleTap}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         onLongPress={() => setExpanded(true)}
         className={`pointer-events-auto relative rounded-full border bg-black/80 backdrop-blur-xl transition-all duration-300 ${
           expanded ? "w-full max-w-xs p-4" : "px-4 py-3"
