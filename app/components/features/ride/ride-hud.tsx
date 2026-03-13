@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { YellowRewardTicker } from "@/app/components/features/common/yellow-reward-ticker";
 import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
 import type { IntervalPhase } from "@/app/lib/workout-plan";
@@ -368,15 +369,18 @@ function MobileCompactHUD({
   ghostState,
   agentInsight,
 }: {
-  telemetry: Telemetry;
-  phaseMetrics: { primary: MetricData; secondary: MetricData[] };
+  telemetry: TelemetryData;
+  phaseMetrics: { primary: { label: string; value: number; unit: string; color: string }; secondary: { label: string; value: number; unit: string; color: string }[] };
   phaseLabel: string;
   phaseAccent: { border: string };
   isRiding: boolean;
   rewardsActive: boolean;
-  rewardsStreamState?: StreamState;
-  rewardsMode?: RewardMode;
-  mobileBridgeStatus?: MobileBridgeStatus;
+  rewardsStreamState?: RewardStreamState | null;
+  rewardsMode?: "yellow-stream" | "zk-batch" | "sui-native";
+  mobileBridgeStatus?: {
+    isBackgroundActive: boolean;
+    isHealthKitActive: boolean;
+  };
   ghostState?: GhostState;
   agentInsight?: React.ReactNode;
 }) {
@@ -462,14 +466,14 @@ function MobileCompactHUD({
       {/* Status indicators at top - minimal */}
       <div className="flex items-center gap-2 mb-4 pointer-events-auto">
         {/* Connection status */}
-        {mobileBridgeStatus?.connected && (
+        {mobileBridgeStatus?.isBackgroundActive && (
           <span className="flex items-center gap-1 text-[10px] text-emerald-400">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
             Connected
           </span>
         )}
         {/* Rewards ticker if active */}
-        {rewardsActive && rewardsStreamState && (
+        {rewardsActive && rewardsStreamState && rewardsMode && (
           <YellowRewardTicker streamState={rewardsStreamState} mode={rewardsMode} symbol="SPIN" compact />
         )}
       </div>
@@ -479,7 +483,12 @@ function MobileCompactHUD({
         onClick={handleTap}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        onLongPress={() => setExpanded(true)}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onMouseDown={() => (window as any).__longPress = setTimeout(() => setExpanded(true), 500)}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onMouseUp={() => clearTimeout((window as any).__longPress)}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onMouseLeave={() => clearTimeout((window as any).__longPress)}
         className={`pointer-events-auto relative rounded-full border bg-black/80 backdrop-blur-xl transition-all duration-300 ${
           expanded ? "w-full max-w-xs p-4" : "px-4 py-3"
         } ${phaseAccent.border}`}

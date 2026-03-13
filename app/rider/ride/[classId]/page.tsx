@@ -24,6 +24,9 @@ import { useRewards, type RewardMode } from "../../../hooks/rewards/use-rewards"
 import { useUnifiedBle } from "../../../lib/mobile-bridge";
 import { useZKClaim } from "../../../hooks/evm/use-zk-claim";
 import { ANALYTICS_EVENTS, trackEvent } from "../../../lib/analytics/events";
+import { useWakeLock } from "../../../hooks/use-wake-lock";
+import { useFullscreen } from "../../../hooks/use-fullscreen";
+import { useHaptic } from "../../../hooks/use-haptic";
 import { DemoCompleteModal } from "../../../components/features/common/demo-complete-modal";
 import {
   type WorkoutPlan,
@@ -528,6 +531,21 @@ export default function LiveRidePage() {
     instructor: (classData?.instructor as `0x${string}`) || "0x0",
     depositAmount: BigInt(0), // Demo mode - no real deposit required
   });
+
+  // Mobile experience hooks - wake lock, fullscreen, haptic
+  const { request: requestWakeLock, release: releaseWakeLock, isActive: wakeLockActive } = useWakeLock();
+  const { toggle: toggleFullscreen, isActive: fullscreenActive } = useFullscreen();
+  const haptic = useHaptic();
+
+  // Activate wake lock and fullscreen when riding starts on mobile
+  useEffect(() => {
+    if (isRiding && deviceType === "mobile") {
+      requestWakeLock();
+      // Offer fullscreen but don't force it
+    } else if (!isRiding && wakeLockActive) {
+      releaseWakeLock();
+    }
+  }, [isRiding, deviceType, requestWakeLock, releaseWakeLock, wakeLockActive]);
 
   // Demo complete modal state
   const [showDemoModal, setShowDemoModal] = useState(false);
@@ -1748,6 +1766,7 @@ export default function LiveRidePage() {
                 onSetUseSimulator={setUseSimulator}
                 onBleMetrics={handleBleMetrics}
                 onSimulatorMetrics={handleSimulatorMetrics}
+                onHaptic={haptic.trigger}
                 panelState={panelState.state}
                 onTogglePanel={panelState.toggle}
               />

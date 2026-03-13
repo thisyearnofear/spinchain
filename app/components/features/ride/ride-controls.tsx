@@ -37,6 +37,8 @@ interface RideControlsProps {
     speed: number;
     effort: number;
   }) => void;
+  // Haptic feedback callback for mobile
+  onHaptic?: (type: "light" | "medium" | "heavy" | "success" | "warning" | "error") => void;
   // Collapsible panel state
   panelState?: PanelState;
   onTogglePanel?: (key: PanelKey) => void;
@@ -69,6 +71,7 @@ export function RideControls({
   onSetUseSimulator,
   onBleMetrics,
   onSimulatorMetrics,
+  onHaptic,
   panelState,
   onTogglePanel,
 }: RideControlsProps) {
@@ -114,7 +117,10 @@ export function RideControls({
       {!isRiding && (
         <div className="flex items-center justify-center gap-3 sm:sticky sm:bottom-0 sm:pt-3 sm:pb-1 sm:bg-gradient-to-t sm:from-black/80 sm:to-transparent">
           <button
-            onClick={onStartRide}
+            onClick={() => {
+              onHaptic?.("medium");
+              onStartRide();
+            }}
             disabled={isStarting || !canStartRide}
             className="relative rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px] disabled:opacity-80 disabled:cursor-not-allowed"
             aria-label={rideProgress > 0 ? "Resume ride" : "Start ride"}
