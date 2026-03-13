@@ -198,50 +198,22 @@ export function RideHUD({
     </div>
   );
 
-  // Mobile Compact Layout
+  // Mobile Compact Layout - Floating pill that expands on tap
   if (deviceType === "mobile" && hudMode === "compact") {
     return (
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-3">
-        <div className="flex flex-col gap-2 w-full max-w-[200px]">
-          <MobileStatusBadges status={mobileBridgeStatus} />
-
-          {rewardsActive && rewardsStreamState && (
-            <YellowRewardTicker
-              streamState={rewardsStreamState}
-              mode={rewardsMode}
-              symbol="SPIN"
-              compact
-            />
-          )}
-
-          <div className={`rounded-xl border bg-black/70 p-4 text-center backdrop-blur-xl ${phaseAccent.border}`}>
-            <p className="mb-1 text-xs uppercase tracking-wider text-white/50">{phaseMetrics.primary.label}</p>
-            <p className={`text-4xl font-bold ${phaseMetrics.primary.color}`}>{phaseMetrics.primary.value}</p>
-            <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-white/45">{phaseLabel}</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {phaseMetrics.secondary.map((metric) => (
-              <div key={metric.label} className="rounded-lg border border-white/10 bg-black/60 p-2 text-center backdrop-blur-xl">
-                <p className="text-[10px] uppercase text-white/40">{metric.label}</p>
-                <p className={`text-xl font-bold ${metric.color}`}>{metric.value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-center -mt-1 gap-2">
-            <GearBadge gear={telemetry.currentGear} ratio={telemetry.gearRatio} />
-            {ghostState && (
-              <GhostLeadLag 
-                leadLagTime={ghostState.leadLagTime} 
-                distanceGap={ghostState.distanceGap} 
-              />
-            )}
-          </div>
-
-          {isRiding && agentInsight}
-        </div>
-      </div>
+      <MobileCompactHUD
+        telemetry={telemetry}
+        phaseMetrics={phaseMetrics}
+        phaseLabel={phaseLabel}
+        phaseAccent={phaseAccent}
+        isRiding={isRiding}
+        rewardsActive={rewardsActive}
+        rewardsStreamState={rewardsStreamState}
+        rewardsMode={rewardsMode}
+        mobileBridgeStatus={mobileBridgeStatus}
+        ghostState={ghostState}
+        agentInsight={agentInsight}
+      />
     );
   }
 
@@ -378,6 +350,145 @@ function MetricCard({
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Mobile Compact HUD - Single floating pill with expandable metrics
+function MobileCompactHUD({
+  telemetry,
+  phaseMetrics,
+  phaseLabel,
+  phaseAccent,
+  isRiding,
+  rewardsActive,
+  rewardsStreamState,
+  rewardsMode,
+  mobileBridgeStatus,
+  ghostState,
+  agentInsight,
+}: {
+  telemetry: Telemetry;
+  phaseMetrics: { primary: MetricData; secondary: MetricData[] };
+  phaseLabel: string;
+  phaseAccent: { border: string };
+  isRiding: boolean;
+  rewardsActive: boolean;
+  rewardsStreamState?: StreamState;
+  rewardsMode?: RewardMode;
+  mobileBridgeStatus?: MobileBridgeStatus;
+  ghostState?: GhostState;
+  agentInsight?: React.ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [visibleWidget, setVisibleWidget] = useState<"primary" | "power" | "heartrate" | "cadence">("primary");
+
+  // Auto-cycle through widgets every 5 seconds when not expanded
+  useEffect(() => {
+    if (expanded || !isRiding) return;
+    const interval = setInterval(() => {
+      setVisibleWidget((prev) => {
+        const widgets: typeof prev[] = ["primary", "power", "heartrate", "cadence"];
+        const currentIdx = widgets.indexOf(prev);
+        return widgets[(currentIdx + 1) % widgets.length];
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [expanded, isRiding]);
+
+  // Tap to cycle when collapsed
+  const handleTap = () => {
+    if (expanded) {
+      setExpanded(false);
+    } else {
+      setVisibleWidget((prev) => {
+        const widgets: typeof prev[] = ["primary", "power", "heartrate", "cadence"];
+        const currentIdx = widgets.indexOf(prev);
+        return widgets[(currentIdx + 1) % widgets.length];
+      });
+    }
+  };
+
+  const metrics = [
+    { key: "primary", label: phaseMetrics.primary.label, value: phaseMetrics.primary.value, color: phaseMetrics.primary.color, unit: phaseMetrics.primary.unit },
+    { key: "power", label: "Power", value: `${telemetry.power || 0}`, color: "text-orange-400", unit: "W" },
+    { key: "heartrate", label: "Heart Rate", value: `${telemetry.heartRate || "--"}`, color: "text-red-400", unit: "BPM" },
+    { key: "cadence", label: "Cadence", value: `${telemetry.cadence || "--"}`, color: "text-cyan-400", unit: "RPM" },
+  ];
+
+  const currentMetric = metrics.find((m) => m.key === visibleWidget) || metrics[0];
+
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-3">
+      {/* Status indicators at top - minimal */}
+      <div className="flex items-center gap-2 mb-4 pointer-events-auto">
+        {/* Connection status */}
+        {mobileBridgeStatus?.connected && (
+          <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Connected
+          </span>
+        )}
+        {/* Rewards ticker if active */}
+        {rewardsActive && rewardsStreamState && (
+          <YellowRewardTicker streamState={rewardsStreamState} mode={rewardsMode} symbol="SPIN" compact />
+        )}
+      </div>
+
+      {/* Main floating pill - tap to cycle/expand */}
+      <button
+        onClick={handleTap}
+        onLongPress={() => setExpanded(true)}
+        className={`pointer-events-auto relative rounded-full border bg-black/80 backdrop-blur-xl transition-all duration-300 ${
+          expanded ? "w-full max-w-xs p-4" : "px-4 py-3"
+        } ${phaseAccent.border}`}
+      >
+        {!expanded ? (
+          // Collapsed: show single metric
+          <div className="flex items-center gap-3">
+            <span className={`text-xs uppercase tracking-wider ${currentMetric.color}`}>{currentMetric.label}</span>
+            <span className={`text-xl font-bold ${currentMetric.color}`}>
+              {currentMetric.value}
+              <span className="text-xs font-medium text-white/40 ml-1">{currentMetric.unit}</span>
+            </span>
+            {/* Tap hint */}
+            <span className="text-[8px] text-white/30">Tap ↗</span>
+          </div>
+        ) : (
+          // Expanded: show all metrics in a grid
+          <div className="flex flex-col gap-3">
+            {/* Primary metric */}
+            <div className="text-center">
+              <p className="text-xs uppercase tracking-wider text-white/50">{phaseMetrics.primary.label}</p>
+              <p className={`text-4xl font-bold ${phaseMetrics.primary.color}`}>{phaseMetrics.primary.value}</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">{phaseLabel}</p>
+            </div>
+            {/* Secondary metrics grid */}
+            <div className="grid grid-cols-3 gap-2">
+              {phaseMetrics.secondary.map((metric) => (
+                <div key={metric.label} className="rounded-lg border border-white/10 bg-white/5 p-2 text-center">
+                  <p className="text-[8px] uppercase text-white/40">{metric.label}</p>
+                  <p className={`text-lg font-bold ${metric.color}`}>{metric.value}</p>
+                </div>
+              ))}
+            </div>
+            {/* Gear and ghost */}
+            <div className="flex justify-center gap-2">
+              <GearBadge gear={telemetry.currentGear} ratio={telemetry.gearRatio} />
+              {ghostState && <GhostLeadLag leadLagTime={ghostState.leadLagTime} distanceGap={ghostState.distanceGap} />}
+            </div>
+            {/* Collapse hint */}
+            <p className="text-center text-[8px] text-white/30">Tap to collapse</p>
+          </div>
+        )}
+      </button>
+
+      {/* Agent insight at bottom */}
+      {isRiding && agentInsight && (
+        <div className="mt-4 pointer-events-auto">
+          {agentInsight}
+        </div>
+      )}
     </div>
   );
 }

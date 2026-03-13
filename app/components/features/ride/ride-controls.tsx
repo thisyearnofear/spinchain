@@ -11,10 +11,12 @@ interface RideControlsProps {
   isStarting: boolean;
   rideProgress: number;
   isPracticeMode: boolean;
+  isTrainingMode?: boolean;
   useSimulator: boolean;
   deviceType: "mobile" | "tablet" | "desktop";
   workoutPlan: WorkoutPlan | null;
   bleConnected: boolean;
+  walletConnected?: boolean;
   canStartRide?: boolean;
   startHint?: string | null;
   onStartRide: () => void;
@@ -52,11 +54,13 @@ export function RideControls({
   isRiding,
   isStarting,
   rideProgress,
-  isPracticeMode: _isPracticeMode,
+  isPracticeMode,
+  isTrainingMode,
   useSimulator,
   deviceType,
   workoutPlan,
   bleConnected,
+  walletConnected,
   canStartRide = true,
   startHint,
   onStartRide,
@@ -90,6 +94,8 @@ export function RideControls({
             useSimulator={useSimulator}
             deviceType={deviceType}
             onSelect={onSetUseSimulator}
+            isTrainingMode={isTrainingMode}
+            walletConnected={walletConnected}
             isCollapsed={!isInputModeExpanded}
             onToggle={() => onTogglePanel?.('inputMode')}
           />
@@ -243,11 +249,26 @@ function InputModeSelector({
   onSelect,
   isCollapsed,
   onToggle,
+  isTrainingMode,
+  walletConnected,
 }: {
   useSimulator: boolean;
   deviceType: string;
   onSelect: (use: boolean) => void;
+  isTrainingMode?: boolean;
+  walletConnected?: boolean;
 } & CollapsiblePanelProps) {
+  // Determine help text based on mode
+  const getHelpText = () => {
+    if (useSimulator) {
+      if (deviceType === "mobile") {
+        return isTrainingMode ? "Training mode - no rewards earned" : "Tap buttons to pedal";
+      }
+      return isTrainingMode ? "Training mode - no rewards earned" : "Use arrow keys to pedal";
+    }
+    return "Connect your bike via Bluetooth";
+  };
+
   // Collapsed preview badge
   if (isCollapsed) {
     return (
@@ -259,7 +280,7 @@ function InputModeSelector({
         <div className="flex items-center gap-2">
           <span className="text-[10px] uppercase tracking-wider text-white/50">Input Mode</span>
           <span className="text-xs">
-            {useSimulator ? '⌨️ Simulator' : '🚴 BLE Device'}
+            {useSimulator ? (isTrainingMode ? '🎯 Training Mode' : '⌨️ Simulator') : '🚴 BLE Device'}
           </span>
         </div>
         <CollapseToggle
@@ -301,15 +322,11 @@ function InputModeSelector({
           }`}
           aria-pressed={useSimulator}
         >
-          ⌨️ Simulator
+          {isTrainingMode ? '🎯 Training Mode' : '⌨️ Simulator'}
         </button>
       </div>
       <p className="mt-1.5 text-[10px] text-white/40">
-        {useSimulator
-          ? deviceType === "mobile"
-            ? "Tap buttons to pedal"
-            : "Use arrow keys to pedal"
-          : "Connect your bike via Bluetooth"}
+        {getHelpText()}
       </p>
     </div>
   );

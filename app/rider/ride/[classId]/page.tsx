@@ -517,6 +517,10 @@ export default function LiveRidePage() {
   // Guest mode — reward selector is disabled; user must connect wallet to earn
   const isGuestMode = typeof window !== "undefined" && localStorage.getItem("spin-guest-mode") === "true" && !walletConnected;
 
+  // Training mode: simulator is active in a paid class (rewards disabled but can test experience)
+  const isTrainingMode = useSimulator && !isPracticeMode && walletConnected;
+  const canEarnRewards = !isTrainingMode && (rewardMode === "zk-batch" || (rewardMode === "yellow-stream" && walletConnected));
+
   // Rewards — mode selectable, defaults to zk-batch
   const rewards = useRewards({
     mode: rewardMode,
@@ -689,7 +693,8 @@ export default function LiveRidePage() {
     }
 
     // Record effort for Yellow rewards (rate-limited; do not block UI)
-    if (isRiding && rewards.isActive && (metrics.heartRate || metrics.power)) {
+    // Skip recording in training mode (simulator in paid class) - rewards disabled
+    if (isRiding && rewards.isActive && (metrics.heartRate || metrics.power) && !isTrainingMode) {
       const now = Date.now();
       const minIntervalMs = deviceType === "mobile" ? 500 : 250; // 2Hz mobile, 4Hz desktop
 
@@ -1019,12 +1024,17 @@ export default function LiveRidePage() {
     }
 
     // Initialize rewards (gracefully handles no-wallet for zk-batch)
-    try {
-      await rewards.startEarning();
-      console.log("[Ride] Rewards channel opened, mode:", rewardMode);
-    } catch (err) {
-      // Non-blocking — guest users can still ride without earning
-      console.warn("[Ride] Rewards init skipped:", err);
+    // Skip in training mode - simulator in paid class doesn't earn rewards
+    if (!isTrainingMode) {
+      try {
+        await rewards.startEarning();
+        console.log("[Ride] Rewards channel opened, mode:", rewardMode);
+      } catch (err) {
+        // Non-blocking — guest users can still ride without earning
+        console.warn("[Ride] Rewards init skipped:", err);
+      }
+    } else {
+      console.log("[Ride] Training mode - rewards disabled");
     }
 
     // Start ride after countdown finishes
@@ -1360,9 +1370,9 @@ export default function LiveRidePage() {
 
       {/* HUD Overlay */}
       {showHUD && (
-        <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 pointer-events-none z-40">
           {/* Top Bar - Mobile Optimized */}
-          <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-top">
+          <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-top z-50">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
@@ -1382,14 +1392,22 @@ export default function LiveRidePage() {
                 {(isRiding || rideProgress > 0) && (
                   <div className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 px-2 py-0.5 text-[11px] text-white/80">
                     <span className={`h-1.5 w-1.5 rounded-full ${
-                      bleConnected ? "bg-emerald-400" : (isPracticeMode && useSimulator) ? "bg-amber-400" : "bg-zinc-400"
+                      bleConnected ? "bg-emerald-400" : useSimulator ? "bg-amber-400" : "bg-zinc-400"
                     }`} />
-                    {bleConnected ? "Live telemetry" : (isPracticeMode && useSimulator) ? "Simulator telemetry" : "No telemetry"}
+                    {bleConnected ? "Live telemetry" : useSimulator ? (isTrainingMode ? "Training Mode" : "Simulator telemetry") : "No telemetry"}
                   </div>
                 )}
               </div>
 
               <div className="flex items-center gap-2 ml-2">
+                {/* Training Mode Badge - shown when simulator is active in a paid class with wallet connected */}
+                {isTrainingMode && !isRiding && (
+                  <div className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[10px] font-medium text-amber-300 backdrop-blur animate-pulse">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                    Training Mode
+                    <span className="text-amber-400/60 ml-1">Rewards Disabled</span>
+                  </div>
+                )}
                 {/* Reward Mode Selector (pre-ride) / Active Mode Badge (during ride) */}
                 {!isRiding ? (
                   <div className="flex items-center gap-1" title={isGuestMode ? "Connect wallet to earn rewards" : undefined}>
@@ -1399,9 +1417,10 @@ export default function LiveRidePage() {
                         onClick={() => {
                           if (isGuestMode) return;
                           if (m === "yellow-stream" && !walletConnected) return;
+                          if (isTrainingMode && m === "yellow-stream") return; // Disable yellow-stream in training mode
                           setRewardMode(m);
                         }}
-                        disabled={isGuestMode || (m === "yellow-stream" && !walletConnected)}
+                        disabled={isGuestMode || (m === "yellow-stream" && !walletConnected) || (isTrainingMode && m === "yellow-stream")}
                         className={`rounded-lg px-2 py-1.5 text-[10px] sm:text-xs font-medium backdrop-blur transition-all min-h-[36px] ${
                           rewardMode === m
                             ? "bg-white/20 text-white border border-white/30"
@@ -1715,10 +1734,12 @@ export default function LiveRidePage() {
                 isStarting={isStarting}
                 rideProgress={rideProgress}
                 isPracticeMode={isPracticeMode}
+                isTrainingMode={isTrainingMode}
                 useSimulator={useSimulator}
                 deviceType={deviceType}
                 workoutPlan={workoutPlan}
                 bleConnected={bleConnected}
+                walletConnected={walletConnected}
                 canStartRide={bleConnected || useSimulator}
                 startHint={connectionHint}
                 onStartRide={startRide}
@@ -1824,12 +1845,13 @@ export default function LiveRidePage() {
           avgHeartRate={telemetryAverages.avgHr}
           avgPower={telemetryAverages.avgPower}
           avgEffort={telemetryAverages.avgEffort}
-          telemetrySource={bleConnected ? "live-bike" : (isPracticeMode && useSimulator) ? "simulator" : "estimated"}
+          telemetrySource={bleConnected ? "live-bike" : useSimulator ? "simulator" : "estimated"}
           onExit={exitRide}
           onRideAgain={() => router.push(`/rider/ride/${classId}`)}
           onShare={() => {
             if (typeof window === "undefined") return;
-            const text = `Just finished ${classData?.name || "a SpinChain ride"} — ${telemetryAverages.avgEffort}/1000 effort, ${rewards.formattedReward} SPIN.`;
+            const spinText = isTrainingMode ? "Training Mode" : `${rewards.formattedReward} SPIN`;
+            const text = `Just finished ${classData?.name || "a SpinChain ride"} — ${telemetryAverages.avgEffort}/1000 effort, ${spinText}.`;
             if (navigator.share) {
               navigator.share({ title: "SpinChain Ride Complete", text, url: window.location.origin + "/rider/journey" }).catch(() => {});
               return;
@@ -1837,10 +1859,10 @@ export default function LiveRidePage() {
             navigator.clipboard.writeText(text).catch(() => {});
           }}
           onDeploy={isPracticeMode ? () => router.push("/instructor/builder") : undefined}
-          onUpgrade={!isPracticeMode ? () => router.push("/rider/journey?upgrade=analytics") : undefined}
-          onClaimRewards={!isPracticeMode ? handleClaimRewards : undefined}
-          zkProofStatus={!isPracticeMode ? { isGenerating: isGeneratingProof, isSuccess: zkSuccess, privacyScore, privacyLevel, error: zkError } : undefined}
-          spinEarned={rewards.formattedReward}
+          onUpgrade={!isPracticeMode && !isTrainingMode ? () => router.push("/rider/journey?upgrade=analytics") : undefined}
+          onClaimRewards={!isPracticeMode && !isTrainingMode ? handleClaimRewards : undefined}
+          zkProofStatus={!isPracticeMode && !isTrainingMode ? { isGenerating: isGeneratingProof, isSuccess: zkSuccess, privacyScore, privacyLevel, error: zkError } : undefined}
+          spinEarned={isTrainingMode ? "0" : rewards.formattedReward}
           agentName={agentName}
           agentPersonality={aiPersonality || "data"}
           syncStatus={completionSyncStatus}
