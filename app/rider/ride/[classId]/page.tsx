@@ -209,6 +209,9 @@ export default function LiveRidePage() {
 
   // Ride state
   const [isRiding, setIsRiding] = useState(false);
+  const isRidingRef = useRef(false);
+  const classDataRef = useRef(classData);
+  classDataRef.current = classData;
   const [isStarting, setIsStarting] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [rideProgress, setRideProgress] = useState(0);
@@ -797,20 +800,28 @@ export default function LiveRidePage() {
     setTelemetry(telemetryRawRef.current);
 
     // Advance ride progress cadence-weighted: no pedaling = no progress.
-    // Each simulator tick is 0.5s; scale by cadence vs target (80 RPM).
-    // At target cadence the rider advances at normal pace; below = slower; above = faster (capped at 1.5×).
-    if (isRiding && classData && metrics.cadence > 0) {
+    // Use refs for isRiding/classData to avoid stale closures in the metrics callback.
+    // Simulator uses compressed time (3-min effective duration) so progress is visually meaningful.
+    const currentClassData = classDataRef.current;
+    if (isRidingRef.current && currentClassData && metrics.cadence > 0) {
       const TARGET_CADENCE = 80;
       const cadenceRatio = Math.min(metrics.cadence / TARGET_CADENCE, 1.5);
       const tickSeconds = 0.5 * cadenceRatio;
 
+      // Compress ride duration for simulator: map real elapsed time to full ride duration
+      // so a ~3 minute pedaling session completes the route visually.
+      const SIMULATOR_DURATION_SECONDS = 3 * 60; // 3 minutes of pedaling = full route
+      const realDuration = (currentClassData.metadata?.duration || 45) * 60;
+      const timeScale = realDuration / SIMULATOR_DURATION_SECONDS;
+      const scaledTick = tickSeconds * timeScale;
+
       setElapsedTime(prev => {
-        const newTime = prev + tickSeconds;
-        const duration = (classData.metadata?.duration || 45) * 60;
-        const newProgress = Math.min((newTime / duration) * 100, 100);
+        const newTime = prev + scaledTick;
+        const newProgress = Math.min((newTime / realDuration) * 100, 100);
         setRideProgress(newProgress);
 
         if (newProgress >= 100) {
+          isRidingRef.current = false;
           setIsRiding(false);
         }
 
@@ -851,6 +862,7 @@ export default function LiveRidePage() {
         setRideProgress(newProgress);
 
         if (newProgress >= 100) {
+          isRidingRef.current = false;
           setIsRiding(false);
         }
 
@@ -1102,6 +1114,7 @@ export default function LiveRidePage() {
 
     // Start ride after countdown finishes
     setTimeout(() => {
+      isRidingRef.current = true;
       setIsRiding(true);
       setIsStarting(false);
       setRideProgress(0);
@@ -1116,6 +1129,7 @@ export default function LiveRidePage() {
   };
 
   const pauseRide = () => {
+    isRidingRef.current = false;
     setIsRiding(false);
     playSound('recover');
   };
