@@ -56,6 +56,20 @@ function getDefaultPositions(): PanelPositions {
   };
 }
 
+const PANEL_EDGE_MARGIN = 16;
+const PANEL_EDGE_SNAP_THRESHOLD = 24;
+const PANEL_APPROX_SIZE = {
+  sideWidth: 416,
+  sideHeight: 520,
+  bottomWidth: 1216,
+  bottomHeight: 256,
+} as const;
+
+function clamp(value: number, min: number, max: number) {
+  if (min > max) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
 // Default states based on device type
 function getDefaultState(deviceType: 'mobile' | 'tablet' | 'desktop'): PanelState {
   const allExpanded: PanelState = {
@@ -359,14 +373,25 @@ export function usePanelState(
       const next = { ...current };
 
       if (key === 'focusLeft' || key === 'focusRight') {
-        next.y = Math.max(12, Math.min(viewport.height - 140, current.y));
+        const maxTop = viewport.height - PANEL_APPROX_SIZE.sideHeight - PANEL_EDGE_MARGIN;
+        next.y = clamp(current.y, PANEL_EDGE_MARGIN, maxTop);
+
         const xFromLeft = current.x;
         const xFromRight = viewport.width + current.x;
-        const snapLeft = xFromLeft <= xFromRight;
-        next.x = snapLeft ? 16 : -16;
+        const nearLeft = xFromLeft <= PANEL_EDGE_MARGIN + PANEL_EDGE_SNAP_THRESHOLD;
+        const nearRight = xFromRight <= PANEL_EDGE_MARGIN + PANEL_EDGE_SNAP_THRESHOLD;
+        const snapLeft = nearLeft || (!nearRight && xFromLeft <= xFromRight);
+        next.x = snapLeft ? PANEL_EDGE_MARGIN : -PANEL_EDGE_MARGIN;
       } else {
-        next.x = Math.max(16, Math.min(viewport.width - 320, current.x));
-        next.y = -16;
+        const maxLeft = viewport.width - PANEL_APPROX_SIZE.bottomWidth - PANEL_EDGE_MARGIN;
+        next.x = clamp(current.x, PANEL_EDGE_MARGIN, maxLeft);
+
+        const yFromBottom = Math.abs(current.y);
+        const yFromTop = viewport.height + current.y;
+        const nearBottom = yFromBottom <= PANEL_EDGE_MARGIN + PANEL_EDGE_SNAP_THRESHOLD;
+        const nearTop = yFromTop <= PANEL_EDGE_MARGIN + PANEL_EDGE_SNAP_THRESHOLD;
+        const snapBottom = nearBottom || (!nearTop && yFromBottom <= yFromTop);
+        next.y = snapBottom ? -PANEL_EDGE_MARGIN : PANEL_EDGE_MARGIN;
       }
 
       return { ...prev, [key]: next };

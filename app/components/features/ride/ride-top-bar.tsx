@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 
 interface RideTopBarProps {
@@ -64,7 +65,7 @@ export const RideTopBar = memo(function RideTopBar({
   isAllCollapsed,
 }: RideTopBarProps) {
   return (
-    <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-top z-[45]">
+    <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-top" style={{ zIndex: Z_LAYERS.widgets + 15 }}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Left: Class info */}
         <div className="flex-1 min-w-0 z-50 relative">

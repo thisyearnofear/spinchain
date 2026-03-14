@@ -35,6 +35,7 @@ import { useHaptic } from "../../../hooks/use-haptic";
 import { DemoCompleteModal } from "../../../components/features/common/demo-complete-modal";
 import { NoBikeModal } from "../../../components/features/ride/no-bike-modal";
 import { KeyboardShortcutOverlay } from "../../../components/features/ride/keyboard-shortcut-overlay";
+import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import {
   type WorkoutPlan,
   PHASE_DEFAULTS,
@@ -1323,7 +1324,10 @@ export default function LiveRidePage() {
 
         {/* Mini Stats Bar - Mobile: Always visible during ride */}
         {isRiding && deviceType === "mobile" && (
-          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between rounded-xl border border-white/10 bg-black/80 backdrop-blur-xl px-4 py-2 pointer-events-none z-40">
+          <div
+            className="absolute bottom-3 left-3 right-3 flex items-center justify-between rounded-xl border border-white/10 bg-black/80 backdrop-blur-xl px-4 py-2 pointer-events-none"
+            style={{ zIndex: Z_LAYERS.widgets + 10 }}
+          >
             <div className="flex items-center gap-4">
               <div className="flex flex-col">
                 <span className="text-[10px] uppercase tracking-wider text-white/40">Time</span>

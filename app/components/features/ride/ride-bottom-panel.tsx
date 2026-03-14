@@ -4,6 +4,7 @@ import { memo, useCallback, useRef, useState } from "react";
 import { RideControls } from "./ride-controls";
 import type { WorkoutPlan, IntervalPhase } from "@/app/lib/workout-plan";
 import type { PanelState, PanelKey, WidgetMode } from "@/app/hooks/ui/use-panel-state";
+import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 
 interface RideBottomPanelProps {
   isRiding: boolean;
@@ -131,7 +132,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   // Show a minimized pill during ride when widgets are minimized
   if (isRiding && isWidgetsMinimized) {
     return (
-      <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 pointer-events-auto">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-auto" style={{ zIndex: Z_LAYERS.widgets }}>
         <button
           onClick={() => onSetWidgetsMode("expanded")}
           className="rounded-full border border-white/20 bg-black/70 px-3 py-1.5 text-xs text-white/80 shadow-lg backdrop-blur transition-all hover:bg-black/80 active:scale-95"
@@ -145,7 +146,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
 
   if (isRiding && isWidgetsCollapsed) {
     return (
-      <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 pointer-events-auto">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-auto" style={{ zIndex: Z_LAYERS.widgets }}>
         <div className="flex items-center gap-2 rounded-full border border-white/20 bg-black/75 px-3 py-1.5 text-xs text-white/80 shadow-lg backdrop-blur">
           <span>Widgets collapsed</span>
           <button
@@ -167,8 +168,11 @@ export const RideBottomPanel = memo(function RideBottomPanel({
 
   return (
     <div
-      className={`absolute bottom-0 inset-x-0 z-20 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom transition-all duration-300 ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${!isRiding && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`}
-      style={deviceType !== "mobile" && isRiding ? { transform: `translate(${desktopOffset.x}px, ${desktopOffset.y}px)` } : undefined}
+      className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom transition-all duration-300 ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${!isRiding && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`}
+      style={{
+        zIndex: Z_LAYERS.widgets,
+        ...(deviceType !== "mobile" && isRiding ? { transform: `translate(${desktopOffset.x}px, ${desktopOffset.y}px)` } : {}),
+      }}
     >
       <div className={`max-w-7xl mx-auto ${!isRiding && deviceType === "desktop" ? "overflow-y-auto flex-1 min-h-0" : ""}`}>
         {isRiding && (

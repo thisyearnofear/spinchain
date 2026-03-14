@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useState } from "react";
+import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 
 interface KeyboardShortcutOverlayProps {
   /** Whether to show the overlay */
@@ -49,9 +50,10 @@ function KeyboardShortcutOverlayInternal({ show, duration = 5000, onDismiss }: K
 
   return (
     <div
-      className={`fixed top-20 left-1/2 -translate-x-1/2 z-[55] pointer-events-none transition-opacity duration-400 ${
+      className={`fixed top-20 left-1/2 -translate-x-1/2 pointer-events-none transition-opacity duration-400 ${
         fading ? "opacity-0" : "opacity-100"
       }`}
+      style={{ zIndex: Z_LAYERS.tooltips }}
     >
       <div className="rounded-2xl border border-white/15 bg-black/85 backdrop-blur-xl px-5 py-4 shadow-2xl">
         <div className="text-center mb-3">

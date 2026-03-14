@@ -10,6 +10,7 @@ import { StreetViewPreview } from "./street-view-preview";
 import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-theme";
 import { CollapseToggle } from "@/app/components/features/common/collapse-toggle";
 import type { PanelState, PanelKey, PanelPositions, DesktopPanelKey } from "@/app/hooks/ui/use-panel-state";
+import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 
 type RouteCoordinate = {
   lat: number;
@@ -651,9 +652,9 @@ export default function FocusRouteVisualizer({
 
       {/* Left Panel - Route Info - Hidden on mobile when collapsed */}
       <div
-        className={`absolute z-30 max-w-sm hidden md:block ${leftMinimized ? "opacity-0 pointer-events-none" : ""}`}
+        className={`absolute max-w-sm hidden md:block ${leftMinimized ? "opacity-0 pointer-events-none" : ""}`}
         id="focus-left-panel"
-        style={getDesktopPanelStyle("focusLeft")}
+        style={{ ...getDesktopPanelStyle("focusLeft"), zIndex: Z_LAYERS.widgets }}
         onPointerDown={(event) => handleDragStart(event, "focusLeft")}
         onPointerMove={handleDragMove}
         onPointerUp={handleDragEnd}
@@ -725,9 +726,9 @@ export default function FocusRouteVisualizer({
 
       {/* Right Panel - Power/Metrics - Hidden on mobile */}
       <div
-        className={`absolute z-30 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-3 hidden md:flex ${rightMinimized ? "opacity-0 pointer-events-none" : ""}`}
+        className={`absolute flex w-[min(26rem,calc(100%-2rem))] flex-col gap-3 hidden md:flex ${rightMinimized ? "opacity-0 pointer-events-none" : ""}`}
         id="focus-right-panel"
-        style={getDesktopPanelStyle("focusRight")}
+        style={{ ...getDesktopPanelStyle("focusRight"), zIndex: Z_LAYERS.widgets }}
         onPointerDown={(event) => handleDragStart(event, "focusRight")}
         onPointerMove={handleDragMove}
         onPointerUp={handleDragEnd}
@@ -829,9 +830,9 @@ export default function FocusRouteVisualizer({
 
       {/* Bottom Panel - Route Progress - More compact on mobile */}
       <div
-        className="absolute z-30"
+        className="absolute"
         id="focus-bottom-panel"
-        style={{ ...getDesktopPanelStyle("focusBottom"), right: 16, width: "min(calc(100% - 2rem), 76rem)" }}
+        style={{ ...getDesktopPanelStyle("focusBottom"), right: 16, width: "min(calc(100% - 2rem), 76rem)", zIndex: Z_LAYERS.widgets }}
         onPointerDown={(event) => handleDragStart(event, "focusBottom")}
         onPointerMove={handleDragMove}
         onPointerUp={handleDragEnd}
@@ -917,7 +918,7 @@ export default function FocusRouteVisualizer({
       </div>
 
       {/* Desktop minimized pills */}
-      <div className="hidden md:flex absolute right-4 bottom-8 z-40 gap-2">
+      <div className="hidden md:flex absolute right-4 bottom-8 gap-2" style={{ zIndex: Z_LAYERS.widgets + 10 }}>
         {leftMinimized && (
           <button
             onClick={() => {

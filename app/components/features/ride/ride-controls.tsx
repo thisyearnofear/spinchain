@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { DeviceSelector } from "@/app/components/features/ble/device-selector";
 import { PedalSimulator } from "@/app/components/features/common/pedal-simulator";
 import { CollapseToggle } from "@/app/components/features/common/collapse-toggle";
 import { PRESET_WORKOUTS, type WorkoutPlan } from "@/app/lib/workout-plan";
 import type { PanelState, PanelKey } from "@/app/hooks/ui/use-panel-state";
+
+const SIMULATOR_ONBOARDING_DISMISSED_KEY = "spinchain:ride:simOnboardingDismissed";
 
 interface RideControlsProps {
   isRiding: boolean;
@@ -78,6 +81,10 @@ export function RideControls({
   // Default to expanded if no panel state provided (backward compatible)
   const isWorkoutExpanded = (panelState?.workoutPlan ?? "expanded") === "expanded";
   const isInputModeExpanded = (panelState?.inputMode ?? "expanded") === "expanded";
+  const isStartDisabled = isStarting || !canStartRide;
+  const disabledStartReason = !canStartRide
+    ? (startHint ?? "Connect a bike or enable 🎮 Try Without Bike to start your ride.")
+    : null;
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -121,9 +128,16 @@ export function RideControls({
               onHaptic?.("medium");
               onStartRide();
             }}
-            disabled={isStarting || !canStartRide}
-            className="relative rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[56px] disabled:opacity-80 disabled:cursor-not-allowed"
+            disabled={isStartDisabled}
+            title={disabledStartReason ?? undefined}
+            className={`relative rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white transition-all active:scale-95 touch-manipulation min-h-[56px] ${
+              isStartDisabled
+                ? "bg-white/15 border border-white/20 shadow-none cursor-not-allowed"
+                : "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/50"
+            }`}
             aria-label={rideProgress > 0 ? "Resume ride" : "Start ride"}
+            aria-describedby={disabledStartReason ? "start-ride-hint" : undefined}
+            aria-disabled={isStartDisabled}
           >
             {isStarting ? (
               <span className="flex items-center gap-2">
@@ -146,8 +160,14 @@ export function RideControls({
       )}
 
       {startHint && (
-        <div className="mt-2 text-center text-xs text-amber-300">
+        <div id="start-ride-hint" className="mt-2 text-center text-xs text-amber-300">
           {startHint}
+        </div>
+      )}
+
+      {!startHint && disabledStartReason && (
+        <div id="start-ride-hint" className="mt-2 text-center text-xs text-amber-300">
+          {disabledStartReason}
         </div>
       )}
 
@@ -264,6 +284,45 @@ function InputModeSelector({
   isTrainingMode?: boolean;
   walletConnected?: boolean;
 } & CollapsiblePanelProps) {
+  const [showOnboardingHint, setShowOnboardingHint] = useState(false);
+
+  const dismissOnboardingHint = () => {
+    setShowOnboardingHint(false);
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(SIMULATOR_ONBOARDING_DISMISSED_KEY, "1");
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const dismissed = window.localStorage.getItem(SIMULATOR_ONBOARDING_DISMISSED_KEY) === "1";
+      if (!dismissed) {
+        setShowOnboardingHint(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showOnboardingHint) return;
+    const timer = window.setTimeout(() => {
+      dismissOnboardingHint();
+    }, 7000);
+
+    return () => window.clearTimeout(timer);
+  }, [showOnboardingHint]);
+
+  useEffect(() => {
+    if (useSimulator && showOnboardingHint) {
+      dismissOnboardingHint();
+    }
+  }, [showOnboardingHint, useSimulator]);
+
   // Determine help text based on mode
   const getHelpText = () => {
     if (useSimulator) {
@@ -326,7 +385,10 @@ function InputModeSelector({
           🚴 Real Bike (Bluetooth)
         </button>
         <button
-          onClick={() => onSelect(true)}
+          onClick={() => {
+            onSelect(true);
+            if (showOnboardingHint) dismissOnboardingHint();
+          }}
           className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-all active:scale-95 touch-manipulation ${
             useSimulator ? "bg-indigo-500 text-white" : "bg-white/10 text-white/60 hover:bg-white/20"
           }`}
@@ -335,6 +397,31 @@ function InputModeSelector({
           {isTrainingMode ? '🎯 Training (No Bike)' : '🎮 Try Without Bike'}
         </button>
       </div>
+      {showOnboardingHint && (
+        <div
+          className="mt-2 rounded-lg border border-indigo-300/30 bg-indigo-500/10 px-3 py-2 text-[10px] text-indigo-100"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <p>
+              New here? Press <span className="font-semibold">🎮 Try Without Bike</span> to ride with keyboard controls (
+              <kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">↑</kbd>
+              <kbd className="ml-0.5 rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">↓</kbd> speed,
+              <kbd className="ml-1 rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">←</kbd>
+              <kbd className="ml-0.5 rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">→</kbd> steering).
+            </p>
+            <button
+              type="button"
+              onClick={dismissOnboardingHint}
+              className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-indigo-100/90 hover:bg-white/20"
+              aria-label="Dismiss input mode onboarding hint"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
       <p className="mt-1.5 text-[10px] text-white/40">
         {getHelpText()}
       </p>
