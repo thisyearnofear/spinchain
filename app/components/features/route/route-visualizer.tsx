@@ -61,6 +61,7 @@ const START_OFFSET = 0.05;
 const END_PADDING = 0.002;
 
 function mapToCurveProgress(raw: number) {
+  if (!Number.isFinite(raw)) return START_OFFSET;
   const clamped = Math.max(0, Math.min(raw, 1));
   return START_OFFSET + clamped * (1 - START_OFFSET - END_PADDING);
 }
@@ -407,6 +408,8 @@ const qualityMap: any = {
 
 function HoloMap({ curve, progress, theme }: { curve: CatmullRomCurve3, progress: number, theme: VisualizerTheme }) {
   const styles = THEMES[theme];
+  const safeProgress = Number.isFinite(progress) ? Math.max(0, Math.min(progress, 1)) : 0;
+  const dotPosition = curve.getPointAt(safeProgress);
 
   return (
     <group position={[0, 1.2, 1.5]} rotation={[-Math.PI / 4, 0, 0]} scale={0.012}>
@@ -429,7 +432,7 @@ function HoloMap({ curve, progress, theme }: { curve: CatmullRomCurve3, progress
       </mesh>
 
       {/* Rider Position Dot - High Intensity Flare */}
-      <mesh position={curve.getPointAt(progress)}>
+      <mesh position={dotPosition}>
         <sphereGeometry args={[10, 16, 16]} />
         <meshBasicMaterial color="#ffffff" />
         <pointLight intensity={50} color={styles.lineColor} distance={100} />
@@ -957,10 +960,12 @@ function Scene({
 
     // Chase camera — only runs during ride/finished; preview uses OrbitControls
     if (mode !== "preview") {
-      const riderPos = curve.getPointAt(curveProgress);
+      const safeCurveP = Number.isFinite(curveProgress) ? Math.max(0, Math.min(curveProgress, 1)) : START_OFFSET;
+      const riderPos = curve.getPointAt(safeCurveP);
+      if (!Number.isFinite(riderPos.x)) return; // skip frame if curve returns NaN
       riderPos.y -= 10; // match group offset [0, -10, 0]
 
-      const tangent = curve.getTangentAt(curveProgress).normalize();
+      const tangent = curve.getTangentAt(safeCurveP).normalize();
       const side = new Vector3().crossVectors(tangent, new Vector3(0, 1, 0)).normalize();
 
       // Look at rider's upper body, not road center
