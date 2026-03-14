@@ -242,10 +242,7 @@ export default function LiveRidePage() {
     }
   }, [isRiding, panelState]);
 
-  const widgetsVisible =
-    deviceType !== "mobile" ||
-    !isRiding ||
-    panelState.state.mobileRideWidgets === "expanded";
+  const widgetsVisible = !isRiding || panelState.state.mobileRideWidgets !== "minimized";
   const widgetsMode = panelState.state.mobileRideWidgets;
 
   // Onboarding Tutorial (extracted to reusable hook + component)
@@ -286,6 +283,20 @@ export default function LiveRidePage() {
       panelMode: panelState.state[panel],
     });
   }, [deviceType, isRiding, panelState.state, rideProgress, viewMode]);
+
+  const cycleRideWidgetsMode = useCallback(() => {
+    const nextMode =
+      widgetsMode === "expanded"
+        ? "collapsed"
+        : widgetsMode === "collapsed"
+          ? "minimized"
+          : "expanded";
+    panelState.setMobileRideWidgetsMode(nextMode);
+    trackWidgetInteraction(
+      nextMode === "minimized" ? "minimize" : nextMode === "expanded" ? "restore" : "toggle",
+      "mobileRideWidgets",
+    );
+  }, [panelState, trackWidgetInteraction, widgetsMode]);
 
   // Persisted preference (client-only)
   useEffect(() => {
@@ -1415,10 +1426,14 @@ export default function LiveRidePage() {
               });
             }}
             onCollapseToggle={() => {
+              if (isRiding && viewMode === "immersive") {
+                cycleRideWidgetsMode();
+                return;
+              }
               if (panelState.isAllCollapsed) panelState.expandAll();
               else panelState.collapseAll();
             }}
-            isAllCollapsed={panelState.isAllCollapsed}
+            isAllCollapsed={isRiding && viewMode === "immersive" ? widgetsMode !== "expanded" : panelState.isAllCollapsed}
           />
 
           {/* Center - Telemetry (Responsive Layout) - Only show when riding */}
@@ -1440,16 +1455,20 @@ export default function LiveRidePage() {
           )}
 
           {/* Bottom - Widget toggle + Controls (extracted to modular component) */}
-          {deviceType === "mobile" && isRiding && (
+          {isRiding && viewMode === "immersive" && (
             <button
               onClick={() => {
                 haptic.trigger("light");
-                panelState.toggleMobileRideWidgets();
+                cycleRideWidgetsMode();
               }}
               className="absolute right-4 bottom-24 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-black/70 backdrop-blur border border-white/20 shadow-lg transition-transform active:scale-95"
-              aria-label={widgetsVisible ? "Hide widgets" : "Show widgets"}
+              aria-label={widgetsMode === "expanded" ? "Collapse widgets" : widgetsMode === "collapsed" ? "Minimize widgets" : "Restore widgets"}
             >
-              {widgetsVisible ? (
+              {widgetsMode === "expanded" ? (
+                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12h16" />
+                </svg>
+              ) : widgetsMode === "collapsed" ? (
                 <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1489,6 +1508,7 @@ export default function LiveRidePage() {
             isSpeaking={isSpeaking}
             panelState={panelState.state}
             onTogglePanel={handleTogglePanel}
+            onSetWidgetsMode={panelState.setMobileRideWidgetsMode}
             onStartRide={startRide}
             onPauseRide={pauseRide}
             onSetWorkoutPlan={setWorkoutPlan}

@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useDeviceType } from '../../../lib/responsive';
+import { ANALYTICS_EVENTS, trackEvent } from '@/app/lib/analytics/events';
 
 interface PedalSimulatorProps {
     isActive: boolean;
@@ -47,6 +48,9 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
     const animFrame = useRef<number | null>(null);
     const latestCadence = useRef(0);
     const baseMetrics = useRef({ heartRate: 100, power: 80, effort: 120 });
+    const didTrackKeyboardHint = useRef(false);
+    const didTrackTouchOnlyGate = useRef(false);
+    const keyActivity = useRef({ strokes: 0, windowStart: 0 });
 
     const calculateMetrics = useCallback(() => {
         const now = Date.now();
@@ -98,7 +102,6 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
     }, [isActive]);
 
     const recordPedalStroke = useCallback((leg: 'left' | 'right') => {
-        if (lastPedalLeg.current === leg && pedalTimestamps.current.length > 0) return;
         lastPedalLeg.current = leg;
         pedalTimestamps.current.push(Date.now());
         haptic(25);
@@ -114,10 +117,25 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
         // Check if this is a touch-only device (actual mobile without keyboard)
         // We want to allow keyboard on devices that have both touch AND keyboard (e.g., tablets, laptops with touch)
         const hasTouchSupport = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        const isPureMobileTouch = deviceType === 'mobile' && !hasTouchSupport;
+        const isPureMobileTouch = deviceType === 'mobile' && hasTouchSupport;
+
+        if (!isPureMobileTouch && !didTrackKeyboardHint.current) {
+            didTrackKeyboardHint.current = true;
+            trackEvent(ANALYTICS_EVENTS.SIMULATOR_KEYBOARD_HINT_VIEWED, {
+                deviceType,
+            });
+        }
         
         // Skip keyboard only on pure mobile touch devices (no keyboard attached)
-        if (isPureMobileTouch) return;
+        if (isPureMobileTouch) {
+            if (!didTrackTouchOnlyGate.current) {
+                didTrackTouchOnlyGate.current = true;
+                trackEvent(ANALYTICS_EVENTS.SIMULATOR_INPUT_SKIPPED_TOUCH_ONLY, {
+                    deviceType,
+                });
+            }
+            return;
+        }
         
         const handleKeyDown = (e: KeyboardEvent) => {
             // Don't capture if user is typing in an input
@@ -125,8 +143,29 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
             if (e.target instanceof HTMLElement && e.target.isContentEditable) return;
             
             if (e.repeat) return;
-            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); recordPedalStroke('left'); }
-            else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); recordPedalStroke('right'); }
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                e.preventDefault();
+                recordPedalStroke('left');
+            }
+            else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                e.preventDefault();
+                recordPedalStroke('right');
+            } else {
+                return;
+            }
+
+            const now = Date.now();
+            if (now - keyActivity.current.windowStart > 10000) {
+                keyActivity.current.windowStart = now;
+                keyActivity.current.strokes = 0;
+            }
+            keyActivity.current.strokes += 1;
+            if (keyActivity.current.strokes === 1 || keyActivity.current.strokes % 12 === 0) {
+                trackEvent(ANALYTICS_EVENTS.SIMULATOR_INPUT_ACTIVITY, {
+                    deviceType,
+                    strokesInWindow: keyActivity.current.strokes,
+                });
+            }
         };
         
         // Use capture phase to ensure we get the events first

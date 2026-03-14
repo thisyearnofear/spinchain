@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import { RideControls } from "./ride-controls";
 import type { WorkoutPlan, IntervalPhase } from "@/app/lib/workout-plan";
 import type { PanelState, PanelKey, WidgetMode } from "@/app/hooks/ui/use-panel-state";
@@ -39,6 +39,7 @@ interface RideBottomPanelProps {
   // Panel state
   panelState: PanelState;
   onTogglePanel: (key: PanelKey) => void;
+  onSetWidgetsMode: (mode: WidgetMode) => void;
   // Callbacks
   onStartRide: () => void;
   onPauseRide: () => void;
@@ -82,6 +83,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   isSpeaking,
   panelState,
   onTogglePanel,
+  onSetWidgetsMode,
   onStartRide,
   onPauseRide,
   onSetWorkoutPlan,
@@ -92,21 +94,95 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   formatTime,
 }: RideBottomPanelProps) {
   const isWidgetsMinimized = widgetsMode === "minimized";
+  const isWidgetsCollapsed = widgetsMode === "collapsed";
+  const [desktopOffset, setDesktopOffset] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{ startX: number; startY: number; pointerX: number; pointerY: number } | null>(null);
 
-  // Show a minimized pill on mobile during ride when widgets are minimized
-  if (deviceType === "mobile" && isRiding && isWidgetsMinimized) {
+  const handleDragStart = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (deviceType === "mobile" || !isRiding || isWidgetsMinimized) return;
+    dragRef.current = {
+      startX: desktopOffset.x,
+      startY: desktopOffset.y,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, [desktopOffset.x, desktopOffset.y, deviceType, isRiding, isWidgetsMinimized]);
+
+  const handleDragMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current) return;
+    const deltaX = event.clientX - dragRef.current.pointerX;
+    const deltaY = event.clientY - dragRef.current.pointerY;
+    setDesktopOffset({
+      x: dragRef.current.startX + deltaX,
+      y: Math.min(0, dragRef.current.startY + deltaY),
+    });
+  }, []);
+
+  const handleDragEnd = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }, []);
+
+  // Show a minimized pill during ride when widgets are minimized
+  if (isRiding && isWidgetsMinimized) {
     return (
       <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 pointer-events-auto">
-        <div className="rounded-full border border-white/20 bg-black/70 px-3 py-1.5 text-xs text-white/80 shadow-lg backdrop-blur">
-          Widgets minimized
+        <button
+          onClick={() => onSetWidgetsMode("expanded")}
+          className="rounded-full border border-white/20 bg-black/70 px-3 py-1.5 text-xs text-white/80 shadow-lg backdrop-blur transition-all hover:bg-black/80 active:scale-95"
+          aria-label="Restore widgets"
+        >
+          Restore widgets
+        </button>
+      </div>
+    );
+  }
+
+  if (isRiding && isWidgetsCollapsed) {
+    return (
+      <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 pointer-events-auto">
+        <div className="flex items-center gap-2 rounded-full border border-white/20 bg-black/75 px-3 py-1.5 text-xs text-white/80 shadow-lg backdrop-blur">
+          <span>Widgets collapsed</span>
+          <button
+            onClick={() => onSetWidgetsMode("expanded")}
+            className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] text-white hover:bg-white/25"
+          >
+            Expand
+          </button>
+          <button
+            onClick={() => onSetWidgetsMode("minimized")}
+            className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] text-white hover:bg-white/25"
+          >
+            Minimize
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`absolute bottom-0 inset-x-0 z-20 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom transition-all duration-300 ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${!isRiding && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`}>
+    <div
+      className={`absolute bottom-0 inset-x-0 z-20 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom transition-all duration-300 ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${!isRiding && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`}
+      style={deviceType !== "mobile" && isRiding ? { transform: `translate(${desktopOffset.x}px, ${desktopOffset.y}px)` } : undefined}
+    >
       <div className={`max-w-7xl mx-auto ${!isRiding && deviceType === "desktop" ? "overflow-y-auto flex-1 min-h-0" : ""}`}>
+        {isRiding && (
+          <div
+            className="mb-2 flex items-center justify-between rounded-lg bg-black/40 px-3 py-1.5 text-[11px] text-white/70"
+            onPointerDown={handleDragStart}
+            onPointerMove={handleDragMove}
+            onPointerUp={handleDragEnd}
+          >
+            <span>{deviceType === "mobile" ? "Widget controls" : "Drag widgets bar"}</span>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => onSetWidgetsMode("collapsed")} className="rounded bg-white/10 px-2 py-1 text-white/80 hover:bg-white/20">Collapse</button>
+              <button onClick={() => onSetWidgetsMode("minimized")} className="rounded bg-white/10 px-2 py-1 text-white/80 hover:bg-white/20">Minimize</button>
+            </div>
+          </div>
+        )}
+
         {/* Progress Info + Interval Status */}
         {hudMode !== "minimal" && (
           <div className="mb-3 sm:mb-4">

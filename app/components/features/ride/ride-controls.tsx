@@ -268,9 +268,13 @@ function InputModeSelector({
   const getHelpText = () => {
     if (useSimulator) {
       if (deviceType === "mobile") {
-        return isTrainingMode ? "Training mode - no rewards earned" : "Tap buttons to ride without hardware";
+        return isTrainingMode
+          ? "Training mode - no rewards earned. Tap L/R pedals to simulate"
+          : "Tap L/R pedals to ride without hardware";
       }
-      return isTrainingMode ? "Training mode - no rewards earned" : "Use arrow keys to ride without hardware";
+      return isTrainingMode
+        ? "Training mode - no rewards earned. Use A/D or ←/→ to pedal"
+        : "Use A/D or ←/→ to ride without hardware";
     }
     return "Connect your real bike via Bluetooth";
   };
@@ -334,6 +338,11 @@ function InputModeSelector({
       <p className="mt-1.5 text-[10px] text-white/40">
         {getHelpText()}
       </p>
+      {useSimulator && deviceType !== "mobile" && (
+        <p className="mt-1 text-[10px] text-indigo-200/70">
+          Keyboard controls: <kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">A</kbd>/<kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">D</kbd> or <kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">←</kbd>/<kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">→</kbd>
+        </p>
+      )}
     </div>
   );
 }

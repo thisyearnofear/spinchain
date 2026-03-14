@@ -22,6 +22,9 @@ export const ANALYTICS_EVENTS = {
   WIDGET_RESTORED: 'widget_restored',
   WIDGET_DRAGGED: 'widget_dragged',
   WIDGET_LAYOUT_RESET: 'widget_layout_reset',
+  SIMULATOR_KEYBOARD_HINT_VIEWED: 'simulator_keyboard_hint_viewed',
+  SIMULATOR_INPUT_ACTIVITY: 'simulator_input_activity',
+  SIMULATOR_INPUT_SKIPPED_TOUCH_ONLY: 'simulator_input_skipped_touch_only',
 } as const;
 
 type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
