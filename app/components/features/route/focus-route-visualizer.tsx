@@ -169,6 +169,15 @@ export default function FocusRouteVisualizer({
   const styles = THEMES[theme];
   const avatar = useMemo(() => AVATARS.find((item) => item.id === avatarId), [avatarId]);
   const equipment = useMemo(() => EQUIPMENT.find((item) => item.id === equipmentId), [equipmentId]);
+  const leftMode = panelState?.focusLeft ?? "expanded";
+  const rightMode = panelState?.focusRight ?? "expanded";
+  const bottomMode = panelState?.focusBottom ?? "expanded";
+  const leftExpanded = leftMode === "expanded";
+  const rightExpanded = rightMode === "expanded";
+  const bottomExpanded = bottomMode === "expanded";
+  const leftMinimized = leftMode === "minimized";
+  const rightMinimized = rightMode === "minimized";
+  const bottomMinimized = bottomMode === "minimized";
 
   // Handler for accordion behavior - uses expandOne on mobile, toggle on desktop
   const handleToggle = useCallback((key: PanelKey) => {
@@ -578,7 +587,7 @@ export default function FocusRouteVisualizer({
       </svg>
 
       {/* Left Panel - Route Info - Hidden on mobile when collapsed */}
-      <div className="absolute left-4 top-4 z-30 max-w-sm hidden md:block" id="focus-left-panel">
+      <div className={`absolute left-4 top-4 z-30 max-w-sm hidden md:block ${leftMinimized ? "opacity-0 pointer-events-none" : ""}`} id="focus-left-panel">
         <div
           className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.84) 100%)`, boxShadow: `0 24px 80px ${styles.horizonGlow}18` }}
@@ -591,14 +600,14 @@ export default function FocusRouteVisualizer({
               <span>{styles.worldLabel}</span>
             </div>
             <CollapseToggle
-              isCollapsed={!(panelState?.focusLeft ?? true)}
+              isCollapsed={!leftExpanded}
               onToggle={() => handleToggle('focusLeft')}
               label="Focus View Info"
             />
           </div>
           
           {/* Collapsible Content */}
-          {!(panelState?.focusLeft === false) && (
+          {leftExpanded && (
             <div className="px-4 pb-4">
               <div className="text-xl font-semibold text-white">{routeName}</div>
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/72">
@@ -633,7 +642,7 @@ export default function FocusRouteVisualizer({
           )}
           
           {/* Collapsed preview badge */}
-          {panelState?.focusLeft === false && (
+          {!leftExpanded && !leftMinimized && (
             <div className="px-4 pb-3 flex items-center gap-2">
               <span className="text-xs text-white/60">{routeName}</span>
               <span className="text-xs" style={{ color: currentZone.color }}>{currentZone.label}</span>
@@ -643,7 +652,7 @@ export default function FocusRouteVisualizer({
       </div>
 
       {/* Right Panel - Power/Metrics - Hidden on mobile */}
-      <div className="absolute right-4 top-4 z-30 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-3 hidden md:flex" id="focus-right-panel">
+      <div className={`absolute right-4 top-4 z-30 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-3 hidden md:flex ${rightMinimized ? "opacity-0 pointer-events-none" : ""}`} id="focus-right-panel">
         <div
           className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.86) 100%)`, boxShadow: `0 24px 80px ${phaseAccent}20` }}
@@ -653,14 +662,14 @@ export default function FocusRouteVisualizer({
           <div className="flex items-center justify-between p-4 pb-2">
             <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">{primaryMetric.label}</div>
             <CollapseToggle
-              isCollapsed={!(panelState?.focusRight ?? true)}
+              isCollapsed={!rightExpanded}
               onToggle={() => handleToggle('focusRight')}
               label="Power Metrics"
             />
           </div>
           
           {/* Collapsed preview - show primary metric only */}
-          {panelState?.focusRight === false && (
+          {!rightExpanded && !rightMinimized && (
             <div className="px-4 pb-3">
               <div className="text-2xl font-semibold" style={{ color: phaseAccent }}>{primaryMetric.value}</div>
               <div className="text-xs text-white/55">{primaryMetric.unit}</div>
@@ -668,7 +677,7 @@ export default function FocusRouteVisualizer({
           )}
           
           {/* Expanded content */}
-          {!(panelState?.focusRight === false) && (
+          {rightExpanded && (
             <div className="px-4 pb-4">
               <div className="flex items-end justify-between gap-4">
                 <div>
@@ -742,7 +751,7 @@ export default function FocusRouteVisualizer({
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.9) 100%)` }}
         >
           {/* Collapsed state - thin progress bar only */}
-          {panelState?.focusBottom === false && (
+          {!bottomExpanded && !bottomMinimized && (
             <div className="p-2">
               <div className="h-2 overflow-hidden rounded-full bg-white/10">
                 <div
@@ -766,7 +775,7 @@ export default function FocusRouteVisualizer({
           )}
           
           {/* Expanded content */}
-          {!(panelState?.focusBottom === false) && (
+          {bottomExpanded && (
             <div className="px-4 py-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">Route Progress</div>

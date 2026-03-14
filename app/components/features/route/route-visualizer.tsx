@@ -1002,7 +1002,7 @@ function Scene({
 
   return (
     <>
-      <PerspectiveCamera makeDefault position={[0, 60, 5]} fov={60} rotation={[-Math.PI / 3, 0, 0]} />
+      <PerspectiveCamera makeDefault position={[0, 100, 100]} fov={60} rotation={[-Math.PI / 3, 0, 0]} />
       <ambientLight intensity={0.5} />
       <pointLight
         position={[10, 50, 10]}

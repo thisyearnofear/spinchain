@@ -218,7 +218,7 @@ export default function LiveRidePage() {
   const handleTogglePanel = useCallback((key: Parameters<typeof panelState.toggle>[0]) => {
     if (deviceType === "mobile") {
       // On mobile, use accordion behavior - expand one, collapse others
-      const isCurrentlyExpanded = panelState.state[key];
+      const isCurrentlyExpanded = panelState.state[key] === "expanded";
       if (isCurrentlyExpanded) {
         // If already expanded, just collapse it
         panelState.collapse(key);
@@ -235,33 +235,18 @@ export default function LiveRidePage() {
   // Mobile: Start with all panels collapsed when riding to maximize ride visibility
   // Users can expand one panel at a time using accordion behavior
   useEffect(() => {
-    if (deviceType === "mobile" && isRiding) {
-      // Collapse all panels when ride starts on mobile to maximize view
-      panelState.collapseAll();
-    } else if (deviceType !== "mobile" && isRiding) {
-      // On larger screens, minimize focus overlays while riding for cleaner immersion
-      panelState.collapseRidePanels();
-    } else if (deviceType === "mobile" && !isRiding) {
-      // When not riding, allow panels to be expanded
-      panelState.reset();
+    if (isRiding) {
+      panelState.startRideLayout();
+    } else {
+      panelState.endRideLayout();
     }
-  }, [deviceType, isRiding, panelState]);
+  }, [isRiding, panelState]);
 
-  // Mobile widget panel visibility - default to hidden on mobile when riding to maximize ride view
-  const [widgetsVisible, setWidgetsVisible] = useState(true);
-  
-  // On mobile, default widgets to hidden when riding starts
-  useEffect(() => {
-    if (typeof window !== "undefined" && deviceType === "mobile") {
-      if (isRiding) {
-        // Hide widgets when ride starts
-        setWidgetsVisible(false);
-      } else {
-        // Show widgets when not riding
-        setWidgetsVisible(true);
-      }
-    }
-  }, [deviceType, isRiding]);
+  const widgetsVisible =
+    deviceType !== "mobile" ||
+    !isRiding ||
+    panelState.state.mobileRideWidgets === "expanded";
+  const widgetsMode = panelState.state.mobileRideWidgets;
 
   // Onboarding Tutorial (extracted to reusable hook + component)
   const { showTutorial, tutorialStep, nextStep: nextTutorial, dismiss: dismissTutorial } = useRideTutorial();
@@ -1430,7 +1415,7 @@ export default function LiveRidePage() {
             <button
               onClick={() => {
                 haptic.trigger("light");
-                setWidgetsVisible(!widgetsVisible);
+                panelState.toggleMobileRideWidgets();
               }}
               className="absolute right-4 bottom-24 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-black/70 backdrop-blur border border-white/20 shadow-lg transition-transform active:scale-95"
               aria-label={widgetsVisible ? "Hide widgets" : "Show widgets"}
@@ -1453,7 +1438,7 @@ export default function LiveRidePage() {
             elapsedTime={elapsedTime}
             hudMode={hudMode}
             deviceType={deviceType}
-            widgetsVisible={widgetsVisible}
+            widgetsMode={widgetsMode}
             useSimulator={useSimulator}
             isPracticeMode={isPracticeMode}
             isTrainingMode={isTrainingMode}

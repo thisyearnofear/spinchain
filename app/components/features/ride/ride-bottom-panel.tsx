@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { RideControls } from "./ride-controls";
 import type { WorkoutPlan, IntervalPhase } from "@/app/lib/workout-plan";
-import type { PanelState, PanelKey } from "@/app/hooks/ui/use-panel-state";
+import type { PanelState, PanelKey, WidgetMode } from "@/app/hooks/ui/use-panel-state";
 
 interface RideBottomPanelProps {
   isRiding: boolean;
@@ -12,7 +12,7 @@ interface RideBottomPanelProps {
   elapsedTime: number;
   hudMode: "full" | "compact" | "minimal";
   deviceType: "mobile" | "tablet" | "desktop";
-  widgetsVisible: boolean;
+  widgetsMode: WidgetMode;
   useSimulator: boolean;
   isPracticeMode: boolean;
   isTrainingMode: boolean;
@@ -60,7 +60,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   elapsedTime,
   hudMode,
   deviceType,
-  widgetsVisible,
+  widgetsMode,
   useSimulator,
   isPracticeMode,
   isTrainingMode,
@@ -91,9 +91,17 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   onHaptic,
   formatTime,
 }: RideBottomPanelProps) {
-  // Fully hide bottom panel when widgets are collapsed on mobile during ride
-  if (deviceType === "mobile" && isRiding && !widgetsVisible) {
-    return null;
+  const isWidgetsMinimized = widgetsMode === "minimized";
+
+  // Show a minimized pill on mobile during ride when widgets are minimized
+  if (deviceType === "mobile" && isRiding && isWidgetsMinimized) {
+    return (
+      <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 pointer-events-auto">
+        <div className="rounded-full border border-white/20 bg-black/70 px-3 py-1.5 text-xs text-white/80 shadow-lg backdrop-blur">
+          Widgets minimized
+        </div>
+      </div>
+    );
   }
 
   return (

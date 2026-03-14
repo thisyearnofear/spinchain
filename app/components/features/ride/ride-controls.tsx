@@ -76,8 +76,8 @@ export function RideControls({
   onTogglePanel,
 }: RideControlsProps) {
   // Default to expanded if no panel state provided (backward compatible)
-  const isWorkoutExpanded = panelState?.workoutPlan ?? true;
-  const isInputModeExpanded = panelState?.inputMode ?? true;
+  const isWorkoutExpanded = (panelState?.workoutPlan ?? "expanded") === "expanded";
+  const isInputModeExpanded = (panelState?.inputMode ?? "expanded") === "expanded";
 
   return (
     <div className="max-w-7xl mx-auto">

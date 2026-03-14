@@ -14,17 +14,21 @@
  *   // state.workoutPlan === true means EXPANDED, false means COLLAPSED
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+
+export type WidgetMode = 'expanded' | 'collapsed' | 'minimized';
 
 export interface PanelState {
   // Pre-ride setup panels
-  workoutPlan: boolean;
-  inputMode: boolean;
-  deviceSelector: boolean;
+  workoutPlan: WidgetMode;
+  inputMode: WidgetMode;
+  deviceSelector: WidgetMode;
+  // Global mobile in-ride widget visibility
+  mobileRideWidgets: WidgetMode;
   // Focus View panels
-  focusLeft: boolean;
-  focusRight: boolean;
-  focusBottom: boolean;
+  focusLeft: WidgetMode;
+  focusRight: WidgetMode;
+  focusBottom: WidgetMode;
 }
 
 export type PanelKey = keyof PanelState;
@@ -34,21 +38,23 @@ const STORAGE_KEY = 'spinchain:ride:panelState';
 // Default states based on device type
 function getDefaultState(deviceType: 'mobile' | 'tablet' | 'desktop'): PanelState {
   const allExpanded: PanelState = {
-    workoutPlan: true,
-    inputMode: true,
-    deviceSelector: true,
-    focusLeft: true,
-    focusRight: true,
-    focusBottom: true,
+    workoutPlan: 'expanded',
+    inputMode: 'expanded',
+    deviceSelector: 'expanded',
+    mobileRideWidgets: 'expanded',
+    focusLeft: 'expanded',
+    focusRight: 'expanded',
+    focusBottom: 'expanded',
   };
 
   const allCollapsed: PanelState = {
-    workoutPlan: false,
-    inputMode: false,
-    deviceSelector: false,
-    focusLeft: false,
-    focusRight: false,
-    focusBottom: false,
+    workoutPlan: 'collapsed',
+    inputMode: 'collapsed',
+    deviceSelector: 'collapsed',
+    mobileRideWidgets: 'collapsed',
+    focusLeft: 'collapsed',
+    focusRight: 'collapsed',
+    focusBottom: 'collapsed',
   };
 
   // Mobile: collapse by default (limited screen space)
@@ -58,8 +64,8 @@ function getDefaultState(deviceType: 'mobile' | 'tablet' | 'desktop'): PanelStat
     // On mobile, keep essential panels expanded
     return {
       ...allCollapsed,
-      workoutPlan: true, // Keep workout selector visible
-      inputMode: true,   // Keep input mode visible
+      workoutPlan: 'expanded', // Keep workout selector visible
+      inputMode: 'expanded',   // Keep input mode visible
     };
   }
 
@@ -71,7 +77,7 @@ function loadStoredState(): Partial<PanelState> | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      return migrateStoredState(JSON.parse(stored));
     }
   } catch {
     // Ignore parse errors
@@ -88,13 +94,36 @@ function saveStoredState(state: PanelState): void {
   }
 }
 
+function toMode(value: unknown): WidgetMode {
+  if (value === 'expanded' || value === 'collapsed' || value === 'minimized') return value;
+  if (value === true) return 'expanded';
+  if (value === false) return 'collapsed';
+  return 'expanded';
+}
+
+function migrateStoredState(stored: Record<string, unknown>): Partial<PanelState> {
+  return {
+    workoutPlan: toMode(stored.workoutPlan),
+    inputMode: toMode(stored.inputMode),
+    deviceSelector: toMode(stored.deviceSelector),
+    mobileRideWidgets: toMode(stored.mobileRideWidgets),
+    focusLeft: toMode(stored.focusLeft),
+    focusRight: toMode(stored.focusRight),
+    focusBottom: toMode(stored.focusBottom),
+  };
+}
+
 export interface UsePanelStateReturn {
-  /** Current panel state (true = expanded, false = collapsed) */
+  /** Current panel state */
   state: PanelState;
   /** Toggle a specific panel */
   toggle: (key: PanelKey) => void;
   /** Set a specific panel to expanded */
   expand: (key: PanelKey) => void;
+  /** Set a specific panel to minimized */
+  minimize: (key: PanelKey) => void;
+  /** Set a specific panel mode */
+  setMode: (key: PanelKey, mode: WidgetMode) => void;
   /** Set a specific panel to expanded, collapsing all others (accordion behavior) */
   expandOne: (key: PanelKey) => void;
   /** Set a specific panel to collapsed */
@@ -105,8 +134,14 @@ export interface UsePanelStateReturn {
   collapseAll: () => void;
   /** Reset to device-appropriate defaults */
   reset: () => void;
-  /** Collapse ride overlays while keeping setup panels available */
-  collapseRidePanels: () => void;
+  /** Apply explicit ride-start transitions */
+  startRideLayout: () => void;
+  /** Apply explicit ride-end transitions */
+  endRideLayout: () => void;
+  /** Set global mobile in-ride widget mode */
+  setMobileRideWidgetsMode: (mode: WidgetMode) => void;
+  /** Toggle global mobile in-ride widgets between expanded/minimized */
+  toggleMobileRideWidgets: () => void;
   /** Check if all panels are collapsed */
   isAllCollapsed: boolean;
   /** Check if all panels are expanded */
@@ -116,6 +151,8 @@ export interface UsePanelStateReturn {
 export function usePanelState(
   deviceType: 'mobile' | 'tablet' | 'desktop',
 ): UsePanelStateReturn {
+  const preRideSnapshotRef = useRef<PanelState | null>(null);
+  const rideLayoutActiveRef = useRef(false);
   const [state, setState] = useState<PanelState>(() => {
     // Try to load from localStorage first
     const stored = loadStoredState();
@@ -132,49 +169,60 @@ export function usePanelState(
   }, [state]);
 
   const toggle = useCallback((key: PanelKey) => {
-    setState((prev) => ({ ...prev, [key]: !prev[key] }));
+    setState((prev) => ({ ...prev, [key]: prev[key] === 'expanded' ? 'collapsed' : 'expanded' }));
   }, []);
 
   const expand = useCallback((key: PanelKey) => {
-    setState((prev) => ({ ...prev, [key]: true }));
+    setState((prev) => ({ ...prev, [key]: 'expanded' }));
+  }, []);
+
+  const minimize = useCallback((key: PanelKey) => {
+    setState((prev) => ({ ...prev, [key]: 'minimized' }));
+  }, []);
+
+  const setMode = useCallback((key: PanelKey, mode: WidgetMode) => {
+    setState((prev) => ({ ...prev, [key]: mode }));
   }, []);
 
   const expandOne = useCallback((key: PanelKey) => {
     // Accordion behavior: expand one panel, collapse all others
     const defaultState: PanelState = {
-      workoutPlan: false,
-      inputMode: false,
-      deviceSelector: false,
-      focusLeft: false,
-      focusRight: false,
-      focusBottom: false,
+      workoutPlan: 'collapsed',
+      inputMode: 'collapsed',
+      deviceSelector: 'collapsed',
+      mobileRideWidgets: 'minimized',
+      focusLeft: 'collapsed',
+      focusRight: 'collapsed',
+      focusBottom: 'collapsed',
     };
-    setState({ ...defaultState, [key]: true });
+    setState({ ...defaultState, [key]: 'expanded' });
   }, []);
 
   const collapse = useCallback((key: PanelKey) => {
-    setState((prev) => ({ ...prev, [key]: false }));
+    setState((prev) => ({ ...prev, [key]: 'collapsed' }));
   }, []);
 
   const expandAll = useCallback(() => {
     setState({
-      workoutPlan: true,
-      inputMode: true,
-      deviceSelector: true,
-      focusLeft: true,
-      focusRight: true,
-      focusBottom: true,
+      workoutPlan: 'expanded',
+      inputMode: 'expanded',
+      deviceSelector: 'expanded',
+      mobileRideWidgets: 'expanded',
+      focusLeft: 'expanded',
+      focusRight: 'expanded',
+      focusBottom: 'expanded',
     });
   }, []);
 
   const collapseAll = useCallback(() => {
     setState({
-      workoutPlan: false,
-      inputMode: false,
-      deviceSelector: false,
-      focusLeft: false,
-      focusRight: false,
-      focusBottom: false,
+      workoutPlan: 'collapsed',
+      inputMode: 'collapsed',
+      deviceSelector: 'collapsed',
+      mobileRideWidgets: 'minimized',
+      focusLeft: 'collapsed',
+      focusRight: 'collapsed',
+      focusBottom: 'collapsed',
     });
   }, []);
 
@@ -182,28 +230,61 @@ export function usePanelState(
     setState(getDefaultState(deviceType));
   }, [deviceType]);
 
-  const collapseRidePanels = useCallback(() => {
+  const startRideLayout = useCallback(() => {
+    setState((prev) => {
+      if (!rideLayoutActiveRef.current) {
+        preRideSnapshotRef.current = prev;
+        rideLayoutActiveRef.current = true;
+      }
+
+      return {
+        ...prev,
+        mobileRideWidgets: deviceType === 'mobile' ? 'minimized' : prev.mobileRideWidgets,
+        focusLeft: 'minimized',
+        focusRight: 'minimized',
+        focusBottom: 'minimized',
+        workoutPlan: prev.workoutPlan === 'expanded' ? 'collapsed' : prev.workoutPlan,
+        inputMode: prev.inputMode === 'expanded' ? 'collapsed' : prev.inputMode,
+        deviceSelector: prev.deviceSelector === 'expanded' ? 'collapsed' : prev.deviceSelector,
+      };
+    });
+  }, [deviceType]);
+
+  const endRideLayout = useCallback(() => {
+    setState(preRideSnapshotRef.current ?? getDefaultState(deviceType));
+    rideLayoutActiveRef.current = false;
+    preRideSnapshotRef.current = null;
+  }, [deviceType]);
+
+  const setMobileRideWidgetsMode = useCallback((mode: WidgetMode) => {
+    setState((prev) => ({ ...prev, mobileRideWidgets: mode }));
+  }, []);
+
+  const toggleMobileRideWidgets = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      focusLeft: false,
-      focusRight: false,
-      focusBottom: false,
+      mobileRideWidgets: prev.mobileRideWidgets === 'minimized' ? 'expanded' : 'minimized',
     }));
   }, []);
 
-  const isAllCollapsed = Object.values(state).every((v) => v === false);
-  const isAllExpanded = Object.values(state).every((v) => v === true);
+  const isAllCollapsed = Object.values(state).every((v) => v === 'collapsed' || v === 'minimized');
+  const isAllExpanded = Object.values(state).every((v) => v === 'expanded');
 
   return {
     state,
     toggle,
     expand,
+    minimize,
+    setMode,
     expandOne,
     collapse,
     expandAll,
     collapseAll,
     reset,
-    collapseRidePanels,
+    startRideLayout,
+    endRideLayout,
+    setMobileRideWidgetsMode,
+    toggleMobileRideWidgets,
     isAllCollapsed,
     isAllExpanded,
   };
