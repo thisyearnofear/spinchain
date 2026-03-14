@@ -221,6 +221,9 @@ export default function FocusRouteVisualizer({
 
   const handleDragStart = useCallback((event: ReactPointerEvent<HTMLDivElement>, key: DesktopPanelKey) => {
     if (!onSetPanelPosition) return;
+    // Don't start drag if user clicked an interactive element (button, toggle, link)
+    const target = event.target as HTMLElement;
+    if (target.closest('button, a, [role="button"], input, select, textarea')) return;
     const current = panelPositions?.[key];
     if (!current) return;
 
@@ -405,14 +408,14 @@ export default function FocusRouteVisualizer({
         background: `linear-gradient(180deg, ${styles.skyTop} 0%, ${styles.skyBottom} 50%, #030712 100%)`,
       }}
     >
-      <div className="focus-aurora absolute -left-[10%] top-[-12%] h-[58%] w-[72%] rounded-full blur-3xl"
+      <div className="focus-aurora absolute -left-[10%] top-[-12%] h-[58%] w-[72%] rounded-full blur-3xl pointer-events-none"
         style={{ background: `radial-gradient(circle, ${styles.horizonGlow}44 0%, transparent 68%)` }}
       />
-      <div className="focus-aurora absolute right-[-18%] top-[8%] h-[44%] w-[58%] rounded-full blur-3xl"
+      <div className="focus-aurora absolute right-[-18%] top-[8%] h-[44%] w-[58%] rounded-full blur-3xl pointer-events-none"
         style={{ background: `radial-gradient(circle, ${currentZone.color}2f 0%, transparent 66%)`, animationDelay: "-6s" }}
       />
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 pointer-events-none"
         style={{
           background: `radial-gradient(circle at 50% 35%, ${styles.horizonGlow}55 0%, transparent 42%)`,
         }}
@@ -420,14 +423,14 @@ export default function FocusRouteVisualizer({
       {isGridTheme ? (
         <>
           <div
-            className="focus-scanline absolute inset-0 opacity-30"
+            className="focus-scanline absolute inset-0 opacity-30 pointer-events-none"
             style={{
               backgroundImage: `linear-gradient(90deg, transparent 0%, ${styles.horizonGlow}1c 40%, ${styles.horizonGlow}30 50%, ${styles.horizonGlow}1c 60%, transparent 100%)`,
               mixBlendMode: "screen",
             }}
           />
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 pointer-events-none"
             style={{
               backgroundImage: `linear-gradient(rgba(255,255,255,${horizonPatternOpacity}) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,${horizonPatternOpacity * 0.8}) 1px, transparent 1px)`,
               backgroundSize: `${Math.max(44, width * 0.045)}px ${Math.max(44, width * 0.045)}px`,
@@ -439,32 +442,32 @@ export default function FocusRouteVisualizer({
       ) : null}
       {isMistTheme ? (
         <>
-          <div className="focus-aurora absolute left-[-8%] top-[18%] h-28 w-[42%] rounded-full blur-3xl"
+          <div className="focus-aurora absolute left-[-8%] top-[18%] h-28 w-[42%] rounded-full blur-3xl pointer-events-none"
             style={{ background: "rgba(255,255,255,0.18)", animationDuration: "20s" }}
           />
-          <div className="focus-aurora absolute right-[-6%] top-[26%] h-24 w-[36%] rounded-full blur-3xl"
+          <div className="focus-aurora absolute right-[-6%] top-[26%] h-24 w-[36%] rounded-full blur-3xl pointer-events-none"
             style={{ background: "rgba(255,255,255,0.14)", animationDelay: "-10s", animationDuration: "22s" }}
           />
         </>
       ) : null}
       {isDustTheme ? (
         <>
-          <div className="focus-aurora absolute right-[10%] top-[14%] h-40 w-40 rounded-full blur-2xl"
+          <div className="focus-aurora absolute right-[10%] top-[14%] h-40 w-40 rounded-full blur-2xl pointer-events-none"
             style={{ background: `${styles.horizonGlow}44`, animationDuration: "18s" }}
           />
-          <div className="absolute inset-x-0 top-[18%] h-28 opacity-40"
+          <div className="absolute inset-x-0 top-[18%] h-28 opacity-40 pointer-events-none"
             style={{ background: `linear-gradient(180deg, ${styles.horizonGlow}22 0%, transparent 100%)` }}
           />
         </>
       ) : null}
       {isSunTheme ? (
-        <div className="absolute left-1/2 top-[12%] h-36 w-36 -translate-x-1/2 rounded-full blur-sm"
+        <div className="absolute left-1/2 top-[12%] h-36 w-36 -translate-x-1/2 rounded-full blur-sm pointer-events-none"
           style={{ background: `radial-gradient(circle, rgba(255,255,255,0.92) 0%, ${styles.horizonGlow}88 30%, transparent 72%)` }}
         />
       ) : null}
       {isPrismTheme ? (
         <div
-          className="focus-scanline absolute inset-0 opacity-30"
+          className="focus-scanline absolute inset-0 opacity-30 pointer-events-none"
           style={{
             backgroundImage: `linear-gradient(120deg, transparent 0%, ${styles.lineColor}26 22%, transparent 36%, ${styles.horizonGlow}26 50%, transparent 64%, ${currentZone.color}20 78%, transparent 100%)`,
             mixBlendMode: "screen",
@@ -472,7 +475,7 @@ export default function FocusRouteVisualizer({
         />
       ) : null}
 
-      <svg viewBox={`0 0 ${width} ${height}`} className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
+      <svg viewBox={`0 0 ${width} ${height}`} className="absolute inset-0 h-full w-full pointer-events-none" preserveAspectRatio="none">
         <defs>
           <linearGradient id={`${gradientId}-route-base`} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor={`${styles.roadColor}ee`} />
@@ -660,8 +663,10 @@ export default function FocusRouteVisualizer({
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.84) 100%)`, boxShadow: `0 24px 80px ${styles.horizonGlow}18` }}
         >
           {/* Header - Always visible */}
-          <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center justify-between px-4 py-3 cursor-grab active:cursor-grabbing">
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-white/55">
+              {/* Drag handle grip dots */}
+              <span className="text-white/25 text-[10px] leading-none select-none" aria-hidden="true">⠿</span>
               <span>Focus View</span>
               <span className="h-1 w-1 rounded-full bg-white/40" />
               <span>{styles.worldLabel}</span>
@@ -733,8 +738,12 @@ export default function FocusRouteVisualizer({
           id="focus-right-panel"
         >
           {/* Header - Always visible */}
-          <div className="flex items-center justify-between p-4 pb-2">
-            <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">{primaryMetric.label}</div>
+          <div className="flex items-center justify-between p-4 pb-2 cursor-grab active:cursor-grabbing">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-white/45">
+              {/* Drag handle grip dots */}
+              <span className="text-white/25 text-[10px] leading-none select-none" aria-hidden="true">⠿</span>
+              <span>{primaryMetric.label}</span>
+            </div>
             <CollapseToggle
               isCollapsed={!rightExpanded}
               onToggle={() => handleToggle('focusRight')}
@@ -858,8 +867,12 @@ export default function FocusRouteVisualizer({
           {/* Expanded content */}
           {bottomExpanded && (
             <div className="px-4 py-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">Route Progress</div>
+              <div className="flex items-center justify-between mb-2 cursor-grab active:cursor-grabbing">
+                <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-white/45">
+                  {/* Drag handle grip dots */}
+                  <span className="text-white/25 text-[10px] leading-none select-none" aria-hidden="true">⠿</span>
+                  <span>Route Progress</span>
+                </div>
                 <CollapseToggle
                   isCollapsed={false}
                   onToggle={() => handleToggle('focusBottom')}

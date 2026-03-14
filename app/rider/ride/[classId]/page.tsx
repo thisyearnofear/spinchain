@@ -33,6 +33,8 @@ import { useWakeLock } from "../../../hooks/use-wake-lock";
 import { useFullscreen } from "../../../hooks/use-fullscreen";
 import { useHaptic } from "../../../hooks/use-haptic";
 import { DemoCompleteModal } from "../../../components/features/common/demo-complete-modal";
+import { NoBikeModal } from "../../../components/features/ride/no-bike-modal";
+import { KeyboardShortcutOverlay } from "../../../components/features/ride/keyboard-shortcut-overlay";
 import {
   type WorkoutPlan,
   PHASE_DEFAULTS,
@@ -363,6 +365,8 @@ export default function LiveRidePage() {
     );
   });
   const [connectionHint, setConnectionHint] = useState<string | null>(null);
+  const [showNoBikeModal, setShowNoBikeModal] = useState(false);
+  const [showKeyboardHints, setShowKeyboardHints] = useState(false);
 
   // Auto-start ride in demo mode
   const autoStartDemo = searchParams.get("auto") === "true";
@@ -1047,10 +1051,17 @@ export default function LiveRidePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rideProgress >= 100]);
 
+  const handleEnableSimulatorFromModal = useCallback(() => {
+    setShowNoBikeModal(false);
+    setUseSimulator(true);
+    setShowKeyboardHints(true);
+    setConnectionHint(null);
+  }, []);
+
   const startRide = async () => {
     const telemetryReady = bleConnected || useSimulator;
     if (!telemetryReady) {
-      setConnectionHint("Choose 'Try Without Bike' or connect a Bluetooth bike to start.");
+      setShowNoBikeModal(true);
       trackEvent(ANALYTICS_EVENTS.RIDE_START_BLOCKED_NO_TELEMETRY, {
         classId,
         practiceMode: isPracticeMode,
@@ -1632,6 +1643,19 @@ export default function LiveRidePage() {
           }}
         />
       )}
+
+      {/* No Bike Connected Modal */}
+      <NoBikeModal
+        open={showNoBikeModal}
+        onEnableSimulator={handleEnableSimulatorFromModal}
+        onDismiss={() => setShowNoBikeModal(false)}
+      />
+
+      {/* Keyboard Shortcut Overlay - shown briefly when simulator activates */}
+      <KeyboardShortcutOverlay
+        show={showKeyboardHints}
+        onDismiss={() => setShowKeyboardHints(false)}
+      />
 
       {/* Demo Complete Modal */}
       <DemoCompleteModal

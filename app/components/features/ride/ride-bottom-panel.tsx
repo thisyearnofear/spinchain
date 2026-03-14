@@ -100,6 +100,9 @@ export const RideBottomPanel = memo(function RideBottomPanel({
 
   const handleDragStart = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (deviceType === "mobile" || !isRiding || isWidgetsMinimized) return;
+    // Don't start drag if user clicked an interactive element (button, toggle, link)
+    const target = event.target as HTMLElement;
+    if (target.closest('button, a, [role="button"], input, select, textarea')) return;
     dragRef.current = {
       startX: desktopOffset.x,
       startY: desktopOffset.y,
