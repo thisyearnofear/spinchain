@@ -238,6 +238,9 @@ export default function LiveRidePage() {
     if (deviceType === "mobile" && isRiding) {
       // Collapse all panels when ride starts on mobile to maximize view
       panelState.collapseAll();
+    } else if (deviceType !== "mobile" && isRiding) {
+      // On larger screens, minimize focus overlays while riding for cleaner immersion
+      panelState.collapseRidePanels();
     } else if (deviceType === "mobile" && !isRiding) {
       // When not riding, allow panels to be expanded
       panelState.reset();
@@ -333,12 +336,15 @@ export default function LiveRidePage() {
 
   // BLE Device Connection
   const [bleConnected, setBleConnected] = useState(false);
-  // Simulator mode is a user choice — Capacitor BLE works natively on iOS/Android/web
-  // Auto-enable simulator in demo mode (?demo=true URL param)
+  // Simulator mode defaults on for practice/demo rides to reduce onboarding friction.
   const [useSimulator, setUseSimulator] = useState(() => {
     if (typeof window === "undefined") return false;
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get("demo") === "true" || urlParams.get("sim") === "true";
+    return (
+      isPracticeMode
+      || urlParams.get("demo") === "true"
+      || urlParams.get("sim") === "true"
+    );
   });
   const [connectionHint, setConnectionHint] = useState<string | null>(null);
 
@@ -1026,9 +1032,9 @@ export default function LiveRidePage() {
   }, [rideProgress >= 100]);
 
   const startRide = async () => {
-    const telemetryReady = bleConnected || (isPracticeMode && useSimulator);
+    const telemetryReady = bleConnected || useSimulator;
     if (!telemetryReady) {
-      setConnectionHint("Connect your bike before starting to capture live telemetry.");
+      setConnectionHint("Choose 'Try Without Bike' or connect a Bluetooth bike to start.");
       trackEvent(ANALYTICS_EVENTS.RIDE_START_BLOCKED_NO_TELEMETRY, {
         classId,
         practiceMode: isPracticeMode,
@@ -1267,6 +1273,7 @@ export default function LiveRidePage() {
             useAccordion={deviceType === "mobile"}
             onExpandOne={panelState.expandOne}
             onHaptic={deviceType === "mobile" ? haptic.trigger : undefined}
+            showStreetView={!isPracticeMode}
           />
         ) : (
           <RouteVisualizer
@@ -1311,7 +1318,8 @@ export default function LiveRidePage() {
           </div>
         )}
 
-        {/* Progress Bar - Segmented by workout intervals */}
+        {/* Progress Bar - show only once ride has started */}
+        {(isRiding || rideProgress > 0) && (
         <div className="absolute inset-x-0 bottom-0 h-2 sm:h-3 bg-black/50 flex">
           {workoutPlan ? (
             workoutPlan.intervals.map((interval, i) => {
@@ -1349,6 +1357,7 @@ export default function LiveRidePage() {
             />
           )}
         </div>
+        )}
       </div>
 
       {/* HUD Overlay */}

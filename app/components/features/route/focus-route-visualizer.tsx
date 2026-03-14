@@ -42,6 +42,8 @@ type Props = {
   onExpandOne?: (key: PanelKey) => void;
   /** Trigger haptic feedback - called on panel toggle in accordion mode */
   onHaptic?: (type: "light" | "medium" | "heavy") => void;
+  /** Toggle street view card visibility for mock/practice routes */
+  showStreetView?: boolean;
 };
 
 const POWER_ZONES = [
@@ -160,6 +162,7 @@ export default function FocusRouteVisualizer({
   useAccordion = false,
   onExpandOne,
   onHaptic,
+  showStreetView = true,
 }: Props) {
   const viewport = useViewport();
   const gradientId = useId().replace(/:/g, "");
@@ -701,7 +704,7 @@ export default function FocusRouteVisualizer({
           )}
         </div>
 
-        {routePreviewCoordinate ? (
+        {showStreetView && routePreviewCoordinate ? (
           <div
             className="overflow-hidden rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl"
             style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.88) 100%)` }}

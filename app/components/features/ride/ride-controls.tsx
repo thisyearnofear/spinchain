@@ -268,11 +268,11 @@ function InputModeSelector({
   const getHelpText = () => {
     if (useSimulator) {
       if (deviceType === "mobile") {
-        return isTrainingMode ? "Training mode - no rewards earned" : "Tap buttons to pedal";
+        return isTrainingMode ? "Training mode - no rewards earned" : "Tap buttons to ride without hardware";
       }
-      return isTrainingMode ? "Training mode - no rewards earned" : "Use arrow keys to pedal";
+      return isTrainingMode ? "Training mode - no rewards earned" : "Use arrow keys to ride without hardware";
     }
-    return "Connect your bike via Bluetooth";
+    return "Connect your real bike via Bluetooth";
   };
 
   // Collapsed preview badge
@@ -286,7 +286,7 @@ function InputModeSelector({
         <div className="flex items-center gap-2">
           <span className="text-[10px] uppercase tracking-wider text-white/50">Input Mode</span>
           <span className="text-xs">
-            {useSimulator ? (isTrainingMode ? '🎯 Training Mode' : '⌨️ Simulator') : '🚴 BLE Device'}
+            {useSimulator ? (isTrainingMode ? '🎯 Training (No Bike)' : '🎮 Try Without Bike') : '🚴 Real Bike (Bluetooth)'}
           </span>
         </div>
         <CollapseToggle
@@ -319,7 +319,7 @@ function InputModeSelector({
           }`}
           aria-pressed={!useSimulator}
         >
-          🚴 BLE Device
+          🚴 Real Bike (Bluetooth)
         </button>
         <button
           onClick={() => onSelect(true)}
@@ -328,7 +328,7 @@ function InputModeSelector({
           }`}
           aria-pressed={useSimulator}
         >
-          {isTrainingMode ? '🎯 Training Mode' : '⌨️ Simulator'}
+          {isTrainingMode ? '🎯 Training (No Bike)' : '🎮 Try Without Bike'}
         </button>
       </div>
       <p className="mt-1.5 text-[10px] text-white/40">

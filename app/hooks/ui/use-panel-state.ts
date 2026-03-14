@@ -105,6 +105,8 @@ export interface UsePanelStateReturn {
   collapseAll: () => void;
   /** Reset to device-appropriate defaults */
   reset: () => void;
+  /** Collapse ride overlays while keeping setup panels available */
+  collapseRidePanels: () => void;
   /** Check if all panels are collapsed */
   isAllCollapsed: boolean;
   /** Check if all panels are expanded */
@@ -180,6 +182,15 @@ export function usePanelState(
     setState(getDefaultState(deviceType));
   }, [deviceType]);
 
+  const collapseRidePanels = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      focusLeft: false,
+      focusRight: false,
+      focusBottom: false,
+    }));
+  }, []);
+
   const isAllCollapsed = Object.values(state).every((v) => v === false);
   const isAllExpanded = Object.values(state).every((v) => v === true);
 
@@ -192,6 +203,7 @@ export function usePanelState(
     expandAll,
     collapseAll,
     reset,
+    collapseRidePanels,
     isAllCollapsed,
     isAllExpanded,
   };
