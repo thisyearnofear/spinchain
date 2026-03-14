@@ -267,6 +267,26 @@ export default function LiveRidePage() {
     getSystemViewMode(deviceType, performanceTier, false)
   );
 
+  const trackWidgetInteraction = useCallback((action: "toggle" | "minimize" | "restore" | "drag", panel: keyof typeof panelState.state) => {
+    const phase = isRiding ? "in_ride" : rideProgress > 0 ? "post_ride" : "pre_ride";
+    const eventName =
+      action === "minimize"
+        ? ANALYTICS_EVENTS.WIDGET_MINIMIZED
+        : action === "restore"
+          ? ANALYTICS_EVENTS.WIDGET_RESTORED
+          : action === "drag"
+            ? ANALYTICS_EVENTS.WIDGET_DRAGGED
+            : ANALYTICS_EVENTS.WIDGET_TOGGLED;
+
+    trackEvent(eventName, {
+      panel,
+      phase,
+      viewMode,
+      deviceType,
+      panelMode: panelState.state[panel],
+    });
+  }, [deviceType, isRiding, panelState.state, rideProgress, viewMode]);
+
   // Persisted preference (client-only)
   useEffect(() => {
     try {
@@ -1254,7 +1274,11 @@ export default function LiveRidePage() {
             intervalPhase={currentInterval?.phase ?? null}
             className="h-full w-full"
             panelState={panelState.state}
+            panelPositions={panelState.positions}
             onTogglePanel={handleTogglePanel}
+            onSetPanelPosition={panelState.setPanelPosition}
+            onSnapPanel={(key) => panelState.snapPanelToEdge(key, { width: window.innerWidth, height: window.innerHeight })}
+            onTrackWidgetInteraction={trackWidgetInteraction}
             useAccordion={deviceType === "mobile"}
             onExpandOne={panelState.expandOne}
             onHaptic={deviceType === "mobile" ? haptic.trigger : undefined}
@@ -1383,7 +1407,12 @@ export default function LiveRidePage() {
               viewModePreferenceRef.current = "system";
               applyHudMode(getSystemHudMode(deviceType, orientation, prefersReducedMotion), "system");
               applyViewMode(getSystemViewMode(deviceType, performanceTier, prefersReducedMotion), "system");
-              panelState.reset();
+              panelState.resetLayout();
+              trackEvent(ANALYTICS_EVENTS.WIDGET_LAYOUT_RESET, {
+                phase: isRiding ? "in_ride" : rideProgress > 0 ? "post_ride" : "pre_ride",
+                viewMode,
+                deviceType,
+              });
             }}
             onCollapseToggle={() => {
               if (panelState.isAllCollapsed) panelState.expandAll();

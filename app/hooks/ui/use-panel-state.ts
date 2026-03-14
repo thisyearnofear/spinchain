@@ -32,8 +32,29 @@ export interface PanelState {
 }
 
 export type PanelKey = keyof PanelState;
+export type DesktopPanelKey = 'focusLeft' | 'focusRight' | 'focusBottom';
+
+export interface PanelPosition {
+  x: number;
+  y: number;
+}
+
+export type PanelPositions = Record<DesktopPanelKey, PanelPosition>;
+
+type PanelStorageState = {
+  state: PanelState;
+  positions: PanelPositions;
+};
 
 const STORAGE_KEY = 'spinchain:ride:panelState';
+
+function getDefaultPositions(): PanelPositions {
+  return {
+    focusLeft: { x: 16, y: 16 },
+    focusRight: { x: -16, y: 16 },
+    focusBottom: { x: 0, y: -16 },
+  };
+}
 
 // Default states based on device type
 function getDefaultState(deviceType: 'mobile' | 'tablet' | 'desktop'): PanelState {
@@ -72,12 +93,50 @@ function getDefaultState(deviceType: 'mobile' | 'tablet' | 'desktop'): PanelStat
   return allExpanded;
 }
 
-function loadStoredState(): Partial<PanelState> | null {
+function toPosition(value: unknown, fallback: PanelPosition): PanelPosition {
+  if (!value || typeof value !== 'object') return fallback;
+  const candidate = value as { x?: unknown; y?: unknown };
+  const x = typeof candidate.x === 'number' ? candidate.x : fallback.x;
+  const y = typeof candidate.y === 'number' ? candidate.y : fallback.y;
+  return { x, y };
+}
+
+function migrateStoredPositions(stored: Record<string, unknown>): PanelPositions {
+  const defaults = getDefaultPositions();
+  return {
+    focusLeft: toPosition(stored.focusLeft, defaults.focusLeft),
+    focusRight: toPosition(stored.focusRight, defaults.focusRight),
+    focusBottom: toPosition(stored.focusBottom, defaults.focusBottom),
+  };
+}
+
+function loadStoredState(): PanelStorageState | null {
   if (typeof window === 'undefined') return null;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return migrateStoredState(JSON.parse(stored));
+      const parsed = JSON.parse(stored) as Record<string, unknown>;
+      if ('state' in parsed) {
+        const typed = parsed as { state?: Record<string, unknown>; positions?: Record<string, unknown> };
+        return {
+          state: {
+            ...getDefaultState('desktop'),
+            ...migrateStoredState(typed.state ?? {}),
+          },
+          positions: {
+            ...getDefaultPositions(),
+            ...migrateStoredPositions(typed.positions ?? {}),
+          },
+        };
+      }
+
+      return {
+        state: {
+          ...getDefaultState('desktop'),
+          ...migrateStoredState(parsed),
+        },
+        positions: getDefaultPositions(),
+      };
     }
   } catch {
     // Ignore parse errors
@@ -85,10 +144,10 @@ function loadStoredState(): Partial<PanelState> | null {
   return null;
 }
 
-function saveStoredState(state: PanelState): void {
+function saveStoredState(storageState: PanelStorageState): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(storageState));
   } catch {
     // Ignore storage errors
   }
@@ -116,6 +175,8 @@ function migrateStoredState(stored: Record<string, unknown>): Partial<PanelState
 export interface UsePanelStateReturn {
   /** Current panel state */
   state: PanelState;
+  /** Desktop panel positions */
+  positions: PanelPositions;
   /** Toggle a specific panel */
   toggle: (key: PanelKey) => void;
   /** Set a specific panel to expanded */
@@ -142,6 +203,12 @@ export interface UsePanelStateReturn {
   setMobileRideWidgetsMode: (mode: WidgetMode) => void;
   /** Toggle global mobile in-ride widgets between expanded/minimized */
   toggleMobileRideWidgets: () => void;
+  /** Update desktop panel position (in px; right/bottom support negatives) */
+  setPanelPosition: (key: DesktopPanelKey, position: PanelPosition) => void;
+  /** Snap panel to nearest screen edges */
+  snapPanelToEdge: (key: DesktopPanelKey, viewport: { width: number; height: number }) => void;
+  /** Reset layout modes and panel positions */
+  resetLayout: () => void;
   /** Check if all panels are collapsed */
   isAllCollapsed: boolean;
   /** Check if all panels are expanded */
@@ -152,21 +219,23 @@ export function usePanelState(
   deviceType: 'mobile' | 'tablet' | 'desktop',
 ): UsePanelStateReturn {
   const preRideSnapshotRef = useRef<PanelState | null>(null);
+  const preRidePositionsSnapshotRef = useRef<PanelPositions | null>(null);
   const rideLayoutActiveRef = useRef(false);
+  const [positions, setPositions] = useState<PanelPositions>(() => {
+    const stored = loadStoredState();
+    return stored?.positions ?? getDefaultPositions();
+  });
   const [state, setState] = useState<PanelState>(() => {
-    // Try to load from localStorage first
     const stored = loadStoredState();
     if (stored) {
-      // Merge with defaults to handle new panels added in future versions
-      return { ...getDefaultState(deviceType), ...stored };
+      return { ...getDefaultState(deviceType), ...stored.state };
     }
     return getDefaultState(deviceType);
   });
 
-  // Save to localStorage on state change
   useEffect(() => {
-    saveStoredState(state);
-  }, [state]);
+    saveStoredState({ state, positions });
+  }, [state, positions]);
 
   const toggle = useCallback((key: PanelKey) => {
     setState((prev) => ({ ...prev, [key]: prev[key] === 'expanded' ? 'collapsed' : 'expanded' }));
@@ -230,10 +299,19 @@ export function usePanelState(
     setState(getDefaultState(deviceType));
   }, [deviceType]);
 
+  const resetLayout = useCallback(() => {
+    setState(getDefaultState(deviceType));
+    setPositions(getDefaultPositions());
+    rideLayoutActiveRef.current = false;
+    preRideSnapshotRef.current = null;
+    preRidePositionsSnapshotRef.current = null;
+  }, [deviceType]);
+
   const startRideLayout = useCallback(() => {
     setState((prev) => {
       if (!rideLayoutActiveRef.current) {
         preRideSnapshotRef.current = prev;
+        preRidePositionsSnapshotRef.current = positions;
         rideLayoutActiveRef.current = true;
       }
 
@@ -248,12 +326,16 @@ export function usePanelState(
         deviceSelector: prev.deviceSelector === 'expanded' ? 'collapsed' : prev.deviceSelector,
       };
     });
-  }, [deviceType]);
+  }, [deviceType, positions]);
 
   const endRideLayout = useCallback(() => {
     setState(preRideSnapshotRef.current ?? getDefaultState(deviceType));
+    if (preRidePositionsSnapshotRef.current) {
+      setPositions(preRidePositionsSnapshotRef.current);
+    }
     rideLayoutActiveRef.current = false;
     preRideSnapshotRef.current = null;
+    preRidePositionsSnapshotRef.current = null;
   }, [deviceType]);
 
   const setMobileRideWidgetsMode = useCallback((mode: WidgetMode) => {
@@ -267,11 +349,36 @@ export function usePanelState(
     }));
   }, []);
 
+  const setPanelPosition = useCallback((key: DesktopPanelKey, position: PanelPosition) => {
+    setPositions((prev) => ({ ...prev, [key]: position }));
+  }, []);
+
+  const snapPanelToEdge = useCallback((key: DesktopPanelKey, viewport: { width: number; height: number }) => {
+    setPositions((prev) => {
+      const current = prev[key];
+      const next = { ...current };
+
+      if (key === 'focusLeft' || key === 'focusRight') {
+        next.y = Math.max(12, Math.min(viewport.height - 140, current.y));
+        const xFromLeft = current.x;
+        const xFromRight = viewport.width + current.x;
+        const snapLeft = xFromLeft <= xFromRight;
+        next.x = snapLeft ? 16 : -16;
+      } else {
+        next.x = Math.max(16, Math.min(viewport.width - 320, current.x));
+        next.y = -16;
+      }
+
+      return { ...prev, [key]: next };
+    });
+  }, []);
+
   const isAllCollapsed = Object.values(state).every((v) => v === 'collapsed' || v === 'minimized');
   const isAllExpanded = Object.values(state).every((v) => v === 'expanded');
 
   return {
     state,
+    positions,
     toggle,
     expand,
     minimize,
@@ -285,6 +392,9 @@ export function usePanelState(
     endRideLayout,
     setMobileRideWidgetsMode,
     toggleMobileRideWidgets,
+    setPanelPosition,
+    snapPanelToEdge,
+    resetLayout,
     isAllCollapsed,
     isAllExpanded,
   };

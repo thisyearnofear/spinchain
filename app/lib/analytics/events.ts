@@ -17,6 +17,11 @@ export const ANALYTICS_EVENTS = {
   PREMIUM_UPSELL_CLICKED: 'premium_upsell_clicked',
   SESSION_RESUMED: 'session_resumed',
   SESSION_PAUSED: 'session_paused',
+  WIDGET_TOGGLED: 'widget_toggled',
+  WIDGET_MINIMIZED: 'widget_minimized',
+  WIDGET_RESTORED: 'widget_restored',
+  WIDGET_DRAGGED: 'widget_dragged',
+  WIDGET_LAYOUT_RESET: 'widget_layout_reset',
 } as const;
 
 type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];

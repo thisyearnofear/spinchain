@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useCallback, type CSSProperties } from "react";
+import { useId, useMemo, useCallback, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { StoryBeat } from "@/app/routes/builder/gpx-uploader";
 import { useViewport } from "@/app/lib/responsive";
 import { AVATARS, EQUIPMENT } from "../../../lib/selection-library";
@@ -9,7 +9,7 @@ import type { RiderStats } from "./route-visualizer";
 import { StreetViewPreview } from "./street-view-preview";
 import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-theme";
 import { CollapseToggle } from "@/app/components/features/common/collapse-toggle";
-import type { PanelState, PanelKey } from "@/app/hooks/ui/use-panel-state";
+import type { PanelState, PanelKey, PanelPositions, DesktopPanelKey } from "@/app/hooks/ui/use-panel-state";
 
 type RouteCoordinate = {
   lat: number;
@@ -35,7 +35,11 @@ type Props = {
   intervalPhase?: IntervalPhase | null;
   // Collapsible panel state
   panelState?: PanelState;
+  panelPositions?: PanelPositions;
   onTogglePanel?: (key: PanelKey) => void;
+  onSetPanelPosition?: (key: DesktopPanelKey, position: { x: number; y: number }) => void;
+  onSnapPanel?: (key: DesktopPanelKey) => void;
+  onTrackWidgetInteraction?: (action: "toggle" | "minimize" | "restore" | "drag", panel: PanelKey) => void;
   /** Use accordion behavior - only one panel expanded at a time (for mobile) */
   useAccordion?: boolean;
   /** Expand one panel while collapsing others (for accordion mode) */
@@ -158,12 +162,17 @@ export default function FocusRouteVisualizer({
   currentCoordinate,
   intervalPhase = null,
   panelState,
+  panelPositions,
   onTogglePanel,
+  onSetPanelPosition,
+  onSnapPanel,
+  onTrackWidgetInteraction,
   useAccordion = false,
   onExpandOne,
   onHaptic,
   showStreetView = true,
 }: Props) {
+  const dragStateRef = useRef<{ key: DesktopPanelKey; startX: number; startY: number; pointerX: number; pointerY: number } | null>(null);
   const viewport = useViewport();
   const gradientId = useId().replace(/:/g, "");
   const styles = THEMES[theme];
@@ -192,7 +201,58 @@ export default function FocusRouteVisualizer({
       // Desktop: normal toggle behavior
       onTogglePanel(key);
     }
-  }, [useAccordion, onExpandOne, onTogglePanel, onHaptic]);
+    onTrackWidgetInteraction?.("toggle", key);
+  }, [useAccordion, onExpandOne, onTogglePanel, onHaptic, onTrackWidgetInteraction]);
+
+  const getDesktopPanelStyle = useCallback((key: DesktopPanelKey): CSSProperties => {
+    const position = panelPositions?.[key];
+    if (!position) return {};
+
+    if (key === "focusLeft") {
+      return { top: position.y, left: Math.max(0, position.x) };
+    }
+
+    if (key === "focusRight") {
+      return { top: position.y, right: Math.max(0, -position.x) };
+    }
+
+    return { left: position.x, bottom: Math.max(16, -position.y) };
+  }, [panelPositions]);
+
+  const handleDragStart = useCallback((event: ReactPointerEvent<HTMLDivElement>, key: DesktopPanelKey) => {
+    if (!onSetPanelPosition) return;
+    const current = panelPositions?.[key];
+    if (!current) return;
+
+    dragStateRef.current = {
+      key,
+      startX: current.x,
+      startY: current.y,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, [onSetPanelPosition, panelPositions]);
+
+  const handleDragMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!onSetPanelPosition || !dragStateRef.current) return;
+    const drag = dragStateRef.current;
+    const deltaX = event.clientX - drag.pointerX;
+    const deltaY = event.clientY - drag.pointerY;
+    onSetPanelPosition(drag.key, {
+      x: drag.startX + deltaX,
+      y: drag.startY + deltaY,
+    });
+  }, [onSetPanelPosition]);
+
+  const handleDragEnd = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragStateRef.current) return;
+    const key = dragStateRef.current.key;
+    dragStateRef.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    onSnapPanel?.(key);
+    onTrackWidgetInteraction?.("drag", key);
+  }, [onSnapPanel, onTrackWidgetInteraction]);
 
   const width = Math.max(360, viewport.width);
   const height = Math.max(320, viewport.height);
@@ -587,7 +647,14 @@ export default function FocusRouteVisualizer({
       </svg>
 
       {/* Left Panel - Route Info - Hidden on mobile when collapsed */}
-      <div className={`absolute left-4 top-4 z-30 max-w-sm hidden md:block ${leftMinimized ? "opacity-0 pointer-events-none" : ""}`} id="focus-left-panel">
+      <div
+        className={`absolute z-30 max-w-sm hidden md:block ${leftMinimized ? "opacity-0 pointer-events-none" : ""}`}
+        id="focus-left-panel"
+        style={getDesktopPanelStyle("focusLeft")}
+        onPointerDown={(event) => handleDragStart(event, "focusLeft")}
+        onPointerMove={handleDragMove}
+        onPointerUp={handleDragEnd}
+      >
         <div
           className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.84) 100%)`, boxShadow: `0 24px 80px ${styles.horizonGlow}18` }}
@@ -652,7 +719,14 @@ export default function FocusRouteVisualizer({
       </div>
 
       {/* Right Panel - Power/Metrics - Hidden on mobile */}
-      <div className={`absolute right-4 top-4 z-30 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-3 hidden md:flex ${rightMinimized ? "opacity-0 pointer-events-none" : ""}`} id="focus-right-panel">
+      <div
+        className={`absolute z-30 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-3 hidden md:flex ${rightMinimized ? "opacity-0 pointer-events-none" : ""}`}
+        id="focus-right-panel"
+        style={getDesktopPanelStyle("focusRight")}
+        onPointerDown={(event) => handleDragStart(event, "focusRight")}
+        onPointerMove={handleDragMove}
+        onPointerUp={handleDragEnd}
+      >
         <div
           className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.86) 100%)`, boxShadow: `0 24px 80px ${phaseAccent}20` }}
@@ -745,7 +819,14 @@ export default function FocusRouteVisualizer({
       </div>
 
       {/* Bottom Panel - Route Progress - More compact on mobile */}
-      <div className="absolute inset-x-4 bottom-[100px] sm:bottom-[160px] z-30" id="focus-bottom-panel">
+      <div
+        className="absolute z-30"
+        id="focus-bottom-panel"
+        style={{ ...getDesktopPanelStyle("focusBottom"), right: 16, width: "min(calc(100% - 2rem), 76rem)" }}
+        onPointerDown={(event) => handleDragStart(event, "focusBottom")}
+        onPointerMove={handleDragMove}
+        onPointerUp={handleDragEnd}
+      >
         <div
           className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
           style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.9) 100%)` }}
@@ -820,6 +901,43 @@ export default function FocusRouteVisualizer({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Desktop minimized pills */}
+      <div className="hidden md:flex absolute right-4 bottom-8 z-40 gap-2">
+        {leftMinimized && (
+          <button
+            onClick={() => {
+              handleToggle("focusLeft");
+              onTrackWidgetInteraction?.("restore", "focusLeft");
+            }}
+            className="rounded-full bg-black/70 border border-white/20 px-3 py-1.5 text-xs text-white/80"
+          >
+            Route
+          </button>
+        )}
+        {rightMinimized && (
+          <button
+            onClick={() => {
+              handleToggle("focusRight");
+              onTrackWidgetInteraction?.("restore", "focusRight");
+            }}
+            className="rounded-full bg-black/70 border border-white/20 px-3 py-1.5 text-xs text-white/80"
+          >
+            Metrics
+          </button>
+        )}
+        {bottomMinimized && (
+          <button
+            onClick={() => {
+              handleToggle("focusBottom");
+              onTrackWidgetInteraction?.("restore", "focusBottom");
+            }}
+            className="rounded-full bg-black/70 border border-white/20 px-3 py-1.5 text-xs text-white/80"
+          >
+            Progress
+          </button>
+        )}
       </div>
     </div>
   );
