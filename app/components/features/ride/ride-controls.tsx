@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { DeviceSelector } from "@/app/components/features/ble/device-selector";
-import { PedalSimulator } from "@/app/components/features/common/pedal-simulator";
 import { CollapseToggle } from "@/app/components/features/common/collapse-toggle";
 import { PRESET_WORKOUTS, type WorkoutPlan } from "@/app/lib/workout-plan";
 import type { PanelState, PanelKey } from "@/app/hooks/ui/use-panel-state";
@@ -169,11 +168,6 @@ export function RideControls({
         <div id="start-ride-hint" className="mt-2 text-center text-xs text-amber-300">
           {disabledStartReason}
         </div>
-      )}
-
-      {/* Pedal Simulator */}
-      {useSimulator && (
-        <PedalSimulator isActive={isRiding} onMetricsUpdate={onSimulatorMetrics} />
       )}
     </div>
   );

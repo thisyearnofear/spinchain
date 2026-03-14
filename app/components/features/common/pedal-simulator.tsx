@@ -52,6 +52,8 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
     const didTrackTouchOnlyGate = useRef(false);
     const keyActivity = useRef({ strokes: 0, windowStart: 0 });
     const repeatThrottle = useRef<Record<string, number>>({});
+    const onMetricsUpdateRef = useRef(onMetricsUpdate);
+    onMetricsUpdateRef.current = onMetricsUpdate;
 
     const calculateMetrics = useCallback(() => {
         const now = Date.now();
@@ -193,12 +195,12 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
         return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
     }, [isActive, deviceType, recordPedalStroke]);
 
-    // Metrics loop
+    // Metrics loop — use ref for callback to avoid restarting the interval on every parent re-render
     useEffect(() => {
         if (!isActive) { if (metricsInterval.current) clearInterval(metricsInterval.current); return; }
-        metricsInterval.current = setInterval(() => { onMetricsUpdate(calculateMetrics()); }, 500);
+        metricsInterval.current = setInterval(() => { onMetricsUpdateRef.current(calculateMetrics()); }, 500);
         return () => { if (metricsInterval.current) clearInterval(metricsInterval.current); };
-    }, [isActive, calculateMetrics, onMetricsUpdate]);
+    }, [isActive, calculateMetrics]);
 
     if (!isActive) return null;
 

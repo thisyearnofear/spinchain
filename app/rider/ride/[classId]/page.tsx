@@ -35,6 +35,7 @@ import { useHaptic } from "../../../hooks/use-haptic";
 import { DemoCompleteModal } from "../../../components/features/common/demo-complete-modal";
 import { NoBikeModal } from "../../../components/features/ride/no-bike-modal";
 import { KeyboardShortcutOverlay } from "../../../components/features/ride/keyboard-shortcut-overlay";
+import { PedalSimulator } from "../../../components/features/common/pedal-simulator";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import {
   type WorkoutPlan,
@@ -1660,6 +1661,11 @@ export default function LiveRidePage() {
         show={showKeyboardHints}
         onDismiss={() => setShowKeyboardHints(false)}
       />
+
+      {/* Page-level Pedal Simulator — mounted here so widget collapse/minimize never unmounts it */}
+      {useSimulator && (
+        <PedalSimulator isActive={isRiding} onMetricsUpdate={handleSimulatorMetrics} />
+      )}
 
       {/* Demo Complete Modal */}
       <DemoCompleteModal
