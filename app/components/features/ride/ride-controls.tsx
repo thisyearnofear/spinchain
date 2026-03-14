@@ -332,8 +332,8 @@ function InputModeSelector({
           : "Tap L/R pedals to ride without hardware";
       }
       return isTrainingMode
-        ? "Training mode - no rewards earned. Use A/D or ←/→ to pedal"
-        : "Use A/D or ←/→ to ride without hardware";
+        ? "Training mode - no rewards earned. Hold ↑ or press ←/→ to pedal"
+        : "Hold ↑ or press ←/→ to pedal without hardware";
     }
     return "Connect your real bike via Bluetooth";
   };
@@ -406,10 +406,8 @@ function InputModeSelector({
           <div className="flex items-start justify-between gap-2">
             <p>
               New here? Press <span className="font-semibold">🎮 Try Without Bike</span> to ride with keyboard controls (
-              <kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">↑</kbd>
-              <kbd className="ml-0.5 rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">↓</kbd> speed,
-              <kbd className="ml-1 rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">←</kbd>
-              <kbd className="ml-0.5 rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">→</kbd> steering).
+              <kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">↑</kbd>/<kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">↓</kbd> to pedal, or
+              <kbd className="ml-1 rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">←</kbd>/<kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">→</kbd> for left/right leg). Hold any key to keep pedaling!
             </p>
             <button
               type="button"
@@ -427,7 +425,7 @@ function InputModeSelector({
       </p>
       {useSimulator && deviceType !== "mobile" && (
         <p className="mt-1 text-[10px] text-indigo-200/70">
-          Keyboard controls: <kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">A</kbd>/<kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">D</kbd> or <kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">←</kbd>/<kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">→</kbd>
+          Hold <kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">↑</kbd> or <kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">W</kbd> to pedal · <kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">←</kbd>/<kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">→</kbd> or <kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">A</kbd>/<kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">D</kbd> for left/right leg
         </p>
       )}
     </div>

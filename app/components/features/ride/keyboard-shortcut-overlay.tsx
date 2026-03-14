@@ -42,10 +42,10 @@ function KeyboardShortcutOverlayInternal({ show, duration = 5000, onDismiss }: K
   if (!visible) return null;
 
   const keys = [
-    { key: "↑", label: "Increase Power" },
-    { key: "↓", label: "Decrease Power" },
-    { key: "←", label: "Decrease Cadence" },
-    { key: "→", label: "Increase Cadence" },
+    { key: "↑", label: "Pedal (auto-alternate)" },
+    { key: "↓", label: "Pedal (auto-alternate)" },
+    { key: "←", label: "Pedal Left Leg" },
+    { key: "→", label: "Pedal Right Leg" },
   ];
 
   return (

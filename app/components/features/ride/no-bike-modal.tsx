@@ -37,7 +37,7 @@ function NoBikeModalInternal({ open, onEnableSimulator, onDismiss }: NoBikeModal
           No Bike Connected
         </h3>
         <p className="text-center text-sm text-white/60 mb-6">
-          Would you like to use keyboard controls to simulate your ride? Use arrow keys to control speed and steering.
+          Would you like to use keyboard controls to simulate your ride? Hold ↑ to pedal, or press ←/→ to alternate legs.
         </p>
 
         <div className="flex flex-col gap-2">

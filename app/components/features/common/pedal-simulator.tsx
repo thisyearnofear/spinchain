@@ -51,6 +51,7 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
     const didTrackKeyboardHint = useRef(false);
     const didTrackTouchOnlyGate = useRef(false);
     const keyActivity = useRef({ strokes: 0, windowStart: 0 });
+    const repeatThrottle = useRef<Record<string, number>>({});
 
     const calculateMetrics = useCallback(() => {
         const now = Date.now();
@@ -142,7 +143,14 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
             if (e.target instanceof HTMLElement && e.target.isContentEditable) return;
             
-            if (e.repeat) return;
+            // Allow key repeats but throttle them to ~150ms to simulate sustained pedaling
+            if (e.repeat) {
+                const now = Date.now();
+                const last = repeatThrottle.current[e.key] || 0;
+                if (now - last < 150) return;
+                repeatThrottle.current[e.key] = now;
+            }
+
             if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
                 e.preventDefault();
                 recordPedalStroke('left');
@@ -150,6 +158,18 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
             else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
                 e.preventDefault();
                 recordPedalStroke('right');
+            }
+            else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                e.preventDefault();
+                // ArrowUp alternates legs automatically for easier one-key pedaling
+                const nextLeg = lastPedalLeg.current === 'left' ? 'right' : 'left';
+                recordPedalStroke(nextLeg);
+            }
+            else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+                e.preventDefault();
+                // ArrowDown also pedals (slower intent) — alternates legs
+                const nextLeg = lastPedalLeg.current === 'left' ? 'right' : 'left';
+                recordPedalStroke(nextLeg);
             } else {
                 return;
             }
