@@ -1,0 +1,315 @@
+"use client";
+
+import { memo } from "react";
+import { RideControls } from "./ride-controls";
+import type { WorkoutPlan, IntervalPhase } from "@/app/lib/workout-plan";
+import type { PanelState, PanelKey } from "@/app/hooks/ui/use-panel-state";
+
+interface RideBottomPanelProps {
+  isRiding: boolean;
+  isStarting: boolean;
+  rideProgress: number;
+  elapsedTime: number;
+  hudMode: "full" | "compact" | "minimal";
+  deviceType: "mobile" | "tablet" | "desktop";
+  widgetsVisible: boolean;
+  useSimulator: boolean;
+  isPracticeMode: boolean;
+  isTrainingMode: boolean;
+  bleConnected: boolean;
+  walletConnected: boolean;
+  connectionHint: string | null;
+  // Telemetry
+  telemetryEffort: number;
+  telemetryCadence: number;
+  // Workout
+  workoutPlan: WorkoutPlan | null;
+  currentInterval: { phase: IntervalPhase; coachCue?: string; targetRpm?: [number, number]; durationSeconds: number } | null;
+  currentIntervalIndex: number;
+  intervalProgress: number;
+  intervalRemaining: number;
+  // AI
+  aiActive: boolean;
+  agentName: string;
+  reasonerState: string;
+  lastDecision: { thoughtProcess: string } | null;
+  thoughtLog: string[];
+  // Coach
+  isSpeaking: boolean;
+  // Panel state
+  panelState: PanelState;
+  onTogglePanel: (key: PanelKey) => void;
+  // Callbacks
+  onStartRide: () => void;
+  onPauseRide: () => void;
+  onSetWorkoutPlan: (plan: WorkoutPlan | null) => void;
+  onSetUseSimulator: (v: boolean) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onBleMetrics: (metrics: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onSimulatorMetrics: (metrics: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onHaptic: (type?: any) => any;
+  formatTime: (seconds: number) => string;
+}
+
+export const RideBottomPanel = memo(function RideBottomPanel({
+  isRiding,
+  isStarting,
+  rideProgress,
+  elapsedTime,
+  hudMode,
+  deviceType,
+  widgetsVisible,
+  useSimulator,
+  isPracticeMode,
+  isTrainingMode,
+  bleConnected,
+  walletConnected,
+  connectionHint,
+  telemetryEffort,
+  telemetryCadence,
+  workoutPlan,
+  currentInterval,
+  currentIntervalIndex,
+  intervalProgress,
+  intervalRemaining,
+  aiActive,
+  agentName,
+  reasonerState,
+  lastDecision,
+  thoughtLog,
+  isSpeaking,
+  panelState,
+  onTogglePanel,
+  onStartRide,
+  onPauseRide,
+  onSetWorkoutPlan,
+  onSetUseSimulator,
+  onBleMetrics,
+  onSimulatorMetrics,
+  onHaptic,
+  formatTime,
+}: RideBottomPanelProps) {
+  // Fully hide bottom panel when widgets are collapsed on mobile during ride
+  if (deviceType === "mobile" && isRiding && !widgetsVisible) {
+    return null;
+  }
+
+  return (
+    <div className={`absolute bottom-0 inset-x-0 z-20 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom transition-all duration-300 ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${!isRiding && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`}>
+      <div className={`max-w-7xl mx-auto ${!isRiding && deviceType === "desktop" ? "overflow-y-auto flex-1 min-h-0" : ""}`}>
+        {/* Progress Info + Interval Status */}
+        {hudMode !== "minimal" && (
+          <div className="mb-3 sm:mb-4">
+            {/* Current Interval Banner */}
+            {isRiding && currentInterval && (
+              <IntervalBanner
+                currentInterval={currentInterval}
+                currentIntervalIndex={currentIntervalIndex}
+                intervalRemaining={intervalRemaining}
+                telemetryCadence={telemetryCadence}
+                workoutPlan={workoutPlan}
+                formatTime={formatTime}
+              />
+            )}
+
+            {/* AI Feedback */}
+            {isRiding && aiActive && (
+              <AgentFeedback
+                agentName={agentName}
+                reasonerState={reasonerState}
+                lastDecision={lastDecision}
+                thoughtLog={thoughtLog}
+              />
+            )}
+
+            {/* Main stats row */}
+            <div className="flex items-center justify-between text-white">
+              <div className="text-left">
+                <p className="text-[10px] sm:text-sm text-white/50">Progress</p>
+                <p className="text-xl sm:text-2xl font-bold">{rideProgress.toFixed(0)}%</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] sm:text-sm text-white/50">Time</p>
+                <div className="flex items-center gap-2 justify-center">
+                  <p className="text-xl sm:text-2xl font-bold">{formatTime(elapsedTime)}</p>
+                  {isRiding && (
+                    <button
+                      onClick={onPauseRide}
+                      className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white transition-all active:scale-95 touch-manipulation"
+                      aria-label="Pause ride"
+                    >
+                      ⏸ Pause
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] sm:text-sm text-white/50">Effort</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-400">{telemetryEffort}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <RideControls
+          isRiding={isRiding}
+          isStarting={isStarting}
+          rideProgress={rideProgress}
+          isPracticeMode={isPracticeMode}
+          isTrainingMode={isTrainingMode}
+          useSimulator={useSimulator}
+          deviceType={deviceType}
+          workoutPlan={workoutPlan}
+          bleConnected={bleConnected}
+          walletConnected={walletConnected}
+          canStartRide={bleConnected || useSimulator}
+          startHint={connectionHint}
+          onStartRide={onStartRide}
+          onPauseRide={onPauseRide}
+          onSetWorkoutPlan={onSetWorkoutPlan}
+          onSetUseSimulator={onSetUseSimulator}
+          onBleMetrics={onBleMetrics}
+          onSimulatorMetrics={onSimulatorMetrics}
+          onHaptic={onHaptic}
+          panelState={panelState}
+          onTogglePanel={onTogglePanel}
+        />
+
+        {/* Coach voice indicator */}
+        {isRiding && isSpeaking && (
+          <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[10px] text-indigo-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            Speaking
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+/** Interval phase banner with RPM zone comparison */
+function IntervalBanner({
+  currentInterval,
+  currentIntervalIndex,
+  intervalRemaining,
+  telemetryCadence,
+  workoutPlan,
+  formatTime,
+}: {
+  currentInterval: { phase: IntervalPhase; targetRpm?: [number, number]; durationSeconds: number };
+  currentIntervalIndex: number;
+  intervalRemaining: number;
+  telemetryCadence: number;
+  workoutPlan: WorkoutPlan | null;
+  formatTime: (s: number) => string;
+}) {
+  const phaseColor = currentInterval.phase === "sprint" ? "bg-red-500"
+    : currentInterval.phase === "interval" ? "bg-yellow-500"
+      : currentInterval.phase === "warmup" ? "bg-green-500"
+        : currentInterval.phase === "recovery" ? "bg-blue-500"
+          : currentInterval.phase === "cooldown" ? "bg-indigo-400"
+            : "bg-purple-500";
+
+  return (
+    <div className="mb-2 flex items-center justify-between rounded-lg bg-black/60 backdrop-blur border border-white/10 px-3 py-1.5">
+      <div className="flex items-center gap-2">
+        <span className={`inline-block w-2.5 h-2.5 rounded-full ${phaseColor}`} />
+        <span className="text-xs sm:text-sm font-semibold text-white uppercase tracking-wider">
+          {currentInterval.phase}
+        </span>
+      </div>
+      <span className="text-xs sm:text-sm font-mono text-white/70">
+        {formatTime(Math.ceil(intervalRemaining))} left
+      </span>
+      {/* Coming up next */}
+      {workoutPlan && currentIntervalIndex < workoutPlan.intervals.length - 1 && (() => {
+        const next = workoutPlan.intervals[currentIntervalIndex + 1];
+        return (
+          <span className="hidden sm:flex items-center gap-1 text-[10px] text-white/40">
+            <span>Next:</span>
+            <span className={`font-semibold ${
+              next.phase === "sprint" ? "text-red-400"
+                : next.phase === "recovery" ? "text-blue-400"
+                  : next.phase === "interval" ? "text-yellow-400"
+                    : "text-white/60"
+            }`}>{next.phase}</span>
+            <span>{formatTime(next.durationSeconds)}</span>
+          </span>
+        );
+      })()}
+      {/* Target RPM zone */}
+      {currentInterval.targetRpm && (
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-white/40">RPM</span>
+          <span className={`text-xs font-bold ${
+            telemetryCadence >= currentInterval.targetRpm[0] && telemetryCadence <= currentInterval.targetRpm[1]
+              ? "text-green-400"
+              : telemetryCadence < currentInterval.targetRpm[0]
+                ? "text-blue-400"
+                : "text-red-400"
+          }`}>
+            {telemetryCadence}
+            <span className="text-white/30 font-normal"> / {currentInterval.targetRpm[0]}-{currentInterval.targetRpm[1]}</span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** AI agent reasoning feedback */
+function AgentFeedback({
+  agentName,
+  reasonerState,
+  lastDecision,
+  thoughtLog,
+}: {
+  agentName: string;
+  reasonerState: string;
+  lastDecision: { thoughtProcess: string } | null;
+  thoughtLog: string[];
+}) {
+  return (
+    <div className="mb-2">
+      <div className="rounded-xl border border-indigo-500/25 bg-black/70 backdrop-blur px-3 py-2">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-sm">🧠</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+            {agentName}
+          </span>
+          <span className={`ml-auto inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
+            reasonerState === "thinking"
+              ? "bg-amber-500/20 text-amber-300"
+              : reasonerState === "acting"
+                ? "bg-emerald-500/20 text-emerald-300"
+                : "bg-white/10 text-white/40"
+          }`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${
+              reasonerState === "thinking"
+                ? "bg-amber-400 animate-pulse"
+                : reasonerState === "acting"
+                  ? "bg-emerald-400 animate-pulse"
+                  : "bg-white/30"
+            }`} />
+            {reasonerState === "thinking" ? "Reasoning…" : reasonerState === "acting" ? "Acting" : "Monitoring"}
+          </span>
+        </div>
+        {lastDecision ? (
+          <p className="text-[11px] leading-relaxed text-white/70 line-clamp-2">
+            &ldquo;{lastDecision.thoughtProcess}&rdquo;
+          </p>
+        ) : thoughtLog.length > 0 ? (
+          <p className="text-[11px] leading-relaxed text-white/70 line-clamp-2">
+            &ldquo;{thoughtLog[0]}&rdquo;
+          </p>
+        ) : (
+          <p className="text-[11px] text-white/40 italic">
+            Analyzing telemetry stream…
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

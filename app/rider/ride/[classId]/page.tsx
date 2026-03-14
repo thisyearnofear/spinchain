@@ -15,6 +15,11 @@ const RouteVisualizer = dynamic(
 import { RideControls } from "../../../components/features/ride/ride-controls";
 import { RideCompletion } from "../../../components/features/ride/ride-completion";
 import { RideHUD } from "../../../components/features/ride/ride-hud";
+import { RideTopBar } from "../../../components/features/ride/ride-top-bar";
+import { RideBottomPanel } from "../../../components/features/ride/ride-bottom-panel";
+import { RideTutorialOverlay, useRideTutorial } from "../../../components/features/ride/ride-tutorial";
+import { RideLoading, RideNotFound } from "../../../components/features/ride/ride-loading";
+import { useSimulatedRewards } from "../../../hooks/ride/use-simulated-rewards";
 import { useDeviceType, useOrientation, useActualViewportHeight, usePerformanceTier } from "../../../lib/responsive";
 import { useWorkoutAudio } from "../../../hooks/ai/use-workout-audio";
 import { useCoachVoice } from "../../../hooks/common/use-coach-voice";
@@ -255,57 +260,8 @@ export default function LiveRidePage() {
     }
   }, [deviceType, isRiding]);
 
-  // Onboarding Tutorial State
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [tutorialStep, setTutorialStep] = useState(0);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    // Show tutorial for first-time riders or when explicitly requested
-    const searchParams = new URLSearchParams(window.location.search);
-    const hasSeenTutorial = localStorage.getItem("spinchain:onboarding:ride-tutorial");
-    if (!hasSeenTutorial || searchParams.get("setup") === "true") {
-      setShowTutorial(true);
-    }
-  }, []);
-
-  // Tutorial Content
-  const tutorialSteps = [
-    {
-      title: "Welcome to your HUD",
-      content: "This is your performance center. Track your power, cadence, and heart rate as you ride.",
-      position: "top-1/4 left-1/2 -translate-x-1/2",
-    },
-    {
-      title: "Earn as you sweat",
-      content: "Your Effort Score (bottom right) determines your SPIN rewards. The harder you work, the more you earn!",
-      position: "top-20 right-10",
-    },
-    {
-      title: "Real-time Rewards",
-      content: "Enable 'Live Mode' for instant rewards during your ride, or 'Standard Mode' for private, batched rewards.",
-      position: "bottom-48 left-10",
-    },
-    {
-      title: "Private & Secure",
-      content: "Your health data is private. We only verify your effort on the blockchain without ever seeing your raw biometrics.",
-      position: "bottom-40 right-10",
-    },
-    {
-      title: "Ready to Start?",
-      content: "Link your bike or use the simulator to begin your journey.",
-      position: "bottom-32 left-1/2 -translate-x-1/2",
-    }
-  ];
-
-  const nextTutorial = () => {
-    if (tutorialStep < tutorialSteps.length - 1) {
-      setTutorialStep(s => s + 1);
-    } else {
-      setShowTutorial(false);
-      localStorage.setItem("spinchain:onboarding:ride-tutorial", "true");
-    }
-  };
+  // Onboarding Tutorial (extracted to reusable hook + component)
+  const { showTutorial, tutorialStep, nextStep: nextTutorial, dismiss: dismissTutorial } = useRideTutorial();
 
   // Persisted HUD preference (client-only)
   useEffect(() => {
@@ -569,6 +525,14 @@ export default function LiveRidePage() {
   // Training mode: simulator is active in a paid class (rewards disabled but can test experience)
   const isTrainingMode = useSimulator && !isPracticeMode && walletConnected;
   const canEarnRewards = !isTrainingMode && (rewardMode === "zk-batch" || (rewardMode === "yellow-stream" && walletConnected));
+
+  // Simulated reward ticker for training/guest mode (incentivizes wallet connection)
+  const simulatedRewards = useSimulatedRewards({
+    isRiding,
+    isTrainingMode,
+    isGuestMode,
+    effortScore: telemetry.effort,
+  });
 
   // Rewards — mode selectable, defaults to zk-batch
   const rewards = useRewards({
@@ -1256,98 +1220,22 @@ export default function LiveRidePage() {
     });
   }, [bleConnected, classId, isPracticeMode, rideProgress, useSimulator]);
 
-  const loadingDurationMs = Date.now() - loadStartedAt;
-  const isLikelyStuck = loadingDurationMs > 12000;
-
-  const loadingStats = [
-    {
-      label: "Class",
-      value: isPracticeMode
-        ? practiceConfig?.name || "Practice Ride"
-        : classId.slice(0, 6).concat("…"),
-    },
-    {
-      label: "Mode",
-      value: isPracticeMode ? "Practice" : "Live Class",
-    },
-    {
-      label: "Rewards",
-      value: rewardMode === "yellow-stream" ? "Yellow Stream" : rewardMode === "zk-batch" ? "ZK Batch" : "Sui Native",
-    },
-  ];
-
-  const loadingTips = [
-    "Warm-up tip: keep cadence steady for better early effort scoring.",
-    "Stay in control zones first, then push for sprint windows.",
-    "No wallet connected? You can still ride in practice mode.",
-  ];
-
   if (isLoading && !isPracticeMode) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center p-4">
-        <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-cyan-300" />
-            <div>
-              <p className="text-base font-semibold text-white">Preparing your ride experience</p>
-              <p className="text-xs text-white/60">Loading route, coach profile, and reward pipeline…</p>
-            </div>
-          </div>
-
-          <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {loadingStats.map((stat) => (
-              <div key={stat.label} className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="text-[10px] uppercase tracking-wide text-white/50">{stat.label}</p>
-                <p className="mt-1 truncate text-sm font-medium text-white">{stat.value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="rounded-lg border border-cyan-300/20 bg-cyan-500/10 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-cyan-100/80">Rider insight</p>
-            <p className="mt-1 text-sm text-cyan-50">{loadingTips[Math.floor((loadingDurationMs / 2500) % loadingTips.length)]}</p>
-          </div>
-
-          {isLikelyStuck && (
-            <div className="mt-4 rounded-lg border border-amber-300/30 bg-amber-500/10 p-3">
-              <p className="text-sm text-amber-100">
-                This is taking longer than expected. If your wallet isn’t connected yet, you can continue in practice mode.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  onClick={() => router.push("/rider?mode=practice")}
-                  className="rounded-md bg-amber-300/90 px-3 py-1.5 text-xs font-semibold text-black hover:bg-amber-200"
-                >
-                  Open Practice Mode
-                </button>
-                <button
-                  onClick={() => router.push("/rider")}
-                  className="rounded-md border border-white/20 px-3 py-1.5 text-xs font-semibold text-white/80 hover:text-white"
-                >
-                  Back to Classes
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      <RideLoading
+        classId={classId}
+        isPracticeMode={isPracticeMode}
+        practiceClassName={practiceConfig?.name}
+        rewardModeLabel={rewardMode === "yellow-stream" ? "Yellow Stream" : rewardMode === "zk-batch" ? "ZK Batch" : "Sui Native"}
+        loadStartedAt={loadStartedAt}
+        onPracticeMode={() => router.push("/rider?mode=practice")}
+        onBack={() => router.push("/rider")}
+      />
     );
   }
 
   if (!classData || !classData.route) {
-    return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center p-4">
-        <div className="text-center">
-          <p className="text-red-400 mb-4">Route not found</p>
-          <button
-            onClick={exitRide}
-            className="text-white/60 hover:text-white text-sm"
-          >
-            ← Back to classes
-          </button>
-        </div>
-      </div>
-    );
+    return <RideNotFound onExit={exitRide} />;
   }
 
   return (
@@ -1466,233 +1354,49 @@ export default function LiveRidePage() {
       {/* HUD Overlay */}
       {showHUD && (
         <div className="absolute inset-0 pointer-events-none z-30">
-          {/* Top Bar - Mobile Optimized */}
-          <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-top z-[45]">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
-              <div className="flex-1 min-w-0 z-50 relative">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h1 className="text-lg sm:text-2xl font-bold text-white truncate">
-                    {classData.name}
-                  </h1>
-                  {isPracticeMode && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                      Practice
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs sm:text-sm text-white/60 truncate">
-                  {classData.instructor}
-                </p>
-                {(isRiding || rideProgress > 0) && (
-                  <div className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 px-2 py-0.5 text-[11px] text-white/80">
-                    <span className={`h-1.5 w-1.5 rounded-full ${
-                      bleConnected ? "bg-emerald-400" : useSimulator ? "bg-amber-400" : "bg-zinc-400"
-                    }`} />
-                    {bleConnected ? "Live telemetry" : useSimulator ? (isTrainingMode ? "Training Mode" : "Simulator telemetry") : "No telemetry"}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 ml-2">
-                {/* Training Mode Toggle - allow wallet-connected users to test experience */}
-                {!isRiding && walletConnected && !isPracticeMode && (
-                  <button
-                    onClick={() => setUseSimulator(!useSimulator)}
-                    className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-medium backdrop-blur transition-all border ${
-                      useSimulator
-                        ? "border-amber-500/50 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
-                        : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80"
-                    }`}
-                    title={useSimulator ? "Disable Training Mode" : "Enable Training Mode to test experience without bike"}
-                  >
-                    <span className={useSimulator ? "animate-pulse" : ""}>🎯</span>
-                    <span className="hidden sm:inline">{useSimulator ? "Training" : "Train?"}</span>
-                    {useSimulator && <span className="text-amber-400/60 ml-0.5 text-[9px]">No rewards</span>}
-                  </button>
-                )}
-                {/* Training Mode Badge - shown when simulator is active in a paid class with wallet connected */}
-                {isTrainingMode && !isRiding && (
-                  <div className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[10px] font-medium text-amber-300 backdrop-blur animate-pulse">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                    Training Mode
-                    <span className="text-amber-400/60 ml-1">Rewards Disabled</span>
-                  </div>
-                )}
-                {/* Reward Mode Selector (pre-ride) / Active Mode Badge (during ride) */}
-                {!isRiding ? (
-                  <div className="flex items-center gap-1" title={isGuestMode ? "Connect wallet to earn rewards" : undefined}>
-                    {(["zk-batch", "yellow-stream"] as RewardMode[]).map((m) => (
-                      <button
-                        key={m}
-                        onClick={() => {
-                          if (isGuestMode) return;
-                          if (m === "yellow-stream" && !walletConnected) return;
-                          if (isTrainingMode && m === "yellow-stream") return; // Disable yellow-stream in training mode
-                          setRewardMode(m);
-                        }}
-                        disabled={isGuestMode || (m === "yellow-stream" && !walletConnected) || (isTrainingMode && m === "yellow-stream")}
-                        className={`rounded-lg px-2 py-1.5 text-[10px] sm:text-xs font-medium backdrop-blur transition-all min-h-[36px] ${
-                          rewardMode === m
-                            ? "bg-white/20 text-white border border-white/30"
-                            : "bg-white/5 text-white/40 border border-transparent hover:bg-white/10 hover:text-white/60"
-                        } disabled:opacity-30 disabled:cursor-not-allowed`}
-                      >
-                        {m === "zk-batch" ? "Standard" : "Live"}
-                        {m === "yellow-stream" && (
-                          <>
-                            <span className="ml-1 text-[8px] text-yellow-400">β</span>
-                            {rewardMode === "yellow-stream" && (
-                              <span
-                                className={`ml-1 inline-block h-1.5 w-1.5 rounded-full ${
-                                  rewards.clearNodeConnected ? "bg-emerald-400" : "bg-zinc-500"
-                                }`}
-                                title={rewards.clearNodeConnected ? "Connection Active" : "Offline"}
-                              />
-                            )}
-                          </>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-[10px] font-medium text-white/80 backdrop-blur">
-                    {rewardMode === "yellow-stream" ? (
-                      <>
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          rewards.clearNodeConnected ? "bg-yellow-400 animate-pulse" : "bg-zinc-500"
-                        }`} />
-                        <span className="text-yellow-300">Live</span>
-                        {rewards.formattedReward !== "0" && (
-                          <span className="text-yellow-400 font-bold">{rewards.formattedReward} SPIN</span>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                        <span className="text-indigo-300">Standard</span>
-                        {rewards.formattedReward !== "0" ? (
-                          <span className="text-indigo-200 font-bold">{rewards.formattedReward} SPIN</span>
-                        ) : rewards.isActive ? (
-                          <span className="text-indigo-300/60 italic">Processing…</span>
-                        ) : null}
-                      </>
-                    )}
-                  </div>
-                )}
-                {/* Collapse/Expand All Panels */}
-                <button
-                  onClick={() => {
-                    if (panelState.isAllCollapsed) {
-                      panelState.expandAll();
-                    } else {
-                      panelState.collapseAll();
-                    }
-                  }}
-                  className="hidden sm:inline-flex rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/60 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
-                  aria-label={panelState.isAllCollapsed ? "Expand all panels" : "Collapse all panels"}
-                  title="Press C to toggle (keyboard shortcut)"
-                >
-                  {panelState.isAllCollapsed ? "▢ Expand" : "▤ Collapse"}
-                </button>
-                {/* Reset UI prefs (useful for testing / getting back to defaults) */}
-                <button
-                  onClick={() => {
-                    try {
-                      window.localStorage.removeItem("spinchain:ride:viewMode");
-                      window.localStorage.removeItem("spinchain:ride:hudMode");
-                    } catch {
-                      // ignore
-                    }
-
-                    hudModePreferenceRef.current = "system";
-                    viewModePreferenceRef.current = "system";
-                    applyHudMode(
-                      getSystemHudMode(deviceType, orientation, prefersReducedMotion),
-                      "system",
-                    );
-                    applyViewMode(
-                      getSystemViewMode(deviceType, performanceTier, prefersReducedMotion),
-                      "system",
-                    );
-                    panelState.reset();
-                  }}
-                  className="hidden sm:inline-flex rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/60 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
-                  aria-label="Reset ride UI preferences"
-                >
-                  Reset
-                </button>
-                {/* View mode status badge (mobile only, non-interactive) */}
-                <span className="sm:hidden inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 text-[10px] text-white/50">
-                  {viewMode === "focus" ? "2D" : "3D"}
-                </span>
-                {/* View Mode Toggle */}
-                <button
-                  onClick={() => applyViewMode(viewMode === "immersive" ? "focus" : "immersive", "manual")}
-                  className="rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
-                  aria-label="Toggle view mode"
-                >
-                  {viewMode === "immersive" ? "→ 2D" : "→ 3D"}
-                </button>
-                {/* HUD Mode Toggle (Mobile) */}
-                {deviceType === "mobile" && (
-                  <button
-                    onClick={cycleHudMode}
-                    className="rounded-lg bg-white/10 p-2 sm:p-2.5 text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
-                    aria-label="Toggle HUD"
-                  >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  </button>
-                )}
-
-                {/* Exit Button */}
-                <button
-                  onClick={exitRide}
-                  disabled={isExiting}
-                  className="rounded-lg bg-white/10 p-2 sm:p-2.5 text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Exit ride"
-                >
-                  {isExiting ? (
-                    <svg
-                      className="animate-spin h-5 w-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeDasharray="4 4"
-                        opacity="0.3"
-                      />
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeDasharray="15 45"
-                        opacity="0.8"
-                      />
-                      <circle cx="12" cy="12" r="2" fill="currentColor" />
-                    </svg>
-                  ) : (
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
+          {/* Top Bar - Extracted to modular component */}
+          <RideTopBar
+            className={classData.name}
+            instructor={classData.instructor}
+            isPracticeMode={isPracticeMode}
+            isRiding={isRiding}
+            isExiting={isExiting}
+            rideProgress={rideProgress}
+            isTrainingMode={isTrainingMode}
+            isGuestMode={isGuestMode}
+            useSimulator={useSimulator}
+            bleConnected={bleConnected}
+            walletConnected={walletConnected}
+            rewardMode={rewardMode}
+            rewardsFormattedReward={rewards.formattedReward}
+            rewardsIsActive={rewards.isActive}
+            rewardsClearNodeConnected={rewards.clearNodeConnected}
+            viewMode={viewMode}
+            hudMode={hudMode}
+            deviceType={deviceType}
+            simulatedReward={simulatedRewards}
+            onSetUseSimulator={setUseSimulator}
+            onSetRewardMode={setRewardMode}
+            onToggleViewMode={() => applyViewMode(viewMode === "immersive" ? "focus" : "immersive", "manual")}
+            onCycleHudMode={cycleHudMode}
+            onExitRide={exitRide}
+            onResetPrefs={() => {
+              try {
+                window.localStorage.removeItem("spinchain:ride:viewMode");
+                window.localStorage.removeItem("spinchain:ride:hudMode");
+              } catch { /* ignore */ }
+              hudModePreferenceRef.current = "system";
+              viewModePreferenceRef.current = "system";
+              applyHudMode(getSystemHudMode(deviceType, orientation, prefersReducedMotion), "system");
+              applyViewMode(getSystemViewMode(deviceType, performanceTier, prefersReducedMotion), "system");
+              panelState.reset();
+            }}
+            onCollapseToggle={() => {
+              if (panelState.isAllCollapsed) panelState.expandAll();
+              else panelState.collapseAll();
+            }}
+            isAllCollapsed={panelState.isAllCollapsed}
+          />
 
           {/* Center - Telemetry (Responsive Layout) - Only show when riding */}
           {(!isRiding || deviceType !== "mobile" || widgetsVisible) && (
@@ -1712,15 +1416,14 @@ export default function LiveRidePage() {
           />
           )}
 
-          {/* Bottom - Controls (Mobile Optimized) */}
+          {/* Bottom - Widget toggle + Controls (extracted to modular component) */}
           {deviceType === "mobile" && isRiding && (
-            // Floating toggle button to show/hide widgets on mobile
             <button
               onClick={() => {
                 haptic.trigger("light");
                 setWidgetsVisible(!widgetsVisible);
               }}
-              className="absolute right-4 bottom-24 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-black/70 backdrop-blur-xl border border-white/20 shadow-lg transition-transform active:scale-95"
+              className="absolute right-4 bottom-24 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-black/70 backdrop-blur border border-white/20 shadow-lg transition-transform active:scale-95"
               aria-label={widgetsVisible ? "Hide widgets" : "Show widgets"}
             >
               {widgetsVisible ? (
@@ -1734,170 +1437,44 @@ export default function LiveRidePage() {
               )}
             </button>
           )}
-          <div className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom transition-all duration-300 ${deviceType === "mobile" && isRiding && !widgetsVisible ? "translate-y-full opacity-0" : ""} ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${!isRiding && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`}>
-            <div className={`max-w-7xl mx-auto ${!isRiding && deviceType === "desktop" ? "overflow-y-auto flex-1 min-h-0" : ""}`}>
-              {/* Progress Info + Interval Status */}
-              {hudMode !== "minimal" && (
-                <div className="mb-3 sm:mb-4">
-                  {/* Current Interval Banner */}
-                  {isRiding && currentInterval && (
-                    <div className="mb-2 flex items-center justify-between rounded-lg bg-black/60 backdrop-blur border border-white/10 px-3 py-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-block w-2.5 h-2.5 rounded-full ${currentInterval.phase === 'sprint' ? 'bg-red-500'
-                          : currentInterval.phase === 'interval' ? 'bg-yellow-500'
-                            : currentInterval.phase === 'warmup' ? 'bg-green-500'
-                              : currentInterval.phase === 'recovery' ? 'bg-blue-500'
-                                : currentInterval.phase === 'cooldown' ? 'bg-indigo-400'
-                                  : 'bg-purple-500'
-                          }`} />
-                        <span className="text-xs sm:text-sm font-semibold text-white uppercase tracking-wider">
-                          {currentInterval.phase}
-                        </span>
-                      </div>
-                      <span className="text-xs sm:text-sm font-mono text-white/70">
-                        {formatTime(Math.ceil(intervalRemaining))} left
-                      </span>
-                      {/* Coming up next */}
-                      {workoutPlan && currentIntervalIndex < workoutPlan.intervals.length - 1 && (() => {
-                        const next = workoutPlan.intervals[currentIntervalIndex + 1];
-                        return (
-                          <span className="hidden sm:flex items-center gap-1 text-[10px] text-white/40">
-                            <span>Next:</span>
-                            <span className={`font-semibold ${
-                              next.phase === 'sprint' ? 'text-red-400'
-                              : next.phase === 'recovery' ? 'text-blue-400'
-                              : next.phase === 'interval' ? 'text-yellow-400'
-                              : 'text-white/60'
-                            }`}>{next.phase}</span>
-                            <span>{formatTime(next.durationSeconds)}</span>
-                          </span>
-                        );
-                      })()}
-                      {/* Target RPM zone comparison */}
-                      {currentInterval.targetRpm && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-white/40">RPM</span>
-                          <span className={`text-xs font-bold ${telemetry.cadence >= currentInterval.targetRpm[0] && telemetry.cadence <= currentInterval.targetRpm[1]
-                            ? 'text-green-400'
-                            : telemetry.cadence < currentInterval.targetRpm[0]
-                              ? 'text-blue-400'
-                              : 'text-red-400'
-                            }`}>
-                            {telemetry.cadence}
-                            <span className="text-white/30 font-normal"> / {currentInterval.targetRpm[0]}-{currentInterval.targetRpm[1]}</span>
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* AI Feedback - below interval phase banner */}
-                  {isRiding && aiActive && (
-                    <div className="mb-2">
-                      <div className="rounded-xl border border-indigo-500/25 bg-black/70 backdrop-blur-xl px-3 py-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm">🧠</span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
-                            {agentName}
-                          </span>
-                          <span className={`ml-auto inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
-                            reasonerState === "thinking"
-                              ? "bg-amber-500/20 text-amber-300"
-                              : reasonerState === "acting"
-                                ? "bg-emerald-500/20 text-emerald-300"
-                                : "bg-white/10 text-white/40"
-                          }`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${
-                              reasonerState === "thinking"
-                                ? "bg-amber-400 animate-pulse"
-                                : reasonerState === "acting"
-                                  ? "bg-emerald-400 animate-pulse"
-                                  : "bg-white/30"
-                            }`} />
-                            {reasonerState === "thinking" ? "Reasoning…" : reasonerState === "acting" ? "Acting" : "Monitoring"}
-                          </span>
-                        </div>
-                        {lastDecision ? (
-                          <p className="text-[11px] leading-relaxed text-white/70 line-clamp-2">
-                            &ldquo;{lastDecision.thoughtProcess}&rdquo;
-                          </p>
-                        ) : thoughtLog.length > 0 ? (
-                          <p className="text-[11px] leading-relaxed text-white/70 line-clamp-2">
-                            &ldquo;{thoughtLog[0]}&rdquo;
-                          </p>
-                        ) : (
-                          <p className="text-[11px] text-white/40 italic">
-                            Analyzing telemetry stream…
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Main stats row */}
-                  <div className="flex items-center justify-between text-white">
-                    <div className="text-left">
-                      <p className="text-[10px] sm:text-sm text-white/50">Progress</p>
-                      <p className="text-xl sm:text-2xl font-bold">{rideProgress.toFixed(0)}%</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[10px] sm:text-sm text-white/50">Time</p>
-                      <div className="flex items-center gap-2 justify-center">
-                        <p className="text-xl sm:text-2xl font-bold">{formatTime(elapsedTime)}</p>
-                        {isRiding && (
-                          <button
-                            onClick={pauseRide}
-                            className="rounded-full bg-white/20 backdrop-blur px-3 py-1 text-xs font-semibold text-white transition-all active:scale-95 touch-manipulation"
-                            aria-label="Pause ride"
-                          >
-                            ⏸ Pause
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] sm:text-sm text-white/50">Effort</p>
-                      <p className="text-xl sm:text-2xl font-bold text-purple-400">{telemetry.effort}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <RideControls
-                isRiding={isRiding}
-                isStarting={isStarting}
-                rideProgress={rideProgress}
-                isPracticeMode={isPracticeMode}
-                isTrainingMode={isTrainingMode}
-                useSimulator={useSimulator}
-                deviceType={deviceType}
-                workoutPlan={workoutPlan}
-                bleConnected={bleConnected}
-                walletConnected={walletConnected}
-                canStartRide={bleConnected || useSimulator}
-                startHint={connectionHint}
-                onStartRide={startRide}
-                onPauseRide={pauseRide}
-                onSetWorkoutPlan={setWorkoutPlan}
-                onSetUseSimulator={setUseSimulator}
-                onBleMetrics={handleBleMetrics}
-                onSimulatorMetrics={handleSimulatorMetrics}
-                onHaptic={haptic.trigger}
-                panelState={panelState.state}
-                onTogglePanel={handleTogglePanel}
-              />
-
-              {/* Agent Reasoning HUD moved above interval banner - removed from here */}
-
-              {/* Coach voice indicator */}
-              {isRiding && isSpeaking && (
-                <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[10px] text-indigo-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                  Speaking
-                </div>
-              )}
-            </div>
-          </div>
+          <RideBottomPanel
+            isRiding={isRiding}
+            isStarting={isStarting}
+            rideProgress={rideProgress}
+            elapsedTime={elapsedTime}
+            hudMode={hudMode}
+            deviceType={deviceType}
+            widgetsVisible={widgetsVisible}
+            useSimulator={useSimulator}
+            isPracticeMode={isPracticeMode}
+            isTrainingMode={isTrainingMode}
+            bleConnected={bleConnected}
+            walletConnected={walletConnected}
+            connectionHint={connectionHint}
+            telemetryEffort={telemetry.effort}
+            telemetryCadence={telemetry.cadence}
+            workoutPlan={workoutPlan}
+            currentInterval={currentInterval}
+            currentIntervalIndex={currentIntervalIndex}
+            intervalProgress={intervalProgress}
+            intervalRemaining={intervalRemaining}
+            aiActive={aiActive}
+            agentName={agentName}
+            reasonerState={reasonerState}
+            lastDecision={lastDecision}
+            thoughtLog={thoughtLog}
+            isSpeaking={isSpeaking}
+            panelState={panelState.state}
+            onTogglePanel={handleTogglePanel}
+            onStartRide={startRide}
+            onPauseRide={pauseRide}
+            onSetWorkoutPlan={setWorkoutPlan}
+            onSetUseSimulator={setUseSimulator}
+            onBleMetrics={handleBleMetrics}
+            onSimulatorMetrics={handleSimulatorMetrics}
+            onHaptic={haptic.trigger}
+            formatTime={formatTime}
+          />
         </div>
       )}
 
@@ -2020,52 +1597,13 @@ export default function LiveRidePage() {
         stats={demoStats}
       />
 
-      {/* Onboarding Tutorial Overlay */}
+      {/* Onboarding Tutorial Overlay (extracted to modular component) */}
       {showTutorial && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md transition-all duration-500 p-6">
-          <div className={`absolute ${tutorialSteps[tutorialStep].position} max-w-sm w-full transform transition-all duration-500 scale-100 opacity-100`}>
-            <div className="rounded-3xl border border-white/20 bg-indigo-600/90 p-8 shadow-[0_20px_50px_rgba(79,70,229,0.3)] backdrop-blur-xl">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold uppercase tracking-widest text-indigo-200">
-                  Step {tutorialStep + 1} of {tutorialSteps.length}
-                </span>
-                <button 
-                  onClick={() => setShowTutorial(false)}
-                  className="text-indigo-200 hover:text-white transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-3">
-                {tutorialSteps[tutorialStep].title}
-              </h3>
-              <p className="text-indigo-50/80 leading-relaxed mb-8">
-                {tutorialSteps[tutorialStep].content}
-              </p>
-              <div className="flex items-center justify-between gap-4">
-                <button
-                  onClick={() => setShowTutorial(false)}
-                  className="text-sm font-medium text-indigo-200 hover:text-white transition-colors"
-                >
-                  Skip tutorial
-                </button>
-                <button
-                  onClick={nextTutorial}
-                  className="flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-indigo-600 shadow-xl shadow-white/10 hover:bg-indigo-50 active:scale-95 transition-all"
-                >
-                  <span>{tutorialStep === tutorialSteps.length - 1 ? "Got it!" : "Next"}</span>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            {/* Visual indicator arrow pointing to the actual UI element could be added here */}
-            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[16px] border-t-indigo-600/90 opacity-0 sm:opacity-100" />
-          </div>
-        </div>
+        <RideTutorialOverlay
+          step={tutorialStep}
+          onNext={nextTutorial}
+          onDismiss={dismissTutorial}
+        />
       )}
 
     </div>

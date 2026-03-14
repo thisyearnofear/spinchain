@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { YellowRewardTicker } from "@/app/components/features/common/yellow-reward-ticker";
 import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
 import type { IntervalPhase } from "@/app/lib/workout-plan";
@@ -102,7 +102,7 @@ function GhostLeadLag({ leadLagTime, distanceGap }: { leadLagTime: number; dista
   const label = isLeading ? "Lead" : "Lag";
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-white/20 bg-black/40 px-3 py-1.5 backdrop-blur-xl transition-all">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-white/20 bg-black/40 px-3 py-1.5 backdrop-blur transition-all">
       <span className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-0.5">Ghost Pacer</span>
       <div className="flex items-baseline gap-1.5">
         <span className={`text-lg font-black ${color} tracking-tighter`}>
@@ -120,7 +120,7 @@ function GhostLeadLag({ leadLagTime, distanceGap }: { leadLagTime: number; dista
 function GearBadge({ gear, ratio }: { gear?: number; ratio?: number }) {
   if (!gear) return null;
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 backdrop-blur-xl shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all animate-in zoom-in duration-300">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 backdrop-blur shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all">
       <div className="flex items-center gap-1.5 mb-0.5">
         <span className="text-[8px] font-black text-indigo-400/70 uppercase tracking-widest">Gear</span>
         <div className="flex gap-0.5">
@@ -170,7 +170,7 @@ export function RideHUD({
     <div className="mt-4 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
       <div className="flex items-center gap-2 mb-2 mt-4">
         <div className="relative">
-          <span className="flex h-2.5 w-2.5 rounded-full bg-indigo-400 absolute -top-0.5 -right-0.5 animate-ping opacity-75" />
+          <span className="flex h-2.5 w-2.5 rounded-full bg-indigo-400 absolute -top-0.5 -right-0.5 opacity-75" />
           <span className="flex h-2.5 w-2.5 rounded-full bg-indigo-500 relative shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
         </div>
         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">
@@ -180,9 +180,7 @@ export function RideHUD({
 
       <div className="relative group max-w-[280px]">
         {/* Subtle Accent Glow */}
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/10 via-sky-500/10 to-indigo-500/10 rounded-xl blur opacity-30"></div>
-
-        <div className="relative rounded-xl bg-black/60 border border-white/10 px-4 py-3 backdrop-blur-2xl shadow-2xl">
+        <div className="relative rounded-xl bg-black/60 border border-white/10 px-4 py-3 backdrop-blur shadow-2xl">
           <p className="text-[13px] text-white/90 leading-relaxed font-medium tracking-tight">
             <span className="text-indigo-400 mr-2">●</span>
             {aiLog?.message || "Keep your breathing steady. You're crushing this climb!"}
@@ -301,7 +299,7 @@ export function RideHUD({
   );
 }
 
-function MetricCard({
+const MetricCard = memo(function MetricCard({
   label,
   value,
   unit,
@@ -316,13 +314,13 @@ function MetricCard({
 }) {
   return (
     <div className={`
-      relative group rounded-2xl overflow-hidden
-      bg-black/40 backdrop-blur-2xl border
+      relative rounded-2xl overflow-hidden
+      bg-black/40 backdrop-blur border
       p-4 sm:p-6 min-w-[160px] sm:min-w-[190px]
-      transition-all duration-500 hover:scale-[1.02]
+      transition-colors duration-300
       ${emphasized
         ? "border-white/30 shadow-[0_0_50px_rgba(255,255,255,0.05)] ring-1 ring-white/10"
-        : "border-white/10 hover:border-white/20"}
+        : "border-white/10"}
     `}>
       {/* Decorative inner glow */}
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -330,7 +328,7 @@ function MetricCard({
       <div className="flex items-center justify-between mb-2">
         <p className="text-[10px] sm:text-xs uppercase font-black tracking-[0.2em] text-white/40 drop-shadow-sm">{label}</p>
         <div className="flex gap-1">
-          <span className={`h-1 w-1 rounded-full ${color.replace('text-', 'bg-')} animate-pulse opacity-50`} />
+          <span className={`h-1 w-1 rounded-full ${color.replace('text-', 'bg-')} opacity-60`} />
           <span className={`h-1 w-3 rounded-full ${color.replace('text-', 'bg-')} opacity-20`} />
         </div>
       </div>
@@ -347,15 +345,15 @@ function MetricCard({
         <span className="text-[8px] font-mono text-white/50 uppercase">Live</span>
         <div className="flex gap-0.5">
           {[1, 2, 3].map(i => (
-            <div key={i} className={`w-0.5 h-1.5 bg-current ${color} animate-bounce`} style={{ animationDelay: `${i * 0.15}s` }} />
+            <div key={i} className={`w-0.5 h-1.5 bg-current ${color} opacity-60`} style={{ animationDelay: `${i * 0.15}s` }} />
           ))}
         </div>
       </div>
     </div>
   );
-}
+});
 
-// Mobile Compact HUD - Single floating pill with expandable metrics
+// Mobile Compact HUD - Floating pill with swipe-to-cycle (no auto-cycle for performance)
 function MobileCompactHUD({
   telemetry,
   phaseMetrics,
@@ -403,20 +401,7 @@ function MobileCompactHUD({
     }
   }, [visibleWidget]);
 
-  // Auto-cycle through widgets every 5 seconds when not expanded
-  useEffect(() => {
-    if (expanded || !isRiding) return;
-    const interval = setInterval(() => {
-      setVisibleWidget((prev) => {
-        const widgets: typeof prev[] = ["primary", "power", "heartrate", "cadence"];
-        const currentIdx = widgets.indexOf(prev);
-        return widgets[(currentIdx + 1) % widgets.length];
-      });
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [expanded, isRiding]);
-
-  // Tap to cycle when collapsed, long-press to expand
+  // No auto-cycle — user swipes/taps to cycle manually (performance improvement)
   const handleTap = () => {
     if (expanded) {
       setExpanded(false);
@@ -462,7 +447,7 @@ function MobileCompactHUD({
   const currentMetric = metrics.find((m) => m.key === visibleWidget) || metrics[0];
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-end pointer-events-none p-2 pb-8">
+    <div className="absolute inset-0 flex flex-col items-center justify-end pointer-events-none p-2 pb-8" style={{ willChange: "transform" }}>
       {/* Status indicators at top - minimal - only show when expanded */}
       {expanded && (
         <div className="flex items-center gap-2 mb-3 pointer-events-auto">
