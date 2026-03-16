@@ -12,17 +12,17 @@
 import { createPublicClient, createWalletClient, http, parseAbi, keccak256, encodePacked } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { avalancheFuji } from 'viem/chains';
-import { BIOMETRIC_ORACLE_ABI, INCENTIVE_ENGINE_ABI, SPIN_TOKEN_ABI } from '../app/lib/contracts';
+import { BIOMETRIC_ORACLE_ABI, INCENTIVE_ENGINE_ABI, SPIN_TOKEN_ABI, CONTRACT_ADDRESSES } from '../app/lib/contracts';
 
 // Configuration (using local anvil or fuji if keys present)
 const RPC_URL = process.env.FUJI_RPC_URL || 'http://127.0.0.1:8545';
 const PRIVATE_KEY = (process.env.AVALANCHE_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80') as `0x${string}`;
 const account = privateKeyToAccount(PRIVATE_KEY);
 
-// Mock Addresses (replace with actual if testing on Fuji)
-const ORACLE_ADDR = '0x794b684532B03D510167d6438596644026859733' as `0x${string}`;
-const ENGINE_ADDR = '0xA0CCbF6F940685e2495a5FE6F13820f32Db68EDC' as `0x${string}`;
-const TOKEN_ADDR = '0xbd73026ECe5c9D44D4f31a96B6d2d3ca9981a4eA' as `0x${string}`;
+// Contract addresses - use env or fall back to deployed addresses
+const ORACLE_ADDR = (process.env.NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS || CONTRACT_ADDRESSES.BIOMETRIC_ORACLE) as `0x${string}`;
+const ENGINE_ADDR = (process.env.NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS || CONTRACT_ADDRESSES.INCENTIVE_ENGINE) as `0x${string}`;
+const TOKEN_ADDR = (process.env.NEXT_PUBLIC_SPIN_TOKEN_ADDRESS || CONTRACT_ADDRESSES.SPIN_TOKEN) as `0x${string}`;
 
 const client = createPublicClient({ chain: avalancheFuji, transport: http(RPC_URL) });
 const wallet = createWalletClient({ chain: avalancheFuji, transport: http(RPC_URL), account });

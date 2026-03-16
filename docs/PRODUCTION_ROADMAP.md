@@ -42,8 +42,8 @@ SpinChain is a Web3 fitness protocol with a solid dual-chain architecture (Avala
 
 | ID | File | Line | Issue | Resolution |
 |----|------|------|-------|------------|
-| P2-1 | `scripts/simulate-cre-flow.ts` | 22 | Hardcoded mock addresses | Pull from env/config |
-| P2-2 | `app/lib/gemini-client.ts` | 5 | HACKATHON_ENHANCEMENTS tags | Polish experimental features |
+| P2-1 | `scripts/simulate-cre-flow.ts` | 22 | ~~Hardcoded mock addresses~~ | ✅ Now uses env/config imports |
+| P2-2 | `app/lib/gemini-client.ts` | 5 | ~~HACKATHON_ENHANCEMENTS tags~~ | ✅ Production-ready documentation |
 
 ---
 

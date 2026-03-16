@@ -1,12 +1,12 @@
 /**
  * Gemini API Client
- * Server-side only - handles actual Gemini API interactions
- * 
- * HACKATHON ENHANCEMENTS:
+ * Server-side Gemini integration for route generation and coaching
+ *
+ * Features:
  * - Streaming support for real-time generation
- * - Enhanced multimodal capabilities
- * - Robust error handling with retries
- * - Structured output with validation
+ * - Multimodal capabilities (text, structured output)
+ * - Exponential backoff retry logic
+ * - Schema-validated structured output
  * - Gemini 3.0 Flash Preview optimization
  */
 
