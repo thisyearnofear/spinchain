@@ -1,16 +1,22 @@
 /**
  * Unified Multi-Provider AI Service Layer
  * 
- * HACKATHON STRATEGY:
- * - Default: Venice AI (you have credits)
- * - Optional: Gemini 3 (BYOK for judges to see)
+ * Architecture:
+ * - Primary: Venice AI (production credits, privacy-focused)
+ * - Fallback: Gemini 3 (BYOK supported for advanced features)
  * - Smart fallbacks with graceful degradation
  * 
  * Features:
  * - Provider-agnostic interface
- * - Automatic fallback handling
- * - User preference management
- * - Clear provider indicators
+ * - Automatic fallback handling with latency tracking
+ * - User preference management (localStorage)
+ * - Clear provider indicators for UI
+ * - Rate limiting support via server-side API routes
+ * 
+ * Production Considerations:
+ * - API keys are handled server-side only (never exposed to client)
+ * - Streaming supported for Gemini provider only
+ * - Circuit breakers implemented in API routes for cost control
  */
 
 import {

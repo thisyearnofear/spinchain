@@ -37,14 +37,18 @@ export const SUI_CONFIG = {
 
 export const ZK_CONFIG = {
   // Noir verifier contract address for effort threshold proofs
+  // Uses ULTRA_VERIFIER from deployed contracts (with fallback to env)
   verifierAddress:
-    process.env.NEXT_PUBLIC_NOIR_VERIFIER_ADDRESS || "0x0000000000000000000000000000000000000000",
+    process.env.NEXT_PUBLIC_NOIR_VERIFIER_ADDRESS || 
+    CONTRACT_ADDRESSES.ULTRA_VERIFIER,
   // Circuit type: "effort_threshold" | "composite"
   defaultCircuit: "effort_threshold" as const,
 } as const;
+
 export const CHAINLINK_CONFIG = {
   // Chainlink Runtime Environment (CRE) configuration for biometric oracle
-  forwarder: process.env.NEXT_PUBLIC_CHAINLINK_FORWARDER || "0x0000000000000000000000000000000000000000",
+  // Uses CRE_FORWARDER from deployed contracts (with fallback to env)
+  forwarder: process.env.NEXT_PUBLIC_CHAINLINK_FORWARDER || CONTRACT_ADDRESSES.CRE_FORWARDER,
   workflowId: process.env.NEXT_PUBLIC_CHAINLINK_WORKFLOW_ID || "0x0000000000000000000000000000000000000000000000000000000000000000",
   gasLimit: 300000,
 } as const;

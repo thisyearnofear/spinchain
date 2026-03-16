@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useReadContract } from "wagmi";
 import { SPIN_CLASS_ABI } from "@/app/lib/contracts";
 import { parseClassMetadata, type EnhancedClassMetadata } from "@/app/lib/contracts";
@@ -121,32 +121,133 @@ export function useClass(classAddress: `0x${string}`) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // TODO: Replace with actual contract read
-  // const { data: metadata } = useReadContract({
-  //   address: classAddress,
-  //   abi: SPIN_CLASS_ABI,
-  //   functionName: 'classMetadata',
-  // });
-
+  // Validate address format before making contract calls
   const isRealAddress = /^0x[0-9a-fA-F]{40}$/.test(classAddress);
 
-  useEffect(() => {
-    if (!isRealAddress) return;
-    loadClassData();
-  }, [classAddress, isRealAddress]);
+  // Contract reads for class data - only enabled for valid addresses
+  const { data: metadataRaw, refetch: refetchMetadata } = useReadContract({
+    address: classAddress,
+    abi: SPIN_CLASS_ABI,
+    functionName: "classMetadata",
+    query: {
+      enabled: isRealAddress,
+    },
+  });
 
-  const loadClassData = async () => {
+  const { data: currentPrice } = useReadContract({
+    address: classAddress,
+    abi: SPIN_CLASS_ABI,
+    functionName: "currentPrice",
+    query: {
+      enabled: isRealAddress,
+    },
+  });
+
+  const { data: ticketsSoldData } = useReadContract({
+    address: classAddress,
+    abi: SPIN_CLASS_ABI,
+    functionName: "ticketsSold",
+    query: {
+      enabled: isRealAddress,
+    },
+  });
+
+  const { data: maxRidersData } = useReadContract({
+    address: classAddress,
+    abi: SPIN_CLASS_ABI,
+    functionName: "maxRiders",
+    query: {
+      enabled: isRealAddress,
+    },
+  });
+
+  const { data: startTimeData } = useReadContract({
+    address: classAddress,
+    abi: SPIN_CLASS_ABI,
+    functionName: "startTime",
+    query: {
+      enabled: isRealAddress,
+    },
+  });
+
+  const { data: endTimeData } = useReadContract({
+    address: classAddress,
+    abi: SPIN_CLASS_ABI,
+    functionName: "endTime",
+    query: {
+      enabled: isRealAddress,
+    },
+  });
+
+  /**
+   * Load class data from contract or fallback to mock data
+   * Production: Uses on-chain data when available
+   * Development: Falls back to MOCK_CLASSES for testing
+   */
+  const loadClassData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Mock: Find class in mock data
-      const mockClass = MOCK_CLASSES.find(c => c.address === classAddress);
-      if (!mockClass) {
-        throw new Error("Class not found");
+      // Production path: Use contract data when available
+      if (isRealAddress && metadataRaw && typeof metadataRaw === "string") {
+        const parsedMetadata = parseClassMetadata(metadataRaw);
+
+        if (parsedMetadata) {
+          // Convert contract data to proper types
+          const startTime = startTimeData ? Number(startTimeData) : 0;
+          const endTime = endTimeData ? Number(endTimeData) : startTime + 3600;
+          const maxRiders = maxRidersData ? Number(maxRidersData) : 50;
+          const ticketsSold = ticketsSoldData ? Number(ticketsSoldData) : 0;
+          const price = currentPrice ? currentPrice.toString() : "0";
+
+          // Check cache first for route data
+          let route = getCachedRoute(classAddress);
+
+          // Fetch from Walrus if not cached
+          if (!route && parsedMetadata.route.walrusBlobId) {
+            try {
+              route = await retrieveRouteFromWalrus(parsedMetadata.route.walrusBlobId);
+              if (route) {
+                cacheRouteLocally(classAddress, route);
+              }
+            } catch (routeError) {
+              console.warn("Failed to fetch route from Walrus, using mock:", routeError);
+              route = generateMockRouteData(parsedMetadata);
+            }
+          }
+
+          setClassData({
+            address: classAddress,
+            name: parsedMetadata.name,
+            instructor: parsedMetadata.instructor,
+            startTime,
+            endTime,
+            maxRiders,
+            ticketsSold,
+            currentPrice: price,
+            metadata: parsedMetadata,
+            route,
+            routeLoading: false,
+            routeError: null,
+          });
+
+          setIsLoading(false);
+          return;
+        }
       }
 
-      // Mock metadata with route reference
+      // Fallback: Use mock data for development or when contract data unavailable
+      const mockClass = MOCK_CLASSES.find(c => c.address.toLowerCase() === classAddress.toLowerCase());
+      if (!mockClass) {
+        // No contract data and no mock found
+        setClassData(null);
+        setError("Class not found");
+        setIsLoading(false);
+        return;
+      }
+
+      // Generate mock metadata with route reference
       const mockMetadata: EnhancedClassMetadata = {
         version: "2.0",
         name: mockClass.name,
@@ -186,13 +287,9 @@ export function useClass(classAddress: `0x${string}`) {
       // Check cache first
       let route = getCachedRoute(classAddress);
 
-      // If not cached, try to fetch from Walrus (mock for now)
+      // If not cached, generate mock route data
       if (!route && mockMetadata.route.walrusBlobId) {
-        // In production: route = await retrieveRouteFromWalrus(mockMetadata.route.walrusBlobId);
-        // For now, generate mock route data
         route = generateMockRouteData(mockMetadata);
-
-        // Cache it
         if (route) {
           cacheRouteLocally(classAddress, route);
         }
@@ -219,9 +316,18 @@ export function useClass(classAddress: `0x${string}`) {
       setError(err instanceof Error ? err.message : "Failed to load class");
       setIsLoading(false);
     }
-  };
+  }, [classAddress, isRealAddress, metadataRaw, currentPrice, ticketsSoldData, maxRidersData, startTimeData, endTimeData]);
 
-  return { classData, isLoading, error, refetch: loadClassData };
+  // Load class data when address or contract data changes
+  useEffect(() => {
+    if (!isRealAddress) {
+      setIsLoading(false);
+      return;
+    }
+    loadClassData();
+  }, [isRealAddress, loadClassData]);
+
+  return { classData, isLoading, error, refetch: () => { void refetchMetadata(); return loadClassData(); } };
 }
 
 /**

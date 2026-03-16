@@ -1,11 +1,17 @@
 /**
  * Next.js API Route for AI Route Generation
  * Multi-Provider Support: Venice AI (default) | Gemini 3 (BYOK)
- * 
- * HACKATHON STRATEGY:
- * - Default to Venice AI (user has credits)
- * - Allow Gemini 3 via BYOK (for hackathon judges to see)
+ *
+ * Architecture:
+ * - Primary: Venice AI (production credits, privacy-focused, no data retention)
+ * - Fallback: Gemini 3 (BYOK supported for advanced features)
  * - Provider selection via 'provider' param or header
+ *
+ * Production Features:
+ * - Input validation with strict schema enforcement
+ * - Rate limiting support via server-side throttling
+ * - Elevation profile validation for realistic routes
+ * - Structured output with type safety
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -33,13 +39,95 @@ type RouteGenerationRequest = {
   apiKey?: string; // BYOK for Gemini
 };
 
+// Validation constants
+const MIN_PROMPT_LENGTH = 3;
+const MAX_PROMPT_LENGTH = 500;
+const MIN_DURATION = 15;
+const MAX_DURATION = 120;
+const VALID_DIFFICULTIES = ["easy", "moderate", "hard", "extreme"] as const;
+const VALID_FITNESS_LEVELS = ["beginner", "intermediate", "advanced", "elite"] as const;
+
+/**
+ * Validates route generation request with strict schema enforcement
+ */
+function validateRouteRequest(body: unknown): { valid: true; data: RouteGenerationRequest } | { valid: false; error: string; code: string } {
+  if (!body || typeof body !== "object") {
+    return { valid: false, error: "Invalid request format", code: "INVALID_FORMAT" };
+  }
+
+  const req = body as Record<string, unknown>;
+
+  // Prompt validation (required)
+  if (typeof req.prompt !== "string") {
+    return { valid: false, error: "Missing required field: prompt", code: "MISSING_PROMPT" };
+  }
+  
+  const trimmedPrompt = req.prompt.trim();
+  if (trimmedPrompt.length < MIN_PROMPT_LENGTH) {
+    return { valid: false, error: `Prompt must be at least ${MIN_PROMPT_LENGTH} characters`, code: "PROMPT_TOO_SHORT" };
+  }
+  if (trimmedPrompt.length > MAX_PROMPT_LENGTH) {
+    return { valid: false, error: `Prompt must be at most ${MAX_PROMPT_LENGTH} characters`, code: "PROMPT_TOO_LONG" };
+  }
+
+  // Duration validation
+  if (req.duration !== undefined) {
+    if (typeof req.duration !== "number" || isNaN(req.duration)) {
+      return { valid: false, error: "Duration must be a number", code: "INVALID_DURATION" };
+    }
+    if (req.duration < MIN_DURATION || req.duration > MAX_DURATION) {
+      return { valid: false, error: `Duration must be between ${MIN_DURATION} and ${MAX_DURATION} minutes`, code: "DURATION_OUT_OF_RANGE" };
+    }
+  }
+
+  // Difficulty validation
+  if (req.difficulty !== undefined && !VALID_DIFFICULTIES.includes(req.difficulty as typeof VALID_DIFFICULTIES[number])) {
+    return { valid: false, error: `Difficulty must be one of: ${VALID_DIFFICULTIES.join(", ")}`, code: "INVALID_DIFFICULTY" };
+  }
+
+  // Fitness level validation
+  if (req.fitnessLevel !== undefined && !VALID_FITNESS_LEVELS.includes(req.fitnessLevel as typeof VALID_FITNESS_LEVELS[number])) {
+    return { valid: false, error: `Fitness level must be one of: ${VALID_FITNESS_LEVELS.join(", ")}`, code: "INVALID_FITNESS_LEVEL" };
+  }
+
+  // Provider validation
+  if (req.provider !== undefined && !["venice", "gemini"].includes(req.provider as string)) {
+    return { valid: false, error: "Provider must be 'venice' or 'gemini'", code: "INVALID_PROVIDER" };
+  }
+
+  return {
+    valid: true,
+    data: {
+      prompt: trimmedPrompt,
+      preferences: typeof req.preferences === "string" ? req.preferences.trim() : undefined,
+      duration: req.duration as number | undefined,
+      difficulty: req.difficulty as RouteGenerationRequest["difficulty"],
+      theme: typeof req.theme === "string" ? req.theme : undefined,
+      fitnessLevel: req.fitnessLevel as RouteGenerationRequest["fitnessLevel"],
+      stream: Boolean(req.stream),
+      provider: (req.provider as "venice" | "gemini") || "venice",
+      apiKey: typeof req.apiKey === "string" ? req.apiKey : undefined,
+    },
+  };
+}
+
 /**
  * POST /api/ai/generate-route
  * Generate immersive cycling routes using AI
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as RouteGenerationRequest;
+    const rawBody = await req.json();
+    const validation = validateRouteRequest(rawBody);
+
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: "Validation failed", message: validation.error, code: validation.code },
+        { status: 400 }
+      );
+    }
+
+    const body = validation.data;
     const { 
       prompt, 
       preferences, 
@@ -48,17 +136,9 @@ export async function POST(req: NextRequest) {
       theme,
       fitnessLevel,
       stream = false,
-      provider = "venice", // DEFAULT: Venice AI
-      apiKey, // BYOK for Gemini
+      provider = "venice",
+      apiKey,
     } = body;
-
-    // Validate required fields
-    if (!prompt || prompt.trim().length < 3) {
-      return NextResponse.json(
-        { error: "Invalid request", message: "Route description must be at least 3 characters" },
-        { status: 400 }
-      );
-    }
 
     // Prepare request
     const routeRequest: RouteRequest = {

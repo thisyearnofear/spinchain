@@ -56,7 +56,7 @@ import {
   type WBalConfig
 } from "../../../lib/analytics/physiological-models";
 import { downloadTCX, type RideRecordPoint } from "../../../lib/analytics/ride-recorder";
-import { calculateGhostState, generateMockGhost, type GhostPerformance, type GhostState } from "../../../lib/analytics/ghost-service";
+import { calculateGhostState, generateMockGhost, fetchGhostWithFallback, type GhostPerformance, type GhostState } from "../../../lib/analytics/ghost-service";
 import { createCanonicalRideSummary, enqueueRideSync, getRetentionSignals, processRideSyncQueue, saveRideSummary, type RideSyncStatus } from "../../../lib/analytics/ride-history";
 
 interface PracticeClassConfig {
@@ -438,13 +438,6 @@ export default function LiveRidePage() {
     [classData?.route?.route.coordinates],
   );
 
-  useEffect(() => {
-    if (routeCoordinates.length > 0 && !ghostPerformance) {
-      const mock = generateMockGhost(routeCoordinates, 25); // 25 km/h target
-      setGhostPerformance(mock);
-    }
-  }, [routeCoordinates, ghostPerformance]);
-
   const routeElevationProfile = useMemo(
     () => routeCoordinates.map((coordinate) => coordinate.ele || 0),
     [routeCoordinates],
@@ -549,6 +542,22 @@ export default function LiveRidePage() {
   // Reward mode selection — default to zk-batch, yellow-stream available as beta for wallet users
   const { isConnected: walletConnected, address } = useAccount();
   const [rewardMode, setRewardMode] = useState<RewardMode>("zk-batch");
+
+  // Ghost performance fetch - load real historical data or fall back to mock
+  useEffect(() => {
+    if (routeCoordinates.length > 0 && !ghostPerformance) {
+      fetchGhostWithFallback(
+        routeCoordinates,
+        {
+          classId: classData?.metadata?.route?.walrusBlobId ?? (typeof params.classId === 'string' ? params.classId : ''),
+          riderAddress: address,
+          routeBlobId: classData?.metadata?.route?.walrusBlobId,
+          ghostType: "personal_best",
+        },
+        25 // target speed km/h
+      ).then(ghost => setGhostPerformance(ghost));
+    }
+  }, [routeCoordinates, ghostPerformance, classData?.metadata?.route?.walrusBlobId, params.classId, address]);
 
   // Guest mode — reward selector is disabled; user must connect wallet to earn
   const isGuestMode = typeof window !== "undefined" && localStorage.getItem("spin-guest-mode") === "true" && !walletConnected;
