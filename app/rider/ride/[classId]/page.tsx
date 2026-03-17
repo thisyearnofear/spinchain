@@ -1057,6 +1057,30 @@ export default function LiveRidePage() {
   ]);
 
   // 1. Unified AI Coaching Agent (Phase 1/2/3)
+  const [marketStats, setMarketStats] = useState({
+    ticketsSold: 0,
+    revenue: 0,
+    capacity: 50,
+  });
+
+  // Simulate market activity for Phase 3 autonomy
+  useEffect(() => {
+    if (!isRiding) return;
+    const interval = setInterval(() => {
+      setMarketStats((prev) => {
+        // More "intense" classes drive more late-ticket sales
+        const intensityFactor = telemetry.effort / 100;
+        const newTickets = Math.random() < 0.1 + intensityFactor * 0.2 ? 1 : 0;
+        return {
+          ...prev,
+          ticketsSold: Math.min(prev.capacity, prev.ticketsSold + newTickets),
+          revenue: prev.revenue + newTickets * 15, // $15 per ticket
+        };
+      });
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [isRiding, telemetry.effort]);
+
   const { aiLogs, reasonerState, lastDecision, thoughtLog } = useWorkoutAgent({
     agentName: (classData?.metadata?.ai as any)?.name || "Coach Atlas",
     personality:
@@ -1077,6 +1101,7 @@ export default function LiveRidePage() {
     },
     playSound,
     instructorProfile: (classData?.metadata as any)?.instructor, // Phase 2: Training data
+    marketStats, // Phase 3: Revenue optimization
   });
 
   // 2. Consolidated Workout Coaching Logic (Phase 1/3)

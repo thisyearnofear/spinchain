@@ -27,6 +27,11 @@ interface UseWorkoutAgentOptions {
   setResistance?: (level: number) => Promise<boolean>;
   playSound?: (sound: any) => any;
   instructorProfile?: any; // For Phase 2 Training
+  marketStats?: {
+    ticketsSold: number;
+    revenue: number;
+    capacity: number;
+  };
 }
 
 export function useWorkoutAgent({
@@ -39,6 +44,7 @@ export function useWorkoutAgent({
   setResistance,
   playSound,
   instructorProfile,
+  marketStats = { ticketsSold: 0, revenue: 0, capacity: 50 },
 }: UseWorkoutAgentOptions) {
   // 1. Real-time Telemetry Analysis (Phase 1)
   const { logs: aiLogs, addLog } = useAiInstructor({
@@ -118,11 +124,16 @@ export function useWorkoutAgent({
 
     const interval = setInterval(() => {
       // Phase 2: Inject instructor style into reasoning context
-      const styleContext = instructorProfile ? {
-        instructorName: instructorProfile.name,
-        teachingStyle: instructorProfile.bio || personality,
-        specialties: instructorProfile.specialties || [],
-      } : null;
+      const savedAnchors = typeof window !== 'undefined' 
+        ? JSON.parse(localStorage.getItem("instructor_style_anchors") || "[]") 
+        : [];
+
+      const styleContext = {
+        instructorName: instructorProfile?.name || agentName,
+        teachingStyle: instructorProfile?.bio || personality,
+        specialties: instructorProfile?.specialties || [],
+        styleAnchors: savedAnchors,
+      };
 
       reason({
         telemetry: {
@@ -130,13 +141,8 @@ export function useWorkoutAgent({
           resistance: metrics.resistance || 0,
           duration: 0, // Should be passed from parent
         },
-        market: {
-          ticketsSold: 0, // Should be passed from parent
-          revenue: 0,
-          capacity: 50,
-        },
+        market: marketStats,
         recentDecisions: thoughtLog.slice(0, 3),
-        // @ts-ignore - Extending context for Phase 2
         styleContext, 
       });
     }, intervalMs);

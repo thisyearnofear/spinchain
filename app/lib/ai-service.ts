@@ -73,6 +73,12 @@ export interface AgentReasoningParams {
     telemetry: { avgBpm: number; resistance: number; duration: number };
     market: { ticketsSold: number; revenue: number; capacity: number };
     recentDecisions: string[];
+    styleContext?: {
+      instructorName?: string;
+      teachingStyle?: string;
+      specialties?: string[];
+      styleAnchors?: Array<{ type: string; name: string; content: string }>;
+    };
   };
 }
 
