@@ -649,7 +649,15 @@ export default function LiveRidePage() {
   useEffect(() => {
     if (!isRiding) return;
 
-    const uiHz = deviceType === "mobile" ? 2 : 4;
+    // Adaptive rate: use performance tier + device type for optimal UX
+    // Low/medium tier devices need lower rates to avoid frame drops
+    // High-tier mobile still needs responsive HUD at 2Hz
+    let uiHz: number;
+    if (deviceType === "mobile") {
+      uiHz = performanceTier === "low" ? 1 : performanceTier === "medium" ? 1.5 : 2;
+    } else {
+      uiHz = performanceTier === "low" ? 2 : performanceTier === "medium" ? 3 : 4;
+    }
     const intervalMs = Math.floor(1000 / uiHz);
 
     const id = setInterval(() => {

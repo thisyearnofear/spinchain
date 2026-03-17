@@ -35,6 +35,7 @@ function getQueryClient() {
 }
 
 import { backgroundManager } from './lib/mobile-bridge/background';
+import { flushAnalytics } from './lib/analytics/events';
 
 // ... (existing code)
 
@@ -133,6 +134,24 @@ function InnerProviders({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  // Flush analytics when page is being unloaded
+  useEffect(() => {
+    const handleUnload = () => {
+      flushAnalytics();
+    };
+    
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        flushAnalytics();
+      }
+    });
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, []);
+  
   return (
     <ThemeProvider>
       <ToastProvider>

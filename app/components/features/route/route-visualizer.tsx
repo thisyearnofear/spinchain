@@ -367,44 +367,58 @@ function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme
   );
 }
 
-function PostEffects({ theme = "neon", stats }: { theme: VisualizerTheme; stats: RiderStats; mode: VisualizerMode }) {
+function PostEffects({ theme = "neon", stats, mode, performanceTier = "high" }: { theme: VisualizerTheme; stats: RiderStats; mode: VisualizerMode; performanceTier?: "high" | "medium" | "low" }) {
   const styles = THEMES[theme];
+
+  // Skip all post-processing on low-performance devices
+  if (performanceTier === "low") {
+    return null;
+  }
 
   // Dynamic intensities based on user exertion
   const powerFactor = Math.min(1, stats.power / 600);
-  const bloomIntensity = 0.5 + powerFactor * 2.0;
+  
+  // Reduce effects intensity on medium tier
+  const intensityMultiplier = performanceTier === "medium" ? 0.5 : 1;
+  const bloomIntensity = (0.5 + powerFactor * 2.0) * intensityMultiplier;
 
   // Use reactive values instead of conditional mounting for performance and type safety
-  const chromaticOffset = stats.power > 300 ? powerFactor * 0.005 : 0;
-  const noiseOpacity = theme === 'neon' ? 0.03 : 0;
+  const chromaticOffset = stats.power > 300 ? powerFactor * 0.005 * intensityMultiplier : 0;
+  const noiseOpacity = theme === 'neon' ? 0.03 * intensityMultiplier : 0;
 
-  return (
-    <EffectComposer multisampling={qualityMap[qualityLevel(stats)].msaa ? 8 : 0}>
+  // Build effects array - conditionally include Vignette
+  const effects = useMemo(() => {
+    const e = [
       <Bloom
+        key="bloom"
         intensity={bloomIntensity}
         luminanceThreshold={0.4}
         luminanceSmoothing={1}
         mipmapBlur
-      />
-
-      <Vignette eskil={false} offset={0.15} darkness={0.8} />
-
+      />,
       <ChromaticAberration
+        key="chromatic"
         offset={[chromaticOffset, chromaticOffset]}
         blendFunction={BlendFunction.NORMAL}
-      />
+      />,
+      <Noise
+        key="noise"
+        opacity={noiseOpacity}
+        blendFunction={BlendFunction.OVERLAY}
+      />,
+    ];
+    if (performanceTier !== "medium") {
+      e.push(<Vignette key="vignette" eskil={false} offset={0.15} darkness={0.8} />);
+    }
+    return e;
+  }, [bloomIntensity, chromaticOffset, noiseOpacity, performanceTier]);
 
-      <Noise opacity={noiseOpacity} blendFunction={BlendFunction.OVERLAY} />
+  return (
+    <EffectComposer multisampling={performanceTier === "high" ? 8 : 0}>
+      {effects}
     </EffectComposer>
   );
 }
-
-// Simple quality check helper for postprocessing
-const qualityLevel = (stats: any) => stats.cadence > 0 ? 'high' : 'standard';
-const qualityMap: any = {
-  high: { msaa: true },
-  standard: { msaa: false }
-};
 
 function HoloMap({ curve, progress, theme }: { curve: CatmullRomCurve3, progress: number, theme: VisualizerTheme }) {
   const styles = THEMES[theme];
@@ -924,6 +938,9 @@ function Scene({
   const curve = useRouteCurve(elevationProfile);
   const styles = THEMES[theme];
   const lastBeatRef = useRef<number>(-1);
+  
+  // Get performance tier for adaptive quality - use quality.fps as proxy if available
+  const performanceTier = quality?.fps === 30 ? "low" : quality?.fps === 45 ? "medium" : "high";
 
   // Animate progress if none provided (preview mode auto-rotates along curve)
   const [previewProgress, setPreviewProgress] = useState(START_OFFSET);
@@ -1019,8 +1036,8 @@ function Scene({
 
       <Environment preset={styles.envPreset} />
 
-      {/* Dynamic atmospheric effects */}
-      <PostEffects theme={theme} stats={stats} mode={mode} />
+      {/* Dynamic atmospheric effects - disabled on low tier for performance */}
+      <PostEffects theme={theme} stats={stats} mode={mode} performanceTier={performanceTier} />
 
       {/* Conditionally render expensive effects */}
       {particleCount > 100 && <FloatingParticles theme={theme} stats={stats} />}
