@@ -72,6 +72,7 @@ export default function RiderPage() {
       rating: "4.9", 
       rides: "1.2k",
       specialty: "Alpine routes & sustained climbs",
+      agenticPowers: ["W'bal optimization", "FTP tracking", "Zone-based pacing"],
       href: "/instructor/builder" 
     },
     { 
@@ -82,6 +83,7 @@ export default function RiderPage() {
       rating: "5.0", 
       rides: "850",
       specialty: "HIIT intervals & sprints",
+      agenticPowers: ["Real-time resistance", "Sprint analytics", "Interval engineering"],
       href: "/instructor/ai" 
     },
     { 
@@ -92,6 +94,7 @@ export default function RiderPage() {
       rating: "4.8", 
       rides: "2.1k",
       specialty: "Flow state & recovery rides",
+      agenticPowers: ["HRV adaptation", "Recovery scoring", "Breath sync"],
       href: "/instructor" 
     },
   ];
@@ -131,10 +134,23 @@ export default function RiderPage() {
                 <div className={`absolute top-0 right-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br ${coach.color} opacity-20 blur-2xl transition-transform group-hover:scale-150`} />
                 
                 <div className="relative z-10">
-                  <span className="text-3xl mb-3 block">{coach.icon}</span>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-3xl">{coach.icon}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                      Agentic
+                    </span>
+                  </div>
                   <h3 className="text-lg font-bold text-white">{coach.name}</h3>
                   <p className="text-xs text-white/50 mb-2">{coach.role}</p>
-                  <p className="text-xs text-white/40 italic mb-4">{coach.specialty}</p>
+                  <p className="text-xs text-white/40 italic mb-3">{coach.specialty}</p>
+                  
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {coach.agenticPowers.slice(0, 2).map((power) => (
+                      <span key={power} className="text-[9px] font-medium text-white/30 bg-white/5 px-2 py-0.5 rounded">
+                        {power}
+                      </span>
+                    ))}
+                  </div>
                   
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1">
