@@ -64,9 +64,36 @@ export default function RiderPage() {
   };
 
   const featuredInstructors = [
-    { name: "Coach Atlas", role: "Endurance Specialist", icon: "🏔️", color: "from-blue-500 to-cyan-500", rating: "4.9", rides: "1.2k" },
-    { name: "Dr. Spin", role: "High-Intensity Lead", icon: "⚡", color: "from-amber-500 to-orange-500", rating: "5.0", rides: "850" },
-    { name: "Zen Master", role: "Mindful Recovery", icon: "🧘", color: "from-emerald-500 to-teal-500", rating: "4.8", rides: "2.1k" },
+    { 
+      name: "Coach Atlas", 
+      role: "Endurance Specialist", 
+      icon: "🏔️", 
+      color: "from-blue-500 to-cyan-500", 
+      rating: "4.9", 
+      rides: "1.2k",
+      specialty: "Alpine routes & sustained climbs",
+      href: "/instructor/builder" 
+    },
+    { 
+      name: "Dr. Spin", 
+      role: "High-Intensity Lead", 
+      icon: "⚡", 
+      color: "from-amber-500 to-orange-500", 
+      rating: "5.0", 
+      rides: "850",
+      specialty: "HIIT intervals & sprints",
+      href: "/instructor/ai" 
+    },
+    { 
+      name: "Zen Master", 
+      role: "Mindful Recovery", 
+      icon: "🧘", 
+      color: "from-emerald-500 to-teal-500", 
+      rating: "4.8", 
+      rides: "2.1k",
+      specialty: "Flow state & recovery rides",
+      href: "/instructor" 
+    },
   ];
 
   return (
@@ -86,15 +113,19 @@ export default function RiderPage() {
               <h2 className="text-2xl font-black text-[color:var(--foreground)] tracking-tighter">Featured Coaches</h2>
               <p className="text-sm text-[color:var(--muted)] font-medium">Ride with the world&apos;s best virtual instructors.</p>
             </div>
-            <button className="text-xs font-bold uppercase tracking-widest text-[color:var(--accent)] hover:underline">
+            <button 
+              onClick={() => router.push('/instructor')}
+              className="text-xs font-bold uppercase tracking-widest text-[color:var(--accent)] hover:underline"
+            >
               View all →
             </button>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {featuredInstructors.map((coach) => (
-              <button 
+              <a 
                 key={coach.name}
+                href={coach.href}
                 className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 text-left transition-all hover:bg-white/10 hover:border-white/20"
               >
                 <div className={`absolute top-0 right-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br ${coach.color} opacity-20 blur-2xl transition-transform group-hover:scale-150`} />
@@ -102,7 +133,8 @@ export default function RiderPage() {
                 <div className="relative z-10">
                   <span className="text-3xl mb-3 block">{coach.icon}</span>
                   <h3 className="text-lg font-bold text-white">{coach.name}</h3>
-                  <p className="text-xs text-white/50 mb-4">{coach.role}</p>
+                  <p className="text-xs text-white/50 mb-2">{coach.role}</p>
+                  <p className="text-xs text-white/40 italic mb-4">{coach.specialty}</p>
                   
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1">
@@ -114,7 +146,7 @@ export default function RiderPage() {
                     </div>
                   </div>
                 </div>
-              </button>
+              </a>
             ))}
           </div>
         </section>
