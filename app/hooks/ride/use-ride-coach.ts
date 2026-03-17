@@ -14,8 +14,10 @@ interface UseRideCoachOptions {
   telemetryCadence: number;
   aiLogs: { type: string; message: string; timestamp: number }[];
   isSpeaking: boolean;
-  playSound: (sound: string) => void;
-  speak: (text: string, emotion: string) => void;
+  playSound: (sound: any) => void;
+  speak: (text: string, emotion: any) => void;
+  rideProgress?: number;
+  storyBeats?: Array<{ progress: number; label: string; type: string }>;
 }
 
 export function useRideCoach({
@@ -30,6 +32,8 @@ export function useRideCoach({
   isSpeaking,
   playSound,
   speak,
+  rideProgress = 0,
+  storyBeats = [],
 }: UseRideCoachOptions) {
   const [lastCoachMessage, setLastCoachMessage] = useState<string | null>(null);
   const coachMessageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -47,7 +51,7 @@ export function useRideCoach({
     coachMessageTimerRef.current = setTimeout(() => setLastCoachMessage(null), durationMs);
   }, []);
 
-  // Interval transition: announce phase changes
+  // 1. Interval transition: announce phase changes
   useEffect(() => {
     if (!isRiding || !workoutPlan || currentIntervalIndex < 0) return;
     if (lastIntervalRef.current === currentIntervalIndex) return;
@@ -75,7 +79,7 @@ export function useRideCoach({
     }
   }, [isRiding, workoutPlan, currentIntervalIndex, playSound, speak, showMessage]);
 
-  // Countdown warning at 5s before interval ends
+  // 2. Countdown warning at 5s before interval ends
   useEffect(() => {
     if (!isRiding || !workoutPlan || !currentInterval) return;
     if (intervalRemaining <= 5 && intervalRemaining > 4) {
@@ -83,17 +87,17 @@ export function useRideCoach({
     }
   }, [isRiding, workoutPlan, currentInterval, intervalRemaining, playSound]);
 
-  // Speak AI instructor actions
+  // 3. Speak AI instructor actions (Real-time coaching)
   useEffect(() => {
-    if (aiLogs.length === 0) return;
+    if (!aiActive || aiLogs.length === 0) return;
     const latest = aiLogs[0];
     if (latest.type === "action" && !isSpeaking) {
       speak(latest.message, "intense");
       showMessage(latest.message);
     }
-  }, [aiLogs, isSpeaking, speak, showMessage]);
+  }, [aiActive, aiLogs, isSpeaking, speak, showMessage]);
 
-  // Cadence drift detection — nudge if below target RPM for >8s
+  // 4. Cadence drift detection — nudge if below target RPM for >8s
   useEffect(() => {
     if (!isRiding || !currentInterval?.targetRpm) return;
     const [minRpm] = currentInterval.targetRpm;
@@ -117,23 +121,32 @@ export function useRideCoach({
     }
   }, [isRiding, telemetryCadence, currentInterval, currentIntervalIndex, speak, showMessage]);
 
-  // Announce story beats
-  const announceStoryBeat = useCallback((beat: { progress: number; label: string; type: string }) => {
-    const beatKey = `${beat.progress}-${beat.label}`;
+  // 5. Announce story beats (Terrain/Environment)
+  useEffect(() => {
+    if (!isRiding || !storyBeats.length) return;
+    
+    const currentBeat = storyBeats.find((beat) => {
+      const beatProgress = beat.progress * 100;
+      return rideProgress >= beatProgress && rideProgress < beatProgress + 3;
+    });
+
+    if (!currentBeat) return;
+    
+    const beatKey = `${currentBeat.progress}-${currentBeat.label}`;
     if (lastSpokenBeatRef.current === beatKey) return;
     lastSpokenBeatRef.current = beatKey;
 
-    if (beat.type === "sprint") playSound("sprint");
-    else if (beat.type === "climb") playSound("climb");
-    else if (beat.type === "rest") playSound("recover");
+    if (currentBeat.type === "sprint") playSound("sprint");
+    else if (currentBeat.type === "climb") playSound("climb");
+    else if (currentBeat.type === "rest") playSound("recover");
 
-    const emotion = beat.type === "sprint" ? "intense"
-      : beat.type === "climb" ? "focused"
-        : beat.type === "rest" ? "calm"
+    const emotion = currentBeat.type === "sprint" ? "intense"
+      : currentBeat.type === "climb" ? "focused"
+        : currentBeat.type === "rest" ? "calm"
           : "focused";
-    speak(beat.label, emotion);
-    showMessage(beat.label);
-  }, [playSound, speak, showMessage]);
+    speak(currentBeat.label, emotion);
+    showMessage(currentBeat.label);
+  }, [isRiding, storyBeats, rideProgress, playSound, speak, showMessage]);
 
   const reset = useCallback(() => {
     lastSpokenBeatRef.current = null;
@@ -142,7 +155,6 @@ export function useRideCoach({
 
   return {
     lastCoachMessage,
-    announceStoryBeat,
     reset,
   };
 }

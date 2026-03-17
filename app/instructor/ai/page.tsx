@@ -10,6 +10,7 @@ import {
 } from "@/app/components/ui/ui";
 import { HookVisualizer } from "@/app/agent/hook-visualizer";
 import { CoachProfile } from "@/app/agent/coach-profile";
+import { TrainingStudio } from "@/app/components/features/coach";
 
 function useAiInstructor(isActive: boolean) {
   const [logs, setLogs] = useState<
@@ -205,6 +206,10 @@ export default function AiInstructorPage() {
                 </div>
               </div>
             </SurfaceCard>
+
+            <GlassCard className="p-8">
+              <TrainingStudio />
+            </GlassCard>
 
             {isActive && (
               <GlassCard className="p-8 border-cyan-500/20 bg-cyan-500/5 overflow-hidden relative">

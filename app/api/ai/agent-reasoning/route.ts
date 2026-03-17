@@ -57,6 +57,8 @@ export async function POST(req: NextRequest) {
     let decision: AgentDecision;
     let providerUsed = "venice";
 
+    // Primary: Venice AI (Privacy-focused, default)
+    // Fallback: Gemini 3
     if (VENICE_API_KEY) {
       console.log(`[Venice] Agent reasoning: ${agentName} (${personality})`);
       try {
@@ -67,10 +69,12 @@ export async function POST(req: NextRequest) {
         decision = await agentReasoningWithGemini(agentName, personality, context);
         providerUsed = "gemini";
       }
-    } else {
+    } else if (GEMINI_API_KEY) {
       console.log(`[Gemini] Agent reasoning: ${agentName} (${personality})`);
       decision = await agentReasoningWithGemini(agentName, personality, context);
       providerUsed = "gemini";
+    } else {
+      throw new Error("No AI providers available");
     }
 
     const duration_ms = Date.now() - startTime;

@@ -140,24 +140,34 @@ export async function transcribeAudio(
 
 /**
  * Parse transcribed text into workout command
+ * Optimized for local-first fuzzy matching
  */
 export function parseCommand(transcription: TranscriptionResult): ParsedCommand {
-  const text = transcription.text.toLowerCase().trim();
+  const text = transcription.text.toLowerCase().trim().replace(/[.,!?]/g, '');
   
-  // Find matching command
+  // Find matching command with fuzzy/keyword logic
   let matchedCommand: VoiceCommand | null = null;
   let matchedAction: CommandAction | null = null;
   let highestConfidence = 0;
   
   for (const [command, action] of Object.entries(VOICE_COMMANDS)) {
-    if (text.includes(command)) {
-      // Calculate confidence based on exact match vs partial
-      const confidence = text === command ? 1.0 : 0.8;
-      if (confidence > highestConfidence) {
-        highestConfidence = confidence;
-        matchedCommand = command as VoiceCommand;
-        matchedAction = action as CommandAction;
-      }
+    // Exact match
+    if (text === command) {
+      matchedCommand = command as VoiceCommand;
+      matchedAction = action as CommandAction;
+      highestConfidence = 1.0;
+      break;
+    }
+    
+    // Keyword match (e.g. "more resistance" matches "increase_resistance")
+    const keywords = command.split(' ');
+    const matchCount = keywords.filter(kw => text.includes(kw)).length;
+    const matchRatio = matchCount / keywords.length;
+    
+    if (matchRatio > 0.6 && matchRatio > highestConfidence) {
+      highestConfidence = matchRatio;
+      matchedCommand = command as VoiceCommand;
+      matchedAction = action as CommandAction;
     }
   }
   
@@ -169,11 +179,6 @@ export function parseCommand(transcription: TranscriptionResult): ParsedCommand 
     parameters.value = parseInt(numberMatch[1], 10);
   }
   
-  const percentMatch = text.match(/(\d+)%/);
-  if (percentMatch) {
-    parameters.percentage = parseInt(percentMatch[1], 10);
-  }
-  
   return {
     rawText: transcription.text,
     command: matchedCommand,
@@ -181,6 +186,55 @@ export function parseCommand(transcription: TranscriptionResult): ParsedCommand 
     confidence: highestConfidence * transcription.confidence,
     parameters,
   };
+}
+
+/**
+ * Local-First Browser Speech Recognition
+ * Fallback for low-latency command parsing without cloud roundtrip
+ */
+export class LocalSpeechRecognizer {
+  private recognition: any = null;
+  private onCommand: (command: ParsedCommand) => void;
+
+  constructor(onCommand: (command: ParsedCommand) => void) {
+    this.onCommand = onCommand;
+    
+    if (typeof window !== 'undefined' && ('WebkitSpeechRecognition' in window || 'speechRecognition' in window)) {
+      const SpeechRecognition = (window as any).WebkitSpeechRecognition || (window as any).speechRecognition;
+      this.recognition = new SpeechRecognition();
+      this.recognition.continuous = true;
+      this.recognition.interimResults = false;
+      this.recognition.lang = 'en-US';
+
+      this.recognition.onresult = (event: any) => {
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        const confidence = event.results[event.results.length - 1][0].confidence;
+        
+        const parsed = parseCommand({
+          text: transcript,
+          confidence,
+          language: 'en',
+          words: []
+        });
+
+        if (parsed.action && parsed.confidence > 0.5) {
+          this.onCommand(parsed);
+        }
+      };
+    }
+  }
+
+  start() {
+    try {
+      this.recognition?.start();
+    } catch (e) {
+      // Ignore if already started
+    }
+  }
+
+  stop() {
+    this.recognition?.stop();
+  }
 }
 
 /**
