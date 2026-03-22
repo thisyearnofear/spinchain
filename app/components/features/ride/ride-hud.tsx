@@ -21,6 +21,13 @@ export interface TelemetryData {
 interface RideHUDProps {
   telemetry: TelemetryData;
   ghostState?: GhostState;
+  multiGhostState?: Array<{
+    id: string;
+    name: string;
+    leadLagTime: number;
+    distanceGap: number;
+    active: boolean;
+  }>;
   deviceType: "mobile" | "tablet" | "desktop";
   orientation: "portrait" | "landscape";
   hudMode: "full" | "compact" | "minimal";
@@ -247,6 +254,7 @@ function GearBadge({ gear, ratio }: { gear?: number; ratio?: number }) {
 export function RideHUD({
   telemetry,
   ghostState,
+  multiGhostState,
   deviceType,
   orientation,
   hudMode,
@@ -433,6 +441,22 @@ export function RideHUD({
               leadLagTime={ghostState.leadLagTime}
               distanceGap={ghostState.distanceGap}
             />
+          )}
+          {multiGhostState && multiGhostState.length > 0 && (
+            <div className="flex gap-2">
+              {multiGhostState.map((ghost) => (
+                <div key={ghost.id} className="relative group">
+                  <div
+                    className={`w-8 h-8 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-[10px] font-black ${ghost.leadLagTime < 0 ? "text-emerald-400" : "text-rose-400"}`}
+                  >
+                    {ghost.name.substring(0, 1)}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-black border border-white/10 flex items-center justify-center text-[6px] font-bold">
+                    {Math.abs(ghost.leadLagTime).toFixed(0)}s
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 

@@ -14,7 +14,14 @@ import {
   type RideSummary,
 } from "../../lib/analytics/ride-history";
 
-import { Cloud, ExternalLink, ShieldCheck } from "lucide-react";
+import {
+  Cloud,
+  ExternalLink,
+  ShieldCheck,
+  Wallet,
+  Coins,
+  ArrowRight,
+} from "lucide-react";
 
 function JourneyContent() {
   const searchParams = useSearchParams();
@@ -62,6 +69,76 @@ function JourneyContent() {
             value={`${retention.streaks.weekly} weeks`}
           />
           <StatCard label="Best Effort" value={`${prs.bestEffort}/1000`} />
+        </div>
+
+        {/* Sui Wallet Health & SPIN Management */}
+        <div className="rounded-[2.5rem] border border-yellow-500/20 bg-yellow-500/5 p-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            <Wallet className="w-32 h-32 text-yellow-500 rotate-12" />
+          </div>
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 rounded-2xl bg-yellow-500/20 border border-yellow-500/30">
+                <Coins className="w-5 h-5 text-yellow-500" />
+              </div>
+              <div className="flex flex-col">
+                <h3 className="text-xl font-black text-white tracking-tight">
+                  Sui Wallet Health
+                </h3>
+                <p className="text-xs text-yellow-500/60 font-bold uppercase tracking-widest">
+                  Protocol Assets
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="p-5 rounded-3xl bg-black/40 border border-white/5">
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] block mb-2">
+                  Claimable SPIN
+                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-white tracking-tighter">
+                    420.69
+                  </span>
+                  <span className="text-xs font-bold text-yellow-500 uppercase">
+                    SPIN
+                  </span>
+                </div>
+                <button className="mt-4 w-full py-2.5 rounded-xl bg-yellow-500 text-black text-[10px] font-black uppercase tracking-[0.2em] hover:bg-yellow-400 transition-all flex items-center justify-center gap-2">
+                  Claim to Wallet <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="p-5 rounded-3xl bg-black/40 border border-white/5">
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] block mb-2">
+                  Protocol Tier
+                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-indigo-400 tracking-tighter">
+                    ELITE
+                  </span>
+                </div>
+                <p className="mt-2 text-[10px] text-white/40 font-medium">
+                  Top 5% of active protocol riders.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-3xl bg-black/40 border border-white/5">
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] block mb-2">
+                  Active Multiplier
+                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-emerald-400 tracking-tighter">
+                    1.5x
+                  </span>
+                </div>
+                <p className="mt-2 text-[10px] text-white/40 font-medium">
+                  Daily streak bonus active.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="rounded-3xl border border-cyan-400/20 bg-cyan-500/10 p-6">

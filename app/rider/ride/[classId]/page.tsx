@@ -45,6 +45,7 @@ import { useWorkoutAgent } from "../../../hooks/ai/use-workout-agent";
 import { RiderSocialFeed } from "../../../components/features/ride/social-feed";
 import { CoachMessageOverlay } from "../../../components/features/ride/coach-message-overlay";
 import { FlowBackground } from "../../../components/features/ride/flow-background";
+import { PerformanceGraph } from "../../../components/features/ride/performance-graph";
 import { SettlementStream } from "../../../components/features/ride/settlement-stream";
 import { Sparkles } from "lucide-react";
 import {
@@ -484,6 +485,15 @@ export default function LiveRidePage() {
     resistance: 0,
     timestamp: Date.now(),
   });
+  const [telemetryHistory, setTelemetryHistory] = useState<{
+    power: number[];
+    cadence: number[];
+    heartRate: number[];
+  }>({
+    power: [],
+    cadence: [],
+    heartRate: [],
+  });
   const [recentPowerHistory, setRecentPowerHistory] = useState<number[]>([]);
   const telemetryRawRef = useRef({
     heartRate: 0,
@@ -849,6 +859,13 @@ export default function LiveRidePage() {
       }
 
       setTelemetry(telemetryRawRef.current);
+      setTelemetryHistory((prev) => ({
+        power: [...prev.power, telemetryRawRef.current.power].slice(-30),
+        cadence: [...prev.cadence, telemetryRawRef.current.cadence].slice(-30),
+        heartRate: [...prev.heartRate, telemetryRawRef.current.heartRate].slice(
+          -30,
+        ),
+      }));
     }, intervalMs);
 
     return () => clearInterval(id);
@@ -1744,6 +1761,22 @@ export default function LiveRidePage() {
               intervalPhase={currentInterval?.phase ?? null}
               aiLog={aiLogs[0]}
               ghostState={ghostState}
+              multiGhostState={[
+                {
+                  id: "g1",
+                  name: "Vitalik",
+                  leadLagTime: -12.4,
+                  distanceGap: 45,
+                  active: true,
+                },
+                {
+                  id: "g2",
+                  name: "Satoshi",
+                  leadLagTime: 5.2,
+                  distanceGap: -20,
+                  active: true,
+                },
+              ]}
               targetRpm={currentInterval?.targetRpm}
             />
           )}
@@ -1852,6 +1885,24 @@ export default function LiveRidePage() {
       )}
 
       <RiderSocialFeed events={socialEvents} onHighFive={handleHighFive} />
+
+      {/* Performance Trends (Immersive only) */}
+      {isRiding && viewMode === "immersive" && (
+        <div className="fixed top-32 right-6 z-40 flex flex-col gap-4">
+          <PerformanceGraph
+            data={telemetryHistory.power}
+            color="text-yellow-400"
+            label="Power"
+            max={400}
+          />
+          <PerformanceGraph
+            data={telemetryHistory.cadence}
+            color="text-blue-400"
+            label="Cadence"
+            max={140}
+          />
+        </div>
+      )}
 
       {/* Milestone Celebration Overlay */}
       <AnimatePresence>
