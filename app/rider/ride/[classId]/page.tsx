@@ -41,6 +41,7 @@ import { useWorkoutAudio } from "../../../hooks/ai/use-workout-audio";
 import { useCoachVoice } from "../../../hooks/common/use-coach-voice";
 import { useRideCoach } from "../../../hooks/ride/use-ride-coach";
 import { useWorkoutAgent } from "../../../hooks/ai/use-workout-agent";
+import { RiderSocialFeed } from "../../../components/features/ride/social-feed";
 import {
   useRewards,
   type RewardMode,
@@ -1081,28 +1082,29 @@ export default function LiveRidePage() {
     return () => clearInterval(interval);
   }, [isRiding, telemetry.effort]);
 
-  const { aiLogs, reasonerState, lastDecision, thoughtLog } = useWorkoutAgent({
-    agentName: (classData?.metadata?.ai as any)?.name || "Coach Atlas",
-    personality:
-      ((classData?.metadata?.ai as any)?.personality as
-        | "zen"
-        | "drill-sergeant"
-        | "data") || "drill-sergeant",
-    sessionObjectId: classId,
-    metrics: {
-      ...telemetry,
-      wBalPercentage: telemetry.wBalPercentage || 100,
-    },
-    currentInterval,
-    isEnabled: aiActive,
-    setResistance: async (level) => {
-      // Hardware actuation via unified BLE
-      return await setResistance(level);
-    },
-    playSound,
-    instructorProfile: (classData?.metadata as any)?.instructor, // Phase 2: Training data
-    marketStats, // Phase 3: Revenue optimization
-  });
+  const { aiLogs, reasonerState, lastDecision, thoughtLog, socialEvents } =
+    useWorkoutAgent({
+      agentName: (classData?.metadata?.ai as any)?.name || "Coach Atlas",
+      personality:
+        ((classData?.metadata?.ai as any)?.personality as
+          | "zen"
+          | "drill-sergeant"
+          | "data") || "drill-sergeant",
+      sessionObjectId: classId,
+      metrics: {
+        ...telemetry,
+        wBalPercentage: telemetry.wBalPercentage || 100,
+      },
+      currentInterval,
+      isEnabled: aiActive,
+      setResistance: async (level) => {
+        // Hardware actuation via unified BLE
+        return await setResistance(level);
+      },
+      playSound,
+      instructorProfile: (classData?.metadata as any)?.instructor, // Phase 2: Training data
+      marketStats, // Phase 3: Revenue optimization
+    });
 
   // 2. Consolidated Workout Coaching Logic (Phase 1/3)
   const { lastCoachMessage: consolidatedCoachMessage } = useRideCoach({
@@ -1119,6 +1121,7 @@ export default function LiveRidePage() {
     speak,
     rideProgress,
     storyBeats: classData?.route?.route.storyBeats || [],
+    lastDecision,
   });
 
   // Handle message display sync
@@ -1790,6 +1793,8 @@ export default function LiveRidePage() {
           />
         </div>
       )}
+
+      <RiderSocialFeed events={socialEvents} />
 
       {/* Coach message text overlay — shown for 4s after any spoken cue */}
       {lastCoachMessage && isRiding && (

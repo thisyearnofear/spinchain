@@ -9,13 +9,13 @@
  * - MODULAR: Composable agent logic
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAiInstructor } from "./use-ai-instructor";
 import { useAgentReasoner } from "./use-agent-reasoner";
 import { useVoiceCommands } from "./use-voice-commands";
+import { useHaptic } from "../use-haptic";
 import type { FitnessMetrics } from "@/app/lib/ble/types";
 import type { WorkoutInterval } from "@/app/lib/workout-plan";
-import type { WorkoutSoundType } from "@/app/lib/elevenlabs";
 
 interface UseWorkoutAgentOptions {
   agentName: string;
@@ -46,6 +46,9 @@ export function useWorkoutAgent({
   instructorProfile,
   marketStats = { ticketsSold: 0, revenue: 0, capacity: 50 },
 }: UseWorkoutAgentOptions) {
+  const { rhythm } = useHaptic();
+  const [socialEvents, setSocialEvents] = useState<Array<{ id: string; type: any; message: string; timestamp: number }>>([]);
+  
   // 1. Real-time Telemetry Analysis (Phase 1)
   const { logs: aiLogs, addLog } = useAiInstructor({
     agentName,
@@ -56,6 +59,17 @@ export function useWorkoutAgent({
     isEnabled,
     setResistance,
   });
+
+  // Cadence Sync Haptics - Pulse when below target RPM
+  useEffect(() => {
+    if (!isEnabled || !metrics?.cadence || !currentInterval?.targetRpm) return;
+    const [minRpm] = currentInterval.targetRpm;
+    
+    if (metrics.cadence < minRpm - 5) {
+      // Pulse at target cadence to help rider find the beat
+      rhythm(minRpm, 3000);
+    }
+  }, [isEnabled, metrics?.cadence, currentInterval, rhythm]);
 
   // 2. Long-term Strategic Reasoning (Phase 3)
   const { 
@@ -135,6 +149,12 @@ export function useWorkoutAgent({
         styleAnchors: savedAnchors,
       };
 
+      // Phase 3: Agent Gossip - Mock data for other live classes
+      const gossipContext = [
+        { classId: "sunset-climb", riders: 48, capacity: 50, status: "ending_soon" },
+        { classId: "neon-sprint", riders: 12, capacity: 50, status: "starting_now" }
+      ];
+
       reason({
         telemetry: {
           avgBpm: metrics.heartRate,
@@ -143,7 +163,9 @@ export function useWorkoutAgent({
         },
         market: marketStats,
         recentDecisions: thoughtLog.slice(0, 3),
-        styleContext, 
+        styleContext,
+        // @ts-ignore - Gossip context for cross-class coordination
+        gossipContext,
       });
     }, intervalMs);
 
@@ -159,11 +181,45 @@ export function useWorkoutAgent({
     }
   }, [isEnabled, startListening, stopListening]);
 
+  // 5. Social Agency: Proactive Rider Outreach (Phase 3+)
+  useEffect(() => {
+    if (!isEnabled || !metrics) return;
+
+    // Simulate outreach every 45s based on effort (using power/wBal as proxy)
+    const interval = setInterval(() => {
+      const power = metrics.power || 0;
+      const wBal = metrics.wBalPercentage || 100;
+      
+      if (power > 250 || wBal < 30) {
+        const msg = `Recommending "Elite Recovery" class to top performer.`;
+        addLog(`Social Agency: ${msg}`, "info");
+        setSocialEvents(prev => [{
+          id: Math.random().toString(36).substring(2, 11),
+          type: "recommendation",
+          message: msg,
+          timestamp: Date.now()
+        }, ...prev].slice(0, 3));
+      } else if (power < 100 && wBal > 90) {
+        const msg = `Sending "Keep it up" nudge to struggling rider.`;
+        addLog(`Social Agency: ${msg}`, "alert");
+        setSocialEvents(prev => [{
+          id: Math.random().toString(36).substring(2, 11),
+          type: "nudge",
+          message: msg,
+          timestamp: Date.now()
+        }, ...prev].slice(0, 3));
+      }
+    }, 45000);
+
+    return () => clearInterval(interval);
+  }, [isEnabled, metrics, addLog]);
+
   return {
     aiLogs,
     reasonerState,
     lastDecision,
     thoughtLog,
     isListening,
+    socialEvents,
   };
 }

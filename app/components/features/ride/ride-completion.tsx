@@ -2,22 +2,24 @@
 
 /**
  * RideCompletion - Post-ride summary and actions
- * 
+ *
  * Core Principles:
  * - MODULAR: Self-contained completion screen
  * - ACCESSIBLE: Focus management for modal
  * - CLEAN: Props-based, no external dependencies
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatTime } from "@/app/lib/formatters";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
+import { Star } from "lucide-react";
+import { LoadingButton } from "../../ui/loading-button";
 
 interface ZKProofStatus {
   isGenerating: boolean;
   isSuccess: boolean;
   privacyScore: number;
-  privacyLevel: 'high' | 'medium' | 'low';
+  privacyLevel: "high" | "medium" | "low";
   error: Error | null;
 }
 
@@ -65,6 +67,8 @@ export function RideCompletion({
   primaryAction = "view_history",
 }: RideCompletionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [rating, setRating] = useState(0);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Auto-focus for accessibility
   useEffect(() => {
@@ -80,23 +84,26 @@ export function RideCompletion({
   }, [isPracticeMode, telemetrySource]);
 
   const getAgentDebrief = () => {
-    const powerRating = avgPower > 250 ? "exceptional" : avgPower > 180 ? "solid" : "steady";
-    const hrEfficiency = avgHeartRate > 0 && avgPower > 0 
-      ? (avgPower / avgHeartRate).toFixed(1) 
-      : null;
-    const effortTier = avgEffort >= 800 ? "elite" : avgEffort >= 500 ? "strong" : "building";
-    
+    const powerRating =
+      avgPower > 250 ? "exceptional" : avgPower > 180 ? "solid" : "steady";
+    const hrEfficiency =
+      avgHeartRate > 0 && avgPower > 0
+        ? (avgPower / avgHeartRate).toFixed(1)
+        : null;
+    const effortTier =
+      avgEffort >= 800 ? "elite" : avgEffort >= 500 ? "strong" : "building";
+
     if (agentPersonality === "drill-sergeant") {
       if (effortTier === "elite") {
         return `Outstanding work. ${powerRating.charAt(0).toUpperCase() + powerRating.slice(1)} power output at ${avgPower}W average. ${hrEfficiency ? `Power-to-HR ratio: ${hrEfficiency} — ` : ""}I've flagged this session for a threshold increase next time. You earned every token.`;
       }
       return `${avgPower}W average with ${avgEffort}/1000 effort. ${effortTier === "strong" ? "Not bad, but I know you have more." : "We're building your base. Next session, I'm pushing you harder."} ${hrEfficiency ? `Power-to-HR: ${hrEfficiency}.` : ""}`;
     }
-    
+
     if (agentPersonality === "zen") {
       return `A mindful ${formatTime(elapsedTime)} session. Your body sustained ${avgPower}W with a ${powerRating} rhythm. ${hrEfficiency ? `Your efficiency ratio of ${hrEfficiency} shows balanced effort. ` : ""}${effortTier === "elite" ? "Today you found your flow state." : "Each ride deepens your practice."} I've noted this for your journey.`;
     }
-    
+
     // data personality (default)
     return `Session analysis: ${formatTime(elapsedTime)} duration, ${avgPower}W avg power, ${avgHeartRate} BPM avg HR. ${hrEfficiency ? `Power-to-HR efficiency: ${hrEfficiency}. ` : ""}Effort score ${avgEffort}/1000 (${effortTier}). ${effortTier === "elite" ? "Performance logged — recommending threshold increase for next session." : `Target: push effort above ${avgEffort < 500 ? 500 : 800} next ride for higher SPIN yield.`}`;
   };
@@ -128,7 +135,8 @@ export function RideCompletion({
             Message from {agentName}
           </h2>
           <p className="text-xs sm:text-sm text-white/50 mb-3">
-            {formatTime(elapsedTime)} session • {isPracticeMode ? "Practice" : "Live"} mode
+            {formatTime(elapsedTime)} session •{" "}
+            {isPracticeMode ? "Practice" : "Live"} mode
           </p>
         </div>
 
@@ -142,43 +150,86 @@ export function RideCompletion({
         {/* SPIN Token Explanation */}
         <div className="mb-4 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">
           <div className="flex items-center justify-between mb-1">
-            <span className="font-semibold text-white">🎉 SPIN Token Earnings</span>
+            <span className="font-semibold text-white">
+              🎉 SPIN Token Earnings
+            </span>
             <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-500/30 text-amber-300">
               How It Works
             </span>
           </div>
-          <p className="text-white/60 mb-2">Earn SPIN tokens based on your performance:</p>
+          <p className="text-white/60 mb-2">
+            Earn SPIN tokens based on your performance:
+          </p>
           <ul className="text-white/60 space-y-1 pl-4">
             <li className="flex items-start gap-2">
-              <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              <svg
+                className="h-4 w-4 text-amber-400 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                />
               </svg>
-              <span>Effort Score ({avgEffort}/1000): Higher effort = more tokens</span>
+              <span>
+                Effort Score ({avgEffort}/1000): Higher effort = more tokens
+              </span>
             </li>
             <li className="flex items-start gap-2">
-              <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              <svg
+                className="h-4 w-4 text-amber-400 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                />
               </svg>
-              <span>Duration ({formatTime(elapsedTime)}): Longer workouts = higher rewards</span>
+              <span>
+                Duration ({formatTime(elapsedTime)}): Longer workouts = higher
+                rewards
+              </span>
             </li>
             <li className="flex items-start gap-2">
-              <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              <svg
+                className="h-4 w-4 text-amber-400 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                />
               </svg>
               <span>Consistency: Steady effort throughout = bonus tokens</span>
             </li>
           </ul>
-          <p className="text-white/60 mt-2">Your {avgEffort} effort score earned you {spinEarned} SPIN tokens.</p>
+          <p className="text-white/60 mt-2">
+            Your {avgEffort} effort score earned you {spinEarned} SPIN tokens.
+          </p>
         </div>
 
         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80">
-          <span className={`h-2 w-2 rounded-full ${
-            telemetrySource === "live-bike"
-              ? "bg-emerald-400"
-              : telemetrySource === "simulator"
-                ? "bg-amber-400"
-                : "bg-zinc-400"
-          }`} />
+          <span
+            className={`h-2 w-2 rounded-full ${
+              telemetrySource === "live-bike"
+                ? "bg-emerald-400"
+                : telemetrySource === "simulator"
+                  ? "bg-amber-400"
+                  : "bg-zinc-400"
+            }`}
+          />
           {telemetrySource === "live-bike"
             ? "Telemetry source: Live bike"
             : telemetrySource === "simulator"
@@ -196,38 +247,143 @@ export function RideCompletion({
         {/* Improvement Tips */}
         <div className="mb-4 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">
           <div className="flex items-center justify-between mb-1">
-            <span className="font-semibold text-white">🚀 Boost Your Earnings</span>
+            <span className="font-semibold text-white">
+              🚀 Boost Your Earnings
+            </span>
             <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-green-500/30 text-green-300">
               Next Time
             </span>
           </div>
-          <p className="text-white/60 mb-2">Improve your SPIN earnings with these tips:</p>
+          <p className="text-white/60 mb-2">
+            Improve your SPIN earnings with these tips:
+          </p>
           <ul className="text-white/60 space-y-1 pl-4">
             <li className="flex items-start gap-2">
-              <svg className="h-4 w-4 text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              <svg
+                className="h-4 w-4 text-green-400 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                />
               </svg>
               <span>Increase effort score: Push harder during intervals</span>
             </li>
             <li className="flex items-start gap-2">
-              <svg className="h-4 w-4 text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              <svg
+                className="h-4 w-4 text-green-400 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                />
               </svg>
               <span>Extend duration: Add 5-10 minutes to your workout</span>
             </li>
             <li className="flex items-start gap-2">
-              <svg className="h-4 w-4 text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              <svg
+                className="h-4 w-4 text-green-400 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                />
               </svg>
-              <span>Maintain consistency: Keep effort above 700 throughout</span>
+              <span>
+                Maintain consistency: Keep effort above 700 throughout
+              </span>
             </li>
             <li className="flex items-start gap-2">
-              <svg className="h-4 w-4 text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              <svg
+                className="h-4 w-4 text-green-400 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                />
               </svg>
-              <span>Complete more classes: Regular workouts = bonus rewards</span>
+              <span>
+                Complete more classes: Regular workouts = bonus rewards
+              </span>
             </li>
           </ul>
+        </div>
+
+        {/* Protocol Governance: Coach Rating */}
+        <div className="rounded-3xl bg-indigo-500/5 border border-indigo-500/10 p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col text-left">
+              <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">
+                Protocol Governance
+              </span>
+              <h4 className="text-sm font-bold text-white">
+                Rate {agentName}&apos;s Coaching
+              </h4>
+            </div>
+            <Star className="w-4 h-4 text-indigo-400" />
+          </div>
+
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onClick={() => setRating(star)}
+                className={`flex-1 py-3 rounded-xl border transition-all ${
+                  rating >= star
+                    ? "bg-indigo-600/20 border-indigo-500 text-indigo-400"
+                    : "bg-white/5 border-white/5 text-white/20 hover:border-white/10"
+                }`}
+              >
+                <Star
+                  className={`w-5 h-5 mx-auto ${rating >= star ? "fill-current" : ""}`}
+                />
+              </button>
+            ))}
+          </div>
+
+          {rating > 0 && (
+            <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <p className="text-[10px] text-white/40 italic text-center">
+                Your rating will influence {agentName}&apos;s future strategy
+                weights in the protocol.
+              </p>
+              <LoadingButton
+                variant="secondary"
+                className="w-full mt-3 h-10 text-[10px] uppercase font-black tracking-widest rounded-xl"
+                onClick={() => {
+                  setIsSubmitted(true);
+                  localStorage.setItem(
+                    `coach_rating_${agentName}`,
+                    String(rating),
+                  );
+                }}
+                isLoading={isSubmitted}
+                loadingText="Voting on Protocol..."
+              >
+                {isSubmitted ? "Governance Vote Cast" : "Submit Feedback"}
+              </LoadingButton>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -300,10 +456,10 @@ export function RideCompletion({
               aria-label="Request agent validation of rewards"
             >
               {zkProofStatus?.isGenerating
-                ? '🧠 Agent Validating…'
+                ? "🧠 Agent Validating…"
                 : zkProofStatus?.isSuccess
-                  ? '✓ Agent Approved'
-                  : '🧠 Request Agent Validation'}
+                  ? "✓ Agent Approved"
+                  : "🧠 Request Agent Validation"}
             </button>
           )}
         </div>
@@ -324,13 +480,15 @@ export function RideCompletion({
                 <span className="text-sm">🧠</span>
                 Agent Validation
               </span>
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                zkProofStatus.privacyLevel === 'high'
-                  ? 'bg-emerald-500/30 text-emerald-300'
-                  : zkProofStatus.privacyLevel === 'medium'
-                    ? 'bg-amber-500/30 text-amber-300'
-                    : 'bg-zinc-500/30 text-zinc-300'
-              }`}>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  zkProofStatus.privacyLevel === "high"
+                    ? "bg-emerald-500/30 text-emerald-300"
+                    : zkProofStatus.privacyLevel === "medium"
+                      ? "bg-amber-500/30 text-amber-300"
+                      : "bg-zinc-500/30 text-zinc-300"
+                }`}
+              >
                 {zkProofStatus.privacyLevel.toUpperCase()} PRIVACY
               </span>
             </div>
@@ -339,7 +497,9 @@ export function RideCompletion({
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="h-5 w-5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
-                  <span className="text-indigo-300 font-medium">{agentName} is reviewing your session…</span>
+                  <span className="text-indigo-300 font-medium">
+                    {agentName} is reviewing your session…
+                  </span>
                 </div>
                 <div className="space-y-1 text-white/50 pl-7">
                   <p className="flex items-center gap-1.5">
@@ -362,27 +522,46 @@ export function RideCompletion({
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="h-5 w-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    <svg className="h-3 w-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    <svg
+                      className="h-3 w-3 text-emerald-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                   </div>
-                  <span className="text-emerald-300 font-medium">{agentName} approved — {spinEarned} SPIN released</span>
+                  <span className="text-emerald-300 font-medium">
+                    {agentName} approved — {spinEarned} SPIN released
+                  </span>
                 </div>
                 <p className="text-white/50 pl-7">
-                  ZK proof verified on-chain • Privacy score: {zkProofStatus.privacyScore}/100
+                  ZK proof verified on-chain • Privacy score:{" "}
+                  {zkProofStatus.privacyScore}/100
                 </p>
               </div>
             )}
 
             {zkProofStatus.error && (
-              <p className="text-red-300">{agentName} validation failed — falling back to signed attestation.</p>
-            )}
-
-            {!zkProofStatus.isGenerating && !zkProofStatus.isSuccess && !zkProofStatus.error && (
-              <p className="text-white/50">
-                Request validation to have {agentName} review, sign, and submit your effort proof to the Chainlink CRE.
+              <p className="text-red-300">
+                {agentName} validation failed — falling back to signed
+                attestation.
               </p>
             )}
+
+            {!zkProofStatus.isGenerating &&
+              !zkProofStatus.isSuccess &&
+              !zkProofStatus.error && (
+                <p className="text-white/50">
+                  Request validation to have {agentName} review, sign, and
+                  submit your effort proof to the Chainlink CRE.
+                </p>
+              )}
           </div>
         )}
 
@@ -392,12 +571,14 @@ export function RideCompletion({
               <p className="font-semibold text-white">Free included</p>
               <p>Live telemetry + ride summary</p>
               <p className="mt-2 font-semibold text-white">Premium unlock</p>
-              <p>Historical trends, zone breakdowns, and AI coaching insights</p>
+              <p>
+                Historical trends, zone breakdowns, and AI coaching insights
+              </p>
               {onUpgrade && (
                 <button
                   onClick={() => {
                     trackEvent(ANALYTICS_EVENTS.PREMIUM_UPSELL_CLICKED, {
-                      source: 'ride-completion',
+                      source: "ride-completion",
                     });
                     onUpgrade();
                   }}
@@ -411,12 +592,16 @@ export function RideCompletion({
             {/* Performance Context */}
             <div className="mt-4 rounded-xl border border-white/15 bg-black/20 p-3 text-left text-xs text-white/80">
               <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold text-white">📊 Your Performance</span>
+                <span className="font-semibold text-white">
+                  📊 Your Performance
+                </span>
                 <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-blue-500/30 text-blue-300">
                   Context
                 </span>
               </div>
-              <p className="text-white/60 mb-2">Here&apos;s how you performed:</p>
+              <p className="text-white/60 mb-2">
+                Here&apos;s how you performed:
+              </p>
               <div className="grid grid-cols-2 gap-2 text-white/60">
                 <div>
                   <p className="font-semibold text-white">Effort Score</p>
@@ -427,12 +612,18 @@ export function RideCompletion({
                   <p className="text-sm">{formatTime(elapsedTime)}</p>
                 </div>
               </div>
-              <p className="text-white/60 mt-2">Aim for 900+ effort score to earn 50+ SPIN tokens!</p>
+              <p className="text-white/60 mt-2">
+                Aim for 900+ effort score to earn 50+ SPIN tokens!
+              </p>
               <div className="mt-3 flex items-center justify-between text-white/60">
                 <span>Current SPIN Earned:</span>
-                <span className="font-bold text-amber-400">{spinEarned} SPIN</span>
+                <span className="font-bold text-amber-400">
+                  {spinEarned} SPIN
+                </span>
               </div>
-              <p className="text-white/40 text-[10px] mt-1">Claim rewards after your ride to receive SPIN tokens.</p>
+              <p className="text-white/40 text-[10px] mt-1">
+                Claim rewards after your ride to receive SPIN tokens.
+              </p>
             </div>
           </>
         )}
@@ -453,7 +644,9 @@ function Stat({
   return (
     <div className="rounded-xl bg-white/10 p-3 sm:p-4">
       <p className="text-xs sm:text-sm text-white/50">{label}</p>
-      <p className={`text-xl sm:text-2xl font-bold ${highlight ? "text-purple-400" : "text-white"}`}>
+      <p
+        className={`text-xl sm:text-2xl font-bold ${highlight ? "text-purple-400" : "text-white"}`}
+      >
         {value}
       </p>
     </div>

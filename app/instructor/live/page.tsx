@@ -1,8 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { PrimaryNav } from "@/app/components/layout/nav";
-import { GlassCard, Tag, SectionHeader } from "@/app/components/ui/ui";
+import {
+  GlassCard,
+  Tag,
+  SectionHeader,
+  SurfaceCard,
+} from "@/app/components/ui/ui";
 import { LoadingButton } from "@/app/components/ui/loading-button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,13 +21,22 @@ import {
   Volume2,
   Lock,
   Unlock,
+  Target,
+  Trophy,
+  Sparkles,
+  CheckCircle2,
 } from "lucide-react";
+import {
+  fetchGhostWithFallback,
+  GhostPerformance,
+} from "@/app/lib/analytics/ghost-service";
 
 export default function InstructorLivePage() {
   const [isAgentPaused, setIsAgentPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [riderCount, setRiderCount] = useState(42);
   const [activeRiders, setActiveRiders] = useState(38);
+  const [benchmark, setBenchmark] = useState<GhostPerformance | null>(null);
   const [marketStats, setMarketStats] = useState({
     ticketsSold: 42,
     revenue: 630,
@@ -35,6 +49,57 @@ export default function InstructorLivePage() {
     avgHr: 142,
     intensity: 75,
   });
+
+  const [activeStyleAnchor, setActiveStyleAnchor] = useState<string | null>(
+    null,
+  );
+  const [styleAnchors, setStyleAnchors] = useState<any[]>([]);
+
+  // Load anchors from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("instructor_style_anchors");
+    if (saved) {
+      try {
+        setStyleAnchors(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse style anchors", e);
+      }
+    }
+  }, []);
+
+  const handleStyleOverride = (anchorId: string) => {
+    setActiveStyleAnchor(anchorId);
+    // In a real app, this would emit an event to the Agent reasoning loop
+    console.log("Instructor Override: Pushing style anchor", anchorId);
+  };
+
+  // Load benchmark data on mount
+  useEffect(() => {
+    // In a real app, these coordinates would come from the class route data
+    const mockRoute = [
+      { lat: 45.523062, lng: -122.676482, ele: 10 },
+      { lat: 45.523162, lng: -122.676582, ele: 15 },
+      { lat: 45.523262, lng: -122.676682, ele: 20 },
+    ];
+
+    fetchGhostWithFallback(mockRoute, {
+      classId: "demo-class",
+      ghostType: "instructor",
+    })
+      .then(setBenchmark)
+      .catch(console.error);
+  }, []);
+
+  const performanceDelta = useMemo(() => {
+    if (!benchmark) return null;
+    const benchmarkAvgPower = 200; // Mock benchmark avg
+    const delta = telemetry.avgPower - benchmarkAvgPower;
+    return {
+      value: delta,
+      percentage: (delta / benchmarkAvgPower) * 100,
+      isLeading: delta >= 0,
+    };
+  }, [benchmark, telemetry.avgPower]);
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-indigo-500/30">
@@ -84,7 +149,25 @@ export default function InstructorLivePage() {
           {/* Main Grid: Adapts for Mobile (Single Column) vs Desktop (Two Columns) */}
           <div className="flex flex-col gap-6">
             {/* Live Performance View */}
-            <GlassCard className="p-6 lg:p-8 bg-gradient-to-br from-indigo-500/5 to-transparent">
+            <GlassCard className="p-6 lg:p-8 bg-gradient-to-br from-indigo-500/5 to-transparent relative overflow-hidden">
+              {performanceDelta && (
+                <div
+                  className={`absolute top-0 right-0 px-4 py-2 rounded-bl-2xl border-l border-b ${
+                    performanceDelta.isLeading
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                      : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-3 h-3" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                      {performanceDelta.isLeading ? "+" : ""}
+                      {Math.round(performanceDelta.percentage)}% vs Benchmark
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between mb-8">
                 <SectionHeader
                   eyebrow="Real-time"
@@ -95,7 +178,7 @@ export default function InstructorLivePage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-8">
-                <div className="p-6 rounded-3xl bg-white/5 border border-white/10 flex flex-col items-center text-center">
+                <div className="p-6 rounded-3xl bg-white/5 border border-white/10 flex flex-col items-center text-center group hover:border-indigo-500/30 transition-all">
                   <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">
                     Avg Power
                   </span>
@@ -106,7 +189,7 @@ export default function InstructorLivePage() {
                     <div className="h-full bg-indigo-500 w-[65%]" />
                   </div>
                 </div>
-                <div className="p-6 rounded-3xl bg-white/5 border border-white/10 flex flex-col items-center text-center">
+                <div className="p-6 rounded-3xl bg-white/5 border border-white/10 flex flex-col items-center text-center group hover:border-rose-500/30 transition-all">
                   <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">
                     Avg HR
                   </span>
@@ -117,7 +200,7 @@ export default function InstructorLivePage() {
                     Zone 4
                   </span>
                 </div>
-                <div className="p-6 rounded-3xl bg-white/5 border border-white/10 flex flex-col items-center text-center">
+                <div className="p-6 rounded-3xl bg-white/5 border border-white/10 flex flex-col items-center text-center group hover:border-amber-500/30 transition-all">
                   <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">
                     Intensity
                   </span>
@@ -130,6 +213,99 @@ export default function InstructorLivePage() {
                 </div>
               </div>
             </GlassCard>
+
+            {/* Benchmark Comparison Tool */}
+            <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <Target className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-white/80">
+                  Benchmark Engine
+                </h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] font-bold text-white/30 uppercase">
+                    Ghost Source
+                  </span>
+                  <span className="text-xs font-bold text-indigo-300">
+                    Instructor PB
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] font-bold text-white/30 uppercase">
+                    Gap Time
+                  </span>
+                  <span className="text-xs font-bold text-emerald-400">
+                    +12.4s
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] font-bold text-white/30 uppercase">
+                    Estimated Rev
+                  </span>
+                  <span className="text-xs font-bold text-white">$840.00</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] font-bold text-white/30 uppercase">
+                    Engagement
+                  </span>
+                  <span className="text-xs font-bold text-amber-400">High</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Style Hot-Swap (Phase 2 Override) */}
+            {styleAnchors.length > 0 && (
+              <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-5 h-5 text-indigo-400" />
+                    <h3 className="text-sm font-black uppercase tracking-widest text-white/80">
+                      Style Overrides
+                    </h3>
+                  </div>
+                  <Tag className="bg-indigo-500/10 text-indigo-400 text-[10px]">
+                    Phase 2
+                  </Tag>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {styleAnchors.map((anchor) => (
+                    <button
+                      key={anchor.id}
+                      onClick={() => handleStyleOverride(anchor.id)}
+                      className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${
+                        activeStyleAnchor === anchor.id
+                          ? "bg-indigo-600 border-indigo-500 shadow-lg shadow-indigo-500/20"
+                          : "bg-white/5 border-white/10 hover:bg-white/10"
+                      }`}
+                    >
+                      <div
+                        className={`p-2 rounded-lg ${activeStyleAnchor === anchor.id ? "bg-white/20" : "bg-indigo-500/10"}`}
+                      >
+                        {anchor.type === "transcript" ? (
+                          <MessageSquare className="w-4 h-4" />
+                        ) : (
+                          <Volume2 className="w-4 h-4" />
+                        )}
+                      </div>
+                      <div className="flex flex-col items-start">
+                        <span className="text-xs font-black uppercase tracking-widest leading-none mb-1">
+                          {anchor.name}
+                        </span>
+                        <span className="text-[10px] text-white/40 font-bold truncate max-w-[120px]">
+                          {anchor.type}
+                        </span>
+                      </div>
+                      {activeStyleAnchor === anchor.id && (
+                        <div className="ml-auto">
+                          <CheckCircle2 className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Mobile-Optimized "Quick Action" Grid */}
             <div className="grid grid-cols-2 gap-4">
@@ -159,16 +335,30 @@ export default function InstructorLivePage() {
                 title="Class Revenue"
                 className="bg-emerald-500/10 border-emerald-500/20"
               >
-                <div className="mt-4 flex items-end gap-3">
-                  <span className="text-4xl font-black text-white tracking-tighter">
-                    ${marketStats.revenue}
-                  </span>
-                  <span className="text-sm font-bold text-emerald-400 mb-1.5">
-                    {marketStats.trending}
-                  </span>
+                <div className="mt-4 flex items-end justify-between">
+                  <div className="flex items-end gap-3">
+                    <span className="text-4xl font-black text-white tracking-tighter">
+                      ${marketStats.revenue}
+                    </span>
+                    <span className="text-sm font-bold text-emerald-400 mb-1.5">
+                      {marketStats.trending}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">
+                      Agent Multiplier
+                    </span>
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                      <TrendingUp className="w-3 h-3 text-emerald-400" />
+                      <span className="text-xs font-black text-emerald-400">
+                        1.5x $SPIN
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-white/40 mt-2">
-                  Late ticket sales active via Venice agent.
+                <p className="text-xs text-white/40 mt-4 italic">
+                  Agent autonomously increased rewards to drive last-minute
+                  occupancy.
                 </p>
               </SurfaceCard>
 
@@ -260,6 +450,42 @@ export default function InstructorLivePage() {
                     &ldquo;Detecting slight power drop in Group B. Preparing
                     motivational cue for the next climb.&rdquo;
                   </p>
+                </div>
+
+                {/* Live Social Actions Feed */}
+                <div className="mt-6 pt-6 border-t border-white/5">
+                  <span className="text-[10px] font-black text-white/30 uppercase tracking-widest block mb-4">
+                    Social Agency Feed
+                  </span>
+                  <div className="space-y-3">
+                    <div className="flex gap-3 items-start p-3 rounded-xl bg-white/5 border border-white/5">
+                      <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 mt-0.5">
+                        <Users className="w-3 h-3" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-white/80 leading-none mb-1">
+                          Outreach Triggered
+                        </span>
+                        <span className="text-[9px] text-white/40 leading-tight">
+                          Recommending "Elite Recovery" to top 5% performers.
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 items-start p-3 rounded-xl bg-white/5 border border-white/5 opacity-50">
+                      <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 mt-0.5">
+                        <Zap className="w-3 h-3" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-white/80 leading-none mb-1">
+                          Nudge Sent
+                        </span>
+                        <span className="text-[9px] text-white/40 leading-tight">
+                          Sending "Keep it up" nudge to struggling rider in Zone
+                          2.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </GlassCard>
 

@@ -57,6 +57,14 @@ export function useHaptic() {
   // Check if haptic is supported
   const isSupported = typeof navigator !== "undefined" && "vibrate" in navigator;
 
+  const rhythm = useCallback((bpm: number, durationMs: number = 2000) => {
+    if (!isSupported) return;
+    const intervalMs = (60 / bpm) * 1000;
+    const pulseCount = Math.floor(durationMs / intervalMs);
+    const pattern = Array(pulseCount).fill([10, intervalMs - 10]).flat();
+    return vibrate(pattern);
+  }, [isSupported, vibrate]);
+
   return {
     isSupported,
     trigger,
@@ -67,5 +75,6 @@ export function useHaptic() {
     warning,
     error,
     vibrate,
+    rhythm,
   };
 }

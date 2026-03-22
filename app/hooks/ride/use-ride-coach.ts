@@ -18,6 +18,12 @@ interface UseRideCoachOptions {
   speak: (text: string, emotion: any) => void;
   rideProgress?: number;
   storyBeats?: Array<{ progress: number; label: string; type: string }>;
+  lastDecision?: {
+    thoughtProcess: string;
+    action?: string;
+    confidence?: number;
+    emotion?: string;
+  } | null;
 }
 
 export function useRideCoach({
@@ -34,6 +40,7 @@ export function useRideCoach({
   speak,
   rideProgress = 0,
   storyBeats = [],
+  lastDecision,
 }: UseRideCoachOptions) {
   const [lastCoachMessage, setLastCoachMessage] = useState<string | null>(null);
   const coachMessageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -92,10 +99,12 @@ export function useRideCoach({
     if (!aiActive || aiLogs.length === 0) return;
     const latest = aiLogs[0];
     if (latest.type === "action" && !isSpeaking) {
-      speak(latest.message, "intense");
+      // Use agent's chosen emotion if available, fallback to intense
+      const emotion = lastDecision?.emotion || "intense";
+      speak(latest.message, emotion);
       showMessage(latest.message);
     }
-  }, [aiActive, aiLogs, isSpeaking, speak, showMessage]);
+  }, [aiActive, aiLogs, isSpeaking, speak, showMessage, lastDecision]);
 
   // 4. Cadence drift detection — nudge if below target RPM for >8s
   useEffect(() => {
