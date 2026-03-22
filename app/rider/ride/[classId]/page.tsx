@@ -1,38 +1,22 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import {
-  useClass,
-  type ClassWithRoute,
-} from "../../../hooks/evm/use-class-data";
-import {
-  usePracticeConfig,
-  type PracticeClassConfig,
-} from "../../../hooks/ride/use-practice-config";
-import dynamic from "next/dynamic";
-import FocusRouteVisualizer from "../../../components/features/route/focus-route-visualizer";
+import { useClass } from "../../../hooks/evm/use-class-data";
+import { usePracticeConfig } from "../../../hooks/ride/use-practice-config";
 import { useAccount } from "wagmi";
 import { usePanelState } from "../../../hooks/ui/use-panel-state";
-
-const RouteVisualizer = dynamic(
-  () => import("../../../components/features/route/route-visualizer"),
-  { ssr: false },
-);
-import { RideControls } from "../../../components/features/ride/ride-controls";
-import { RideCompletion } from "../../../components/features/ride/ride-completion";
-import { RideHUD } from "../../../components/features/ride/ride-hud";
-import { RideTopBar } from "../../../components/features/ride/ride-top-bar";
-import { RideBottomPanel } from "../../../components/features/ride/ride-bottom-panel";
 import {
-  RideTutorialOverlay,
   useRideTutorial,
 } from "../../../components/features/ride/ride-tutorial";
 import {
   RideLoading,
   RideNotFound,
 } from "../../../components/features/ride/ride-loading";
+import { RideVisualization } from "../../../components/features/ride/ride-visualization";
+import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overlay";
+import { RideModals } from "../../../components/features/ride/ride-modals";
 import { useSimulatedRewards } from "../../../hooks/ride/use-simulated-rewards";
 import {
   useDeviceType,
@@ -49,7 +33,6 @@ import { CoachMessageOverlay } from "../../../components/features/ride/coach-mes
 import { FlowBackground } from "../../../components/features/ride/flow-background";
 import { PerformanceGraph } from "../../../components/features/ride/performance-graph";
 import { SettlementStream } from "../../../components/features/ride/settlement-stream";
-import { Sparkles } from "lucide-react";
 import {
   useRewards,
   type RewardMode,
@@ -59,14 +42,8 @@ import { useZKClaim } from "../../../hooks/evm/use-zk-claim";
 import { ANALYTICS_EVENTS, trackEvent } from "../../../lib/analytics/events";
 import { useWakeLock } from "../../../hooks/use-wake-lock";
 import { useHaptic } from "../../../hooks/use-haptic";
-import { DemoCompleteModal } from "../../../components/features/common/demo-complete-modal";
-import { NoBikeModal } from "../../../components/features/ride/no-bike-modal";
-import { KeyboardShortcutOverlay } from "../../../components/features/ride/keyboard-shortcut-overlay";
-import { PedalSimulator } from "../../../components/features/common/pedal-simulator";
-import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import {
   type WorkoutPlan,
-  PHASE_DEFAULTS,
   PHASE_TO_THEME,
   PRESET_WORKOUTS,
   getCurrentInterval,
@@ -83,12 +60,10 @@ import {
   type WBalConfig,
 } from "../../../lib/analytics/physiological-models";
 import {
-  downloadTCX,
   type RideRecordPoint,
 } from "../../../lib/analytics/ride-recorder";
 import {
   calculateGhostState,
-  generateMockGhost,
   fetchGhostWithFallback,
   type GhostPerformance,
   type GhostState,
@@ -1408,391 +1383,152 @@ export default function LiveRidePage() {
         height: deviceType === "mobile" ? `${viewportHeight}px` : "100vh",
       }}
     >
-      {/* Full-Screen Visualization */}
-      <div className="absolute inset-0">
-        {viewMode === "focus" ? (
-          <FocusRouteVisualizer
-            elevationProfile={routeElevationProfile}
-            storyBeats={classData.route.route.storyBeats}
-            progress={routeProgress}
-            currentPower={telemetry.power}
-            recentPower={recentPowerHistory}
-            ftp={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
-            theme={routeTheme}
-            stats={{
-              hr: telemetry.heartRate,
-              power: telemetry.power,
-              cadence: telemetry.cadence,
-            }}
-            avatarId={searchParams.get("avatarId") || undefined}
-            equipmentId={searchParams.get("equipmentId") || undefined}
-            routeName={classData.metadata?.route.name || classData.name}
-            routeStartCoordinate={routeCoordinates[0] ?? null}
-            currentCoordinate={currentRouteCoordinate}
-            intervalPhase={currentInterval?.phase ?? null}
-            className="h-full w-full"
-            panelState={panelState.state}
-            panelPositions={panelState.positions}
-            onTogglePanel={handleTogglePanel}
-            onSetPanelPosition={panelState.setPanelPosition}
-            onSnapPanel={(key) =>
-              panelState.snapPanelToEdge(key, {
-                width: window.innerWidth,
-                height: window.innerHeight,
-              })
-            }
-            onTrackWidgetInteraction={trackWidgetInteraction}
-            useAccordion={deviceType === "mobile"}
-            onExpandOne={panelState.expandOne}
-            onHaptic={deviceType === "mobile" ? haptic.trigger : undefined}
-            showStreetView={!isPracticeMode}
-          />
-        ) : (
-          <RouteVisualizer
-            elevationProfile={routeElevationProfile}
-            theme={routeTheme}
-            storyBeats={classData.route.route.storyBeats}
-            progress={routeProgress}
-            mode={visualizerMode}
-            stats={{
-              hr: telemetry.heartRate,
-              power: telemetry.power,
-              cadence: telemetry.cadence,
-            }}
-            avatarId={searchParams.get("avatarId") || undefined}
-            equipmentId={searchParams.get("equipmentId") || undefined}
-            quality={deviceType === "mobile" ? "low" : "high"}
-            className="h-full w-full"
-          />
-        )}
+      <RideVisualization
+        viewMode={viewMode}
+        deviceType={deviceType}
+        isRiding={isRiding}
+        rideProgress={rideProgress}
+        elapsedTime={elapsedTime}
+        telemetry={telemetry}
+        routeElevationProfile={routeElevationProfile}
+        routeCoordinates={routeCoordinates}
+        currentRouteCoordinate={currentRouteCoordinate}
+        classData={classData as any}
+        workoutPlan={workoutPlan}
+        currentIntervalIndex={currentIntervalIndex}
+        currentInterval={currentInterval}
+        intervalProgress={intervalProgress}
+        routeTheme={routeTheme}
+        searchParams={searchParams}
+        panelState={panelState.state}
+        panelPositions={panelState.positions}
+        onTogglePanel={handleTogglePanel}
+        onSetPanelPosition={panelState.setPanelPosition}
+        onSnapPanel={(key) =>
+          panelState.snapPanelToEdge(key, {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          })
+        }
+        onTrackWidgetInteraction={trackWidgetInteraction}
+        onExpandOne={panelState.expandOne}
+        onHaptic={haptic.trigger}
+        isPracticeMode={isPracticeMode}
+        recentPowerHistory={recentPowerHistory}
+      />
 
-        {/* Mini Stats Bar - Mobile: Always visible during ride */}
-        {isRiding && deviceType === "mobile" && (
-          <div
-            className="absolute bottom-3 left-3 right-3 flex items-center justify-between rounded-xl border border-white/10 bg-black/80 backdrop-blur-xl px-4 py-2 pointer-events-none"
-            style={{ zIndex: Z_LAYERS.widgets + 10 }}
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-white/40">
-                  Time
-                </span>
-                <span className="text-sm font-bold text-white">
-                  {formatTime(elapsedTime)}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-white/40">
-                  Progress
-                </span>
-                <span className="text-sm font-bold text-white">
-                  {Math.round(rideProgress)}%
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {telemetry.heartRate > 0 && (
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-white/40">
-                    HR
-                  </span>
-                  <span className="text-sm font-bold text-rose-400">
-                    {telemetry.heartRate}
-                  </span>
-                </div>
-              )}
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-white/40">
-                  Watts
-                </span>
-                <span className="text-sm font-bold text-yellow-400">
-                  {telemetry.power}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Progress Bar - show only once ride has started */}
-        {(isRiding || rideProgress > 0) && (
-          <div className="absolute inset-x-0 bottom-0 h-2 sm:h-3 bg-black/50 flex">
-            {workoutPlan ? (
-              workoutPlan.intervals.map((interval, i) => {
-                const widthPct =
-                  (interval.durationSeconds / workoutPlan.totalDuration) * 100;
-                const isCurrent = i === currentIntervalIndex;
-                const isComplete = i < currentIntervalIndex;
-                const phaseColor =
-                  interval.phase === "sprint"
-                    ? "bg-red-500"
-                    : interval.phase === "interval"
-                      ? "bg-yellow-500"
-                      : interval.phase === "warmup"
-                        ? "bg-green-500"
-                        : interval.phase === "recovery"
-                          ? "bg-blue-500"
-                          : interval.phase === "cooldown"
-                            ? "bg-indigo-400"
-                            : "bg-purple-500";
-                return (
-                  <div
-                    key={i}
-                    className="relative h-full border-r border-black/30 last:border-r-0"
-                    style={{ width: `${widthPct}%` }}
-                  >
-                    <div
-                      className={`h-full transition-all duration-300 ${phaseColor} ${
-                        isComplete
-                          ? "opacity-100"
-                          : isCurrent
-                            ? "opacity-80"
-                            : "opacity-20"
-                      }`}
-                      style={{
-                        width: isCurrent
-                          ? `${intervalProgress * 100}%`
-                          : isComplete
-                            ? "100%"
-                            : "0%",
-                      }}
-                    />
-                    {isCurrent && (
-                      <div
-                        className="absolute top-0 right-0 bottom-0 w-0.5 bg-white animate-pulse"
-                        style={{ left: `${intervalProgress * 100}%` }}
-                      />
-                    )}
-                  </div>
-                );
-              })
-            ) : (
-              <div
-                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300"
-                style={{ width: `${rideProgress}%` }}
-              />
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* HUD Overlay */}
-      {showHUD && (
-        <div className="absolute inset-0 pointer-events-none z-30">
-          {/* Top Bar - Extracted to modular component */}
-          <RideTopBar
-            className={classData.name}
-            instructor={classData.instructor}
-            isPracticeMode={isPracticeMode}
-            isRiding={isRiding}
-            isExiting={isExiting}
-            rideProgress={rideProgress}
-            isTrainingMode={isTrainingMode}
-            isGuestMode={isGuestMode}
-            useSimulator={useSimulator}
-            bleConnected={bleConnected}
-            walletConnected={walletConnected}
-            rewardMode={rewardMode}
-            rewardsFormattedReward={rewards.formattedReward}
-            rewardsIsActive={rewards.isActive}
-            rewardsClearNodeConnected={rewards.clearNodeConnected}
-            viewMode={viewMode}
-            hudMode={hudMode}
-            deviceType={deviceType}
-            simulatedReward={simulatedRewards}
-            onSetUseSimulator={setUseSimulator}
-            onSetRewardMode={setRewardMode}
-            onToggleViewMode={() =>
-              applyViewMode(
-                viewMode === "immersive" ? "focus" : "immersive",
-                "manual",
-              )
-            }
-            onCycleHudMode={cycleHudMode}
-            onExitRide={exitRide}
-            onResetPrefs={() => {
-              try {
-                window.localStorage.removeItem("spinchain:ride:viewMode");
-                window.localStorage.removeItem("spinchain:ride:hudMode");
-              } catch {
-                /* ignore */
-              }
-              hudModePreferenceRef.current = "system";
-              viewModePreferenceRef.current = "system";
-              applyHudMode(
-                getSystemHudMode(deviceType, orientation, prefersReducedMotion),
-                "system",
-              );
-              applyViewMode(
-                getSystemViewMode(
-                  deviceType,
-                  performanceTier,
-                  prefersReducedMotion,
-                ),
-                "system",
-              );
-              panelState.resetLayout();
-              trackEvent(ANALYTICS_EVENTS.WIDGET_LAYOUT_RESET, {
-                phase: isRiding
-                  ? "in_ride"
-                  : rideProgress > 0
-                    ? "post_ride"
-                    : "pre_ride",
-                viewMode,
-                deviceType,
-              });
-            }}
-            onCollapseToggle={() => {
-              if (isRiding && viewMode === "immersive") {
-                cycleRideWidgetsMode();
-                return;
-              }
-              if (panelState.isAllCollapsed) panelState.expandAll();
-              else panelState.collapseAll();
-            }}
-            isAllCollapsed={
-              isRiding && viewMode === "immersive"
-                ? widgetsMode !== "expanded"
-                : panelState.isAllCollapsed
-            }
-          />
-
-          {/* Center - Telemetry (Responsive Layout) - Only show when riding */}
-          {(!isRiding || deviceType !== "mobile" || widgetsVisible) && (
-            <RideHUD
-              telemetry={telemetry}
-              deviceType={deviceType}
-              orientation={orientation}
-              hudMode={hudMode}
-              isRiding={isRiding}
-              rideProgress={rideProgress}
-              rewardsActive={rewards.isActive}
-              rewardsStreamState={rewards.streamState ?? null}
-              rewardsMode={rewards.mode}
-              intervalPhase={currentInterval?.phase ?? null}
-              aiLog={aiLogs[0]}
-              ghostState={ghostState}
-              multiGhostState={[
-                {
-                  id: "g1",
-                  name: "Vitalik",
-                  leadLagTime: -12.4,
-                  distanceGap: 45,
-                  active: true,
-                },
-                {
-                  id: "g2",
-                  name: "Satoshi",
-                  leadLagTime: 5.2,
-                  distanceGap: -20,
-                  active: true,
-                },
-              ]}
-              targetRpm={currentInterval?.targetRpm}
-            />
-          )}
-
-          {/* Bottom - Widget toggle + Controls (extracted to modular component) */}
-          {isRiding && viewMode === "immersive" && (
-            <button
-              onClick={() => {
-                haptic.trigger("light");
-                cycleRideWidgetsMode();
-              }}
-              className="absolute right-4 bottom-24 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-black/70 backdrop-blur border border-white/20 shadow-lg transition-transform active:scale-95"
-              aria-label={
-                widgetsMode === "expanded"
-                  ? "Collapse widgets"
-                  : widgetsMode === "collapsed"
-                    ? "Minimize widgets"
-                    : "Restore widgets"
-              }
-            >
-              {widgetsMode === "expanded" ? (
-                <svg
-                  className="h-5 w-5 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 12h16"
-                  />
-                </svg>
-              ) : widgetsMode === "collapsed" ? (
-                <svg
-                  className="h-5 w-5 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className="h-5 w-5 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-              )}
-            </button>
-          )}
-          <RideBottomPanel
-            isRiding={isRiding}
-            isStarting={isStarting}
-            rideProgress={rideProgress}
-            elapsedTime={elapsedTime}
-            hudMode={hudMode}
-            deviceType={deviceType}
-            widgetsMode={widgetsMode}
-            useSimulator={useSimulator}
-            isPracticeMode={isPracticeMode}
-            isTrainingMode={isTrainingMode}
-            bleConnected={bleConnected}
-            walletConnected={walletConnected}
-            connectionHint={connectionHint}
-            telemetryEffort={telemetry.effort}
-            telemetryCadence={telemetry.cadence}
-            workoutPlan={workoutPlan}
-            currentInterval={currentInterval}
-            currentIntervalIndex={currentIntervalIndex}
-            intervalProgress={intervalProgress}
-            intervalRemaining={intervalRemaining}
-            aiActive={aiActive}
-            agentName={agentName}
-            reasonerState={reasonerState}
-            lastDecision={lastDecision}
-            thoughtLog={thoughtLog}
-            isSpeaking={isSpeaking}
-            panelState={panelState.state}
-            onTogglePanel={handleTogglePanel}
-            onSetWidgetsMode={panelState.setMobileRideWidgetsMode}
-            onStartRide={startRide}
-            onPauseRide={pauseRide}
-            onSetWorkoutPlan={setWorkoutPlan}
-            onSetUseSimulator={setUseSimulator}
-            onBleMetrics={handleBleMetrics}
-            onSimulatorMetrics={handleSimulatorMetrics}
-            onHaptic={haptic.trigger}
-            formatTime={formatTime}
-          />
-        </div>
-      )}
+      <RideHUDOverlay
+        classData={classData}
+        isPracticeMode={isPracticeMode}
+        isRiding={isRiding}
+        isExiting={isExiting}
+        rideProgress={rideProgress}
+        isTrainingMode={isTrainingMode}
+        isGuestMode={isGuestMode}
+        useSimulator={useSimulator}
+        bleConnected={bleConnected}
+        walletConnected={walletConnected}
+        rewardMode={rewardMode}
+        rewardsFormattedReward={rewards.formattedReward}
+        rewardsIsActive={rewards.isActive}
+        rewardsClearNodeConnected={rewards.clearNodeConnected}
+        viewMode={viewMode}
+        hudMode={hudMode}
+        deviceType={deviceType}
+        simulatedReward={simulatedRewards}
+        telemetry={telemetry}
+        telemetryHistory={telemetryHistory}
+        ghostState={ghostState}
+        currentInterval={currentInterval}
+        aiLogs={aiLogs}
+        aiActive={aiActive}
+        agentName={agentName}
+        reasonerState={reasonerState}
+        lastDecision={lastDecision}
+        thoughtLog={thoughtLog}
+        isSpeaking={isSpeaking}
+        widgetsVisible={widgetsVisible}
+        widgetsMode={widgetsMode}
+        panelState={panelState.state}
+        elapsedTime={elapsedTime}
+        connectionHint={connectionHint}
+        telemetryEffort={telemetry.effort}
+        telemetryCadence={telemetry.cadence}
+        workoutPlan={workoutPlan}
+        currentIntervalIndex={currentIntervalIndex}
+        intervalProgress={intervalProgress}
+        intervalRemaining={intervalRemaining}
+        rewardsStreamState={rewards.streamState ?? null}
+        rewardsMode={rewards.mode}
+        orientation={orientation}
+        onSetUseSimulator={setUseSimulator}
+        onSetRewardMode={setRewardMode}
+        onToggleViewMode={() =>
+          applyViewMode(
+            viewMode === "immersive" ? "focus" : "immersive",
+            "manual",
+          )
+        }
+        onCycleHudMode={cycleHudMode}
+        onExitRide={exitRide}
+        onResetPrefs={() => {
+          try {
+            window.localStorage.removeItem("spinchain:ride:viewMode");
+            window.localStorage.removeItem("spinchain:ride:hudMode");
+          } catch {
+            /* ignore */
+          }
+          hudModePreferenceRef.current = "system";
+          viewModePreferenceRef.current = "system";
+          applyHudMode(
+            getSystemHudMode(deviceType, orientation, prefersReducedMotion),
+            "system",
+          );
+          applyViewMode(
+            getSystemViewMode(
+              deviceType,
+              performanceTier,
+              prefersReducedMotion,
+            ),
+            "system",
+          );
+          panelState.resetLayout();
+          trackEvent(ANALYTICS_EVENTS.WIDGET_LAYOUT_RESET, {
+            phase: isRiding
+              ? "in_ride"
+              : rideProgress > 0
+                ? "post_ride"
+                : "pre_ride",
+            viewMode,
+            deviceType,
+          });
+        }}
+        onCollapseToggle={() => {
+          if (isRiding && viewMode === "immersive") {
+            cycleRideWidgetsMode();
+            return;
+          }
+          if (panelState.isAllCollapsed) panelState.expandAll();
+          else panelState.collapseAll();
+        }}
+        isAllCollapsed={
+          isRiding && viewMode === "immersive"
+            ? widgetsMode !== "expanded"
+            : panelState.isAllCollapsed
+        }
+        onTogglePanel={handleTogglePanel}
+        onSetWidgetsMode={panelState.setMobileRideWidgetsMode}
+        onStartRide={startRide}
+        onPauseRide={pauseRide}
+        onSetWorkoutPlan={setWorkoutPlan}
+        onSetUseSimulator2={setUseSimulator}
+        onBleMetrics={handleBleMetrics}
+        onSimulatorMetrics={handleSimulatorMetrics}
+        onHaptic={haptic.trigger}
+        formatTime={formatTime}
+        trackWidgetInteraction={trackWidgetInteraction}
+        cycleRideWidgetsMode={cycleRideWidgetsMode}
+      />
 
       <RiderSocialFeed events={socialEvents} onHighFive={handleHighFive} />
 
@@ -1813,37 +1549,6 @@ export default function LiveRidePage() {
           />
         </div>
       )}
-
-      {/* Milestone Celebration Overlay */}
-      <AnimatePresence>
-        {showMilestone && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5, y: 100 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 1.5, filter: "blur(20px)" }}
-            className="fixed inset-0 flex items-center justify-center z-[100] pointer-events-none"
-          >
-            <div className="relative">
-              <div className="absolute inset-0 bg-indigo-500/40 blur-[120px] animate-pulse rounded-full scale-150" />
-              <div className="relative bg-black/80 backdrop-blur-3xl border-2 border-indigo-500/50 rounded-[3rem] px-12 py-10 text-center shadow-[0_0_100px_rgba(99,102,241,0.4)]">
-                <motion.div
-                  animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
-                  transition={{ duration: 0.5, repeat: 2 }}
-                  className="inline-block mb-4"
-                >
-                  <Sparkles className="w-16 h-16 text-indigo-400" />
-                </motion.div>
-                <h2 className="text-5xl font-black text-white tracking-tighter mb-2 italic uppercase">
-                  {showMilestone.title}
-                </h2>
-                <p className="text-indigo-300 font-bold text-lg uppercase tracking-widest opacity-80">
-                  {showMilestone.subtitle}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Social Presence: Other riders in the class */}
       {isRiding && viewMode === "immersive" && (
@@ -1905,122 +1610,55 @@ export default function LiveRidePage() {
         <div className="absolute inset-0 pointer-events-none rounded-none border-4 border-red-500/60 animate-pulse" />
       )}
 
-      {/* Completion Modal - Mobile Optimized */}
-      {rideProgress >= 100 && (
-        <RideCompletion
-          isPracticeMode={isPracticeMode}
-          elapsedTime={elapsedTime}
-          avgHeartRate={telemetryAverages.avgHr}
-          avgPower={telemetryAverages.avgPower}
-          avgEffort={telemetryAverages.avgEffort}
-          telemetrySource={
-            bleConnected
-              ? "live-bike"
-              : useSimulator
-                ? "simulator"
-                : "estimated"
-          }
-          onExit={exitRide}
-          onRideAgain={() => router.push(`/rider/ride/${classId}`)}
-          onShare={() => {
-            if (typeof window === "undefined") return;
-            const spinText = isTrainingMode
-              ? "Training Mode"
-              : `${rewards.formattedReward} SPIN`;
-            const text = `Just finished ${classData?.name || "a SpinChain ride"} — ${telemetryAverages.avgEffort}/1000 effort, ${spinText}.`;
-            if (navigator.share) {
-              navigator
-                .share({
-                  title: "SpinChain Ride Complete",
-                  text,
-                  url: window.location.origin + "/rider/journey",
-                })
-                .catch(() => {});
-              return;
-            }
-            navigator.clipboard.writeText(text).catch(() => {});
-          }}
-          onDeploy={
-            isPracticeMode
-              ? () => router.push("/instructor/builder")
-              : undefined
-          }
-          onUpgrade={
-            !isPracticeMode && !isTrainingMode
-              ? () => router.push("/rider/journey?upgrade=analytics")
-              : undefined
-          }
-          onClaimRewards={
-            !isPracticeMode && !isTrainingMode ? handleClaimRewards : undefined
-          }
-          zkProofStatus={
-            !isPracticeMode && !isTrainingMode
-              ? {
-                  isGenerating: isGeneratingProof,
-                  isSuccess: zkSuccess,
-                  privacyScore,
-                  privacyLevel,
-                  error: zkError,
-                }
-              : undefined
-          }
-          spinEarned={isTrainingMode ? "0" : rewards.formattedReward}
-          agentName={agentName}
-          agentPersonality={aiPersonality || "data"}
-          syncStatus={completionSyncStatus}
-          primaryAction={completionPrimaryAction}
-          onExportTCX={() => {
-            downloadTCX(
-              {
-                id: classId,
-                name: classData?.name || "SpinChain Ride",
-                startTime: classData?.startTime
-                  ? classData.startTime * 1000
-                  : Date.now(),
-                instructor: classData?.instructor,
-              },
-              ridePointsRef.current,
-            );
-          }}
-        />
-      )}
-
-      {/* No Bike Connected Modal */}
-      <NoBikeModal
-        open={showNoBikeModal}
-        onEnableSimulator={handleEnableSimulatorFromModal}
-        onDismiss={() => setShowNoBikeModal(false)}
+      <RideModals
+        rideProgress={rideProgress}
+        isPracticeMode={isPracticeMode}
+        isTrainingMode={isTrainingMode}
+        isRiding={isRiding}
+        elapsedTime={elapsedTime}
+        telemetryAverages={telemetryAverages}
+        bleConnected={bleConnected}
+        useSimulator={useSimulator}
+        classId={classId}
+        classData={classData}
+        practiceConfig={practiceConfig}
+        rewardsFormattedReward={rewards.formattedReward}
+        handleClaimRewards={handleClaimRewards}
+        zkProofStatus={
+          !isPracticeMode && !isTrainingMode
+            ? {
+                isGenerating: isGeneratingProof,
+                isSuccess: zkSuccess,
+                privacyScore,
+                privacyLevel,
+                error: zkError,
+              }
+            : undefined
+        }
+        completionSyncStatus={completionSyncStatus}
+        completionPrimaryAction={completionPrimaryAction}
+        showMilestone={showMilestone}
+        showNoBikeModal={showNoBikeModal}
+        showKeyboardHints={showKeyboardHints}
+        showDemoModal={showDemoModal}
+        demoStats={demoStats}
+        showTutorial={showTutorial}
+        tutorialStep={tutorialStep}
+        agentName={agentName}
+        aiPersonality={aiPersonality || "data"}
+        rewardMode={rewardMode}
+        walletConnected={walletConnected}
+        ridePointsRef={ridePointsRef}
+        router={router}
+        onExitRide={exitRide}
+        onEnableSimulatorFromModal={handleEnableSimulatorFromModal}
+        onDismissNoBike={() => setShowNoBikeModal(false)}
+        onDismissKeyboardHints={() => setShowKeyboardHints(false)}
+        onDemoModalClose={handleDemoModalClose}
+        onNextTutorial={nextTutorial}
+        onDismissTutorial={dismissTutorial}
+        onSimulatorMetrics={handleSimulatorMetrics}
       />
-
-      {/* Keyboard Shortcut Overlay - shown briefly when simulator activates */}
-      <KeyboardShortcutOverlay
-        show={showKeyboardHints}
-        onDismiss={() => setShowKeyboardHints(false)}
-      />
-
-      {/* Page-level Pedal Simulator — mounted here so widget collapse/minimize never unmounts it */}
-      {useSimulator && (
-        <PedalSimulator
-          isActive={isRiding}
-          onMetricsUpdate={handleSimulatorMetrics}
-        />
-      )}
-
-      {/* Demo Complete Modal */}
-      <DemoCompleteModal
-        isOpen={showDemoModal}
-        onClose={handleDemoModalClose}
-        stats={demoStats}
-      />
-
-      {/* Onboarding Tutorial Overlay (extracted to modular component) */}
-      {showTutorial && (
-        <RideTutorialOverlay
-          step={tutorialStep}
-          onNext={nextTutorial}
-          onDismiss={dismissTutorial}
-        />
-      )}
     </div>
   );
 }
