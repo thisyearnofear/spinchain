@@ -85,6 +85,7 @@ export const WORKOUT_SOUNDS = {
   // Achievement sounds
   personalBest: 'fanfare, orchestral, golden, achievement',
   milestone: 'chime, progress, level up, video game',
+  achievement: 'sparkle, magic, success, bright chime',
   
   // Environment sounds
   crowdCheer: 'stadium crowd, cheering, distant, energetic',
@@ -109,6 +110,7 @@ export const SOUND_DURATIONS: Record<WorkoutSoundType, number> = {
   resistanceDown: 0.5,
   personalBest: 3,
   milestone: 2,
+  achievement: 2,
   crowdCheer: 4,
   heartbeat: 2,
   sprint: 1,

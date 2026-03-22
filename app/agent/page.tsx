@@ -1,11 +1,39 @@
 "use client";
 
+import { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { HookVisualizer } from "./hook-visualizer";
 import { CoachProfile } from "./coach-profile";
 import { ArrowLeft } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 export default function AgentPage() {
+  return (
+    <Suspense
+      fallback={<div className="min-h-screen bg-[color:var(--background)]" />}
+    >
+      <AgentPageContent />
+    </Suspense>
+  );
+}
+
+function AgentPageContent() {
+  const searchParams = useSearchParams();
+  const coachParam = searchParams.get("coach");
+
+  const coachConfig = useMemo(() => {
+    if (coachParam === "atlas") {
+      return { name: "Coach Atlas", personality: "drill-sergeant" as const };
+    }
+    if (coachParam === "drspin") {
+      return { name: "Dr. Spin", personality: "data" as const };
+    }
+    if (coachParam === "zenmaster") {
+      return { name: "Zen Master", personality: "zen" as const };
+    }
+    return { name: "Coach Atlas", personality: "drill-sergeant" as const };
+  }, [coachParam]);
+
   return (
     <main className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)] selection:bg-[color:var(--accent)]/30">
       {/* Background Gradients — uses design-system tokens */}
@@ -45,8 +73,9 @@ export default function AgentPage() {
               </span>
             </h1>
             <p className="mt-4 max-w-2xl text-lg text-[color:var(--muted)]">
-              Deploy autonomous agents that manage your classes, adjust difficulty in real-time,
-              and optimize revenue using Uniswap v4 hooks.
+              Deploy autonomous agents that manage your classes, adjust
+              difficulty in real-time, and optimize revenue using Uniswap v4
+              hooks.
             </p>
           </div>
 
@@ -55,36 +84,63 @@ export default function AgentPage() {
             <section className="space-y-6">
               <div className="flex items-center gap-3 border-b border-[color:var(--border)] pb-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="h-5 w-5"
+                  >
                     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-blue-400">Performance Layer</h2>
-                  <p className="text-[10px] text-[color:var(--muted)]">SUI NETWORK (TESTNET)</p>
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-blue-400">
+                    Performance Layer
+                  </h2>
+                  <p className="text-[10px] text-[color:var(--muted)]">
+                    SUI NETWORK (TESTNET)
+                  </p>
                 </div>
               </div>
               <p className="text-sm text-[color:var(--muted)]">
-                The physical manifestation of your agent. It lives on the high-throughput Sui blockchain to process biometric telemetry at 10Hz and adjust class difficulty instantly.
+                The physical manifestation of your agent. It lives on the
+                high-throughput Sui blockchain to process biometric telemetry at
+                10Hz and adjust class difficulty instantly.
               </p>
-              <CoachProfile />
+              <CoachProfile
+                name={coachConfig.name}
+                personality={coachConfig.personality}
+              />
             </section>
 
             {/* Right Column: EVM / Finance */}
             <section className="space-y-6">
               <div className="flex items-center gap-3 border-b border-[color:var(--border)] pb-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/20 text-pink-400">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="h-5 w-5"
+                  >
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-pink-400">Settlement Layer</h2>
-                  <p className="text-[10px] text-[color:var(--muted)]">AVALANCHE C-CHAIN</p>
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-pink-400">
+                    Settlement Layer
+                  </h2>
+                  <p className="text-[10px] text-[color:var(--muted)]">
+                    AVALANCHE C-CHAIN
+                  </p>
                 </div>
               </div>
               <p className="text-sm text-[color:var(--muted)]">
-                The financial brain. It manages high-value assets (NFT Tickets, $SPIN) and uses Uniswap v4 Hooks to dynamically price inventory based on real-time demand.
+                The financial brain. It manages high-value assets (NFT Tickets,
+                $SPIN) and uses Uniswap v4 Hooks to dynamically price inventory
+                based on real-time demand.
               </p>
               <HookVisualizer />
             </section>

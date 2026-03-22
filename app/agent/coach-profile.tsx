@@ -23,7 +23,11 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAgentReasoner } from "../hooks/ai/use-agent-reasoner";
-import { useProfile, getDisplayName, getAvatarUrl } from "../hooks/common/use-profile";
+import {
+  useProfile,
+  getDisplayName,
+  getAvatarUrl,
+} from "../hooks/common/use-profile";
 import { useCoachVoice, useWorkoutAudio } from "../hooks/ai/elevenlabs";
 import { CoachAvatar } from "../components/features/coach/avatar";
 import { VoiceToggle } from "../components/ui/voice-toggle";
@@ -56,21 +60,27 @@ export function CoachProfile({
   const client = useSuiClient();
   const account = useCurrentAccount();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
-  
+
   // Resolve instructor profile (ENS, etc.)
   const { profile: instructorProfile } = useProfile(instructorAddress);
-  
+
   // ElevenLabs Voice & Audio
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const { speak, isSpeaking, isConfigured: voiceConfigured } = useCoachVoice({
-    personality: initialPersonality === 'drill-sergeant' ? 'drill' : initialPersonality,
+  const {
+    speak,
+    isSpeaking,
+    isConfigured: voiceConfigured,
+  } = useCoachVoice({
+    personality:
+      initialPersonality === "drill-sergeant" ? "drill" : initialPersonality,
   });
   const { playSound, preloadSounds } = useWorkoutAudio();
-  
+
   // Test voice samples
   const voiceSamples = {
     zen: "Welcome to your recovery session. Let's find your calm and breathe together.",
-    drill: "Listen up! We're going to crush this workout. Give me 110% right now!",
+    drill:
+      "Listen up! We're going to crush this workout. Give me 110% right now!",
     data: "Initializing workout protocol. Heart rate target: 150 BPM. Let's optimize your performance.",
   };
 
@@ -90,6 +100,15 @@ export function CoachProfile({
     strategyType: 1, // 0=Recovery, 1=Balanced, 2=HIIT, 3=Yield
   });
 
+  // Sync config with props if they change
+  useEffect(() => {
+    setConfig((prev) => ({
+      ...prev,
+      name: initialName,
+      personality: initialPersonality,
+    }));
+  }, [initialName, initialPersonality]);
+
   // AI Reasoning Hook
   const {
     reason,
@@ -98,7 +117,7 @@ export function CoachProfile({
   } = useAgentReasoner({
     agentName: config.name,
     personality: config.personality,
-    enabled: !!coachId,
+    enabled: true, // Always enable reasoning for profile view
   });
 
   // Poll for coach data if we have an ID
@@ -136,21 +155,21 @@ export function CoachProfile({
     const interval = setInterval(fetchCoach, 5000);
     return () => clearInterval(interval);
   }, [coachId, client, reason]);
-  
+
   // Preload workout sounds when coach is deployed
   useEffect(() => {
     if (coachId) {
-      preloadSounds(['start', 'countdown', 'finish']);
+      preloadSounds(["start", "countdown", "finish"]);
     }
   }, [coachId, preloadSounds]);
-  
+
   // Speak AI thoughts when they change
   useEffect(() => {
     if (thoughtLog.length > 0 && voiceConfigured) {
       const latestThought = thoughtLog[thoughtLog.length - 1];
       // Only speak shorter thoughts (avoid long monologues)
       if (latestThought.length < 150) {
-        speak(latestThought, 'focused');
+        speak(latestThought, "focused");
       }
     }
   }, [thoughtLog, speak, voiceConfigured]);
@@ -163,7 +182,12 @@ export function CoachProfile({
       const tx = new Transaction();
 
       // Map personality to numeric value
-      const personalityValue = config.personality === "zen" ? 0 : config.personality === "data" ? 2 : 1;
+      const personalityValue =
+        config.personality === "zen"
+          ? 0
+          : config.personality === "data"
+            ? 2
+            : 1;
 
       // Default inference model and prompt CID (can be customized in future)
       const inferenceModel = "gemini::flash";
@@ -186,7 +210,9 @@ export function CoachProfile({
 
       await signAndExecuteTransaction(
         {
-          transaction: tx as unknown as Parameters<typeof signAndExecuteTransaction>[0]['transaction'],
+          transaction: tx as unknown as Parameters<
+            typeof signAndExecuteTransaction
+          >[0]["transaction"],
         },
         {
           onSuccess: (result) => {
@@ -240,14 +266,17 @@ export function CoachProfile({
         <div className="mt-6 flex items-center gap-4">
           <CoachAvatar
             name={config.name}
-            emotion={isSpeaking ? 'intense' : 'focused'}
+            emotion={isSpeaking ? "intense" : "focused"}
             isSpeaking={isSpeaking}
             size="lg"
             avatarUrl={getAvatarUrl(instructorProfile)}
           />
           <div>
             <h4 className="text-xl font-bold text-white">
-              {getDisplayName(instructorProfile, instructorAddress || config.name)}
+              {getDisplayName(
+                instructorProfile,
+                instructorAddress || config.name,
+              )}
             </h4>
             <p className="text-xs text-white/40">
               Autonomous AI Instructor • Level 1
@@ -258,7 +287,9 @@ export function CoachProfile({
                 </span>
               )}
               {instructorProfile?.platform && (
-                <span className="ml-2 text-indigo-400">• {instructorProfile.platform.toUpperCase()}</span>
+                <span className="ml-2 text-indigo-400">
+                  • {instructorProfile.platform.toUpperCase()}
+                </span>
               )}
             </p>
           </div>
@@ -330,6 +361,15 @@ export function CoachProfile({
             )}
           </div>
         </div>
+
+        <div className="mt-6">
+          <button
+            onClick={() => (window.location.href = "/rider")}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-indigo-500/20 transition-all hover:bg-indigo-500"
+          >
+            Find a Class with {config.name} <ArrowRight size={14} />
+          </button>
+        </div>
       </div>
     );
   }
@@ -340,20 +380,19 @@ export function CoachProfile({
       <div className="flex items-center justify-between border-b border-white/10 pb-4">
         <div>
           <h3 className="text-lg font-semibold text-white">Coach Setup</h3>
-          <p className="text-xs text-white/50">
-            Configure your AI co-pilot
-          </p>
+          <p className="text-xs text-white/50">Configure your AI co-pilot</p>
         </div>
         <div className="flex items-center gap-1">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className={`h-1 w-4 rounded-full transition-colors ${(step === "persona" && i === 1) ||
-                  (step === "strategy" && i <= 2) ||
-                  (step === "review" && i <= 3)
+              className={`h-1 w-4 rounded-full transition-colors ${
+                (step === "persona" && i === 1) ||
+                (step === "strategy" && i <= 2) ||
+                (step === "review" && i <= 3)
                   ? "bg-indigo-500"
                   : "bg-white/10"
-                }`}
+              }`}
             />
           ))}
         </div>
@@ -391,10 +430,11 @@ export function CoachProfile({
                         personality: p.id as "zen" | "drill-sergeant" | "data",
                       })
                     }
-                    className={`flex flex-col items-center gap-2 rounded-xl border p-3 transition-all ${config.personality === p.id
+                    className={`flex flex-col items-center gap-2 rounded-xl border p-3 transition-all ${
+                      config.personality === p.id
                         ? "border-indigo-500 bg-indigo-500/20 text-white"
                         : "border-white/5 bg-white/5 text-white/40 hover:bg-white/10"
-                      }`}
+                    }`}
                   >
                     <span className="text-xl">{p.icon}</span>
                     <span className="text-[10px] font-bold uppercase">
@@ -420,17 +460,22 @@ export function CoachProfile({
                     size="sm"
                   />
                 </div>
-                
+
                 <p className="text-xs text-white/60 mb-3">
                   Hear how your coach will sound during workouts
                 </p>
-                
+
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => {
                       if (voiceEnabled) {
-                        const sample = voiceSamples[config.personality === 'drill-sergeant' ? 'drill' : config.personality];
-                        speak(sample, 'focused');
+                        const sample =
+                          voiceSamples[
+                            config.personality === "drill-sergeant"
+                              ? "drill"
+                              : config.personality
+                          ];
+                        speak(sample, "focused");
                       }
                     }}
                     disabled={!voiceEnabled || isSpeaking}
@@ -449,11 +494,11 @@ export function CoachProfile({
                     )}
                   </button>
                 </div>
-                
+
                 {isSpeaking && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
+                    animate={{ opacity: 1, height: "auto" }}
                     className="mt-3"
                   >
                     <AudioWaveform isActive intensity={0.7} size="sm" />
@@ -461,7 +506,7 @@ export function CoachProfile({
                 )}
               </div>
             )}
-            
+
             <button
               onClick={() => setStep("strategy")}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 p-3 text-sm font-bold text-white hover:bg-white/10"
@@ -515,10 +560,11 @@ export function CoachProfile({
                   <button
                     key={s.id}
                     onClick={() => setConfig({ ...config, strategyType: s.id })}
-                    className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${config.strategyType === s.id
+                    className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${
+                      config.strategyType === s.id
                         ? "border-indigo-500 bg-indigo-500/20"
                         : "border-white/5 bg-white/5 hover:bg-white/10"
-                      }`}
+                    }`}
                   >
                     <s.icon
                       size={16}
@@ -559,7 +605,10 @@ export function CoachProfile({
               <div className="flex justify-between text-xs">
                 <span className="text-white/40">Identity</span>
                 <span className="text-white font-bold">
-                  {getDisplayName(instructorProfile, instructorAddress || `${config.name}.eth`)}
+                  {getDisplayName(
+                    instructorProfile,
+                    instructorAddress || `${config.name}.eth`,
+                  )}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
@@ -592,9 +641,7 @@ export function CoachProfile({
                   ) : (
                     <Zap className="h-4 w-4" />
                   )}
-                  <span>
-                    {isLoading ? "Activating..." : "Activate Coach"}
-                  </span>
+                  <span>{isLoading ? "Activating..." : "Activate Coach"}</span>
                 </div>
                 <div className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/20 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
               </button>

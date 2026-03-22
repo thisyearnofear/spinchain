@@ -1193,9 +1193,11 @@ export default function LiveRidePage() {
         title: "ELITE EFFORT",
         subtitle: "You just crossed 900 effort points!",
       });
+      haptic.success();
+      playSound("achievement");
       setTimeout(() => setShowMilestone(null), 5000);
     }
-  }, [telemetry.effort, isRiding]);
+  }, [telemetry.effort, isRiding, haptic, playSound]);
 
   // Handle message display sync
   useEffect(() => {
