@@ -2,15 +2,17 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
-import { PrimaryNav } from "@/app/components/layout/nav";
-import { MetricTile, SurfaceCard, Tag } from "@/app/components/ui/ui";
 import { WelcomeModal, resetOnboarding } from "@/app/components/features/common/welcome-modal";
 import { InstructorModeSelector } from "@/app/components/features/class/instructor-mode-selector";
-import { FadeIn, StaggerContainer, Parallax, ScaleIn } from "@/app/components/ui/scroll-animations";
-import { AnimatedCard, EnergyPulse, Floating, MagneticButton } from "@/app/components/ui/animated-card";
+import { FadeIn } from "@/app/components/ui/scroll-animations";
+import { Tag } from "@/app/components/ui/ui";
 import { RouteShowcase } from "@/app/components/features/route/route-showcase";
-import Link from "next/link";
+import { HeroSection } from "@/app/components/features/home/hero-section";
+import { HowItWorksSection } from "@/app/components/features/home/how-it-works-section";
+import { LivePreviewSection } from "@/app/components/features/home/live-preview-section";
+import { FeaturesGridSection } from "@/app/components/features/home/features-grid-section";
+import { SocialProofSection } from "@/app/components/features/home/social-proof-section";
+import { FinalCTASection } from "@/app/components/features/home/final-cta-section";
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -19,10 +21,8 @@ function HomeContent() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Set mounted to true - this runs after hydration
     setMounted(true);
-    
-    // ?reset=true clears onboarding state — useful between test sessions
+
     if (searchParams.get("reset") === "true") {
       resetOnboarding();
       localStorage.removeItem("spin-welcome-seen");
@@ -33,7 +33,6 @@ function HomeContent() {
       setShowWelcome(true);
     }
 
-    // Track mouse for background effect
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({
         x: (e.clientX / window.innerWidth) * 100,
@@ -56,39 +55,8 @@ function HomeContent() {
     setShowWelcome(false);
   };
 
-  const riderHighlights = [
-    { label: "Avg Heart Rate", value: "148 BPM", detail: "Zone 4 sustained" },
-    { label: "Classes Completed", value: "12", detail: "This month" },
-    { label: "SPIN Earned", value: "240", detail: "$48 value" },
-  ];
-
-  const howItWorks = [
-    {
-      step: "1",
-      title: "Book a Class",
-      description: "Choose from live or on-demand cycling classes",
-    },
-    {
-      step: "2",
-      title: "Ride & Connect",
-      description: "Join via your bike, heart rate monitor, or app",
-    },
-    {
-      step: "3",
-      title: "Earn Instantly",
-      description: "Get rewarded automatically based on your effort",
-    },
-  ];
-
-  const communityStats = [
-    { label: "Total Riders", value: "10K+", subtitle: "Year 1 target" },
-    { label: "Classes Hosted", value: "50K+", subtitle: "Year 1 target" },
-    { label: "Rewards Paid", value: "$2.4M", subtitle: "Year 1 target" },
-  ];
-
   return (
     <div className="min-h-screen bg-[color:var(--background)] overflow-x-hidden">
-      {/* Welcome Modal */}
       {showWelcome && (
         <WelcomeModal
           onComplete={handleWelcomeComplete}
@@ -106,113 +74,8 @@ function HomeContent() {
       />
 
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-16 md:gap-20 px-6 pb-20 pt-10 lg:px-12">
-
-        {/* Hero */}
         <FadeIn>
-          <header className="flex flex-col items-start justify-between gap-6 md:gap-8 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-6 py-6 md:px-8 md:py-8 shadow-[0_20px_80px_rgba(0,0,0,0.15)] backdrop-blur">
-            <PrimaryNav />
-            
-            {/* Clear What-We-Do Statement */}
-            <div className="w-full text-center py-8 md:py-12 border-y border-[color:var(--border)] relative overflow-hidden">
-              {/* Decorative background light */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[color:var(--accent)]/5 blur-[120px] pointer-events-none" />
-
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[color:var(--foreground)] mb-5 md:mb-6 drop-shadow-2xl leading-tight">
-                Elevate Your Spin.<br />
-                <span className="bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] bg-clip-text text-transparent">Earn Onchain.</span>
-              </h1>
-              <p className="text-base md:text-lg lg:text-xl text-[color:var(--muted)] max-w-2xl mx-auto font-medium leading-relaxed px-4">
-                Transform any spin bike into a high-performance 3D experience.
-                <span className="text-[color:var(--foreground)]"> Earn SPIN tokens</span> as you crush your goals.
-              </p>
-            </div>
-
-            {/* Community Stats Ticker */}
-            <div 
-              className="w-full flex flex-wrap justify-center gap-6 md:gap-10 py-5 md:py-6 bg-[color:var(--surface)]/50 backdrop-blur-sm rounded-b-2xl"
-              role="region"
-              aria-label="Community statistics"
-            >
-              {communityStats.map((stat, i) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + i * 0.1 }}
-                  className="flex items-center gap-3"
-                >
-                  <div className="text-center">
-                    <motion.p 
-                      className="text-xl md:text-2xl font-bold text-[color:var(--foreground)]"
-                      animate={{ scale: [1, 1.02, 1] }}
-                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
-                    >
-                      {stat.value}
-                    </motion.p>
-                    <p className="text-xs text-[color:var(--muted)] uppercase tracking-wider">{stat.label}</p>
-                    {stat.subtitle && (
-                      <p className="text-[10px] text-[color:var(--accent)] font-medium mt-0.5">{stat.subtitle}</p>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Persona Selection - Primary CTA */}
-            <div className="w-full grid lg:grid-cols-2 gap-4 md:gap-6 mt-2">
-              {/* Rider Card */}
-              <AnimatedCard glowColor="var(--accent)">
-                <Link
-                  href="/rider"
-                  className="group block relative overflow-hidden p-6 md:p-8 h-full"
-                  aria-label="Start riding - find classes and earn rewards"
-                >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[color:var(--accent)]/20 to-transparent rounded-bl-full" />
-                  <Floating delay={0}>
-                    <span className="text-4xl md:text-5xl mb-4 block" aria-hidden="true">🚴</span>
-                  </Floating>
-                  <h2 className="text-xl md:text-2xl font-semibold text-[color:var(--foreground)] mb-2">
-                    I Want to Ride
-                  </h2>
-                  <p className="text-sm md:text-base text-[color:var(--muted)] mb-5 md:mb-6">
-                    Join live classes, track your effort, and earn rewards automatically
-                  </p>
-                  <MagneticButton className="inline-flex items-center gap-2 text-[color:var(--accent)] font-medium pointer-events-none group-hover:text-[color:var(--accent-strong)] transition-colors">
-                    Find Classes
-                    <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </MagneticButton>
-                </Link>
-              </AnimatedCard>
-
-              {/* Instructor Card */}
-              <AnimatedCard glowColor="var(--accent-strong)">
-                <a
-                  href="#instructor-modes"
-                  className="group block relative overflow-hidden p-6 md:p-8 h-full"
-                  aria-label="Become an instructor - teach classes and earn"
-                >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[color:var(--accent-strong)]/20 to-transparent rounded-bl-full" />
-                  <Floating delay={0.5}>
-                    <span className="text-4xl md:text-5xl mb-4 block" aria-hidden="true">🎓</span>
-                  </Floating>
-                  <h2 className="text-xl md:text-2xl font-semibold text-[color:var(--foreground)] mb-2">
-                    I Want to Teach
-                  </h2>
-                  <p className="text-sm md:text-base text-[color:var(--muted)] mb-5 md:mb-6">
-                    Host classes, set your price, and earn from every rider
-                  </p>
-                  <MagneticButton className="inline-flex items-center gap-2 text-[color:var(--accent)] font-medium group-hover:text-[color:var(--accent-strong)] transition-colors">
-                    See How It Works
-                    <svg className="w-4 h-4 group-hover:translate-y-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                    </svg>
-                  </MagneticButton>
-                </a>
-              </AnimatedCard>
-            </div>
-          </header>
+          <HeroSection />
         </FadeIn>
 
         {/* Instructor Mode Selector */}
@@ -232,272 +95,12 @@ function HomeContent() {
           <InstructorModeSelector />
         </section>
 
-        {/* How It Works */}
-        <section>
-          <FadeIn direction="up">
-            <div className="text-center mb-10 md:mb-12">
-              <Tag>Simple as 1-2-3</Tag>
-              <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)] mt-4">
-                How It Works
-              </h2>
-            </div>
-          </FadeIn>
-          <StaggerContainer className="grid gap-4 md:gap-6 md:grid-cols-3" staggerDelay={0.15}>
-            {howItWorks.map((item) => (
-              <div
-                key={item.step}
-                className="group rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-5 md:p-6 text-center hover:border-[color:var(--accent)]/30 transition-colors"
-              >
-                <motion.span
-                  className="inline-flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-[color:var(--accent)]/10 text-[color:var(--accent)] font-semibold mb-3 md:mb-4"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                >
-                  {item.step}
-                </motion.span>
-                <h3 className="text-base md:text-lg font-semibold text-[color:var(--foreground)] mb-2">
-                  {item.title}
-                </h3>
-                <p className="text-xs md:text-sm text-[color:var(--muted)]">
-                  {item.description}
-                </p>
-              </div>
-            ))}
-          </StaggerContainer>
-        </section>
-
-        {/* Live Preview Card */}
-        <Parallax speed={0.3}>
-          <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 p-6 md:p-8 backdrop-blur" aria-label="Live workout preview">
-            <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 md:gap-8">
-              <FadeIn direction="left">
-                <div>
-                  <div className="flex items-center gap-2 mb-3 md:mb-4">
-                    <EnergyPulse size="sm" />
-                    <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--accent)]">
-                      Live Preview
-                    </p>
-                  </div>
-                  <h2 className="text-2xl md:text-3xl font-semibold text-[color:var(--foreground)] mb-3 md:mb-4">
-                    Your workout, rewarded
-                  </h2>
-                  <p className="text-sm md:text-base text-[color:var(--muted)] mb-5 md:mb-6 leading-relaxed">
-                    See your effort translate to rewards in real-time. Heart rate, power, and progress—all in one beautiful dashboard.
-                  </p>
-                  <div className="flex flex-wrap gap-2 md:gap-3">
-                    <Tag>Real-time tracking</Tag>
-                    <Tag>Instant rewards</Tag>
-                    <Tag>Private by default</Tag>
-                  </div>
-                </div>
-              </FadeIn>
-
-              {/* Mock Dashboard */}
-              <ScaleIn delay={0.2}>
-                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-5 md:p-6">
-                  <div className="flex items-center justify-between mb-5 md:mb-6">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
-                        Current Session
-                      </p>
-                      <h3 className="text-base md:text-lg font-semibold text-[color:var(--foreground)]">
-                        Alpine Climb
-                      </h3>
-                    </div>
-                    <span className="flex items-center gap-2 rounded-full bg-[color:var(--success)]/10 px-3 py-1 text-xs text-[color:var(--success)]">
-                      <EnergyPulse size="sm" />
-                      Live
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-4 md:gap-6 mb-5 md:mb-6">
-                    <div className="relative grid h-20 w-20 md:h-24 md:w-24 place-items-center rounded-full bg-[conic-gradient(from_180deg,var(--success)_0deg,var(--success)_260deg,var(--surface-elevated)_260deg)]">
-                      <div className="grid h-16 w-16 md:h-18 md:w-18 place-items-center rounded-full bg-[color:var(--surface-strong)] text-sm font-semibold text-[color:var(--foreground)]">
-                        82%
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs md:text-sm text-[color:var(--muted)]">Effort zone</p>
-                      <p className="text-base md:text-lg font-semibold text-[color:var(--foreground)]">HR 148 • 32 min</p>
-                      <motion.p
-                        className="text-xs text-[color:var(--success)]"
-                        animate={{ opacity: [1, 0.5, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        12 SPIN earned so far
-                      </motion.p>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2 md:gap-3 sm:grid-cols-3">
-                    {riderHighlights.map((item) => (
-                      <MetricTile key={item.label} {...item} />
-                    ))}
-                  </div>
-                </div>
-              </ScaleIn>
-            </div>
-          </section>
-        </Parallax>
-
-        {/* Route Showcase */}
+        <HowItWorksSection />
+        <LivePreviewSection />
         <RouteShowcase />
-
-        {/* Features Grid */}
-        <section className="grid gap-4 md:gap-6 lg:grid-cols-2">
-          <FadeIn direction="left">
-            <SurfaceCard
-              eyebrow="For Riders"
-              title="Ride anywhere, earn everywhere"
-              description="From Alpine climbs to city sprints—every route is an immersive experience. Your effort is private, your rewards are real."
-              className="rounded-3xl h-full"
-            >
-              <div className="mt-5 md:mt-6 grid gap-2 md:gap-3">
-                {[
-                  "3D immersive routes",
-                  "Private health data",
-                  "Instant SPIN rewards",
-                  "Compete with friends",
-                ].map((item, i) => (
-                  <motion.div
-                    key={item}
-                    initial={{ opacity: 0, x: -10 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    viewport={{ once: true }}
-                    className="flex items-center gap-3 text-xs md:text-sm text-[color:var(--foreground)]/80"
-                  >
-                    <motion.span
-                      className="h-2 w-2 rounded-full bg-[color:var(--accent)]"
-                      whileHover={{ scale: 1.5 }}
-                    />
-                    {item}
-                  </motion.div>
-                ))}
-              </div>
-            </SurfaceCard>
-          </FadeIn>
-
-          <FadeIn direction="right">
-            <SurfaceCard
-              eyebrow="For Instructors"
-              title="Your class, your economics"
-              description="Set your own pricing, keep more of what you earn, and build a community that values your craft."
-              className="rounded-3xl bg-[color:var(--surface-strong)] h-full"
-            >
-              <div className="mt-5 md:mt-6 grid gap-2 md:gap-3">
-                {[
-                  "Dynamic ticket pricing",
-                  "Automatic revenue splits",
-                  "Sponsor reward pools",
-                  "AI-powered route creation",
-                ].map((item, i) => (
-                  <motion.div
-                    key={item}
-                    initial={{ opacity: 0, x: -10 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    viewport={{ once: true }}
-                    className="flex items-center gap-3 text-xs md:text-sm text-[color:var(--foreground)]/80"
-                  >
-                    <motion.span
-                      className="h-2 w-2 rounded-full bg-[color:var(--accent)]"
-                      whileHover={{ scale: 1.5 }}
-                    />
-                    {item}
-                  </motion.div>
-                ))}
-              </div>
-            </SurfaceCard>
-          </FadeIn>
-        </section>
-
-        {/* Social Proof */}
-        <FadeIn>
-          <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 md:p-8 text-center" aria-label="Community social proof">
-            <div className="flex items-center justify-center gap-3 md:gap-4 mb-5 md:mb-6">
-              <div className="flex -space-x-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, scale: 0 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.1, type: "spring" }}
-                    viewport={{ once: true }}
-                    className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-[color:var(--accent)] to-[color:var(--accent-strong)] border-2 border-[color:var(--background)]"
-                  />
-                ))}
-              </div>
-              <p className="text-sm md:text-base text-[color:var(--muted)]">
-                <span className="text-[color:var(--foreground)] font-semibold">10,000+</span> riders earning rewards <span className="text-[10px] text-[color:var(--accent)]">(Year 1 target)</span>
-              </p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 md:gap-8 max-w-lg mx-auto">
-              {[
-                { value: "$2.4M", label: "Rewards paid" },
-                { value: "50K+", label: "Classes" },
-                { value: "1,200+", label: "Instructors" },
-              ].map((stat, i) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  viewport={{ once: true }}
-                >
-                  <p className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)]">{stat.value}</p>
-                  <p className="text-xs text-[color:var(--muted)] mt-1">{stat.label}</p>
-                  <p className="text-[10px] text-[color:var(--accent)] font-medium mt-0.5">Year 1 target</p>
-                </motion.div>
-              ))}
-            </div>
-          </section>
-        </FadeIn>
-
-        {/* Final CTA */}
-        <FadeIn>
-          <section className="rounded-3xl border border-[color:var(--border)] bg-gradient-to-br from-[color:var(--surface)] to-[color:var(--surface-strong)] p-6 md:p-8 lg:p-12 text-center relative overflow-hidden" aria-label="Get started call to action">
-            {/* Animated background */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-[color:var(--accent)]/5 via-transparent to-[color:var(--accent-strong)]/5"
-              animate={{
-                x: ["-100%", "100%"],
-              }}
-              transition={{
-                duration: 10,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-            />
-
-            <div className="relative">
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[color:var(--foreground)] mb-3 md:mb-4">
-                Ready to start?
-              </h2>
-              <p className="text-sm md:text-base text-[color:var(--muted)] mb-6 md:mb-8 max-w-xl mx-auto">
-                Join our growing community and be part of the future of fitness.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
-                <MagneticButton className="w-full sm:w-auto">
-                  <a
-                    href="/rider"
-                    className="inline-block w-full px-6 md:px-8 py-2.5 md:py-3 rounded-full bg-[color:var(--accent)] text-white font-semibold hover:opacity-90 transition-opacity"
-                  >
-                    Start Riding
-                  </a>
-                </MagneticButton>
-                <MagneticButton className="w-full sm:w-auto">
-                  <a
-                    href="#instructor-modes"
-                    className="inline-block w-full px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-[color:var(--border)] text-[color:var(--foreground)] font-medium hover:border-[color:var(--accent)]/50 transition-colors"
-                  >
-                    Become an Instructor
-                  </a>
-                </MagneticButton>
-              </div>
-            </div>
-          </section>
-        </FadeIn>
+        <FeaturesGridSection />
+        <SocialProofSection />
+        <FinalCTASection />
       </main>
     </div>
   );
