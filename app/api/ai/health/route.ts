@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * AI Health Check Endpoint
  * Returns status of all AI providers

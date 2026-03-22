@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * ElevenLabs Text-to-Speech API Route
  * Server-side only - keeps API key secure

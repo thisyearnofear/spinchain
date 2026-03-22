@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Route Analysis API
  * Analyzes a route and suggests optimal class configuration

@@ -3,6 +3,8 @@ import { createPublicClient, http, type Address, type Hash } from "viem";
 import { avalancheFuji } from "viem/chains";
 import { CONTRACT_ADDRESSES, INCENTIVE_ENGINE_ABI } from "@/app/lib/contracts";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Ride Sync API - Anchors ride commitments to Avalanche
  *

@@ -8,6 +8,7 @@ import { agentReasoningWithGemini, AgentDecision } from "@/app/lib/gemini-client
 import { agentReasoningWithVenice } from "@/app/lib/venice-client";
 
 export const runtime = "edge";
+export const dynamic = 'force-dynamic';
 
 type AgentReasoningRequest = {
   agentName: string;

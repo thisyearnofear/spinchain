@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Next.js API Route for AI Chat / Coaching
  * Venice AI (privacy-first, default) → Gemini fallback

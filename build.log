@@ -1,0 +1,39 @@
+
+> spinchain@0.1.0 build /Users/udingethe/Dev/spinchain
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local, .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 31.6s
+  Skipping validation of types
+  Collecting page data using 7 workers ...
+Error: export const dynamic = "force-dynamic" on page "/api/ai/elevenlabs/voices" cannot be used with "output: export". See more info here: https://nextjs.org/docs/advanced-features/static-html-export
+    at new ev (.next/server/edge/chunks/[root-of-the-server]__40f9fcae._.js:16:7672)
+    at module evaluation (.next/server/edge/chunks/b2b3e_next_dist_esm_442671d2._.js:2:2269)
+    at q (.next/server/edge/chunks/f035a_next_dist_esm_build_templates_edge-wrapper_dbef3909.js:4:877)
+    at N (.next/server/edge/chunks/f035a_next_dist_esm_build_templates_edge-wrapper_dbef3909.js:4:418)
+    at r.p [as i] (.next/server/edge/chunks/f035a_next_dist_esm_build_templates_edge-wrapper_dbef3909.js:1:2278)
+    at <unknown> (.next/server/edge/chunks/b2b3e_next_dist_esm_442671d2._.js:2:954)
+Error: export const dynamic = "force-dynamic" on page "/api/analytics/sync" cannot be used with "output: export". See more info here: https://nextjs.org/docs/advanced-features/static-html-export
+    at module evaluation (.next/server/chunks/[root-of-the-server]__8d69f2c0._.js:1:3030)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:740:9)
+    at instantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:768:12)
+    at getOrInstantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:781:12)
+    at Object.m (.next/server/chunks/[turbopack]_runtime.js:790:18)
+    at Object.<anonymous> (.next/server/app/api/analytics/sync/route.js:5:3)
+Error: export const dynamic = "force-dynamic" on page "/api/ai/elevenlabs/tts" cannot be used with "output: export". See more info here: https://nextjs.org/docs/advanced-features/static-html-export
+    at new ev (.next/server/edge/chunks/[root-of-the-server]__40f9fcae._.js:16:7672)
+    at module evaluation (.next/server/edge/chunks/b2b3e_next_dist_esm_ae63191e._.js:2:2815)
+    at q (.next/server/edge/chunks/f035a_next_dist_esm_build_templates_edge-wrapper_2eace1bd.js:4:877)
+    at N (.next/server/edge/chunks/f035a_next_dist_esm_build_templates_edge-wrapper_2eace1bd.js:4:418)
+    at r.p [as i] (.next/server/edge/chunks/f035a_next_dist_esm_build_templates_edge-wrapper_2eace1bd.js:1:2278)
+    at <unknown> (.next/server/edge/chunks/b2b3e_next_dist_esm_ae63191e._.js:2:954)
+
+> Build error occurred
+Error: Failed to collect page data for /api/ai/elevenlabs/voices
+    at ignore-listed frames {
+  type: 'Error'
+}
+ ELIFECYCLE  Command failed with exit code 1.

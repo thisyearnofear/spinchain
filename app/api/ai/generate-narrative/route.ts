@@ -8,6 +8,7 @@ import { generateNarrativeWithGemini } from "@/app/lib/gemini-client";
 import { generateNarrativeWithVenice } from "@/app/lib/venice-client";
 
 export const runtime = "edge";
+export const dynamic = 'force-dynamic';
 
 type NarrativeRequest = {
   elevationProfile: number[];

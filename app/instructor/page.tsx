@@ -53,12 +53,16 @@ export default function InstructorPage() {
           <div className="lg:col-span-2 space-y-6">
             <div className="group relative rounded-3xl border border-white/10 bg-black/40 p-8 backdrop-blur-3xl shadow-2xl overflow-hidden">
               <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 rounded-3xl blur opacity-30"></div>
-              
+
               <div className="relative">
                 <div className="flex items-center justify-between mb-8">
                   <div>
-                    <h2 className="text-2xl font-black text-white tracking-tighter">Your Business Overview</h2>
-                    <p className="text-sm text-white/40">Hospitality metrics for the last 30 days.</p>
+                    <h2 className="text-2xl font-black text-white tracking-tighter">
+                      Your Business Overview
+                    </h2>
+                    <p className="text-sm text-white/40">
+                      Hospitality metrics for the last 30 days.
+                    </p>
                   </div>
                   <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
                     <span className="text-lg">📈</span>
@@ -67,57 +71,112 @@ export default function InstructorPage() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                   <div>
-                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Retention</p>
-                    <p className="text-2xl font-black text-white tracking-tighter">84%</p>
-                    <p className="text-[10px] text-green-400 font-bold mt-1">+12% vs LY</p>
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">
+                      Retention
+                    </p>
+                    <p className="text-2xl font-black text-white tracking-tighter">
+                      84%
+                    </p>
+                    <p className="text-[10px] text-green-400 font-bold mt-1">
+                      +12% vs LY
+                    </p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Avg Rating</p>
-                    <p className="text-2xl font-black text-white tracking-tighter">4.92</p>
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">
+                      Avg Rating
+                    </p>
+                    <p className="text-2xl font-black text-white tracking-tighter">
+                      4.92
+                    </p>
                     <div className="flex items-center gap-0.5 mt-1">
-                      {[1, 2, 3, 4, 5].map(i => <span key={i} className="text-[10px] text-yellow-400">★</span>)}
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <span key={i} className="text-[10px] text-yellow-400">
+                          ★
+                        </span>
+                      ))}
                     </div>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">Occupancy</p>
-                    <p className="text-2xl font-black text-white tracking-tighter">92%</p>
-                    <p className="text-[10px] text-indigo-400 font-bold mt-1">Near Capacity</p>
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">
+                      Occupancy
+                    </p>
+                    <p className="text-2xl font-black text-white tracking-tighter">
+                      92%
+                    </p>
+                    <p className="text-[10px] text-indigo-400 font-bold mt-1">
+                      Near Capacity
+                    </p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">New Riders</p>
-                    <p className="text-2xl font-black text-white tracking-tighter">142</p>
-                    <p className="text-[10px] text-white/30 font-bold mt-1">This month</p>
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">
+                      New Riders
+                    </p>
+                    <p className="text-2xl font-black text-white tracking-tighter">
+                      142
+                    </p>
+                    <p className="text-[10px] text-white/30 font-bold mt-1">
+                      This month
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <a href="/instructor/builder" className="group rounded-2xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition-all">
-                <h3 className="font-bold text-white mb-1">List a New Class</h3>
-                <p className="text-xs text-white/40">Create a scheduled or AI-hosted experience.</p>
+              <a
+                href="/instructor/builder"
+                className="group rounded-2xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition-all"
+              >
+                <h3 className="font-bold text-white mb-1 flex items-center gap-2">
+                  <span className="text-sm">🏗️</span> List a New Class
+                </h3>
+                <p className="text-xs text-white/40">
+                  Create a scheduled or AI-hosted experience.
+                </p>
               </a>
-              <a href="/instructor/ai" className="group rounded-2xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition-all">
-                <h3 className="font-bold text-white mb-1">Optimize Pacing</h3>
-                <p className="text-xs text-white/40">Update your AI Coach coaching cues.</p>
+              <a
+                href="/instructor/live"
+                className="group rounded-2xl border border-red-500/20 bg-red-500/5 p-6 hover:bg-red-500/10 transition-all"
+              >
+                <h3 className="font-bold text-white mb-1 flex items-center gap-2">
+                  <span className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />{" "}
+                  Live Command Center
+                </h3>
+                <p className="text-xs text-white/40">
+                  Monitor active classes and override AI coaching.
+                </p>
               </a>
             </div>
           </div>
 
           <div className="space-y-6">
-            <SurfaceCard eyebrow="Earnings" title="Real-time Revenue" className="bg-indigo-500/10 border-indigo-500/20">
+            <SurfaceCard
+              eyebrow="Earnings"
+              title="Real-time Revenue"
+              className="bg-indigo-500/10 border-indigo-500/20"
+            >
               <div className="mt-4">
-                <p className="text-3xl font-black text-white tracking-tighter">3.82 ETH</p>
-                <p className="text-xs text-white/40 mb-6">~$9,450.20 Available</p>
+                <p className="text-3xl font-black text-white tracking-tighter">
+                  3.82 ETH
+                </p>
+                <p className="text-xs text-white/40 mb-6">
+                  ~$9,450.20 Available
+                </p>
                 <button className="w-full py-3 rounded-xl bg-white text-black text-xs font-black uppercase tracking-widest hover:bg-gray-100 transition-all">
                   Withdraw Funds
                 </button>
               </div>
             </SurfaceCard>
-            
-            <SurfaceCard eyebrow="Insights" title="Coach Atlas Says" className="bg-amber-500/10 border-amber-500/20">
+
+            <SurfaceCard
+              eyebrow="Insights"
+              title="Coach Atlas Says"
+              className="bg-amber-500/10 border-amber-500/20"
+            >
               <p className="text-xs text-amber-200/80 leading-relaxed italic">
-                &quot;Riders are dropping off around the 35-minute mark on Alpine routes. Suggest adding a sprint beat to maintain engagement.&quot;
+                &quot;Riders are dropping off around the 35-minute mark on
+                Alpine routes. Suggest adding a sprint beat to maintain
+                engagement.&quot;
               </p>
             </SurfaceCard>
           </div>

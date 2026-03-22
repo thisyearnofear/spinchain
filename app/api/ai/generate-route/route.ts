@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Next.js API Route for AI Route Generation
  * Multi-Provider Support: Venice AI (default) | Gemini 3 (BYOK)

@@ -1,0 +1,10 @@
+
+> spinchain@0.1.0 build /Users/udingethe/Dev/spinchain
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local, .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 111s
+  Skipping validation of types

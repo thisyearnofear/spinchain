@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { appendFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
+export const dynamic = 'force-dynamic';
+
 // In-memory store for analytics events (resets on server restart)
 // For production, use a database (Postgres, Redis, etc.)
 const analyticsEvents: Array<{

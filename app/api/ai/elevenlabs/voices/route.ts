@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * ElevenLabs Voices API Route
  * Server-side only - keeps API key secure
