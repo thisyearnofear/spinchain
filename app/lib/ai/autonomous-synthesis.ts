@@ -7,7 +7,6 @@
  * - Recommends music vibes
  */
 
-import { VeniceClient } from "@/app/lib/venice-client";
 import { WorkoutPlan, WorkoutInterval, IntervalPhase } from "@/app/lib/workout-plan";
 
 export interface SynthesisRequest {
@@ -18,8 +17,6 @@ export interface SynthesisRequest {
 }
 
 export async function synthesizeWorkoutPlan(req: SynthesisRequest): Promise<WorkoutPlan> {
-  const venice = new VeniceClient();
-  
   const prompt = `
     You are an expert Spin Class Designer. Generate a structured workout plan for a ${req.durationMinutes}-minute session.
     Goal: ${req.goal}
