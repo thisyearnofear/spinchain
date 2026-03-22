@@ -12,8 +12,9 @@
 import { useEffect, useRef, useState } from "react";
 import { formatTime } from "@/app/lib/formatters";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
-import { Star } from "lucide-react";
+import { Star, Cloud, Share2, CheckCircle2 } from "lucide-react";
 import { LoadingButton } from "../../ui/loading-button";
+import { WalrusClient } from "@/app/lib/walrus/client";
 
 interface ZKProofStatus {
   isGenerating: boolean;
@@ -69,6 +70,38 @@ export function RideCompletion({
   const containerRef = useRef<HTMLDivElement>(null);
   const [rating, setRating] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isPersisting, setIsPersisting] = useState(false);
+  const [walrusId, setWalrusId] = useState<string | null>(null);
+
+  const handlePersistToWalrus = async () => {
+    setIsPersisting(true);
+    try {
+      const walrus = new WalrusClient();
+      const summary = {
+        timestamp: Date.now(),
+        duration: elapsedTime,
+        avgPower,
+        avgHr: avgHeartRate,
+        effort: avgEffort,
+        agent: agentName,
+        debrief: getAgentDebrief(),
+      };
+      const result = await walrus.store(
+        JSON.stringify(summary),
+        "application/json",
+      );
+      if (result.success && result.blobId) {
+        setWalrusId(result.blobId);
+        trackEvent(ANALYTICS_EVENTS.RIDE_SYNC_SUCCESS, {
+          blobId: result.blobId,
+        });
+      }
+    } catch (err) {
+      console.error("Walrus persist failed:", err);
+    } finally {
+      setIsPersisting(false);
+    }
+  };
 
   // Auto-focus for accessibility
   useEffect(() => {
@@ -382,6 +415,40 @@ export function RideCompletion({
               >
                 {isSubmitted ? "Governance Vote Cast" : "Submit Feedback"}
               </LoadingButton>
+            </div>
+          )}
+        </div>
+
+        {/* Walrus Decentralized Journey */}
+        <div className="rounded-3xl bg-white/5 border border-white/10 p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col text-left">
+              <span className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Decentralized Journey</span>
+              <h4 className="text-sm font-bold text-white italic">Store Session on Walrus</h4>
+            </div>
+            <Cloud className="w-4 h-4 text-indigo-400" />
+          </div>
+          
+          {!walrusId ? (
+            <LoadingButton
+              variant="secondary"
+              className="w-full h-12 rounded-2xl gap-2 font-black uppercase tracking-widest text-[10px]"
+              onClick={handlePersistToWalrus}
+              isLoading={isPersisting}
+              loadingText="Uploading to Walrus..."
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              Persist Forever
+            </LoadingButton>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Anchored to Walrus</span>
+              </div>
+              <div className="p-3 rounded-xl bg-black/40 border border-white/5 overflow-hidden">
+                <p className="text-[8px] font-mono text-white/30 truncate uppercase">Blob ID: {walrusId}</p>
+              </div>
             </div>
           )}
         </div>

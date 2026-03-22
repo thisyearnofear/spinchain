@@ -28,6 +28,7 @@ export interface UseWorkoutAudioReturn {
   isPlaying: boolean;
   isConfigured: boolean;
   preloadSounds: (types: WorkoutSoundType[]) => Promise<void>;
+  setMusicSpeed: (rate: number) => void;
 }
 
 // Preloaded sounds cache
@@ -40,6 +41,7 @@ export function useWorkoutAudio(): UseWorkoutAudioReturn {
   const mixerRef = useRef(getAudioMixer());
   const activeLayers = useRef<Set<string>>(new Set());
   const countdownInterval = useRef<NodeJS.Timeout | null>(null);
+  const musicLayerId = useRef<string | null>(null);
 
   // Initialize mixer
   useEffect(() => {
@@ -57,6 +59,12 @@ export function useWorkoutAudio(): UseWorkoutAudioReturn {
         clearInterval(countdownInterval.current);
       }
     };
+  }, []);
+
+  const setMusicSpeed = useCallback((rate: number) => {
+    if (musicLayerId.current) {
+      mixerRef.current.setLayerPlaybackRate(musicLayerId.current, rate);
+    }
   }, []);
 
   const playSound = useCallback(async (type: WorkoutSoundType) => {
@@ -77,6 +85,12 @@ export function useWorkoutAudio(): UseWorkoutAudioReturn {
       }
 
       const layerId = `sfx-${type}-${Date.now()}`;
+      
+      // Track if this is a music layer (simplified for demo)
+      if (type.toString().includes('music') || type.toString().includes('beat')) {
+        musicLayerId.current = layerId;
+      }
+
       activeLayers.current.add(layerId);
       setIsPlaying(true);
 
@@ -91,6 +105,9 @@ export function useWorkoutAudio(): UseWorkoutAudioReturn {
       if (layer.source instanceof AudioBufferSourceNode) {
         layer.source.onended = () => {
           activeLayers.current.delete(layerId);
+          if (musicLayerId.current === layerId) {
+            musicLayerId.current = null;
+          }
           if (activeLayers.current.size === 0) {
             setIsPlaying(false);
           }
@@ -165,5 +182,6 @@ export function useWorkoutAudio(): UseWorkoutAudioReturn {
     isPlaying: isPlaying || activeLayers.current.size > 0,
     isConfigured,
     preloadSounds,
+    setMusicSpeed,
   };
 }

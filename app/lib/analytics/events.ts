@@ -25,6 +25,7 @@ export const ANALYTICS_EVENTS = {
   SIMULATOR_KEYBOARD_HINT_VIEWED: 'simulator_keyboard_hint_viewed',
   SIMULATOR_INPUT_ACTIVITY: 'simulator_input_activity',
   SIMULATOR_INPUT_SKIPPED_TOUCH_ONLY: 'simulator_input_skipped_touch_only',
+  RIDE_SYNC_SUCCESS: 'ride_sync_success',
 } as const;
 
 type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
@@ -139,7 +140,7 @@ export function trackEvent(name: AnalyticsEventName, payload: AnalyticsPayload =
   persistEvent(event);
   
   // Immediately sync important events
-  const importantEvents = [
+  const importantEvents: AnalyticsEventName[] = [
     ANALYTICS_EVENTS.RIDE_STARTED,
     ANALYTICS_EVENTS.RIDE_COMPLETED,
     ANALYTICS_EVENTS.RIDE_ENTRY_VIEWED,

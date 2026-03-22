@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, memo, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { YellowRewardTicker } from "@/app/components/features/common/yellow-reward-ticker";
 import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
 import type { IntervalPhase } from "@/app/lib/workout-plan";
@@ -14,7 +15,7 @@ export interface TelemetryData {
   effort: number;
   currentGear?: number;
   gearRatio?: number;
-  source?: 'ble' | 'healthkit' | 'simulated';
+  source?: "ble" | "healthkit" | "simulated";
 }
 
 interface RideHUDProps {
@@ -34,48 +35,131 @@ interface RideHUDProps {
     isBackgroundActive: boolean;
     isHealthKitActive: boolean;
   };
+  targetRpm?: [number, number];
 }
 
 function getPhaseAccent(phase?: IntervalPhase | null) {
-  if (phase === "sprint") return { color: "text-rose-400", border: "border-rose-400/30", bg: "bg-rose-500/12" };
-  if (phase === "recovery" || phase === "cooldown") return { color: "text-sky-300", border: "border-sky-400/30", bg: "bg-sky-500/12" };
-  if (phase === "interval") return { color: "text-orange-300", border: "border-orange-400/30", bg: "bg-orange-500/12" };
-  if (phase === "warmup") return { color: "text-emerald-300", border: "border-emerald-400/30", bg: "bg-emerald-500/12" };
-  return { color: "text-yellow-300", border: "border-yellow-400/30", bg: "bg-yellow-500/12" };
+  if (phase === "sprint")
+    return {
+      color: "text-rose-400",
+      border: "border-rose-400/30",
+      bg: "bg-rose-500/12",
+      glow: "shadow-rose-500/20",
+    };
+  if (phase === "recovery" || phase === "cooldown")
+    return {
+      color: "text-sky-300",
+      border: "border-sky-400/30",
+      bg: "bg-sky-500/12",
+      glow: "shadow-sky-500/20",
+    };
+  if (phase === "interval")
+    return {
+      color: "text-orange-300",
+      border: "border-orange-400/30",
+      bg: "bg-orange-500/12",
+      glow: "shadow-orange-500/20",
+    };
+  if (phase === "warmup")
+    return {
+      color: "text-emerald-300",
+      border: "border-emerald-400/30",
+      bg: "bg-emerald-500/12",
+      glow: "shadow-emerald-500/20",
+    };
+  return {
+    color: "text-yellow-300",
+    border: "border-yellow-400/30",
+    bg: "bg-yellow-500/12",
+    glow: "shadow-yellow-500/20",
+  };
 }
 
-function getPhaseMetrics(telemetry: TelemetryData, phase?: IntervalPhase | null) {
+function getPhaseMetrics(
+  telemetry: TelemetryData,
+  phase?: IntervalPhase | null,
+) {
   if (phase === "sprint") {
     return {
-      primary: { label: "Cadence", value: telemetry.cadence, unit: "rpm", color: "text-blue-300" },
+      primary: {
+        label: "Cadence",
+        value: telemetry.cadence,
+        unit: "rpm",
+        color: "text-blue-300",
+      },
       secondary: [
-        { label: "Power", value: telemetry.power, unit: "W", color: "text-yellow-300" },
-        { label: "Heart Rate", value: telemetry.heartRate, unit: "bpm", color: "text-rose-300" },
+        {
+          label: "Power",
+          value: telemetry.power,
+          unit: "W",
+          color: "text-yellow-300",
+        },
+        {
+          label: "Heart Rate",
+          value: telemetry.heartRate,
+          unit: "bpm",
+          color: "text-rose-300",
+        },
       ],
     };
   }
 
   if (phase === "recovery" || phase === "cooldown") {
     return {
-      primary: { label: "Heart Rate", value: telemetry.heartRate, unit: "bpm", color: "text-sky-300" },
+      primary: {
+        label: "Heart Rate",
+        value: telemetry.heartRate,
+        unit: "bpm",
+        color: "text-sky-300",
+      },
       secondary: [
-        { label: "Cadence", value: telemetry.cadence, unit: "rpm", color: "text-blue-300" },
-        { label: "Power", value: telemetry.power, unit: "W", color: "text-yellow-300" },
+        {
+          label: "Cadence",
+          value: telemetry.cadence,
+          unit: "rpm",
+          color: "text-blue-300",
+        },
+        {
+          label: "Power",
+          value: telemetry.power,
+          unit: "W",
+          color: "text-yellow-300",
+        },
       ],
     };
   }
 
   return {
-    primary: { label: "Power", value: telemetry.power, unit: "W", color: "text-yellow-300" },
+    primary: {
+      label: "Power",
+      value: telemetry.power,
+      unit: "W",
+      color: "text-yellow-300",
+    },
     secondary: [
-      { label: "Heart Rate", value: telemetry.heartRate, unit: "bpm", color: "text-rose-300" },
-      { label: "Cadence", value: telemetry.cadence, unit: "rpm", color: "text-blue-300" },
+      {
+        label: "Heart Rate",
+        value: telemetry.heartRate,
+        unit: "bpm",
+        color: "text-rose-300",
+      },
+      {
+        label: "Cadence",
+        value: telemetry.cadence,
+        unit: "rpm",
+        color: "text-blue-300",
+      },
     ],
   };
 }
 
-function MobileStatusBadges({ status }: { status?: RideHUDProps["mobileBridgeStatus"] }) {
-  if (!status || (!status.isBackgroundActive && !status.isHealthKitActive)) return null;
+function MobileStatusBadges({
+  status,
+}: {
+  status?: RideHUDProps["mobileBridgeStatus"];
+}) {
+  if (!status || (!status.isBackgroundActive && !status.isHealthKitActive))
+    return null;
 
   return (
     <div className="flex gap-2 mb-3">
@@ -95,7 +179,13 @@ function MobileStatusBadges({ status }: { status?: RideHUDProps["mobileBridgeSta
   );
 }
 
-function GhostLeadLag({ leadLagTime, distanceGap }: { leadLagTime: number; distanceGap: number }) {
+function GhostLeadLag({
+  leadLagTime,
+  distanceGap,
+}: {
+  leadLagTime: number;
+  distanceGap: number;
+}) {
   const isLeading = leadLagTime < 0; // Negative leadLagTime means ghost is behind (in our logic)
   const absTime = Math.abs(leadLagTime);
   const color = isLeading ? "text-emerald-400" : "text-rose-400";
@@ -103,12 +193,17 @@ function GhostLeadLag({ leadLagTime, distanceGap }: { leadLagTime: number; dista
 
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-white/20 bg-black/40 px-3 py-1.5 backdrop-blur transition-all">
-      <span className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-0.5">Ghost Pacer</span>
+      <span className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-0.5">
+        Ghost Pacer
+      </span>
       <div className="flex items-baseline gap-1.5">
         <span className={`text-lg font-black ${color} tracking-tighter`}>
-          {isLeading ? "+" : "-"}{absTime.toFixed(1)}s
+          {isLeading ? "+" : "-"}
+          {absTime.toFixed(1)}s
         </span>
-        <span className="text-[10px] font-bold text-white/60 uppercase">{label}</span>
+        <span className="text-[10px] font-bold text-white/60 uppercase">
+          {label}
+        </span>
       </div>
       <div className="text-[9px] font-mono text-white/30">
         {Math.abs(distanceGap).toFixed(0)}m {isLeading ? "ahead" : "behind"}
@@ -122,15 +217,23 @@ function GearBadge({ gear, ratio }: { gear?: number; ratio?: number }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 backdrop-blur shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all">
       <div className="flex items-center gap-1.5 mb-0.5">
-        <span className="text-[8px] font-black text-indigo-400/70 uppercase tracking-widest">Gear</span>
+        <span className="text-[8px] font-black text-indigo-400/70 uppercase tracking-widest">
+          Gear
+        </span>
         <div className="flex gap-0.5">
           <div className="w-1 h-1 rounded-full bg-indigo-400/40" />
           <div className="w-1 h-1 rounded-full bg-indigo-400" />
         </div>
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-xl font-black text-indigo-300 tracking-tighter">{gear}</span>
-        {ratio && <span className="text-[9px] font-mono text-indigo-400/50 italic">{ratio.toFixed(2)}</span>}
+        <span className="text-xl font-black text-indigo-300 tracking-tighter">
+          {gear}
+        </span>
+        {ratio && (
+          <span className="text-[9px] font-mono text-indigo-400/50 italic">
+            {ratio.toFixed(2)}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -155,6 +258,7 @@ export function RideHUD({
   intervalPhase,
   aiLog,
   mobileBridgeStatus,
+  targetRpm,
 }: RideHUDProps) {
   // Don't show if minimal mode or not riding
   if (hudMode === "minimal" || (!isRiding && rideProgress === 0)) {
@@ -163,7 +267,18 @@ export function RideHUD({
 
   const phaseAccent = getPhaseAccent(intervalPhase);
   const phaseMetrics = getPhaseMetrics(telemetry, intervalPhase);
-  const phaseLabel = intervalPhase ? intervalPhase.charAt(0).toUpperCase() + intervalPhase.slice(1) : "Cruise";
+  const phaseLabel = intervalPhase
+    ? intervalPhase.charAt(0).toUpperCase() + intervalPhase.slice(1)
+    : "Cruise";
+
+  // Calculate intensity based on target RPM if available
+  const rpmIntensity = useMemo(() => {
+    if (!targetRpm || !telemetry.cadence) return telemetry.effort / 1000;
+    const [min, max] = targetRpm;
+    if (telemetry.cadence >= min && telemetry.cadence <= max) return 1.0;
+    if (telemetry.cadence < min) return telemetry.cadence / min;
+    return 1.0 - Math.min(0.5, (telemetry.cadence - max) / 100);
+  }, [targetRpm, telemetry.cadence, telemetry.effort]);
 
   // Agent Intelligence Section
   const agentInsight = (
@@ -183,13 +298,16 @@ export function RideHUD({
         <div className="relative rounded-xl bg-black/60 border border-white/10 px-4 py-3 backdrop-blur shadow-2xl">
           <p className="text-[13px] text-white/90 leading-relaxed font-medium tracking-tight">
             <span className="text-indigo-400 mr-2">●</span>
-            {aiLog?.message || "Keep your breathing steady. You're crushing this climb!"}
+            {aiLog?.message ||
+              "Keep your breathing steady. You're crushing this climb!"}
           </p>
 
           {rewardsMode === "yellow-stream" && (
             <div className="mt-2 flex items-center gap-1.5 px-1.5 py-0.5 rounded-md bg-yellow-500/10 border border-yellow-500/20 w-fit">
               <span className="h-1 w-1 rounded-full bg-yellow-400 animate-pulse" />
-              <span className="text-[8px] font-black text-yellow-400 uppercase tracking-tighter">Live Rewards Active</span>
+              <span className="text-[8px] font-black text-yellow-400 uppercase tracking-tighter">
+                Live Rewards Active
+              </span>
             </div>
           )}
         </div>
@@ -197,22 +315,40 @@ export function RideHUD({
     </div>
   );
 
+  // Flow State Visualizer (Background)
+  const flowStateVisualizer = (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10 opacity-40">
+      <div
+        className={`absolute inset-0 transition-all duration-1000 ${phaseAccent.bg}`}
+        style={{ opacity: 0.3 + rpmIntensity * 0.4 }}
+      />
+      {rpmIntensity > 0.8 && (
+        <div className="absolute inset-0">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[radial-gradient(circle,rgba(255,255,255,0.05)_0%,transparent_70%)] animate-[spin_20s_linear_infinite]" />
+        </div>
+      )}
+    </div>
+  );
+
   // Mobile Compact Layout - Floating pill that expands on tap
   if (deviceType === "mobile" && hudMode === "compact") {
     return (
-      <MobileCompactHUD
-        telemetry={telemetry}
-        phaseMetrics={phaseMetrics}
-        phaseLabel={phaseLabel}
-        phaseAccent={phaseAccent}
-        isRiding={isRiding}
-        rewardsActive={rewardsActive}
-        rewardsStreamState={rewardsStreamState}
-        rewardsMode={rewardsMode}
-        mobileBridgeStatus={mobileBridgeStatus}
-        ghostState={ghostState}
-        agentInsight={agentInsight}
-      />
+      <>
+        {flowStateVisualizer}
+        <MobileCompactHUD
+          telemetry={telemetry}
+          phaseMetrics={phaseMetrics}
+          phaseLabel={phaseLabel}
+          phaseAccent={phaseAccent}
+          isRiding={isRiding}
+          rewardsActive={rewardsActive}
+          rewardsStreamState={rewardsStreamState}
+          rewardsMode={rewardsMode}
+          mobileBridgeStatus={mobileBridgeStatus}
+          ghostState={ghostState}
+          agentInsight={agentInsight}
+        />
+      </>
     );
   }
 
@@ -220,29 +356,44 @@ export function RideHUD({
   if (deviceType === "tablet" && orientation === "portrait") {
     return (
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
+        {flowStateVisualizer}
         <div className="flex flex-col gap-3 w-full max-w-xs">
           {[
             phaseMetrics.primary,
             ...phaseMetrics.secondary,
-            { label: "Speed", value: telemetry.speed.toFixed(1), unit: "km/h", color: "text-green-400" },
+            {
+              label: "Speed",
+              value: telemetry.speed.toFixed(1),
+              unit: "km/h",
+              color: "text-green-400",
+            },
           ].map((metric, index) => (
             <div
               key={metric.label}
-              className={`rounded-xl border bg-black/60 p-3 backdrop-blur-xl ${index === 0 ? `${phaseAccent.border} ${phaseAccent.bg}` : "border-white/20"}`}
+              className={`rounded-2xl border bg-black/60 p-4 backdrop-blur-xl transition-all duration-500 ${index === 0 ? `${phaseAccent.border} ${phaseAccent.bg} ${phaseAccent.glow}` : "border-white/10"}`}
             >
-              <p className="text-xs uppercase tracking-wider text-white/50 mb-1">{metric.label}</p>
-              <p className={`text-3xl font-bold ${metric.color}`}>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">
+                {metric.label}
+              </p>
+              <p
+                className={`text-4xl font-black ${metric.color} tracking-tighter`}
+              >
                 {metric.value}
-                <span className="text-sm text-white/50 ml-2">{metric.unit}</span>
+                <span className="text-sm text-white/20 ml-2 uppercase">
+                  {metric.unit}
+                </span>
               </p>
             </div>
           ))}
           <div className="flex justify-center mt-2 gap-3">
-            <GearBadge gear={telemetry.currentGear} ratio={telemetry.gearRatio} />
+            <GearBadge
+              gear={telemetry.currentGear}
+              ratio={telemetry.gearRatio}
+            />
             {ghostState && (
-              <GhostLeadLag 
-                leadLagTime={ghostState.leadLagTime} 
-                distanceGap={ghostState.distanceGap} 
+              <GhostLeadLag
+                leadLagTime={ghostState.leadLagTime}
+                distanceGap={ghostState.distanceGap}
               />
             )}
           </div>
@@ -254,7 +405,8 @@ export function RideHUD({
   // Desktop/Tablet Landscape Full Layout
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
-      <div className="flex flex-col gap-4">
+      {flowStateVisualizer}
+      <div className="flex flex-col gap-6">
         <div className="flex justify-center">
           <MobileStatusBadges status={mobileBridgeStatus} />
         </div>
@@ -269,30 +421,55 @@ export function RideHUD({
           </div>
         )}
 
-        <div className="flex items-center justify-center gap-4">
-          <div className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-white/70 backdrop-blur ${phaseAccent.border} ${phaseAccent.bg}`}>
+        <div className="flex items-center justify-center gap-6">
+          <div
+            className={`rounded-full border px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.3em] text-white/80 backdrop-blur-xl transition-all duration-500 ${phaseAccent.border} ${phaseAccent.bg} ${phaseAccent.glow}`}
+          >
             {phaseLabel}
           </div>
           <GearBadge gear={telemetry.currentGear} ratio={telemetry.gearRatio} />
           {ghostState && (
-            <GhostLeadLag 
-              leadLagTime={ghostState.leadLagTime} 
-              distanceGap={ghostState.distanceGap} 
+            <GhostLeadLag
+              leadLagTime={ghostState.leadLagTime}
+              distanceGap={ghostState.distanceGap}
             />
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 sm:gap-6">
-          <MetricCard label={phaseMetrics.primary.label} value={phaseMetrics.primary.value} unit={phaseMetrics.primary.unit} color={phaseMetrics.primary.color} emphasized />
-          <MetricCard label={phaseMetrics.secondary[0].label} value={phaseMetrics.secondary[0].value} unit={phaseMetrics.secondary[0].unit} color={phaseMetrics.secondary[0].color} />
-          <MetricCard label={phaseMetrics.secondary[1].label} value={phaseMetrics.secondary[1].value} unit={phaseMetrics.secondary[1].unit} color={phaseMetrics.secondary[1].color} />
-          <MetricCard label="Speed" value={telemetry.speed.toFixed(1)} unit="km/h" color="text-green-400" />
+        <div className="grid grid-cols-2 gap-6 sm:gap-8">
+          <MetricCard
+            label={phaseMetrics.primary.label}
+            value={phaseMetrics.primary.value}
+            unit={phaseMetrics.primary.unit}
+            color={phaseMetrics.primary.color}
+            emphasized
+            intensity={rpmIntensity}
+          />
+          <MetricCard
+            label={phaseMetrics.secondary[0].label}
+            value={phaseMetrics.secondary[0].value}
+            unit={phaseMetrics.secondary[0].unit}
+            color={phaseMetrics.secondary[0].color}
+            intensity={telemetry.heartRate / 200}
+          />
+          <MetricCard
+            label={phaseMetrics.secondary[1].label}
+            value={phaseMetrics.secondary[1].value}
+            unit={phaseMetrics.secondary[1].unit}
+            color={phaseMetrics.secondary[1].color}
+            intensity={telemetry.cadence / 120}
+          />
+          <MetricCard
+            label="Speed"
+            value={telemetry.speed.toFixed(1)}
+            unit="km/h"
+            color="text-emerald-400"
+            intensity={telemetry.speed / 45}
+          />
         </div>
 
         {isRiding && (
-          <div className="flex justify-center mt-2">
-            {agentInsight}
-          </div>
+          <div className="flex justify-center mt-4">{agentInsight}</div>
         )}
       </div>
     </div>
@@ -305,49 +482,76 @@ const MetricCard = memo(function MetricCard({
   unit,
   color,
   emphasized = false,
+  intensity = 0, // 0-1 based on target proximity or effort
 }: {
   label: string;
   value: string | number;
   unit: string;
   color: string;
   emphasized?: boolean;
+  intensity?: number;
 }) {
   return (
-    <div className={`
-      relative rounded-2xl overflow-hidden
-      bg-black/40 backdrop-blur border
-      p-4 sm:p-6 min-w-[160px] sm:min-w-[190px]
-      transition-colors duration-300
-      ${emphasized
-        ? "border-white/30 shadow-[0_0_50px_rgba(255,255,255,0.05)] ring-1 ring-white/10"
-        : "border-white/10"}
-    `}>
-      {/* Decorative inner glow */}
-      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+    <div
+      className={`
+      relative rounded-[2rem] overflow-hidden
+      bg-black/40 backdrop-blur-2xl border
+      p-5 sm:p-8 min-w-[170px] sm:min-w-[210px]
+      transition-all duration-500
+      ${
+        emphasized
+          ? "border-white/20 shadow-[0_0_60px_rgba(255,255,255,0.08)] ring-1 ring-white/5"
+          : "border-white/5 hover:border-white/10"
+      }
+    `}
+    >
+      {/* Dynamic Performance Halo */}
+      {intensity > 0.5 && (
+        <div
+          className={`absolute inset-0 opacity-20 blur-3xl animate-pulse ${color.replace("text-", "bg-")}`}
+          style={{
+            transform: `scale(${1 + intensity * 0.2})`,
+            transition: "transform 0.5s ease-out",
+          }}
+        />
+      )}
 
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] sm:text-xs uppercase font-black tracking-[0.2em] text-white/40 drop-shadow-sm">{label}</p>
-        <div className="flex gap-1">
-          <span className={`h-1 w-1 rounded-full ${color.replace('text-', 'bg-')} opacity-60`} />
-          <span className={`h-1 w-3 rounded-full ${color.replace('text-', 'bg-')} opacity-20`} />
+      {/* Decorative inner glow */}
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+      <div className="flex items-center justify-between mb-3 relative z-10">
+        <p className="text-[10px] sm:text-[11px] uppercase font-black tracking-[0.3em] text-white/40">
+          {label}
+        </p>
+        <div className="flex gap-1.5">
+          <div
+            className={`h-1.5 w-1.5 rounded-full ${color.replace("text-", "bg-")} shadow-[0_0_10px_currentColor]`}
+          />
+          {intensity > 0.8 && (
+            <div
+              className={`h-1.5 w-4 rounded-full ${color.replace("text-", "bg-")} animate-pulse`}
+            />
+          )}
         </div>
       </div>
 
-      <div className="relative">
-        <p className={`text-4xl sm:text-6xl font-black tracking-tighter ${color} drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]`}>
+      <div className="relative z-10">
+        <p
+          className={`text-5xl sm:text-7xl font-black tracking-tighter ${color} transition-all duration-300`}
+        >
           {value}
-          <span className="text-sm sm:text-base font-medium text-white/30 ml-2 tracking-normal">{unit}</span>
+          <span className="text-sm sm:text-lg font-bold text-white/20 ml-2 tracking-normal uppercase">
+            {unit}
+          </span>
         </p>
       </div>
 
-      {/* Subtle data pulse indicator at bottom */}
-      <div className="absolute bottom-1 right-3 flex items-center gap-1.5 opacity-30">
-        <span className="text-[8px] font-mono text-white/50 uppercase">Live</span>
-        <div className="flex gap-0.5">
-          {[1, 2, 3].map(i => (
-            <div key={i} className={`w-0.5 h-1.5 bg-current ${color} opacity-60`} style={{ animationDelay: `${i * 0.15}s` }} />
-          ))}
-        </div>
+      {/* Real-time data stream visualizer */}
+      <div className="absolute bottom-2 left-8 right-8 h-0.5 bg-white/5 rounded-full overflow-hidden">
+        <div
+          className={`h-full ${color.replace("text-", "bg-")} transition-all duration-300`}
+          style={{ width: `${Math.min(100, intensity * 100)}%` }}
+        />
       </div>
     </div>
   );
@@ -368,7 +572,10 @@ function MobileCompactHUD({
   agentInsight,
 }: {
   telemetry: TelemetryData;
-  phaseMetrics: { primary: { label: string; value: number; unit: string; color: string }; secondary: { label: string; value: number; unit: string; color: string }[] };
+  phaseMetrics: {
+    primary: { label: string; value: number; unit: string; color: string };
+    secondary: { label: string; value: number; unit: string; color: string }[];
+  };
   phaseLabel: string;
   phaseAccent: { border: string };
   isRiding: boolean;
@@ -383,16 +590,23 @@ function MobileCompactHUD({
   agentInsight?: React.ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [visibleWidget, setVisibleWidget] = useState<"primary" | "power" | "heartrate" | "cadence">(() => {
+  const [visibleWidget, setVisibleWidget] = useState<
+    "primary" | "power" | "heartrate" | "cadence"
+  >(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("mobile-widget-preference");
-      if (saved && ["primary", "power", "heartrate", "cadence"].includes(saved)) {
+      if (
+        saved &&
+        ["primary", "power", "heartrate", "cadence"].includes(saved)
+      ) {
         return saved as "primary" | "power" | "heartrate" | "cadence";
       }
     }
     return "primary";
   });
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
+    null,
+  );
 
   // Persist widget preference to localStorage
   useEffect(() => {
@@ -407,7 +621,12 @@ function MobileCompactHUD({
       setExpanded(false);
     } else {
       setVisibleWidget((prev) => {
-        const widgets: typeof prev[] = ["primary", "power", "heartrate", "cadence"];
+        const widgets: (typeof prev)[] = [
+          "primary",
+          "power",
+          "heartrate",
+          "cadence",
+        ];
         const currentIdx = widgets.indexOf(prev);
         return widgets[(currentIdx + 1) % widgets.length];
       });
@@ -423,14 +642,20 @@ function MobileCompactHUD({
     if (!touchStart) return;
     const deltaX = e.changedTouches[0].clientX - touchStart.x;
     const deltaY = e.changedTouches[0].clientY - touchStart.y;
-    
+
     // Only trigger if horizontal swipe is dominant
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
       setVisibleWidget((prev) => {
-        const widgets: typeof prev[] = ["primary", "power", "heartrate", "cadence"];
+        const widgets: (typeof prev)[] = [
+          "primary",
+          "power",
+          "heartrate",
+          "cadence",
+        ];
         const currentIdx = widgets.indexOf(prev);
         const direction = deltaX > 0 ? 1 : -1; // Right swipe = next, left swipe = prev
-        const newIdx = (currentIdx + direction + widgets.length) % widgets.length;
+        const newIdx =
+          (currentIdx + direction + widgets.length) % widgets.length;
         return widgets[newIdx];
       });
     }
@@ -438,92 +663,179 @@ function MobileCompactHUD({
   };
 
   const metrics = [
-    { key: "primary", label: phaseMetrics.primary.label, value: phaseMetrics.primary.value, color: phaseMetrics.primary.color, unit: phaseMetrics.primary.unit },
-    { key: "power", label: "Power", value: `${telemetry.power || 0}`, color: "text-orange-400", unit: "W" },
-    { key: "heartrate", label: "Heart Rate", value: `${telemetry.heartRate || "--"}`, color: "text-red-400", unit: "BPM" },
-    { key: "cadence", label: "Cadence", value: `${telemetry.cadence || "--"}`, color: "text-cyan-400", unit: "RPM" },
+    {
+      key: "primary",
+      label: phaseMetrics.primary.label,
+      value: phaseMetrics.primary.value,
+      color: phaseMetrics.primary.color,
+      unit: phaseMetrics.primary.unit,
+    },
+    {
+      key: "power",
+      label: "Power",
+      value: `${telemetry.power || 0}`,
+      color: "text-orange-400",
+      unit: "W",
+    },
+    {
+      key: "heartrate",
+      label: "Heart Rate",
+      value: `${telemetry.heartRate || "--"}`,
+      color: "text-red-400",
+      unit: "BPM",
+    },
+    {
+      key: "cadence",
+      label: "Cadence",
+      value: `${telemetry.cadence || "--"}`,
+      color: "text-cyan-400",
+      unit: "RPM",
+    },
   ];
 
-  const currentMetric = metrics.find((m) => m.key === visibleWidget) || metrics[0];
+  const currentMetric =
+    metrics.find((m) => m.key === visibleWidget) || metrics[0];
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-end pointer-events-none p-2 pb-8" style={{ willChange: "transform" }}>
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-end pointer-events-none p-4 pb-12"
+      style={{ willChange: "transform" }}
+    >
       {/* Status indicators at top - minimal - only show when expanded */}
-      {expanded && (
-        <div className="flex items-center gap-2 mb-3 pointer-events-auto">
-          {/* Connection status */}
-          {mobileBridgeStatus?.isBackgroundActive && (
-            <span className="flex items-center gap-1 text-[10px] text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Connected
-            </span>
-          )}
-          {/* Rewards ticker if active */}
-          {rewardsActive && rewardsStreamState && rewardsMode && (
-            <YellowRewardTicker streamState={rewardsStreamState} mode={rewardsMode} symbol="SPIN" compact />
-          )}
-        </div>
-      )}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="flex items-center gap-2 mb-4 pointer-events-auto"
+          >
+            {/* Connection status */}
+            {mobileBridgeStatus?.isBackgroundActive && (
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest text-emerald-400">
+                <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                Live
+              </span>
+            )}
+            {/* Rewards ticker if active */}
+            {rewardsActive && rewardsStreamState && rewardsMode && (
+              <YellowRewardTicker
+                streamState={rewardsStreamState}
+                mode={rewardsMode}
+                symbol="SPIN"
+                compact
+              />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main floating pill - tap to cycle/expand - more minimal on mobile */}
       <button
         onClick={handleTap}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onMouseDown={() => (window as any).__longPress = setTimeout(() => setExpanded(true), 500)}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onMouseUp={() => clearTimeout((window as any).__longPress)}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onMouseLeave={() => clearTimeout((window as any).__longPress)}
-        className={`pointer-events-auto relative rounded-full border bg-black/60 backdrop-blur-md transition-all duration-300 shadow-lg ${
-          expanded ? "w-full max-w-xs p-4" : "px-3 py-2"
+        className={`pointer-events-auto relative rounded-[2.5rem] border bg-black/80 backdrop-blur-2xl transition-all duration-500 shadow-2xl overflow-hidden ${
+          expanded ? "w-full max-w-sm p-8" : "px-6 py-4"
         } ${phaseAccent.border}`}
       >
         {!expanded ? (
           // Collapsed: show single metric - more compact
-          <div className="flex items-center gap-2">
-            <span className={`text-[10px] uppercase tracking-wider ${currentMetric.color}`}>{currentMetric.label}</span>
-            <span className={`text-lg font-bold ${currentMetric.color}`}>
-              {currentMetric.value}
-              <span className="text-[10px] font-medium text-white/40 ml-0.5">{currentMetric.unit}</span>
-            </span>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-start">
+              <span
+                className={`text-[9px] font-black uppercase tracking-[0.3em] opacity-40 ${currentMetric.color}`}
+              >
+                {currentMetric.label}
+              </span>
+              <div className="flex items-baseline gap-1">
+                <span
+                  className={`text-3xl font-black tracking-tighter ${currentMetric.color}`}
+                >
+                  {currentMetric.value}
+                </span>
+                <span className="text-[10px] font-bold text-white/20 uppercase">
+                  {currentMetric.unit}
+                </span>
+              </div>
+            </div>
+            <div className="h-8 w-px bg-white/10" />
+            <div
+              className={`rounded-full px-3 py-1 text-[8px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-white/60`}
+            >
+              {phaseLabel}
+            </div>
           </div>
         ) : (
           // Expanded: show all metrics in a grid - more compact
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-6">
             {/* Primary metric */}
             <div className="text-center">
-              <p className="text-[10px] uppercase tracking-wider text-white/50">{phaseMetrics.primary.label}</p>
-              <p className={`text-3xl font-bold ${phaseMetrics.primary.color}`}>{phaseMetrics.primary.value}</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">{phaseLabel}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 mb-1">
+                {phaseMetrics.primary.label}
+              </p>
+              <p
+                className={`text-6xl font-black tracking-tighter ${phaseMetrics.primary.color}`}
+              >
+                {phaseMetrics.primary.value}
+                <span className="text-base font-bold text-white/20 ml-2 uppercase">
+                  {phaseMetrics.primary.unit}
+                </span>
+              </p>
+              <div className="inline-block mt-2 rounded-full px-4 py-1 text-[9px] font-black uppercase tracking-[0.3em] bg-white/5 border border-white/10 text-white/60">
+                {phaseLabel}
+              </div>
             </div>
+
             {/* Secondary metrics grid */}
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-3 gap-3">
               {phaseMetrics.secondary.map((metric) => (
-                <div key={metric.label} className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-center">
-                  <p className="text-[8px] uppercase text-white/40">{metric.label}</p>
-                  <p className={`text-base font-bold ${metric.color}`}>{metric.value}</p>
+                <div
+                  key={metric.label}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center"
+                >
+                  <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">
+                    {metric.label}
+                  </p>
+                  <p
+                    className={`text-xl font-black tracking-tighter ${metric.color}`}
+                  >
+                    {metric.value}
+                  </p>
                 </div>
               ))}
             </div>
+
             {/* Gear and ghost */}
-            <div className="flex justify-center gap-2">
-              <GearBadge gear={telemetry.currentGear} ratio={telemetry.gearRatio} />
-              {ghostState && <GhostLeadLag leadLagTime={ghostState.leadLagTime} distanceGap={ghostState.distanceGap} />}
+            <div className="flex items-center justify-between pt-4 border-t border-white/5">
+              <GearBadge
+                gear={telemetry.currentGear}
+                ratio={telemetry.gearRatio}
+              />
+              {ghostState && (
+                <GhostLeadLag
+                  leadLagTime={ghostState.leadLagTime}
+                  distanceGap={ghostState.distanceGap}
+                />
+              )}
             </div>
-            {/* Collapse hint */}
-            <p className="text-center text-[8px] text-white/30">Tap to collapse</p>
           </div>
         )}
       </button>
 
       {/* Agent insight at bottom - only when expanded */}
-      {isRiding && agentInsight && expanded && (
-        <div className="mt-2 pointer-events-auto">
-          {agentInsight}
-        </div>
-      )}
+      <AnimatePresence>
+        {isRiding && agentInsight && expanded && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="mt-4 pointer-events-auto"
+          >
+            {agentInsight}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

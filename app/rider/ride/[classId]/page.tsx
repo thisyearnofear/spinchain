@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   useClass,
@@ -42,6 +43,10 @@ import { useCoachVoice } from "../../../hooks/common/use-coach-voice";
 import { useRideCoach } from "../../../hooks/ride/use-ride-coach";
 import { useWorkoutAgent } from "../../../hooks/ai/use-workout-agent";
 import { RiderSocialFeed } from "../../../components/features/ride/social-feed";
+import { CoachMessageOverlay } from "../../../components/features/ride/coach-message-overlay";
+import { FlowBackground } from "../../../components/features/ride/flow-background";
+import { SettlementStream } from "../../../components/features/ride/settlement-stream";
+import { Sparkles } from "lucide-react";
 import {
   useRewards,
   type RewardMode,
@@ -585,7 +590,12 @@ export default function LiveRidePage() {
       : aiPersonality === "zen"
         ? "zen"
         : "data";
-  const { playSound, playCountdown, stopAll: stopAudio } = useWorkoutAudio();
+  const {
+    playSound,
+    playCountdown,
+    stopAll: stopAudio,
+    setMusicSpeed,
+  } = useWorkoutAudio();
   const {
     speak,
     stop: stopVoice,
@@ -1082,29 +1092,57 @@ export default function LiveRidePage() {
     return () => clearInterval(interval);
   }, [isRiding, telemetry.effort]);
 
-  const { aiLogs, reasonerState, lastDecision, thoughtLog, socialEvents } =
-    useWorkoutAgent({
-      agentName: (classData?.metadata?.ai as any)?.name || "Coach Atlas",
-      personality:
-        ((classData?.metadata?.ai as any)?.personality as
-          | "zen"
-          | "drill-sergeant"
-          | "data") || "drill-sergeant",
-      sessionObjectId: classId,
-      metrics: {
-        ...telemetry,
-        wBalPercentage: telemetry.wBalPercentage || 100,
-      },
-      currentInterval,
-      isEnabled: aiActive,
-      setResistance: async (level) => {
-        // Hardware actuation via unified BLE
-        return await setResistance(level);
-      },
-      playSound,
-      instructorProfile: (classData?.metadata as any)?.instructor, // Phase 2: Training data
-      marketStats, // Phase 3: Revenue optimization
-    });
+  const {
+    aiLogs,
+    reasonerState,
+    lastDecision,
+    thoughtLog,
+    socialEvents,
+    handleHighFive,
+  } = useWorkoutAgent({
+    agentName: (classData?.metadata?.ai as any)?.name || "Coach Atlas",
+    personality:
+      ((classData?.metadata?.ai as any)?.personality as
+        | "zen"
+        | "drill-sergeant"
+        | "data") || "drill-sergeant",
+    sessionObjectId: classId,
+    metrics: {
+      ...telemetry,
+      wBalPercentage: telemetry.wBalPercentage || 100,
+    },
+    currentInterval,
+    isEnabled: aiActive,
+    setResistance: async (level) => {
+      // Hardware actuation via unified BLE
+      return await setResistance(level);
+    },
+    playSound,
+    instructorProfile: (classData?.metadata as any)?.instructor, // Phase 2: Training data
+    marketStats, // Phase 3: Revenue optimization
+  });
+
+  const flowIntensity = useMemo(() => {
+    if (!currentInterval?.targetRpm) return telemetry.effort / 100;
+    const [min] = currentInterval.targetRpm;
+    return Math.min(1, telemetry.cadence / min);
+  }, [telemetry.cadence, telemetry.effort, currentInterval]);
+
+  const flowColor = useMemo(() => {
+    if (currentInterval?.phase === "sprint") return "bg-rose-500";
+    if (currentInterval?.phase === "recovery") return "bg-sky-500";
+    return "bg-yellow-500";
+  }, [currentInterval?.phase]);
+
+  // Biometric Music Sync
+  useEffect(() => {
+    if (!isRiding || !telemetry.cadence || !currentInterval?.targetRpm) return;
+    const [minRpm] = currentInterval.targetRpm;
+    // Calculate playback rate based on cadence vs target
+    // 1.0 is normal speed, range [0.85, 1.2]
+    const rate = Math.max(0.85, Math.min(1.2, telemetry.cadence / minRpm));
+    setMusicSpeed(rate);
+  }, [isRiding, telemetry.cadence, currentInterval, setMusicSpeed]);
 
   // 2. Consolidated Workout Coaching Logic (Phase 1/3)
   const { lastCoachMessage: consolidatedCoachMessage } = useRideCoach({
@@ -1123,6 +1161,24 @@ export default function LiveRidePage() {
     storyBeats: classData?.route?.route.storyBeats || [],
     lastDecision,
   });
+
+  const [showMilestone, setShowMilestone] = useState<{
+    title: string;
+    subtitle: string;
+  } | null>(null);
+
+  // Milestone Celebration logic
+  useEffect(() => {
+    if (!isRiding) return;
+
+    if (telemetry.effort > 900 && !trackedCompletionRef.current) {
+      setShowMilestone({
+        title: "ELITE EFFORT",
+        subtitle: "You just crossed 900 effort points!",
+      });
+      setTimeout(() => setShowMilestone(null), 5000);
+    }
+  }, [telemetry.effort, isRiding]);
 
   // Handle message display sync
   useEffect(() => {
@@ -1688,6 +1744,7 @@ export default function LiveRidePage() {
               intervalPhase={currentInterval?.phase ?? null}
               aiLog={aiLogs[0]}
               ghostState={ghostState}
+              targetRpm={currentInterval?.targetRpm}
             />
           )}
 
@@ -1794,18 +1851,93 @@ export default function LiveRidePage() {
         </div>
       )}
 
-      <RiderSocialFeed events={socialEvents} />
+      <RiderSocialFeed events={socialEvents} onHighFive={handleHighFive} />
 
-      {/* Coach message text overlay — shown for 4s after any spoken cue */}
-      {lastCoachMessage && isRiding && (
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none px-4 w-full max-w-[90%] sm:max-w-sm animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="rounded-2xl border border-white/15 bg-black/75 backdrop-blur-xl px-5 py-3 text-center shadow-lg">
-            <p className="text-sm sm:text-base font-semibold text-white leading-snug">
-              &ldquo;{lastCoachMessage}&rdquo;
-            </p>
-          </div>
+      {/* Milestone Celebration Overlay */}
+      <AnimatePresence>
+        {showMilestone && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5, y: 100 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 1.5, filter: "blur(20px)" }}
+            className="fixed inset-0 flex items-center justify-center z-[100] pointer-events-none"
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-indigo-500/40 blur-[120px] animate-pulse rounded-full scale-150" />
+              <div className="relative bg-black/80 backdrop-blur-3xl border-2 border-indigo-500/50 rounded-[3rem] px-12 py-10 text-center shadow-[0_0_100px_rgba(99,102,241,0.4)]">
+                <motion.div
+                  animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
+                  transition={{ duration: 0.5, repeat: 2 }}
+                  className="inline-block mb-4"
+                >
+                  <Sparkles className="w-16 h-16 text-indigo-400" />
+                </motion.div>
+                <h2 className="text-5xl font-black text-white tracking-tighter mb-2 italic uppercase">
+                  {showMilestone.title}
+                </h2>
+                <p className="text-indigo-300 font-bold text-lg uppercase tracking-widest opacity-80">
+                  {showMilestone.subtitle}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Social Presence: Other riders in the class */}
+      {isRiding && viewMode === "immersive" && (
+        <div className="fixed top-32 left-6 z-40 flex flex-col gap-3">
+          {[
+            { id: "1", name: "Vitalik.eth", power: 245, active: true },
+            { id: "2", name: "Satoshi_N", power: 180, active: false },
+            { id: "3", name: "CyclingSam", power: 210, active: true },
+          ].map((rider) => (
+            <motion.div
+              key={rider.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-3 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full pl-1.5 pr-4 py-1.5"
+            >
+              <div className="relative">
+                <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-black text-indigo-300">
+                  {rider.name.substring(0, 2).toUpperCase()}
+                </div>
+                {rider.active && (
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-black animate-pulse" />
+                )}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black text-white/80 leading-none">
+                  {rider.name}
+                </span>
+                <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-0.5">
+                  {rider.power}W
+                </span>
+              </div>
+            </motion.div>
+          ))}
         </div>
       )}
+
+      <FlowBackground
+        intensity={flowIntensity}
+        color={flowColor}
+        isRiding={isRiding && viewMode === "immersive"}
+      />
+
+      {/* Live Settlement Stream visualizer */}
+      <SettlementStream
+        isActive={
+          isRiding && rewards.mode === "yellow-stream" && rewards.isActive
+        }
+        accumulated={Number(rewards.accumulatedReward)}
+        rate={rewards.streamingRate ? Number(rewards.streamingRate) : 0}
+      />
+
+      <CoachMessageOverlay
+        message={isRiding ? lastCoachMessage : null}
+        phase={currentInterval?.phase}
+      />
 
       {/* Sprint flash border — pulses red on sprint phase entry */}
       {isRiding && currentInterval?.phase === "sprint" && (

@@ -95,11 +95,24 @@ class AudioMixer {
     this.layers.set(id, layer);
     
     // Auto-cleanup when done
-    source.onended = () => {
-      this.layers.delete(id);
-    };
+    if (source instanceof AudioBufferSourceNode) {
+      source.onended = () => {
+        this.layers.delete(id);
+      };
+    }
     
     return layer;
+  }
+
+  /**
+   * Set playback rate for a specific layer (e.g. for biometric music sync)
+   */
+  setLayerPlaybackRate(id: string, rate: number): void {
+    const layer = this.layers.get(id);
+    if (!layer || !(layer.source instanceof AudioBufferSourceNode)) return;
+    
+    // Smoothly transition playback rate
+    layer.source.playbackRate.setTargetAtTime(rate, this.context!.currentTime, 0.5);
   }
 
   /**

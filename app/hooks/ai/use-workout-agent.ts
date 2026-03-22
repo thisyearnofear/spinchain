@@ -46,9 +46,6 @@ export function useWorkoutAgent({
   instructorProfile,
   marketStats = { ticketsSold: 0, revenue: 0, capacity: 50 },
 }: UseWorkoutAgentOptions) {
-  const { rhythm } = useHaptic();
-  const [socialEvents, setSocialEvents] = useState<Array<{ id: string; type: any; message: string; timestamp: number }>>([]);
-  
   // 1. Real-time Telemetry Analysis (Phase 1)
   const { logs: aiLogs, addLog } = useAiInstructor({
     agentName,
@@ -59,6 +56,42 @@ export function useWorkoutAgent({
     isEnabled,
     setResistance,
   });
+
+  const { rhythm, light: hapticLight } = useHaptic();
+  const [socialEvents, setSocialEvents] = useState<
+    Array<{
+      id: string;
+      type: any;
+      message: string;
+      timestamp: number;
+      from?: string;
+    }>
+  >([]);
+
+  const handleHighFive = useCallback(
+    (riderId: string) => {
+      hapticLight();
+      addLog(`Sent high-five to ${riderId}`, "info");
+      // Simulate immediate response
+      setTimeout(() => {
+        const msg = `${riderId} high-fived you back!`;
+        setSocialEvents((prev) =>
+          [
+            {
+              id: Math.random().toString(36).substring(2, 11),
+              type: "highfive",
+              message: msg,
+              timestamp: Date.now(),
+              from: riderId,
+            },
+            ...prev,
+          ].slice(0, 3),
+        );
+        hapticLight();
+      }, 2000);
+    },
+    [hapticLight, addLog],
+  );
 
   // Cadence Sync Haptics - Pulse when below target RPM
   useEffect(() => {
@@ -221,5 +254,6 @@ export function useWorkoutAgent({
     thoughtLog,
     isListening,
     socialEvents,
+    handleHighFive,
   };
 }
