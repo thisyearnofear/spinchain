@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useClass } from "../../../hooks/evm/use-class-data";
 import { usePracticeConfig } from "../../../hooks/ride/use-practice-config";
+import { useRideLifecycle } from "../../../hooks/ride/use-ride-lifecycle";
 import { useAccount } from "wagmi";
 import { usePanelState } from "../../../hooks/ui/use-panel-state";
 import {
@@ -145,15 +146,26 @@ export default function LiveRidePage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [panelState]);
 
-  // Ride state
-  const [isRiding, setIsRiding] = useState(false);
-  const isRidingRef = useRef(false);
-  const classDataRef = useRef(classData);
-  classDataRef.current = classData;
-  const [isStarting, setIsStarting] = useState(false);
-  const [isExiting, setIsExiting] = useState(false);
-  const [rideProgress, setRideProgress] = useState(0);
-  const [elapsedTime, setElapsedTime] = useState(0);
+  // Ride lifecycle (extracted to hook)
+  const {
+    isRiding,
+    setIsRiding,
+    isRidingRef,
+    classDataRef,
+    isStarting,
+    setIsStarting,
+    isExiting,
+    setIsExiting,
+    rideProgress,
+    setRideProgress,
+    elapsedTime,
+    setElapsedTime,
+  } = useRideLifecycle({
+    classData,
+    bleConnected,
+    useSimulator,
+  });
+
   const [showHUD] = useState(true);
   const [hudMode, setHudMode] = useState<"full" | "compact" | "minimal">(
     "full",
@@ -904,49 +916,32 @@ export default function LiveRidePage() {
     });
   }, [classId, isPracticeMode, isRiding, rideProgress]);
 
-  // Simulate ride progress (only when BLE not connected and not using simulator)
+  // Simulate telemetry when BLE not connected and not using simulator
   useEffect(() => {
-    if (!isRiding || !classData || bleConnected || useSimulator) return;
+    if (!isRiding || bleConnected || useSimulator) return;
 
     const interval = setInterval(() => {
-      setElapsedTime((prev) => {
-        const newTime = prev + 1;
-        const duration = (classData.metadata?.duration || 45) * 60;
-        const newProgress = Math.min((newTime / duration) * 100, 100);
-        setRideProgress(newProgress);
+      const prev = telemetryRawRef.current;
+      const newTelemetry = {
+        ...prev,
+        heartRate: prev.heartRate || 120 + Math.floor(Math.random() * 40),
+        power: prev.power || 150 + Math.floor(Math.random() * 100),
+        cadence: prev.cadence || 80 + Math.floor(Math.random() * 20),
+        speed: prev.speed || 25 + Math.random() * 10,
+        effort: prev.effort || 140 + Math.floor(Math.random() * 30),
+      };
+      telemetryRawRef.current = newTelemetry;
 
-        if (newProgress >= 100) {
-          isRidingRef.current = false;
-          setIsRiding(false);
-        }
-
-        return newTime;
+      // Collect samples for averages
+      telemetrySamples.current.push({
+        hr: newTelemetry.heartRate,
+        power: newTelemetry.power,
+        effort: newTelemetry.effort,
       });
-
-      // Only simulate telemetry if BLE not connected and not using simulator
-      if (!bleConnected && !useSimulator) {
-        const prev = telemetryRawRef.current;
-        const newTelemetry = {
-          ...prev,
-          heartRate: prev.heartRate || 120 + Math.floor(Math.random() * 40),
-          power: prev.power || 150 + Math.floor(Math.random() * 100),
-          cadence: prev.cadence || 80 + Math.floor(Math.random() * 20),
-          speed: prev.speed || 25 + Math.random() * 10,
-          effort: prev.effort || 140 + Math.floor(Math.random() * 30),
-        };
-        telemetryRawRef.current = newTelemetry;
-
-        // Collect samples for averages
-        telemetrySamples.current.push({
-          hr: newTelemetry.heartRate,
-          power: newTelemetry.power,
-          effort: newTelemetry.effort,
-        });
-      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRiding, classData, bleConnected, useSimulator]);
+  }, [isRiding, bleConnected, useSimulator]);
 
   // Also collect BLE and simulator telemetry samples
   useEffect(() => {
