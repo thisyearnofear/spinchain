@@ -393,7 +393,8 @@ export function calculateStreamingRate(
   if (streamState.updateCount === 0) return BigInt(0);
 
   const elapsedMinutes = (Date.now() - streamState.lastUpdate) / 60000;
-  if (elapsedMinutes === 0) return BigInt(0);
+  const flooredMinutes = Math.floor(elapsedMinutes);
+  if (flooredMinutes <= 0) return BigInt(0);
 
-  return streamState.accumulated / BigInt(Math.floor(elapsedMinutes));
+  return streamState.accumulated / BigInt(flooredMinutes);
 }

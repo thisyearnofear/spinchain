@@ -27,7 +27,8 @@ export function PerformanceGraph({
     return data
       .map((val, i) => {
         const x = (i / (data.length - 1)) * (width - padding * 2) + padding;
-        const normalized = Math.max(0, Math.min(1, (val - min) / (max - min)));
+        const range = max - min;
+        const normalized = range === 0 ? 0.5 : Math.max(0, Math.min(1, (val - min) / range));
         const y = height - (normalized * (height - padding * 2) + padding);
         return `${x},${y}`;
       })

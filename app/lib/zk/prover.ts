@@ -169,7 +169,7 @@ export class ZKProver {
   getBackendInfo(): { type: 'noir' | 'mock'; available: boolean } {
     return {
       type: this.useNoir ? 'noir' : 'mock',
-      available: this.useNoir || true,
+      available: this.useNoir && this.noirBackend !== null,
     };
   }
   
