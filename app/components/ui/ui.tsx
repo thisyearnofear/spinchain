@@ -235,3 +235,251 @@ export function GradientText({ children, className = "" }: GradientTextProps) {
     </span>
   );
 }
+
+// ─── Sparkline Component ───
+"use client";
+
+import { useEffect, useRef, useCallback } from "react";
+
+interface SparklineProps {
+  data: number[];
+  color?: string;
+  height?: number;
+  className?: string;
+  animated?: boolean;
+}
+
+export function SparklineCanvas({
+  data,
+  color = "var(--accent)",
+  height = 40,
+  className = "",
+  animated = true,
+}: SparklineProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>();
+  const progressRef = useRef(0);
+
+  const draw = useCallback(
+    (ctx: CanvasRenderingContext2D, width: number, drawProgress = 1) => {
+      const dpr = window.devicePixelRatio || 1;
+      const padding = 4;
+      const chartHeight = height - padding * 2;
+
+      ctx.clearRect(0, 0, width * dpr, height * dpr);
+
+      if (data.length < 2) return;
+
+      const max = Math.max(...data) * 1.1;
+      const min = Math.min(...data) * 0.9;
+      const range = max - min || 1;
+
+      // Calculate visible points based on animation progress
+      const visiblePoints = Math.floor(data.length * drawProgress);
+      const partialProgress = (data.length * drawProgress) % 1;
+
+      // Build path
+      const points = data.slice(0, visiblePoints + 1).map((v, i) => ({
+        x: padding + (i / (data.length - 1)) * (width - padding * 2),
+        y: padding + chartHeight - ((v - min) / range) * chartHeight,
+      }));
+
+      if (points.length < 2) return;
+
+      // Draw line
+      ctx.beginPath();
+      ctx.moveTo(points[0].x * dpr, points[0].y * dpr);
+
+      for (let i = 1; i < points.length - 1; i++) {
+        const curr = points[i];
+        const next = points[i + 1];
+        const midX = (curr.x + next.x) / 2;
+        ctx.quadraticCurveTo(
+          curr.x * dpr,
+          curr.y * dpr,
+          midX * dpr,
+          (curr.y + next.y) / 2 * dpr
+        );
+      }
+
+      // Last segment with partial progress
+      const lastIdx = points.length - 1;
+      if (lastIdx > 0 && visiblePoints < data.length) {
+        const prev = points[lastIdx - 1];
+        const last = points[lastIdx];
+        const partialX = prev.x + (last.x - prev.x) * partialProgress;
+        const partialY = prev.y + (last.y - prev.y) * partialProgress;
+        ctx.lineTo(partialX * dpr, partialY * dpr);
+      } else if (points.length > 1) {
+        const last = points[points.length - 1];
+        ctx.lineTo(last.x * dpr, last.y * dpr);
+      }
+
+      // Stroke with gradient
+      const gradient = ctx.createLinearGradient(0, 0, width * dpr, 0);
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, color.replace(")", ", 0.5)").replace("rgb", "rgba"));
+
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 2 * dpr;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.stroke();
+
+      // Fill area
+      ctx.lineTo(points[points.length - 1]?.x * dpr || width * dpr, height * dpr);
+      ctx.lineTo(points[0].x * dpr, height * dpr);
+      ctx.closePath();
+
+      const fillGradient = ctx.createLinearGradient(0, 0, 0, height * dpr);
+      fillGradient.addColorStop(0, color.replace(")", ", 0.15)").replace("rgb", "rgba"));
+      fillGradient.addColorStop(1, "transparent");
+      ctx.fillStyle = fillGradient;
+      ctx.fill();
+    },
+    [data, height, color]
+  );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = height * dpr;
+    ctx.scale(dpr, dpr);
+
+    if (animated) {
+      progressRef.current = 0;
+      const animate = () => {
+        progressRef.current += 0.03;
+        if (progressRef.current >= 1) progressRef.current = 1;
+
+        draw(ctx, rect.width, progressRef.current);
+
+        if (progressRef.current < 1) {
+          animationRef.current = requestAnimationFrame(animate);
+        }
+      };
+      animate();
+    } else {
+      draw(ctx, rect.width, 1);
+    }
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [data, draw, animated]);
+
+  // Handle resize
+  useEffect(() => {
+    const handleResize = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = height * dpr;
+      ctx.scale(dpr, dpr);
+      draw(ctx, rect.width, 1);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [draw, height]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className={`w-full ${className}`}
+      style={{ height }}
+    />
+  );
+}
+
+// ─── Enhanced Metric Tile with Sparkline ───
+type EnhancedMetricProps = {
+  label: string;
+  value: string;
+  detail?: string;
+  trend?: "up" | "down" | "neutral";
+  trendValue?: string;
+  sparklineData?: number[];
+  sparklineColor?: string;
+  delay?: number;
+};
+
+export function MetricTileEnhanced({
+  label,
+  value,
+  detail,
+  trend = "neutral",
+  trendValue,
+  sparklineData,
+  sparklineColor,
+  delay = 0,
+}: EnhancedMetricProps) {
+  const trendColors = {
+    up: "text-green-400",
+    down: "text-red-400",
+    neutral: "text-[color:var(--muted)]",
+  };
+
+  const trendIcons = {
+    up: "↑",
+    down: "↓",
+    neutral: "→",
+  };
+
+  return (
+    <div
+      className="relative rounded-2xl border border-white/10 bg-black/30 backdrop-blur-xl p-5 px-6 group transition-all duration-500 hover:border-white/20 hover:bg-black/40 hover:-translate-y-0.5 overflow-hidden"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      {/* Subtle gradient overlay */}
+      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+
+      {/* Top highlight line */}
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-[color:var(--muted)]">
+            {label}
+          </p>
+          <div className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent)] animate-pulse" />
+        </div>
+
+        <p className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)] tracking-tight">
+          {value}
+        </p>
+
+        {(trendValue || detail) && (
+          <p className={`mt-1 text-[11px] font-medium ${trendColors[trend]} flex items-center gap-1`}>
+            {trend !== "neutral" && <span>{trendIcons[trend]}</span>}
+            {trendValue || detail}
+          </p>
+        )}
+
+        {sparklineData && sparklineData.length > 1 && (
+          <div className="mt-3 -mx-2">
+            <SparklineCanvas
+              data={sparklineData}
+              color={sparklineColor || "var(--accent)"}
+              height={32}
+              animated
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
