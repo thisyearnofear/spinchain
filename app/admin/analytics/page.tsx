@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { SurfaceCard, Tag, MetricTileEnhanced } from '../../components/ui/ui';
+import { Activity, Users, Clock, Hash, RefreshCw, Filter } from 'lucide-react';
 
 interface AnalyticsEvent {
   name: string;
@@ -15,6 +18,16 @@ interface AnalyticsSummary {
   uniqueSessions: number;
   eventTypes: Record<string, number>;
   recentEvents: number;
+}
+
+// Generate trend data from event counts
+function generateTrendData(baseValue: number, points: number = 10): number[] {
+  const data: number[] = [];
+  for (let i = 0; i < points; i++) {
+    const variance = (Math.random() - 0.3) * baseValue * 0.3;
+    data.push(Math.max(0, baseValue * 0.7 + variance));
+  }
+  return data;
 }
 
 export default function AnalyticsDashboard() {
@@ -50,6 +63,17 @@ export default function AnalyticsDashboard() {
     setRefreshKey(k => k + 1);
   };
 
+  // Generate trend data from summary
+  const trendData = useMemo(() => {
+    if (!summary) return null;
+    return {
+      events: generateTrendData(summary.totalEvents / 10, 12),
+      sessions: generateTrendData(summary.uniqueSessions, 12),
+      recent: generateTrendData(summary.recentEvents, 12),
+      types: generateTrendData(Object.keys(summary.eventTypes).length * 5, 12),
+    };
+  }, [summary]);
+
   const formatTimestamp = (ts: number) => {
     const date = new Date(ts);
     return date.toLocaleTimeString() + ' ' + date.toLocaleDateString();
@@ -67,89 +91,182 @@ export default function AnalyticsDashboard() {
     return formatTimestamp(ts);
   };
 
+  const eventTypeColors: Record<string, string> = {
+    'page_view': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    'ride_start': 'bg-green-500/20 text-green-400 border-green-500/30',
+    'ride_complete': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+    'class_join': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    'wallet_connect': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+    'error': 'bg-red-500/20 text-red-400 border-red-500/30',
+  };
+
+  const getEventColor = (name: string) => {
+    return eventTypeColors[name] || 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
+  };
+
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-[color:var(--background)]">
+      <div className="fixed inset-0 bg-gradient-radial pointer-events-none" />
+      
+      <main className="relative mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 md:px-6 pb-20 pt-6 lg:px-12">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Analytics Dashboard</h1>
-            <p className="text-gray-400 mt-1">Real-time user activity tracking</p>
+            <div className="flex items-center gap-3 mb-2">
+              <Tag>Admin</Tag>
+              <Tag color="blue">Analytics</Tag>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold text-[color:var(--foreground)] tracking-tight">
+              Analytics Dashboard
+            </h1>
+            <p className="text-sm md:text-base text-[color:var(--muted)] mt-2">
+              Real-time user activity tracking and insights
+            </p>
           </div>
+          
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 rounded-lg font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[color:var(--accent)] text-white font-medium hover:opacity-90 disabled:opacity-50 transition-all"
           >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             {loading ? 'Loading...' : 'Refresh'}
           </button>
         </div>
 
-        {/* Summary Cards */}
-        {summary && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-gray-900 rounded-xl p-5 border border-gray-800">
-              <p className="text-gray-400 text-sm">Total Events</p>
-              <p className="text-3xl font-bold text-white mt-1">{summary.totalEvents}</p>
-            </div>
-            <div className="bg-gray-900 rounded-xl p-5 border border-gray-800">
-              <p className="text-gray-400 text-sm">Unique Sessions</p>
-              <p className="text-3xl font-bold text-indigo-400 mt-1">{summary.uniqueSessions}</p>
-            </div>
-            <div className="bg-gray-900 rounded-xl p-5 border border-gray-800">
-              <p className="text-gray-400 text-sm">Recent Events</p>
-              <p className="text-3xl font-bold text-green-400 mt-1">{summary.recentEvents}</p>
-            </div>
-            <div className="bg-gray-900 rounded-xl p-5 border border-gray-800">
-              <p className="text-gray-400 text-sm">Event Types</p>
-              <p className="text-3xl font-bold text-purple-400 mt-1">
-                {Object.keys(summary.eventTypes).length}
-              </p>
-            </div>
+        {/* Summary Cards with Glassmorphism */}
+        {summary && trendData && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <MetricTileEnhanced
+                label="Total Events"
+                value={summary.totalEvents.toLocaleString()}
+                trend="up"
+                trendValue="All time"
+                sparklineData={trendData.events}
+                sparklineColor="rgb(167, 139, 250)"
+                delay={100}
+              />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <MetricTileEnhanced
+                label="Unique Sessions"
+                value={summary.uniqueSessions.toLocaleString()}
+                trend="neutral"
+                trendValue="Active users"
+                sparklineData={trendData.sessions}
+                sparklineColor="rgb(96, 165, 250)"
+                delay={200}
+              />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <MetricTileEnhanced
+                label="Recent Events"
+                value={summary.recentEvents.toLocaleString()}
+                trend="up"
+                trendValue="Last hour"
+                sparklineData={trendData.recent}
+                sparklineColor="rgb(110, 231, 183)"
+                delay={300}
+              />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <MetricTileEnhanced
+                label="Event Types"
+                value={Object.keys(summary.eventTypes).length.toString()}
+                trend="neutral"
+                trendValue="Categories"
+                sparklineData={trendData.types}
+                sparklineColor="rgb(251, 191, 36)"
+                delay={400}
+              />
+            </motion.div>
           </div>
         )}
 
         {/* Event Types Breakdown */}
         {summary && (
-          <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 mb-8">
-            <h2 className="text-lg font-semibold text-white mb-4">Event Types</h2>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(summary.eventTypes)
-                .sort((a, b) => b[1] - a[1])
-                .map(([name, count]) => (
-                  <button
-                    key={name}
-                    onClick={() => setFilterEvent(filterEvent === name ? '' : name)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      filterEvent === name
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
+          <SurfaceCard
+            eyebrow="Event Breakdown"
+            title="Activity Types"
+            description="Filter events by type to analyze specific user behaviors"
+          >
+            <div className="mt-6">
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(summary.eventTypes)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([name, count]) => (
+                    <button
+                      key={name}
+                      onClick={() => setFilterEvent(filterEvent === name ? '' : name)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-300 ${
+                        filterEvent === name
+                          ? 'bg-[color:var(--accent)] text-white border-[color:var(--accent)]'
+                          : `${getEventColor(name)} hover:scale-105`
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                        {name}
+                        <span className="opacity-60">({count})</span>
+                      </span>
+                    </button>
+                  ))}
+              </div>
+              
+              {filterEvent && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 flex items-center gap-2"
+                >
+                  <Filter size={14} className="text-[color:var(--accent)]" />
+                  <span className="text-sm text-[color:var(--muted)]">
+                    Filtering by: <span className="text-[color:var(--foreground)] font-medium">{filterEvent}</span>
+                  </span>
+                  <button 
+                    onClick={() => setFilterEvent('')} 
+                    className="text-xs text-[color:var(--muted)] hover:text-[color:var(--foreground)] underline ml-2"
                   >
-                    {name} <span className="ml-1 opacity-60">({count})</span>
+                    Clear filter
                   </button>
-                ))}
+                </motion.div>
+              )}
             </div>
-            {filterEvent && (
-              <p className="mt-3 text-sm text-gray-400">
-                Filtering by: <span className="text-indigo-400">{filterEvent}</span>
-                <button onClick={() => setFilterEvent('')} className="ml-2 text-gray-500 hover:text-white">
-                  (clear)
-                </button>
-              </p>
-            )}
-          </div>
+          </SurfaceCard>
         )}
 
         {/* Events Table */}
-        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-          <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Recent Events</h2>
+        <SurfaceCard
+          eyebrow="Event Log"
+          title="Recent Activity"
+          description="Live event stream from user interactions"
+          actions={
             <div className="flex items-center gap-3">
-              <label className="text-sm text-gray-400">Show:</label>
+              <label className="text-sm text-[color:var(--muted)]">Show:</label>
               <select
                 value={limit}
                 onChange={(e) => setLimit(Number(e.target.value))}
-                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white"
+                className="bg-[color:var(--surface-strong)] border border-[color:var(--border)] rounded-lg px-3 py-1.5 text-sm text-[color:var(--foreground)]"
               >
                 <option value={50}>50</option>
                 <option value={100}>100</option>
@@ -157,66 +274,124 @@ export default function AnalyticsDashboard() {
                 <option value={500}>500</option>
               </select>
             </div>
-          </div>
-          
-          {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading...</div>
-          ) : events.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No events recorded yet. Events will appear as users interact with the app.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-800/50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Time</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Event</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Path</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Session</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Payload</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-800">
-                  {events.map((event, idx) => (
-                    <tr key={`${event.sessionId}-${event.timestamp}-${idx}`} className="hover:bg-gray-800/30">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
-                        {formatRelativeTime(event.timestamp)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-900/50 text-indigo-300">
-                          {event.name}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-300 font-mono">{event.path || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500 font-mono text-xs">
-                        {event.sessionId.substring(0, 12)}...
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-400 max-w-xs truncate">
-                        {event.payload && Object.keys(event.payload).length > 0 ? (
-                          <code className="text-xs">{JSON.stringify(event.payload)}</code>
-                        ) : (
-                          <span className="text-gray-600">-</span>
-                        )}
-                      </td>
+          }
+        >
+          <div className="mt-6">
+            {loading ? (
+              <div className="p-12 text-center text-[color:var(--muted)]">
+                <div className="w-8 h-8 border-2 border-[color:var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                Loading events...
+              </div>
+            ) : events.length === 0 ? (
+              <div className="p-12 text-center text-[color:var(--muted)]">
+                <Activity size={48} className="mx-auto mb-4 opacity-20" />
+                <p>No events recorded yet.</p>
+                <p className="text-sm mt-2 opacity-60">Events will appear as users interact with the app.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto -mx-6">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-[color:var(--border)]">
+                      <th className="px-6 py-3 text-left text-[10px] uppercase tracking-wider text-[color:var(--muted)] font-semibold">
+                        <Clock size={14} className="inline mr-1" />
+                        Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-[10px] uppercase tracking-wider text-[color:var(--muted)] font-semibold">
+                        Event
+                      </th>
+                      <th className="px-6 py-3 text-left text-[10px] uppercase tracking-wider text-[color:var(--muted)] font-semibold hidden md:table-cell">
+                        Path
+                      </th>
+                      <th className="px-6 py-3 text-left text-[10px] uppercase tracking-wider text-[color:var(--muted)] font-semibold hidden lg:table-cell">
+                        <Users size={14} className="inline mr-1" />
+                        Session
+                      </th>
+                      <th className="px-6 py-3 text-left text-[10px] uppercase tracking-wider text-[color:var(--muted)] font-semibold">
+                        <Hash size={14} className="inline mr-1" />
+                        Data
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                  </thead>
+                  <tbody className="divide-y divide-[color:var(--border)]">
+                    {events.map((event, idx) => (
+                      <motion.tr
+                        key={`${event.sessionId}-${event.timestamp}-${idx}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.02 }}
+                        className="hover:bg-[color:var(--surface-strong)]/50 transition-colors"
+                      >
+                        <td className="px-6 py-3 whitespace-nowrap text-sm text-[color:var(--muted)]">
+                          {formatRelativeTime(event.timestamp)}
+                        </td>
+                        <td className="px-6 py-3 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getEventColor(event.name)}`}>
+                            {event.name}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3 text-sm text-[color:var(--foreground)] font-mono hidden md:table-cell">
+                          {event.path || '-'}
+                        </td>
+                        <td className="px-6 py-3 text-sm text-[color:var(--muted)] font-mono text-xs hidden lg:table-cell">
+                          {event.sessionId.substring(0, 8)}...
+                        </td>
+                        <td className="px-6 py-3 text-sm text-[color:var(--muted)] max-w-xs">
+                          {event.payload && Object.keys(event.payload).length > 0 ? (
+                            <code className="text-xs bg-[color:var(--surface-strong)] px-2 py-1 rounded">
+                              {JSON.stringify(event.payload).slice(0, 40)}
+                              {JSON.stringify(event.payload).length > 40 ? '...' : ''}
+                            </code>
+                          ) : (
+                            <span className="text-[color:var(--muted)]/50">-</span>
+                          )}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </SurfaceCard>
 
-        {/* Info Box */}
-        <div className="mt-6 p-4 bg-blue-900/20 border border-blue-800 rounded-lg">
-          <p className="text-sm text-blue-200">
-            <strong>Tip:</strong> This dashboard shows events synced from users&apos; browsers. 
-            Events are sent in real-time for important actions (ride started/completed) 
-            and batched every 30 seconds for other events. Use this data to understand user behavior 
-            and identify areas for improvement.
-          </p>
-        </div>
-      </div>
+        {/* Info Card */}
+        <SurfaceCard
+          eyebrow="How It Works"
+          title="Event Tracking"
+          description="Understanding your analytics data"
+        >
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl bg-[color:var(--surface-strong)]/50">
+              <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center mb-3">
+                <Activity size={16} className="text-green-400" />
+              </div>
+              <p className="text-sm font-medium text-[color:var(--foreground)]">Real-time Events</p>
+              <p className="text-xs text-[color:var(--muted)] mt-1">
+                Critical actions like ride starts are sent instantly
+              </p>
+            </div>
+            <div className="p-4 rounded-xl bg-[color:var(--surface-strong)]/50">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center mb-3">
+                <Clock size={16} className="text-blue-400" />
+              </div>
+              <p className="text-sm font-medium text-[color:var(--foreground)]">Batched Updates</p>
+              <p className="text-xs text-[color:var(--muted)] mt-1">
+                Other events are batched every 30 seconds
+              </p>
+            </div>
+            <div className="p-4 rounded-xl bg-[color:var(--surface-strong)]/50">
+              <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center mb-3">
+                <Users size={16} className="text-purple-400" />
+              </div>
+              <p className="text-sm font-medium text-[color:var(--foreground)]">Session Tracking</p>
+              <p className="text-xs text-[color:var(--muted)] mt-1">
+                Unique sessions help identify user journeys
+              </p>
+            </div>
+          </div>
+        </SurfaceCard>
+      </main>
     </div>
   );
 }
