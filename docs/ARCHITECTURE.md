@@ -1,5 +1,7 @@
 # SpinChain: Architecture
 
+This document describes the intended architecture and the parts already present in the repo. Several sections below describe target architecture rather than a fully completed live deployment.
+
 ## Dual-Engine Execution Model
 
 SpinChain implements a **Dual-Engine Execution Model** with **Zero-Knowledge Privacy** to solve high-frequency fitness telemetry vs. high-value financial settlement.
@@ -45,8 +47,8 @@ SpinChain implements a **Dual-Engine Execution Model** with **Zero-Knowledge Pri
 1. **AI Instructors** deploy on Avalanche with ENS identity
 2. **Riders** purchase tickets (ERC-721) on Avalanche
 3. **During Ride**: 10Hz telemetry streams to Sui `RiderStats` objects
-4. **Local Oracle**: Browser generates ZK proofs (<1s) proving effort without revealing raw HR
-5. **Settlement**: Proofs verified on Avalanche, SPIN rewards distributed
+4. **Local Oracle**: browser-side proof generation exists as a prototype
+5. **Settlement**: verification and reward distribution are still being hardened for launch
 
 ---
 
@@ -60,7 +62,7 @@ SpinChain implements a **Dual-Engine Execution Model** with **Zero-Knowledge Pri
 
 ### ZK Circuit: `effort_threshold`
 
-Proves HR > threshold without revealing actual values:
+Current prototype proves HR > threshold without revealing actual values:
 
 ```rust
 // Private inputs (never revealed)
@@ -74,6 +76,8 @@ min_duration: u32,       // Minimum seconds required
 threshold_met: bool,     // Did they meet the goal?
 effort_score: u16,       // 0-1000 calculated score
 ```
+
+Launch limitation: a full class is much longer than 60 seconds, so proof aggregation or another production strategy is still required.
 
 ---
 
@@ -156,6 +160,13 @@ For testing without BLE hardware:
 
 ---
 
+## Implementation Notes
+
+- Avalanche usage is still testnet-oriented by default
+- Sui usage is still testnet-oriented by default
+- Some rider and class flows still fall back to demo/mock data when contract data is unavailable
+- Contract/runtime configuration still includes placeholder values that must be removed before public launch
+
 ## Roadmap
 
 ### Phase 1: MVP ✅
@@ -165,13 +176,13 @@ For testing without BLE hardware:
 - Pedal Simulator + Guest Mode
 - Mobile BLE via Capacitor
 
-### Phase 2: Privacy ✅
+### Phase 2: Privacy 🚧
 - Noir ZK circuits compiled and tested
-- UltraVerifier deployed on Avalanche
-- Selective disclosure builder
-- Walrus decentralized storage
+- Short-window verifier path exists
+- Full-session proof strategy still required
+- Launch-safe verifier deployment still required
 
-### Phase 3: Ecosystem ✅
+### Phase 3: Ecosystem 🚧
 - Mindbody/ClassPass bridge
 - Instructor DAO governance
 - Multi-sport adapters (yoga, rowing)

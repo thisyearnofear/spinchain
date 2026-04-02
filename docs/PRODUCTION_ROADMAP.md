@@ -1,19 +1,20 @@
 # SpinChain Production Readiness Roadmap
 
 **Created**: 2026-03-17  
-**Status**: Pre-Mainnet Planning  
+**Status**: Pre-Launch Remediation  
 **Target**: Production Launch
 
 ---
 
 ## Executive Summary
 
-SpinChain is a Web3 fitness protocol with a solid dual-chain architecture (Avalanche for settlement, Sui for telemetry), ZK-based biometric privacy, and AI-powered features. The system is currently in a "post-hackathon" state with several critical gaps blocking production deployment.
+SpinChain has a promising prototype, but the app is still demo/testnet-stage and not ready for general users. The current work is launch remediation: remove misleading demo behavior, replace placeholders, and make release verification trustworthy.
 
 **Critical Blockers**:
-1. ZK Circuit limited to 60 seconds of data (need 30-60 minute sessions)
-2. Mock transaction anchoring in ride sync API
-3. Zero-address placeholders for critical contracts
+1. User-facing screens still rely on mock/demo fallbacks in production paths
+2. ZK circuit is limited to 60 seconds of data
+3. Runtime and deployment config still contain placeholders or mock components
+4. Release verification is not yet a dependable gate
 
 ---
 

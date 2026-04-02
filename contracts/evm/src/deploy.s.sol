@@ -15,10 +15,17 @@ contract DeployScript is Script {
         address deployer = vm.addr(vm.envUint("AVALANCHE_PRIVATE_KEY"));
         vm.startBroadcast(vm.envUint("AVALANCHE_PRIVATE_KEY"));
 
-        // MockUltraVerifier (no-op verifier safe for testnet)
-        console.log("Deploying MockUltraVerifier...");
-        MockUltraVerifier mockUltraVerifier = new MockUltraVerifier();
-        console.log("MockUltraVerifier:", address(mockUltraVerifier));
+        address configuredUltraVerifier = vm.envOr("ULTRA_VERIFIER_ADDRESS", address(0));
+        address ultraVerifier = configuredUltraVerifier;
+
+        if (ultraVerifier == address(0)) {
+            console.log("Deploying MockUltraVerifier...");
+            MockUltraVerifier mockUltraVerifier = new MockUltraVerifier();
+            ultraVerifier = address(mockUltraVerifier);
+            console.log("MockUltraVerifier:", ultraVerifier);
+        } else {
+            console.log("Using configured UltraVerifier:", ultraVerifier);
+        }
 
         // SpinToken
         console.log("Deploying SpinToken...");
@@ -31,7 +38,7 @@ contract DeployScript is Script {
             deployer,
             address(spinToken),
             deployer,
-            address(mockUltraVerifier)
+            ultraVerifier
         );
         console.log("IncentiveEngine:", address(incentiveEngine));
 
@@ -78,7 +85,7 @@ contract DeployScript is Script {
         console.log("NEXT_PUBLIC_SPIN_TOKEN_ADDRESS=", address(spinToken));
         console.log("NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=", address(incentiveEngine));
         console.log("NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=", address(classFactory));
-        console.log("NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS=", address(mockUltraVerifier));
+        console.log("NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=", ultraVerifier);
         console.log("NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=", address(treasurySplitter));
         console.log("NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS=", address(yellowSettlement));
         console.log("NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=", address(biometricOracle));

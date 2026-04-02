@@ -14,9 +14,10 @@ import { retrieveRouteFromWalrus, getCachedRoute, cacheRouteLocally, type Walrus
 import type { StoryBeat, StoryBeatType } from "@/app/routes/builder/gpx-uploader";
 import type { PublicClient } from "viem";
 
+const ENABLE_DEMO_CLASS_CATALOG = process.env.NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG === "true";
+
 /**
- * Mock class data for development
- * In production, this would come from subgraph or contract events
+ * Demo class catalog used only when explicitly enabled.
  */
 const MOCK_CLASSES = [
   {
@@ -397,7 +398,7 @@ export function useClass(classAddress: `0x${string}`) {
   /**
    * Load class data from contract or fallback to mock data
    * Production: Uses on-chain data when available
-   * Development: Falls back to MOCK_CLASSES for testing
+   * Demo catalog fallback is opt-in and disabled by default.
    */
   const loadClassData = useCallback(async () => {
     setIsLoading(true);
@@ -426,18 +427,17 @@ export function useClass(classAddress: `0x${string}`) {
         }
       }
 
-      // Fallback: Use mock data for development or when contract data unavailable
-      const mockClass = MOCK_CLASSES.find(c => c.address.toLowerCase() === classAddress.toLowerCase());
-      if (!mockClass) {
-        // No contract data and no mock found
-        setClassData(null);
-        setError("Class not found");
-        setIsLoading(false);
-        return;
+      if (ENABLE_DEMO_CLASS_CATALOG) {
+        const mockClass = MOCK_CLASSES.find(c => c.address.toLowerCase() === classAddress.toLowerCase());
+        if (mockClass) {
+          setClassData(await loadMockClass(mockClass));
+          setIsLoading(false);
+          return;
+        }
       }
 
-      setClassData(await loadMockClass(mockClass));
-
+      setClassData(null);
+      setError("Class not found");
       setIsLoading(false);
     } catch (err) {
       console.error("Failed to load class:", err);
@@ -518,10 +518,13 @@ export function useClasses() {
         }
       }
 
-      const fallbackMocks = await Promise.all(MOCK_CLASSES.map((mockClass) => loadMockClass(mockClass)));
-      const mergedClasses = [...liveClasses, ...fallbackMocks.filter((mockClass) => !liveClasses.some((liveClass) => liveClass.address.toLowerCase() === mockClass.address.toLowerCase()))];
-
-      setClasses(mergedClasses);
+      if (ENABLE_DEMO_CLASS_CATALOG) {
+        const fallbackMocks = await Promise.all(MOCK_CLASSES.map((mockClass) => loadMockClass(mockClass)));
+        const mergedClasses = [...liveClasses, ...fallbackMocks.filter((mockClass) => !liveClasses.some((liveClass) => liveClass.address.toLowerCase() === mockClass.address.toLowerCase()))];
+        setClasses(mergedClasses);
+      } else {
+        setClasses(liveClasses);
+      }
       setIsLoading(false);
     } catch (err) {
       console.error("Failed to load classes:", err);

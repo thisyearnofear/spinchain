@@ -1,6 +1,8 @@
-# SpinChain: The Dual-Engine Fitness Protocol
+# SpinChain
 
-SpinChain combines **Avalanche** settlement with **Sui** parallel execution to enable AI-powered fitness classes with real-time biometric telemetry and ZK privacy.
+SpinChain is a Next.js + Capacitor prototype for AI-assisted spin classes, dual-chain reward settlement experiments, and privacy-preserving fitness telemetry.
+
+Current state: testnet/demo stage. The app is not ready for general users yet.
 
 ---
 
@@ -16,34 +18,26 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## Key Features
+## Current Scope
 
 | Feature | Description |
 |---------|-------------|
-| **Dual-Engine** | Avalanche (settlement) + Sui (10Hz telemetry) |
-| **Autonomous AI** | Agents adjust machine resistance via bi-directional FTMS |
-| **Performance AI** | Real-time W'bal (energy) modeling and physics-based speed |
-| **Virtual Shifting** | 22-speed drivetrain simulation for any spin bike |
-| **Ghost Pacer** | Compete against recorded performances with lead/lag tracking |
-| **Route Worlds** | 3D WebGL visualization from GPX data |
-| **ZK Privacy** | Prove effort without revealing raw biometrics |
-| **Data Portability** | One-click TCX export for Strava/Garmin integration |
+| **Rider + Instructor UI** | Landing, rider, instructor, route builder, and analytics screens |
+| **Wallet Integration** | EVM wallet connection via RainbowKit/Wagmi |
+| **Route Visualization** | GPX and route-preview flows with themed class cards |
+| **BLE + Mobile Foundation** | Capacitor setup and BLE integration scaffolding |
+| **On-Chain Prototype** | Avalanche/Sui contract integration with testnet config |
+| **ZK Prototype** | Noir effort-threshold circuit for short telemetry windows |
 
 ---
 
-## Architecture
+## Status
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  EVM (Avalanche)          │  Sui (Testnet)              │
-│  ├─ SpinClass NFT         │  ├─ Session (shared)        │
-│  ├─ Ticket purchase       │  ├─ RiderStats (owned)      │
-│  ├─ SPIN rewards          │  ├─ Telemetry events (10Hz) │
-│  └─ ZK verification       │  └─ Story beat events       │
-└─────────────────────────────────────────────────────────┘
-```
-
-**Chainlink CRE** orchestrates decentralized biometric verification using Confidential HTTP to fetch private wearable data without exposing it on-chain.
+- Launch readiness: not ready
+- Network posture: Avalanche Fuji + Sui testnet
+- Data posture: some user-facing screens still fall back to mock/demo data
+- Reward path: partial prototype, not fully production-safe
+- Verification: build and lint should be treated as required release gates
 
 ---
 
@@ -52,15 +46,22 @@ Open [http://localhost:3000](http://localhost:3000)
 | Doc | Description |
 |-----|-------------|
 | [Architecture](docs/ARCHITECTURE.md) | Dual-engine design, ZK privacy, tech stack |
-| [Getting Started](docs/GETTING_STARTED.md) | Setup, onboarding, testing, troubleshooting |
-| [Features](docs/FEATURES.md) | AI, routes, mobile/BLE, agentic finance |
-| [Deployment](docs/DEPLOYMENT.md) | Contracts, Sui, ZK verifier, mobile apps |
+| [Getting Started](docs/GETTING_STARTED.md) | Local setup, current flows, testing, troubleshooting |
+| [Features](docs/FEATURES.md) | Implemented features vs. planned features |
+| [Deployment](docs/DEPLOYMENT.md) | Testnet deployment notes and current release blockers |
+| [Production Roadmap](docs/PRODUCTION_ROADMAP.md) | Current launch blockers and launch checklist |
 
 ---
 
-## Security
+## Before User Launch
 
-Pre-commit hook blocks secret commits (API keys, private keys, `.env.*` files).
+- Remove mock/demo class fallbacks from user-facing flows
+- Replace placeholder and zero-value addresses in runtime config
+- Replace testnet/mock verifier deployment paths
+- Extend proof strategy beyond the current 60-second effort circuit
+- Add reliable verification gates and release checklists
+
+## Security
 
 ```bash
 # Verify hook is installed
@@ -78,7 +79,7 @@ git commit --no-verify
 - **Frontend**: Next.js 16, React Three Fiber, Tailwind CSS
 - **Mobile**: Capacitor 5.7, BLE plugin
 - **ZK**: Noir circuits, UltraPlonk verifier
-- **AI**: Venice AI (default), Gemini 3 (fallback)
+- **AI**: Venice AI and Gemini integrations
 
 ---
 

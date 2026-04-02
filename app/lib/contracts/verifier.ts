@@ -1,8 +1,17 @@
 // Contract ABIs for ZK Verifiers
 // Single source of truth for contract interfaces
 
-export const EFFORT_THRESHOLD_VERIFIER_ADDRESS = process.env
-  .NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS as `0x${string}` || '0x0';
+import { CONTRACT_ADDRESSES, isZeroAddress } from "../contracts";
+
+const configuredVerifierAddress =
+  process.env.NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS ??
+  CONTRACT_ADDRESSES.EFFORT_VERIFIER;
+
+export const EFFORT_THRESHOLD_VERIFIER_ADDRESS = isZeroAddress(
+  configuredVerifierAddress,
+)
+  ? null
+  : (configuredVerifierAddress as `0x${string}`);
 
 export const EFFORT_THRESHOLD_VERIFIER_ABI = [
   {

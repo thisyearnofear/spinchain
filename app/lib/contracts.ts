@@ -36,6 +36,12 @@ export const AVALANCHE_MAINNET = {
 const ACTIVE_CHAIN_ID = Number(process.env.NEXT_PUBLIC_AVALANCHE_CHAIN_ID ?? AVALANCHE_FUJI.id);
 export const ACTIVE_NETWORK = ACTIVE_CHAIN_ID === AVALANCHE_MAINNET.id ? AVALANCHE_MAINNET : AVALANCHE_FUJI;
 
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
+
+export function isZeroAddress(address?: string | null): boolean {
+  return !address || address.toLowerCase() === ZERO_ADDRESS;
+}
+
 // ============================================================================
 // CONTRACT ADDRESSES
 // Populated from .env.local — see contracts/DEPLOY.md for deployment guide
@@ -54,13 +60,14 @@ export const CONTRACT_ADDRESSES = {
   CLASS_FACTORY: (process.env.NEXT_PUBLIC_CLASS_FACTORY_ADDRESS ??
     "0x42f3f1954e3CB988c3F9adBb9E68b168F9B6330C") as `0x${string}`,
 
-  /** Noir-generated UltraVerifier (or MockUltraVerifier on testnet) */
-  ULTRA_VERIFIER: (process.env.NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS ??
+  /** Noir-generated UltraVerifier */
+  ULTRA_VERIFIER: (process.env.NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS ??
+    process.env.NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS ??
     "0xF0C7eEF04f685a7bB1d42B3B9470a45D4Dc80c00") as `0x${string}`,
 
   /** EffortThresholdVerifier — wraps UltraVerifier with replay protection */
   EFFORT_VERIFIER: (process.env.NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS ??
-    "0x0000000000000000000000000000000000000000") as `0x${string}`,
+    ZERO_ADDRESS) as `0x${string}`,
 
   /** Revenue splitter for instructor/platform split */
   TREASURY_SPLITTER: (process.env.NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS ??

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { EnergyPulse } from "../../../components/ui/animated-card";
 
@@ -10,6 +10,10 @@ interface RouteInfo {
   estimatedDistance?: number;
   estimatedDuration?: number;
   coordinates?: Array<{ lat: number; lng: number }>;
+  distance?: number;
+  duration?: number;
+  theme?: "neon" | "alpine" | "mars";
+  terrainTags?: string[];
 }
 
 interface AnimatedClassCardProps {
@@ -18,9 +22,13 @@ interface AnimatedClassCardProps {
     name: string;
     instructor: string;
     metadata?: {
-      ai?: { enabled: boolean };
+      description?: string;
+      ai?: { enabled: boolean; personality?: "zen" | "drill-sergeant" | "data" };
       duration?: number;
       route?: RouteInfo;
+      presentation?: {
+        worldId?: string;
+      };
     } | null;
     ticketsSold: number;
     maxRiders: number;
@@ -142,9 +150,9 @@ function MiniRoutePreview({
 export function AnimatedClassCard({ 
   classData, 
   isConnected, 
-  onPreview,
+  onPreview, 
   onJoin,
-  theme = "neon"
+  theme = "neon" 
 }: AnimatedClassCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -186,6 +194,17 @@ export function AnimatedClassCard({
     return () => clearInterval(interval);
   }, [classData.startTime]);
   const fillPercentage = (classData.ticketsSold / classData.maxRiders) * 100;
+  const classDescription = classData.metadata?.description || classData.metadata?.route?.description;
+  const routeTheme = classData.metadata?.route?.theme;
+  const terrainTags = classData.metadata?.route?.terrainTags?.slice(0, 2) || [];
+  const aiPersonality = classData.metadata?.ai?.personality;
+  const routeDistance = classData.metadata?.route?.distance ?? classData.metadata?.route?.estimatedDistance;
+  const routeDuration = classData.metadata?.route?.duration ?? classData.metadata?.route?.estimatedDuration;
+  const formatPersonality = (value: string) =>
+    value
+      .split("-")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
 
   return (
     <motion.div
@@ -242,7 +261,35 @@ export function AnimatedClassCard({
             <p className="text-sm text-[color:var(--muted)]">
               by {classData.instructor}
             </p>
+            {classDescription && (
+              <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[color:var(--muted)]">
+                {classDescription}
+              </p>
+            )}
           </div>
+
+          {(routeTheme || aiPersonality || terrainTags.length > 0) && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {routeTheme && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--foreground)]">
+                  {routeTheme}
+                </span>
+              )}
+              {aiPersonality && (
+                <span className="rounded-full border border-[color:var(--accent)]/20 bg-[color:var(--accent)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--accent)]">
+                  {formatPersonality(aiPersonality)} AI
+                </span>
+              )}
+              {terrainTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--muted)]"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Mini Route Visualization */}
           <div className="mb-4">
@@ -255,19 +302,28 @@ export function AnimatedClassCard({
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              {classData.metadata?.duration || 45} min
+              {routeDuration || classData.metadata?.duration || 45} min
             </span>
-            <span className="flex items-center gap-1">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              {classData.ticketsSold}/{classData.maxRiders}
-            </span>
+            {routeDistance ? (
+              <span className="flex items-center gap-1">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 01.553-.894L9 2m0 18l6-2m-6 2V2m6 16l5.447-2.724A1 1 0 0021 14.382V3.618a1 1 0 00-.553-.894L15 0m0 0L9 2" />
+                </svg>
+                {routeDistance.toFixed(1)} km
+              </span>
+            ) : (
+              <span className="flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                  {classData.ticketsSold}/{classData.maxRiders}
+                </span>
+            )}
             <span className="flex items-center gap-1 font-medium text-[color:var(--foreground)]">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              {classData.currentPrice} ETH
+              {classData.currentPrice} price
             </span>
           </div>
 

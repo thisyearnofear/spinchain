@@ -4,6 +4,7 @@
 import type { ProofInput, ProofOutput, ZKProof, CircuitType, SelectiveDisclosure } from './types';
 import { CIRCUIT_CONFIGS } from './types';
 import { getNoirProver, NoirProver } from './noir-prover';
+import { ZK_CONFIG } from "@/app/config";
 
 // Prover backend interface
 interface ProverBackend {
@@ -32,11 +33,11 @@ class MockProver implements ProverBackend {
         input.riderId,
       ],
       circuitType,
-      verifierAddress: process.env.NEXT_PUBLIC_MOCK_VERIFIER_ADDRESS || '0xMOCK_VERIFIER',
+      verifierAddress: ZK_CONFIG.verifierAddress ?? "",
     };
   }
   
-  async verifyProof(proof: ZKProof, publicInputs: string[]): Promise<boolean> {
+  async verifyProof(proof: ZKProof, _publicInputs: string[]): Promise<boolean> {
     const config = CIRCUIT_CONFIGS[proof.circuitType];
     await new Promise(r => setTimeout(r, config.verificationTime));
     return proof.publicInputs.length > 0 && proof.proof.length > 0;
@@ -51,7 +52,7 @@ class MockProver implements ProverBackend {
       .join('');
   }
   
-  private computeOutput(input: ProofInput, type: CircuitType): ProofOutput {
+  private computeOutput(input: ProofInput, _type: CircuitType): ProofOutput {
     const thresholdMet = input.heartRate > input.threshold;
     const durationSatisfied = input.timestamp >= input.minDuration;
     
@@ -152,7 +153,7 @@ export class ZKProver {
     statement: string,
     hiddenMetrics: { maxHeartRate: number; avgPower: number; rawDataPoints: number }
   ): SelectiveDisclosure {
-    const [threshold, minDuration, thresholdMet, secondsAbove, effortScore, classId, riderId] = proof.publicInputs;
+    const [_threshold, _minDuration, thresholdMet, secondsAbove, effortScore, _classId, _riderId] = proof.publicInputs;
     
     return {
       statement,

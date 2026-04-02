@@ -1,5 +1,26 @@
 # SpinChain: Features
 
+This file distinguishes between what is implemented in the current app, what is partially wired, and what is still planned.
+
+## Current Product State
+
+### Implemented or Partially Implemented
+- Landing, rider, instructor, analytics, and route-builder screens
+- Wallet connection and testnet-oriented contract configuration
+- Guest/demo ride flows
+- BLE/mobile scaffolding and simulator-oriented ride inputs
+- Route visualization and themed ride cards
+- Early AI endpoints and route-generation flows
+- Noir effort-threshold prototype circuit
+
+### Not Yet Launch-Ready
+- Full production-safe reward settlement
+- Proof support for full workout duration
+- Reliable replacement of mock data in user-facing flows
+- Finalized launch verification and operational monitoring
+
+---
+
 ## AI Integration
 
 ### Default AI: Venice AI (Privacy-First)
@@ -30,13 +51,13 @@ Returns: GPX coordinates, elevation, story beats, 3D preview
 - Save, favorite, search, export routes
 - Auto-tagging based on characteristics
 
-#### 4. Real-Time AI Coaching (Enhanced)
+#### 4. Real-Time AI Coaching
 - **Data-Driven Feedback**: AI monitors HR, Power, and Cadence vs. workout targets.
 - **Personality Logic**:
   - **Drill Sergeant**: Pushes for higher intensity when energy reserves are high.
   - **Zen Master**: Advise recovery when entering the "red zone" (<20% W'bal).
   - **Quant Analyst**: Fine-tunes resistance for optimal power efficiency.
-- **Autonomous Control**: AI proactively adjusts bike resistance via FTMS.
+- **Autonomous Control**: planned direction; validate end-to-end hardware control before public launch
 
 #### 5. W'bal Physiological Modeling
 - **Anaerobic Energy Tracking**: Real-time "fuel tank" (Joules) based on Skiba (2015) model.
@@ -49,9 +70,9 @@ Returns: GPX coordinates, elevation, story beats, 3D preview
 - **Physics-Based Speed**: Speed is calculated based on gear ratio, cadence, and aero drag.
 
 #### 7. Ghost Rider & TCX Export
-- **Ghost Pacer**: Race against a "Gold Standard" ghost with lead/lag tracking.
-- **Industry Standard Export**: Download `.tcx` files for Strava and Garmin integration.
-- **High-Fidelity Recording**: 1Hz data capture including GPS-style route coordinates.
+- **Ghost Pacer**: concept exists in the product, but historical/live data sources still need verification for launch use
+- **Industry Standard Export**: export-related UX exists in parts of the app; treat as under active development until fully validated
+- **High-Fidelity Recording**: data model exists, but retention/export guarantees are not yet launch-grade
 
 #### 8. Agent Reasoning
 AI instructors make explainable decisions:
@@ -77,7 +98,7 @@ AI instructors make explainable decisions:
 ### Features
 - **WebGL Rendering**: High-fidelity 3D from GPX
 - **Theme Support**: Neon, Alpine, Mars
-- **Ghost Riders**: Social presence (privacy-preserving)
+- **Ghost Riders**: prototype/experimental
 - **Audio Triggers**: Synchronized interval cues
 - **Voice Guidance**: Real-time coaching
 - **Street View**: Google Maps Static API previews
@@ -140,7 +161,7 @@ const { metrics, status, scanAndConnect } = useBleData();
 ### Guest Mode
 - No wallet required
 - Try demo rides with simulator
-- See estimated rewards
+- Intended for exploration and internal demos, not final reward claims
 
 ### Pedal Simulator
 - Keyboard: Arrow keys (← / →)
@@ -170,6 +191,10 @@ Reduce visual clutter during rides by collapsing data panels:
   - Focus View panels (left, right, bottom)
 
 ---
+
+## Planned / Experimental Areas
+
+The sections below describe intended roadmap areas or experiments. Do not read them as production-complete capabilities.
 
 ## Agentic Finance (Uniswap v4)
 

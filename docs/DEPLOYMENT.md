@@ -1,5 +1,13 @@
 # SpinChain: Deployment Guide
 
+This document describes the current deployment shape of the repo.
+
+Important:
+- This project is still in testnet/pre-launch state
+- The default runtime targets Avalanche Fuji and Sui testnet
+- Some deployment paths still reference mock or placeholder components
+- Do not use this file as proof that the app is ready for public launch
+
 ## Smart Contracts (Avalanche)
 
 ### Prerequisites
@@ -20,6 +28,8 @@ forge script script/Deploy.s.sol \
 ```
 
 ### Deployed Contracts (Fuji)
+
+Treat these as testnet deployment references, not final production addresses.
 
 | Contract | Address |
 |----------|---------|
@@ -91,6 +101,11 @@ forge create UltraVerifier --rpc-url https://api.avax-test.network/ext/bc/C/rpc 
 forge create EffortThresholdVerifier --rpc-url https://api.avax-test.network/ext/bc/C/rpc --private-key $PRIVATE_KEY --constructor-args <UltraVerifier_Address>
 ```
 
+Current caveats:
+- The default deploy script in `contracts/evm/src/deploy.s.sol` still deploys `MockUltraVerifier`
+- Runtime config still contains placeholder values that must be replaced before launch
+- The current Noir circuit only covers 60 seconds of data
+
 ---
 
 ## Frontend Deployment
@@ -116,6 +131,16 @@ ELEVENLABS_API_KEY=...
 NEXT_PUBLIC_SUI_PACKAGE_ID=0x...
 NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x...
 NEXT_PUBLIC_SPIN_TOKEN_ADDRESS=0x...
+```
+
+Additional launch-critical values:
+```env
+NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=0x...
+NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=0x...
+NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=0x...
+NEXT_PUBLIC_CHAINLINK_FORWARDER=0x...
+NEXT_PUBLIC_CHAINLINK_WORKFLOW_ID=0x...
+NEXT_PUBLIC_NOIR_VERIFIER_ADDRESS=0x...
 ```
 
 ---
@@ -144,6 +169,12 @@ Already configured in `Info.plist` and `AndroidManifest.xml` with Bluetooth perm
 ---
 
 ## Testing
+
+Minimum release expectation:
+- `npm run build` completes successfully
+- `npm run lint` completes successfully
+- Contract/testnet flows are verified against the active config
+- User-facing rider/instructor flows do not silently fall back to mock data
 
 ### Verify Contracts
 ```bash
@@ -174,12 +205,11 @@ npx ts-node --esm scripts/e2e-live-loop.ts
 
 ---
 
-## CI/CD
+## Release Notes
 
-- `zk-verifier.yml` - Auto-generates ZK verifier
-- `test.yml` - Forge tests on PR
-- `lint.yml` - TypeScript + Solidity linting
-- Pre-commit hook blocks secret commits
+- There is not yet a complete release pipeline for this app
+- Treat CI and local verification as part of the launch work still in progress
+- See `docs/PRODUCTION_ROADMAP.md` for the current blocker list
 
 ---
 

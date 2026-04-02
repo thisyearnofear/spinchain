@@ -18,6 +18,13 @@ export function useStablecoinPayment() {
   const { address } = useAccount();
   const [isApproving, setIsApproving] = useState(false);
 
+  const getPaymentMethodName = useCallback((method: PaymentMethod): string => {
+    if (method === "native") return "AVAX";
+    if (method === "usdc") return "USDC";
+    if (method === "usdt") return "USDT";
+    return "Unknown";
+  }, []);
+
   const approveTx = useTransaction({
     successMessage: "Payment approved",
     pendingMessage: "Approving payment...",
@@ -69,7 +76,9 @@ export function useStablecoinPayment() {
       if (method === "native") return true; // No approval needed for native
 
       const tokenAddress = getTokenAddress(method);
-      if (!tokenAddress) throw new Error("Invalid payment method");
+      if (!tokenAddress) {
+        throw new Error(`${getPaymentMethodName(method)} payments are not configured`);
+      }
 
       setIsApproving(true);
 
@@ -88,7 +97,7 @@ export function useStablecoinPayment() {
         throw error;
       }
     },
-    [approveTx, getTokenAddress]
+    [approveTx, getPaymentMethodName, getTokenAddress]
   );
 
   /**
@@ -138,16 +147,6 @@ export function useStablecoinPayment() {
     },
     [address, checkBalance, purchaseTx]
   );
-
-  /**
-   * Get payment method display name
-   */
-  const getPaymentMethodName = useCallback((method: PaymentMethod): string => {
-    if (method === "native") return "AVAX";
-    if (method === "usdc") return "USDC";
-    if (method === "usdt") return "USDT";
-    return "Unknown";
-  }, []);
 
   return {
     // Actions

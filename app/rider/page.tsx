@@ -125,15 +125,15 @@ export default function RiderPage() {
           <PrimaryNav />
         </div>
 
-        {/* Airbnb-style Featured Section */}
+        {/* Coach profiles */}
         <section className="space-y-6">
           <div className="flex items-end justify-between">
             <div>
               <h2 className="text-2xl font-black text-[color:var(--foreground)] tracking-tighter">
-                Featured Coaches
+                Coach Profiles
               </h2>
               <p className="text-sm text-[color:var(--muted)] font-medium">
-                Ride with the world&apos;s best virtual instructors.
+                Curated coach personas used throughout the current demo and class experience.
               </p>
             </div>
             <button
@@ -243,7 +243,7 @@ export default function RiderPage() {
           </div>
         )}
 
-        {/* Demo Mode Info (when connected but no purchases) */}
+        {/* Connected wallet summary */}
         {isConnected && (
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 backdrop-blur">
             <div className="flex items-center justify-between">
@@ -257,11 +257,11 @@ export default function RiderPage() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-[color:var(--foreground)]">
-                  0
+                <p className="text-sm font-semibold text-[color:var(--foreground)]">
+                  Testnet Connected
                 </p>
                 <p className="text-xs text-[color:var(--muted)]">
-                  SPIN Balance
+                  Token balance not shown until live balance reads are wired
                 </p>
               </div>
             </div>
@@ -409,14 +409,16 @@ export default function RiderPage() {
         {!isLoading && !error && filteredClasses.length > 0 && (
           <div className="grid gap-6 md:grid-cols-2">
             {filteredClasses.map((classData, index) => {
-              // Assign theme based on index
               const themes: ("neon" | "alpine" | "mars" | "ocean")[] = [
                 "neon",
                 "alpine",
                 "mars",
                 "ocean",
               ];
-              const theme = themes[index % themes.length];
+              const metadataTheme = classData.metadata?.route?.theme;
+              const theme = metadataTheme === "neon" || metadataTheme === "alpine" || metadataTheme === "mars"
+                ? metadataTheme
+                : themes[index % themes.length];
 
               return (
                 <AnimatedClassCard
@@ -436,8 +438,16 @@ export default function RiderPage() {
         {!isLoading && !error && filteredClasses.length === 0 && (
           <div className="rounded-2xl border border-dashed border-[color:var(--border)] p-12 text-center">
             <p className="text-[color:var(--muted)]">
-              No {filterUpcoming ? "upcoming" : "past"} classes
+              No live {filterUpcoming ? "upcoming" : "past"} classes found on the current network.
             </p>
+            {!isConnected && (
+              <Link
+                href={getDemoRideUrl()}
+                className="mt-4 inline-flex items-center rounded-xl bg-[color:var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
+              >
+                Try the demo ride instead
+              </Link>
+            )}
           </div>
         )}
 

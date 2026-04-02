@@ -10,7 +10,8 @@
  * Key Principle: AI agents are first-class instructors with same economics as humans
  */
 
-import { CONTRACTS, PAYMENT_CONFIG } from "@/app/config";
+import { CONTRACTS } from "@/app/config";
+import { ZERO_ADDRESS } from "./contracts";
 import type { EnhancedClassMetadata } from "./contracts";
 
 export interface AIAgentConfig {
@@ -131,11 +132,16 @@ export class AIAgentInstructor {
    * Create a class using the agent's wallet and revenue share
    */
   getClassCreationParams(decision: ClassCreationDecision) {
-    const paymentToken = this.config.preferredPayment === "native" 
-      ? "0x0000000000000000000000000000000000000000" as `0x${string}`
-      : this.config.preferredPayment === "usdc"
-      ? CONTRACTS.avalanche.usdc
-      : CONTRACTS.avalanche.usdt;
+    const paymentToken =
+      this.config.preferredPayment === "native"
+        ? ZERO_ADDRESS
+        : this.config.preferredPayment === "usdc"
+          ? CONTRACTS.avalanche.usdc
+          : CONTRACTS.avalanche.usdt;
+
+    if (!paymentToken) {
+      throw new Error(`Payment token ${this.config.preferredPayment} is not configured`);
+    }
 
     return {
       name: decision.name,
@@ -179,7 +185,7 @@ export class AIAgentInstructor {
   /**
    * Get agent's accumulated revenue across all classes
    */
-  async getAccumulatedRevenue(classAddresses: `0x${string}`[]): Promise<{
+  async getAccumulatedRevenue(_classAddresses: `0x${string}`[]): Promise<{
     totalRevenue: number;
     pendingWithdrawal: number;
     withdrawnRevenue: number;

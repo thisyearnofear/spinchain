@@ -2,6 +2,7 @@
 // Replaces MockProver with actual Noir circuits
 
 import type { ProofInput, ZKProof, CircuitType } from './types';
+import { ZK_CONFIG } from "@/app/config";
 
 // UltraPlonk backend interface (dynamically imported)
 interface NoirBackend {
@@ -92,7 +93,7 @@ export class NoirProver {
   
   async generateProof(
     input: ProofInput,
-    circuitType: CircuitType
+    _circuitType: CircuitType
   ): Promise<ZKProof> {
     if (!this.initialized || !this.backend) {
       throw new Error('Prover not initialized');
@@ -111,8 +112,8 @@ export class NoirProver {
     return {
       proof,
       publicInputs,
-      circuitType,
-      verifierAddress: process.env.NEXT_PUBLIC_NOIR_VERIFIER_ADDRESS || '0x0',
+      circuitType: _circuitType,
+      verifierAddress: ZK_CONFIG.verifierAddress ?? "",
     };
   }
   
@@ -130,7 +131,7 @@ export class NoirProver {
     return valid;
   }
   
-  private prepareWitness(input: ProofInput, circuitType: CircuitType): unknown {
+  private prepareWitness(input: ProofInput, _circuitType: CircuitType): unknown {
     // Convert telemetry to circuit format
     // Circuit expects fixed-size array of 60 points
     const MAX_POINTS = 60;

@@ -57,7 +57,7 @@ export function useZKClaim() {
     setZkState(prev => ({ ...prev, isGeneratingProof: true }));
     
     try {
-      const oracle = getLocalOracle();
+      const _oracle = getLocalOracle();
       const prover = getProver();
       
       // Generate proof using Noir (or mock if unavailable)
@@ -127,6 +127,10 @@ export function useZKClaim() {
     params: ZKClaimParams,
     proof: ZKProof
   ) => {
+    if (!EFFORT_THRESHOLD_VERIFIER_ADDRESS) {
+      throw new Error("EffortThresholdVerifier is not configured");
+    }
+
     // Convert proof bytes to hex
     const proofHex = `0x${Buffer.from(proof.proof).toString('hex')}` as `0x${string}`;
     
@@ -175,7 +179,7 @@ export function useZKClaim() {
   }, [generateProof, submitProof]);
   
   // Check if proof was already used (prevents replay)
-  const checkProofUsed = useCallback(async (proofHash: `0x${string}`): Promise<boolean> => {
+  const checkProofUsed = useCallback(async (_proofHash: `0x${string}`): Promise<boolean> => {
     // This would use useReadContract in a real implementation
     // For now, return false
     return false;

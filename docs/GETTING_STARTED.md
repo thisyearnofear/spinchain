@@ -1,5 +1,13 @@
 # SpinChain: Getting Started
 
+This guide is for local development and internal testing.
+
+Current status as of 2026-04-02:
+- The app is in demo/testnet stage
+- Some rider-facing views still use mock or guest data
+- Reward, verifier, and workflow configuration still need launch hardening
+- Do not treat this repo as production-ready without completing the launch checklist in `docs/PRODUCTION_ROADMAP.md`
+
 ## Quick Start
 
 ```bash
@@ -49,23 +57,20 @@ NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x...
 
 ---
 
-## User Onboarding Flow
+## Current User Flows
 
 ### 1. Welcome Modal
-New users see a 3-step intro:
-- What is SpinChain (earn tokens through effort)
-- How rewards work (HR + power → SPIN)
-- Privacy built-in (ZK proofs protect data)
+New users see a 3-step intro focused on the product concept. This is onboarding copy, not proof that all reward and privacy flows are fully live end to end.
 
 ### 2. Guest Mode
 - Skip wallet connection → "Explore as Guest"
-- Access **Pedal Simulator** for instant demo
-- See estimated rewards (connect wallet to claim)
+- Access demo/practice flows without wallet connection
+- Useful for local testing and product walkthroughs
 
 ### 3. First Ride Checklist
 - [ ] Connect Wallet (RainbowKit)
 - [ ] Link Device (BLE or Simulator)
-- [ ] Complete First Ride
+- [ ] Complete a ride flow in demo or testnet mode
 
 ---
 
@@ -111,17 +116,19 @@ AI-detected moments trigger full-screen alerts:
 
 ### Claiming Rewards
 
-1. **ZK Proof Generation** (10-30s in-browser)
-   - Proves effort without revealing raw HR
-   - Privacy score displayed (0-100)
+The intended reward path is:
+
+1. **ZK Proof Generation**
+   - Current circuit only handles short telemetry windows
+   - Full class-length proof aggregation is still a launch blocker
 
 2. **On-Chain Settlement**
-   - Submit proof to `EffortThresholdVerifier` on Avalanche Fuji
-   - Replay protection prevents double-claims
+   - Avalanche Fuji/testnet oriented today
+   - Runtime configuration still needs final validation
 
 3. **Token Distribution**
-   - SPIN minted to rider wallet
-   - Tier bonuses applied (Bronze +5% → Diamond +25%)
+   - Prototype flows exist
+   - Do not assume launch-safe accounting until release gates pass
 
 ---
 
@@ -166,10 +173,10 @@ npx ts-node --esm scripts/e2e-live-loop.ts
 
 | Feature | Method | Status |
 |---------|--------|--------|
-| CRE Biometric Oracle | Forge Tests | 🟢 PASSED |
-| Confidential HTTP | Node.js Sim | 🟢 VERIFIED |
-| Incentive Engine | Integration | 🟢 PASSED |
-| ZK Circuits | Nargo | 🟢 PASSED |
+| CRE Biometric Oracle | Manual/dev verification | Prototype |
+| Confidential HTTP | Local simulation | Prototype |
+| Incentive Engine | Contract + app wiring | Partial |
+| ZK Circuits | Nargo | Prototype |
 
 ---
 
@@ -246,6 +253,7 @@ npx cap open android
 - Check `NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS` is set
 - Verify contract deployed to correct network (Fuji)
 - Ensure proof hasn't been used (replay protection)
+- Be aware the current effort circuit only supports short sessions
 
 ### "Sui transaction failed"
 - Check testnet SUI balance: `sui client gas`
