@@ -15,6 +15,11 @@ const analyticsEvents: Array<{
 }> = [];
 
 const MAX_EVENTS = 10000;
+const MAX_BATCH_SIZE = 50;
+const MAX_EVENT_NAME_LENGTH = 100;
+const MAX_SESSION_ID_LENGTH = 128;
+const MAX_PATH_LENGTH = 256;
+const MAX_PAYLOAD_STRING_LENGTH = 512;
 
 // Persistent storage path (for development - use DB in production)
 const ANALYTICS_DIR = join(process.cwd(), "data");
@@ -31,7 +36,48 @@ function persistEvent(event: typeof analyticsEvents[0]) {
   appendFileSync(ANALYTICS_FILE, JSON.stringify(event) + "\n", "utf-8");
 }
 
+function isServerAnalyticsEnabled() {
+  return process.env.ENABLE_SERVER_ANALYTICS === "true";
+}
+
+function hasAdminAccess(req: NextRequest) {
+  if (process.env.NODE_ENV !== "production") return true;
+  const token = process.env.ANALYTICS_ADMIN_TOKEN;
+  if (!token) return false;
+  return req.headers.get("x-analytics-admin-token") === token;
+}
+
+function sanitizePayload(payload: unknown): Record<string, unknown> {
+  if (!payload || typeof payload !== "object") return {};
+
+  const sanitized = Object.entries(payload as Record<string, unknown>).slice(0, 25).map(([key, value]) => {
+    if (typeof value === "string") {
+      return [key, value.slice(0, MAX_PAYLOAD_STRING_LENGTH)];
+    }
+    if (typeof value === "number" || typeof value === "boolean" || value === null) {
+      return [key, value];
+    }
+    return [key, String(value).slice(0, MAX_PAYLOAD_STRING_LENGTH)];
+  });
+
+  return Object.fromEntries(sanitized);
+}
+
 export async function GET(req: NextRequest) {
+  if (!isServerAnalyticsEnabled()) {
+    return NextResponse.json(
+      { error: "Analytics server storage disabled" },
+      { status: 404 }
+    );
+  }
+
+  if (!hasAdminAccess(req)) {
+    return NextResponse.json(
+      { error: "Forbidden" },
+      { status: 403 }
+    );
+  }
+
   // Query params for filtering
   const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "100"), 500);
   const eventName = req.nextUrl.searchParams.get("event");
@@ -71,6 +117,15 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isServerAnalyticsEnabled()) {
+    return NextResponse.json({
+      success: true,
+      accepted: 0,
+      rejected: 0,
+      disabled: true,
+    }, { status: 202 });
+  }
+
   try {
     const body = await req.json();
     const { events, sessionId } = body;
@@ -82,9 +137,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!sessionId) {
+    if (!sessionId || typeof sessionId !== "string") {
       return NextResponse.json(
         { error: "Invalid payload: 'sessionId' is required" },
+        { status: 400 }
+      );
+    }
+
+    if (sessionId.length > MAX_SESSION_ID_LENGTH) {
+      return NextResponse.json(
+        { error: "Invalid payload: 'sessionId' is too long" },
+        { status: 400 }
+      );
+    }
+
+    if (events.length > MAX_BATCH_SIZE) {
+      return NextResponse.json(
+        { error: `Invalid payload: max ${MAX_BATCH_SIZE} events per request` },
         { status: 400 }
       );
     }
@@ -93,7 +162,12 @@ export async function POST(req: NextRequest) {
     const invalidEvents: string[] = [];
 
     for (const event of events) {
-      if (!event.name || typeof event.timestamp !== "number") {
+      if (
+        !event.name ||
+        typeof event.name !== "string" ||
+        event.name.length > MAX_EVENT_NAME_LENGTH ||
+        typeof event.timestamp !== "number"
+      ) {
         invalidEvents.push(event.name || "unknown");
         continue;
       }
@@ -101,8 +175,8 @@ export async function POST(req: NextRequest) {
       const analyticsEvent = {
         name: event.name,
         timestamp: event.timestamp,
-        path: event.path,
-        payload: event.payload || {},
+        path: typeof event.path === "string" ? event.path.slice(0, MAX_PATH_LENGTH) : undefined,
+        payload: sanitizePayload(event.payload),
         sessionId,
       };
 

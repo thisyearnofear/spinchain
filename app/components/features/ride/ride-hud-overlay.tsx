@@ -4,6 +4,12 @@ import { RideTopBar } from "./ride-top-bar";
 import { RideHUD } from "./ride-hud";
 import { RideBottomPanel } from "./ride-bottom-panel";
 import type { GhostState } from "@/app/lib/analytics/ghost-service";
+import type { IntervalPhase, WorkoutPlan } from "@/app/lib/workout-plan";
+import type { WidgetMode, PanelKey, PanelState } from "@/app/hooks/ui/use-panel-state";
+import type { RewardMode, RewardStreamState } from "@/app/hooks/rewards/use-rewards";
+import type { HapticType } from "@/app/hooks/use-haptic";
+import type { TelemetryData } from "./ride-hud";
+import type { AgentDecision } from "@/app/lib/ai-types";
 
 interface RideHUDOverlayProps {
   classData: { name: string; instructor: string };
@@ -16,58 +22,71 @@ interface RideHUDOverlayProps {
   useSimulator: boolean;
   bleConnected: boolean;
   walletConnected: boolean;
-  rewardMode: string;
+  rewardMode: RewardMode;
   rewardsFormattedReward: string;
   rewardsIsActive: boolean;
-  rewardsClearNodeConnected: boolean;
+  rewardsClearNodeConnected?: boolean;
   viewMode: "immersive" | "focus";
   hudMode: "full" | "compact" | "minimal";
   deviceType: "mobile" | "tablet" | "desktop";
-  simulatedReward: string;
-  telemetry: any;
+  simulatedReward: { isSimulating: boolean; formattedReward: string };
+  telemetry: TelemetryData;
   telemetryHistory: { power: number[]; cadence: number[]; heartRate: number[] };
   ghostState: GhostState;
-  currentInterval: { phase: string; targetRpm?: [number, number] } | null;
-  aiLogs: any[];
+  currentInterval: {
+    phase: IntervalPhase;
+    durationSeconds: number;
+    coachCue?: string;
+    targetRpm?: [number, number];
+  } | null;
+  aiLogs: Array<{ timestamp: number; message: string; type: "info" | "action" | "alert" }>;
   aiActive: boolean;
   agentName: string;
-  reasonerState: any;
-  lastDecision: any;
-  thoughtLog: any[];
+  reasonerState: string;
+  lastDecision: AgentDecision | null;
+  thoughtLog: string[];
   isSpeaking: boolean;
   widgetsVisible: boolean;
-  widgetsMode: string;
-  panelState: any;
+  widgetsMode: WidgetMode;
+  panelState: PanelState;
   elapsedTime: number;
   connectionHint: string | null;
   telemetryEffort: number;
   telemetryCadence: number;
-  workoutPlan: any;
+  workoutPlan: WorkoutPlan | null;
   currentIntervalIndex: number;
   intervalProgress: number;
   intervalRemaining: number;
-  rewardsStreamState: any;
-  rewardsMode: string;
-  orientation: string;
+  rewardsStreamState: RewardStreamState | null;
+  rewardsMode: RewardMode;
+  orientation: "portrait" | "landscape";
   onSetUseSimulator: (v: boolean) => void;
-  onSetRewardMode: (m: any) => void;
+  onSetRewardMode: (m: RewardMode) => void;
   onToggleViewMode: () => void;
   onCycleHudMode: () => void;
   onExitRide: () => void;
   onResetPrefs: () => void;
   onCollapseToggle: () => void;
   isAllCollapsed: boolean;
-  onTogglePanel: (key: any) => void;
-  onSetWidgetsMode: (m: any) => void;
+  onTogglePanel: (key: PanelKey) => void;
+  onSetWidgetsMode: (m: WidgetMode) => void;
   onStartRide: () => void;
   onPauseRide: () => void;
-  onSetWorkoutPlan: (p: any) => void;
+  onSetWorkoutPlan: (p: WorkoutPlan | null) => void;
   onSetUseSimulator2: (v: boolean) => void;
-  onBleMetrics: (m: any) => void;
-  onSimulatorMetrics: (m: any) => void;
-  onHaptic: (type: string) => void;
+  onBleMetrics: (m: Partial<TelemetryData>) => void;
+  onSimulatorMetrics: (m: {
+    heartRate: number;
+    power: number;
+    cadence: number;
+    speed: number;
+    effort: number;
+    distance?: number;
+    timestamp?: number;
+  }) => void;
+  onHaptic: (type?: HapticType) => boolean;
   formatTime: (s: number) => string;
-  trackWidgetInteraction: (action: any, panel: any) => void;
+  trackWidgetInteraction: (action: "toggle" | "minimize" | "restore" | "drag", panel: PanelKey) => void;
   cycleRideWidgetsMode: () => void;
 }
 
@@ -86,7 +105,7 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
         useSimulator={props.useSimulator}
         bleConnected={props.bleConnected}
         walletConnected={props.walletConnected}
-        rewardMode={props.rewardMode as any}
+        rewardMode={props.rewardMode}
         rewardsFormattedReward={props.rewardsFormattedReward}
         rewardsIsActive={props.rewardsIsActive}
         rewardsClearNodeConnected={props.rewardsClearNodeConnected}
@@ -108,13 +127,13 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
         <RideHUD
           telemetry={props.telemetry}
           deviceType={props.deviceType}
-          orientation={props.orientation as any}
+          orientation={props.orientation}
           hudMode={props.hudMode}
           isRiding={props.isRiding}
           rideProgress={props.rideProgress}
           rewardsActive={props.rewardsIsActive}
           rewardsStreamState={props.rewardsStreamState}
-          rewardsMode={props.rewardsMode as any}
+          rewardsMode={props.rewardsMode}
           intervalPhase={props.currentInterval?.phase ?? null}
           aiLog={props.aiLogs[0]}
           ghostState={props.ghostState}
@@ -164,7 +183,7 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
         elapsedTime={props.elapsedTime}
         hudMode={props.hudMode}
         deviceType={props.deviceType}
-        widgetsMode={props.widgetsMode as any}
+        widgetsMode={props.widgetsMode}
         useSimulator={props.useSimulator}
         isPracticeMode={props.isPracticeMode}
         isTrainingMode={props.isTrainingMode}

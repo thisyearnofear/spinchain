@@ -8,7 +8,7 @@
 
 import { useCallback } from "react";
 
-type HapticType = "light" | "medium" | "heavy" | "success" | "warning" | "error";
+export type HapticType = "light" | "medium" | "heavy" | "success" | "warning" | "error";
 
 interface HapticPatterns {
   light: number[];

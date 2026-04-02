@@ -1,3 +1,5 @@
+"use client";
+
 type SectionProps = {
   eyebrow: string;
   title: string;
@@ -40,6 +42,7 @@ type CardProps = {
   description?: string;
   children?: React.ReactNode;
   className?: string;
+  actions?: React.ReactNode;
 };
 
 export function SurfaceCard({
@@ -48,6 +51,7 @@ export function SurfaceCard({
   description,
   children,
   className = "",
+  actions,
 }: CardProps) {
   return (
     <div
@@ -75,6 +79,7 @@ export function SurfaceCard({
           {description}
         </p>
       ) : null}
+      {actions ? <div className="relative z-10 mt-4 flex flex-wrap gap-3">{actions}</div> : null}
       <div className="relative z-10">{children}</div>
     </div>
   );
@@ -237,7 +242,6 @@ export function GradientText({ children, className = "" }: GradientTextProps) {
 }
 
 // ─── Sparkline Component ───
-"use client";
 
 import { useEffect, useRef, useCallback } from "react";
 
@@ -257,7 +261,7 @@ export function SparklineCanvas({
   animated = true,
 }: SparklineProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
   const progressRef = useRef(0);
 
   const draw = useCallback(
@@ -375,7 +379,7 @@ export function SparklineCanvas({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [data, draw, animated]);
+  }, [data, draw, animated, height]);
 
   // Handle resize
   useEffect(() => {

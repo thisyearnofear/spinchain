@@ -34,22 +34,32 @@ export default function AnalyticsDashboard() {
   const [events, setEvents] = useState<AnalyticsEvent[]>([]);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [limit, setLimit] = useState(100);
   const [filterEvent, setFilterEvent] = useState<string>('');
   const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({ limit: limit.toString() });
       if (filterEvent) params.set('event', filterEvent);
       
       const response = await fetch(`/api/analytics/sync?${params}`);
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || `Failed to fetch analytics (${response.status})`);
+      }
       const data = await response.json();
       setEvents(data.events || []);
       setSummary(data.summary);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch analytics';
       console.error('Failed to fetch analytics:', error);
+      setError(message);
+      setEvents([]);
+      setSummary(null);
     } finally {
       setLoading(false);
     }
@@ -135,6 +145,14 @@ export default function AnalyticsDashboard() {
         </div>
 
         {/* Summary Cards with Glassmorphism */}
+        {error && (
+          <SurfaceCard
+            eyebrow="Access"
+            title="Analytics unavailable"
+            description={error}
+          />
+        )}
+
         {summary && trendData && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <motion.div

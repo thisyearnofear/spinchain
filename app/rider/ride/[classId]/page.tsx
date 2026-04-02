@@ -18,6 +18,7 @@ import {
 import { RideVisualization } from "../../../components/features/ride/ride-visualization";
 import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overlay";
 import { RideModals } from "../../../components/features/ride/ride-modals";
+import type { StoryBeat } from "../../../components/features/route/route-visualizer";
 import { useSimulatedRewards } from "../../../hooks/ride/use-simulated-rewards";
 import {
   useDeviceType,
@@ -69,6 +70,7 @@ import {
   type GhostPerformance,
   type GhostState,
 } from "../../../lib/analytics/ghost-service";
+import type { EnhancedClassMetadata } from "../../../lib/contracts";
 import {
   createCanonicalRideSummary,
   enqueueRideSync,
@@ -146,78 +148,6 @@ export default function LiveRidePage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [panelState]);
 
-  // Ride lifecycle (extracted to hook)
-  const {
-    isRiding,
-    setIsRiding,
-    isRidingRef,
-    classDataRef,
-    isStarting,
-    setIsStarting,
-    isExiting,
-    setIsExiting,
-    rideProgress,
-    setRideProgress,
-    elapsedTime,
-    setElapsedTime,
-  } = useRideLifecycle({
-    classData,
-    bleConnected,
-    useSimulator,
-  });
-
-  const [showHUD] = useState(true);
-  const [hudMode, setHudMode] = useState<"full" | "compact" | "minimal">(
-    "full",
-  );
-  const hudModePreferenceRef = useRef<"system" | "stored" | "manual">("system");
-  const viewModePreferenceRef = useRef<"system" | "stored" | "manual">(
-    "system",
-  );
-
-  // Mobile accordion: when expanding a panel on mobile, collapse others (one at a time)
-  const handleTogglePanel = useCallback(
-    (key: Parameters<typeof panelState.toggle>[0]) => {
-      if (deviceType === "mobile") {
-        // On mobile, use accordion behavior - expand one, collapse others
-        const isCurrentlyExpanded = panelState.state[key] === "expanded";
-        if (isCurrentlyExpanded) {
-          // If already expanded, just collapse it
-          panelState.collapse(key);
-        } else {
-          // If collapsed, expand it and collapse others
-          panelState.expandOne(key);
-        }
-      } else {
-        // On desktop/tablet, use normal toggle
-        panelState.toggle(key);
-      }
-    },
-    [deviceType, panelState],
-  );
-
-  // Mobile: Start with all panels collapsed when riding to maximize ride visibility
-  // Users can expand one panel at a time using accordion behavior
-  useEffect(() => {
-    if (isRiding) {
-      panelState.startRideLayout();
-    } else {
-      panelState.endRideLayout();
-    }
-  }, [isRiding, panelState]);
-
-  const widgetsVisible =
-    !isRiding || panelState.state.mobileRideWidgets !== "minimized";
-  const widgetsMode = panelState.state.mobileRideWidgets;
-
-  // Onboarding Tutorial (extracted to reusable hook + component)
-  const {
-    showTutorial,
-    tutorialStep,
-    nextStep: nextTutorial,
-    dismiss: dismissTutorial,
-  } = useRideTutorial();
-
   // Persisted HUD preference (client-only)
   useEffect(() => {
     try {
@@ -233,54 +163,6 @@ export default function LiveRidePage() {
   const [viewMode, setViewMode] = useState<"immersive" | "focus">(
     getSystemViewMode(deviceType, performanceTier, false),
   );
-
-  const trackWidgetInteraction = useCallback(
-    (
-      action: "toggle" | "minimize" | "restore" | "drag",
-      panel: keyof typeof panelState.state,
-    ) => {
-      const phase = isRiding
-        ? "in_ride"
-        : rideProgress > 0
-          ? "post_ride"
-          : "pre_ride";
-      const eventName =
-        action === "minimize"
-          ? ANALYTICS_EVENTS.WIDGET_MINIMIZED
-          : action === "restore"
-            ? ANALYTICS_EVENTS.WIDGET_RESTORED
-            : action === "drag"
-              ? ANALYTICS_EVENTS.WIDGET_DRAGGED
-              : ANALYTICS_EVENTS.WIDGET_TOGGLED;
-
-      trackEvent(eventName, {
-        panel,
-        phase,
-        viewMode,
-        deviceType,
-        panelMode: panelState.state[panel],
-      });
-    },
-    [deviceType, isRiding, panelState.state, rideProgress, viewMode],
-  );
-
-  const cycleRideWidgetsMode = useCallback(() => {
-    const nextMode =
-      widgetsMode === "expanded"
-        ? "collapsed"
-        : widgetsMode === "collapsed"
-          ? "minimized"
-          : "expanded";
-    panelState.setMobileRideWidgetsMode(nextMode);
-    trackWidgetInteraction(
-      nextMode === "minimized"
-        ? "minimize"
-        : nextMode === "expanded"
-          ? "restore"
-          : "toggle",
-      "mobileRideWidgets",
-    );
-  }, [panelState, trackWidgetInteraction, widgetsMode]);
 
   // Persisted preference (client-only)
   useEffect(() => {
@@ -356,9 +238,120 @@ export default function LiveRidePage() {
   const [showNoBikeModal, setShowNoBikeModal] = useState(false);
   const [showKeyboardHints, setShowKeyboardHints] = useState(false);
 
-  // Auto-start ride in demo mode
-  const autoStartDemo = searchParams.get("auto") === "true";
+  // Ride lifecycle (extracted to hook)
+  const {
+    isRiding,
+    setIsRiding,
+    isRidingRef,
+    classDataRef,
+    isStarting: _isStarting,
+    setIsStarting,
+    isExiting,
+    setIsExiting,
+    rideProgress,
+    setRideProgress,
+    elapsedTime,
+    setElapsedTime,
+  } = useRideLifecycle({
+    classData,
+    bleConnected,
+    useSimulator,
+  });
 
+  const [hudMode, setHudMode] = useState<"full" | "compact" | "minimal">(
+    "full",
+  );
+  const hudModePreferenceRef = useRef<"system" | "stored" | "manual">("system");
+  const viewModePreferenceRef = useRef<"system" | "stored" | "manual">(
+    "system",
+  );
+
+  // Mobile accordion: when expanding a panel on mobile, collapse others (one at a time)
+  const handleTogglePanel = useCallback(
+    (key: Parameters<typeof panelState.toggle>[0]) => {
+      if (deviceType === "mobile") {
+        const isCurrentlyExpanded = panelState.state[key] === "expanded";
+        if (isCurrentlyExpanded) {
+          panelState.collapse(key);
+        } else {
+          panelState.expandOne(key);
+        }
+      } else {
+        panelState.toggle(key);
+      }
+    },
+    [deviceType, panelState],
+  );
+
+  useEffect(() => {
+    if (isRiding) {
+      panelState.startRideLayout();
+    } else {
+      panelState.endRideLayout();
+    }
+  }, [isRiding, panelState]);
+
+  const widgetsVisible =
+    !isRiding || panelState.state.mobileRideWidgets !== "minimized";
+  const widgetsMode = panelState.state.mobileRideWidgets;
+
+  const trackWidgetInteraction = useCallback(
+    (
+      action: "toggle" | "minimize" | "restore" | "drag",
+      panel: keyof typeof panelState.state,
+    ) => {
+      const phase = isRiding
+        ? "in_ride"
+        : rideProgress > 0
+          ? "post_ride"
+          : "pre_ride";
+      const eventName =
+        action === "minimize"
+          ? ANALYTICS_EVENTS.WIDGET_MINIMIZED
+          : action === "restore"
+            ? ANALYTICS_EVENTS.WIDGET_RESTORED
+            : action === "drag"
+              ? ANALYTICS_EVENTS.WIDGET_DRAGGED
+              : ANALYTICS_EVENTS.WIDGET_TOGGLED;
+
+      trackEvent(eventName, {
+        panel,
+        phase,
+        viewMode,
+        deviceType,
+        panelMode: panelState.state[panel],
+      });
+    },
+    [deviceType, isRiding, panelState, rideProgress, viewMode],
+  );
+
+  const cycleRideWidgetsMode = useCallback(() => {
+    const nextMode =
+      widgetsMode === "expanded"
+        ? "collapsed"
+        : widgetsMode === "collapsed"
+          ? "minimized"
+          : "expanded";
+    panelState.setMobileRideWidgetsMode(nextMode);
+    trackWidgetInteraction(
+      nextMode === "minimized"
+        ? "minimize"
+        : nextMode === "expanded"
+          ? "restore"
+          : "toggle",
+      "mobileRideWidgets",
+    );
+  }, [panelState, trackWidgetInteraction, widgetsMode]);
+
+  // Onboarding Tutorial (extracted to reusable hook + component)
+  const {
+    showTutorial,
+    tutorialStep,
+    nextStep: nextTutorial,
+    dismiss: dismissTutorial,
+  } = useRideTutorial();
+
+  // Auto-start ride in demo mode
   useEffect(() => {
     if (bleConnected || useSimulator) {
       setConnectionHint(null);
@@ -440,12 +433,6 @@ export default function LiveRidePage() {
     [routeCoordinates],
   );
   const routeProgress = isRiding || rideProgress > 0 ? rideProgress / 100 : 0;
-  const visualizerMode: "preview" | "ride" | "finished" =
-    rideProgress >= 100
-      ? "finished"
-      : isRiding || rideProgress > 0
-        ? "ride"
-        : "preview";
   const currentRouteCoordinate = useMemo(() => {
     if (routeCoordinates.length === 0) return null;
     const index = Math.min(
@@ -628,6 +615,11 @@ export default function LiveRidePage() {
     spinEarned: "0",
     rewardsWereActive: false,
   });
+  const [telemetryAverages, setTelemetryAverages] = useState({
+    avgHr: 0,
+    avgPower: 0,
+    avgEffort: 0,
+  });
 
   // Track last spoken beat to avoid repeats
   const lastSpokenBeatRef = useRef<string | null>(null);
@@ -764,7 +756,15 @@ export default function LiveRidePage() {
     }, intervalMs);
 
     return () => clearInterval(id);
-  }, [isRiding, deviceType]);
+  }, [
+    isRiding,
+    deviceType,
+    performanceTier,
+    currentGear,
+    currentRouteCoordinate,
+    ghostPerformance,
+    elapsedTime,
+  ]);
 
   useEffect(() => {
     if (telemetry.power <= 0) return;
@@ -962,6 +962,31 @@ export default function LiveRidePage() {
     telemetry.effort,
   ]);
 
+  const refreshTelemetryAverages = useCallback(() => {
+    const samples = telemetrySamples.current;
+    if (samples.length === 0) {
+      setTelemetryAverages({ avgHr: 0, avgPower: 0, avgEffort: 0 });
+      return;
+    }
+    const sum = samples.reduce(
+      (acc, s) => ({
+        hr: acc.hr + s.hr,
+        power: acc.power + s.power,
+        effort: acc.effort + s.effort,
+      }),
+      { hr: 0, power: 0, effort: 0 },
+    );
+    setTelemetryAverages({
+      avgHr: Math.round(sum.hr / samples.length),
+      avgPower: Math.round(sum.power / samples.length),
+      avgEffort: Math.round(sum.effort / samples.length),
+    });
+  }, []);
+
+  useEffect(() => {
+    refreshTelemetryAverages();
+  }, [telemetry.heartRate, telemetry.power, telemetry.effort, refreshTelemetryAverages]);
+
   // 1. Unified AI Coaching Agent (Phase 1/2/3)
   const [marketStats, setMarketStats] = useState({
     ticketsSold: 0,
@@ -995,12 +1020,12 @@ export default function LiveRidePage() {
     socialEvents,
     handleHighFive,
   } = useWorkoutAgent({
-    agentName: (classData?.metadata?.ai as any)?.name || "Coach Atlas",
+    agentName: classData?.metadata?.instructor || "Coach Atlas",
     personality:
-      ((classData?.metadata?.ai as any)?.personality as
+      ((classData?.metadata?.ai?.personality as
         | "zen"
         | "drill-sergeant"
-        | "data") || "drill-sergeant",
+        | "data") ?? "drill-sergeant"),
     sessionObjectId: classId,
     metrics: {
       ...telemetry,
@@ -1013,7 +1038,12 @@ export default function LiveRidePage() {
       return await setResistance(level);
     },
     playSound,
-    instructorProfile: (classData?.metadata as any)?.instructor, // Phase 2: Training data
+    instructorProfile: classData?.metadata
+      ? {
+          name: classData.metadata.instructor,
+          specialties: [],
+        }
+      : undefined,
     marketStats, // Phase 3: Revenue optimization
   });
 
@@ -1086,31 +1116,8 @@ export default function LiveRidePage() {
 
   // Simplified UI Trigger: Activation of AI instructor when riding
   useEffect(() => {
-    setAiActive(
-      isRiding &&
-        (isPracticeMode || !!(classData?.metadata?.ai as any)?.enabled),
-    );
+    setAiActive(isRiding && (isPracticeMode || Boolean(classData?.metadata?.ai?.enabled)));
   }, [isRiding, isPracticeMode, classData?.metadata?.ai, setAiActive]);
-
-  // Compute averages for completion
-  const telemetryAverages = useMemo(() => {
-    const samples = telemetrySamples.current;
-    if (samples.length === 0) return { avgHr: 0, avgPower: 0, avgEffort: 0 };
-    const sum = samples.reduce(
-      (acc, s) => ({
-        hr: acc.hr + s.hr,
-        power: acc.power + s.power,
-        effort: acc.effort + s.effort,
-      }),
-      { hr: 0, power: 0, effort: 0 },
-    );
-    return {
-      avgHr: Math.round(sum.hr / samples.length),
-      avgPower: Math.round(sum.power / samples.length),
-      avgEffort: Math.round(sum.effort / samples.length),
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rideProgress >= 100]);
 
   const handleEnableSimulatorFromModal = useCallback(() => {
     setShowNoBikeModal(false);
@@ -1170,6 +1177,7 @@ export default function LiveRidePage() {
       setElapsedTime(0);
       setRecentPowerHistory([]);
       telemetrySamples.current = [];
+      setTelemetryAverages({ avgHr: 0, avgPower: 0, avgEffort: 0 });
       lastSpokenBeatRef.current = null;
       lastIntervalRef.current = -1;
       trackedCompletionRef.current = false;
@@ -1388,7 +1396,15 @@ export default function LiveRidePage() {
         routeElevationProfile={routeElevationProfile}
         routeCoordinates={routeCoordinates}
         currentRouteCoordinate={currentRouteCoordinate}
-        classData={classData as any}
+        classData={(classData as {
+          name: string;
+          instructor: string;
+          route?: { route?: { storyBeats?: StoryBeat[] } } | null;
+          metadata?: EnhancedClassMetadata | null;
+        }) ?? {
+          name: practiceConfig?.name || "SpinChain Ride",
+          instructor: practiceConfig?.instructor || agentName,
+        }}
         workoutPlan={workoutPlan}
         currentIntervalIndex={currentIntervalIndex}
         currentInterval={currentInterval}
@@ -1641,8 +1657,8 @@ export default function LiveRidePage() {
         tutorialStep={tutorialStep}
         agentName={agentName}
         aiPersonality={aiPersonality || "data"}
-        rewardMode={rewardMode}
-        walletConnected={walletConnected}
+        _rewardMode={rewardMode}
+        _walletConnected={walletConnected}
         ridePointsRef={ridePointsRef}
         router={router}
         onExitRide={exitRide}

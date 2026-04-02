@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 export interface UseRideLifecycleOptions {
-  classData: { metadata?: { duration?: number } } | null;
+  classData: { metadata?: { duration?: number } | null } | null;
   bleConnected: boolean;
   useSimulator: boolean;
 }
@@ -16,7 +16,9 @@ export function useRideLifecycle({
   const [isRiding, setIsRiding] = useState(false);
   const isRidingRef = useRef(false);
   const classDataRef = useRef(classData);
-  classDataRef.current = classData;
+  useEffect(() => {
+    classDataRef.current = classData;
+  }, [classData]);
 
   const [isStarting, setIsStarting] = useState(false);
   const [isExiting, setIsExiting] = useState(false);

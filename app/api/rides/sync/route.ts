@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPublicClient, http, type Address, type Hash } from "viem";
-import { avalancheFuji } from "viem/chains";
+import type { Address } from "viem";
 import { CONTRACT_ADDRESSES, INCENTIVE_ENGINE_ABI } from "@/app/lib/contracts";
 
 export const dynamic = 'force-dynamic';
@@ -37,17 +36,16 @@ type RideSyncPayload = {
 
 type SyncResponse = {
   relayed: boolean;
-  commitmentTxHash?: Hash;
   relayTs: number;
   mode: "relayer" | "direct" | "validation_only";
   message?: string;
+  contractCall?: {
+    address: `0x${string}`;
+    abi: typeof INCENTIVE_ENGINE_ABI;
+    functionName: "submitZKProof";
+    args: [`0x${string}`, `0x${string}`[]];
+  };
 };
-
-// Initialize viem client for reading (no private key needed)
-const publicClient = createPublicClient({
-  chain: avalancheFuji,
-  transport: http(),
-});
 
 /**
  * Validates ride payload for required fields and constraints
@@ -112,8 +110,6 @@ function isRelayerModeAvailable(): boolean {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse<SyncResponse>> {
-  const startTime = Date.now();
-
   try {
     const rawBody = await req.json();
     const validation = validatePayload(rawBody);
@@ -160,33 +156,21 @@ export async function POST(req: NextRequest): Promise<NextResponse<SyncResponse>
 
     // Relayer mode: submit transaction on behalf of user
     if (isRelayerModeAvailable()) {
-      // In production, would use:
-      // const walletClient = createWalletClient({ chain: avalancheFuji, transport: http(), account: relayerAccount });
-      // const hash = await walletClient.writeContract({
-      //   address: CONTRACT_ADDRESSES.INCENTIVE_ENGINE,
-      //   abi: INCENTIVE_ENGINE_ABI,
-      //   functionName: "submitZKProof",
-      //   args: [body.proof, body.publicInputs],
-      // });
-
-      // For now, return the expected structure
-      // TODO: Implement actual relayer with wallet client
       return NextResponse.json({
-        relayed: true,
-        commitmentTxHash: `0x${body.idempotencyKey.replace(/[^0-9a-f]/gi, "0").slice(0, 64).padEnd(64, "0")}` as Hash,
+        relayed: false,
         relayTs: Date.now(),
         mode: "relayer",
-        message: "Relayer mode enabled but not fully implemented. Set RELAYER_PRIVATE_KEY and implement wallet client.",
-      });
+        message: "Relayer mode is configured but transaction submission is not implemented yet.",
+      }, { status: 501 });
     }
 
     // Direct mode: Client should submit proof directly to contract
     // This endpoint validates and returns contract call data
     return NextResponse.json({
-      relayed: true,
+      relayed: false,
       relayTs: Date.now(),
       mode: "direct",
-      message: "Proof validated. Submit directly to IncentiveEngine.submitZKProof()",
+      message: "Proof validated. Client must submit IncentiveEngine.submitZKProof() directly.",
       // Provide contract call data for client-side submission
       contractCall: {
         address: CONTRACT_ADDRESSES.INCENTIVE_ENGINE,

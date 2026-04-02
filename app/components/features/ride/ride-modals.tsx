@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
+import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { RideCompletion } from "./ride-completion";
 import { NoBikeModal } from "./no-bike-modal";
 import { KeyboardShortcutOverlay } from "./keyboard-shortcut-overlay";
@@ -10,6 +11,9 @@ import { DemoCompleteModal } from "@/app/components/features/common/demo-complet
 import { RideTutorialOverlay, type TutorialStep } from "./ride-tutorial";
 import { downloadTCX, type RideRecordPoint } from "@/app/lib/analytics/ride-recorder";
 import type { RideSyncStatus } from "@/app/lib/analytics/ride-history";
+import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
+import type { DemoCompleteModalProps } from "@/app/components/features/common/demo-complete-modal";
+import type { EnhancedClassMetadata } from "@/app/lib/contracts";
 
 interface RideModalsProps {
   rideProgress: number;
@@ -21,7 +25,7 @@ interface RideModalsProps {
   bleConnected: boolean;
   useSimulator: boolean;
   classId: string;
-  classData: { name: string; instructor: string; startTime?: number; metadata?: any };
+  classData: { name: string; instructor: string; startTime?: number; metadata?: EnhancedClassMetadata | null } | null;
   practiceConfig: { name?: string; instructor?: string } | null;
   rewardsFormattedReward: string;
   handleClaimRewards: () => void;
@@ -29,8 +33,8 @@ interface RideModalsProps {
     isGenerating: boolean;
     isSuccess: boolean;
     privacyScore: number;
-    privacyLevel: string;
-    error: any;
+    privacyLevel: "high" | "medium" | "low";
+    error: Error | null;
   };
   completionSyncStatus: RideSyncStatus;
   completionPrimaryAction: "view_history" | "ride_again";
@@ -38,15 +42,15 @@ interface RideModalsProps {
   showNoBikeModal: boolean;
   showKeyboardHints: boolean;
   showDemoModal: boolean;
-  demoStats: any;
+  demoStats: DemoCompleteModalProps["stats"];
   showTutorial: boolean;
   tutorialStep: TutorialStep;
   agentName: string;
-  aiPersonality: string;
-  rewardMode: string;
-  walletConnected: boolean;
+  aiPersonality: "zen" | "drill-sergeant" | "data";
+  _rewardMode: RewardMode;
+  _walletConnected: boolean;
   ridePointsRef: React.MutableRefObject<RideRecordPoint[]>;
-  router: any;
+  router: AppRouterInstance;
   onExitRide: () => void;
   onEnableSimulatorFromModal: () => void;
   onDismissNoBike: () => void;
@@ -54,7 +58,15 @@ interface RideModalsProps {
   onDemoModalClose: () => void;
   onNextTutorial: () => void;
   onDismissTutorial: () => void;
-  onSimulatorMetrics: (m: any) => void;
+  onSimulatorMetrics: (m: {
+    heartRate: number;
+    power: number;
+    cadence: number;
+    speed: number;
+    effort: number;
+    distance?: number;
+    timestamp?: number;
+  }) => void;
 }
 
 export function RideModals({
@@ -68,7 +80,7 @@ export function RideModals({
   useSimulator,
   classId,
   classData,
-  practiceConfig,
+  practiceConfig: _practiceConfig,
   rewardsFormattedReward,
   handleClaimRewards,
   zkProofStatus,
@@ -83,8 +95,8 @@ export function RideModals({
   tutorialStep,
   agentName,
   aiPersonality,
-  rewardMode,
-  walletConnected,
+  _rewardMode,
+  _walletConnected,
   ridePointsRef,
   router,
   onExitRide,

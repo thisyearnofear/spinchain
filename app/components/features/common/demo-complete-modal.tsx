@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 
-interface DemoCompleteModalProps {
+export interface DemoCompleteModalProps {
   isOpen: boolean;
   onClose: () => void;
   stats: {

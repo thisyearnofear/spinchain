@@ -2,7 +2,12 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { WelcomeModal, resetOnboarding } from "@/app/components/features/common/welcome-modal";
+import {
+  WelcomeModal,
+  resetOnboarding,
+  ONBOARDING_KEY,
+  GUEST_MODE_KEY,
+} from "@/app/components/features/common/welcome-modal";
 import { InstructorModeSelector } from "@/app/components/features/class/instructor-mode-selector";
 import { FadeIn } from "@/app/components/ui/scroll-animations";
 import { Tag } from "@/app/components/ui/ui";
@@ -18,19 +23,17 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const [showWelcome, setShowWelcome] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-
     if (searchParams.get("reset") === "true") {
       resetOnboarding();
-      localStorage.removeItem("spin-welcome-seen");
-      localStorage.removeItem("spin-guest-mode");
     }
-    const hasSeenWelcome = localStorage.getItem("spin-welcome-seen");
+    const hasSeenWelcome = localStorage.getItem(ONBOARDING_KEY);
     if (!hasSeenWelcome) {
-      setShowWelcome(true);
+      const frame = window.requestAnimationFrame(() => {
+        setShowWelcome(true);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -45,13 +48,13 @@ function HomeContent() {
   }, [searchParams]);
 
   const handleWelcomeComplete = () => {
-    localStorage.setItem("spin-welcome-seen", "true");
+    localStorage.setItem(ONBOARDING_KEY, "true");
     setShowWelcome(false);
   };
 
   const handleExploreAsGuest = () => {
-    localStorage.setItem("spin-welcome-seen", "true");
-    localStorage.setItem("spin-guest-mode", "true");
+    localStorage.setItem(ONBOARDING_KEY, "true");
+    localStorage.setItem(GUEST_MODE_KEY, "true");
     setShowWelcome(false);
   };
 

@@ -1,11 +1,19 @@
 "use client";
 
-import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import FocusRouteVisualizer from "@/app/components/features/route/focus-route-visualizer";
-import type { WorkoutPlan } from "@/app/lib/workout-plan";
-import type { GhostState } from "@/app/lib/analytics/ghost-service";
+import type { WorkoutPlan, IntervalPhase } from "@/app/lib/workout-plan";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
+import type { VisualizerTheme } from "@/app/components/features/route/route-visualizer";
+import type {
+  PanelKey,
+  DesktopPanelKey,
+  PanelPosition,
+  PanelPositions,
+  PanelState,
+} from "@/app/hooks/ui/use-panel-state";
+import type { HapticType } from "@/app/hooks/use-haptic";
+import type { StoryBeat } from "@/app/components/features/route/route-visualizer";
 
 const RouteVisualizer = dynamic(
   () => import("@/app/components/features/route/route-visualizer"),
@@ -28,25 +36,26 @@ interface RideVisualizationProps {
   currentRouteCoordinate: { lat: number; lng: number; ele?: number } | null;
   classData: {
     name: string;
+    route?: { route?: { storyBeats?: StoryBeat[] } } | null;
     metadata?: {
       route: { name?: string };
       rewards?: { threshold?: number };
-    };
+    } | null;
   };
   workoutPlan: WorkoutPlan | null;
   currentIntervalIndex: number;
-  currentInterval: { phase: string } | null;
+  currentInterval: { phase: IntervalPhase } | null;
   intervalProgress: number;
-  routeTheme: string;
+  routeTheme: VisualizerTheme;
   searchParams: URLSearchParams;
-  panelState: any;
-  panelPositions: any;
-  onTogglePanel: (key: any) => void;
-  onSetPanelPosition: (key: string, pos: any) => void;
-  onSnapPanel: (key: string) => void;
-  onTrackWidgetInteraction: (action: any, panel: any) => void;
-  onExpandOne: (key: string) => void;
-  onHaptic?: (type: string) => void;
+  panelState: PanelState;
+  panelPositions: PanelPositions;
+  onTogglePanel: (key: PanelKey) => void;
+  onSetPanelPosition: (key: DesktopPanelKey, pos: PanelPosition) => void;
+  onSnapPanel: (key: DesktopPanelKey) => void;
+  onTrackWidgetInteraction: (action: "toggle" | "minimize" | "restore" | "drag", panel: PanelKey) => void;
+  onExpandOne: (key: PanelKey) => void;
+  onHaptic?: (type?: HapticType) => boolean;
   isPracticeMode: boolean;
   recentPowerHistory: number[];
 }
@@ -94,12 +103,12 @@ export function RideVisualization({
       {viewMode === "focus" ? (
         <FocusRouteVisualizer
           elevationProfile={routeElevationProfile}
-          storyBeats={(classData as any)?.route?.route?.storyBeats ?? []}
+          storyBeats={classData.route?.route?.storyBeats ?? []}
           progress={routeProgress}
           currentPower={telemetry.power}
           recentPower={recentPowerHistory}
           ftp={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
-          theme={routeTheme as any}
+          theme={routeTheme}
           stats={{
             hr: telemetry.heartRate,
             power: telemetry.power,
@@ -110,7 +119,7 @@ export function RideVisualization({
           routeName={classData.metadata?.route?.name || classData.name}
           routeStartCoordinate={routeCoordinates[0] ?? null}
           currentCoordinate={currentRouteCoordinate}
-          intervalPhase={(currentInterval?.phase as any) ?? null}
+          intervalPhase={currentInterval?.phase ?? null}
           className="h-full w-full"
           panelState={panelState}
           panelPositions={panelPositions}
@@ -127,7 +136,7 @@ export function RideVisualization({
         <RouteVisualizer
           elevationProfile={routeElevationProfile}
           theme={routeTheme}
-          storyBeats={(classData as any)?.route?.route?.storyBeats ?? []}
+          storyBeats={classData.route?.route?.storyBeats ?? []}
           progress={routeProgress}
           mode={visualizerMode}
           stats={{

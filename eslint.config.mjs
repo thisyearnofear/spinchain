@@ -22,6 +22,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "**/.cre_build_tmp.js",
+    "app/lib/chainlink/**/*.js",
   ]),
 ]);
 

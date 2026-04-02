@@ -7,7 +7,6 @@ import {
   getWBalPercentage,
   getGearRatio,
   calculateVirtualSpeed,
-  DEFAULT_ROAD_GEARS,
   type WBalConfig,
 } from "../../lib/analytics/physiological-models";
 import {
@@ -33,6 +32,8 @@ export interface Telemetry {
   timestamp: number;
 }
 
+export type TelemetryState = ReturnType<typeof useRideTelemetry>;
+
 const INITIAL_TELEMETRY: Telemetry = {
   heartRate: 0,
   power: 0,
@@ -52,8 +53,8 @@ export function useRideTelemetry({
   isRiding,
   deviceType,
   performanceTier,
-  bleConnected,
-  useSimulator,
+  bleConnected: _bleConnected,
+  useSimulator: _useSimulator,
   routeCoordinates,
   ghostBlobId,
   riderAddress,
@@ -76,6 +77,11 @@ export function useRideTelemetry({
     heartRate: number[];
   }>({ power: [], cadence: [], heartRate: [] });
   const [recentPowerHistory, setRecentPowerHistory] = useState<number[]>([]);
+  const [telemetryAverages, setTelemetryAverages] = useState({
+    avgHr: 0,
+    avgPower: 0,
+    avgEffort: 0,
+  });
   const [currentGear, setCurrentGear] = useState(10);
 
   const telemetryRawRef = useRef<Telemetry>({ ...INITIAL_TELEMETRY });
@@ -94,6 +100,27 @@ export function useRideTelemetry({
 
   const ridePointsRef = useRef<RideRecordPoint[]>([]);
   const telemetrySamples = useRef<{ hr: number; power: number; effort: number }[]>([]);
+
+  const refreshTelemetryAverages = useCallback(() => {
+    const samples = telemetrySamples.current;
+    if (samples.length === 0) {
+      setTelemetryAverages({ avgHr: 0, avgPower: 0, avgEffort: 0 });
+      return;
+    }
+    const sum = samples.reduce(
+      (acc, s) => ({
+        hr: acc.hr + s.hr,
+        power: acc.power + s.power,
+        effort: acc.effort + s.effort,
+      }),
+      { hr: 0, power: 0, effort: 0 },
+    );
+    setTelemetryAverages({
+      avgHr: Math.round(sum.hr / samples.length),
+      avgPower: Math.round(sum.power / samples.length),
+      avgEffort: Math.round(sum.effort / samples.length),
+    });
+  }, []);
 
   const currentRouteCoordinate = useMemo(() => {
     if (routeCoordinates.length === 0) return null;
@@ -186,6 +213,9 @@ export function useRideTelemetry({
       }
 
       setTelemetry(telemetryRawRef.current);
+      if (telemetryRawRef.current.power > 0) {
+        setRecentPowerHistory((prev) => [...prev.slice(-19), telemetryRawRef.current.power]);
+      }
       setTelemetryHistory((prev) => ({
         power: [...prev.power, telemetryRawRef.current.power].slice(-30),
         cadence: [...prev.cadence, telemetryRawRef.current.cadence].slice(-30),
@@ -195,11 +225,6 @@ export function useRideTelemetry({
 
     return () => clearInterval(id);
   }, [isRiding, deviceType, performanceTier, currentGear, ghostPerformance, currentRouteCoordinate]);
-
-  useEffect(() => {
-    if (telemetry.power <= 0) return;
-    setRecentPowerHistory((prev) => [...prev.slice(-19), telemetry.power]);
-  }, [telemetry.power]);
 
   const handleBleMetrics = useCallback(
     (metrics: Partial<Telemetry>) => {
@@ -234,27 +259,13 @@ export function useRideTelemetry({
         timestamp: metrics.timestamp ?? Date.now(),
       };
       setTelemetry(telemetryRawRef.current);
+      if (telemetryRawRef.current.power > 0) {
+        setRecentPowerHistory((prev) => [...prev.slice(-19), telemetryRawRef.current.power]);
+      }
     },
     [],
   );
 
-  const telemetryAverages = useMemo(() => {
-    const samples = telemetrySamples.current;
-    if (samples.length === 0) return { avgHr: 0, avgPower: 0, avgEffort: 0 };
-    const sum = samples.reduce(
-      (acc, s) => ({
-        hr: acc.hr + s.hr,
-        power: acc.power + s.power,
-        effort: acc.effort + s.effort,
-      }),
-      { hr: 0, power: 0, effort: 0 },
-    );
-    return {
-      avgHr: Math.round(sum.hr / samples.length),
-      avgPower: Math.round(sum.power / samples.length),
-      avgEffort: Math.round(sum.effort / samples.length),
-    };
-  }, []);
 
   return {
     telemetry,
@@ -267,6 +278,7 @@ export function useRideTelemetry({
     ridePointsRef,
     telemetrySamples,
     telemetryAverages,
+    refreshTelemetryAverages,
     telemetryRawRef,
     handleBleMetrics,
     handleSimulatorMetrics,

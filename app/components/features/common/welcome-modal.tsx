@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { LoadingButton } from "../../../components/ui/loading-button";
 
-const ONBOARDING_KEY = "spinchain-onboarded";
+export const ONBOARDING_KEY = "spinchain-onboarded";
+export const LEGACY_WELCOME_KEY = "spin-welcome-seen";
+export const GUEST_MODE_KEY = "spin-guest-mode";
 
 const steps = [
   {
@@ -38,14 +40,19 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Set mounted to true - this runs after hydration
-    setMounted(true);
-    
+    const frame = window.requestAnimationFrame(() => {
+      setMounted(true);
+    });
+
     const onboarded = localStorage.getItem(ONBOARDING_KEY);
-    if (!onboarded) {
-      setIsOpen(true);
-      setHasSeenModal(false);
+    const legacyWelcomeSeen = localStorage.getItem(LEGACY_WELCOME_KEY);
+    if (!onboarded && !legacyWelcomeSeen) {
+      window.requestAnimationFrame(() => {
+        setIsOpen(true);
+        setHasSeenModal(false);
+      });
     }
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const handleNext = () => {
@@ -58,6 +65,7 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
 
   const handleClose = () => {
     localStorage.setItem(ONBOARDING_KEY, "true");
+    localStorage.setItem(LEGACY_WELCOME_KEY, "true");
     setIsOpen(false);
     setHasSeenModal(true);
     onComplete?.();
@@ -69,7 +77,8 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
 
   const handleGuestMode = () => {
     localStorage.setItem(ONBOARDING_KEY, "true");
-    localStorage.setItem("spin-guest-mode", "true");
+    localStorage.setItem(LEGACY_WELCOME_KEY, "true");
+    localStorage.setItem(GUEST_MODE_KEY, "true");
     setIsOpen(false);
     setHasSeenModal(true);
     onExploreAsGuest?.();
@@ -174,9 +183,10 @@ export function useNeedsOnboarding(): boolean {
 
   useEffect(() => {
     const onboarded = localStorage.getItem(ONBOARDING_KEY);
+    const legacyWelcomeSeen = localStorage.getItem(LEGACY_WELCOME_KEY);
     // Use a microtask to defer the state update
     Promise.resolve().then(() => {
-      setNeedsOnboarding(!onboarded);
+      setNeedsOnboarding(!onboarded && !legacyWelcomeSeen);
     });
   }, []);
 
@@ -187,5 +197,7 @@ export function useNeedsOnboarding(): boolean {
 export function resetOnboarding() {
   if (typeof window !== "undefined") {
     localStorage.removeItem(ONBOARDING_KEY);
+    localStorage.removeItem(LEGACY_WELCOME_KEY);
+    localStorage.removeItem(GUEST_MODE_KEY);
   }
 }

@@ -319,6 +319,8 @@ export function enqueueRideSync(summary: RideSummary): RideSummary {
 type RelaySyncResult = {
   relayed: boolean;
   commitmentTxHash?: `0x${string}`;
+  mode?: "relayer" | "direct" | "validation_only";
+  message?: string;
 };
 
 async function relayRideSummary(summary: RideSummary): Promise<RelaySyncResult> {
@@ -327,11 +329,11 @@ async function relayRideSummary(summary: RideSummary): Promise<RelaySyncResult> 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(summary),
   });
+  const data = (await response.json()) as RelaySyncResult;
   if (!response.ok) {
-    throw new Error(`Relay failed (${response.status})`);
+    throw new Error(data.message || `Relay failed (${response.status})`);
   }
-  const data = (await response.json()) as { relayed: boolean; commitmentTxHash?: `0x${string}` };
-  return { relayed: data.relayed, commitmentTxHash: data.commitmentTxHash };
+  return data;
 }
 
 export async function processRideSyncQueue(now = Date.now()) {
@@ -360,6 +362,14 @@ export async function processRideSyncQueue(now = Date.now()) {
 
     try {
       const relayResult = await relayRideSummary(ride);
+      if (!relayResult.relayed) {
+        throw new Error(
+          relayResult.message ||
+            (relayResult.mode === "direct"
+              ? "Direct wallet submission is required to anchor this ride."
+              : "Ride sync did not complete.")
+        );
+      }
       const relayedAt = Date.now();
       const anchored = Boolean(relayResult.commitmentTxHash);
       updateRideById(item.id, (current) => ({

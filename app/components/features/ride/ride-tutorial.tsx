@@ -31,6 +31,7 @@ const TUTORIAL_STEPS = [
 ];
 
 const STORAGE_KEY = "spinchain:onboarding:ride-tutorial";
+export type TutorialStep = number;
 
 export function useRideTutorial() {
   const [showTutorial, setShowTutorial] = useState(false);
@@ -41,7 +42,10 @@ export function useRideTutorial() {
     const searchParams = new URLSearchParams(window.location.search);
     const hasSeenTutorial = localStorage.getItem(STORAGE_KEY);
     if (!hasSeenTutorial || searchParams.get("setup") === "true") {
-      setShowTutorial(true);
+      const frame = window.requestAnimationFrame(() => {
+        setShowTutorial(true);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
   }, []);
 
