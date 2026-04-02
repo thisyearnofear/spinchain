@@ -43,6 +43,8 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     error InvalidProof();
     error ThresholdNotMet();
     error InvalidPublicInputs();
+    error InconsistentBatchProofs();
+    error EmptyBatch();
 
     // ============ Constants ============
     uint256 public constant ATTESTATION_VALIDITY = 7 days;
@@ -74,6 +76,14 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     event ProtocolFeeUpdated(uint256 bps);
     event RewardClaimed(address indexed rider, address indexed spinClass, uint256 amount, bytes32 attestationId);
     event ZKRewardClaimed(address indexed rider, bytes32 indexed classId, uint256 amount, uint16 effortScore);
+    event ZKBatchRewardClaimed(
+        address indexed rider,
+        bytes32 indexed classId,
+        uint256 amount,
+        uint16 effortScore,
+        uint32 totalSecondsAbove,
+        uint16 proofsVerified
+    );
     event ChainlinkRewardClaimed(address indexed rider, bytes32 indexed classId, uint256 amount, uint16 effortScore);
     event TierRewardBoost(address indexed rider, TieredRewards.Tier tier, uint256 baseAmount, uint256 boostedAmount);
 
@@ -200,6 +210,65 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
         totalClaimed[rider] += boostedAmount;
         
         emit ZKRewardClaimed(rider, classId, boostedAmount, effortScore);
+        if (tier != TieredRewards.Tier.NONE) {
+            emit TierRewardBoost(rider, tier, baseAmount, boostedAmount);
+        }
+    }
+
+    function submitZKProofBatch(
+        bytes[] calldata proofs,
+        bytes32[][] calldata publicInputsArray,
+        uint32 minTotalSeconds
+    ) external nonReentrant whenNotPaused {
+        if (proofs.length == 0 || publicInputsArray.length == 0) revert EmptyBatch();
+        if (proofs.length != publicInputsArray.length) revert InvalidPublicInputs();
+
+        bytes32 classId;
+        address rider = msg.sender;
+        bytes32 threshold;
+        uint256 weightedEffortTotal = 0;
+        uint32 totalSecondsAbove = 0;
+
+        for (uint256 i = 0; i < proofs.length; i++) {
+            bytes32[] calldata publicInputs = publicInputsArray[i];
+            if (publicInputs.length != 7) revert InvalidPublicInputs();
+
+            address proofRider = address(uint160(uint256(publicInputs[6])));
+            if (proofRider != rider) revert InvalidSignature();
+
+            if (i == 0) {
+                classId = publicInputs[5];
+                threshold = publicInputs[0];
+            } else if (publicInputs[5] != classId || publicInputs[0] != threshold) {
+                revert InconsistentBatchProofs();
+            }
+
+            uint16 effortScore = verifier.verifyAndRecord(proofs[i], publicInputs);
+            uint32 secondsAbove = uint32(uint256(publicInputs[3]));
+            totalSecondsAbove += secondsAbove;
+            weightedEffortTotal += uint256(effortScore) * uint256(secondsAbove);
+        }
+
+        if (totalSecondsAbove < minTotalSeconds || totalSecondsAbove == 0) revert ThresholdNotMet();
+
+        uint16 aggregateEffortScore = uint16(weightedEffortTotal / uint256(totalSecondsAbove));
+        uint256 baseAmount = calculateReward(aggregateEffortScore);
+        if (baseAmount == 0) revert InvalidAmount();
+
+        TieredRewards.Tier tier = getUserTier(rider);
+        uint256 boostedAmount = TieredRewards.applyMultiplier(baseAmount, tier);
+
+        _mintWithLimit(rider, boostedAmount);
+        totalClaimed[rider] += boostedAmount;
+
+        emit ZKBatchRewardClaimed(
+            rider,
+            classId,
+            boostedAmount,
+            aggregateEffortScore,
+            totalSecondsAbove,
+            uint16(proofs.length)
+        );
         if (tier != TieredRewards.Tier.NONE) {
             emit TierRewardBoost(rider, tier, baseAmount, boostedAmount);
         }

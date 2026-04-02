@@ -11,8 +11,8 @@
 SpinChain has a promising prototype, but the app is still demo/testnet-stage and not ready for general users. The current work is launch remediation: remove misleading demo behavior, replace placeholders, and make release verification trustworthy.
 
 **Critical Blockers**:
-1. User-facing screens still rely on mock/demo fallbacks in production paths
-2. ZK circuit is limited to 60 seconds of data
+1. User-facing screens still rely on mock/demo fallbacks in some production paths
+2. ZK claims now support chunked batch submission, but configured end-to-end verification is still incomplete
 3. Runtime and deployment config still contain placeholders or mock components
 4. Release verification is not yet a dependable gate
 
@@ -26,7 +26,7 @@ SpinChain has a promising prototype, but the app is still demo/testnet-stage and
 |----|------|------|-------|------------|
 | P0-1 | `app/api/rides/sync/route.ts` | 15-20 | Fake transaction hash returned | Implement real Avalanche anchoring via `IncentiveEngine.sol` |
 | P0-2 | `app/hooks/evm/use-class-data.ts` | 124 | Uses mock state instead of contract reads | Wire up to `SpinClassNFT.sol` view functions |
-| P0-3 | `circuits/effort_threshold/src/main.nr` | 6 | `MAX_DATA_POINTS = 60` (1 minute max) | Implement recursive proof aggregation (see Part 2) |
+| P0-3 | `circuits/effort_threshold/src/main.nr` | 6 | `MAX_DATA_POINTS = 60` (1 minute max) | Use chunked proof batching for launch; keep longer-session aggregation as a follow-on optimization |
 | P0-4 | `app/config.ts` | 51, 57 | Zero addresses for verifier & forwarder | Deploy contracts, update env variables |
 | P0-5 | `app/lib/ai-service.ts` | 4 | HACKATHON_STRATEGY logic | Review and implement production-safe AI logic |
 
@@ -53,7 +53,7 @@ SpinChain has a promising prototype, but the app is still demo/testnet-stage and
 ### Current Architecture
 
 ```
-Device (BLE) → Frontend (Telemetry Store) → Noir JS (Local Prover) → Avalanche (IncentiveEngine)
+Device (BLE) → Frontend (Telemetry Store) → Noir JS (Local Prover) → Chunked proofs → Avalanche (`submitZKProofBatch`)
 ```
 
 **Circuit**: `effort_threshold`
@@ -61,12 +61,23 @@ Device (BLE) → Frontend (Telemetry Store) → Noir JS (Local Prover) → Avala
 - **Outputs**: `threshold_met` (bool), `seconds_above` (u32), `effort_score` (0-1000)
 - **Constraint**: `MAX_DATA_POINTS = 60` (~1 minute at 1Hz)
 
-### Problem Statement
+### Current Launch Path
 
-A typical SpinChain class is 30-45 minutes. The current circuit can only prove 60 seconds of activity. Simply increasing `MAX_DATA_POINTS` to 2700 (45 min) would:
-- Increase gate count ~45x
-- Proving time on mobile: potentially 5-10+ minutes
-- Memory pressure on browser/app
+The repo no longer assumes a single proof covers an entire ride. The current path is:
+- collect ride heart-rate samples client-side
+- split samples into 60-second windows
+- generate one proof per qualifying window
+- submit all proofs to `IncentiveEngine.submitZKProofBatch(...)`
+- aggregate `secondsAbove` and weighted effort score on-chain for a single mint
+
+This makes normal-length rides claimable without inflating the Noir circuit itself.
+
+### Remaining Limitation
+
+The circuit still only proves 60 seconds per chunk. That is acceptable for the current batch-claim design, but it still leaves open questions around:
+- proving latency on lower-end devices
+- gas cost as proof count grows
+- final UX for long classes with many proof windows
 
 ### Recommended Approach: Recursive Proof Aggregation
 
@@ -236,10 +247,11 @@ Device → Chainlink Functions (TEE) → BiometricOracle.sol → Rewards
 - [x] Review and fix AI service hackathon code (P0-5) ✅ 2026-03-17
 
 ### Sprint 2: ZK Aggregation MVP (Week 3-4)
-- [ ] Create `session_aggregator` circuit
-- [ ] Implement frontend proof scheduler
-- [ ] Update `IncentiveEngine.sol` for session claims
-- [ ] Test with 5-minute sessions, scale up
+- [x] Implement chunked proof generation from heart-rate samples
+- [x] Add `submitZKProofBatch(...)` to `IncentiveEngine.sol`
+- [x] Wire rider and shared rewards hooks to batch claim submission
+- [ ] Add contract and app coverage for replay protection, mismatched batches, and threshold failures
+- [ ] Run configured Fuji end-to-end claim tests with a real verifier deployment
 
 ### Sprint 3: Feature Completion (Week 5-6)
 - [x] Real ghost pacer data (P1-1) ✅ 2026-03-17
@@ -247,7 +259,7 @@ Device → Chainlink Functions (TEE) → BiometricOracle.sol → Rewards
 - [x] Production verifier in deploy script (P1-2) ✅ 2026-03-17 - Created deploy-production.s.sol
 
 ### Sprint 4: Polish & Testing (Week 7-8)
-- [ ] End-to-end testing on Fuji testnet
+- [ ] End-to-end testing on Fuji testnet with real verifier + engine addresses
 - [ ] Load testing for concurrent classes
 - [ ] Security audit preparation
 - [ ] Documentation updates

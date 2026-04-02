@@ -26,8 +26,8 @@ class MockProver implements ProverBackend {
       publicInputs: [
         input.threshold.toString(),
         input.minDuration.toString(),
-        output.thresholdMet.toString(),
-        output.durationSatisfied.toString(),
+        output.thresholdMet ? "1" : "0",
+        output.secondsAbove.toString(),
         output.effortScore.toString(),
         input.classId,
         input.riderId,
@@ -53,17 +53,21 @@ class MockProver implements ProverBackend {
   }
   
   private computeOutput(input: ProofInput, _type: CircuitType): ProofOutput {
-    const thresholdMet = input.heartRate > input.threshold;
-    const durationSatisfied = input.timestamp >= input.minDuration;
-    
-    const hrRatio = Math.min(input.heartRate / input.threshold, 2);
-    const powerRatio = input.power > 0 ? Math.min(input.power / 200, 2) : 1;
-    const effortScore = Math.floor(hrRatio * powerRatio * 250);
+    const samples =
+      input.heartRateSamples && input.heartRateSamples.length > 0
+        ? input.heartRateSamples
+        : [input.heartRate];
+    const cappedSamples = samples.map((sample) => Math.min(sample, input.threshold * 2));
+    const secondsAbove = cappedSamples.filter((sample) => sample > input.threshold).length;
+    const thresholdMet = secondsAbove >= input.minDuration;
+    const avgEffort = cappedSamples.reduce((sum, sample) => sum + sample, 0) / cappedSamples.length;
+    const effortScore = Math.floor((avgEffort / Math.max(input.threshold, 1)) * 1000);
     
     return {
       thresholdMet,
       zoneEntered: thresholdMet,
-      durationSatisfied,
+      durationSatisfied: thresholdMet,
+      secondsAbove,
       effortScore: Math.min(effortScore, 1000),
       proofHash: '',
     };
@@ -102,17 +106,19 @@ export class ZKProver {
     threshold: number,
     classId: string,
     riderId: string,
-    duration: number
+    minDuration: number,
+    heartRateSamples?: number[]
   ): Promise<ZKProof> {
     const input: ProofInput = {
       heartRate,
+      heartRateSamples,
       power: 0,
       cadence: 0,
-      timestamp: duration,
+      timestamp: heartRateSamples?.length ?? minDuration,
       riderId,
       threshold,
       classId,
-      minDuration: duration,
+      minDuration,
     };
     
     return this.getBackend().generateProof(input, 'effort_threshold');
@@ -159,7 +165,7 @@ export class ZKProver {
       statement,
       revealed: {
         effortScore: parseInt(effortScore) || 0,
-        zone: thresholdMet === 'true' ? 'Target' : 'Recovery',
+        zone: thresholdMet === '1' ? 'Target' : 'Recovery',
         duration: parseInt(secondsAbove) || 0,
       },
       hidden: hiddenMetrics,

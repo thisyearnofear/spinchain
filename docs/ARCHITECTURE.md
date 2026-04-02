@@ -47,8 +47,8 @@ SpinChain implements a **Dual-Engine Execution Model** with **Zero-Knowledge Pri
 1. **AI Instructors** deploy on Avalanche with ENS identity
 2. **Riders** purchase tickets (ERC-721) on Avalanche
 3. **During Ride**: 10Hz telemetry streams to Sui `RiderStats` objects
-4. **Local Oracle**: browser-side proof generation exists as a prototype
-5. **Settlement**: verification and reward distribution are still being hardened for launch
+4. **Local Oracle**: browser-side proof generation chunks heart-rate samples into 60-second proof windows
+5. **Settlement**: `IncentiveEngine.submitZKProofBatch(...)` verifies each chunk and mints one aggregate reward on Avalanche
 
 ---
 
@@ -77,7 +77,7 @@ threshold_met: bool,     // Did they meet the goal?
 effort_score: u16,       // 0-1000 calculated score
 ```
 
-Launch limitation: a full class is much longer than 60 seconds, so proof aggregation or another production strategy is still required.
+Current launch path: the app now generates many 60-second proofs for a ride and submits them as a batch. The remaining issues are verifier deployment, gas/performance validation, and end-to-end operational testing.
 
 ---
 
@@ -166,6 +166,7 @@ For testing without BLE hardware:
 - Sui usage is still testnet-oriented by default
 - Some rider and class flows still fall back to demo/mock data when contract data is unavailable
 - Contract/runtime configuration still includes placeholder values that must be removed before public launch
+- The shared rewards hook and explicit ride claim flow both use the on-chain batch ZK claim path now
 
 ## Roadmap
 
@@ -179,8 +180,8 @@ For testing without BLE hardware:
 ### Phase 2: Privacy 🚧
 - Noir ZK circuits compiled and tested
 - Short-window verifier path exists
-- Full-session proof strategy still required
-- Launch-safe verifier deployment still required
+- Chunked proof batching is implemented for ride claims
+- Launch-safe verifier deployment and end-to-end validation are still required
 
 ### Phase 3: Ecosystem 🚧
 - Mindbody/ClassPass bridge

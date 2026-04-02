@@ -62,7 +62,8 @@ contract ProductionDeployScript is Script {
             deployer,
             address(spinToken),
             deployer, // Initial signer (attestation oracle)
-            address(ultraVerifier)
+            address(ultraVerifier),
+            deployer
         );
         console.log("IncentiveEngine:", address(incentiveEngine));
 
@@ -97,7 +98,8 @@ contract ProductionDeployScript is Script {
         YellowSettlement yellowSettlement = new YellowSettlement(
             deployer,
             address(spinToken),
-            address(incentiveEngine)
+            address(incentiveEngine),
+            deployer
         );
         console.log("YellowSettlement:", address(yellowSettlement));
 

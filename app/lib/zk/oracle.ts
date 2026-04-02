@@ -1,7 +1,7 @@
 // Local Oracle - On-device proof generation
 // Privacy-first: All computation happens locally, no data leaves device
 
-import type { ProofInput, ZKProof, CircuitType } from './types';
+import type { ZKProof } from './types';
 import { getProver, ZKProver } from './prover';
 import { getAssetManager } from '../walrus/client';
 import { DisclosureBuilder, DEFAULT_POLICY } from './disclosure';
@@ -28,6 +28,7 @@ export interface SessionConfig {
 export interface LocalProofResult {
   success: boolean;
   proof?: ZKProof;
+  proofs?: ZKProof[];
   disclosure?: {
     statement: string;
     revealed: {
@@ -41,6 +42,9 @@ export interface LocalProofResult {
     maxHeartRate: number;
     avgPower: number;
     provingTime: number;
+    totalSecondsAbove?: number;
+    proofsGenerated?: number;
+    aggregateEffortScore?: number;
   };
   error?: string;
 }
@@ -91,45 +95,29 @@ export class LocalOracle {
     const startTime = performance.now();
     
     try {
-      // Analyze telemetry
-      const analysis = this.analyzeTelemetry();
-      
-      // Generate ZK proof
-      const proof = await this.prover.proveEffortThreshold(
-        analysis.maxHeartRate,
-        this.config.targetHeartRate,
-        this.config.classId,
-        this.config.riderId,
-        analysis.durationMinutes
-      );
-      
-      // Create selective disclosure
-      const disclosure = new DisclosureBuilder(DEFAULT_POLICY)
-        .withProof(proof)
-        .withStatement(
-          `Maintained effort above threshold for ${analysis.durationMinutes} minutes`
-        )
-        .withMetadata({ duration: analysis.durationMinutes })
-        .build();
-      
-      const provingTime = performance.now() - startTime;
+      const result = await this.generateProofsFromHeartRateSamples({
+        heartRateSamples: this.telemetryBuffer.map((point) => point.heartRate),
+        avgPower: this.analyzeTelemetry().avgPower,
+        classId: this.config.classId,
+        riderId: this.config.riderId,
+        threshold: this.config.targetHeartRate,
+        minDuration: this.config.minDuration,
+      });
+      if (!result.success) {
+        return result;
+      }
       
       // Store raw telemetry to Walrus (optional, encrypted)
       await this.storeTelemetrySecurely();
-      
+
       return {
-        success: true,
-        proof,
-        disclosure: {
-          statement: disclosure.statement,
-          revealed: disclosure.revealed,
-        },
-        metadata: {
-          dataPoints: this.telemetryBuffer.length,
-          maxHeartRate: analysis.maxHeartRate,
-          avgPower: analysis.avgPower,
-          provingTime,
-        },
+        ...result,
+        metadata: result.metadata
+          ? {
+              ...result.metadata,
+              provingTime: performance.now() - startTime,
+            }
+          : undefined,
       };
     } catch (error) {
       return {
@@ -145,37 +133,125 @@ export class LocalOracle {
       return { success: false, error: 'No active session' };
     }
     
-    const analysis = this.analyzeTelemetry();
-    
-    // Only generate if we have enough data
-    if (analysis.durationMinutes < 5) {
+    const samples = this.telemetryBuffer.slice(-60).map((point) => point.heartRate);
+    if (samples.length < 10) {
       return {
         success: false,
-        error: 'Insufficient data (need 5+ minutes)',
+        error: 'Insufficient data (need 10+ seconds)',
       };
     }
-    
+
     const proof = await this.prover.proveEffortThreshold(
-      analysis.maxHeartRate,
+      Math.max(...samples),
       this.config.targetHeartRate,
       this.config.classId,
       this.config.riderId,
-      analysis.durationMinutes
+      1,
+      samples,
     );
     
     const disclosure = new DisclosureBuilder(DEFAULT_POLICY)
       .withProof(proof)
-      .withStatement(`Effort in progress: ${analysis.durationMinutes} minutes`)
+      .withStatement(`Effort in progress: ${Math.round(samples.length / 60)} minutes`)
       .build();
     
     return {
       success: true,
       proof,
+      proofs: [proof],
       disclosure: {
         statement: disclosure.statement,
         revealed: disclosure.revealed,
       },
     };
+  }
+
+  async generateProofsFromHeartRateSamples(input: {
+    heartRateSamples: number[];
+    avgPower?: number;
+    classId: string;
+    riderId: string;
+    threshold: number;
+    minDuration: number;
+  }): Promise<LocalProofResult> {
+    if (input.heartRateSamples.length === 0) {
+      return { success: false, error: "No telemetry samples available" };
+    }
+
+    const chunks = this.chunkHeartRateSamples(input.heartRateSamples);
+    const proofs: ZKProof[] = [];
+    let totalSecondsAbove = 0;
+    let weightedEffortScore = 0;
+
+    for (const chunk of chunks) {
+      const secondsAbove = chunk.filter((sample) => sample > input.threshold).length;
+      if (secondsAbove === 0) continue;
+
+      const proof = await this.prover.proveEffortThreshold(
+        Math.max(...chunk),
+        input.threshold,
+        input.classId,
+        input.riderId,
+        1,
+        chunk,
+      );
+
+      const effortScore = parseInt(proof.publicInputs[4] || "0", 10) || 0;
+      totalSecondsAbove += secondsAbove;
+      weightedEffortScore += effortScore * secondsAbove;
+      proofs.push(proof);
+    }
+
+    if (proofs.length === 0 || totalSecondsAbove < input.minDuration) {
+      return {
+        success: false,
+        error: `Threshold not met for required duration (${input.minDuration}s)`,
+      };
+    }
+
+    const aggregateEffortScore = Math.round(weightedEffortScore / totalSecondsAbove);
+    const proof = proofs[0];
+    const disclosure = new DisclosureBuilder(DEFAULT_POLICY)
+      .withProof(proof)
+      .withStatement(
+        `Maintained effort above threshold for ${Math.round(totalSecondsAbove / 60)} minutes`,
+      )
+      .withMetadata({ duration: totalSecondsAbove })
+      .build();
+
+    return {
+      success: true,
+      proof,
+      proofs,
+      disclosure: {
+        statement: disclosure.statement,
+        revealed: {
+          ...disclosure.revealed,
+          effortScore: aggregateEffortScore,
+          duration: totalSecondsAbove,
+        },
+      },
+      metadata: {
+        dataPoints: input.heartRateSamples.length,
+        maxHeartRate: Math.max(...input.heartRateSamples),
+        avgPower: input.avgPower ?? 0,
+        provingTime: 0,
+        totalSecondsAbove,
+        proofsGenerated: proofs.length,
+        aggregateEffortScore,
+      },
+    };
+  }
+
+  private chunkHeartRateSamples(samples: number[]): number[][] {
+    const chunkSize = 60;
+    const chunks: number[][] = [];
+
+    for (let index = 0; index < samples.length; index += chunkSize) {
+      chunks.push(samples.slice(index, index + chunkSize));
+    }
+
+    return chunks;
   }
   
   // Analyze buffered telemetry

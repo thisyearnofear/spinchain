@@ -411,6 +411,17 @@ export const INCENTIVE_ENGINE_ABI = [
   },
   {
     type: "function",
+    name: "submitZKProofBatch",
+    inputs: [
+      { name: "proofs", type: "bytes[]" },
+      { name: "publicInputsArray", type: "bytes32[][]" },
+      { name: "minTotalSeconds", type: "uint32" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "calculateReward",
     inputs: [{ name: "effortScore", type: "uint16" }],
     outputs: [{ name: "", type: "uint256" }],
@@ -448,6 +459,18 @@ export const INCENTIVE_ENGINE_ABI = [
       { indexed: true, name: "classId", type: "bytes32" },
       { name: "amount", type: "uint256" },
       { name: "effortScore", type: "uint16" },
+    ],
+  },
+  {
+    type: "event",
+    name: "ZKBatchRewardClaimed",
+    inputs: [
+      { indexed: true, name: "rider", type: "address" },
+      { indexed: true, name: "classId", type: "bytes32" },
+      { name: "amount", type: "uint256" },
+      { name: "effortScore", type: "uint16" },
+      { name: "totalSecondsAbove", type: "uint32" },
+      { name: "proofsVerified", type: "uint16" },
     ],
   },
   {

@@ -14,7 +14,9 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useAccount } from "wagmi";
+import { isAddress } from "viem";
 import { useYellowSettlement } from "@/app/hooks/evm/use-yellow-settlement";
+import { useZKClaim as useOnchainZKClaim } from "@/app/hooks/evm/use-zk-claim";
 import type { TelemetryPoint } from "@/app/lib/zk/oracle";
 import {
   // Types
@@ -23,21 +25,19 @@ import {
   type RewardChannel,
   type RewardStreamState,
   type SignedRewardUpdate,
-  type ZKProofInput,
   REWARD_MODES,
   // Calculator
   formatReward,
   parseReward,
+  calculateRewardFromScore,
   // Yellow
   useYellowStreaming,
   getStreamingStatus,
   calculateStreamingRate,
   isClearNodeConnected,
   // ZK
-  useZKRewards,
   createBatchAccumulator,
   addToBatch,
-  prepareZKInputFromBatch,
   type BatchAccumulator,
 } from "@/app/lib/rewards";
 
@@ -116,7 +116,7 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   
   // Mode-specific hooks
   const yellow = useYellowStreaming();
-  const zk = useZKRewards();
+  const zkClaim = useOnchainZKClaim();
   const yellowSettlement = useYellowSettlement();
   
   // Local state for batch accumulation (ZK mode)
@@ -157,7 +157,7 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
         break;
       }
     }
-  }, [mode, rider, instructor, classId, depositAmount, yellow]);
+  }, [mode, rider, instructor, classId, depositAmount, yellow, yellowSettlement]);
 
   // ============================================================================
   // Record Effort
@@ -262,22 +262,63 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
         if (!batchAccumulator || !rider) {
           return { success: false, amount: BigInt(0) };
         }
-        
-        const input = prepareZKInputFromBatch(
-          batchAccumulator,
-          classId,
-          rider,
-          zkThreshold
+
+        if (!isAddress(classId)) {
+          console.warn("[Rewards] Skipping ZK claim for non-contract class:", classId);
+          return { success: false, amount: BigInt(0) };
+        }
+
+        const heartRateSamples = batchAccumulator.telemetryPoints.map(
+          (point) => point.heartRate,
         );
-        
-        const result = await zk.generateProof(input);
-        
-        // In production, this would submit to IncentiveEngine
-        console.log("[Rewards] ZK proof generated:", result);
-        
+        const durationSeconds = Math.max(
+          1,
+          Math.floor(batchAccumulator.totalDuration || heartRateSamples.length),
+        );
+        const averageHeartRate =
+          heartRateSamples.length > 0
+            ? Math.round(
+                heartRateSamples.reduce((sum, value) => sum + value, 0) /
+                  heartRateSamples.length,
+              )
+            : batchAccumulator.maxHeartRate;
+
+        const proofResult = await zkClaim.generateProof({
+          heartRate: averageHeartRate,
+          threshold: zkThreshold,
+          durationSeconds,
+          classId,
+          riderId: rider,
+          heartRateSamples,
+          avgPower: batchAccumulator.avgPower,
+        });
+
+        if (!proofResult.success || !proofResult.proof) {
+          return { success: false, amount: BigInt(0) };
+        }
+
+        await zkClaim.submitProof(
+          {
+            spinClass: classId,
+            rider,
+            rewardAmount: "0",
+            classId,
+          },
+          proofResult.proof,
+          proofResult.proofs,
+          durationSeconds,
+        );
+
+        const reward = calculateRewardFromScore(
+          proofResult.metadata?.aggregateEffortScore ??
+            proofResult.disclosure?.revealed.effortScore ??
+            0,
+        );
+
         return {
-          success: result.success,
-          amount: result.success ? parseReward("10") : BigInt(0), // Base reward
+          success: true,
+          amount: reward.totalAmount,
+          hash: zkClaim.hash,
         };
       }
       
@@ -287,7 +328,17 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
         return { success: true, amount: BigInt(0) };
       }
     }
-  }, [mode, yellow, batchAccumulator, classId, rider, zk, zkThreshold]);
+  }, [
+    mode,
+    yellow,
+    yellowSettlement,
+    updates,
+    batchAccumulator,
+    classId,
+    rider,
+    zkClaim,
+    zkThreshold,
+  ]);
 
   // ============================================================================
   // Derived State
@@ -359,9 +410,10 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
     accumulatedReward,
     formattedReward,
     isActive,
-    isConnecting: yellow.isConnecting,
-    isGeneratingProof: zk.isGenerating,
-    error: yellow.error,
+    isConnecting: mode === "yellow-stream" ? yellow.isConnecting : false,
+    isGeneratingProof:
+      mode === "zk-batch" ? zkClaim.isGeneratingProof : false,
+    error: mode === "zk-batch" ? zkClaim.error : yellow.error,
     
     // Yellow-specific
     streamState: mode === "yellow-stream" ? yellow.streamState : undefined,
@@ -371,8 +423,8 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
     updates,
     
     // ZK-specific
-    privacyScore: zk.lastResult?.privacyScore,
-    privacyLevel: zk.lastResult?.privacyLevel,
+    privacyScore: mode === "zk-batch" ? zkClaim.privacyScore : undefined,
+    privacyLevel: mode === "zk-batch" ? zkClaim.privacyLevel : undefined,
 
     // ClearNode status
     clearNodeConnected: mode === "yellow-stream" ? clearNodeConnected : undefined,

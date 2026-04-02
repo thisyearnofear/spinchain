@@ -7,9 +7,8 @@ import { useState, useCallback } from 'react';
 import { useTransaction } from './use-transaction';
 import { CONTRACT_ERROR_CONTEXT } from '@/app/lib/errors';
 import { getLocalOracle, type LocalProofResult } from '@/app/lib/zk/oracle';
-import { getProver } from '@/app/lib/zk/prover';
 import { createDisclosure, calculatePrivacyScore, getPrivacyLevel } from '@/app/lib/zk/disclosure';
-import { EFFORT_THRESHOLD_VERIFIER_ADDRESS, EFFORT_THRESHOLD_VERIFIER_ABI } from '../../lib/contracts/verifier';
+import { INCENTIVE_ENGINE_ABI, INCENTIVE_ENGINE_ADDRESS } from "@/app/lib/contracts";
 import type { ZKProof } from '@/app/lib/zk/types';
 import { encodePacked, keccak256 } from 'viem';
 
@@ -41,38 +40,53 @@ export function useZKClaim() {
     error: null,
   });
   
-  // Use verifier contract for on-chain verification
-  const { write: submitToVerifier, ...txState } = useTransaction({
-    successMessage: 'ZK Proof Verified On-Chain! 🔒',
-    pendingMessage: 'Verifying proof on Avalanche...',
+  // Use IncentiveEngine for on-chain verification + mint
+  const { write: submitToEngine, ...txState } = useTransaction({
+    successMessage: 'ZK reward claimed on-chain',
+    pendingMessage: 'Submitting ZK reward claim...',
     errorContext: CONTRACT_ERROR_CONTEXT.claimReward,
   });
   
   // Generate ZK proof from session data
   const generateProof = useCallback(async (
-    heartRate: number,
-    threshold: number,
-    duration: number
+    sessionData: {
+      heartRate: number;
+      threshold: number;
+      durationSeconds: number;
+      classId: string;
+      riderId: string;
+      heartRateSamples?: number[];
+      avgPower?: number;
+    }
   ): Promise<LocalProofResult> => {
     setZkState(prev => ({ ...prev, isGeneratingProof: true }));
     
     try {
-      const _oracle = getLocalOracle();
-      const prover = getProver();
-      
-      // Generate proof using Noir (or mock if unavailable)
-      const proof = await prover.proveEffortThreshold(
-        heartRate,
-        threshold,
-        'mock-class-id',
-        'mock-rider-id',
-        duration
-      );
-      
-      // Create disclosure
+      const oracle = getLocalOracle();
+      const samples =
+        sessionData.heartRateSamples && sessionData.heartRateSamples.length > 0
+          ? sessionData.heartRateSamples
+          : Array.from(
+              { length: Math.max(1, sessionData.durationSeconds) },
+              () => sessionData.heartRate,
+            );
+
+      const result = await oracle.generateProofsFromHeartRateSamples({
+        heartRateSamples: samples,
+        avgPower: sessionData.avgPower,
+        classId: sessionData.classId,
+        riderId: sessionData.riderId,
+        threshold: sessionData.threshold,
+        minDuration: sessionData.durationSeconds,
+      });
+
+      if (!result.success || !result.proof) {
+        throw new Error(result.error || "Proof generation failed");
+      }
+
       const disclosure = createDisclosure(
-        proof,
-        `Maintained HR > ${threshold} for ${duration} minutes`
+        result.proof,
+        `Maintained HR > ${sessionData.threshold} for ${Math.round(sessionData.durationSeconds / 60)} minutes`
       );
       
       // Calculate privacy score
@@ -81,21 +95,6 @@ export function useZKClaim() {
         revealableFields: ['effortScore', 'zone', 'duration'],
         publicFields: ['classId', 'riderId', 'timestamp', 'proofHash'],
       });
-      
-      const result: LocalProofResult = {
-        success: true,
-        proof,
-        disclosure: {
-          statement: disclosure.statement,
-          revealed: disclosure.revealed,
-        },
-        metadata: {
-          dataPoints: duration * 60,
-          maxHeartRate: heartRate,
-          avgPower: 0,
-          provingTime: 500,
-        },
-      };
       
       setZkState(prev => ({
         ...prev,
@@ -125,30 +124,38 @@ export function useZKClaim() {
   // Submit proof to on-chain verifier
   const submitProof = useCallback(async (
     params: ZKClaimParams,
-    proof: ZKProof
+    proof: ZKProof,
+    proofs?: ZKProof[],
+    minTotalSeconds?: number,
   ) => {
-    if (!EFFORT_THRESHOLD_VERIFIER_ADDRESS) {
-      throw new Error("EffortThresholdVerifier is not configured");
+    if (!INCENTIVE_ENGINE_ADDRESS) {
+      throw new Error("IncentiveEngine is not configured");
     }
 
-    // Convert proof bytes to hex
-    const proofHex = `0x${Buffer.from(proof.proof).toString('hex')}` as `0x${string}`;
-    
-    // Encode public inputs for contract
-    const publicInputs = proof.publicInputs.map(v => {
-      // Convert to bytes32
-      const num = BigInt(v);
-      return `0x${num.toString(16).padStart(64, '0')}` as `0x${string}`;
+    if (proofs && proofs.length > 1) {
+      submitToEngine({
+        address: INCENTIVE_ENGINE_ADDRESS,
+        abi: INCENTIVE_ENGINE_ABI,
+        functionName: 'submitZKProofBatch',
+        args: [
+          proofs.map((item) => `0x${Buffer.from(item.proof).toString('hex')}` as `0x${string}`),
+          proofs.map((item) => encodePublicInputs(item.publicInputs)),
+          minTotalSeconds ?? 0,
+        ],
+      });
+      return;
+    }
+
+    submitToEngine({
+      address: INCENTIVE_ENGINE_ADDRESS,
+      abi: INCENTIVE_ENGINE_ABI,
+      functionName: 'submitZKProof',
+      args: [
+        `0x${Buffer.from(proof.proof).toString('hex')}` as `0x${string}`,
+        encodePublicInputs(proof.publicInputs),
+      ],
     });
-    
-    // Submit to verifier contract
-    submitToVerifier({
-      address: EFFORT_THRESHOLD_VERIFIER_ADDRESS,
-      abi: EFFORT_THRESHOLD_VERIFIER_ABI,
-      functionName: 'verifyAndRecord',
-      args: [proofHex, publicInputs],
-    });
-  }, [submitToVerifier]);
+  }, [submitToEngine]);
   
   // Full flow: generate proof + submit to verifier
   const claimWithZK = useCallback(async (
@@ -156,14 +163,22 @@ export function useZKClaim() {
     sessionData: {
       heartRate: number;
       threshold: number;
-      duration: number;
+      durationSeconds: number;
+      heartRateSamples?: number[];
+      avgPower?: number;
     }
   ) => {
     // Step 1: Generate ZK proof
     const proofResult = await generateProof(
-      sessionData.heartRate,
-      sessionData.threshold,
-      sessionData.duration
+      {
+        heartRate: sessionData.heartRate,
+        threshold: sessionData.threshold,
+        durationSeconds: sessionData.durationSeconds,
+        classId: params.classId,
+        riderId: params.rider,
+        heartRateSamples: sessionData.heartRateSamples,
+        avgPower: sessionData.avgPower,
+      }
     );
     
     if (!proofResult.success || !proofResult.proof) {
@@ -174,8 +189,13 @@ export function useZKClaim() {
       return;
     }
     
-    // Step 2: Submit to on-chain verifier
-    await submitProof(params, proofResult.proof);
+    // Step 2: Submit to IncentiveEngine for verification + mint
+    await submitProof(
+      params,
+      proofResult.proof,
+      proofResult.proofs,
+      sessionData.durationSeconds,
+    );
   }, [generateProof, submitProof]);
   
   // Check if proof was already used (prevents replay)
@@ -219,7 +239,13 @@ export function useHybridClaim() {
     // Use ZK if available, fall back to signed attestation
     claim: async (
       params: ZKClaimParams & { useZK?: boolean },
-      sessionData?: { heartRate: number; threshold: number; duration: number }
+      sessionData?: {
+        heartRate: number;
+        threshold: number;
+        durationSeconds: number;
+        heartRateSamples?: number[];
+        avgPower?: number;
+      }
     ) => {
       if (params.useZK && sessionData) {
         return zkClaim.claimWithZK(params, sessionData);
@@ -247,4 +273,17 @@ export function useHybridClaim() {
     zk: zkClaim,
     legacy: legacyClaim,
   };
+}
+
+function encodePublicInputs(values: string[]): `0x${string}`[] {
+  return values.map((value) => {
+    if (value === "true") value = "1";
+    if (value === "false") value = "0";
+    if (value.startsWith("0x")) {
+      return `0x${value.slice(2).padStart(64, '0')}` as `0x${string}`;
+    }
+
+    const num = BigInt(value);
+    return `0x${num.toString(16).padStart(64, '0')}` as `0x${string}`;
+  });
 }

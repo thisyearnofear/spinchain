@@ -93,7 +93,7 @@ export class NoirProver {
   
   async generateProof(
     input: ProofInput,
-    _circuitType: CircuitType
+    circuitType: CircuitType
   ): Promise<ZKProof> {
     if (!this.initialized || !this.backend) {
       throw new Error('Prover not initialized');
@@ -111,8 +111,8 @@ export class NoirProver {
     
     return {
       proof,
-      publicInputs,
-      circuitType: _circuitType,
+      publicInputs: [...this.normalizePublicInputs(publicInputs), input.classId, input.riderId],
+      circuitType,
       verifierAddress: ZK_CONFIG.verifierAddress ?? "",
     };
   }
@@ -137,13 +137,13 @@ export class NoirProver {
     const MAX_POINTS = 60;
     const heartRates: number[] = new Array(MAX_POINTS).fill(0);
     
-    // Fill with actual data (in production, this comes from telemetry buffer)
-    // For now, generate synthetic data based on input
-    const numPoints = Math.min(input.timestamp, MAX_POINTS);
+    const samples =
+      input.heartRateSamples && input.heartRateSamples.length > 0
+        ? input.heartRateSamples.slice(0, MAX_POINTS)
+        : [input.heartRate];
+    const numPoints = Math.min(samples.length, MAX_POINTS);
     for (let i = 0; i < numPoints; i++) {
-      // Simulate HR data around the threshold
-      const variance = Math.sin(i * 0.1) * 10;
-      heartRates[i] = Math.floor(input.heartRate + variance);
+      heartRates[i] = Math.max(0, Math.floor(samples[i]));
     }
     
     return {
@@ -152,6 +152,14 @@ export class NoirProver {
       threshold: input.threshold,
       min_duration: input.minDuration,
     };
+  }
+
+  private normalizePublicInputs(values: string[]): string[] {
+    return values.slice(0, 5).map((value) => {
+      if (value === "true") return "1";
+      if (value === "false") return "0";
+      return value;
+    });
   }
   
   // Check if Noir is available (circuits compiled and deployed)

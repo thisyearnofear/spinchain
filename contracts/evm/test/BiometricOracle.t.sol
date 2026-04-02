@@ -2,10 +2,10 @@
 pragma solidity ^0.8.24;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {BiometricOracle} from "../BiometricOracle.sol";
-import {IncentiveEngine} from "../IncentiveEngine.sol";
-import {SpinToken} from "../SpinToken.sol";
-import {MockUltraVerifier} from "../MockUltraVerifier.sol";
+import {BiometricOracle} from "../src/BiometricOracle.sol";
+import {IncentiveEngine} from "../src/IncentiveEngine.sol";
+import {SpinToken} from "../src/SpinToken.sol";
+import {MockUltraVerifier} from "../src/MockUltraVerifier.sol";
 
 contract BiometricOracleTest is Test {
     BiometricOracle public oracle;
@@ -25,7 +25,7 @@ contract BiometricOracleTest is Test {
         // Deploy stack
         token = new SpinToken(owner);
         verifier = new MockUltraVerifier();
-        engine = new IncentiveEngine(owner, address(token), owner, address(verifier));
+        engine = new IncentiveEngine(owner, address(token), owner, address(verifier), owner);
         oracle = new BiometricOracle(creForwarder, workflowId);
         
         // Setup permissions

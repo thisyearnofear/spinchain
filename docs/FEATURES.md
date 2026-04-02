@@ -12,10 +12,11 @@ This file distinguishes between what is implemented in the current app, what is 
 - Route visualization and themed ride cards
 - Early AI endpoints and route-generation flows
 - Noir effort-threshold prototype circuit
+- Chunked ZK reward claims that batch 60-second proofs into one `IncentiveEngine` submission
 
 ### Not Yet Launch-Ready
-- Full production-safe reward settlement
-- Proof support for full workout duration
+- Fully validated production-safe reward settlement
+- Real testnet verifier and engine validation for chunked proof claims
 - Reliable replacement of mock data in user-facing flows
 - Finalized launch verification and operational monitoring
 

@@ -513,19 +513,21 @@ export default function LiveRidePage() {
   } = useZKClaim();
 
   const handleClaimRewards = async () => {
-    if (isPracticeMode) return;
+    if (isPracticeMode || !address) return;
     const threshold = classData?.metadata?.rewards?.threshold ?? 150;
     await claimWithZK(
       {
         spinClass: classId as `0x${string}`,
-        rider: "0x0000000000000000000000000000000000000000",
+        rider: address,
         rewardAmount: String(classData?.metadata?.rewards?.amount ?? 0),
         classId: classId as `0x${string}`,
       },
       {
         heartRate: telemetryAverages.avgHr || telemetry.heartRate,
         threshold,
-        duration: Math.floor(elapsedTime / 60),
+        durationSeconds: Math.max(1, Math.floor(elapsedTime)),
+        heartRateSamples: telemetrySamples.current.map((sample) => sample.hr),
+        avgPower: telemetryAverages.avgPower,
       },
     );
   };

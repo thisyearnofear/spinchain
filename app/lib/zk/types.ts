@@ -6,6 +6,7 @@ export type CircuitType = 'effort_threshold' | 'heart_rate_zone' | 'cadence_rang
 export interface ProofInput {
   // Private inputs (never revealed)
   heartRate: number;
+  heartRateSamples?: number[];
   power: number;
   cadence: number;
   timestamp: number;
@@ -24,6 +25,7 @@ export interface ProofOutput {
   durationSatisfied: boolean;
   
   // Public outputs
+  secondsAbove: number;
   effortScore: number; // 0-1000 (scaled for integer math)
   proofHash: string;
 }

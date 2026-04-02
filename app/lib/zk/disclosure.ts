@@ -1,7 +1,7 @@
 // Selective Disclosure System
 // Prove statements about health data without revealing the raw values
 
-import type { SelectiveDisclosure, ZKProof, ProofInput } from './types';
+import type { SelectiveDisclosure, ZKProof } from './types';
 import { getProver } from './prover';
 
 // Statement templates for common fitness proofs
@@ -72,9 +72,9 @@ export class DisclosureBuilder {
       throw new Error('Proof is required to build disclosure');
     }
     
-    const [effortScoreStr, thresholdMetStr] = this.proof.publicInputs;
+    const [, , thresholdMetStr, secondsAboveStr, effortScoreStr] = this.proof.publicInputs;
     const effortScore = parseInt(effortScoreStr) || 0;
-    const thresholdMet = thresholdMetStr === 'true';
+    const thresholdMet = thresholdMetStr === '1';
     
     // Extract what can be revealed based on policy
     const revealed: SelectiveDisclosure['revealed'] = {
@@ -83,7 +83,7 @@ export class DisclosureBuilder {
         ? (thresholdMet ? 'Target' : 'Recovery')
         : 'Hidden',
       duration: this.policy.revealableFields.includes('duration')
-        ? (this.metadata.duration as number || 0)
+        ? ((this.metadata.duration as number) || parseInt(secondsAboveStr) || 0)
         : 0,
     };
     
@@ -112,7 +112,7 @@ export class DisclosureVerifier {
     if (!isValid) return false;
     
     // Verify disclosure matches proof outputs
-    const [effortScoreStr, thresholdMetStr] = proof.publicInputs;
+    const [, , , , effortScoreStr] = proof.publicInputs;
     const effortScore = parseInt(effortScoreStr) || 0;
     
     // Check consistency
@@ -127,7 +127,7 @@ export class DisclosureVerifier {
 // Privacy score calculator
 export function calculatePrivacyScore(
   disclosure: SelectiveDisclosure,
-  policy: DisclosurePolicy
+  _policy: DisclosurePolicy
 ): number {
   let score = 0;
   const maxScore = 100;

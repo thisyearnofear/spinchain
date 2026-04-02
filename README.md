@@ -36,7 +36,7 @@ Open [http://localhost:3000](http://localhost:3000)
 - Launch readiness: not ready
 - Network posture: Avalanche Fuji + Sui testnet
 - Data posture: some user-facing screens still fall back to mock/demo data
-- Reward path: partial prototype, not fully production-safe
+- Reward path: chunked ZK batch claims are wired, but configured verifier/engine validation is still incomplete
 - Verification: build and lint should be treated as required release gates
 
 ---
@@ -57,8 +57,8 @@ Open [http://localhost:3000](http://localhost:3000)
 
 - Remove mock/demo class fallbacks from user-facing flows
 - Replace placeholder and zero-value addresses in runtime config
-- Replace testnet/mock verifier deployment paths
-- Extend proof strategy beyond the current 60-second effort circuit
+- Complete real verifier + engine deployment and testnet claim validation
+- Add coverage and operational validation for chunked ZK reward claims
 - Add reliable verification gates and release checklists
 
 ## Security

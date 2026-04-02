@@ -38,7 +38,8 @@ contract DeployScript is Script {
             deployer,
             address(spinToken),
             deployer,
-            ultraVerifier
+            ultraVerifier,
+            deployer
         );
         console.log("IncentiveEngine:", address(incentiveEngine));
 
@@ -66,7 +67,8 @@ contract DeployScript is Script {
         YellowSettlement yellowSettlement = new YellowSettlement(
             deployer,
             address(spinToken),
-            address(incentiveEngine)
+            address(incentiveEngine),
+            deployer
         );
         console.log("YellowSettlement:", address(yellowSettlement));
 
