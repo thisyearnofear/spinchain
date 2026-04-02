@@ -1,59 +1,99 @@
 /**
  * Enhanced Class Creation Hook with Route Integration
- * Handles the complete flow: Route → Walrus → Contract → Sui Session
+ * Handles the complete flow: Route → Walrus → Contract
  */
 
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useCreateClass } from "@/app/hooks/evm/use-create-class";
 import { useAccount } from "wagmi";
 import type { SavedRoute } from "@/app/lib/route-library";
 import type { RouteResponse } from "@/app/lib/ai-service";
-import { uploadRouteToWalrus, recordDeployment } from "@/app/lib/route-storage";
-import { createClassMetadata, INCENTIVE_ENGINE_ADDRESS, SPIN_TOKEN_ADDRESS } from "@/app/lib/contracts";
+import { uploadRouteToWalrus } from "@/app/lib/route-storage";
+import {
+  createClassMetadata,
+  INCENTIVE_ENGINE_ADDRESS,
+  serializeClassMetadata,
+  SPIN_TOKEN_ADDRESS,
+} from "@/app/lib/contracts";
 
 interface CreateClassWithRouteParams {
-  // Basic class info
   name: string;
   symbol: string;
   description: string;
   startTime: number;
   endTime: number;
   maxRiders: number;
-  
-  // Economics
   basePrice: string;
   maxPrice: string;
   curveType: string;
   rewardThreshold: number;
   rewardAmount: number;
-  
-  // Route
   route: SavedRoute | RouteResponse;
-  routeId?: string; // For library routes
-  
-  // AI
+  routeTheme?: "neon" | "alpine" | "mars";
   aiEnabled: boolean;
   aiPersonality: "zen" | "drill-sergeant" | "data";
+  avatarId?: string;
+  equipmentId?: string;
+  worldId?: string;
 }
 
-type DeploymentStep = 
+type DeploymentStep =
   | "idle"
   | "uploading-route"
   | "creating-metadata"
   | "deploying-contract"
-  | "recording-deployment"
   | "complete"
   | "error";
 
+function toRouteResponse(route: SavedRoute | RouteResponse): RouteResponse {
+  if ("estimatedCalories" in route && "terrainTags" in route && "zones" in route) {
+    return route;
+  }
+
+  return {
+    name: route.name,
+    description: route.description,
+    coordinates: route.coordinates,
+    estimatedDistance: route.estimatedDistance,
+    estimatedDuration: route.estimatedDuration,
+    elevationGain: route.elevationGain,
+    elevationLoss: route.elevationLoss,
+    maxElevation: route.maxElevation,
+    minElevation: route.minElevation,
+    avgGrade: route.avgGrade,
+    maxGrade: route.maxGrade,
+    storyBeats: route.storyBeats,
+    terrainTags: route.terrainTags,
+    difficultyScore: route.difficultyScore,
+    estimatedCalories: route.estimatedCalories,
+    zones: route.zones,
+  };
+}
+
 export function useClassWithRoute() {
   const { address } = useAccount();
-  const { createClass, isPending, isSuccess, error: contractError, hash } = useCreateClass();
-  
+  const pendingWalrusBlobIdRef = useRef<string | null>(null);
   const [deploymentStep, setDeploymentStep] = useState<DeploymentStep>("idle");
   const [walrusBlobId, setWalrusBlobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const {
+    createClass,
+    isPending: isContractPending,
+    isSuccess: isContractSuccess,
+    error: contractError,
+    hash,
+  } = useCreateClass({
+    onSuccess: () => {
+      setDeploymentStep("complete");
+      setWalrusBlobId(pendingWalrusBlobIdRef.current);
+    },
+    onError: () => {
+      setDeploymentStep("error");
+    },
+  });
 
   const deployClassWithRoute = async (params: CreateClassWithRouteParams) => {
     if (!address) {
@@ -65,10 +105,9 @@ export function useClassWithRoute() {
       setDeploymentStep("uploading-route");
       setError(null);
 
-      // Step 1: Upload route to Walrus
-      console.log("📤 Uploading route to Walrus...");
-      const uploadResult = await uploadRouteToWalrus(params.route, {
-        classId: `pending-${Date.now()}`, // Temporary ID
+      const route = toRouteResponse(params.route);
+      const uploadResult = await uploadRouteToWalrus(route, {
+        classId: `pending-${Date.now()}`,
         instructor: address,
       });
 
@@ -76,12 +115,10 @@ export function useClassWithRoute() {
         throw new Error(uploadResult.error || "Failed to upload route to Walrus");
       }
 
+      pendingWalrusBlobIdRef.current = uploadResult.blobId;
       setWalrusBlobId(uploadResult.blobId);
-      console.log("✓ Route uploaded:", uploadResult.blobId);
 
-      // Step 2: Create enhanced metadata
       setDeploymentStep("creating-metadata");
-      console.log("📝 Creating class metadata...");
 
       const metadata = createClassMetadata({
         name: params.name,
@@ -94,22 +131,22 @@ export function useClassWithRoute() {
         curveType: params.curveType,
         rewardThreshold: params.rewardThreshold,
         rewardAmount: params.rewardAmount,
-        route: params.route,
+        route,
         walrusBlobId: uploadResult.blobId,
         aiEnabled: params.aiEnabled,
         aiPersonality: params.aiPersonality,
+        routeTheme: params.routeTheme,
+        avatarId: params.avatarId,
+        equipmentId: params.equipmentId,
+        worldId: params.worldId,
       });
 
-      console.log("✓ Metadata created with route reference");
-
-      // Step 3: Deploy contract
       setDeploymentStep("deploying-contract");
-      console.log("⛓️ Deploying SpinClass contract...");
 
       createClass({
         name: params.name,
         symbol: params.symbol,
-        metadata: metadata,
+        metadata: serializeClassMetadata(metadata),
         startTime: params.startTime,
         endTime: params.endTime,
         maxRiders: params.maxRiders,
@@ -120,41 +157,9 @@ export function useClassWithRoute() {
         incentiveEngine: INCENTIVE_ENGINE_ADDRESS as `0x${string}`,
         spinToken: SPIN_TOKEN_ADDRESS as `0x${string}`,
       });
-
-      // Note: Contract deployment will be handled by useCreateClass
-      // We'll record deployment in a useEffect watching for success
-
     } catch (err) {
-      console.error("❌ Deployment failed:", err);
       setError(err instanceof Error ? err.message : "Deployment failed");
       setDeploymentStep("error");
-    }
-  };
-
-  // Watch for contract deployment success
-  // In a real implementation, we'd use useEffect to watch isSuccess
-  // and then record the deployment with the actual contract address
-
-  const recordDeploymentSuccess = (contractAddress: string, routeId?: string) => {
-    if (!walrusBlobId || !routeId) return;
-
-    setDeploymentStep("recording-deployment");
-    console.log("📝 Recording deployment...");
-
-    try {
-      recordDeployment(routeId, {
-        walrusBlobId,
-        classId: contractAddress,
-        chainId: 43113, // Avalanche Fuji
-        instructor: address!,
-        deployedAt: new Date().toISOString(),
-        checksum: "", // Would calculate from route
-      });
-
-      setDeploymentStep("complete");
-      console.log("✅ Deployment complete!");
-    } catch (err) {
-      console.error("Failed to record deployment:", err);
     }
   };
 
@@ -162,23 +167,22 @@ export function useClassWithRoute() {
     deployClassWithRoute,
     deploymentStep,
     walrusBlobId,
-    isPending: isPending || deploymentStep !== "idle",
-    isSuccess: isSuccess && deploymentStep === "complete",
-    error: error || (contractError?.message),
+    isPending: isContractPending || deploymentStep === "uploading-route" || deploymentStep === "creating-metadata",
+    isSuccess: isContractSuccess && deploymentStep === "complete",
+    error: error || contractError?.message || null,
     hash,
   };
 }
 
-// Helper to get step display text
 export function getDeploymentStepText(step: DeploymentStep): string {
   const steps: Record<DeploymentStep, string> = {
     idle: "Ready to deploy",
     "uploading-route": "Uploading route to Walrus...",
     "creating-metadata": "Creating class metadata...",
     "deploying-contract": "Deploying contract to Avalanche...",
-    "recording-deployment": "Recording deployment...",
-    complete: "Deployment complete!",
+    complete: "Route uploaded and class deployed",
     error: "Deployment failed",
   };
+
   return steps[step];
 }

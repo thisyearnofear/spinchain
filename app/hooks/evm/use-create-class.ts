@@ -6,6 +6,11 @@ import { parseEther } from "viem";
 import { CONTRACT_ERROR_CONTEXT } from "@/app/lib/errors";
 import type { EnhancedClassMetadata } from "@/app/lib/contracts";
 
+interface UseCreateClassOptions {
+  onSuccess?: (hash: `0x${string}`) => void;
+  onError?: (error: Error) => void;
+}
+
 interface CreateClassParams {
   name: string;
   symbol: string;
@@ -23,11 +28,13 @@ interface CreateClassParams {
   instructorShareBps?: number; // 7000-9000 (70-90%), defaults to 8000
 }
 
-export function useCreateClass() {
+export function useCreateClass(options?: UseCreateClassOptions) {
   const { write, ...state } = useTransaction({
     successMessage: 'Class Created! 🎉',
     pendingMessage: 'Creating Class...',
     errorContext: CONTRACT_ERROR_CONTEXT.createClass,
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
   });
 
   const createClass = (params: CreateClassParams) => {

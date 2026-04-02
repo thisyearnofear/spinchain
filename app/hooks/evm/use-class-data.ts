@@ -7,11 +7,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useReadContract } from "wagmi";
-import { SPIN_CLASS_ABI } from "@/app/lib/contracts";
+import { usePublicClient, useReadContract } from "wagmi";
+import { CLASS_FACTORY_ABI, CLASS_FACTORY_ADDRESS, SPIN_CLASS_ABI } from "@/app/lib/contracts";
 import { parseClassMetadata, type EnhancedClassMetadata } from "@/app/lib/contracts";
 import { retrieveRouteFromWalrus, getCachedRoute, cacheRouteLocally, type WalrusRouteData } from "@/app/lib/route-storage";
 import type { StoryBeat, StoryBeatType } from "@/app/routes/builder/gpx-uploader";
+import type { PublicClient } from "viem";
 
 /**
  * Mock class data for development
@@ -113,6 +114,220 @@ export interface ClassWithRoute {
   routeError: string | null;
 }
 
+function getDeterministicNumber(seed: string, min: number, max: number) {
+  let hash = 0;
+
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = (hash << 5) - hash + seed.charCodeAt(index);
+    hash |= 0;
+  }
+
+  const normalized = Math.abs(hash % 10_000) / 10_000;
+  return min + normalized * (max - min);
+}
+
+function inferBeatType(label: string): StoryBeatType {
+  const normalized = label.toLowerCase();
+
+  if (normalized.includes("climb")) return "climb";
+  if (normalized.includes("sprint") || normalized.includes("push")) return "sprint";
+  if (normalized.includes("recover") || normalized.includes("rest")) return "rest";
+  if (normalized.includes("drop") || normalized.includes("descen")) return "drop";
+  return "scenery";
+}
+
+function createFallbackMetadataFromMock(mockClass: typeof MOCK_CLASSES[number]): EnhancedClassMetadata {
+  const seed = mockClass.address;
+  const themeOptions: EnhancedClassMetadata["route"]["theme"][] = ["neon", "alpine", "mars"];
+  const personalityOptions: EnhancedClassMetadata["ai"]["personality"][] = ["zen", "drill-sergeant", "data"];
+  const theme = themeOptions[Math.floor(getDeterministicNumber(seed + "theme", 0, themeOptions.length)) % themeOptions.length];
+  const personality = personalityOptions[Math.floor(getDeterministicNumber(seed + "personality", 0, personalityOptions.length)) % personalityOptions.length];
+  const distance = Number(getDeterministicNumber(seed + "distance", 35, 55).toFixed(1));
+  const elevationGain = Math.round(getDeterministicNumber(seed + "elevation", 300, 800));
+  const storyBeatLabels = ["Warm-up", "Build", "Climb", "Sprint", "Final Push"].slice(
+    0,
+    Math.round(getDeterministicNumber(seed + "beats", 3, 5)),
+  );
+
+  return {
+    version: "2.0",
+    name: mockClass.name,
+    description: "An immersive cycling experience with AI-powered coaching",
+    instructor: mockClass.instructor,
+    startTime: mockClass.startTime,
+    endTime: mockClass.startTime + 3600,
+    duration: 45,
+    route: {
+      walrusBlobId: `mock-blob-id-${mockClass.address.slice(2, 8)}`,
+      name: mockClass.name,
+      distance,
+      duration: 45,
+      elevationGain,
+      theme,
+      checksum: `mock-checksum-${mockClass.address.slice(2, 8)}`,
+      storyBeatsCount: storyBeatLabels.length,
+      terrainTags: theme === "alpine" ? ["climb", "mountain"] : theme === "mars" ? ["desert", "rolling"] : ["urban", "tempo"],
+      storyBeatLabels,
+    },
+    ai: {
+      enabled: true,
+      personality,
+      autoTriggerBeats: true,
+      adaptiveDifficulty: true,
+    },
+    pricing: {
+      basePrice: "0.02",
+      maxPrice: "0.08",
+      curveType: "linear",
+    },
+    rewards: {
+      enabled: true,
+      threshold: 150,
+      amount: 20,
+    },
+  };
+}
+
+function enrichWalrusRouteData(
+  routeData: WalrusRouteData,
+  metadata: EnhancedClassMetadata,
+  classId: string,
+): WalrusRouteData {
+  return {
+    ...routeData,
+    route: {
+      ...routeData.route,
+      description: routeData.route.description || metadata.description,
+      terrainTags:
+        routeData.route.terrainTags?.length ? routeData.route.terrainTags : metadata.route.terrainTags || ["rolling", "mixed"],
+      storyBeats:
+        routeData.route.storyBeats.length > 0
+          ? routeData.route.storyBeats.map((beat, index) => ({
+              ...beat,
+              label: metadata.route.storyBeatLabels?.[index] || beat.label,
+            }))
+          : (metadata.route.storyBeatLabels || []).map((label, index) => ({
+              progress: (index + 1) / ((metadata.route.storyBeatLabels?.length || 0) + 1),
+              label,
+              type: inferBeatType(label),
+              intensity: 6,
+            })),
+    },
+    deployment: {
+      ...routeData.deployment,
+      classId,
+      instructor: routeData.deployment.instructor || metadata.instructor,
+    },
+    checksum: routeData.checksum || metadata.route.checksum,
+  };
+}
+
+async function resolveRouteForMetadata(
+  classId: `0x${string}`,
+  metadata: EnhancedClassMetadata,
+) {
+  const cachedRoute = getCachedRoute(classId);
+  if (cachedRoute) {
+    return enrichWalrusRouteData(cachedRoute, metadata, classId);
+  }
+
+  if (metadata.route.walrusBlobId) {
+    try {
+      const remoteRoute = await retrieveRouteFromWalrus(metadata.route.walrusBlobId);
+      if (remoteRoute) {
+        const enrichedRoute = enrichWalrusRouteData(remoteRoute, metadata, classId);
+        cacheRouteLocally(classId, enrichedRoute);
+        return enrichedRoute;
+      }
+    } catch (routeError) {
+      console.warn("Failed to fetch route from Walrus, using generated fallback:", routeError);
+    }
+  }
+
+  const generatedRoute = generateMockRouteData(metadata, classId);
+  cacheRouteLocally(classId, generatedRoute);
+  return generatedRoute;
+}
+
+async function hydrateClassFromMetadata(params: {
+  classAddress: `0x${string}`;
+  metadata: EnhancedClassMetadata;
+  startTime: number;
+  endTime: number;
+  maxRiders: number;
+  ticketsSold: number;
+  currentPrice: string;
+}): Promise<ClassWithRoute> {
+  const route = await resolveRouteForMetadata(params.classAddress, params.metadata);
+
+  return {
+    address: params.classAddress,
+    name: params.metadata.name,
+    instructor: params.metadata.instructor,
+    startTime: params.startTime,
+    endTime: params.endTime,
+    maxRiders: params.maxRiders,
+    ticketsSold: params.ticketsSold,
+    currentPrice: params.currentPrice,
+    metadata: params.metadata,
+    route,
+    routeLoading: false,
+    routeError: null,
+  };
+}
+
+async function loadContractClass(
+  publicClient: PublicClient,
+  classAddress: `0x${string}`,
+): Promise<ClassWithRoute | null> {
+  const metadataRaw = await publicClient.readContract({
+    address: classAddress,
+    abi: SPIN_CLASS_ABI,
+    functionName: "classMetadata",
+  });
+
+  if (typeof metadataRaw !== "string") {
+    return null;
+  }
+
+  const metadata = parseClassMetadata(metadataRaw);
+  if (!metadata) {
+    return null;
+  }
+
+  const [currentPrice, ticketsSoldData, maxRidersData, startTimeData, endTimeData] = await Promise.all([
+    publicClient.readContract({ address: classAddress, abi: SPIN_CLASS_ABI, functionName: "currentPrice" }),
+    publicClient.readContract({ address: classAddress, abi: SPIN_CLASS_ABI, functionName: "ticketsSold" }),
+    publicClient.readContract({ address: classAddress, abi: SPIN_CLASS_ABI, functionName: "maxRiders" }),
+    publicClient.readContract({ address: classAddress, abi: SPIN_CLASS_ABI, functionName: "startTime" }),
+    publicClient.readContract({ address: classAddress, abi: SPIN_CLASS_ABI, functionName: "endTime" }),
+  ]);
+
+  return hydrateClassFromMetadata({
+    classAddress,
+    metadata,
+    startTime: Number(startTimeData),
+    endTime: Number(endTimeData),
+    maxRiders: Number(maxRidersData),
+    ticketsSold: Number(ticketsSoldData),
+    currentPrice: currentPrice.toString(),
+  });
+}
+
+async function loadMockClass(mockClass: typeof MOCK_CLASSES[number]): Promise<ClassWithRoute> {
+  const metadata = createFallbackMetadataFromMock(mockClass);
+
+  return hydrateClassFromMetadata({
+    classAddress: mockClass.address,
+    metadata,
+    startTime: mockClass.startTime,
+    endTime: mockClass.startTime + 3600,
+    maxRiders: mockClass.maxRiders,
+    ticketsSold: mockClass.ticketsSold,
+    currentPrice: mockClass.currentPrice,
+  });
+}
+
 /**
  * Hook to fetch a single class with route data
  */
@@ -194,43 +409,17 @@ export function useClass(classAddress: `0x${string}`) {
         const parsedMetadata = parseClassMetadata(metadataRaw);
 
         if (parsedMetadata) {
-          // Convert contract data to proper types
-          const startTime = startTimeData ? Number(startTimeData) : 0;
-          const endTime = endTimeData ? Number(endTimeData) : startTime + 3600;
-          const maxRiders = maxRidersData ? Number(maxRidersData) : 50;
-          const ticketsSold = ticketsSoldData ? Number(ticketsSoldData) : 0;
-          const price = currentPrice ? currentPrice.toString() : "0";
-
-          // Check cache first for route data
-          let route = getCachedRoute(classAddress);
-
-          // Fetch from Walrus if not cached
-          if (!route && parsedMetadata.route.walrusBlobId) {
-            try {
-              route = await retrieveRouteFromWalrus(parsedMetadata.route.walrusBlobId);
-              if (route) {
-                cacheRouteLocally(classAddress, route);
-              }
-            } catch (routeError) {
-              console.warn("Failed to fetch route from Walrus, using mock:", routeError);
-              route = generateMockRouteData(parsedMetadata);
-            }
-          }
-
-          setClassData({
-            address: classAddress,
-            name: parsedMetadata.name,
-            instructor: parsedMetadata.instructor,
-            startTime,
-            endTime,
-            maxRiders,
-            ticketsSold,
-            currentPrice: price,
-            metadata: parsedMetadata,
-            route,
-            routeLoading: false,
-            routeError: null,
-          });
+          setClassData(
+            await hydrateClassFromMetadata({
+              classAddress,
+              metadata: parsedMetadata,
+              startTime: startTimeData ? Number(startTimeData) : 0,
+              endTime: endTimeData ? Number(endTimeData) : (startTimeData ? Number(startTimeData) + 3600 : 3600),
+              maxRiders: maxRidersData ? Number(maxRidersData) : 50,
+              ticketsSold: ticketsSoldData ? Number(ticketsSoldData) : 0,
+              currentPrice: currentPrice ? currentPrice.toString() : "0",
+            }),
+          );
 
           setIsLoading(false);
           return;
@@ -247,68 +436,7 @@ export function useClass(classAddress: `0x${string}`) {
         return;
       }
 
-      // Generate mock metadata with route reference
-      const mockMetadata: EnhancedClassMetadata = {
-        version: "2.0",
-        name: mockClass.name,
-        description: "An immersive cycling experience with AI-powered coaching",
-        instructor: mockClass.instructor,
-        startTime: mockClass.startTime,
-        endTime: mockClass.startTime + 3600,
-        duration: 45,
-        route: {
-          walrusBlobId: "mock-blob-id-" + classAddress.slice(2, 8),
-          name: mockClass.name,
-          distance: 35 + Math.random() * 20,
-          duration: 45,
-          elevationGain: 300 + Math.floor(Math.random() * 500),
-          theme: ["neon", "alpine", "mars"][Math.floor(Math.random() * 3)] as "neon" | "alpine" | "mars",
-          checksum: "mock-checksum",
-          storyBeatsCount: 3 + Math.floor(Math.random() * 3),
-        },
-        ai: {
-          enabled: true,
-          personality: "drill-sergeant",
-          autoTriggerBeats: true,
-          adaptiveDifficulty: true,
-        },
-        pricing: {
-          basePrice: "0.02",
-          maxPrice: "0.08",
-          curveType: "linear",
-        },
-        rewards: {
-          enabled: true,
-          threshold: 150,
-          amount: 20,
-        },
-      };
-
-      // Check cache first
-      let route = getCachedRoute(classAddress);
-
-      // If not cached, generate mock route data
-      if (!route && mockMetadata.route.walrusBlobId) {
-        route = generateMockRouteData(mockMetadata);
-        if (route) {
-          cacheRouteLocally(classAddress, route);
-        }
-      }
-
-      setClassData({
-        address: classAddress,
-        name: mockClass.name,
-        instructor: mockClass.instructor,
-        startTime: mockClass.startTime,
-        endTime: mockClass.startTime + 3600,
-        maxRiders: mockClass.maxRiders,
-        ticketsSold: mockClass.ticketsSold,
-        currentPrice: mockClass.currentPrice,
-        metadata: mockMetadata,
-        route,
-        routeLoading: false,
-        routeError: null,
-      });
+      setClassData(await loadMockClass(mockClass));
 
       setIsLoading(false);
     } catch (err) {
@@ -321,10 +449,18 @@ export function useClass(classAddress: `0x${string}`) {
   // Load class data when address or contract data changes
   useEffect(() => {
     if (!isRealAddress) {
-      setIsLoading(false);
-      return;
+      const timeoutId = window.setTimeout(() => {
+        setIsLoading(false);
+      }, 0);
+
+      return () => window.clearTimeout(timeoutId);
     }
-    loadClassData();
+
+    const timeoutId = window.setTimeout(() => {
+      void loadClassData();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [isRealAddress, loadClassData]);
 
   return { classData, isLoading, error, refetch: () => { void refetchMetadata(); return loadClassData(); } };
@@ -334,94 +470,73 @@ export function useClass(classAddress: `0x${string}`) {
  * Hook to fetch all available classes with route previews
  */
 export function useClasses() {
+  const publicClient = usePublicClient();
   const [classes, setClasses] = useState<ClassWithRoute[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadClasses = async () => {
+  const loadClasses = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Load all mock classes
-      const loadedClasses = await Promise.all(
-        MOCK_CLASSES.map(async (mockClass) => {
-          const mockMetadata: EnhancedClassMetadata = {
-            version: "2.0",
-            name: mockClass.name,
-            description: "An immersive cycling experience with AI-powered coaching",
-            instructor: mockClass.instructor,
-            startTime: mockClass.startTime,
-            endTime: mockClass.startTime + 3600,
-            duration: 45,
-            route: {
-              walrusBlobId: "mock-blob-id-" + mockClass.address.slice(2, 8),
-              name: mockClass.name,
-              distance: 35 + Math.random() * 20,
-              duration: 45,
-              elevationGain: 300 + Math.floor(Math.random() * 500),
-              theme: ["neon", "alpine", "mars"][Math.floor(Math.random() * 3)] as "neon" | "alpine" | "mars",
-              checksum: "mock-checksum",
-              storyBeatsCount: 3 + Math.floor(Math.random() * 3),
-            },
-            ai: {
-              enabled: true,
-              personality: ["zen", "drill-sergeant", "data"][Math.floor(Math.random() * 3)] as "zen" | "drill-sergeant" | "data",
-              autoTriggerBeats: true,
-              adaptiveDifficulty: true,
-            },
-            pricing: {
-              basePrice: "0.02",
-              maxPrice: "0.08",
-              curveType: "linear",
-            },
-            rewards: {
-              enabled: true,
-              threshold: 150,
-              amount: 20,
-            },
-          };
+      let liveClasses: ClassWithRoute[] = [];
 
-          // Check cache
-          let route = getCachedRoute(mockClass.address);
+      if (publicClient) {
+        try {
+          const classCountRaw = await publicClient.readContract({
+            address: CLASS_FACTORY_ADDRESS,
+            abi: CLASS_FACTORY_ABI,
+            functionName: "getClassCount",
+          });
 
-          if (!route) {
-            route = generateMockRouteData(mockMetadata);
-            if (route) {
-              cacheRouteLocally(mockClass.address, route);
-            }
+          const classCount = Number(classCountRaw);
+
+          if (classCount > 0) {
+            const classAddresses = (await publicClient.readContract({
+              address: CLASS_FACTORY_ADDRESS,
+              abi: CLASS_FACTORY_ABI,
+              functionName: "getClasses",
+              args: [0n, BigInt(classCount)],
+            })) as `0x${string}`[];
+
+            const hydrated = await Promise.all(
+              classAddresses.map(async (address) => {
+                try {
+                  return await loadContractClass(publicClient, address);
+                } catch (loadError) {
+                  console.warn("Failed to hydrate class from factory listing:", address, loadError);
+                  return null;
+                }
+              }),
+            );
+
+            liveClasses = hydrated.filter((classData): classData is ClassWithRoute => Boolean(classData));
           }
+        } catch (factoryError) {
+          console.warn("Failed to load class list from factory, falling back to mocks:", factoryError);
+        }
+      }
 
-          return {
-            address: mockClass.address,
-            name: mockClass.name,
-            instructor: mockClass.instructor,
-            startTime: mockClass.startTime,
-            endTime: mockClass.startTime + 3600,
-            maxRiders: mockClass.maxRiders,
-            ticketsSold: mockClass.ticketsSold,
-            currentPrice: mockClass.currentPrice,
-            metadata: mockMetadata,
-            route,
-            routeLoading: false,
-            routeError: null,
-          };
-        })
-      );
+      const fallbackMocks = await Promise.all(MOCK_CLASSES.map((mockClass) => loadMockClass(mockClass)));
+      const mergedClasses = [...liveClasses, ...fallbackMocks.filter((mockClass) => !liveClasses.some((liveClass) => liveClass.address.toLowerCase() === mockClass.address.toLowerCase()))];
 
-      setClasses(loadedClasses);
+      setClasses(mergedClasses);
       setIsLoading(false);
     } catch (err) {
       console.error("Failed to load classes:", err);
       setError(err instanceof Error ? err.message : "Failed to load classes");
       setIsLoading(false);
     }
-  };
+  }, [publicClient]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadClasses();
-  }, []);
+    const timeoutId = window.setTimeout(() => {
+      void loadClasses();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadClasses]);
 
   return { classes, isLoading, error, refetch: loadClasses };
 }
@@ -595,7 +710,10 @@ function generateElevationProfile(
 /**
  * Generate mock route data for development
  */
-export function generateMockRouteData(metadata: EnhancedClassMetadata): WalrusRouteData {
+export function generateMockRouteData(
+  metadata: EnhancedClassMetadata,
+  classId = "mock-class-id",
+): WalrusRouteData {
   const numPoints = 100;
   const coordinates = [];
   const baseLat = 34.0195;
@@ -617,16 +735,15 @@ export function generateMockRouteData(metadata: EnhancedClassMetadata): WalrusRo
     });
   }
 
-  const storyBeats: StoryBeat[] = [];
-  for (let i = 0; i < metadata.route.storyBeatsCount; i++) {
-    const progress = (i + 1) / (metadata.route.storyBeatsCount + 1);
-    storyBeats.push({
-      progress,
-      label: ["Warm-up", "Climb", "Sprint", "Recovery", "Final Push"][i] || `Beat ${i + 1}`,
-      type: ["rest", "climb", "sprint", "drop"][Math.floor(Math.random() * 4)] as StoryBeatType,
-      intensity: Math.floor(Math.random() * 10) + 1,
-    });
-  }
+  const labels = metadata.route.storyBeatLabels?.length
+    ? metadata.route.storyBeatLabels
+    : ["Warm-up", "Climb", "Sprint", "Recovery", "Final Push"].slice(0, metadata.route.storyBeatsCount);
+  const storyBeats: StoryBeat[] = labels.map((label, index) => ({
+    progress: (index + 1) / (labels.length + 1),
+    label,
+    type: inferBeatType(label),
+    intensity: 5 + (index % 4),
+  }));
 
   // Calculate elevation metrics
   const elevations = coordinates.map(c => c.ele || 0);
@@ -654,7 +771,7 @@ export function generateMockRouteData(metadata: EnhancedClassMetadata): WalrusRo
       avgGrade,
       maxGrade: avgGrade * 1.5,
       storyBeats,
-      terrainTags: ["rolling", "mixed"],
+      terrainTags: metadata.route.terrainTags?.length ? metadata.route.terrainTags : ["rolling", "mixed"],
       difficultyScore: 50,
       estimatedCalories: 400,
       zones: [
@@ -664,7 +781,7 @@ export function generateMockRouteData(metadata: EnhancedClassMetadata): WalrusRo
       ],
     },
     deployment: {
-      classId: "mock-class-id",
+      classId,
       instructor: metadata.instructor,
       deployedAt: new Date().toISOString(),
     },

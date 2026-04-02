@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { PrimaryNav } from "../components/layout/nav";
@@ -196,9 +196,6 @@ export default function RiderPage() {
           </div>
         </section>
 
-        {/* Onboarding Checklist for new users */}
-        <OnboardingChecklist />
-
         {/* Guest Mode Banner */}
         {!isConnected && showGuestBanner && (
           <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 backdrop-blur">
@@ -351,6 +348,9 @@ export default function RiderPage() {
             </div>
           </div>
         )}
+
+        {/* Onboarding Checklist for new users */}
+        <OnboardingChecklist />
 
         {/* Header with Filters */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

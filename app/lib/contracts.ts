@@ -482,6 +482,8 @@ export interface EnhancedClassMetadata {
     theme: "neon" | "alpine" | "mars";
     checksum: string;
     storyBeatsCount: number;
+    terrainTags?: string[];
+    storyBeatLabels?: string[];
   };
 
   // AI configuration
@@ -503,6 +505,12 @@ export interface EnhancedClassMetadata {
     enabled: boolean;
     threshold: number;
     amount: number;
+  };
+
+  presentation?: {
+    avatarId?: string;
+    equipmentId?: string;
+    worldId?: string;
   };
 }
 
@@ -552,6 +560,10 @@ export function createClassMetadata(params: {
   walrusBlobId: string;
   aiEnabled: boolean;
   aiPersonality: "zen" | "drill-sergeant" | "data";
+  routeTheme?: "neon" | "alpine" | "mars";
+  avatarId?: string;
+  equipmentId?: string;
+  worldId?: string;
 }): EnhancedClassMetadata {
   const duration = Math.floor((params.endTime - params.startTime) / 60);
 
@@ -569,9 +581,11 @@ export function createClassMetadata(params: {
       distance: params.route.estimatedDistance,
       duration: params.route.estimatedDuration,
       elevationGain: params.route.elevationGain,
-      theme: "neon",
+      theme: params.routeTheme ?? "neon",
       checksum: generateSimpleHash(params.route),
       storyBeatsCount: params.route.storyBeats.length,
+      terrainTags: params.route.terrainTags,
+      storyBeatLabels: params.route.storyBeats.map((beat) => beat.label),
     },
     ai: {
       enabled: params.aiEnabled,
@@ -588,6 +602,11 @@ export function createClassMetadata(params: {
       enabled: params.rewardAmount > 0,
       threshold: params.rewardThreshold,
       amount: params.rewardAmount,
+    },
+    presentation: {
+      avatarId: params.avatarId,
+      equipmentId: params.equipmentId,
+      worldId: params.worldId,
     },
   };
 }

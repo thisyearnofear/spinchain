@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface InstructorMode {
@@ -13,6 +13,10 @@ interface InstructorMode {
   cta: string;
   href: string;
   color: string;
+  visualTitle: string;
+  visualDescription: string;
+  statusLabel: string;
+  highlights: string[];
 }
 
 const modes: InstructorMode[] = [
@@ -20,33 +24,41 @@ const modes: InstructorMode[] = [
     id: "human",
     icon: "🎓",
     title: "Human Instructor",
-    subtitle: "Craft Your Classes",
-    description: "Design immersive experiences, curate playlists, and build your community with full creative control.",
+    subtitle: "Lead With Your Own Style",
+    description: "Draft a class concept, shape the route and pacing, and preview how your teaching style will show up before you publish anything.",
     features: [
-      "Create custom route worlds",
-      "Set your own pricing",
-      "Direct rider relationships",
-      "Live class hosting"
+      "Draft a class before committing",
+      "Shape route, duration, and pricing",
+      "Choose live or guided delivery",
+      "Keep your rider experience personal"
     ],
-    cta: "Start Teaching",
+    cta: "Preview human-led flow",
     href: "/instructor",
-    color: "from-indigo-500 to-purple-500"
+    color: "from-indigo-500 to-purple-500",
+    visualTitle: "Human-led launch preview",
+    visualDescription: "Best for instructors who want creative control, branded sessions, and a clear draft-to-publish workflow.",
+    statusLabel: "Builder preview available",
+    highlights: ["Route outline", "Pricing draft", "Live coaching"],
   },
   {
     id: "agent",
     icon: "🤖",
     title: "Coachy",
-    subtitle: "Your AI Training Partner",
-    description: "Meet Coachy—an AI instructor that adapts to each rider, handles classes 24/7, and helps you earn while you focus on other things.",
+    subtitle: "AI-Led Class Design",
+    description: "Prototype an AI-led coaching experience, tune the tone of the session, and explore how an autonomous class could extend your reach.",
     features: [
-      "Personalized coaching for every rider",
-      "Runs classes automatically",
-      "Earn while you sleep",
-      "No technical setup needed"
+      "Preview autonomous class behavior",
+      "Select the coaching personality",
+      "Blend AI support with your brand",
+      "Explore scalable class formats"
     ],
-    cta: "Meet Coachy",
+    cta: "Preview Coachy flow",
     href: "/instructor/ai",
-    color: "from-cyan-500 to-blue-500"
+    color: "from-cyan-500 to-blue-500",
+    visualTitle: "AI coaching preview",
+    visualDescription: "Best for teams experimenting with 24/7 class delivery, adaptive coaching, and instructor-assisted automation.",
+    statusLabel: "AI setup preview available",
+    highlights: ["Coach tone", "Adaptive pacing", "Automated sessions"],
   }
 ];
 
@@ -222,15 +234,32 @@ export function InstructorModeSelector() {
                 transition={{ delay: 0.2 }}
                 className="relative aspect-square rounded-2xl overflow-hidden bg-[color:var(--surface-strong)] border border-[color:var(--border)]"
               >
-                {/* Placeholder for instructor/agent image */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <span className="text-8xl">{currentMode.icon}</span>
-                    <p className="mt-4 text-sm text-[color:var(--muted)]">
-                      {activeMode === "human" 
-                        ? "[Your instructor photo here]" 
-                        : "[AI visualization here]"}
-                    </p>
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
+
+                <div className="absolute inset-0 flex items-center justify-center p-6">
+                  <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-black/20 p-6 backdrop-blur-xl">
+                    <div className="mb-4 flex items-center gap-3">
+                      <span className="text-5xl">{currentMode.icon}</span>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-[color:var(--foreground)]">
+                          {currentMode.visualTitle}
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-[color:var(--muted)]">
+                          {currentMode.visualDescription}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {currentMode.highlights.map((highlight) => (
+                        <span
+                          key={highlight}
+                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[color:var(--foreground)]"
+                        >
+                          {highlight}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -250,7 +279,7 @@ export function InstructorModeSelector() {
                     transition={{ duration: 2, repeat: Infinity }}
                   />
                   <span className="text-xs text-[color:var(--muted)]">
-                    {activeMode === "human" ? "Ready to teach" : "AI training complete"}
+                    {currentMode.statusLabel}
                   </span>
                 </div>
               </motion.div>

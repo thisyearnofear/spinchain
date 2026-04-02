@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { LoadingButton } from "../../../components/ui/loading-button";
 
 export const ONBOARDING_KEY = "spinchain-onboarded";
@@ -10,21 +11,21 @@ export const GUEST_MODE_KEY = "spin-guest-mode";
 const steps = [
   {
     icon: "🚴",
-    title: "What is SpinChain?",
-    description: "The first indoor cycling platform that rewards your workouts with real crypto (SPIN tokens). Take live classes from home, hit your effort goals, and earn instantly—while keeping your health data completely private.",
-    cta: "How It Works",
+    title: "Start with the path you care about",
+    description: "SpinChain supports two clear journeys: riders can jump into classes and demo rides, while instructors can preview the class-building flow and teaching modes.",
+    cta: "Next",
   },
   {
-    icon: "💰",
-    title: "Earn As You Ride",
-    description: "Connect your heart rate monitor or power meter. The harder you work, the more SPIN you earn. Choose instant Yellow streaming rewards or private ZK batch rewards — both send SPIN to your wallet automatically.",
+    icon: "✨",
+    title: "Try the experience before committing",
+    description: "You do not need to start with a heavy setup. Riders can explore the free demo first, and instructors can review the builder before deciding what to connect.",
     cta: "Next",
   },
   {
     icon: "🔒",
-    title: "Privacy Built-In",
-    description: "Unlike other fitness apps, we never see your raw health data. We use zero-knowledge proofs to verify you hit your goals—so you get rewards without sacrificing privacy.",
-    cta: "Get Started",
+    title: "Connect when you are ready",
+    description: "Wallets and deeper setup matter when you want rewards, payouts, and publishing. The goal of this guide is to help you understand the flow first, not block you at the door.",
+    cta: "Done",
   },
 ];
 
@@ -34,24 +35,13 @@ interface WelcomeModalProps {
 }
 
 export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [hasSeenModal, setHasSeenModal] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       setMounted(true);
     });
-
-    const onboarded = localStorage.getItem(ONBOARDING_KEY);
-    const legacyWelcomeSeen = localStorage.getItem(LEGACY_WELCOME_KEY);
-    if (!onboarded && !legacyWelcomeSeen) {
-      window.requestAnimationFrame(() => {
-        setIsOpen(true);
-        setHasSeenModal(false);
-      });
-    }
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
@@ -66,8 +56,6 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
   const handleClose = () => {
     localStorage.setItem(ONBOARDING_KEY, "true");
     localStorage.setItem(LEGACY_WELCOME_KEY, "true");
-    setIsOpen(false);
-    setHasSeenModal(true);
     onComplete?.();
   };
 
@@ -79,8 +67,6 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
     localStorage.setItem(ONBOARDING_KEY, "true");
     localStorage.setItem(LEGACY_WELCOME_KEY, "true");
     localStorage.setItem(GUEST_MODE_KEY, "true");
-    setIsOpen(false);
-    setHasSeenModal(true);
     onExploreAsGuest?.();
   };
 
@@ -89,10 +75,7 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
     return null;
   }
 
-  if (hasSeenModal || !isOpen) return null;
-
   const step = steps[currentStep];
-  const isLastStep = currentStep === steps.length - 1;
 
   return (
     <div 
@@ -101,8 +84,7 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
       aria-modal="true"
       aria-labelledby="welcome-title"
     >
-      <div className="w-full max-w-lg rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 md:p-8 shadow-2xl">
-        {/* Skip button - more prominent */}
+      <div className="relative w-full max-w-lg rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-2xl md:p-8">
         <button
           onClick={handleSkip}
           className="absolute top-4 right-4 p-2 rounded-full text-[color:var(--muted)] hover:text-[color:var(--foreground)] hover:bg-[color:var(--surface-elevated)] transition-all"
@@ -133,6 +115,9 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
 
         {/* Content */}
         <div className="text-center">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--accent)]">
+            Quick tour
+          </p>
           <span className="text-5xl md:text-6xl mb-6 block" aria-hidden="true">{step.icon}</span>
           <h2 id="welcome-title" className="text-xl md:text-2xl font-bold text-[color:var(--foreground)] mb-3">
             {step.title}
@@ -150,22 +135,28 @@ export function WelcomeModal({ onComplete, onExploreAsGuest }: WelcomeModalProps
           >
             {step.cta}
           </LoadingButton>
-          
+
+          <button
+            onClick={handleGuestMode}
+            className="rounded-full border border-[color:var(--border)] px-4 py-3 text-sm font-medium text-[color:var(--foreground)] transition-colors hover:border-[color:var(--accent)]/50"
+          >
+            Explore rider demo
+          </button>
+
+          <Link
+            href="/instructor"
+            onClick={handleClose}
+            className="text-center text-sm text-[color:var(--muted)] transition-colors hover:text-[color:var(--foreground)]"
+          >
+            Preview instructor flow
+          </Link>
+
           <button
             onClick={handleSkip}
             className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
           >
-            Skip for now
+            Close guide
           </button>
-          
-          {isLastStep && (
-            <button
-              onClick={handleGuestMode}
-              className="text-sm text-[color:var(--accent)] hover:text-[color:var(--accent-strong)] transition-colors"
-            >
-              Explore as Guest →
-            </button>
-          )}
         </div>
 
         {/* Step indicator */}

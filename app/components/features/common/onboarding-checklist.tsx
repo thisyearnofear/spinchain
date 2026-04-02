@@ -5,8 +5,52 @@ import { CheckCircle2, Circle, Wallet, Bluetooth, Timer, ArrowRight } from "luci
 import { useAccount } from "wagmi";
 import Link from "next/link";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
+import { getRideHistory } from "@/app/lib/analytics/ride-history";
 
 const STORAGE_KEY = "spinchain:onboarding:checklist";
+const SAVED_DEVICES_KEY = "spinchain:saved-devices";
+
+function readStoredSteps(): string[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return [];
+
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function hasSavedDevices(): boolean {
+  try {
+    const stored = localStorage.getItem(SAVED_DEVICES_KEY);
+    if (!stored) return false;
+
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) && parsed.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function deriveCompletedSteps(existingSteps: string[], isConnected: boolean) {
+  const next = new Set(existingSteps);
+
+  if (isConnected) {
+    next.add("wallet");
+  }
+
+  if (hasSavedDevices()) {
+    next.add("device");
+  }
+
+  if (getRideHistory().length > 0) {
+    next.add("ride");
+  }
+
+  return Array.from(next);
+}
 
 export function OnboardingChecklist() {
   const { isConnected } = useAccount();
@@ -14,52 +58,44 @@ export function OnboardingChecklist() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      setCompletedSteps(JSON.parse(stored));
-    }
-    
-    // Only show if not all steps are done
-    const isDone = stored && JSON.parse(stored).length >= 3;
-    if (!isDone) {
-      setIsVisible(true);
-    }
-  }, []);
-
-  // Update wallet connection step automatically
-  useEffect(() => {
-    if (isConnected && !completedSteps.includes("wallet")) {
-      const next = [...completedSteps, "wallet"];
+    const syncChecklist = () => {
+      const next = deriveCompletedSteps(readStoredSteps(), isConnected);
       setCompletedSteps(next);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    }
-  }, [isConnected, completedSteps]);
+      setIsVisible(next.length < 3);
+    };
+
+    syncChecklist();
+    window.addEventListener("focus", syncChecklist);
+
+    return () => window.removeEventListener("focus", syncChecklist);
+  }, [isConnected]);
 
   const steps = [
     {
       id: "wallet",
       title: "Connect Wallet",
-      description: "Secure your rewards with your Web3 wallet",
+      description: "Optional for demo rides, required when you want rewards and payouts",
       icon: Wallet,
       isDone: isConnected || completedSteps.includes("wallet"),
     },
     {
       id: "device",
       title: "Link Device",
-      description: "Connect your heart rate monitor or power meter",
+      description: "Pair a heart rate monitor or power meter for live effort tracking",
       icon: Bluetooth,
       isDone: completedSteps.includes("device"),
       action: getDemoRideUrl() + "&setup=true",
-      actionLabel: "Setup",
+      actionLabel: "Pair device",
     },
     {
       id: "ride",
-      title: "First Ride",
-      description: "Complete a 5-minute practice ride",
+      title: "Complete Demo Ride",
+      description: "Finish the 5-minute practice session to unlock the full flow",
       icon: Timer,
       isDone: completedSteps.includes("ride"),
       action: getDemoRideUrl(),
-      actionLabel: "Start",
+      actionLabel: "Ride demo",
     },
   ];
 
@@ -73,9 +109,9 @@ export function OnboardingChecklist() {
     <div className="rounded-3xl border border-[color:var(--border)] bg-gradient-to-br from-purple-900/20 to-indigo-900/20 p-8 backdrop-blur-xl shadow-2xl">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-white mb-1">Get Started</h2>
+          <h2 className="text-3xl font-bold text-white mb-1">Unlock your full setup</h2>
           <p className="text-sm text-white mt-1">
-            Complete these 3 steps to start earning SPIN
+            Demo rides work without a wallet. Complete these steps when you are ready to go deeper.
           </p>
         </div>
         {allDone && (
@@ -138,25 +174,6 @@ export function OnboardingChecklist() {
           Dismiss checklist
         </button>
       )}
-    </div>
-  );
-}
-
-// Enhanced with better visual feedback and animations
-function EnhancedCheckCircle({ className }: { className?: string }) {
-  return (
-    <div className="relative">
-      <CheckCircle2 className={`h-5 w-5 text-emerald-400 animate-pulse ${className}`} />
-      <div className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-    </div>
-  );
-}
-
-function EnhancedCircle({ className }: { className?: string }) {
-  return (
-    <div className="relative">
-      <Circle className={`h-5 w-5 text-white/50 ${className}`} />
-      <div className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-white/20 animate-pulse" />
     </div>
   );
 }

@@ -28,8 +28,8 @@ function HomeContent() {
     if (searchParams.get("reset") === "true") {
       resetOnboarding();
     }
-    const hasSeenWelcome = localStorage.getItem(ONBOARDING_KEY);
-    if (!hasSeenWelcome) {
+
+    if (searchParams.get("welcome") === "true" || searchParams.get("reset") === "true") {
       const frame = window.requestAnimationFrame(() => {
         setShowWelcome(true);
       });
@@ -78,7 +78,7 @@ function HomeContent() {
 
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-16 md:gap-20 px-6 pb-20 pt-10 lg:px-12">
         <FadeIn>
-          <HeroSection />
+          <HeroSection onOpenGuide={() => setShowWelcome(true)} />
         </FadeIn>
 
         {/* Instructor Mode Selector */}

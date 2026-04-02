@@ -3,46 +3,49 @@
 import { motion } from "framer-motion";
 import { FadeIn } from "@/app/components/ui/scroll-animations";
 
-const stats = [
-  { value: "$2.4M", label: "Rewards paid" },
-  { value: "50K+", label: "Classes" },
-  { value: "1,200+", label: "Instructors" },
+const proofPillars = [
+  {
+    title: "Try before signup",
+    description: "The rider path already supports a free demo ride, so visitors can feel the experience before creating an account.",
+  },
+  {
+    title: "Clear persona split",
+    description: "The landing flow now makes riders and instructors choose the path that matches their goal instead of pushing one generic funnel.",
+  },
+  {
+    title: "Transparent product stage",
+    description: "We removed future-looking stats and replaced them with honest value props that set the right expectations for early users.",
+  },
 ];
 
 export function SocialProofSection() {
   return (
     <FadeIn>
-      <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 md:p-8 text-center" aria-label="Community social proof">
-        <div className="flex items-center justify-center gap-3 md:gap-4 mb-5 md:mb-6">
-          <div className="flex -space-x-3">
-            {[1, 2, 3, 4].map((i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.1, type: "spring" }}
-                viewport={{ once: true }}
-                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-[color:var(--accent)] to-[color:var(--accent-strong)] border-2 border-[color:var(--background)]"
-              />
-            ))}
-          </div>
-          <p className="text-sm md:text-base text-[color:var(--muted)]">
-            <span className="text-[color:var(--foreground)] font-semibold">10,000+</span> riders earning rewards <span className="text-[10px] text-[color:var(--accent)]">(Year 1 target)</span>
+      <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 text-center md:p-8" aria-label="Conversion trust signals">
+        <div className="mx-auto mb-8 max-w-2xl">
+          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-[color:var(--accent)]">
+            Why this converts better
+          </p>
+          <h2 className="text-2xl font-bold text-[color:var(--foreground)] md:text-3xl">
+            A sharper first impression for early users
+          </h2>
+          <p className="mt-3 text-sm text-[color:var(--muted)] md:text-base">
+            Instead of stretching for social proof that does not exist yet, this section focuses on the reasons a visitor can trust the next step.
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 md:gap-8 max-w-lg mx-auto">
-          {stats.map((stat, i) => (
+        <div className="grid gap-4 text-left md:grid-cols-3">
+          {proofPillars.map((pillar, index) => (
             <motion.div
-              key={stat.label}
+              key={pillar.title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
+              transition={{ delay: index * 0.1 }}
               viewport={{ once: true }}
+              className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/70 p-5"
             >
-              <p className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)]">{stat.value}</p>
-              <p className="text-xs text-[color:var(--muted)] mt-1">{stat.label}</p>
-              <p className="text-[10px] text-[color:var(--accent)] font-medium mt-0.5">Year 1 target</p>
+              <p className="text-sm font-semibold text-[color:var(--foreground)] md:text-base">{pillar.title}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[color:var(--muted)]">{pillar.description}</p>
             </motion.div>
           ))}
         </div>

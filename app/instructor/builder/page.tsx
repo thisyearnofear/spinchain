@@ -1,27 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import {
-  BulletList,
-  GlassCard,
-  SectionHeader,
   SurfaceCard,
   Tag,
 } from "@/app/components/ui/ui";
-import { useCreateClass } from "@/app/hooks/evm/use-create-class";
-import { useClassWithRoute, getDeploymentStepText } from "@/app/hooks/common/use-class-with-route";
 import { RouteSelectionStep } from "@/app/components/features/route/route-selection-step";
-import { INCENTIVE_ENGINE_ADDRESS, SPIN_TOKEN_ADDRESS } from "@/app/lib/contracts";
 import { useAccount } from "wagmi";
 import type { SavedRoute } from "@/app/lib/route-library";
 import type { GpxSummary } from "@/app/routes/builder/gpx-uploader";
 
 import { SelectionGarage } from "@/app/components/features/common/selection-garage";
-import type { AvatarAsset, EquipmentAsset, WorldAsset } from "@/app/lib/selection-library";
+import { getDeploymentStepText, useClassWithRoute } from "@/app/hooks/common/use-class-with-route";
+import {
+  clearStoredInstructorClassDraft,
+  getStoredInstructorClassDraft,
+  type InstructorClassDraftFormData,
+  type InstructorClassDraftStatus,
+} from "@/app/hooks/instructor/use-class-draft";
 
 type ClassFormData = {
   name: string;
+  description: string;
   date: string;
   capacity: number;
   basePrice: number;
@@ -38,6 +40,66 @@ type ClassFormData = {
   equipmentId?: string;
   worldId?: string;
 };
+
+type BuilderDraftHydration = {
+  restored: boolean;
+  draftStatus: InstructorClassDraftStatus;
+  lastSavedAt: number | null;
+  formData: ClassFormData;
+};
+
+const DEFAULT_DRAFT_FORM_DATA: InstructorClassDraftFormData = {
+  name: "",
+  description: "",
+  duration: 45,
+  maxRiders: 20,
+  basePrice: "0.01",
+  mode: "standard",
+  personality: "drill-sergeant",
+  enableDynamicPricing: true,
+  useAI: true,
+};
+
+function hydrateBuilderDraft(): BuilderDraftHydration {
+  const { draft, restored } = getStoredInstructorClassDraft(DEFAULT_DRAFT_FORM_DATA);
+  const numericBasePrice = Number.parseFloat(draft.formData.basePrice);
+  const safeBasePrice = Number.isFinite(numericBasePrice) && numericBasePrice > 0 ? numericBasePrice : 0.02;
+
+  return {
+    restored,
+    draftStatus: draft.status,
+    lastSavedAt: draft.savedAt,
+    formData: {
+      name: draft.formData.name || "Morning Mountain Climb",
+      description: draft.formData.description || "An immersive spin class that blends route storytelling, coaching cues, and performance-based rewards.",
+      date: "2026-03-12T09:00",
+      capacity: draft.formData.maxRiders,
+      basePrice: safeBasePrice,
+      maxPrice: draft.formData.enableDynamicPricing ? Number((safeBasePrice * 4).toFixed(3)) : safeBasePrice,
+      curveType: draft.formData.enableDynamicPricing ? "exponential" : "linear",
+      rewardThreshold: 150,
+      rewardAmount: 20,
+      suiPerformance: true,
+      aiEnabled: draft.formData.mode === "agentic" || draft.formData.useAI,
+      aiPersonality: draft.formData.personality,
+    },
+  };
+}
+
+function getRouteTheme(worldId?: string): "neon" | "alpine" | "mars" {
+  if (worldId?.includes("alpine")) return "alpine";
+  if (worldId?.includes("mars")) return "mars";
+  return "neon";
+}
+
+function formatSavedAt(savedAt: number | null) {
+  if (!savedAt) return "Not saved yet";
+
+  return new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(savedAt);
+}
 
 function PricingCurveVisualizer({
   data,
@@ -204,21 +266,14 @@ function PricingCurveVisualizer({
   );
 }
 
-import { Tooltip } from "@/app/components/ui/tooltip";
-import { motion, AnimatePresence } from "framer-motion";
-
 export default function InstructorBuilderPage() {
   const { address: userAddress } = useAccount();
-  const { createClass, isPending, isSuccess, error: deployError, hash } = useCreateClass();
-  const {
-    deployClassWithRoute,
-    deploymentStep,
-    isPending: isDeploying,
-    isSuccess: deploySuccess
-  } = useClassWithRoute();
+  const { deployClassWithRoute, deploymentStep, walrusBlobId, isPending, isSuccess, error: deployError, hash } = useClassWithRoute();
+  const [draftHydration] = useState(() => hydrateBuilderDraft());
+  const didClearDraftOnPublishRef = useRef(false);
 
   const [step, setStep] = useState(0); 
-  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(!draftHydration.restored);
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
   const [gpxSummary, setGpxSummary] = useState<GpxSummary | null>(null);
   
@@ -233,17 +288,14 @@ export default function InstructorBuilderPage() {
 
   // ... rest of the component
   
-  const [formData, setFormData] = useState<ClassFormData>({
-    name: "Morning Mountain Climb",
-    date: "2026-03-12T09:00",
-    capacity: 50,
-    basePrice: 0.02,
-    maxPrice: 0.08,
-    curveType: "linear",
-    rewardThreshold: 150,
-    rewardAmount: 20,
-    suiPerformance: true,
-  });
+  const [formData, setFormData] = useState<ClassFormData>(draftHydration.formData);
+
+  useEffect(() => {
+    if (!isSuccess || didClearDraftOnPublishRef.current) return;
+
+    clearStoredInstructorClassDraft();
+    didClearDraftOnPublishRef.current = true;
+  }, [isSuccess]);
 
   const steps = [
     { number: 0, title: "Route" },
@@ -262,7 +314,7 @@ export default function InstructorBuilderPage() {
     // Auto-fill form data from route
     setFormData(prev => ({
       ...prev,
-      name: route.name,
+      name: prev.name.trim().length > 0 ? prev.name : route.name,
       // Duration could be synced with route if needed
     }));
     
@@ -405,6 +457,55 @@ export default function InstructorBuilderPage() {
           </div>
         </div>
 
+        {draftHydration.restored && !isSuccess && (
+          <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/10 p-6 backdrop-blur-xl">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Tag color="green">Draft Restored</Tag>
+                  {draftHydration.draftStatus === "ready_to_publish" && (
+                    <Tag color="indigo">Ready Handoff</Tag>
+                  )}
+                </div>
+                <h2 className="mt-3 text-xl font-bold text-white">
+                  Your instructor draft was carried into the advanced builder.
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm text-emerald-100/80">
+                  We restored the class name, pricing intent, rider capacity, and coaching mode from the preview wizard. Choose a route, review the full configuration, and publish from here.
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-emerald-200/70">
+                  Last saved {formatSavedAt(draftHydration.lastSavedAt)}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setStep(0)}
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white/10"
+              >
+                Choose Route
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isSuccess && (
+          <div className="rounded-3xl border border-blue-500/20 bg-blue-500/10 p-6 backdrop-blur-xl">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Tag color="blue">Draft Completed</Tag>
+                </div>
+                <h2 className="mt-3 text-xl font-bold text-white">
+                  The preview draft has been cleared after publish.
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm text-blue-100/80">
+                  This keeps the instructor funnel clean and prevents old drafts from appearing as pending after a successful deployment.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
           {/* Main Form Area */}
           <div className="space-y-6">
@@ -452,6 +553,24 @@ export default function InstructorBuilderPage() {
                         value={formData.name}
                         onChange={handleInputChange}
                         className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-white placeholder:text-white/20 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-white/40">
+                        Class Description
+                      </label>
+                      <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                        }
+                        rows={4}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-white placeholder:text-white/20 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                        placeholder="Describe the coaching style, route feel, and what riders should expect."
                       />
                     </div>
                     <div className="grid gap-6 sm:grid-cols-2">
@@ -673,6 +792,20 @@ export default function InstructorBuilderPage() {
                           {formData.name}
                         </span>
                       </div>
+                      <div className="py-2 border-b border-white/5">
+                        <div className="flex justify-between items-start gap-4">
+                          <span className="text-xs font-black uppercase tracking-widest text-white/40">Description</span>
+                          <span className="max-w-[22rem] text-right text-sm text-white/80">
+                            {formData.description}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-white/5">
+                        <span className="text-xs font-black uppercase tracking-widest text-white/40">Route</span>
+                        <span className="font-bold text-white">
+                          {selectedRoute?.name || "Select a route"}
+                        </span>
+                      </div>
                       <div className="flex justify-between items-center py-2 border-b border-white/5">
                         <span className="text-xs font-black uppercase tracking-widest text-white/40">Ticket Supply</span>
                         <span className="font-bold text-white">
@@ -743,29 +876,52 @@ export default function InstructorBuilderPage() {
               ) : (
                 <button
                   onClick={() => {
-                    createClass({
+                    if (!selectedRoute) return;
+
+                    const startTime = Math.floor(new Date(formData.date).getTime() / 1000);
+                    const endTime = startTime + 3600;
+                    deployClassWithRoute({
                       name: formData.name,
                       symbol: "SPIN",
-                      metadata: JSON.stringify({ name: formData.name, date: formData.date }),
-                      startTime: Math.floor(new Date(formData.date).getTime() / 1000),
-                      endTime: Math.floor(new Date(formData.date).getTime() / 1000) + 3600,
+                      description: formData.description,
+                      startTime,
+                      endTime,
                       maxRiders: formData.capacity,
                       basePrice: formData.basePrice.toString(),
                       maxPrice: formData.maxPrice.toString(),
-                      instructor: userAddress || "0x0000000000000000000000000000000000000000",
-                      treasury: userAddress || "0x0000000000000000000000000000000000000000",
-                      incentiveEngine: INCENTIVE_ENGINE_ADDRESS as `0x${string}`,
-                      spinToken: SPIN_TOKEN_ADDRESS as `0x${string}`,
+                      curveType: formData.curveType,
+                      rewardThreshold: formData.rewardThreshold,
+                      rewardAmount: formData.rewardAmount,
+                      route: selectedRoute,
+                      routeTheme: getRouteTheme(formData.worldId),
+                      aiEnabled: formData.aiEnabled ?? true,
+                      aiPersonality: formData.aiPersonality || "drill-sergeant",
+                      avatarId: formData.avatarId,
+                      equipmentId: formData.equipmentId,
+                      worldId: formData.worldId,
                     });
                   }}
-                  disabled={isPending || !userAddress}
+                  disabled={isPending || !userAddress || !selectedRoute}
                   className="group relative rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-10 py-3 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-500/30 transition hover:opacity-90 hover:scale-105 disabled:opacity-50 overflow-hidden"
                 >
-                  <span className="relative z-10">{isPending ? "Deploying..." : "Deploy Contract"}</span>
+                  <span className="relative z-10">{isPending ? getDeploymentStepText(deploymentStep) : "Deploy Contract"}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               )}
             </div>
+
+            {walrusBlobId && (
+              <div className="group relative mt-6 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-6 backdrop-blur-3xl overflow-hidden">
+                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-cyan-500/10 blur opacity-30"></div>
+                <div className="relative">
+                  <p className="mb-2 text-xs font-black uppercase tracking-widest text-cyan-200/70">Walrus Route Reference</p>
+                  <p className="font-mono text-sm break-all text-cyan-300">{walrusBlobId}</p>
+                  <p className="mt-2 text-xs text-cyan-100/70">
+                    This class is now linked to a real uploaded route blob instead of a placeholder route reference.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {hash && (
               <div className="group relative mt-6 rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-3xl overflow-hidden">
@@ -776,7 +932,7 @@ export default function InstructorBuilderPage() {
                   {isSuccess && (
                     <div className="flex items-center gap-2 mt-3">
                       <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-                      <p className="text-sm font-bold text-green-400">✨ Class contract deployed successfully!</p>
+                      <p className="text-sm font-bold text-green-400">✨ Class contract deployed successfully and the saved draft was cleared.</p>
                     </div>
                   )}
                   {deployError && (
