@@ -12,9 +12,10 @@ SpinChain has a promising prototype, but the app is still demo/testnet-stage and
 
 **Critical Blockers**:
 1. User-facing screens still rely on mock/demo fallbacks in some production paths
-2. ZK claims support chunked batch submission with 14 Foundry tests passing; real on-chain verifier blocked by Honk stack depth limitation (see Part 2)
+2. ZK claims support chunked batch submission with 16 Foundry tests passing; real on-chain verifier is blocked by Honk stack depth limitation, so production must use Chainlink/off-chain verification until upstream is fixed (see Part 2)
 3. Runtime and deployment config still contain placeholders or mock components
 4. Release verification is not yet a dependable gate
+5. Reward settlement and ride-summary anchoring must remain distinct in implementation and reporting
 
 ---
 
@@ -24,7 +25,7 @@ SpinChain has a promising prototype, but the app is still demo/testnet-stage and
 
 | ID | File | Line | Issue | Resolution |
 |----|------|------|-------|------------|
-| P0-1 | `app/api/rides/sync/route.ts` | 15-20 | Fake transaction hash returned | Implement real Avalanche anchoring via `IncentiveEngine.sol` |
+| P0-1 | `app/api/rides/sync/route.ts` | 15-20 | Fake transaction hash returned | Implement real ride-summary relay/anchoring flow; keep reward settlement separate from anchoring state |
 | P0-2 | `app/hooks/evm/use-class-data.ts` | 124 | Uses mock state instead of contract reads | Wire up to `SpinClassNFT.sol` view functions |
 | P0-3 | `circuits/effort_threshold/src/main.nr` | 6 | `MAX_DATA_POINTS = 60` (1 minute max) | Use chunked proof batching for launch; keep longer-session aggregation as a follow-on optimization |
 | P0-4 | `app/config.ts` | 51, 57 | Zero addresses for verifier & forwarder | Deploy contracts, update env variables |
@@ -35,7 +36,7 @@ SpinChain has a promising prototype, but the app is still demo/testnet-stage and
 | ID | File | Line | Issue | Resolution |
 |----|------|------|-------|------------|
 | P1-1 | `app/rider/ride/[classId]/page.tsx` | 443 | Ghost pacer uses random mock data | Fetch real historical rider performance from Sui |
-| P1-2 | `contracts/evm/src/deploy.s.sol` | 20 | Deploy script uses `MockUltraVerifier` | ⚠️ Blocked: `bb` generates Honk verifiers exceeding EVM stack depth. Workaround: off-chain verification or wait for upstream fix. See `contracts/DEPLOY.md` |
+| P1-2 | `contracts/evm/src/deploy.s.sol` | 20 | Production deployments cannot rely on `MockUltraVerifier` | ✅ Resolved: deploy script now disables ZK claims unless a real verifier is supplied, with Chainlink/off-chain fallback documented |
 | P1-3 | `app/api/ai/generate-route/route.ts` | 5 | ~~HACKATHON_STRATEGY shortcuts~~ | ✅ Production-ready with strict schema validation |
 | P1-4 | `app/instructor/yellow/page.tsx` | 273 | Telemetry sparkline is placeholder | Integrate live Sui telemetry stream |
 
@@ -242,7 +243,7 @@ Device → Chainlink Functions (TEE) → BiometricOracle.sol → Rewards
 
 ### Sprint 1: Critical Fixes (Week 1-2)
 - [x] Deploy verifier contracts, update `app/config.ts` (P0-4) ✅ 2026-03-17
-- [x] Implement real anchoring in `rides/sync/route.ts` (P0-1) ✅ 2026-03-17
+- [x] Implement real ride-summary anchoring in `rides/sync/route.ts` (P0-1) ✅ 2026-03-17
 - [x] Wire up contract reads in `use-class-data.ts` (P0-2) ✅ 2026-03-17
 - [x] Review and fix AI service hackathon code (P0-5) ✅ 2026-03-17
 
@@ -250,14 +251,14 @@ Device → Chainlink Functions (TEE) → BiometricOracle.sol → Rewards
 - [x] Implement chunked proof generation from heart-rate samples
 - [x] Add `submitZKProofBatch(...)` to `IncentiveEngine.sol`
 - [x] Wire rider and shared rewards hooks to batch claim submission
-- [x] Add contract tests for replay protection, mismatched batches, threshold failures, and single-proof claims (14 tests passing)
-- [ ] Run configured Fuji end-to-end claim tests with a real verifier deployment — ⚠️ Blocked by Honk stack depth limitation
+- [x] Add contract tests for replay protection, mismatched batches, threshold failures, disabled-verifier guards, and single-proof claims (16 tests passing)
+- [ ] Run configured Fuji end-to-end claim tests with a real verifier deployment — ⚠️ Still blocked by Honk stack depth limitation
 
 ### Sprint 3: Feature Completion (Week 5-6)
 - [x] Real ghost pacer data (P1-1) ✅ 2026-03-17
 - [ ] Live telemetry integration (P1-4)
-- [x] Production deploy script created (`deploy-production.s.sol`) ✅ 2026-03-17
-- [ ] Real verifier in deploy script (P1-2) — ⚠️ Blocked by Honk stack depth limitation
+- [x] Consolidate production deployment into `src/deploy.s.sol` ✅ 2026-04-03
+- [x] Safe fallback when no real verifier exists (disable ZK, use Chainlink path) ✅ 2026-04-03
 
 ### Sprint 4: Polish & Testing (Week 7-8)
 - [ ] End-to-end testing on Fuji testnet with real verifier + engine addresses
@@ -287,8 +288,9 @@ Before mainnet, implement:
 - [ ] Real contract integration on all frontend hooks
 - [ ] Successful testnet run with 10+ concurrent users
 - [ ] Zero hackathon/mock code in production paths
-- [ ] All 8 contracts verified on Snowtrace ✅ 2026-04-03
+- [x] All 8 contracts verified on Snowtrace ✅ 2026-04-03
 - [ ] Resolve Honk verifier stack depth limitation for mainnet
+- [ ] Keep reward settlement and ride-summary anchoring status distinct across UI, storage, and relay flows
 
 ---
 
@@ -296,11 +298,11 @@ Before mainnet, implement:
 
 ### Key Files to Modify
 - `circuits/effort_threshold/src/main.nr` - Circuit constraints
-- `app/api/rides/sync/route.ts` - Anchoring logic
+- `app/api/rides/sync/route.ts` - Ride-summary anchoring logic
 - `app/hooks/evm/use-class-data.ts` - Contract reads
 - `app/config.ts` - Contract addresses
 - `app/lib/ai-service.ts` - AI safety logic
-- `contracts/evm/src/IncentiveEngine.sol` - Reward claims
+- `contracts/evm/src/IncentiveEngine.sol` - Reward settlement claims
 
 ### New Files to Create
 - `circuits/session_aggregator/src/main.nr` - Aggregation circuit

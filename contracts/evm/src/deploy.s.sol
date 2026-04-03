@@ -17,20 +17,30 @@ contract DeployScript is Script {
         vm.startBroadcast(vm.envUint("AVALANCHE_PRIVATE_KEY"));
 
         address configuredUltraVerifier = vm.envOr("ULTRA_VERIFIER_ADDRESS", address(0));
+        bool allowMockVerifier = vm.envOr("ALLOW_MOCK_VERIFIER", false);
         address ultraVerifier = configuredUltraVerifier;
+        address effortVerifierAddress = address(0);
 
-        if (ultraVerifier == address(0)) {
+        if (ultraVerifier != address(0)) {
+            console.log("Using configured UltraVerifier:", ultraVerifier);
+        } else if (allowMockVerifier) {
             console.log("Deploying MockUltraVerifier...");
             MockUltraVerifier mockUltraVerifier = new MockUltraVerifier();
             ultraVerifier = address(mockUltraVerifier);
             console.log("MockUltraVerifier:", ultraVerifier);
         } else {
-            console.log("Using configured UltraVerifier:", ultraVerifier);
+            console.log("No verifier configured; ZK claims will be disabled.");
         }
 
-        console.log("Deploying EffortThresholdVerifier...");
-        EffortThresholdVerifier effortVerifier = new EffortThresholdVerifier(ultraVerifier);
-        console.log("EffortThresholdVerifier:", address(effortVerifier));
+        EffortThresholdVerifier effortVerifier;
+        if (ultraVerifier != address(0)) {
+            console.log("Deploying EffortThresholdVerifier...");
+            effortVerifier = new EffortThresholdVerifier(ultraVerifier);
+            effortVerifierAddress = address(effortVerifier);
+            console.log("EffortThresholdVerifier:", effortVerifierAddress);
+        } else {
+            console.log("Skipping EffortThresholdVerifier deployment.");
+        }
 
         // SpinToken
         console.log("Deploying SpinToken...");
@@ -43,13 +53,15 @@ contract DeployScript is Script {
             deployer,
             address(spinToken),
             deployer,
-            address(effortVerifier),
+            effortVerifierAddress,
             deployer
         );
         console.log("IncentiveEngine:", address(incentiveEngine));
 
-        console.log("Authorizing IncentiveEngine in EffortThresholdVerifier...");
-        effortVerifier.setAuthorizedCaller(address(incentiveEngine), true);
+        if (effortVerifierAddress != address(0)) {
+            console.log("Authorizing IncentiveEngine in EffortThresholdVerifier...");
+            effortVerifier.setAuthorizedCaller(address(incentiveEngine), true);
+        }
 
         // BiometricOracle(forwarder, workflowId)
         console.log("Deploying BiometricOracle...");
@@ -96,9 +108,13 @@ contract DeployScript is Script {
         console.log("NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=", address(incentiveEngine));
         console.log("NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=", address(classFactory));
         console.log("NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=", ultraVerifier);
-        console.log("NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=", address(effortVerifier));
+        console.log("NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=", effortVerifierAddress);
         console.log("NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=", address(treasurySplitter));
         console.log("NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS=", address(yellowSettlement));
         console.log("NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=", address(biometricOracle));
+        console.log(
+            "NEXT_PUBLIC_REWARD_VERIFICATION_MODE=",
+            effortVerifierAddress != address(0) ? "zk" : "chainlink"
+        );
     }
 }

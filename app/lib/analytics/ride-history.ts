@@ -1,8 +1,10 @@
 export interface RideProofSummary {
   mode: "zk-batch" | "yellow-stream" | "none";
+  status?: "idle" | "requested" | "ready" | "claimed" | "failed";
   isVerified: boolean;
   privacyScore: number;
   privacyLevel: "high" | "medium" | "low";
+  verifiedScore?: number;
 }
 
 export type RideSyncStatus = "local_only" | "queued" | "relayed" | "anchored" | "failed";
@@ -39,7 +41,12 @@ export interface RideSummary {
     nextRetryAt?: number;
     error?: string;
   };
-  onChain?: {
+  settlement?: {
+    attempted: boolean;
+    txHash?: `0x${string}`;
+    status: "pending" | "confirmed" | "failed" | "skipped";
+  };
+  anchoring?: {
     attempted: boolean;
     txHash?: `0x${string}`;
     status: "pending" | "confirmed" | "failed" | "skipped";
@@ -102,6 +109,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function normalizeChainStatus(value: unknown): "pending" | "confirmed" | "failed" | "skipped" {
+  return value === "confirmed" || value === "failed" || value === "skipped"
+    ? value
+    : "pending";
+}
+
 function toRideSummary(value: unknown): RideSummary | null {
   if (!isRecord(value)) return null;
   if (typeof value.id !== "string" || typeof value.classId !== "string" || typeof value.completedAt !== "number") {
@@ -110,7 +123,9 @@ function toRideSummary(value: unknown): RideSummary | null {
 
   const proof = isRecord(value.proof) ? value.proof : {};
   const sync = isRecord(value.sync) ? value.sync : {};
-  const onChain = isRecord(value.onChain) ? value.onChain : undefined;
+  const legacyOnChain = isRecord(value.onChain) ? value.onChain : undefined;
+  const settlement = isRecord(value.settlement) ? value.settlement : undefined;
+  const anchoring = isRecord(value.anchoring) ? value.anchoring : undefined;
 
   const riderId = typeof value.riderId === "string" ? value.riderId : "guest";
   const idempotencyKey = typeof value.idempotencyKey === "string"
@@ -141,9 +156,17 @@ function toRideSummary(value: unknown): RideSummary | null {
     },
     proof: {
       mode: proof.mode === "zk-batch" || proof.mode === "yellow-stream" ? proof.mode : "none",
+      status:
+        proof.status === "requested" ||
+        proof.status === "ready" ||
+        proof.status === "claimed" ||
+        proof.status === "failed"
+          ? proof.status
+          : "idle",
       isVerified: Boolean(proof.isVerified),
       privacyScore: typeof proof.privacyScore === "number" ? proof.privacyScore : 0,
       privacyLevel: proof.privacyLevel === "high" || proof.privacyLevel === "medium" ? proof.privacyLevel : "low",
+      verifiedScore: typeof proof.verifiedScore === "number" ? proof.verifiedScore : undefined,
     },
     sync: {
       status: sync.status === "queued" || sync.status === "relayed" || sync.status === "anchored" || sync.status === "failed" ? sync.status : "local_only",
@@ -154,12 +177,32 @@ function toRideSummary(value: unknown): RideSummary | null {
       nextRetryAt: typeof sync.nextRetryAt === "number" ? sync.nextRetryAt : undefined,
       error: typeof sync.error === "string" ? sync.error : undefined,
     },
-    onChain: onChain
+    settlement: settlement || (legacyOnChain && typeof legacyOnChain.attempted === "boolean")
       ? {
-          attempted: Boolean(onChain.attempted),
-          txHash: typeof onChain.txHash === "string" ? (onChain.txHash as `0x${string}`) : undefined,
-          status: onChain.status === "confirmed" || onChain.status === "failed" || onChain.status === "skipped" ? onChain.status : "pending",
-          commitmentEpoch: typeof onChain.commitmentEpoch === "number" ? onChain.commitmentEpoch : undefined,
+          attempted: Boolean((settlement ?? legacyOnChain)?.attempted),
+          txHash:
+            typeof (settlement ?? legacyOnChain)?.txHash === "string"
+              ? ((settlement ?? legacyOnChain)?.txHash as `0x${string}`)
+              : undefined,
+          status: normalizeChainStatus((settlement ?? legacyOnChain)?.status),
+        }
+      : undefined,
+    anchoring:
+      anchoring ||
+      (legacyOnChain &&
+        (typeof legacyOnChain.commitmentEpoch === "number" ||
+          typeof legacyOnChain.txHash === "string"))
+        ? {
+            attempted: Boolean((anchoring ?? legacyOnChain)?.attempted),
+            txHash:
+              typeof (anchoring ?? legacyOnChain)?.txHash === "string"
+                ? ((anchoring ?? legacyOnChain)?.txHash as `0x${string}`)
+                : undefined,
+            status: normalizeChainStatus((anchoring ?? legacyOnChain)?.status),
+            commitmentEpoch:
+              typeof (anchoring ?? legacyOnChain)?.commitmentEpoch === "number"
+                ? ((anchoring ?? legacyOnChain)?.commitmentEpoch as number)
+                : undefined,
         }
       : undefined,
   };
@@ -316,6 +359,53 @@ export function enqueueRideSync(summary: RideSummary): RideSummary {
   return queued;
 }
 
+export function updateRideRewardState(
+  id: string,
+  proof: Partial<RideProofSummary>,
+  settlement?: Partial<NonNullable<RideSummary["settlement"]>>,
+): RideSummary | null {
+  return updateRideById(id, (current) => ({
+    ...current,
+    proof: {
+      ...current.proof,
+      ...proof,
+    },
+    settlement: current.settlement || settlement
+      ? {
+          attempted: current.settlement?.attempted ?? false,
+          status: current.settlement?.status ?? "pending",
+          ...current.settlement,
+          ...settlement,
+        }
+      : undefined,
+  }));
+}
+
+export function getRideRewardStatus(ride: RideSummary): {
+  label: string;
+  tone: "neutral" | "cyan" | "emerald" | "amber" | "red";
+} {
+  if (ride.proof.status === "claimed") {
+    return { label: "Rewards claimed", tone: "emerald" };
+  }
+  if (ride.proof.status === "ready") {
+    return { label: "Verified • Ready to claim", tone: "cyan" };
+  }
+  if (ride.proof.status === "requested") {
+    return { label: "Verification requested", tone: "amber" };
+  }
+  if (ride.proof.status === "failed" || ride.settlement?.status === "failed") {
+    return { label: "Claim failed", tone: "red" };
+  }
+  if (ride.proof.isVerified || ride.settlement?.status === "confirmed") {
+    return { label: "Verified on-chain", tone: "emerald" };
+  }
+  if (ride.settlement?.status === "pending") {
+    return { label: "Pending settlement", tone: "neutral" };
+  }
+  return { label: "Not claimed", tone: "neutral" };
+}
+
 type RelaySyncResult = {
   relayed: boolean;
   commitmentTxHash?: `0x${string}`;
@@ -381,7 +471,7 @@ export async function processRideSyncQueue(now = Date.now()) {
           anchoredAt: anchored ? relayedAt : current.sync.anchoredAt,
           error: undefined,
         },
-        onChain: {
+        anchoring: {
           attempted: true,
           status: anchored ? "confirmed" : "pending",
           txHash: relayResult.commitmentTxHash,
@@ -593,14 +683,14 @@ export async function getLeaderboardSnapshot(rides: RideSummary[], classId: stri
     return remote;
   }
   const localEntries = getClassLeaderboard(rides, classId);
-  const latestAnchored = rides.find((ride) => ride.sync.status === "anchored" && ride.onChain?.commitmentEpoch);
+  const latestAnchored = rides.find((ride) => ride.sync.status === "anchored" && ride.anchoring?.commitmentEpoch);
   return {
     entries: localEntries,
     source: "local-fallback",
     commitment: {
-      epoch: latestAnchored?.onChain?.commitmentEpoch ?? null,
+      epoch: latestAnchored?.anchoring?.commitmentEpoch ?? null,
       anchoredAt: latestAnchored?.sync.anchoredAt ?? null,
-      txHash: latestAnchored?.onChain?.txHash,
+      txHash: latestAnchored?.anchoring?.txHash,
     },
   };
 }

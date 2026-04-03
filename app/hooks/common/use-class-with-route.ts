@@ -48,28 +48,7 @@ type DeploymentStep =
   | "error";
 
 function toRouteResponse(route: SavedRoute | RouteResponse): RouteResponse {
-  if ("estimatedCalories" in route && "terrainTags" in route && "zones" in route) {
-    return route;
-  }
-
-  return {
-    name: route.name,
-    description: route.description,
-    coordinates: route.coordinates,
-    estimatedDistance: route.estimatedDistance,
-    estimatedDuration: route.estimatedDuration,
-    elevationGain: route.elevationGain,
-    elevationLoss: route.elevationLoss,
-    maxElevation: route.maxElevation,
-    minElevation: route.minElevation,
-    avgGrade: route.avgGrade,
-    maxGrade: route.maxGrade,
-    storyBeats: route.storyBeats,
-    terrainTags: route.terrainTags,
-    difficultyScore: route.difficultyScore,
-    estimatedCalories: route.estimatedCalories,
-    zones: route.zones,
-  };
+  return route;
 }
 
 export function useClassWithRoute() {

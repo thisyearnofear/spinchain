@@ -6,6 +6,7 @@ import {
 } from "@/app/lib/contracts";
 
 type PaymentMethod = "native" | "usdc" | "usdt";
+type RewardVerificationMode = "zk" | "chainlink";
 
 function configuredAddress(address?: string | null): `0x${string}` | null {
   return isZeroAddress(address) ? null : (address as `0x${string}`);
@@ -25,6 +26,17 @@ function resolveDefaultPaymentMethod(): PaymentMethod {
   }
 
   return configuredAddress(process.env.NEXT_PUBLIC_USDT_ADDRESS) ? "usdt" : "usdc";
+}
+
+function resolveRewardVerificationMode(): RewardVerificationMode {
+  const requested = process.env.NEXT_PUBLIC_REWARD_VERIFICATION_MODE;
+  if (requested === "zk" || requested === "chainlink") {
+    return requested;
+  }
+
+  return configuredAddress(CONTRACT_ADDRESSES.EFFORT_VERIFIER)
+    ? "zk"
+    : "chainlink";
 }
 
 export const CONTRACTS = {
@@ -76,6 +88,12 @@ export const CHAINLINK_CONFIG = {
     configuredAddress(CONTRACT_ADDRESSES.CRE_FORWARDER),
   workflowId: configuredWorkflowId(process.env.NEXT_PUBLIC_CHAINLINK_WORKFLOW_ID),
   gasLimit: 300000,
+} as const;
+
+export const REWARD_VERIFICATION = {
+  mode: resolveRewardVerificationMode(),
+  zkEnabled: configuredAddress(CONTRACT_ADDRESSES.EFFORT_VERIFIER) !== null,
+  chainlinkEnabled: configuredAddress(BIOMETRIC_ORACLE_ADDRESS) !== null,
 } as const;
 
 export const PAYMENT_CONFIG = {

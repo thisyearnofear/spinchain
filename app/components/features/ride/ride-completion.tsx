@@ -16,11 +16,19 @@ import { Star, Cloud, Share2, CheckCircle2 } from "lucide-react";
 import { LoadingButton } from "../../ui/loading-button";
 import { WalrusClient } from "@/app/lib/walrus/client";
 
-interface ZKProofStatus {
-  isGenerating: boolean;
-  isSuccess: boolean;
+export interface RewardClaimStatus {
+  mode: "zk" | "chainlink";
+  phase:
+    | "idle"
+    | "requesting"
+    | "requested"
+    | "ready"
+    | "claiming"
+    | "claimed"
+    | "error";
   privacyScore: number;
   privacyLevel: "high" | "medium" | "low";
+  verifiedScore?: number;
   error: Error | null;
 }
 
@@ -38,7 +46,7 @@ interface RideCompletionProps {
   onUpgrade?: () => void;
   onClaimRewards?: () => void;
   onExportTCX?: () => void;
-  zkProofStatus?: ZKProofStatus;
+  rewardClaimStatus?: RewardClaimStatus;
   spinEarned?: string;
   agentName?: string;
   agentPersonality?: "zen" | "drill-sergeant" | "data";
@@ -60,7 +68,7 @@ export function RideCompletion({
   onUpgrade,
   onClaimRewards,
   onExportTCX,
-  zkProofStatus,
+  rewardClaimStatus,
   spinEarned = "0",
   agentName = "Coach",
   agentPersonality = "data",
@@ -115,6 +123,29 @@ export function RideCompletion({
       });
     }
   }, [isPracticeMode, telemetrySource]);
+
+  const claimButtonLabel =
+    rewardClaimStatus?.phase === "requesting"
+      ? "Requesting Verification…"
+      : rewardClaimStatus?.phase === "requested"
+        ? "✓ Verification Requested"
+        : rewardClaimStatus?.phase === "ready"
+          ? "Claim Verified Rewards"
+          : rewardClaimStatus?.phase === "claiming"
+            ? rewardClaimStatus.mode === "chainlink"
+              ? "Claiming Rewards…"
+              : "Submitting ZK Claim…"
+            : rewardClaimStatus?.phase === "claimed"
+              ? "✓ Rewards Claimed"
+              : rewardClaimStatus?.mode === "chainlink"
+                ? "Request Verification"
+                : "Submit ZK Claim";
+
+  const claimButtonDisabled =
+    rewardClaimStatus?.phase === "requesting" ||
+    rewardClaimStatus?.phase === "requested" ||
+    rewardClaimStatus?.phase === "claiming" ||
+    rewardClaimStatus?.phase === "claimed";
 
   const getAgentDebrief = () => {
     const powerRating =
@@ -518,15 +549,11 @@ export function RideCompletion({
           ) : (
             <button
               onClick={onClaimRewards}
-              disabled={zkProofStatus?.isGenerating || zkProofStatus?.isSuccess}
+              disabled={claimButtonDisabled}
               className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               aria-label="Request agent validation of rewards"
             >
-              {zkProofStatus?.isGenerating
-                ? "🧠 Agent Validating…"
-                : zkProofStatus?.isSuccess
-                  ? "✓ Agent Approved"
-                  : "🧠 Request Agent Validation"}
+              {claimButtonLabel}
             </button>
           )}
         </div>
@@ -540,52 +567,103 @@ export function RideCompletion({
           {syncStatus === "failed" ? " • retry from Journey when online" : ""}
         </div>
 
-        {!isPracticeMode && zkProofStatus && (
+        {!isPracticeMode && rewardClaimStatus && (
           <div className="mt-4 rounded-xl border border-indigo-500/20 bg-black/30 p-3 text-left text-xs">
             <div className="flex items-center justify-between mb-2">
               <span className="font-semibold text-white flex items-center gap-1.5">
                 <span className="text-sm">🧠</span>
-                Agent Validation
+                {rewardClaimStatus.mode === "chainlink"
+                  ? "Reward Verification"
+                  : "ZK Claim Validation"}
               </span>
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                  zkProofStatus.privacyLevel === "high"
+                  rewardClaimStatus.mode === "chainlink"
+                    ? "bg-cyan-500/30 text-cyan-300"
+                    : rewardClaimStatus.privacyLevel === "high"
                     ? "bg-emerald-500/30 text-emerald-300"
-                    : zkProofStatus.privacyLevel === "medium"
+                    : rewardClaimStatus.privacyLevel === "medium"
                       ? "bg-amber-500/30 text-amber-300"
                       : "bg-zinc-500/30 text-zinc-300"
                 }`}
               >
-                {zkProofStatus.privacyLevel.toUpperCase()} PRIVACY
+                {rewardClaimStatus.mode === "chainlink"
+                  ? "CHAINLINK VERIFIED"
+                  : `${rewardClaimStatus.privacyLevel.toUpperCase()} PRIVACY`}
               </span>
             </div>
 
-            {zkProofStatus.isGenerating && (
+            {(rewardClaimStatus.phase === "requesting" ||
+              rewardClaimStatus.phase === "claiming") && (
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="h-5 w-5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
                   <span className="text-indigo-300 font-medium">
-                    {agentName} is reviewing your session…
+                    {rewardClaimStatus.mode === "chainlink"
+                      ? rewardClaimStatus.phase === "claiming"
+                        ? `${agentName} is claiming your verified rewards…`
+                        : `${agentName} is requesting biometric verification…`
+                      : `${agentName} is reviewing your session…`}
                   </span>
                 </div>
                 <div className="space-y-1 text-white/50 pl-7">
                   <p className="flex items-center gap-1.5">
                     <span className="h-1 w-1 rounded-full bg-emerald-400" />
-                    Verifying biometric integrity
+                    {rewardClaimStatus.mode === "chainlink"
+                      ? "Submitting telemetry verification request"
+                      : "Verifying biometric integrity"}
                   </p>
                   <p className="flex items-center gap-1.5">
                     <span className="h-1 w-1 rounded-full bg-amber-400 animate-pulse" />
-                    Computing effort score via ZK circuit
+                    {rewardClaimStatus.mode === "chainlink"
+                      ? rewardClaimStatus.phase === "claiming"
+                        ? "Preparing on-chain reward claim"
+                        : "Waiting for Chainlink CRE attestation"
+                      : "Computing effort score via ZK circuit"}
                   </p>
                   <p className="flex items-center gap-1.5">
                     <span className="h-1 w-1 rounded-full bg-white/20" />
-                    Signing reward payload for Chainlink CRE
+                    {rewardClaimStatus.mode === "chainlink"
+                      ? "Settling through IncentiveEngine"
+                      : "Submitting proof to IncentiveEngine"}
                   </p>
                 </div>
               </div>
             )}
 
-            {zkProofStatus.isSuccess && (
+            {rewardClaimStatus.phase === "requested" && (
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="h-5 w-5 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                    <Cloud className="h-3 w-3 text-cyan-300" />
+                  </div>
+                  <span className="text-cyan-300 font-medium">
+                    Verification requested — claim will unlock after Chainlink CRE responds
+                  </span>
+                </div>
+                <p className="text-white/50 pl-7">
+                  Keep this ride open or revisit Journey to complete the claim once a verified score is available.
+                </p>
+              </div>
+            )}
+
+            {rewardClaimStatus.phase === "ready" && (
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="h-5 w-5 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                    <CheckCircle2 className="h-3 w-3 text-cyan-300" />
+                  </div>
+                  <span className="text-cyan-300 font-medium">
+                    Verification complete — rewards are ready to claim
+                  </span>
+                </div>
+                <p className="text-white/50 pl-7">
+                  Verified effort score: {rewardClaimStatus.verifiedScore ?? 0}/1000
+                </p>
+              </div>
+            )}
+
+            {rewardClaimStatus.phase === "claimed" && (
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="h-5 w-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
@@ -608,25 +686,26 @@ export function RideCompletion({
                   </span>
                 </div>
                 <p className="text-white/50 pl-7">
-                  ZK proof verified on-chain • Privacy score:{" "}
-                  {zkProofStatus.privacyScore}/100
+                  {rewardClaimStatus.mode === "chainlink"
+                    ? `Chainlink verification settled on-chain • Verified score: ${rewardClaimStatus.verifiedScore ?? 0}/1000`
+                    : `ZK proof verified on-chain • Privacy score: ${rewardClaimStatus.privacyScore}/100`}
                 </p>
               </div>
             )}
 
-            {zkProofStatus.error && (
+            {rewardClaimStatus.phase === "error" && rewardClaimStatus.error && (
               <p className="text-red-300">
-                {agentName} validation failed — falling back to signed
-                attestation.
+                {rewardClaimStatus.mode === "chainlink"
+                  ? `${agentName} verification request failed — retry the claim when you're back online.`
+                  : `${agentName} validation failed — retry the ZK claim.`}
               </p>
             )}
 
-            {!zkProofStatus.isGenerating &&
-              !zkProofStatus.isSuccess &&
-              !zkProofStatus.error && (
+            {rewardClaimStatus.phase === "idle" && (
                 <p className="text-white/50">
-                  Request validation to have {agentName} review, sign, and
-                  submit your effort proof to the Chainlink CRE.
+                  {rewardClaimStatus.mode === "chainlink"
+                    ? `Request verification to have ${agentName} send your ride to Chainlink CRE for biometric validation before claiming rewards.`
+                    : `Submit your ride to have ${agentName} verify the session and settle your ZK reward claim on-chain.`}
                 </p>
               )}
           </div>

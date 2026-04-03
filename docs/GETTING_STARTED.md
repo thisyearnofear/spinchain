@@ -6,6 +6,7 @@ Current status as of 2026-04-02:
 - The app is in demo/testnet stage
 - Some rider-facing views still use mock or guest data
 - Reward, verifier, and workflow configuration still need launch hardening
+- Production reward claims should use `NEXT_PUBLIC_REWARD_VERIFICATION_MODE=chainlink` until a real on-chain verifier exists
 - Do not treat this repo as production-ready without completing the launch checklist in `docs/PRODUCTION_ROADMAP.md`
 
 ## Quick Start
@@ -127,10 +128,16 @@ The intended reward path is:
 2. **On-Chain Settlement**
    - Avalanche Fuji/testnet oriented today
    - Runtime configuration still needs final validation
+   - When `NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS` is unset, the app falls back to Chainlink claim requests instead of ZK submission
 
 3. **Token Distribution**
    - Prototype flows exist
    - Do not assume launch-safe accounting until release gates pass
+
+4. **Ride Summary Anchoring**
+   - Separate from reward settlement
+   - The app can relay and anchor ride summaries for Journey/history even while reward settlement is still pending
+   - In the app model, `settlement` tracks reward claims while `sync`/anchoring track ride-summary relay + commitment status
 
 ---
 
@@ -166,7 +173,7 @@ nargo test
 ```bash
 cd contracts/evm
 
-# Run all tests (14 tests: 9 ZK claims + 5 BiometricOracle)
+# Run all tests (16 tests: 11 ZK claims + 5 BiometricOracle)
 forge test -vvv
 
 # Single-proof ZK claim tests only
@@ -189,7 +196,7 @@ npx ts-node --esm scripts/e2e-live-loop.ts
 |---------|--------|--------|
 | CRE Biometric Oracle | Foundry tests | Prototype |
 | Confidential HTTP | Local simulation | Prototype |
-| Incentive Engine | 14 Foundry tests passing | Partial |
+| Incentive Engine | 16 Foundry tests passing | Partial |
 | ZK Circuits | Nargo tests + Foundry mocks | Prototype |
 | Snowtrace Verification | All 8 contracts verified | ✅ Complete |
 

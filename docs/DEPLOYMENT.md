@@ -19,7 +19,8 @@ foundryup
 ### Deploy to Fuji Testnet
 ```bash
 cd contracts/evm
-export PRIVATE_KEY=your_deployer_key
+export AVALANCHE_PRIVATE_KEY=your_deployer_key
+export ALLOW_MOCK_VERIFIER=true
 
 forge script src/deploy.s.sol:DeployScript \
   --rpc-url https://api.avax-test.network/ext/bc/C/rpc \
@@ -114,17 +115,18 @@ The Noir circuit compiles and tests correctly. However, generating an on-chain S
 - `bb` (Barretenberg CLI) 4.0.0-nightly generates **Honk** verifiers that exceed the EVM's 1024-slot stack depth limit
 - The `evm-no-zk` target produces broken code (upstream bug)
 - On testnet, `MockUltraVerifier` handles verification (accepts any proof)
-- For mainnet, see `contracts/DEPLOY.md` for workarounds
+- For mainnet, deploy with ZK disabled and use Chainlink/off-chain verification until the verifier issue is resolved
 
 ### Deploy (Testnet — uses MockUltraVerifier)
 ```bash
 cd contracts/evm
-forge create MockUltraVerifier --rpc-url https://api.avax-test.network/ext/bc/C/rpc --private-key $PRIVATE_KEY
-forge create EffortThresholdVerifier --rpc-url https://api.avax-test.network/ext/bc/C/rpc --private-key $PRIVATE_KEY --constructor-args <MockUltraVerifier_Address>
+forge create MockUltraVerifier --rpc-url https://api.avax-test.network/ext/bc/C/rpc --private-key $AVALANCHE_PRIVATE_KEY
+forge create EffortThresholdVerifier --rpc-url https://api.avax-test.network/ext/bc/C/rpc --private-key $AVALANCHE_PRIVATE_KEY --constructor-args <MockUltraVerifier_Address>
 ```
 
 Current caveats:
-- The Fuji deploy script deploys `MockUltraVerifier` only when no `ULTRA_VERIFIER_ADDRESS` is configured
+- The shared deploy script deploys `MockUltraVerifier` only when `ALLOW_MOCK_VERIFIER=true`
+- The shared deploy script can safely disable ZK claims by leaving both `ULTRA_VERIFIER_ADDRESS` and `ALLOW_MOCK_VERIFIER` unset
 - `IncentiveEngine` must be wired to `EffortThresholdVerifier`, not directly to the raw verifier
 - Runtime config still contains placeholder values that must be replaced before launch
 - The current Noir circuit only covers 60 seconds of data
@@ -194,6 +196,7 @@ Minimum release expectation:
 - `npm run lint` completes successfully
 - Contract/testnet flows are verified against the active config
 - User-facing rider/instructor flows do not silently fall back to mock data
+- Reward settlement state and ride-summary anchoring state are reported separately in app storage and UI
 
 ### Verify Contracts
 ```bash

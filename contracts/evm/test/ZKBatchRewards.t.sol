@@ -2,8 +2,8 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {IncentiveEngine} from "../IncentiveEngine.sol";
-import {SpinToken} from "../SpinToken.sol";
+import {IncentiveEngine} from "../src/IncentiveEngine.sol";
+import {SpinToken} from "../src/SpinToken.sol";
 
 contract TestEffortThresholdVerifier {
     error ProofAlreadyUsed();
@@ -173,6 +173,47 @@ contract ZKBatchRewardsTest is Test {
         uint256 reward2 = engine.calculateReward(800);
         assertEq(balanceAfter1, reward1);
         assertEq(balanceAfter2, reward1 + reward2);
+    }
+
+    function test_SubmitZKProof_RevertsWhenVerifierNotConfigured() public {
+        SpinToken isolatedToken;
+        IncentiveEngine engineWithoutVerifier;
+
+        vm.startPrank(owner);
+        isolatedToken = new SpinToken(owner);
+        engineWithoutVerifier = new IncentiveEngine(owner, address(isolatedToken), owner, address(0), treasury);
+        isolatedToken.transferOwnership(address(engineWithoutVerifier));
+        engineWithoutVerifier.setProtocolFee(0);
+        vm.stopPrank();
+
+        bytes memory proof = abi.encodePacked(uint256(123));
+        bytes32[] memory publicInputs = _publicInputs(threshold, 1, true, 60, 700, classId, rider);
+
+        vm.prank(rider);
+        vm.expectRevert(IncentiveEngine.VerifierNotConfigured.selector);
+        engineWithoutVerifier.submitZKProof(proof, publicInputs);
+    }
+
+    function test_SubmitZKProofBatch_RevertsWhenVerifierNotConfigured() public {
+        SpinToken isolatedToken;
+        IncentiveEngine engineWithoutVerifier;
+
+        vm.startPrank(owner);
+        isolatedToken = new SpinToken(owner);
+        engineWithoutVerifier = new IncentiveEngine(owner, address(isolatedToken), owner, address(0), treasury);
+        isolatedToken.transferOwnership(address(engineWithoutVerifier));
+        engineWithoutVerifier.setProtocolFee(0);
+        vm.stopPrank();
+
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = abi.encodePacked(uint256(321));
+
+        bytes32[][] memory publicInputsArray = new bytes32[][](1);
+        publicInputsArray[0] = _publicInputs(threshold, 1, true, 60, 700, classId, rider);
+
+        vm.prank(rider);
+        vm.expectRevert(IncentiveEngine.VerifierNotConfigured.selector);
+        engineWithoutVerifier.submitZKProofBatch(proofs, publicInputsArray, 60);
     }
 
     function _publicInputs(

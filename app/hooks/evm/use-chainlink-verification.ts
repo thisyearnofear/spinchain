@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import { useTransaction } from "./use-transaction";
 import { CONTRACTS, CHAINLINK_CONFIG } from "@/app/config";
 import { BIOMETRIC_ORACLE_ABI, INCENTIVE_ENGINE_ABI } from "@/app/lib/contracts";
@@ -14,6 +14,7 @@ interface ChainlinkVerificationParams {
 
 export function useChainlinkVerification() {
   const { address } = useAccount();
+  const publicClient = usePublicClient();
   const [isVerifying, setIsVerifying] = useState(false);
   const [requestId, setRequestId] = useState<`0x${string}` | null>(null);
 
@@ -61,7 +62,7 @@ export function useChainlinkVerification() {
    */
   const claimRewards = useCallback(
     async (classId: `0x${string}`) => {
-      await claimTx.write({
+      claimTx.write({
         address: CONTRACTS.avalanche.incentiveEngine,
         abi: INCENTIVE_ENGINE_ABI,
         functionName: "submitChainlinkProof",
@@ -69,6 +70,40 @@ export function useChainlinkVerification() {
       });
     },
     [claimTx]
+  );
+
+  const finalizeRewards = useCallback(
+    async ({ classId, threshold, duration }: ChainlinkVerificationParams) => {
+      if (!address) {
+        throw new Error("Wallet required for Chainlink rewards");
+      }
+
+      if (!publicClient) {
+        throw new Error("Public client unavailable");
+      }
+
+      const verifiedScore = await publicClient.readContract({
+        address: CONTRACTS.avalanche.biometricOracle,
+        abi: BIOMETRIC_ORACLE_ABI,
+        functionName: "getVerifiedScore",
+        args: [classId, address],
+      });
+
+      if (Number(verifiedScore) > 0) {
+        claimTx.write({
+          address: CONTRACTS.avalanche.incentiveEngine,
+          abi: INCENTIVE_ENGINE_ABI,
+          functionName: "submitChainlinkProof",
+          args: [classId],
+        });
+
+        return { action: "claimed" as const, score: Number(verifiedScore) };
+      }
+
+      const hash = await requestVerification({ classId, threshold, duration });
+      return { action: "requested" as const, hash };
+    },
+    [address, claimTx, publicClient, requestVerification]
   );
 
   /**
@@ -88,10 +123,12 @@ export function useChainlinkVerification() {
     // Actions
     requestVerification,
     claimRewards,
+    finalizeRewards,
     checkVerificationStatus: refetchStatus,
 
     // State
     isVerifying,
+    isRequestSuccess: requestTx.isSuccess,
     isClaiming: claimTx.isPending,
     requestId,
     verifiedScore: verifiedScore ? Number(verifiedScore) : 0,

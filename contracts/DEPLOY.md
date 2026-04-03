@@ -2,7 +2,7 @@
 
 > **Status**: Contracts deployed to Avalanche Fuji testnet (chain 43113).
 > All 8 contracts are **verified** on [Snowtrace](https://testnet.snowtrace.io).
-> For mainnet, repeat the steps with the mainnet RPC URL.
+> Use `src/deploy.s.sol` as the single deployment entrypoint for Fuji and mainnet.
 
 ---
 
@@ -27,7 +27,7 @@
    ```bash
    forge create src/BiometricOracle.sol:BiometricOracle \
      --rpc-url $FUJI_RPC \
-     --private-key $PRIVATE_KEY \
+     --private-key $AVALANCHE_PRIVATE_KEY \
      --constructor-args <CRE_FORWARDER_ADDRESS> <WORKFLOW_ID>
    ```
 
@@ -39,7 +39,7 @@
    ```bash
    cast send $INCENTIVE_ENGINE "setBiometricOracle(address)" $BIOMETRIC_ORACLE_ADDRESS \
      --rpc-url $FUJI_RPC \
-     --private-key $PRIVATE_KEY
+     --private-key $AVALANCHE_PRIVATE_KEY
    ```
 
 ---
@@ -76,6 +76,7 @@ Create `contracts/evm/.env`:
 
 ```env
 AVALANCHE_PRIVATE_KEY=0x<your_64_char_hex_private_key>
+ALLOW_MOCK_VERIFIER=true
 ```
 
 Get testnet AVAX: https://faucet.avax.network (requires GitHub/Twitter auth, sends 2 AVAX).
@@ -106,16 +107,17 @@ forge script src/deploy.s.sol:DeployScript \
 
 The deploy script (`src/deploy.s.sol`) executes in order:
 
-1. Deploy `MockUltraVerifier` (or use configured `ULTRA_VERIFIER_ADDRESS`)
-2. Deploy `EffortThresholdVerifier` pointing at the raw verifier
-3. Deploy `SpinToken`
-4. Deploy `IncentiveEngine` (receives `EffortThresholdVerifier`, not raw `UltraVerifier`)
-5. Authorize `IncentiveEngine` in `EffortThresholdVerifier`
-6. Deploy `BiometricOracle`
-7. Deploy `TreasurySplitter`
-8. Deploy `YellowSettlement`
-9. Deploy `ClassFactory`
-10. Transfer `SpinToken` ownership → `IncentiveEngine` (so it can mint rewards)
+1. Use `ULTRA_VERIFIER_ADDRESS` if provided
+2. Else deploy `MockUltraVerifier` only when `ALLOW_MOCK_VERIFIER=true`
+3. Deploy `EffortThresholdVerifier` only when a verifier is available
+4. Deploy `SpinToken`
+5. Deploy `IncentiveEngine` (with ZK enabled or explicitly disabled)
+6. Authorize `IncentiveEngine` in `EffortThresholdVerifier` when present
+7. Deploy `BiometricOracle`
+8. Deploy `TreasurySplitter`
+9. Deploy `YellowSettlement`
+10. Deploy `ClassFactory`
+11. Transfer `SpinToken` ownership → `IncentiveEngine`
 
 ### Verify on Snowtrace
 
@@ -136,7 +138,7 @@ Or verify individual contracts after deployment:
 forge verify-contract <ADDRESS> <CONTRACT_NAME> \
   --verifier etherscan \
   --chain-id 43113 \
-  --verifier-url "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan" \
+  --verifier-url "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan/api" \
   --etherscan-api-key $SNOWTRACE_API_KEY \
   --constructor-args $(cast abi-encode "constructor(...)" ...) \
   --watch
@@ -177,7 +179,7 @@ The frontend reads all addresses from these env vars via `app/lib/contracts.ts` 
 
 ### Current State (Testnet)
 
-On Fuji, `MockUltraVerifier` accepts any proof (testnet-only). The `EffortThresholdVerifier` wraps it and provides replay protection + authorized-caller gating. All ZK claim tests pass against this stack.
+On Fuji, `MockUltraVerifier` accepts any proof (testnet-only). The `EffortThresholdVerifier` wraps it and provides replay protection + authorized-caller gating. All ZK claim tests pass against this stack. For production deployments, the shared deploy script now supports disabling ZK claims entirely by omitting both `ULTRA_VERIFIER_ADDRESS` and `ALLOW_MOCK_VERIFIER`.
 
 ### Generating a Real UltraVerifier
 
@@ -207,19 +209,20 @@ bb write_solidity_verifier -k target/vk -o ../../contracts/evm/src/UltraVerifier
 
 Once a working `UltraVerifier.sol` is generated:
 1. Replace `contracts/evm/src/UltraVerifier.sol` with the generated output
-2. Deploy the new verifier on-chain
+2. Set `ULTRA_VERIFIER_ADDRESS` or let `src/deploy.s.sol` deploy the real verifier stack
 3. Deploy a new `EffortThresholdVerifier` pointing at it
 4. Deploy a new `IncentiveEngine` wired to the new `EffortThresholdVerifier`
-5. Update `.env.local` with the new addresses
+5. Update `.env.local` with the new addresses and set `NEXT_PUBLIC_REWARD_VERIFICATION_MODE=zk`
 
 ---
 
 ## Mainnet Checklist
 
-- [ ] Resolve Honk verifier stack depth limitation (see ZK Verifier section)
-- [ ] Generate and deploy real `UltraVerifier` from Noir circuit
-- [ ] Deploy `EffortThresholdVerifier` against the real verifier
+- [ ] Resolve Honk verifier stack depth limitation (or keep production on Chainlink/off-chain verification)
+- [ ] Generate and deploy real `UltraVerifier` from Noir circuit before enabling ZK claims on mainnet
+- [ ] Deploy `EffortThresholdVerifier` against the real verifier when ZK is enabled
 - [ ] Set `NEXT_PUBLIC_AVALANCHE_CHAIN_ID=43114` in `.env.local`
+- [ ] Set `NEXT_PUBLIC_REWARD_VERIFICATION_MODE=chainlink` if deploying without a real verifier
 - [ ] Fund deployer wallet with mainnet AVAX
 - [ ] Run forge script with mainnet RPC URL
 - [ ] Update `.env.local` with mainnet addresses

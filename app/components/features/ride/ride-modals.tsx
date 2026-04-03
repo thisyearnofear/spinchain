@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { RideCompletion } from "./ride-completion";
+import { RideCompletion, type RewardClaimStatus } from "./ride-completion";
 import { NoBikeModal } from "./no-bike-modal";
 import { KeyboardShortcutOverlay } from "./keyboard-shortcut-overlay";
 import { PedalSimulator } from "@/app/components/features/common/pedal-simulator";
@@ -29,13 +29,7 @@ interface RideModalsProps {
   practiceConfig: { name?: string; instructor?: string } | null;
   rewardsFormattedReward: string;
   handleClaimRewards: () => void;
-  zkProofStatus?: {
-    isGenerating: boolean;
-    isSuccess: boolean;
-    privacyScore: number;
-    privacyLevel: "high" | "medium" | "low";
-    error: Error | null;
-  };
+  rewardClaimStatus?: RewardClaimStatus;
   completionSyncStatus: RideSyncStatus;
   completionPrimaryAction: "view_history" | "ride_again";
   showMilestone: { title: string; subtitle: string } | null;
@@ -83,7 +77,7 @@ export function RideModals({
   practiceConfig: _practiceConfig,
   rewardsFormattedReward,
   handleClaimRewards,
-  zkProofStatus,
+  rewardClaimStatus,
   completionSyncStatus,
   completionPrimaryAction,
   showMilestone,
@@ -171,7 +165,7 @@ export function RideModals({
               : undefined
           }
           onClaimRewards={!isPracticeMode && !isTrainingMode ? handleClaimRewards : undefined}
-          zkProofStatus={zkProofStatus}
+          rewardClaimStatus={rewardClaimStatus}
           spinEarned={isTrainingMode ? "0" : rewardsFormattedReward}
           agentName={agentName}
           agentPersonality={aiPersonality || "data"}

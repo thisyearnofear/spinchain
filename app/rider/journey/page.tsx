@@ -7,6 +7,7 @@ import {
   getBadges,
   getLeaderboardSnapshot,
   getPRs,
+  getRideRewardStatus,
   getRetentionSignals,
   getRideHistory,
   processRideSyncQueue,
@@ -25,7 +26,7 @@ import {
 
 function JourneyContent() {
   const searchParams = useSearchParams();
-  const [rides] = useState<RideSummary[]>(() => getRideHistory());
+  const [rides, setRides] = useState<RideSummary[]>(() => getRideHistory());
   const [leaderboard, setLeaderboard] = useState<LeaderboardSnapshot | null>(
     null,
   );
@@ -36,9 +37,20 @@ function JourneyContent() {
   const badges = useMemo(() => getBadges(rides), [rides]);
   const latestClassId = rides[0]?.classId ?? "";
   useEffect(() => {
-    void processRideSyncQueue();
+    void processRideSyncQueue().then(() => {
+      setRides(getRideHistory());
+    });
+  }, []);
+
+  useEffect(() => {
     void getLeaderboardSnapshot(rides, latestClassId).then(setLeaderboard);
   }, [rides, latestClassId]);
+
+  useEffect(() => {
+    const handleStorage = () => setRides(getRideHistory());
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const recent = rides.slice(0, 8);
 
@@ -312,7 +324,7 @@ function JourneyContent() {
                   key={ride.id}
                   className="rounded-2xl border border-white/10 bg-black/20 p-4"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="font-semibold text-white">
                         {ride.className}
@@ -321,10 +333,28 @@ function JourneyContent() {
                         {new Date(ride.completedAt).toLocaleString()} •{" "}
                         {ride.instructor}
                       </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                        <span
+                          className={`rounded-full px-2 py-1 font-semibold ${getStatusToneClasses(getRideRewardStatus(ride).tone)}`}
+                        >
+                          {getRideRewardStatus(ride).label}
+                        </span>
+                        {ride.proof.mode !== "none" ? (
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/60">
+                            {ride.proof.mode}
+                          </span>
+                        ) : null}
+                        {ride.proof.verifiedScore ? (
+                          <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-cyan-200">
+                            {ride.proof.verifiedScore}/1000 verified
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                     <div className="text-right text-xs text-white/70">
                       <p>{ride.avgEffort}/1000 effort</p>
                       <p>{ride.spinEarned.toFixed(1)} SPIN</p>
+                      <p className="mt-2 text-white/40">{ride.sync.status.replace("_", " ")}</p>
                     </div>
                   </div>
                 </div>
@@ -344,6 +374,23 @@ function StatCard({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-2xl font-bold text-white">{value}</p>
     </div>
   );
+}
+
+function getStatusToneClasses(
+  tone: "neutral" | "cyan" | "emerald" | "amber" | "red",
+) {
+  switch (tone) {
+    case "cyan":
+      return "border border-cyan-500/30 bg-cyan-500/10 text-cyan-200";
+    case "emerald":
+      return "border border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+    case "amber":
+      return "border border-amber-500/30 bg-amber-500/10 text-amber-200";
+    case "red":
+      return "border border-red-500/30 bg-red-500/10 text-red-200";
+    default:
+      return "border border-white/10 bg-white/5 text-white/60";
+  }
 }
 
 export default function RiderJourneyPage() {

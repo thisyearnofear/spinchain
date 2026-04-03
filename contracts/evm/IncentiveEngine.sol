@@ -45,6 +45,7 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     error InvalidPublicInputs();
     error InconsistentBatchProofs();
     error EmptyBatch();
+    error VerifierNotConfigured();
 
     // ============ Constants ============
     uint256 public constant ATTESTATION_VALIDITY = 7 days;
@@ -185,6 +186,7 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
         bytes calldata proof,
         bytes32[] calldata publicInputs
     ) external nonReentrant whenNotPaused {
+        _requireVerifierConfigured();
         if (publicInputs.length != 7) revert InvalidPublicInputs();
 
         // Verify ZK proof - this also records it to prevent replays
@@ -220,6 +222,7 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
         bytes32[][] calldata publicInputsArray,
         uint32 minTotalSeconds
     ) external nonReentrant whenNotPaused {
+        _requireVerifierConfigured();
         if (proofs.length == 0 || publicInputsArray.length == 0) revert EmptyBatch();
         if (proofs.length != publicInputsArray.length) revert InvalidPublicInputs();
 
@@ -333,6 +336,10 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
         } else {
             rewardToken.mint(to, amount);
         }
+    }
+
+    function _requireVerifierConfigured() internal view {
+        if (address(verifier) == address(0)) revert VerifierNotConfigured();
     }
 
     // ============ Admin ============

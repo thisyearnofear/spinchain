@@ -938,7 +938,7 @@ export default function InstructorBuilderPage() {
                   {deployError && (
                     <div className="flex items-center gap-2 mt-3">
                       <span className="h-2 w-2 rounded-full bg-red-400" />
-                      <p className="text-sm font-bold text-red-400">❌ Deployment failed: {deployError.message}</p>
+                      <p className="text-sm font-bold text-red-400">❌ Deployment failed: {deployError}</p>
                     </div>
                   )}
                 </div>

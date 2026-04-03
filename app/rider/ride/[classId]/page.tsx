@@ -18,6 +18,7 @@ import {
 import { RideVisualization } from "../../../components/features/ride/ride-visualization";
 import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overlay";
 import { RideModals } from "../../../components/features/ride/ride-modals";
+import type { RewardClaimStatus } from "../../../components/features/ride/ride-completion";
 import type { StoryBeat } from "../../../components/features/route/route-visualizer";
 import { useSimulatedRewards } from "../../../hooks/ride/use-simulated-rewards";
 import {
@@ -40,7 +41,9 @@ import {
   type RewardMode,
 } from "../../../hooks/rewards/use-rewards";
 import { useUnifiedBle } from "../../../lib/mobile-bridge";
+import { useChainlinkVerification } from "../../../hooks/evm/use-chainlink-verification";
 import { useZKClaim } from "../../../hooks/evm/use-zk-claim";
+import { REWARD_VERIFICATION } from "../../../config";
 import { ANALYTICS_EVENTS, trackEvent } from "../../../lib/analytics/events";
 import { useWakeLock } from "../../../hooks/use-wake-lock";
 import { useHaptic } from "../../../hooks/use-haptic";
@@ -77,6 +80,7 @@ import {
   getRetentionSignals,
   processRideSyncQueue,
   saveRideSummary,
+  updateRideRewardState,
   type RideSyncStatus,
 } from "../../../lib/analytics/ride-history";
 
@@ -511,10 +515,34 @@ export default function LiveRidePage() {
     privacyLevel,
     error: zkError,
   } = useZKClaim();
+  const {
+    finalizeRewards: finalizeChainlinkRewards,
+    isVerifying: isChainlinkVerifying,
+    isRequestSuccess: isChainlinkRequestSuccess,
+    isClaiming: isChainlinkClaiming,
+    isVerified: isChainlinkVerified,
+    verifiedScore: chainlinkVerifiedScore,
+    isSuccess: chainlinkSuccess,
+    error: chainlinkError,
+  } = useChainlinkVerification();
+  const rewardVerificationMode = REWARD_VERIFICATION.mode;
+  const useChainlinkRewards = rewardVerificationMode === "chainlink";
+  const [completedRideId, setCompletedRideId] = useState<string | null>(null);
 
   const handleClaimRewards = async () => {
     if (isPracticeMode || !address) return;
     const threshold = classData?.metadata?.rewards?.threshold ?? 150;
+    const durationSeconds = Math.max(1, Math.floor(elapsedTime));
+
+    if (useChainlinkRewards) {
+      await finalizeChainlinkRewards({
+        classId: classId as `0x${string}`,
+        threshold,
+        duration: durationSeconds,
+      });
+      return;
+    }
+
     await claimWithZK(
       {
         spinClass: classId as `0x${string}`,
@@ -525,7 +553,7 @@ export default function LiveRidePage() {
       {
         heartRate: telemetryAverages.avgHr || telemetry.heartRate,
         threshold,
-        durationSeconds: Math.max(1, Math.floor(elapsedTime)),
+        durationSeconds,
         heartRateSamples: telemetrySamples.current.map((sample) => sample.hr),
         avgPower: telemetryAverages.avgPower,
       },
@@ -568,6 +596,82 @@ export default function LiveRidePage() {
 
   // Training mode: simulator is active in a paid class (rewards disabled but can test experience)
   const isTrainingMode = useSimulator && !isPracticeMode && walletConnected;
+  const rewardClaimStatus: RewardClaimStatus | undefined =
+    !isPracticeMode && !isTrainingMode
+      ? useChainlinkRewards
+        ? {
+            mode: "chainlink",
+            phase: (isChainlinkClaiming
+              ? "claiming"
+              : isChainlinkVerifying
+                ? "requesting"
+                : chainlinkSuccess
+                  ? "claimed"
+                  : isChainlinkVerified
+                    ? "ready"
+                    : chainlinkError
+                      ? "error"
+                      : isChainlinkRequestSuccess
+                        ? "requested"
+                        : "idle") as RewardClaimStatus["phase"],
+            privacyScore: 0,
+            privacyLevel: "low",
+            verifiedScore: chainlinkVerifiedScore,
+            error: chainlinkError,
+          }
+        : {
+            mode: "zk",
+            phase: (isGeneratingProof
+              ? "claiming"
+              : zkSuccess
+                ? "claimed"
+                : zkError
+                  ? "error"
+                  : "idle") as RewardClaimStatus["phase"],
+            privacyScore,
+            privacyLevel,
+            error: zkError,
+          }
+      : undefined;
+
+  useEffect(() => {
+    if (!completedRideId || !rewardClaimStatus) return;
+
+    const proofStatus =
+      rewardClaimStatus.phase === "claimed"
+        ? "claimed"
+        : rewardClaimStatus.phase === "ready"
+          ? "ready"
+          : rewardClaimStatus.phase === "requested"
+            ? "requested"
+            : rewardClaimStatus.phase === "error"
+              ? "failed"
+              : "idle";
+
+    updateRideRewardState(
+      completedRideId,
+      {
+        status: proofStatus,
+        isVerified:
+          rewardClaimStatus.phase === "ready" ||
+          rewardClaimStatus.phase === "claimed",
+        privacyScore: rewardClaimStatus.privacyScore,
+        privacyLevel: rewardClaimStatus.privacyLevel,
+        verifiedScore: rewardClaimStatus.verifiedScore,
+      },
+      {
+        attempted: rewardClaimStatus.phase !== "idle",
+        status:
+          rewardClaimStatus.phase === "claimed"
+            ? "confirmed"
+            : rewardClaimStatus.phase === "error"
+              ? "failed"
+              : rewardClaimStatus.phase === "idle"
+                ? "skipped"
+                : "pending",
+      },
+    );
+  }, [completedRideId, rewardClaimStatus]);
 
   // Simulated reward ticker for training/guest mode (incentivizes wallet connection)
   const simulatedRewards = useSimulatedRewards({
@@ -1285,16 +1389,31 @@ export default function LiveRidePage() {
       },
       proof: {
         mode: rewardMode === "sui-native" ? "none" : rewardMode,
-        isVerified: zkSuccess,
+        status:
+          rewardClaimStatus?.phase === "claimed"
+            ? "claimed"
+            : rewardClaimStatus?.phase === "ready"
+              ? "ready"
+              : rewardClaimStatus?.phase === "requested"
+                ? "requested"
+                : rewardClaimStatus?.phase === "error"
+                  ? "failed"
+                  : "idle",
+        isVerified: useChainlinkRewards ? chainlinkSuccess : zkSuccess,
         privacyScore,
         privacyLevel,
+        verifiedScore: rewardClaimStatus?.verifiedScore,
       },
-      onChain: {
+      settlement: {
         attempted: walletConnected,
         status: walletConnected
-          ? zkSuccess
-            ? "confirmed"
-            : "pending"
+          ? useChainlinkRewards
+            ? chainlinkSuccess
+              ? "confirmed"
+              : "pending"
+            : zkSuccess
+              ? "confirmed"
+              : "pending"
           : "skipped",
       },
     });
@@ -1302,6 +1421,7 @@ export default function LiveRidePage() {
     const latest =
       saved.find((ride) => ride.id === canonicalSummary.id) ?? canonicalSummary;
     const queued = enqueueRideSync(latest);
+    setCompletedRideId(summaryId);
     setCompletionSyncStatus(queued.sync.status);
     setCompletionPrimaryAction(getRetentionSignals(saved).ctaPrimary);
     void processRideSyncQueue();
@@ -1637,17 +1757,7 @@ export default function LiveRidePage() {
         practiceConfig={practiceConfig}
         rewardsFormattedReward={rewards.formattedReward}
         handleClaimRewards={handleClaimRewards}
-        zkProofStatus={
-          !isPracticeMode && !isTrainingMode
-            ? {
-                isGenerating: isGeneratingProof,
-                isSuccess: zkSuccess,
-                privacyScore,
-                privacyLevel,
-                error: zkError,
-              }
-            : undefined
-        }
+        rewardClaimStatus={rewardClaimStatus}
         completionSyncStatus={completionSyncStatus}
         completionPrimaryAction={completionPrimaryAction}
         showMilestone={showMilestone}
