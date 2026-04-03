@@ -43,7 +43,7 @@ contract ProductionDeployScript is Script {
         console.log("Deploying UltraVerifier...");
         UltraVerifier ultraVerifier = new UltraVerifier();
         console.log("UltraVerifier:", address(ultraVerifier));
-        
+
         // Verify the verifier is properly initialized
         try ultraVerifier.VERIFICATION_KEY_INITIALIZED() returns (bool initialized) {
             require(initialized, "UltraVerifier not initialized - run bb contract first");

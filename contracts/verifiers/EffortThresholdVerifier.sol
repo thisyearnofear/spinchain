@@ -78,13 +78,13 @@ contract EffortThresholdVerifier is Ownable, Pausable {
         bytes32[] calldata publicInputs
     ) external view whenNotPaused returns (bool success) {
         if (publicInputs.length != 7) revert InvalidPublicInputs();
-        
+
         bool valid = noirVerifier.verify(proof, _proofInputsForNoir(publicInputs));
         if (!valid) revert InvalidProof();
-        
+
         bool thresholdMet = publicInputs[2] != bytes32(0);
         if (!thresholdMet) revert ThresholdNotMet();
-        
+
         return true;
     }
     
