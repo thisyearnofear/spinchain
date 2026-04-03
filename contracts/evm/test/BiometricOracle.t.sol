@@ -21,17 +21,18 @@ contract BiometricOracleTest is Test {
 
     function setUp() public {
         vm.startPrank(owner);
-        
+
         // Deploy stack
         token = new SpinToken(owner);
         verifier = new MockUltraVerifier();
         engine = new IncentiveEngine(owner, address(token), owner, address(verifier), owner);
         oracle = new BiometricOracle(creForwarder, workflowId);
-        
+
         // Setup permissions
         token.transferOwnership(address(engine));
         engine.setBiometricOracle(address(oracle));
-        
+        engine.setProtocolFee(0); // Zero fee for clean test assertions
+
         vm.stopPrank();
     }
 

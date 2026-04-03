@@ -102,6 +102,79 @@ contract ZKBatchRewardsTest is Test {
         engine.submitZKProofBatch(proofs, publicInputsArray, 60);
     }
 
+    // ─── Single Proof Tests ──────────────────────────────────────────────────
+
+    function test_SubmitZKProof_MintsReward() public {
+        bytes memory proof = abi.encodePacked(uint256(42));
+        bytes32[] memory publicInputs = _publicInputs(threshold, 1, true, 60, 700, classId, rider);
+
+        vm.prank(rider);
+        engine.submitZKProof(proof, publicInputs);
+
+        uint256 expectedReward = engine.calculateReward(700);
+        assertEq(token.balanceOf(rider), expectedReward);
+        assertEq(engine.totalClaimed(rider), expectedReward);
+    }
+
+    function test_SubmitZKProof_RevertsOnReplay() public {
+        bytes memory proof = abi.encodePacked(uint256(99));
+        bytes32[] memory publicInputs = _publicInputs(threshold, 1, true, 60, 700, classId, rider);
+
+        vm.prank(rider);
+        engine.submitZKProof(proof, publicInputs);
+
+        vm.prank(rider);
+        vm.expectRevert(TestEffortThresholdVerifier.ProofAlreadyUsed.selector);
+        engine.submitZKProof(proof, publicInputs);
+    }
+
+    function test_SubmitZKProof_RevertsWhenCallerIsNotRider() public {
+        bytes memory proof = abi.encodePacked(uint256(77));
+        bytes32[] memory publicInputs = _publicInputs(threshold, 1, true, 60, 700, classId, rider);
+
+        vm.prank(address(0xDEAD));
+        vm.expectRevert(IncentiveEngine.InvalidSignature.selector);
+        engine.submitZKProof(proof, publicInputs);
+    }
+
+    function test_SubmitZKProof_RevertsOnInvalidPublicInputsLength() public {
+        bytes memory proof = abi.encodePacked(uint256(55));
+        bytes32[] memory badInputs = new bytes32[](3); // Wrong length (should be 7)
+
+        vm.prank(rider);
+        vm.expectRevert(IncentiveEngine.InvalidPublicInputs.selector);
+        engine.submitZKProof(proof, badInputs);
+    }
+
+    function test_SubmitZKProof_RevertsWhenThresholdNotMet() public {
+        bytes memory proof = abi.encodePacked(uint256(33));
+        bytes32[] memory publicInputs = _publicInputs(threshold, 1, false, 10, 200, classId, rider);
+
+        vm.prank(rider);
+        vm.expectRevert(TestEffortThresholdVerifier.ThresholdNotMet.selector);
+        engine.submitZKProof(proof, publicInputs);
+    }
+
+    function test_SubmitZKProof_DifferentProofsMintSeparately() public {
+        bytes memory proof1 = abi.encodePacked(uint256(101));
+        bytes memory proof2 = abi.encodePacked(uint256(102));
+        bytes32[] memory inputs1 = _publicInputs(threshold, 1, true, 60, 500, classId, rider);
+        bytes32[] memory inputs2 = _publicInputs(threshold, 1, true, 60, 800, classId, rider);
+
+        vm.prank(rider);
+        engine.submitZKProof(proof1, inputs1);
+        uint256 balanceAfter1 = token.balanceOf(rider);
+
+        vm.prank(rider);
+        engine.submitZKProof(proof2, inputs2);
+        uint256 balanceAfter2 = token.balanceOf(rider);
+
+        uint256 reward1 = engine.calculateReward(500);
+        uint256 reward2 = engine.calculateReward(800);
+        assertEq(balanceAfter1, reward1);
+        assertEq(balanceAfter2, reward1 + reward2);
+    }
+
     function _publicInputs(
         uint16 threshold_,
         uint32 minDuration,
