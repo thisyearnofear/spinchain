@@ -157,8 +157,20 @@ nargo compile
 # Test
 nargo test
 
-# Generate verifier (or use CI)
-nargo codegen-verifier
+# Generate verifier — see DEPLOYMENT.md for known Honk limitation
+# nargo codegen-verifier  # DEPRECATED: use bb write_solidity_verifier instead
+```
+
+### Foundry Contract Tests
+
+```bash
+cd contracts/evm
+
+# Run all tests (14 tests: 9 ZK claims + 5 BiometricOracle)
+forge test -vvv
+
+# Single-proof ZK claim tests only
+forge test --match-path test/ZKBatchRewards.t.sol -vvv
 ```
 
 ### End-to-End Simulation
@@ -175,10 +187,11 @@ npx ts-node --esm scripts/e2e-live-loop.ts
 
 | Feature | Method | Status |
 |---------|--------|--------|
-| CRE Biometric Oracle | Manual/dev verification | Prototype |
+| CRE Biometric Oracle | Foundry tests | Prototype |
 | Confidential HTTP | Local simulation | Prototype |
-| Incentive Engine | Contract + app wiring | Partial |
-| ZK Circuits | Nargo | Prototype |
+| Incentive Engine | 14 Foundry tests passing | Partial |
+| ZK Circuits | Nargo tests + Foundry mocks | Prototype |
+| Snowtrace Verification | All 8 contracts verified | ✅ Complete |
 
 ---
 

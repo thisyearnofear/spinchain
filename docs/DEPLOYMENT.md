@@ -21,22 +21,39 @@ foundryup
 cd contracts/evm
 export PRIVATE_KEY=your_deployer_key
 
-forge script script/Deploy.s.sol \
+forge script src/deploy.s.sol:DeployScript \
+  --rpc-url https://api.avax-test.network/ext/bc/C/rpc \
+  --broadcast \
+  -vvvv
+```
+
+### Verify on Snowtrace
+
+```bash
+export SNOWTRACE_API_KEY=your_api_key
+forge script src/deploy.s.sol:DeployScript \
   --rpc-url https://api.avax-test.network/ext/bc/C/rpc \
   --broadcast --verify \
-  --etherscan-api-key <snowtrace_api_key>
+  -vvvv
 ```
+
+See `contracts/DEPLOY.md` for detailed per-contract verification commands.
 
 ### Deployed Contracts (Fuji)
 
-Treat these as testnet deployment references, not final production addresses.
+All 8 contracts are **verified** on [Snowtrace](https://testnet.snowtrace.io).
+See `contracts/DEPLOY.md` for the full address table with explorer links.
 
 | Contract | Address |
 |----------|---------|
-| `SpinToken` | `0xbd73026ECe5c9D44D4f31a96B6d2d3ca9981a4eA` |
-| `IncentiveEngine` | `0xA0CCbF6F940685e2495a5FE6F13820f32Db68EDC` |
-| `ClassFactory` | `0x7B9283Fb889e6033e6d0fbe3E96D0C5734DC932a` |
-| `TreasurySplitter` | `0x9AB33e974Dbb6D9a11C5116Ce2E2e04471c482A0` |
+| `SpinToken` | `0xA2DA94dE3AB8a90D62A1b1897E0e96DBda0F494f` |
+| `IncentiveEngine` | `0x8BF20C7fbc69cafd3144de3Bb30509A26F39FF3d` |
+| `ClassFactory` | `0xc4B4A722b55610bFa1556506B87Cbfe7983961A7` |
+| `TreasurySplitter` | `0xDd787C22A28aA709021860485AC1b95620B5AcE3` |
+| `YellowSettlement` | `0x960bbE91899D8A1D62e894348B9fa8B6358d9182` |
+| `MockUltraVerifier` | `0x202aEd029708F2e0540B63a4025Dcb2556F85ba1` |
+| `EffortThresholdVerifier` | `0x783C36f6502052EC31971e75E20D0012910dbA91` |
+| `BiometricOracle` | `0xE0021E77f52761A69F611530A481B2B9371993d8` |
 
 ---
 
@@ -83,27 +100,32 @@ curl -L https://noirup.dev | bash
 noirup
 ```
 
-### Compile & Generate Verifier
+### Compile & Test Circuit
 ```bash
 cd circuits/effort_threshold
 nargo compile
 nargo test
-
-# CI auto-generates UltraVerifier.sol on push to main
-# Or manually:
-nargo codegen-verifier
 ```
 
-### Deploy
+### ⚠️ Generating a Production Verifier (Known Limitation)
+
+The Noir circuit compiles and tests correctly. However, generating an on-chain Solidity verifier is currently blocked:
+
+- `bb` (Barretenberg CLI) 4.0.0-nightly generates **Honk** verifiers that exceed the EVM's 1024-slot stack depth limit
+- The `evm-no-zk` target produces broken code (upstream bug)
+- On testnet, `MockUltraVerifier` handles verification (accepts any proof)
+- For mainnet, see `contracts/DEPLOY.md` for workarounds
+
+### Deploy (Testnet — uses MockUltraVerifier)
 ```bash
 cd contracts/evm
-forge create UltraVerifier --rpc-url https://api.avax-test.network/ext/bc/C/rpc --private-key $PRIVATE_KEY
-forge create EffortThresholdVerifier --rpc-url https://api.avax-test.network/ext/bc/C/rpc --private-key $PRIVATE_KEY --constructor-args <UltraVerifier_Address>
+forge create MockUltraVerifier --rpc-url https://api.avax-test.network/ext/bc/C/rpc --private-key $PRIVATE_KEY
+forge create EffortThresholdVerifier --rpc-url https://api.avax-test.network/ext/bc/C/rpc --private-key $PRIVATE_KEY --constructor-args <MockUltraVerifier_Address>
 ```
 
 Current caveats:
 - The Fuji deploy script deploys `MockUltraVerifier` only when no `ULTRA_VERIFIER_ADDRESS` is configured
-- `IncentiveEngine` must be wired to `EffortThresholdVerifier`, not directly to the raw `UltraVerifier`
+- `IncentiveEngine` must be wired to `EffortThresholdVerifier`, not directly to the raw verifier
 - Runtime config still contains placeholder values that must be replaced before launch
 - The current Noir circuit only covers 60 seconds of data
 
@@ -135,15 +157,9 @@ NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x...
 NEXT_PUBLIC_SPIN_TOKEN_ADDRESS=0x...
 NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=0x...
 NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=0x...
-```
-
-Additional launch-critical values:
-```env
-NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=0x...
-NEXT_PUBLIC_CHAINLINK_FORWARDER=0x...
-NEXT_PUBLIC_CHAINLINK_WORKFLOW_ID=0x...
 NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=0x...
 NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS=0x...
+NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=0x...
 ```
 
 ---
@@ -181,8 +197,8 @@ Minimum release expectation:
 
 ### Verify Contracts
 ```bash
-# Avalanche
-forge verify-contract <address> SpinToken --chain-id 43113 --etherscan-api-key <key>
+# Avalanche — all 8 contracts verified on Snowtrace
+# See https://testnet.snowtrace.io for verification status
 
 # Sui
 sui client object 0xc42b32ab25566a6f43db001e6f2c2fd6b2ccc7232e2af3cfca0b9beca824d7dc
@@ -190,9 +206,13 @@ sui client object 0xc42b32ab25566a6f43db001e6f2c2fd6b2ccc7232e2af3cfca0b9beca824
 
 ### Test ZK Flow
 ```bash
+# Noir circuit tests
 cd circuits/effort_threshold
 nargo test
-npx ts-node --esm scripts/e2e-live-loop.ts
+
+# Foundry contract tests (single-proof + batch ZK claims)
+cd contracts/evm
+forge test -vvv
 ```
 
 ---
@@ -204,7 +224,8 @@ npx ts-node --esm scripts/e2e-live-loop.ts
 | Insufficient gas (Sui) | `sui client faucet` |
 | ZK circuit not found | `nargo compile` in circuit dir |
 | BLE not connecting | Check permissions, pairing mode |
-| Contract not verified | Match compiler version |
+| Contract not verified | See `contracts/DEPLOY.md` for verification commands |
+| Honk verifier stack overflow | See ZK Verifier section above — known upstream bug |
 
 ---
 

@@ -12,7 +12,7 @@ SpinChain has a promising prototype, but the app is still demo/testnet-stage and
 
 **Critical Blockers**:
 1. User-facing screens still rely on mock/demo fallbacks in some production paths
-2. ZK claims now support chunked batch submission, but configured end-to-end verification is still incomplete
+2. ZK claims support chunked batch submission with 14 Foundry tests passing; real on-chain verifier blocked by Honk stack depth limitation (see Part 2)
 3. Runtime and deployment config still contain placeholders or mock components
 4. Release verification is not yet a dependable gate
 
@@ -35,7 +35,7 @@ SpinChain has a promising prototype, but the app is still demo/testnet-stage and
 | ID | File | Line | Issue | Resolution |
 |----|------|------|-------|------------|
 | P1-1 | `app/rider/ride/[classId]/page.tsx` | 443 | Ghost pacer uses random mock data | Fetch real historical rider performance from Sui |
-| P1-2 | `contracts/evm/src/deploy.s.sol` | 20 | Deploy script uses `MockUltraVerifier` | Switch to generated `UltraVerifier.sol` from Noir compilation |
+| P1-2 | `contracts/evm/src/deploy.s.sol` | 20 | Deploy script uses `MockUltraVerifier` | ⚠️ Blocked: `bb` generates Honk verifiers exceeding EVM stack depth. Workaround: off-chain verification or wait for upstream fix. See `contracts/DEPLOY.md` |
 | P1-3 | `app/api/ai/generate-route/route.ts` | 5 | ~~HACKATHON_STRATEGY shortcuts~~ | ✅ Production-ready with strict schema validation |
 | P1-4 | `app/instructor/yellow/page.tsx` | 273 | Telemetry sparkline is placeholder | Integrate live Sui telemetry stream |
 
@@ -250,13 +250,14 @@ Device → Chainlink Functions (TEE) → BiometricOracle.sol → Rewards
 - [x] Implement chunked proof generation from heart-rate samples
 - [x] Add `submitZKProofBatch(...)` to `IncentiveEngine.sol`
 - [x] Wire rider and shared rewards hooks to batch claim submission
-- [ ] Add contract and app coverage for replay protection, mismatched batches, and threshold failures
-- [ ] Run configured Fuji end-to-end claim tests with a real verifier deployment
+- [x] Add contract tests for replay protection, mismatched batches, threshold failures, and single-proof claims (14 tests passing)
+- [ ] Run configured Fuji end-to-end claim tests with a real verifier deployment — ⚠️ Blocked by Honk stack depth limitation
 
 ### Sprint 3: Feature Completion (Week 5-6)
 - [x] Real ghost pacer data (P1-1) ✅ 2026-03-17
 - [ ] Live telemetry integration (P1-4)
-- [x] Production verifier in deploy script (P1-2) ✅ 2026-03-17 - Created deploy-production.s.sol
+- [x] Production deploy script created (`deploy-production.s.sol`) ✅ 2026-03-17
+- [ ] Real verifier in deploy script (P1-2) — ⚠️ Blocked by Honk stack depth limitation
 
 ### Sprint 4: Polish & Testing (Week 7-8)
 - [ ] End-to-end testing on Fuji testnet with real verifier + engine addresses
@@ -286,6 +287,8 @@ Before mainnet, implement:
 - [ ] Real contract integration on all frontend hooks
 - [ ] Successful testnet run with 10+ concurrent users
 - [ ] Zero hackathon/mock code in production paths
+- [ ] All 8 contracts verified on Snowtrace ✅ 2026-04-03
+- [ ] Resolve Honk verifier stack depth limitation for mainnet
 
 ---
 
