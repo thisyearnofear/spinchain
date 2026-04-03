@@ -9,6 +9,7 @@ import {UltraVerifier} from "../UltraVerifier.sol";
 import {TreasurySplitter} from "./TreasurySplitter.sol";
 import {YellowSettlement} from "./YellowSettlement.sol";
 import {BiometricOracle} from "./BiometricOracle.sol";
+import {EffortThresholdVerifier} from "verifiers/EffortThresholdVerifier.sol";
 
 /**
  * @title Production Deploy Script
@@ -56,16 +57,23 @@ contract ProductionDeployScript is Script {
         SpinToken spinToken = new SpinToken(deployer);
         console.log("SpinToken:", address(spinToken));
 
+        console.log("\nDeploying EffortThresholdVerifier...");
+        EffortThresholdVerifier effortVerifier = new EffortThresholdVerifier(address(ultraVerifier));
+        console.log("EffortThresholdVerifier:", address(effortVerifier));
+
         // IncentiveEngine(owner, token, signer, verifier)
         console.log("\nDeploying IncentiveEngine...");
         IncentiveEngine incentiveEngine = new IncentiveEngine(
             deployer,
             address(spinToken),
             deployer, // Initial signer (attestation oracle)
-            address(ultraVerifier),
+            address(effortVerifier),
             deployer
         );
         console.log("IncentiveEngine:", address(incentiveEngine));
+
+        console.log("Authorizing IncentiveEngine in EffortThresholdVerifier...");
+        effortVerifier.setAuthorizedCaller(address(incentiveEngine), true);
 
         // BiometricOracle(forwarder, workflowId)
         // Optional: Only deploy if Chainlink CRE is configured
@@ -121,6 +129,7 @@ contract ProductionDeployScript is Script {
         console.log("NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=%s", address(incentiveEngine));
         console.log("NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=%s", address(classFactory));
         console.log("NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=%s", address(ultraVerifier));
+        console.log("NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=%s", address(effortVerifier));
         console.log("NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=%s", address(treasurySplitter));
         console.log("NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS=%s", address(yellowSettlement));
         if (address(biometricOracle) != address(0)) {

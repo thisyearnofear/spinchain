@@ -9,6 +9,7 @@ import {MockUltraVerifier} from "./MockUltraVerifier.sol";
 import {TreasurySplitter} from "./TreasurySplitter.sol";
 import {YellowSettlement} from "./YellowSettlement.sol";
 import {BiometricOracle} from "./BiometricOracle.sol";
+import {EffortThresholdVerifier} from "verifiers/EffortThresholdVerifier.sol";
 
 contract DeployScript is Script {
     function run() external {
@@ -27,6 +28,10 @@ contract DeployScript is Script {
             console.log("Using configured UltraVerifier:", ultraVerifier);
         }
 
+        console.log("Deploying EffortThresholdVerifier...");
+        EffortThresholdVerifier effortVerifier = new EffortThresholdVerifier(ultraVerifier);
+        console.log("EffortThresholdVerifier:", address(effortVerifier));
+
         // SpinToken
         console.log("Deploying SpinToken...");
         SpinToken spinToken = new SpinToken(deployer);
@@ -38,10 +43,13 @@ contract DeployScript is Script {
             deployer,
             address(spinToken),
             deployer,
-            ultraVerifier,
+            address(effortVerifier),
             deployer
         );
         console.log("IncentiveEngine:", address(incentiveEngine));
+
+        console.log("Authorizing IncentiveEngine in EffortThresholdVerifier...");
+        effortVerifier.setAuthorizedCaller(address(incentiveEngine), true);
 
         // BiometricOracle(forwarder, workflowId)
         console.log("Deploying BiometricOracle...");
@@ -88,6 +96,7 @@ contract DeployScript is Script {
         console.log("NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=", address(incentiveEngine));
         console.log("NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=", address(classFactory));
         console.log("NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=", ultraVerifier);
+        console.log("NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=", address(effortVerifier));
         console.log("NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=", address(treasurySplitter));
         console.log("NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS=", address(yellowSettlement));
         console.log("NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=", address(biometricOracle));
