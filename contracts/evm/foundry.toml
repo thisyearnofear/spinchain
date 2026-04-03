@@ -16,4 +16,4 @@ remappings = [
 fuji = "https://api.avax-test.network/ext/bc/C/rpc"
 
 [etherscan]
-fuji = { key = "verifykey", url = "https://api.snowtrace.io/api" }
+fuji = { key = "${SNOWTRACE_API_KEY}", url = "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan/api" }
