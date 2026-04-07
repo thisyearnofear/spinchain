@@ -597,8 +597,8 @@ export default function LiveRidePage() {
 
   // Training mode: simulator is active in a paid class (rewards disabled but can test experience)
   const isTrainingMode = useSimulator && !isPracticeMode && walletConnected;
-  const rewardClaimStatus: RewardClaimStatus | undefined =
-    !isPracticeMode && !isTrainingMode
+  const rewardClaimStatus: RewardClaimStatus | undefined = useMemo(() => {
+    return !isPracticeMode && !isTrainingMode
       ? useChainlinkRewards
         ? {
             mode: "chainlink",
@@ -634,6 +634,23 @@ export default function LiveRidePage() {
             error: zkError,
           }
       : undefined;
+  }, [
+    isPracticeMode,
+    isTrainingMode,
+    useChainlinkRewards,
+    isChainlinkClaiming,
+    isChainlinkVerifying,
+    chainlinkSuccess,
+    isChainlinkVerified,
+    chainlinkError,
+    isChainlinkRequestSuccess,
+    chainlinkVerifiedScore,
+    isGeneratingProof,
+    zkSuccess,
+    zkError,
+    privacyScore,
+    privacyLevel,
+  ]);
 
   useEffect(() => {
     if (!completedRideId || !rewardClaimStatus) return;
@@ -684,11 +701,13 @@ export default function LiveRidePage() {
 
   const { multiGhostState } = useMultiGhost(
     classId as string,
-    routeData?.coordinates || [],
+    classData?.route?.route?.coordinates || [],
     telemetry.distance,
-    elapsedSeconds,
+    elapsedTime,
     isRiding
   );
+
+  const socialRiders = multiGhostState;
 
   // Rewards — mode selectable, defaults to zk-batch
   const rewards = useRewards({
@@ -1056,7 +1075,7 @@ export default function LiveRidePage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRiding, bleConnected, useSimulator]);
+  }, [isRiding, bleConnected, useSimulator, isPracticeMode, isGuestMode]);
 
   // Also collect BLE and simulator telemetry samples
   useEffect(() => {
@@ -1125,7 +1144,7 @@ export default function LiveRidePage() {
       });
     }, 15000);
     return () => clearInterval(interval);
-  }, [isRiding, telemetry.effort]);
+  }, [isRiding, telemetry.effort, isPracticeMode, isGuestMode]);
 
   const {
     aiLogs,

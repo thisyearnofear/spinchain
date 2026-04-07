@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve = config.resolve || {};

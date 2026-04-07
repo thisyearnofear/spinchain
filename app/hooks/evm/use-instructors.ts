@@ -55,10 +55,15 @@ export function useInstructors() {
       const name = cls.instructor;
       if (!name || instructorMap.has(name)) return;
 
-      const metadata = cls.route?.metadata;
-      const isAI = metadata?.ai?.enabled ?? false;
-      const personality = metadata?.ai?.personality ?? "data";
+      const aiMetadata = cls.metadata?.ai;
+      const isAI = aiMetadata?.enabled ?? false;
+      const personality = aiMetadata?.personality ?? "data";
       const config = PERSONALITY_MAP[personality] || PERSONALITY_MAP["data"];
+
+      // Deterministic ratings/rides based on instructor name to keep component pure
+      const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const rating = (4.5 + (seed % 5) / 10).toFixed(1);
+      const rides = (100 + (seed % 2000)).toString();
 
       instructorMap.set(name, {
         name,
@@ -67,9 +72,9 @@ export function useInstructors() {
         role: config.role,
         icon: config.icon,
         color: config.color,
-        rating: (4.5 + Math.random() * 0.5).toFixed(1), // Mocked for now, should be on-chain
-        rides: (100 + Math.floor(Math.random() * 2000)).toString(), // Mocked for now
-        specialty: metadata?.description?.split(".")[0] || "Professional Cycling Instructor",
+        rating,
+        rides,
+        specialty: cls.metadata?.description?.split(".")[0] || "Professional Cycling Instructor",
         agenticPowers: isAI ? config.powers : ["Class Design", "Live Coaching", "Performance Feedback"],
       });
     });

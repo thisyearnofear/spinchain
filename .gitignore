@@ -72,6 +72,7 @@ circuits/*/target/
 .qwen
 .zencoder
 .zenflow
+.junie
 
 # External repos
 /remix-glassmorphism-analytics-/

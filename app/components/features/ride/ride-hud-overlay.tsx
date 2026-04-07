@@ -11,6 +11,8 @@ import type { HapticType } from "@/app/hooks/use-haptic";
 import type { TelemetryData } from "./ride-hud";
 import type { AgentDecision } from "@/app/lib/ai-types";
 
+import type { MultiGhostState } from "@/app/hooks/ride/use-multi-ghost";
+
 interface RideHUDOverlayProps {
   classData: { name: string; instructor: string };
   isPracticeMode: boolean;
@@ -33,6 +35,7 @@ interface RideHUDOverlayProps {
   telemetry: TelemetryData;
   telemetryHistory: { power: number[]; cadence: number[]; heartRate: number[] };
   ghostState: GhostState;
+  multiGhostState: MultiGhostState[];
   currentInterval: {
     phase: IntervalPhase;
     durationSeconds: number;
@@ -88,6 +91,7 @@ interface RideHUDOverlayProps {
   formatTime: (s: number) => string;
   trackWidgetInteraction: (action: "toggle" | "minimize" | "restore" | "drag", panel: PanelKey) => void;
   cycleRideWidgetsMode: () => void;
+  socialRiders: MultiGhostState[];
 }
 
 export function RideHUDOverlay(props: RideHUDOverlayProps) {
@@ -137,7 +141,7 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
           intervalPhase={props.currentInterval?.phase ?? null}
           aiLog={props.aiLogs[0]}
           ghostState={props.ghostState}
-          multiGhostState={[]}
+          multiGhostState={props.multiGhostState}
           targetRpm={props.currentInterval?.targetRpm}
         />
       )}
