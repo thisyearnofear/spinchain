@@ -21,6 +21,7 @@ import { RideModals } from "../../../components/features/ride/ride-modals";
 import type { RewardClaimStatus } from "../../../components/features/ride/ride-completion";
 import type { StoryBeat } from "../../../components/features/route/route-visualizer";
 import { useSimulatedRewards } from "../../../hooks/ride/use-simulated-rewards";
+import { useMultiGhost } from "../../../hooks/ride/use-multi-ghost";
 import {
   useDeviceType,
   useOrientation,
@@ -681,12 +682,20 @@ export default function LiveRidePage() {
     effortScore: telemetry.effort,
   });
 
+  const { multiGhostState } = useMultiGhost(
+    classId as string,
+    routeData?.coordinates || [],
+    telemetry.distance,
+    elapsedSeconds,
+    isRiding
+  );
+
   // Rewards — mode selectable, defaults to zk-batch
   const rewards = useRewards({
     mode: rewardMode,
     classId: classId as string,
     instructor: (classData?.instructor as `0x${string}`) || "0x0",
-    depositAmount: BigInt(0), // Demo mode - no real deposit required
+    depositAmount: classData?.currentPrice ? BigInt(Math.floor(parseFloat(classData.currentPrice) * 1e18)) : BigInt(0),
   });
 
   // Mobile experience hooks - wake lock, fullscreen, haptic
@@ -1022,9 +1031,9 @@ export default function LiveRidePage() {
     });
   }, [classId, isPracticeMode, isRiding, rideProgress]);
 
-  // Simulate telemetry when BLE not connected and not using simulator
+  // Simulate telemetry when BLE not connected and not using simulator (Demo/Guest mode only)
   useEffect(() => {
-    if (!isRiding || bleConnected || useSimulator) return;
+    if (!isRiding || bleConnected || useSimulator || (!isPracticeMode && !isGuestMode)) return;
 
     const interval = setInterval(() => {
       const prev = telemetryRawRef.current;
@@ -1100,9 +1109,9 @@ export default function LiveRidePage() {
     capacity: 50,
   });
 
-  // Simulate market activity for Phase 3 autonomy
+  // Simulate market activity for Phase 3 autonomy (Demo/Guest mode only)
   useEffect(() => {
-    if (!isRiding) return;
+    if (!isRiding || (!isPracticeMode && !isGuestMode)) return;
     const interval = setInterval(() => {
       setMarketStats((prev) => {
         // More "intense" classes drive more late-ticket sales
@@ -1661,6 +1670,8 @@ export default function LiveRidePage() {
         formatTime={formatTime}
         trackWidgetInteraction={trackWidgetInteraction}
         cycleRideWidgetsMode={cycleRideWidgetsMode}
+        multiGhostState={multiGhostState}
+        socialRiders={socialRiders}
       />
 
       <RiderSocialFeed events={socialEvents} onHighFive={handleHighFive} />
@@ -1684,13 +1695,9 @@ export default function LiveRidePage() {
       )}
 
       {/* Social Presence: Other riders in the class */}
-      {isRiding && viewMode === "immersive" && (
+      {isRiding && viewMode === "immersive" && multiGhostState.length > 0 && (
         <div className="fixed top-32 left-6 z-40 flex flex-col gap-3">
-          {[
-            { id: "1", name: "Vitalik.eth", power: 245, active: true },
-            { id: "2", name: "Satoshi_N", power: 180, active: false },
-            { id: "3", name: "CyclingSam", power: 210, active: true },
-          ].map((rider) => (
+          {multiGhostState.map((rider) => (
             <motion.div
               key={rider.id}
               initial={{ opacity: 0, x: -20 }}
@@ -1710,7 +1717,7 @@ export default function LiveRidePage() {
                   {rider.name}
                 </span>
                 <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-0.5">
-                  {rider.power}W
+                  {rider.power}W | {rider.leadLagTime > 0 ? "+" : ""}{rider.leadLagTime.toFixed(1)}s
                 </span>
               </div>
             </motion.div>

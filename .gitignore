@@ -68,8 +68,10 @@ circuits/*/target/
 .cursor/
 .cody/
 .windsurf/
-.crush/
-/qwen/
+.crush
+.qwen
+.zencoder
+.zenflow
 
 # External repos
 /remix-glassmorphism-analytics-/

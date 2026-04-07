@@ -10,6 +10,7 @@ import {
   GUEST_DEMO_CLASS,
   getDemoRideUrl,
 } from "../hooks/evm/use-class-data";
+import { useInstructors } from "../hooks/evm/use-instructors";
 import Link from "next/link";
 import { RoutePreviewCard } from "../components/features/route/route-preview-card";
 import { ConnectWallet } from "../components/features/wallet/connect-wallet";
@@ -21,6 +22,7 @@ export default function RiderPage() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const { classes, isLoading, error } = useClasses();
+  const { instructors, isLoading: instructorsLoading } = useInstructors();
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
   const [filterUpcoming, setFilterUpcoming] = useState(true);
   const [showGuestBanner, setShowGuestBanner] = useState(true);
@@ -71,7 +73,10 @@ export default function RiderPage() {
     }
   };
 
-  const featuredInstructors = [
+  const featuredInstructors = instructors.length > 0 ? instructors.map(i => ({
+    ...i,
+    href: `/agent?coach=${i.name.toLowerCase().replace(/\s+/g, '')}`
+  })) : [
     {
       name: "Coach Atlas",
       role: "Endurance Specialist",
@@ -130,10 +135,10 @@ export default function RiderPage() {
           <div className="flex items-end justify-between">
             <div>
               <h2 className="text-2xl font-black text-[color:var(--foreground)] tracking-tighter">
-                Coach Profiles
+                Real AI & Human Instructors
               </h2>
               <p className="text-sm text-[color:var(--muted)] font-medium">
-                Curated coach personas used throughout the current demo and class experience.
+                Choose a coach that matches your performance profile and goals.
               </p>
             </div>
             <button

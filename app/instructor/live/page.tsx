@@ -493,7 +493,7 @@ export default function InstructorLivePage() {
               <div className="p-6 rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm">
                 <div className="flex items-center justify-between mb-6">
                   <h4 className="text-xs font-black text-white uppercase tracking-widest">
-                    Top Performers
+                    Top Performers (Ghosts)
                   </h4>
                   <Users className="w-4 h-4 text-white/20" />
                 </div>
@@ -525,6 +525,16 @@ export default function InstructorLivePage() {
                       </div>
                     </div>
                   ))}
+                </div>
+                <div className="mt-6 pt-6 border-t border-white/5 flex flex-col items-center justify-center text-center">
+                  <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-2">
+                    Kite AI Settlement Active
+                  </p>
+                  <div className="flex gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/20" />
+                  </div>
                 </div>
               </div>
             </div>

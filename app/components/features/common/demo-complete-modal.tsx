@@ -226,7 +226,8 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                   </div>
                 </div>
 
-                {/* Platform Stats - For Investors */}
+                {/* Platform Stats - Hidden until real data is available */}
+                {/* 
                 <div className="rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-3 mb-4">
                   <p className="text-[10px] uppercase tracking-wider text-indigo-300 font-semibold mb-2">
                     📊 Platform Statistics
@@ -246,6 +247,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                     </div>
                   </div>
                 </div>
+                */}
 
                 {/* Benefits */}
                 <div className="space-y-2 mb-4">

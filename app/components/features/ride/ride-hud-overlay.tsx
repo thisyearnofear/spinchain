@@ -137,10 +137,7 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
           intervalPhase={props.currentInterval?.phase ?? null}
           aiLog={props.aiLogs[0]}
           ghostState={props.ghostState}
-          multiGhostState={[
-            { id: "g1", name: "Vitalik", leadLagTime: -12.4, distanceGap: 45, active: true },
-            { id: "g2", name: "Satoshi", leadLagTime: 5.2, distanceGap: -20, active: true },
-          ]}
+          multiGhostState={[]}
           targetRpm={props.currentInterval?.targetRpm}
         />
       )}

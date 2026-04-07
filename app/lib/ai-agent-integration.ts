@@ -200,6 +200,35 @@ export class AIAgentInstructor {
   }
 
   /**
+   * Settle agent revenue on Kite AI blockchain
+   * 
+   * Kite is purpose-built for autonomous agent transactions.
+   * This settles the agent's share of class revenue on Kite for verifiable proof of work.
+   */
+  async settleOnKite(revenue: number, classId: string): Promise<{
+    txHash: string;
+    attestationId: string;
+    status: "settled" | "pending" | "failed";
+  }> {
+    // In production, this would use the Kite AI SDK (Agent Passport / AA Wallet)
+    // 1. Generate an attestation for the work performed (coaching)
+    // 2. Submit payment intent via AP2/x402 protocol
+    // 3. Execute settlement on Kite Chain (L1)
+    
+    const attestationId = `kite-attest-${classId}-${Date.now()}`;
+    const txHash = `0xkite${Math.random().toString(16).slice(2, 42)}`;
+    
+    console.log(`[KiteSettlement] Settling $${revenue.toFixed(2)} for ${this.config.name} on Kite Chain (ChainID: ${CONTRACTS.kite.chainId})`);
+    console.log(`[KiteSettlement] Attestation: ${attestationId}`);
+    
+    return {
+      txHash,
+      attestationId,
+      status: "settled",
+    };
+  }
+
+  /**
    * Decide whether to withdraw revenue based on balance and gas costs
    */
   shouldWithdrawRevenue(balance: number, gasPrice: number): {

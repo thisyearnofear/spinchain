@@ -50,6 +50,14 @@ export const CONTRACTS = {
     usdc: "0x5425890298aed601595a70AB815c96711a31Bc65", // Fuji USDC
     usdt: configuredAddress(process.env.NEXT_PUBLIC_USDT_ADDRESS),
   },
+  // Kite AI Testnet - Agent Settlement & Attestations
+  kite: {
+    chainId: 2358,
+    rpcUrl: "https://rpc.kite-testnet.gokite.ai",
+    explorerUrl: "https://explorer.kite-testnet.gokite.ai",
+    agentPassport: "0x42f3f1954e3CB988c3F9adBb9E68b168F9B6330C", // Placeholder for actual Agent Passport
+    usdc: "0x5425890298aed601595a70AB815c96711a31Bc65", // Shared Fuji/Kite USDC bridge address (demo)
+  },
 } as const;
 
 export const CHAIN_CONFIG = {

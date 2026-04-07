@@ -58,7 +58,7 @@ export const GUEST_DEMO_CLASS = {
   name: "Alpine Challenge (Demo)",
   instructor: "Coach Demo",
   startTime: Math.floor(Date.now() / 1000) + 1800, // 30 min from now
-  ticketsSold: 8,
+  ticketsSold: Math.floor(Math.random() * 5) + 3, // Real-time variability
   maxRiders: 20,
   currentPrice: "0",
   isGuestMode: true,
