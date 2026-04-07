@@ -247,15 +247,19 @@ Device → Chainlink Functions (TEE) → BiometricOracle.sol → Rewards
 - [x] Wire up contract reads in `use-class-data.ts` (P0-2) ✅ 2026-03-17
 - [x] Review and fix AI service hackathon code (P0-5) ✅ 2026-03-17
 
-### Sprint 2: ZK Aggregation MVP (Week 3-4)
+### Sprint 2: ZK Aggregation & Kite AI (Week 3-4)
 - [x] Implement chunked proof generation from heart-rate samples
 - [x] Add `submitZKProofBatch(...)` to `IncentiveEngine.sol`
 - [x] Wire rider and shared rewards hooks to batch claim submission
+- [x] Integrate Kite AI Testnet for autonomous agent settlement
+- [x] Implement `AIAgentInstructor.settleOnKite()` for verifiable revenue sharing
 - [x] Add contract tests for replay protection, mismatched batches, threshold failures, disabled-verifier guards, and single-proof claims (16 tests passing)
 - [ ] Run configured Fuji end-to-end claim tests with a real verifier deployment — ⚠️ Still blocked by Honk stack depth limitation
 
 ### Sprint 3: Feature Completion (Week 5-6)
 - [x] Real ghost pacer data (P1-1) ✅ 2026-03-17
+- [x] Implement Multi-Ghost racing system (Sui/Walrus) ✅ 2026-04-07
+- [x] Real on-chain instructor aggregation (Avalanche) ✅ 2026-04-07
 - [ ] Live telemetry integration (P1-4)
 - [x] Consolidate production deployment into `src/deploy.s.sol` ✅ 2026-04-03
 - [x] Safe fallback when no real verifier exists (disable ZK, use Chainlink path) ✅ 2026-04-03

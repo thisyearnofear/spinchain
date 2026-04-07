@@ -9,6 +9,7 @@ SpinChain implements a **Dual-Engine Execution Model** with **Zero-Knowledge Pri
 | Engine | Chain | Role | Primitive |
 | :--- | :--- | :--- | :--- |
 | **Settlement** | **Avalanche (EVM)** | High-value / Low-frequency | ERC-721, ERC-20, ZK Verifiers |
+| **Agent Settlement**| **Kite AI (EVM)** | AI Identity / Autonomy | Agent Passport, x402 Payments |
 | **Performance** | **Sui (Move)** | Low-value / High-frequency | Move Objects, Dynamic Fields |
 
 ### Why Avalanche for Settlement?
@@ -29,26 +30,34 @@ SpinChain implements a **Dual-Engine Execution Model** with **Zero-Knowledge Pri
 ┌─────────────────────────────────────────────────────────────────┐
 │                        SPINCHAIN                                 │
 ├─────────────────────────────────────────────────────────────────┤
-│  EVM (Avalanche)          │  Sui (Testnet)                      │
-│  ├─ SpinClass NFT         │  ├─ Session (shared)                │
-│  ├─ Ticket purchase       │  ├─ RiderStats (owned)              │
-│  ├─ SPIN rewards          │  ├─ Coach (shared)                  │
-│  ├─ ZK verification       │  ├─ Telemetry events (10Hz)         │
-│  └─ ENS Identity          │  └─ Story beat events               │
+│  EVM (Avalanche)          │  EVM (Kite AI)                      │
+│  ├─ SpinClass NFT         │  ├─ Agent Identity                  │
+│  ├─ Ticket purchase       │  ├─ Revenue Settlement              │
+│  ├─ SPIN rewards          │  ├─ Autonomy Rules                  │
+│  ├─ ZK verification       │  └─ x402 Micropayments              │
+│  └─ ENS Identity          │                                     │
+├─────────────────────────────────────────────────────────────────┤
+│  Sui (Testnet)                                                  │
+│  ├─ Session (shared)      │  ├─ Telemetry events (10Hz)         │
+│  ├─ RiderStats (owned)    │  ├─ Story beat events               │
+│  └─ Multi-Ghost Replays   │                                     │
 └─────────────────────────────────────────────────────────────────┘
                     ↓ High-frequency telemetry
               Sui: 10Hz updates, ~480ms finality
                     ↓ ZK Proof generation
               EVM: Reward distribution, verification
+                    ↓ Agent Settlement
+              Kite: Revenue sharing, autonomous payments
 ```
 
 ### Data Flow
 
-1. **AI Instructors** deploy on Avalanche with ENS identity
+1. **AI Instructors** deploy on Avalanche with ENS identity and settle on Kite AI
 2. **Riders** purchase tickets (ERC-721) on Avalanche
-3. **During Ride**: 10Hz telemetry streams to Sui `RiderStats` objects
+3. **During Ride**: 10Hz telemetry streams to Sui `RiderStats` objects, competing against real Multi-Ghost replays
 4. **Local Oracle**: browser-side proof generation chunks heart-rate samples into 60-second proof windows
 5. **Settlement**: `IncentiveEngine.submitZKProofBatch(...)` verifies each chunk and mints one aggregate reward on Avalanche
+6. **Agent Autonomy**: AI agents settle their portion of revenue on Kite AI to pay for their own operations (e.g., ElevenLabs API fees)
 
 ---
 
@@ -109,8 +118,10 @@ Fallback speed calculation using aerodynamic drag and gravity:
 | Data Type | Storage | Compression | Retention |
 |-----------|---------|-------------|-----------|
 | Raw Telemetry | Walrus Blobs | Delta encoding | 30 epochs |
+| Ghost Replays | Walrus Blobs | N/A | Permanent |
 | 3D Worlds | Walrus Blobs | N/A | Permanent |
 | ZK Proofs | Avalanche Events | N/A | Permanent |
+| Agent Audits | Kite AI Events | N/A | Permanent |
 
 ---
 
@@ -146,6 +157,7 @@ For testing without BLE hardware:
 
 ### Blockchain
 - **Settlement**: Avalanche C-Chain (EVM) with ZK Verifiers
+- **Agent Autonomy**: Kite AI Testnet (EVM)
 - **Execution**: Sui Testnet (Move)
 - **Package ID**: `0xc42b32ab25566a6f43db001e6f2c2fd6b2ccc7232e2af3cfca0b9beca824d7dc`
 - **Identity/Wallet**: RainbowKit (EVM) + Sui dApp Kit
