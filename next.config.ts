@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
   },
+  turbopack: {},
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve = config.resolve || {};
