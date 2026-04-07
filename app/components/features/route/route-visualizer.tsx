@@ -22,7 +22,7 @@ import {
   Noise,
 } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
-import { useMemo, useRef, useState, useEffect, Suspense } from "react";
+import { useMemo, useRef, useState, useEffect, Suspense, type MutableRefObject } from "react";
 import {
   OrbitControls,
   Environment,
@@ -77,49 +77,56 @@ function Model({ url, scale = 1, rotation = [0, 0, 0], position = [0, 0, 0] }: {
 const DEFAULT_ELEVATION_PROFILE = [120, 180, 140, 210, 260, 220, 280, 240, 300, 260, 320, 280];
 
 function useRouteCurve(elevationProfile: number[]) {
-  const profile = elevationProfile.length > 0 ? elevationProfile : DEFAULT_ELEVATION_PROFILE;
   return useMemo(() => {
-    // Generate points in a loop or winding path
+    // Sanitize: replace non-finite values, fall back to defaults if empty
+    const rawProfile = elevationProfile.length > 0 ? elevationProfile : DEFAULT_ELEVATION_PROFILE;
+    const profile = rawProfile.map(v => (Number.isFinite(v) ? v : 0));
+
     const points: Vector3[] = [];
     const radius = 50;
-    const steps = 150; // Increased resolution
+    const steps = 150;
 
-    for (let i = 0; i <= steps; i++) {
+    // Use i < steps (NOT i <= steps) to avoid a duplicate start/end point.
+    // A closed CatmullRomCurve3 handles the loop itself; a repeated endpoint
+    // produces a zero-length segment whose tangent is NaN, which propagates into
+    // ExtrudeGeometry and TubeGeometry vertex positions.
+    for (let i = 0; i < steps; i++) {
       const t = i / steps;
       const angle = t * Math.PI * 4; // 2 full circles
 
-      // Winding radius with some variation
       const r = radius + Math.sin(t * Math.PI * 6) * 15;
       const x = Math.cos(angle) * r;
       const z = Math.sin(angle) * r;
 
-      // Map elevation to Y, smoothed
-      const elevIndex = Math.floor(t * (profile.length - 1));
-      const nextElevIndex = Math.min(
-        elevIndex + 1,
-        profile.length - 1,
-      );
-      const elevAlpha = (t * (profile.length - 1)) % 1;
+      // Wrap elevation cyclically so the closed-loop seam blends smoothly
+      const u = t * profile.length;
+      const elevIndex = Math.floor(u) % profile.length;
+      const nextElevIndex = (elevIndex + 1) % profile.length;
+      const elevAlpha = u - Math.floor(u);
 
-      const h1 = profile[elevIndex] || 0;
-      const h2 = profile[nextElevIndex] || 0;
-      const height = h1 + (h2 - h1) * elevAlpha;
+      const h1 = profile[elevIndex] ?? 0;
+      const h2 = profile[nextElevIndex] ?? 0;
+      const height = MathUtils.lerp(h1, h2, elevAlpha);
 
       points.push(new Vector3(x, height / 4, z));
     }
 
-    return new CatmullRomCurve3(points, true); // Closed loop for this visualizer
-  }, [profile]);
+    const curve = new CatmullRomCurve3(points, true, "centripetal");
+    curve.arcLengthDivisions = 600;
+    return curve;
+  }, [elevationProfile]);
 }
 
 function Road({
   curve,
   theme = "neon",
   stats = { hr: 0, power: 0, cadence: 0 },
+  steps = 300,
 }: {
   curve: CatmullRomCurve3;
   theme?: VisualizerTheme;
   stats?: RiderStats;
+  steps?: number;
 }) {
   const meshRef = useRef<Mesh>(null);
   const styles = THEMES[theme];
@@ -156,11 +163,11 @@ function Road({
     shape.lineTo(-width, 0);
 
     return new ExtrudeGeometry(shape, {
-      steps: 600,
+      steps,
       extrudePath: curve,
       bevelEnabled: false,
     });
-  }, [curve, theme]);
+  }, [curve, theme, steps]);
 
   return (
     <group>
@@ -173,7 +180,7 @@ function Road({
           metalness={0.9}
         />
       </mesh>
-      <RoadMarkings curve={curve} theme={theme} />
+      <RoadMarkings curve={curve} theme={theme} steps={steps} />
     </group>
   );
 }
@@ -181,14 +188,18 @@ function Road({
 function RoadMarkings({
   curve,
   theme = "neon",
+  steps = 300,
 }: {
   curve: CatmullRomCurve3;
   theme?: VisualizerTheme;
+  steps?: number;
 }) {
   const styles = THEMES[theme];
 
   const { dashGeometry, edgeGeometry } = useMemo(() => {
-    // Dash lines in the center
+    // Dash lines use slightly fewer steps than the road surface
+    const dashSteps = Math.max(60, Math.round(steps * 0.65));
+
     const dashShape = new Shape();
     dashShape.moveTo(-0.1, 0.51);
     dashShape.lineTo(0.1, 0.51);
@@ -197,7 +208,7 @@ function RoadMarkings({
     dashShape.lineTo(-0.1, 0.51);
 
     const dashGeo = new ExtrudeGeometry(dashShape, {
-      steps: 400,
+      steps: dashSteps,
       extrudePath: curve,
       bevelEnabled: false,
     });
@@ -221,13 +232,13 @@ function RoadMarkings({
     edgeShape.lineTo(width - 0.15, 0.51);
 
     const edgeGeo = new ExtrudeGeometry(edgeShape, {
-      steps: 600,
+      steps,
       extrudePath: curve,
       bevelEnabled: false,
     });
 
     return { dashGeometry: dashGeo, edgeGeometry: edgeGeo };
-  }, [curve, theme]);
+  }, [curve, theme, steps]);
 
   return (
     <group>
@@ -425,6 +436,14 @@ function HoloMap({ curve, progress, theme }: { curve: CatmullRomCurve3, progress
   const safeProgress = Number.isFinite(progress) ? Math.max(0, Math.min(progress, 1)) : 0;
   const dotPosition = curve.getPointAt(safeProgress);
 
+  // Stable args array — only recreated when curve changes, not on every render.
+  // Without this, R3F sees a new array reference each render and rebuilds the
+  // TubeGeometry every frame, flooding the console with NaN bounding-box warnings.
+  const tubeArgs = useMemo(
+    () => [curve, 64, 2.5, 8, true] as [CatmullRomCurve3, number, number, number, boolean],
+    [curve],
+  );
+
   return (
     <group position={[0, 1.2, 1.5]} rotation={[-Math.PI / 4, 0, 0]} scale={0.012}>
       {/* Tactical Border for Map */}
@@ -435,7 +454,7 @@ function HoloMap({ curve, progress, theme }: { curve: CatmullRomCurve3, progress
 
       {/* Mini Route Path - Glowing Neon */}
       <mesh>
-        <tubeGeometry args={[curve, 64, 2.5, 8, true]} />
+        <tubeGeometry args={tubeArgs} />
         <meshStandardMaterial
           color={styles.lineColor}
           emissive={styles.lineColor}
@@ -479,16 +498,35 @@ function BeatFlare({ progress, beatProgress, color }: { progress: number, beatPr
   );
 }
 
-function HoloHUD({ stats, theme, curve, progress }: { stats: RiderStats; theme: VisualizerTheme; curve: CatmullRomCurve3; progress: number }) {
+function HoloHUD({
+  stats,
+  theme,
+  curve,
+  progressRef,
+}: {
+  stats: RiderStats;
+  theme: VisualizerTheme;
+  curve: CatmullRomCurve3;
+  // Accept a ref so position updates from Scene's useFrame are always fresh
+  // even when Scene hasn't triggered a React re-render.
+  progressRef: MutableRefObject<number>;
+}) {
   const styles = THEMES[theme];
   const groupRef = useRef<Group>(null);
+  // Local throttled state for the HTML progress bar (~10fps is plenty for text)
+  const [displayProgress, setDisplayProgress] = useState(progressRef.current);
+  const hudFrameRef = useRef(0);
 
   useFrame((state) => {
     if (!groupRef.current) return;
-    // High-performance breathing animation
     const breathe = Math.sin(state.clock.elapsedTime * 2.5) * 0.08;
     groupRef.current.position.y = 1.9 + breathe;
     groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.4) * 0.08;
+    // Throttle progress text update independently of parent render cycle
+    hudFrameRef.current++;
+    if (hudFrameRef.current % 6 === 0) {
+      setDisplayProgress(progressRef.current);
+    }
   });
 
   return (
@@ -511,7 +549,7 @@ function HoloHUD({ stats, theme, curve, progress }: { stats: RiderStats; theme: 
       </mesh>
 
       {/* Mini-Map Integration */}
-      <HoloMap curve={curve} progress={progress} theme={theme} />
+      <HoloMap curve={curve} progress={displayProgress} theme={theme} />
 
       <Html transform distanceFactor={5.5} position={[0, 0.2, 0.02]} scale={0.1}>
         <div className="flex flex-col items-center justify-center p-6 min-w-[380px] select-none pointer-events-none bg-black/40 backdrop-blur-3xl rounded-3xl border border-white/10">
@@ -532,9 +570,9 @@ function HoloHUD({ stats, theme, curve, progress }: { stats: RiderStats; theme: 
               <span className="text-[10px] uppercase text-white/40 font-black tracking-[0.3em]">Neural Progress</span>
               <div className="flex items-center gap-3">
                 <div className="h-1.5 w-32 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-white/40 rounded-full" style={{ width: `${progress * 100}%` }} />
+                  <div className="h-full bg-white/40 rounded-full" style={{ width: `${displayProgress * 100}%` }} />
                 </div>
-                <span className="text-[20px] text-white font-black">{(progress * 100).toFixed(1)}%</span>
+                <span className="text-[20px] text-white font-black">{(displayProgress * 100).toFixed(1)}%</span>
               </div>
             </div>
             {stats.hr > 0 && (
@@ -543,7 +581,7 @@ function HoloHUD({ stats, theme, curve, progress }: { stats: RiderStats; theme: 
               </div>
             )}
           </div>
-          
+
           <div className="mt-4 text-[8px] font-mono text-white/20 uppercase tracking-[0.5em] w-full text-center">
              System Node: Active-0xSui
           </div>
@@ -555,7 +593,7 @@ function HoloHUD({ stats, theme, curve, progress }: { stats: RiderStats; theme: 
 
 function RiderMarker({
   curve,
-  progress,
+  progressRef,
   theme = "neon",
   stats = { hr: 120, power: 150, cadence: 80 },
   avatar,
@@ -563,7 +601,9 @@ function RiderMarker({
   showYouLabel = false,
 }: {
   curve: CatmullRomCurve3;
-  progress: number;
+  // Ref instead of plain number so useFrame always reads the latest value without
+  // requiring a React re-render from the parent each frame.
+  progressRef: MutableRefObject<number>;
   theme?: VisualizerTheme;
   stats?: RiderStats;
   avatar?: AvatarAsset;
@@ -579,7 +619,7 @@ function RiderMarker({
   useFrame((state) => {
     if (!groupRef.current) return;
 
-    // Get position on curve
+    const progress = progressRef.current;
     const point = curve.getPointAt(progress);
     const tangent = curve.getTangentAt(progress);
 
@@ -615,7 +655,7 @@ function RiderMarker({
   return (
     <group ref={groupRef}>
       {/* Immerive 3D HUD that follows the rider */}
-      {showYouLabel && <HoloHUD stats={stats} theme={theme} curve={curve} progress={progress} />}
+      {showYouLabel && <HoloHUD stats={stats} theme={theme} curve={curve} progressRef={progressRef} />}
 
       <Trail
         width={2 + stats.power / 200}
@@ -848,6 +888,9 @@ function GhostRider({
   useFrame(() => {
     if (!groupRef.current) return;
     const point = curve.getPointAt(progress);
+    // Guard: degenerate curve positions produce NaN; skip the frame rather than
+    // propagating garbage coordinates to child geometries.
+    if (!Number.isFinite(point.x) || !Number.isFinite(point.y) || !Number.isFinite(point.z)) return;
     const tangent = curve.getTangentAt(progress);
     groupRef.current.position.copy(point);
     groupRef.current.position.y += 1.2;
@@ -938,30 +981,44 @@ function Scene({
   const curve = useRouteCurve(elevationProfile);
   const styles = THEMES[theme];
   const lastBeatRef = useRef<number>(-1);
-  
+
   // Get performance tier for adaptive quality - use quality.fps as proxy if available
   const performanceTier = quality?.fps === 30 ? "low" : quality?.fps === 45 ? "medium" : "high";
 
-  // Animate progress if none provided (preview mode auto-rotates along curve)
-  const [previewProgress, setPreviewProgress] = useState(START_OFFSET);
-  // curveProgress used for JSX rendering of rider/ghosts
-  const [renderProgress, setRenderProgress] = useState(mode === "preview" ? START_OFFSET : mapToCurveProgress(progress));
+  // --- Progress tracking via refs (no React state updates inside useFrame) ---
+  // Calling setState inside useFrame triggers a full React re-render every animation
+  // frame (60fps), cascading through every child in the scene tree and causing R3F to
+  // rebuild geometry whose args arrays have new references.  We use mutable refs for
+  // the hot path and only push to React state at ~10fps for HTML overlay elements.
+  const previewProgressRef = useRef(START_OFFSET);
+  const renderProgressRef = useRef(
+    mode === "preview" ? START_OFFSET : mapToCurveProgress(progress),
+  );
+  const frameCountRef = useRef(0);
+  // displayProgress drives HTML overlays (BeatMarker labels, ghost positions).
+  // Throttled to ~10fps — smooth enough for text/UI, avoids constant re-renders.
+  const [displayProgress, setDisplayProgress] = useState(renderProgressRef.current);
 
   useFrame((state, delta) => {
-    // Determine the raw progress for game logic
+    // --- 1. Compute raw progress ---
     let rawProgress: number;
     if (mode === "preview") {
-      rawProgress = (previewProgress + delta * 0.05) % 1;
-      setPreviewProgress(rawProgress);
+      previewProgressRef.current = (previewProgressRef.current + delta * 0.05) % 1;
+      rawProgress = previewProgressRef.current;
     } else {
       rawProgress = progress;
     }
 
-    // Map to curve-safe progress for rendering (offset start, avoid seam)
     const curveProgress = mode === "preview" ? rawProgress : mapToCurveProgress(rawProgress);
-    setRenderProgress(curveProgress);
+    renderProgressRef.current = curveProgress;
 
-    // Track beat hits for visual markers
+    // --- 2. Throttle React state to ~10fps for HTML overlay elements ---
+    frameCountRef.current++;
+    if (frameCountRef.current % 6 === 0) {
+      setDisplayProgress(curveProgress);
+    }
+
+    // --- 3. Beat tracking (no state needed) ---
     storyBeats.forEach((beat, index) => {
       if (
         rawProgress >= beat.progress &&
@@ -971,23 +1028,22 @@ function Scene({
         lastBeatRef.current = index;
       }
     });
-
-    // Reset loop ref if progress resets
     if (rawProgress < 0.01) lastBeatRef.current = -1;
 
-    // Chase camera — only runs during ride/finished; preview uses OrbitControls
+    // --- 4. Chase camera ---
     if (mode !== "preview") {
-      const safeCurveP = Number.isFinite(curveProgress) ? Math.max(0, Math.min(curveProgress, 1)) : START_OFFSET;
+      const safeCurveP = Number.isFinite(curveProgress)
+        ? Math.max(0, Math.min(curveProgress, 1))
+        : START_OFFSET;
       const riderPos = curve.getPointAt(safeCurveP);
-      if (!Number.isFinite(riderPos.x)) return; // skip frame if curve returns NaN
+      if (!Number.isFinite(riderPos.x)) return;
       riderPos.y -= 10; // match group offset [0, -10, 0]
 
       const tangent = curve.getTangentAt(safeCurveP).normalize();
-      const side = new Vector3().crossVectors(tangent, new Vector3(0, 1, 0)).normalize();
+      const up = Math.abs(tangent.y) > 0.98 ? new Vector3(1, 0, 0) : new Vector3(0, 1, 0);
+      const side = new Vector3().crossVectors(tangent, up).normalize();
 
-      // Look at rider's upper body, not road center
       const lookTarget = riderPos.clone().add(new Vector3(0, 3, 0));
-      // Camera behind, above, and slightly to the side so road doesn't occlude rider
       const targetCamPos = riderPos
         .clone()
         .add(tangent.clone().multiplyScalar(-14))
@@ -998,7 +1054,6 @@ function Scene({
       state.camera.position.lerp(targetCamPos, lerpSpeed);
       state.camera.lookAt(lookTarget);
 
-      // SENSE OF SPEED: Dynamic FOV based on power
       const cam = state.camera as ThreePerspectiveCamera;
       if (cam.fov !== undefined) {
         const baseFov = 60;
@@ -1007,7 +1062,6 @@ function Scene({
         cam.updateProjectionMatrix();
       }
 
-      // SENSE OF SPEED: Camera shake when pushing hard
       if (stats.power > 350) {
         const shake = Math.min(1, (stats.power - 350) / 450);
         const rand = (Math.random() - 0.5) * shake * 0.15;
@@ -1058,14 +1112,20 @@ function Scene({
       )}
 
       <group position={[0, -10, 0]}>
-        <Road curve={curve} theme={theme} stats={stats} />
+        {/* Adaptive road geometry resolution: high=600, medium=250, low=100 */}
+        <Road
+          curve={curve}
+          theme={theme}
+          stats={stats}
+          steps={performanceTier === "high" ? 600 : performanceTier === "medium" ? 250 : 100}
+        />
         <PropManager theme={theme} curve={curve} stats={stats} />
         <FinishLine curve={curve} theme={theme} />
         <WelcomeSign theme={theme} name={userDisplayName} curve={curve} />
 
         <RiderMarker
           curve={curve}
-          progress={renderProgress}
+          progressRef={renderProgressRef}
           theme={theme}
           stats={stats}
           avatar={avatar}
@@ -1079,7 +1139,7 @@ function Scene({
         ))}
 
         {storyBeats.map((beat, i) => (
-          <BeatMarker key={i} beat={beat} curve={curve} riderProgress={renderProgress} />
+          <BeatMarker key={i} beat={beat} curve={curve} riderProgress={displayProgress} />
         ))}
 
         {styles.grid && (
