@@ -10,6 +10,7 @@ import {
   getRideRewardStatus,
   getRetentionSignals,
   getRideHistory,
+  saveRideSummary,
   processRideSyncQueue,
   type LeaderboardSnapshot,
   type RideSummary,
@@ -23,6 +24,8 @@ import {
   Coins,
   ArrowRight,
 } from "lucide-react";
+import { getWalrusFeed, retrieveRideSummaryFromWalrus, type WalrusFeedEntry } from "../../lib/walrus/ride-persistence";
+import { useAccount } from "wagmi";
 
 function JourneyContent() {
   const searchParams = useSearchParams();
@@ -30,6 +33,8 @@ function JourneyContent() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardSnapshot | null>(
     null,
   );
+  const [walrusFeed, setWalrusFeed] = useState<WalrusFeedEntry[]>([]);
+  const { address } = useAccount();
   const isCompletedLanding = searchParams.get("completed") === "true";
 
   const retention = useMemo(() => getRetentionSignals(rides), [rides]);
@@ -45,6 +50,28 @@ function JourneyContent() {
   useEffect(() => {
     void getLeaderboardSnapshot(rides, latestClassId).then(setLeaderboard);
   }, [rides, latestClassId]);
+
+  useEffect(() => {
+    getWalrusFeed(address).then(setWalrusFeed).catch(() => {});
+  }, [address]);
+
+  // Walrus recovery: if localStorage is empty but Walrus has entries (new device),
+  // pull full RideSummary for each blob and seed localStorage.
+  useEffect(() => {
+    if (rides.length > 0 || walrusFeed.length === 0) return;
+    const recover = async () => {
+      let recovered = false;
+      for (const entry of walrusFeed) {
+        const summary = await retrieveRideSummaryFromWalrus(entry.rideId);
+        if (summary) {
+          saveRideSummary(summary);
+          recovered = true;
+        }
+      }
+      if (recovered) setRides(getRideHistory());
+    };
+    void recover();
+  }, [rides.length, walrusFeed]);
 
   useEffect(() => {
     const handleStorage = () => setRides(getRideHistory());
@@ -266,42 +293,44 @@ function JourneyContent() {
           </div>
 
           <div className="space-y-3">
-            {[
-              {
-                id: "1",
-                date: "2024-03-20",
-                class: "Neon HIIT",
-                blobId: "walrus-blob-823x...",
-                status: "anchored",
-              },
-              {
-                id: "2",
-                date: "2024-03-18",
-                class: "Alpine Climb",
-                blobId: "walrus-blob-192y...",
-                status: "anchored",
-              },
-            ].map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between p-4 rounded-2xl bg-black/40 border border-white/5 hover:border-white/10 transition-all group"
-              >
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-bold text-white/90">
-                    {item.class}
-                  </span>
-                  <span className="text-[10px] font-mono text-white/30 uppercase tracking-tighter">
-                    {item.blobId}
-                  </span>
+            {walrusFeed.length === 0 ? (
+              <p className="text-sm text-white/50 italic">
+                No sessions anchored to Walrus yet. Complete a ride to persist your first summary.
+              </p>
+            ) : (
+              walrusFeed.map((item) => (
+                <div
+                  key={item.rideId}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-black/40 border border-white/5 hover:border-white/10 transition-all group"
+                >
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm font-bold text-white/90">
+                      {item.className}
+                    </span>
+                    <span className="text-[10px] font-mono text-white/30 uppercase tracking-tighter">
+                      {item.blobId.length > 20
+                        ? `${item.blobId.slice(0, 10)}…${item.blobId.slice(-8)}`
+                        : item.blobId}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-[10px] text-white/40">
+                      {new Date(item.completedAt).toLocaleDateString()}
+                    </span>
+                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                      anchored
+                    </span>
+                    <a
+                      href={`https://aggregator.walrus-testnet.walrus.space/v1/${item.blobId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="w-4 h-4 text-white/20 group-hover:text-indigo-400 transition-colors cursor-pointer" />
+                    </a>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-                    {item.status}
-                  </span>
-                  <ExternalLink className="w-4 h-4 text-white/20 group-hover:text-indigo-400 transition-colors cursor-pointer" />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 

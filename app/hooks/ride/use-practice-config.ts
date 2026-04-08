@@ -104,6 +104,7 @@ export function usePracticeConfig(classId: string) {
       route,
       routeLoading: false,
       routeError: null,
+      routeIsGenerated: true,
     };
   }, [practiceConfig, classId]);
 

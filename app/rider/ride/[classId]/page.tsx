@@ -86,6 +86,7 @@ import {
   type RideSyncStatus,
 } from "../../../lib/analytics/ride-history";
 import { persistRideSummaryToWalrus } from "../../../lib/walrus/ride-persistence";
+import { SectionErrorBoundary } from "../../../components/layout/error-boundary";
 
 const MAX_RIDE_POINTS = 10_800;
 const MAX_TELEMETRY_SAMPLES = 5_400;
@@ -1553,47 +1554,49 @@ export default function LiveRidePage() {
         <NetworkStatusBanner />
       </div>
 
-      <RideVisualization
-        viewMode={viewMode}
-        deviceType={deviceType}
-        isRiding={isRiding}
-        rideProgress={rideProgress}
-        elapsedTime={elapsedTime}
-        telemetry={telemetry}
-        routeElevationProfile={routeElevationProfile}
-        routeCoordinates={routeCoordinates}
-        currentRouteCoordinate={currentRouteCoordinate}
-        classData={(classData as {
-          name: string;
-          instructor: string;
-          route?: { route?: { storyBeats?: StoryBeat[] } } | null;
-          metadata?: EnhancedClassMetadata | null;
-        }) ?? {
-          name: practiceConfig?.name || "SpinChain Ride",
-          instructor: practiceConfig?.instructor || agentName,
-        }}
-        workoutPlan={workoutPlan}
-        currentIntervalIndex={currentIntervalIndex}
-        currentInterval={currentInterval}
-        intervalProgress={intervalProgress}
-        routeTheme={routeTheme}
-        searchParams={searchParams}
-        panelState={panelState.state}
-        panelPositions={panelState.positions}
-        onTogglePanel={handleTogglePanel}
-        onSetPanelPosition={panelState.setPanelPosition}
-        onSnapPanel={(key) =>
-          panelState.snapPanelToEdge(key, {
-            width: window.innerWidth,
-            height: window.innerHeight,
-          })
-        }
-        onTrackWidgetInteraction={trackWidgetInteraction}
-        onExpandOne={panelState.expandOne}
-        onHaptic={haptic.trigger}
-        isPracticeMode={isPracticeMode}
-        recentPowerHistory={recentPowerHistory}
-      />
+      <SectionErrorBoundary title="ride visualization">
+        <RideVisualization
+          viewMode={viewMode}
+          deviceType={deviceType}
+          isRiding={isRiding}
+          rideProgress={rideProgress}
+          elapsedTime={elapsedTime}
+          telemetry={telemetry}
+          routeElevationProfile={routeElevationProfile}
+          routeCoordinates={routeCoordinates}
+          currentRouteCoordinate={currentRouteCoordinate}
+          classData={(classData as {
+            name: string;
+            instructor: string;
+            route?: { route?: { storyBeats?: StoryBeat[] } } | null;
+            metadata?: EnhancedClassMetadata | null;
+          }) ?? {
+            name: practiceConfig?.name || "SpinChain Ride",
+            instructor: practiceConfig?.instructor || agentName,
+          }}
+          workoutPlan={workoutPlan}
+          currentIntervalIndex={currentIntervalIndex}
+          currentInterval={currentInterval}
+          intervalProgress={intervalProgress}
+          routeTheme={routeTheme}
+          searchParams={searchParams}
+          panelState={panelState.state}
+          panelPositions={panelState.positions}
+          onTogglePanel={handleTogglePanel}
+          onSetPanelPosition={panelState.setPanelPosition}
+          onSnapPanel={(key) =>
+            panelState.snapPanelToEdge(key, {
+              width: window.innerWidth,
+              height: window.innerHeight,
+            })
+          }
+          onTrackWidgetInteraction={trackWidgetInteraction}
+          onExpandOne={panelState.expandOne}
+          onHaptic={haptic.trigger}
+          isPracticeMode={isPracticeMode}
+          recentPowerHistory={recentPowerHistory}
+        />
+      </SectionErrorBoundary>
 
       <RideHUDOverlay
         classData={classData}

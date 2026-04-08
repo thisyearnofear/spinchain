@@ -14,6 +14,7 @@ import {
 } from "@/app/lib/gemini-client";
 import { getCoachingWithVenice, chatWithVenice } from "@/app/lib/venice-client";
 import { TtlCache } from "@/app/lib/api/cache";
+import { checkRateLimit } from "@/app/lib/api/rate-limiter";
 
 export const runtime = "edge";
 
@@ -41,6 +42,12 @@ type CoachingRequest = {
  */
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rateCheck = checkRateLimit(ip);
+    if (!rateCheck.allowed) {
+      return apiError("Rate limit exceeded. Please try again later.", "RATE_LIMITED", 429);
+    }
+
     const body = (await req.json()) as CoachingRequest;
     const { 
       mode = "general", 

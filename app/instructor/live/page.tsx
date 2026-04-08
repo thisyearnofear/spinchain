@@ -35,25 +35,34 @@ import { NetworkStatusBanner } from "@/app/components/features/common/yellow-sta
 
 import { useNetworkStatus } from "@/app/hooks/use-network-status";
 
+const DEMO_DEFAULTS = {
+  riderCount: 42,
+  activeRiders: 38,
+  marketStats: { ticketsSold: 42, revenue: 630, trending: "+12%" },
+  telemetry: { avgPower: 185, avgHr: 142, intensity: 75 },
+  benchmarkAvgPower: 200,
+  benchmarkGapTime: "+12.4s",
+  estimatedRevenue: "$840.00",
+  conversionRate: "14%",
+  conversionVsAvg: "+2% vs Avg",
+  leaderboard: [
+    { name: "Satoshi_N", score: "842", trend: "up" as const },
+    { name: "Vitalik.eth", score: "815", trend: "down" as const },
+    { name: "CyclingSam", score: "798", trend: "up" as const },
+  ],
+} as const;
+
 export default function InstructorLivePage() {
   const networkStatus = useNetworkStatus();
   const [isAgentPaused, setIsAgentPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [riderCount, setRiderCount] = useState(42);
-  const [activeRiders, setActiveRiders] = useState(38);
+  const [riderCount, setRiderCount] = useState(DEMO_DEFAULTS.riderCount);
+  const [activeRiders, setActiveRiders] = useState(DEMO_DEFAULTS.activeRiders);
   const [benchmark, setBenchmark] = useState<GhostPerformance | null>(null);
-  const [marketStats, setMarketStats] = useState({
-    ticketsSold: 42,
-    revenue: 630,
-    trending: "+12%",
-  });
+  const [marketStats, setMarketStats] = useState(DEMO_DEFAULTS.marketStats);
 
   // Mock Live Telemetry
-  const [telemetry, setTelemetry] = useState({
-    avgPower: 185,
-    avgHr: 142,
-    intensity: 75,
-  });
+  const [telemetry, setTelemetry] = useState(DEMO_DEFAULTS.telemetry);
 
   const [activeStyleAnchor, setActiveStyleAnchor] = useState<string | null>(
     null,
@@ -97,7 +106,7 @@ export default function InstructorLivePage() {
 
   const performanceDelta = useMemo(() => {
     if (!benchmark) return null;
-    const benchmarkAvgPower = 200; // Mock benchmark avg
+    const benchmarkAvgPower = DEMO_DEFAULTS.benchmarkAvgPower;
     const delta = telemetry.avgPower - benchmarkAvgPower;
     return {
       value: delta,
@@ -243,14 +252,14 @@ export default function InstructorLivePage() {
                     Gap Time
                   </span>
                   <span className="text-xs font-bold text-emerald-400">
-                    +12.4s
+                    {DEMO_DEFAULTS.benchmarkGapTime}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-[9px] font-bold text-white/30 uppercase">
                     Estimated Rev
                   </span>
-                  <span className="text-xs font-bold text-white">$840.00</span>
+                  <span className="text-xs font-bold text-white">{DEMO_DEFAULTS.estimatedRevenue}</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-[9px] font-bold text-white/30 uppercase">
@@ -376,10 +385,10 @@ export default function InstructorLivePage() {
               >
                 <div className="mt-4 flex items-end gap-3">
                   <span className="text-4xl font-black text-white tracking-tighter">
-                    14%
+                    {DEMO_DEFAULTS.conversionRate}
                   </span>
                   <span className="text-sm font-bold text-amber-400 mb-1.5">
-                    +2% vs Avg
+                    {DEMO_DEFAULTS.conversionVsAvg}
                   </span>
                 </div>
                 <p className="text-xs text-white/40 mt-2">
@@ -505,12 +514,8 @@ export default function InstructorLivePage() {
                   <Users className="w-4 h-4 text-white/20" />
                 </div>
                 <div className="space-y-4">
-                  {/* Demo placeholder data */}
-                  {[
-                    { name: "Satoshi_N", score: "842", trend: "up" },
-                    { name: "Vitalik.eth", score: "815", trend: "down" },
-                    { name: "CyclingSam", score: "798", trend: "up" },
-                  ].map((rider, i) => (
+                  {/* Demo placeholder data — replace with live leaderboard when real data lands */}
+                  {DEMO_DEFAULTS.leaderboard.map((rider, i) => (
                     <div
                       key={i}
                       className="flex items-center justify-between group"

@@ -5,8 +5,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { apiError } from "@/app/lib/api/response";
+import { TtlCache } from "@/app/lib/api/cache";
+import { checkRateLimit } from "@/app/lib/api/rate-limiter";
 import { agentReasoningWithGemini, AgentDecision } from "@/app/lib/gemini-client";
 import { agentReasoningWithVenice } from "@/app/lib/venice-client";
+
+const decisionCache = new TtlCache<AgentDecision & { _provider: string }>(30_000);
 
 export const runtime = "edge";
 export const dynamic = 'force-dynamic';
@@ -35,6 +39,12 @@ type AgentReasoningRequest = {
  */
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rateCheck = checkRateLimit(ip);
+    if (!rateCheck.allowed) {
+      return apiError("Rate limit exceeded. Please try again later.", "RATE_LIMITED", 429);
+    }
+
     const body = (await req.json()) as AgentReasoningRequest;
     const { agentName, personality, context } = body;
 
@@ -47,6 +57,15 @@ export async function POST(req: NextRequest) {
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     if (!VENICE_API_KEY && !GEMINI_API_KEY) {
       return apiError("No AI provider configured. Set VENICE_API_KEY or GEMINI_API_KEY.", "NOT_CONFIGURED", 503);
+    }
+
+    const cacheKey = `${agentName}:${personality}:${JSON.stringify(context)}`;
+    const cached = decisionCache.get(cacheKey);
+    if (cached) {
+      return NextResponse.json({
+        ...cached,
+        _meta: { generatedAt: new Date().toISOString(), duration: 0, model: cached._provider === "venice" ? "llama-3.3-70b" : "gemini-3.0-flash-preview", provider: cached._provider, agent: agentName, personality, cached: true },
+      });
     }
 
     const startTime = Date.now();
@@ -75,6 +94,8 @@ export async function POST(req: NextRequest) {
 
     const duration_ms = Date.now() - startTime;
     console.log(`[${providerUsed}] Decision in ${duration_ms}ms: ${decision.action} (${Math.round(decision.confidence * 100)}% confidence)`);
+
+    decisionCache.set(cacheKey, { ...decision, _provider: providerUsed });
 
     return NextResponse.json({
       ...decision,

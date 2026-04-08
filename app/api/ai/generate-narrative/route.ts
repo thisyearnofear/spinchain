@@ -5,8 +5,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { apiError } from "@/app/lib/api/response";
+import { TtlCache } from "@/app/lib/api/cache";
+import { checkRateLimit } from "@/app/lib/api/rate-limiter";
 import { generateNarrativeWithGemini } from "@/app/lib/gemini-client";
 import { generateNarrativeWithVenice } from "@/app/lib/venice-client";
+
+const narrativeCache = new TtlCache<{ narrative: string; atmosphere: string; intensity: string; _provider: string }>(300_000);
 
 export const runtime = "edge";
 export const dynamic = 'force-dynamic';
@@ -24,6 +28,12 @@ type NarrativeRequest = {
  */
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rateCheck = checkRateLimit(ip);
+    if (!rateCheck.allowed) {
+      return apiError("Rate limit exceeded. Please try again later.", "RATE_LIMITED", 429);
+    }
+
     const body = (await req.json()) as NarrativeRequest;
     const { elevationProfile, theme, duration, routeName } = body;
 
@@ -40,6 +50,15 @@ export async function POST(req: NextRequest) {
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     if (!VENICE_API_KEY && !GEMINI_API_KEY) {
       return apiError("No AI provider configured. Set VENICE_API_KEY or GEMINI_API_KEY.", "NOT_CONFIGURED", 503);
+    }
+
+    const cacheKey = `${theme}:${duration}:${routeName ?? ""}:${elevationProfile.join(",")}`;
+    const cached = narrativeCache.get(cacheKey);
+    if (cached) {
+      return NextResponse.json({
+        ...cached,
+        _meta: { generatedAt: new Date().toISOString(), duration: 0, model: cached._provider === "venice" ? "llama-3.3-70b" : "gemini-3.0-flash-preview", provider: cached._provider, inputStats: { elevationPoints: elevationProfile.length, elevationGain: Math.max(...elevationProfile) - Math.min(...elevationProfile), theme, duration }, cached: true },
+      });
     }
 
     const startTime = Date.now();
@@ -64,6 +83,8 @@ export async function POST(req: NextRequest) {
 
     const duration_ms = Date.now() - startTime;
     console.log(`[${providerUsed}] Narrative generated in ${duration_ms}ms`);
+
+    narrativeCache.set(cacheKey, { ...result, _provider: providerUsed });
 
     return NextResponse.json({
       ...result,
