@@ -323,7 +323,7 @@ function FinishLine({ curve, theme = "neon" }: { curve: CatmullRomCurve3; theme?
 }
 
 function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme; curve: CatmullRomCurve3; stats: RiderStats }) {
-  const themeData = THEMES[theme];
+  const themeData = THEMES[theme] || THEMES.neon;
   const propConfig = themeData.props;
   const meshRef = useRef<InstancedMesh>(null);
   const _matrix = useMemo(() => new Matrix4(), []);
@@ -336,7 +336,7 @@ function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme
   const _quaternion = useMemo(() => new Quaternion(), []);
 
   const propPoints = useMemo(() => {
-    if (!propConfig) return [];
+    if (!propConfig || !curve) return [];
     const points = [];
     const count = propConfig.count;
     for (let i = 0; i < count; i++) {
@@ -353,14 +353,14 @@ function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme
       points.push({
         position: [
           point.x + offset.x,
-          point.y + offset.y + (propConfig.type === 'building' ? propConfig.scale[1] / 2 : 0),
+          point.y + offset.y + (propConfig.type === 'building' ? (propConfig.scale?.[1] ?? 1) / 2 : 0),
           point.z + offset.z
         ],
         rotation: [0, Math.random() * Math.PI, 0],
         scale: [
-          propConfig.scale[0] * (0.8 + Math.random() * 0.4),
-          propConfig.scale[1] * (0.5 + Math.random() * 1.5),
-          propConfig.scale[2] * (0.8 + Math.random() * 0.4),
+          (propConfig.scale?.[0] ?? 1) * (0.8 + Math.random() * 0.4),
+          (propConfig.scale?.[1] ?? 1) * (0.5 + Math.random() * 1.5),
+          (propConfig.scale?.[2] ?? 1) * (0.8 + Math.random() * 0.4),
         ]
       });
     }
@@ -396,11 +396,11 @@ function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme
   
   return (
     <instancedMesh ref={meshRef} args={[null as any, null as any, propConfig.count]} frustumCulled={true}>
-      {propConfig.type === 'building' ? (
+      {propConfig?.type === 'building' ? (
         <boxGeometry />
-      ) : propConfig.type === 'tree' ? (
+      ) : propConfig?.type === 'tree' ? (
         <coneGeometry args={[1, 4, 8]} />
-      ) : propConfig.type === 'rock' ? (
+      ) : propConfig?.type === 'rock' ? (
         <dodecahedronGeometry />
       ) : (
         <sphereGeometry />
@@ -710,7 +710,7 @@ function RiderMarker({
         )}
 
         {equipment ? (
-          <Model url={equipment.modelUrl} scale={equipment.type === "vehicle" ? 2 : 1.2} />
+          <Model url={equipment.modelUrl} scale={equipment?.type === "vehicle" ? 2 : 1.2} />
         ) : (
           /* Stylized cyclist fallback */
           <group rotation={[Math.PI / 2, 0, 0]}>
@@ -900,9 +900,9 @@ function BeatMarker({
   });
 
   const color =
-    beat.type === "sprint"
+    beat?.type === "sprint"
       ? "#ff4d4d"
-      : beat.type === "climb"
+      : beat?.type === "climb"
         ? "#fbbf24"
         : "#6d7cff";
 
