@@ -11,8 +11,8 @@
 import { ELEVENLABS_CONFIG } from './constants';
 import { TTSRequest, SoundEffectRequest, AvatarVideoRequest } from './types';
 
-// Simple in-memory request deduplication
 const pendingRequests = new Map<string, Promise<ArrayBuffer>>();
+let quotaExceeded = false;
 
 function getRequestKey(type: string, params: unknown): string {
   return `${type}:${JSON.stringify(params)}`;
@@ -22,6 +22,8 @@ function getRequestKey(type: string, params: unknown): string {
  * Generate speech from text (TTS) via server route
  */
 export async function generateSpeech(request: TTSRequest): Promise<ArrayBuffer> {
+  if (quotaExceeded) return new ArrayBuffer(0);
+
   const key = getRequestKey('tts', request);
   
   if (pendingRequests.has(key)) {
@@ -39,6 +41,11 @@ export async function generateSpeech(request: TTSRequest): Promise<ArrayBuffer> 
       optimize_streaming_latency: request.optimize_streaming_latency ?? ELEVENLABS_CONFIG.streamingLatency,
     }),
   }).then(async (response) => {
+    if (response.status === 402) {
+      quotaExceeded = true;
+      console.warn('[ElevenLabs] TTS quota exceeded — voice coaching disabled for this session');
+      return new ArrayBuffer(0);
+    }
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`TTS error: ${response.status} - ${error}`);
@@ -56,6 +63,8 @@ export async function generateSpeech(request: TTSRequest): Promise<ArrayBuffer> 
  * Generate speech with streaming (for real-time) via server route
  */
 export async function* generateSpeechStream(request: TTSRequest): AsyncGenerator<Uint8Array> {
+  if (quotaExceeded) return;
+
   const response = await fetch(ELEVENLABS_CONFIG.ttsRoute, {
     method: 'POST',
     headers: {
@@ -71,6 +80,11 @@ export async function* generateSpeechStream(request: TTSRequest): AsyncGenerator
     }),
   });
   
+  if (response.status === 402) {
+    quotaExceeded = true;
+    console.warn('[ElevenLabs] TTS quota exceeded — voice coaching disabled for this session');
+    return;
+  }
   if (!response.ok) {
     const error = await response.text();
     throw new Error(`TTS stream error: ${response.status} - ${error}`);
@@ -106,6 +120,9 @@ export async function generateSoundEffect(request: SoundEffectRequest): Promise<
     }),
   }).then(async (response) => {
     if (!response.ok) {
+      if (response.status === 402) {
+        throw new Error('ElevenLabs quota exceeded or payment required');
+      }
       const error = await response.text();
       throw new Error(`SFX error: ${response.status} - ${error}`);
     }

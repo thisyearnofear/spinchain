@@ -6,7 +6,7 @@ import {
   useSuiClient,
 } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { SUI_CONFIG } from "../config";
 import {
   Loader2,
@@ -163,15 +163,17 @@ export function CoachProfile({
     }
   }, [coachId, preloadSounds]);
 
-  // Speak AI thoughts when they change
+  const lastThoughtSpeakRef = useRef<number>(0);
+  const THOUGHT_SPEAK_COOLDOWN_MS = 30000;
+
   useEffect(() => {
-    if (thoughtLog.length > 0 && voiceConfigured) {
-      const latestThought = thoughtLog[thoughtLog.length - 1];
-      // Only speak shorter thoughts (avoid long monologues)
-      if (latestThought.length < 150) {
-        speak(latestThought, "focused");
-      }
-    }
+    if (!voiceConfigured || thoughtLog.length === 0) return;
+    const latestThought = thoughtLog[thoughtLog.length - 1];
+    if (latestThought.length >= 150) return;
+    const now = Date.now();
+    if (now - lastThoughtSpeakRef.current < THOUGHT_SPEAK_COOLDOWN_MS) return;
+    lastThoughtSpeakRef.current = now;
+    speak(latestThought, "focused");
   }, [thoughtLog, speak, voiceConfigured]);
 
   const deployCoach = async () => {

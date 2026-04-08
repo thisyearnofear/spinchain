@@ -35,6 +35,7 @@ export interface UseCoachVoiceReturn {
 }
 
 const AUDIO_CACHE_NAME = 'elevenlabs-audio-v1';
+const SESSION_TTS_BUDGET = 20;
 
 export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoiceReturn {
   const { personality = 'drill', intensity = 0.5 } = options;
@@ -46,6 +47,7 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
   
   const currentLayerId = useRef<string | null>(null);
   const mixerRef = useRef(getAudioMixer());
+  const sessionApiCallsRef = useRef(0);
 
   // Initialize mixer and check configuration on mount
   useEffect(() => {
@@ -99,9 +101,7 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
       // Ensure mixer is initialized
       await mixerRef.current.resume();
 
-      // Check persistent Cache API, fall back to generating
-      const roundedIntensity = Math.round(intensity * 10) / 10;
-      const cacheKey = `${personality}:${roundedIntensity}:${emotion}:${text}`;
+      const cacheKey = `${personality}:${emotion}:${text}`;
       let audioBuffer: ArrayBuffer | undefined;
 
       try {
@@ -113,6 +113,13 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
       }
 
       if (!audioBuffer) {
+        if (sessionApiCallsRef.current >= SESSION_TTS_BUDGET) {
+          console.warn('[CoachVoice] Session TTS budget exhausted — voice coaching paused');
+          setIsLoading(false);
+          return;
+        }
+        sessionApiCallsRef.current++;
+
         const voice = COACH_VOICES[personality];
         audioBuffer = await generateSpeech({
           text,
@@ -120,13 +127,15 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
           voice_settings: getVoiceSettings(emotion),
         });
 
-        try {
-          const cache = await caches.open(AUDIO_CACHE_NAME);
-          await cache.put(cacheKey, new Response(audioBuffer.slice(0), {
-            headers: { 'Content-Type': 'audio/mpeg' },
-          }));
-        } catch {
-          // Cache API unavailable — skip persisting
+        if (audioBuffer.byteLength > 0) {
+          try {
+            const cache = await caches.open(AUDIO_CACHE_NAME);
+            await cache.put(cacheKey, new Response(audioBuffer.slice(0), {
+              headers: { 'Content-Type': 'audio/mpeg' },
+            }));
+          } catch {
+            // Cache API unavailable — skip persisting
+          }
         }
       }
 
@@ -154,7 +163,11 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
       mixerRef.current.playLayer(layerId);
       
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Speech generation failed'));
+      if (err instanceof Error && err.message.includes('quota exceeded')) {
+        setError(new Error('Coach voice unavailable: daily quota reached'));
+      } else {
+        setError(err instanceof Error ? err : new Error('Speech generation failed'));
+      }
       setIsSpeaking(false);
     } finally {
       setIsLoading(false);

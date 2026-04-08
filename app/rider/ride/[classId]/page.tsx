@@ -1261,10 +1261,10 @@ export default function LiveRidePage() {
     }
   }, [consolidatedCoachMessage]);
 
-  // Simplified UI Trigger: Activation of AI instructor when riding
   useEffect(() => {
-    setAiActive(isRiding && (isPracticeMode || Boolean(classData?.metadata?.ai?.enabled)));
-  }, [isRiding, isPracticeMode, classData?.metadata?.ai, setAiActive]);
+    const practiceAiEnabled = isPracticeMode && Boolean(practiceConfig?.aiEnabled);
+    setAiActive(isRiding && (practiceAiEnabled || Boolean(classData?.metadata?.ai?.enabled)));
+  }, [isRiding, isPracticeMode, practiceConfig?.aiEnabled, classData?.metadata?.ai, setAiActive]);
 
   const handleEnableSimulatorFromModal = useCallback(() => {
     setShowNoBikeModal(false);

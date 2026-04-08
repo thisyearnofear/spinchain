@@ -117,7 +117,11 @@ export function useWorkoutAudio(): UseWorkoutAudioReturn {
       mixerRef.current.playLayer(layerId);
       
     } catch (err) {
-      console.error('Failed to play sound:', err);
+      if (err instanceof Error && err.message.includes('quota exceeded')) {
+        console.warn('ElevenLabs sound effect skipped: quota exceeded');
+      } else {
+        console.error('Failed to play sound:', err);
+      }
     }
   }, [isConfigured]);
 

@@ -41,7 +41,7 @@ export function useAiInstructor({
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const { triggerBeat } = useSuiTelemetry(sessionObjectId, null);
   const lastActionTimestamp = useRef<number>(0);
-  const ACTION_COOLDOWN_MS = 15000; // Prevent spamming actions/cues
+  const ACTION_COOLDOWN_MS = 45000;
 
   const addLog = (message: string, type: AgentLog["type"] = "info") => {
     setLogs((prev) => [
