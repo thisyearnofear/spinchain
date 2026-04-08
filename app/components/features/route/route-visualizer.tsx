@@ -926,14 +926,15 @@ function BeatMarker({
 
 function BeatMarkers({ curve, storyBeats, riderProgress }: { curve: CatmullRomCurve3; storyBeats: StoryBeat[]; riderProgress: number }) {
   const meshRef = useRef<InstancedMesh>(null);
+  const validBeats = storyBeats.filter((beat): beat is StoryBeat => beat != null);
 
   return (
     <group>
-      <instancedMesh ref={meshRef} args={[null as any, null as any, storyBeats.length]} frustumCulled={true}>
+      <instancedMesh ref={meshRef} args={[null as any, null as any, validBeats.length]} frustumCulled={true}>
         <cylinderGeometry args={[0.5, 0.5, 0.1, 16]} />
         <meshStandardMaterial color="#6d7cff" emissive="#6d7cff" emissiveIntensity={2} />
       </instancedMesh>
-      {storyBeats.map((beat, i) => (
+      {validBeats.map((beat, i) => (
         <BeatMarker key={i} index={i} meshRef={meshRef} beat={beat} curve={curve} riderProgress={riderProgress} />
       ))}
     </group>

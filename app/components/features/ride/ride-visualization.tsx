@@ -103,7 +103,7 @@ export function RideVisualization({
       {viewMode === "focus" ? (
         <FocusRouteVisualizer
           elevationProfile={routeElevationProfile}
-          storyBeats={classData.route?.route?.storyBeats ?? []}
+          storyBeats={(classData.route?.route?.storyBeats ?? []).filter((b): b is StoryBeat => b != null)}
           progress={routeProgress}
           currentPower={telemetry.power}
           recentPower={recentPowerHistory}
@@ -136,7 +136,7 @@ export function RideVisualization({
         <RouteVisualizer
           elevationProfile={routeElevationProfile}
           theme={routeTheme}
-          storyBeats={classData.route?.route?.storyBeats ?? []}
+          storyBeats={(classData.route?.route?.storyBeats ?? []).filter((b): b is StoryBeat => b != null)}
           progress={routeProgress}
           mode={visualizerMode}
           stats={{

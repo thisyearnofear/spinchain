@@ -326,7 +326,7 @@ export default function FocusRouteVisualizer({
 
   const beatMarkers = useMemo(
     () =>
-      storyBeats.map((beat) => {
+      storyBeats.filter((beat): beat is StoryBeat => beat != null).map((beat) => {
         const x = padX + beat.progress * (width - padX * 2);
         const beatIndex = Math.min(points.length - 1, Math.max(0, Math.round(beat.progress * Math.max(0, points.length - 1))));
         const pathPoint = points[beatIndex] ?? { y: routeBottom };
@@ -350,7 +350,7 @@ export default function FocusRouteVisualizer({
     [clampedProgress, padX, points, routeBottom, routeTop, storyBeats, styles.lineColor, width],
   );
 
-  const nextBeat = beatMarkers.find((beat) => beat.progress >= clampedProgress) ?? beatMarkers[beatMarkers.length - 1];
+  const nextBeat = beatMarkers.find((beat) => beat != null && beat.progress >= clampedProgress) ?? beatMarkers[beatMarkers.length - 1];
   const currentSlope = useMemo(() => {
     const index = Math.min(points.length - 2, Math.max(0, Math.floor(clampedProgress * Math.max(1, points.length - 1))));
     const current = points[index];
