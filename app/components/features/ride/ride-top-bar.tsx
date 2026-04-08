@@ -8,6 +8,7 @@ interface RideTopBarProps {
   className: string;
   instructor: string;
   isPracticeMode: boolean;
+  routeIsGenerated?: boolean;
   isRiding: boolean;
   isExiting: boolean;
   rideProgress: number;
@@ -40,6 +41,7 @@ export const RideTopBar = memo(function RideTopBar({
   className,
   instructor,
   isPracticeMode,
+  routeIsGenerated = false,
   isRiding,
   isExiting,
   rideProgress,
@@ -77,6 +79,12 @@ export const RideTopBar = memo(function RideTopBar({
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                 Practice
+              </span>
+            )}
+            {routeIsGenerated && !isPracticeMode && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-500/20 text-zinc-400 text-xs font-medium shrink-0" title="Route loaded from approximation — live data unavailable">
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                Approx. route
               </span>
             )}
           </div>

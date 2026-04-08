@@ -47,6 +47,7 @@ import { useZKClaim } from "../../../hooks/evm/use-zk-claim";
 import { REWARD_VERIFICATION } from "../../../config";
 import { ANALYTICS_EVENTS, trackEvent } from "../../../lib/analytics/events";
 import { useWakeLock } from "../../../hooks/use-wake-lock";
+import { NetworkStatusBanner } from "../../../components/features/common/yellow-status-indicator";
 import { useHaptic } from "../../../hooks/use-haptic";
 import {
   type WorkoutPlan,
@@ -84,6 +85,10 @@ import {
   updateRideRewardState,
   type RideSyncStatus,
 } from "../../../lib/analytics/ride-history";
+import { persistRideSummaryToWalrus } from "../../../lib/walrus/ride-persistence";
+
+const MAX_RIDE_POINTS = 10_800;
+const MAX_TELEMETRY_SAMPLES = 5_400;
 
 function getSystemHudMode(
   deviceType: "mobile" | "tablet" | "desktop",
@@ -806,6 +811,7 @@ export default function LiveRidePage() {
       const now = Date.now();
       if (now - lastTelemetryCommitMsRef.current < intervalMs) return;
 
+      const prevCommitMs = lastTelemetryCommitMsRef.current;
       const deltaSeconds =
         lastWBalUpdateMsRef.current > 0
           ? (now - lastWBalUpdateMsRef.current) / 1000
@@ -850,11 +856,8 @@ export default function LiveRidePage() {
         timestamp: now,
       };
 
-      // Record point for TCX export (at ~1Hz)
-      if (
-        Math.round(now / 1000) !==
-        Math.round(lastTelemetryCommitMsRef.current / 1000)
-      ) {
+      // Record point for TCX export at ~1Hz (gate on second boundary vs previous commit)
+      if (Math.round(now / 1000) !== Math.round(prevCommitMs / 1000)) {
         const currentCoord = currentRouteCoordinate;
         ridePointsRef.current.push({
           timestamp: now,
@@ -867,6 +870,9 @@ export default function LiveRidePage() {
           longitude: currentCoord?.lng,
           altitude: currentCoord?.ele,
         });
+        if (ridePointsRef.current.length > MAX_RIDE_POINTS) {
+          ridePointsRef.current.splice(0, ridePointsRef.current.length - MAX_RIDE_POINTS);
+        }
       }
 
       // Update Ghost Rider position and lead/lag
@@ -1072,6 +1078,9 @@ export default function LiveRidePage() {
         power: newTelemetry.power,
         effort: newTelemetry.effort,
       });
+      if (telemetrySamples.current.length > MAX_TELEMETRY_SAMPLES) {
+        telemetrySamples.current.splice(0, telemetrySamples.current.length - MAX_TELEMETRY_SAMPLES);
+      }
     }, 1000);
 
     return () => clearInterval(interval);
@@ -1085,6 +1094,9 @@ export default function LiveRidePage() {
         power: telemetry.power,
         effort: telemetry.effort,
       });
+      if (telemetrySamples.current.length > MAX_TELEMETRY_SAMPLES) {
+        telemetrySamples.current.splice(0, telemetrySamples.current.length - MAX_TELEMETRY_SAMPLES);
+      }
     }
   }, [
     isRiding,
@@ -1446,6 +1458,7 @@ export default function LiveRidePage() {
       },
     });
     const saved = saveRideSummary(canonicalSummary);
+    void persistRideSummaryToWalrus(canonicalSummary);
     const latest =
       saved.find((ride) => ride.id === canonicalSummary.id) ?? canonicalSummary;
     const queued = enqueueRideSync(latest);
@@ -1536,6 +1549,10 @@ export default function LiveRidePage() {
         height: deviceType === "mobile" ? `${viewportHeight}px` : "100vh",
       }}
     >
+      <div className="absolute top-2 left-2 right-2 z-50">
+        <NetworkStatusBanner />
+      </div>
+
       <RideVisualization
         viewMode={viewMode}
         deviceType={deviceType}
@@ -1581,6 +1598,7 @@ export default function LiveRidePage() {
       <RideHUDOverlay
         classData={classData}
         isPracticeMode={isPracticeMode}
+        routeIsGenerated={classData?.routeIsGenerated}
         isRiding={isRiding}
         isExiting={isExiting}
         rideProgress={rideProgress}

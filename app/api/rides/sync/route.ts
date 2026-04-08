@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiError, type ApiErrorBody } from "@/app/lib/api/response";
+import { upsertLeaderboardEntry } from "@/app/lib/api/leaderboard-store";
 import type { Address } from "viem";
-import { CONTRACT_ADDRESSES, INCENTIVE_ENGINE_ABI } from "@/app/lib/contracts";
+import { createWalletClient, createPublicClient, http, defineChain } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { CONTRACT_ADDRESSES, INCENTIVE_ENGINE_ABI, AVALANCHE_FUJI } from "@/app/lib/contracts";
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +21,20 @@ export const dynamic = 'force-dynamic';
  * 3. If using relayer mode, backend submits tx and returns hash
  * 4. If direct mode, validates proof and returns success
  */
+
+// Chain definition for viem
+const avalancheFuji = defineChain({
+  id: AVALANCHE_FUJI.id,
+  name: AVALANCHE_FUJI.name,
+  nativeCurrency: AVALANCHE_FUJI.nativeCurrency,
+  rpcUrls: {
+    default: { http: [AVALANCHE_FUJI.rpcUrl] },
+  },
+  blockExplorers: {
+    default: { name: "Snowtrace", url: AVALANCHE_FUJI.explorerUrl },
+  },
+  testnet: true,
+});
 
 // Validation constants
 const MIN_EFFORT_FOR_ANCHORING = 700; // Only anchor high-effort rides
@@ -39,6 +57,7 @@ type SyncResponse = {
   relayTs: number;
   mode: "relayer" | "direct" | "validation_only";
   message?: string;
+  commitmentTxHash?: `0x${string}`;
   contractCall?: {
     address: `0x${string}`;
     abi: typeof INCENTIVE_ENGINE_ABI;
@@ -109,7 +128,7 @@ function isRelayerModeAvailable(): boolean {
   return !!process.env.RELAYER_PRIVATE_KEY;
 }
 
-export async function POST(req: NextRequest): Promise<NextResponse<SyncResponse>> {
+export async function POST(req: NextRequest): Promise<NextResponse<SyncResponse | ApiErrorBody>> {
   try {
     const rawBody = await req.json();
     const validation = validatePayload(rawBody);
@@ -128,6 +147,24 @@ export async function POST(req: NextRequest): Promise<NextResponse<SyncResponse>
 
     const body = validation.data;
     const shouldAnchor = body.avgEffort >= MIN_EFFORT_FOR_ANCHORING;
+
+    // Populate server-side leaderboard from validated ride data
+    if (body.classId && body.avgEffort > 0) {
+      const raw = rawBody as Record<string, unknown>;
+      const proof = raw.proof && typeof raw.proof === "object" ? raw.proof as Record<string, unknown> : {};
+      const privacyLevel = proof.privacyLevel;
+      const privacyTier =
+        privacyLevel === "medium" ? "medium" : privacyLevel === "low" ? "low" : "high";
+      upsertLeaderboardEntry({
+        idempotencyKey: body.idempotencyKey,
+        riderId: body.riderAddress ?? "anon",
+        classId: body.classId,
+        effortScore: body.avgEffort,
+        durationSec: typeof raw.durationSec === "number" ? raw.durationSec : 0,
+        completedAt: typeof raw.completedAt === "number" ? raw.completedAt : (body.timestamp ?? Date.now()),
+        privacyTier,
+      });
+    }
 
     // If no proof provided, just validate and return
     if (!body.proof) {
@@ -156,12 +193,46 @@ export async function POST(req: NextRequest): Promise<NextResponse<SyncResponse>
 
     // Relayer mode: submit transaction on behalf of user
     if (isRelayerModeAvailable()) {
-      return NextResponse.json({
-        relayed: false,
-        relayTs: Date.now(),
-        mode: "relayer",
-        message: "Relayer mode is configured but transaction submission is not implemented yet.",
-      }, { status: 501 });
+      try {
+        const account = privateKeyToAccount(process.env.RELAYER_PRIVATE_KEY as `0x${string}`);
+        const walletClient = createWalletClient({
+          account,
+          chain: avalancheFuji,
+          transport: http(AVALANCHE_FUJI.rpcUrl),
+        });
+        const publicClient = createPublicClient({
+          chain: avalancheFuji,
+          transport: http(AVALANCHE_FUJI.rpcUrl),
+        });
+
+        const txHash = await walletClient.writeContract({
+          address: CONTRACT_ADDRESSES.INCENTIVE_ENGINE,
+          abi: INCENTIVE_ENGINE_ABI,
+          functionName: "submitZKProof",
+          args: [body.proof, body.publicInputs],
+        });
+
+        await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+        return NextResponse.json({
+          relayed: true,
+          relayTs: Date.now(),
+          mode: "relayer",
+          commitmentTxHash: txHash,
+          message: "Proof relayed successfully",
+        });
+      } catch (error) {
+        console.error("[RideSync] Relayer transaction failed:", error);
+        return NextResponse.json(
+          {
+            relayed: false,
+            relayTs: Date.now(),
+            mode: "relayer",
+            message: error instanceof Error ? error.message : "Relayer transaction failed",
+          },
+          { status: 502 }
+        );
+      }
     }
 
     // Direct mode: Client should submit proof directly to contract
@@ -181,14 +252,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<SyncResponse>
     });
   } catch (error) {
     console.error("[RideSync] Error processing request:", error);
-    return NextResponse.json(
-      {
-        relayed: false,
-        relayTs: Date.now(),
-        mode: "validation_only",
-        message: error instanceof Error ? error.message : "Failed to process ride sync",
-      },
-      { status: 500 }
+    return apiError(
+      error instanceof Error ? error.message : "Failed to process ride sync",
+      "INTERNAL_ERROR",
+      500,
+      error,
     );
   }
 }

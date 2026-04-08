@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/app/lib/api/response";
 
 export const runtime = "edge";
 
@@ -26,20 +27,14 @@ type TTSRequest = {
 export async function POST(req: NextRequest) {
   try {
     if (!ELEVENLABS_API_KEY) {
-      return NextResponse.json(
-        { error: "ElevenLabs not configured", message: "ELEVENLABS_API_KEY not set" },
-        { status: 503 }
-      );
+      return apiError("ELEVENLABS_API_KEY not set", "NOT_CONFIGURED", 503);
     }
 
     const body = (await req.json()) as TTSRequest;
     const { text, voice_id, model_id, voice_settings, optimize_streaming_latency } = body;
 
     if (!text || !voice_id) {
-      return NextResponse.json(
-        { error: "Invalid request", message: "text and voice_id are required" },
-        { status: 400 }
-      );
+      return apiError("text and voice_id are required", "MISSING_FIELD", 400);
     }
 
     const response = await fetch(
@@ -62,10 +57,7 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       const error = await response.text();
       console.error("ElevenLabs TTS error:", error);
-      return NextResponse.json(
-        { error: "TTS generation failed", message: error },
-        { status: response.status }
-      );
+      return apiError(error, "PROVIDER_ERROR", response.status);
     }
 
     // Return audio as arraybuffer
@@ -79,10 +71,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error("ElevenLabs TTS error:", error);
-    return NextResponse.json(
-      { error: "TTS generation failed", message: String(error) },
-      { status: 500 }
-    );
+    return apiError("TTS generation failed", "INTERNAL_ERROR", 500, error);
   }
 }
 

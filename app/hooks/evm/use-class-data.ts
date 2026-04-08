@@ -113,6 +113,7 @@ export interface ClassWithRoute {
   route: WalrusRouteData | null;
   routeLoading: boolean;
   routeError: string | null;
+  routeIsGenerated: boolean;
 }
 
 function getDeterministicNumber(seed: string, min: number, max: number) {
@@ -226,10 +227,10 @@ function enrichWalrusRouteData(
 async function resolveRouteForMetadata(
   classId: `0x${string}`,
   metadata: EnhancedClassMetadata,
-) {
+): Promise<{ route: WalrusRouteData; isGenerated: boolean }> {
   const cachedRoute = getCachedRoute(classId);
   if (cachedRoute) {
-    return enrichWalrusRouteData(cachedRoute, metadata, classId);
+    return { route: enrichWalrusRouteData(cachedRoute, metadata, classId), isGenerated: false };
   }
 
   if (metadata.route.walrusBlobId) {
@@ -238,7 +239,7 @@ async function resolveRouteForMetadata(
       if (remoteRoute) {
         const enrichedRoute = enrichWalrusRouteData(remoteRoute, metadata, classId);
         cacheRouteLocally(classId, enrichedRoute);
-        return enrichedRoute;
+        return { route: enrichedRoute, isGenerated: false };
       }
     } catch (routeError) {
       console.warn("Failed to fetch route from Walrus, using generated fallback:", routeError);
@@ -247,7 +248,7 @@ async function resolveRouteForMetadata(
 
   const generatedRoute = generateMockRouteData(metadata, classId);
   cacheRouteLocally(classId, generatedRoute);
-  return generatedRoute;
+  return { route: generatedRoute, isGenerated: true };
 }
 
 async function hydrateClassFromMetadata(params: {
@@ -259,7 +260,7 @@ async function hydrateClassFromMetadata(params: {
   ticketsSold: number;
   currentPrice: string;
 }): Promise<ClassWithRoute> {
-  const route = await resolveRouteForMetadata(params.classAddress, params.metadata);
+  const { route, isGenerated } = await resolveRouteForMetadata(params.classAddress, params.metadata);
 
   return {
     address: params.classAddress,
@@ -274,6 +275,7 @@ async function hydrateClassFromMetadata(params: {
     route,
     routeLoading: false,
     routeError: null,
+    routeIsGenerated: isGenerated,
   };
 }
 
@@ -640,6 +642,7 @@ export function usePracticeClass() {
       route,
       routeLoading: false,
       routeError: null,
+      routeIsGenerated: true,
     });
 
     return mockId;

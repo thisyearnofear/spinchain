@@ -16,6 +16,7 @@ export const dynamic = 'force-dynamic';
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/app/lib/api/response";
 import {
   generateRouteWithGemini,
   generateRouteStream,
@@ -122,10 +123,7 @@ export async function POST(req: NextRequest) {
     const validation = validateRouteRequest(rawBody);
 
     if (!validation.valid) {
-      return NextResponse.json(
-        { error: "Validation failed", message: validation.error, code: validation.code },
-        { status: 400 }
-      );
+      return apiError(validation.error, "VALIDATION_FAILED", 400);
     }
 
     const body = validation.data;
@@ -167,15 +165,13 @@ export async function POST(req: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     const isConfigError = errorMessage.includes("API_KEY");
     
-    return NextResponse.json(
-      { 
-        error: isConfigError ? "Configuration error" : "Generation failed",
-        message: isConfigError 
-          ? "AI provider not configured. Please check your API keys."
-          : "Failed to generate route. Please try again.",
-        details: process.env.NODE_ENV === "development" ? errorMessage : undefined,
-      },
-      { status: isConfigError ? 503 : 500 }
+    return apiError(
+      isConfigError
+        ? "AI provider not configured. Please check your API keys."
+        : "Failed to generate route. Please try again.",
+      isConfigError ? "NOT_CONFIGURED" : "INTERNAL_ERROR",
+      isConfigError ? 503 : 500,
+      errorMessage,
     );
   }
 }
@@ -193,14 +189,7 @@ async function handleGeminiRequest(
   const hasUserKey = !!userApiKey;
   
   if (!hasEnvKey && !hasUserKey) {
-    return NextResponse.json(
-      { 
-        error: "Gemini 3 not configured",
-        message: "Please add your Gemini API key in settings (BYOK) or contact admin",
-        provider: "gemini",
-      },
-      { status: 503 }
-    );
+    return apiError("Please add your Gemini API key in settings (BYOK) or contact admin", "NOT_CONFIGURED", 503);
   }
 
   // Use user's API key if provided (BYOK)
@@ -277,13 +266,7 @@ async function handleVeniceRequest(request: RouteRequest) {
       return await handleGeminiRequest(request, false, undefined);
     }
     
-    return NextResponse.json(
-      { 
-        error: "No AI providers available",
-        message: "Please configure VENICE_API_KEY or GEMINI_API_KEY",
-      },
-      { status: 503 }
-    );
+    return apiError("Please configure VENICE_API_KEY or GEMINI_API_KEY", "NOT_CONFIGURED", 503);
   }
 
   const startTime = Date.now();

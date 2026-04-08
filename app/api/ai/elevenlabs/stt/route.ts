@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/app/lib/api/response";
 
 export const runtime = "edge";
 
@@ -14,10 +15,7 @@ const ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1";
 export async function POST(req: NextRequest) {
   try {
     if (!ELEVENLABS_API_KEY) {
-      return NextResponse.json(
-        { error: "ElevenLabs not configured", message: "ELEVENLABS_API_KEY not set" },
-        { status: 503 }
-      );
+      return apiError("ELEVENLABS_API_KEY not set", "NOT_CONFIGURED", 503);
     }
 
     // Get the audio file from the request
@@ -26,10 +24,7 @@ export async function POST(req: NextRequest) {
     const modelId = (formData.get("model_id") as string) || "scribe_v1";
 
     if (!audioFile) {
-      return NextResponse.json(
-        { error: "Invalid request", message: "audio file is required" },
-        { status: 400 }
-      );
+      return apiError("audio file is required", "MISSING_FIELD", 400);
     }
 
     // Forward to ElevenLabs
@@ -51,10 +46,7 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       const error = await response.text();
       console.error("ElevenLabs STT error:", error);
-      return NextResponse.json(
-        { error: "Transcription failed", message: error },
-        { status: response.status }
-      );
+      return apiError(error, "PROVIDER_ERROR", response.status);
     }
 
     const result = await response.json();
@@ -62,10 +54,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error("ElevenLabs STT error:", error);
-    return NextResponse.json(
-      { error: "Transcription failed", message: String(error) },
-      { status: 500 }
-    );
+    return apiError(String(error), "INTERNAL_ERROR", 500);
   }
 }
 

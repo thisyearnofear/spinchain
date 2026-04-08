@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/app/lib/api/response";
 import { 
   getCoachingWithGemini,
   chatWithGemini,
@@ -12,16 +13,15 @@ import {
   CoachingResponse 
 } from "@/app/lib/gemini-client";
 import { getCoachingWithVenice, chatWithVenice } from "@/app/lib/venice-client";
+import { TtlCache } from "@/app/lib/api/cache";
 
 export const runtime = "edge";
 
 const VENICE_API_KEY = process.env.VENICE_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// Short-TTL response cache — avoids redundant Gemini calls for identical inputs
 type CachedResponse = (CoachingResponse | { response: string }) & { _provider?: string };
-const responseCache = new Map<string, { value: CachedResponse; expiresAt: number }>();
-const CACHE_TTL_MS = 60_000; // 60 seconds
+const responseCache = new TtlCache<CachedResponse>(60_000);
 
 type ChatMessage = {
   role: "user" | "assistant" | "system";
@@ -50,23 +50,19 @@ export async function POST(req: NextRequest) {
     } = body;
 
     if (!VENICE_API_KEY && !GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: "Configuration error", message: "No AI provider configured. Set VENICE_API_KEY or GEMINI_API_KEY." },
-        { status: 503 }
-      );
+      return apiError("No AI provider configured. Set VENICE_API_KEY or GEMINI_API_KEY.", "NOT_CONFIGURED", 503);
     }
 
     const startTime = Date.now();
     let response: CachedResponse;
     let providerUsed = "venice";
 
-    // Check short-TTL cache for identical inputs
     const cacheKey = JSON.stringify({ mode, messages, context, conversationHistory });
     const cached = responseCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
+    if (cached) {
       return NextResponse.json({
-        ...cached.value,
-        _meta: { generatedAt: new Date().toISOString(), duration: 0, model: cached.value._provider ?? "venice", mode, cached: true },
+        ...cached,
+        _meta: { generatedAt: new Date().toISOString(), duration: 0, model: cached._provider ?? "venice", mode, cached: true },
       });
     }
 
@@ -89,10 +85,7 @@ export async function POST(req: NextRequest) {
     } else {
       const lastMessage = messages[messages.length - 1];
       if (!lastMessage || lastMessage.role !== "user") {
-        return NextResponse.json(
-          { error: "Invalid request", message: "Last message must be from user" },
-          { status: 400 }
-        );
+        return apiError("Last message must be from user", "VALIDATION_FAILED", 400);
       }
 
       if (VENICE_API_KEY) {
@@ -118,11 +111,7 @@ export async function POST(req: NextRequest) {
     const duration_ms = Date.now() - startTime;
     console.log(`[${providerUsed}] Response generated in ${duration_ms}ms`);
 
-    // Store in short-TTL cache; evict stale entries to prevent unbounded growth
-    responseCache.set(cacheKey, { value: { ...response, _provider: providerUsed }, expiresAt: Date.now() + CACHE_TTL_MS });
-    for (const [k, v] of responseCache) {
-      if (v.expiresAt <= Date.now()) responseCache.delete(k);
-    }
+    responseCache.set(cacheKey, { ...response, _provider: providerUsed });
 
     return NextResponse.json({
       ...response,
@@ -140,14 +129,7 @@ export async function POST(req: NextRequest) {
     
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     
-    return NextResponse.json(
-      { 
-        error: "Chat failed",
-        message: "Failed to generate response. Please try again.",
-        details: process.env.NODE_ENV === "development" ? errorMessage : undefined,
-      },
-      { status: 500 }
-    );
+    return apiError("Failed to generate response. Please try again.", "INTERNAL_ERROR", 500, errorMessage);
   }
 }
 

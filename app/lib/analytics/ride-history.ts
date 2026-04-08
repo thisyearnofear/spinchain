@@ -292,10 +292,6 @@ function nextRetryDelayMs(retryCount: number) {
   return BASE_BACKOFF_MS * 2 ** Math.min(retryCount, 5);
 }
 
-function createMockAnchorEpoch(timestamp: number): number {
-  return Math.floor(timestamp / (1000 * 60 * 30));
-}
-
 export function createRideIdempotencyKey(rideId: string, riderId: string, endedAt: number) {
   return `${rideId}:${riderId}:${endedAt}`;
 }
@@ -475,7 +471,6 @@ export async function processRideSyncQueue(now = Date.now()) {
           attempted: true,
           status: anchored ? "confirmed" : "pending",
           txHash: relayResult.commitmentTxHash,
-          commitmentEpoch: createMockAnchorEpoch(relayedAt),
         },
       }));
       removeFromQueue(item.id);

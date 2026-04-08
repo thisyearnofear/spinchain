@@ -14,10 +14,14 @@ import { YELLOW_SETTLEMENT_ABI as YELLOW_SETTLEMENT_CONTRACT_ABI } from "./contr
 // NETWORK CONFIGURATION
 // ============================================================================
 
+const ANKR_API_KEY = process.env.NEXT_PUBLIC_ANKR_API_KEY;
+
 export const AVALANCHE_FUJI = {
   id: 43113,
   name: "Avalanche Fuji Testnet",
-  rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
+  rpcUrl: ANKR_API_KEY
+    ? `https://rpc.ankr.com/avalanche_fuji/${ANKR_API_KEY}`
+    : "https://api.avax-test.network/ext/bc/C/rpc",
   explorerUrl: "https://testnet.snowtrace.io",
   nativeCurrency: { name: "AVAX", symbol: "AVAX", decimals: 18 },
 } as const;
@@ -48,42 +52,42 @@ export function isZeroAddress(address?: string | null): boolean {
 // ============================================================================
 
 export const CONTRACT_ADDRESSES = {
-  /** ERC-20 SPIN reward token */
+  /** ERC-20 SPIN reward token — verified Fuji: https://testnet.snowtrace.io/address/0xA2DA94dE3AB8a90D62A1b1897E0e96DBda0F494f */
   SPIN_TOKEN: (process.env.NEXT_PUBLIC_SPIN_TOKEN_ADDRESS ??
-    "0x64465eB31EF60C44Fa82638d11Dd7FE49f5f7d5F") as `0x${string}`,
+    "0xA2DA94dE3AB8a90D62A1b1897E0e96DBda0F494f") as `0x${string}`,
 
-  /** Distributes SPIN rewards via ECDSA attestation or ZK proof */
+  /** Distributes SPIN rewards via ECDSA attestation or ZK proof — verified Fuji: https://testnet.snowtrace.io/address/0x8BF20C7fbc69cafd3144de3Bb30509A26F39FF3d */
   INCENTIVE_ENGINE: (process.env.NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS ??
-    "0x522636f2AEF7C8271557F1A0470d2F2e6eA6b59D") as `0x${string}`,
+    "0x8BF20C7fbc69cafd3144de3Bb30509A26F39FF3d") as `0x${string}`,
 
-  /** Factory that deploys per-class SpinClass contracts */
+  /** Factory that deploys per-class SpinClass contracts — verified Fuji: https://testnet.snowtrace.io/address/0xc4B4A722b55610bFa1556506B87Cbfe7983961A7 */
   CLASS_FACTORY: (process.env.NEXT_PUBLIC_CLASS_FACTORY_ADDRESS ??
-    "0x42f3f1954e3CB988c3F9adBb9E68b168F9B6330C") as `0x${string}`,
+    "0xc4B4A722b55610bFa1556506B87Cbfe7983961A7") as `0x${string}`,
 
-  /** Noir-generated UltraVerifier */
+  /** MockUltraVerifier (testnet only — see docs/DEPLOYMENT.md for Honk verifier limitation) — verified Fuji: https://testnet.snowtrace.io/address/0x202aEd029708F2e0540B63a4025Dcb2556F85ba1 */
   ULTRA_VERIFIER: (process.env.NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS ??
     process.env.NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS ??
-    "0xF0C7eEF04f685a7bB1d42B3B9470a45D4Dc80c00") as `0x${string}`,
+    "0x202aEd029708F2e0540B63a4025Dcb2556F85ba1") as `0x${string}`,
 
-  /** EffortThresholdVerifier — wraps UltraVerifier with replay protection */
+  /** EffortThresholdVerifier — wraps UltraVerifier with replay protection — verified Fuji: https://testnet.snowtrace.io/address/0x783C36f6502052EC31971e75E20D0012910dbA91 */
   EFFORT_VERIFIER: (process.env.NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS ??
-    ZERO_ADDRESS) as `0x${string}`,
+    "0x783C36f6502052EC31971e75E20D0012910dbA91") as `0x${string}`,
 
-  /** Revenue splitter for instructor/platform split */
+  /** Revenue splitter for instructor/platform split — verified Fuji: https://testnet.snowtrace.io/address/0xDd787C22A28aA709021860485AC1b95620B5AcE3 */
   TREASURY_SPLITTER: (process.env.NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS ??
-    "0x8AAe2Ef551296c0FaeA0e3F8a5aE32CA12f5D9da") as `0x${string}`,
+    "0xDd787C22A28aA709021860485AC1b95620B5AcE3") as `0x${string}`,
 
-  /** Yellow state channel settlement */
+  /** Yellow state channel settlement — verified Fuji: https://testnet.snowtrace.io/address/0x960bbE91899D8A1D62e894348B9fa8B6358d9182 */
   YELLOW_SETTLEMENT: (process.env.NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS ??
-    "0x724b2dFf32C4dAfcF44988fA3Ca1606d0e05b26c") as `0x${string}`,
+    "0x960bbE91899D8A1D62e894348B9fa8B6358d9182") as `0x${string}`,
 
-  /** Chainlink Runtime Environment (CRE) Biometric Oracle */
+  /** Chainlink Runtime Environment (CRE) Biometric Oracle — verified Fuji: https://testnet.snowtrace.io/address/0xE0021E77f52761A69F611530A481B2B9371993d8 */
   BIOMETRIC_ORACLE: (process.env.NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS ??
-    "0xfF9E54946F65A356e5db7fA2fC3ab43a839a7901") as `0x${string}`,
+    "0xE0021E77f52761A69F611530A481B2B9371993d8") as `0x${string}`,
 
   /** Chainlink CRE Forwarder contract */
   CRE_FORWARDER: (process.env.NEXT_PUBLIC_CHAINLINK_FORWARDER ??
-    "0x29FA4181620358dA180CAD770dB1696fbA78F1Cd") as `0x${string}`,
+    ZERO_ADDRESS) as `0x${string}`,
 } as const;
 
 // Legacy named exports (used throughout the codebase)

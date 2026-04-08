@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/app/lib/api/response";
 import { generateNarrativeWithGemini } from "@/app/lib/gemini-client";
 import { generateNarrativeWithVenice } from "@/app/lib/venice-client";
 
@@ -28,26 +29,17 @@ export async function POST(req: NextRequest) {
 
     // Validate required fields
     if (!elevationProfile || !Array.isArray(elevationProfile) || elevationProfile.length < 2) {
-      return NextResponse.json(
-        { error: "Invalid request", message: "elevationProfile must be an array with at least 2 points" },
-        { status: 400 }
-      );
+      return apiError("elevationProfile must be an array with at least 2 points", "VALIDATION_FAILED", 400);
     }
 
     if (!theme || theme.trim().length < 2) {
-      return NextResponse.json(
-        { error: "Invalid request", message: "theme is required" },
-        { status: 400 }
-      );
+      return apiError("theme is required", "MISSING_FIELD", 400);
     }
 
     const VENICE_API_KEY = process.env.VENICE_API_KEY;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     if (!VENICE_API_KEY && !GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: "Configuration error", message: "No AI provider configured. Set VENICE_API_KEY or GEMINI_API_KEY." },
-        { status: 503 }
-      );
+      return apiError("No AI provider configured. Set VENICE_API_KEY or GEMINI_API_KEY.", "NOT_CONFIGURED", 503);
     }
 
     const startTime = Date.now();
@@ -94,14 +86,7 @@ export async function POST(req: NextRequest) {
     
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     
-    return NextResponse.json(
-      { 
-        error: "Generation failed",
-        message: "Failed to generate narrative. Please try again.",
-        details: process.env.NODE_ENV === "development" ? errorMessage : undefined,
-      },
-      { status: 500 }
-    );
+    return apiError("Failed to generate narrative. Please try again.", "INTERNAL_ERROR", 500, errorMessage);
   }
 }
 

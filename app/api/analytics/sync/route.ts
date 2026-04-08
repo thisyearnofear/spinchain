@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/app/lib/api/response";
 import { appendFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
@@ -65,17 +66,11 @@ function sanitizePayload(payload: unknown): Record<string, unknown> {
 
 export async function GET(req: NextRequest) {
   if (!isServerAnalyticsEnabled()) {
-    return NextResponse.json(
-      { error: "Analytics server storage disabled" },
-      { status: 404 }
-    );
+    return apiError("Analytics server storage disabled", "NOT_CONFIGURED", 404);
   }
 
   if (!hasAdminAccess(req)) {
-    return NextResponse.json(
-      { error: "Forbidden" },
-      { status: 403 }
-    );
+    return apiError("Forbidden", "FORBIDDEN", 403);
   }
 
   // Query params for filtering
@@ -131,31 +126,19 @@ export async function POST(req: NextRequest) {
     const { events, sessionId } = body;
 
     if (!Array.isArray(events) || events.length === 0) {
-      return NextResponse.json(
-        { error: "Invalid payload: expected 'events' array" },
-        { status: 400 }
-      );
+      return apiError("Expected 'events' array", "VALIDATION_FAILED", 400);
     }
 
     if (!sessionId || typeof sessionId !== "string") {
-      return NextResponse.json(
-        { error: "Invalid payload: 'sessionId' is required" },
-        { status: 400 }
-      );
+      return apiError("'sessionId' is required", "MISSING_FIELD", 400);
     }
 
     if (sessionId.length > MAX_SESSION_ID_LENGTH) {
-      return NextResponse.json(
-        { error: "Invalid payload: 'sessionId' is too long" },
-        { status: 400 }
-      );
+      return apiError("'sessionId' is too long", "VALIDATION_FAILED", 400);
     }
 
     if (events.length > MAX_BATCH_SIZE) {
-      return NextResponse.json(
-        { error: `Invalid payload: max ${MAX_BATCH_SIZE} events per request` },
-        { status: 400 }
-      );
+      return apiError(`Max ${MAX_BATCH_SIZE} events per request`, "VALIDATION_FAILED", 400);
     }
 
     const validEvents: string[] = [];
@@ -204,9 +187,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Analytics sync error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return apiError("Internal server error", "INTERNAL_ERROR", 500, error);
   }
 }

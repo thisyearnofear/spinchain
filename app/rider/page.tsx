@@ -16,6 +16,7 @@ import { RoutePreviewCard } from "../components/features/route/route-preview-car
 import { ConnectWallet } from "../components/features/wallet/connect-wallet";
 import { AnimatedClassCard } from "../components/features/class/animated-class-card";
 import { OnboardingChecklist } from "../components/features/common/onboarding-checklist";
+import { NetworkStatusBanner } from "../components/features/common/yellow-status-indicator";
 import type { SavedRoute } from "../lib/route-library";
 
 export default function RiderPage() {
@@ -129,6 +130,8 @@ export default function RiderPage() {
         <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur">
           <PrimaryNav />
         </div>
+
+        <NetworkStatusBanner />
 
         {/* Coach profiles */}
         <section className="space-y-6">

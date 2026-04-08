@@ -34,10 +34,19 @@ const storage = createStorage({
   },
 });
 
-// Custom RPC URLs that support CORS
-const ETHEREUM_MAINNET_RPC = process.env.NEXT_PUBLIC_ETHEREUM_RPC_URL || "https://rpc.ankr.com/eth";
-const AVALANCHE_RPC = process.env.NEXT_PUBLIC_AVALANCHE_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
-const AVALANCHE_MAINNET_RPC = process.env.NEXT_PUBLIC_AVALANCHE_MAINNET_RPC_URL || "https://rpc.ankr.com/avalanche";
+const ANKR_KEY = process.env.NEXT_PUBLIC_ANKR_API_KEY;
+
+const ETHEREUM_MAINNET_RPC =
+  process.env.NEXT_PUBLIC_ETHEREUM_RPC_URL ||
+  (ANKR_KEY ? `https://rpc.ankr.com/eth/${ANKR_KEY}` : "https://rpc.ankr.com/eth");
+
+const AVALANCHE_RPC =
+  process.env.NEXT_PUBLIC_AVALANCHE_RPC_URL ||
+  (ANKR_KEY ? `https://rpc.ankr.com/avalanche_fuji/${ANKR_KEY}` : "https://api.avax-test.network/ext/bc/C/rpc");
+
+const AVALANCHE_MAINNET_RPC =
+  process.env.NEXT_PUBLIC_AVALANCHE_MAINNET_RPC_URL ||
+  (ANKR_KEY ? `https://rpc.ankr.com/avalanche/${ANKR_KEY}` : "https://rpc.ankr.com/avalanche");
 
 export function createBrowserWagmiConfig(): Config {
   return getDefaultConfig({

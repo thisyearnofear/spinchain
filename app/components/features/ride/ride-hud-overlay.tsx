@@ -16,6 +16,7 @@ import type { MultiGhostState } from "@/app/hooks/ride/use-multi-ghost";
 interface RideHUDOverlayProps {
   classData: { name: string; instructor: string };
   isPracticeMode: boolean;
+  routeIsGenerated?: boolean;
   isRiding: boolean;
   isExiting: boolean;
   rideProgress: number;
@@ -101,6 +102,7 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
         className={props.classData.name}
         instructor={props.classData.instructor}
         isPracticeMode={props.isPracticeMode}
+        routeIsGenerated={props.routeIsGenerated}
         isRiding={props.isRiding}
         isExiting={props.isExiting}
         rideProgress={props.rideProgress}

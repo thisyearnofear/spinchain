@@ -66,6 +66,14 @@ export interface UseRewardsConfig {
 // Return Type
 // ============================================================================
 
+export type ChainAvailability = "connected" | "degraded" | "unavailable";
+
+export interface ChainHealth {
+  avalanche: ChainAvailability;
+  yellow: ChainAvailability;
+  sui: ChainAvailability;
+}
+
 export interface UseRewardsReturn {
   // Mode configuration
   mode: RewardMode;
@@ -101,6 +109,9 @@ export interface UseRewardsReturn {
 
   // ClearNode WebSocket connection status (Yellow mode only)
   clearNodeConnected?: boolean;
+
+  // Per-chain health for graceful degradation UI
+  chainHealth: ChainHealth;
 }
 
 // ============================================================================
@@ -428,6 +439,15 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
 
     // ClearNode status
     clearNodeConnected: mode === "yellow-stream" ? clearNodeConnected : undefined,
+
+    // Per-chain availability for UI degradation indicators
+    chainHealth: {
+      avalanche: (mode === "zk-batch" && zkClaim.error) ? "degraded" as const : "connected" as const,
+      yellow: mode === "yellow-stream"
+        ? (clearNodeConnected ? "connected" as const : yellow.error ? "unavailable" as const : "degraded" as const)
+        : "unavailable" as const,
+      sui: mode === "sui-native" ? "degraded" as const : "unavailable" as const,
+    } satisfies ChainHealth,
   };
 }
 

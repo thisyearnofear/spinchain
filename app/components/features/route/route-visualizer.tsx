@@ -8,6 +8,7 @@ import {
   Mesh,
   Shape,
   ExtrudeGeometry,
+  TubeGeometry,
   Group,
   PointLight,
   MathUtils,
@@ -64,6 +65,20 @@ function mapToCurveProgress(raw: number) {
   if (!Number.isFinite(raw)) return START_OFFSET;
   const clamped = Math.max(0, Math.min(raw, 1));
   return START_OFFSET + clamped * (1 - START_OFFSET - END_PADDING);
+}
+
+function sanitizeGeometry(geo: ExtrudeGeometry | TubeGeometry): void {
+  const pos = geo.getAttribute('position');
+  if (!pos) return;
+  const arr = pos.array as Float32Array;
+  for (let i = 0; i < arr.length; i++) {
+    if (!Number.isFinite(arr[i])) arr[i] = 0;
+  }
+  pos.needsUpdate = true;
+}
+
+function isFiniteVector3(vec: Vector3): boolean {
+  return Number.isFinite(vec.x) && Number.isFinite(vec.y) && Number.isFinite(vec.z);
 }
 
 function Model({ url, scale = 1, rotation = [0, 0, 0], position = [0, 0, 0] }: { url: string; scale?: number; rotation?: [number, number, number]; position?: [number, number, number] }) {
@@ -162,11 +177,13 @@ function Road({
     shape.lineTo(-width * 0.9, height);
     shape.lineTo(-width, 0);
 
-    return new ExtrudeGeometry(shape, {
+    const geo = new ExtrudeGeometry(shape, {
       steps,
       extrudePath: curve,
       bevelEnabled: false,
     });
+    sanitizeGeometry(geo);
+    return geo;
   }, [curve, theme, steps]);
 
   return (
@@ -212,6 +229,7 @@ function RoadMarkings({
       extrudePath: curve,
       bevelEnabled: false,
     });
+    sanitizeGeometry(dashGeo);
 
     // Edge lines
     const edgeShape = new Shape();
@@ -236,6 +254,7 @@ function RoadMarkings({
       extrudePath: curve,
       bevelEnabled: false,
     });
+    sanitizeGeometry(edgeGeo);
 
     return { dashGeometry: dashGeo, edgeGeometry: edgeGeo };
   }, [curve, theme, steps]);
@@ -434,15 +453,16 @@ function PostEffects({ theme = "neon", stats, mode, performanceTier = "high" }: 
 function HoloMap({ curve, progress, theme }: { curve: CatmullRomCurve3, progress: number, theme: VisualizerTheme }) {
   const styles = THEMES[theme];
   const safeProgress = Number.isFinite(progress) ? Math.max(0, Math.min(progress, 1)) : 0;
-  const dotPosition = curve.getPointAt(safeProgress);
+  const dotPosition = useMemo(() => {
+    const point = curve.getPointAt(safeProgress);
+    return isFiniteVector3(point) ? point : new Vector3(0, 0, 0);
+  }, [curve, safeProgress]);
 
-  // Stable args array — only recreated when curve changes, not on every render.
-  // Without this, R3F sees a new array reference each render and rebuilds the
-  // TubeGeometry every frame, flooding the console with NaN bounding-box warnings.
-  const tubeArgs = useMemo(
-    () => [curve, 64, 2.5, 8, true] as [CatmullRomCurve3, number, number, number, boolean],
-    [curve],
-  );
+  const tubeGeo = useMemo(() => {
+    const geo = new TubeGeometry(curve, 64, 2.5, 8, true);
+    sanitizeGeometry(geo);
+    return geo;
+  }, [curve]);
 
   return (
     <group position={[0, 1.2, 1.5]} rotation={[-Math.PI / 4, 0, 0]} scale={0.012}>
@@ -453,8 +473,7 @@ function HoloMap({ curve, progress, theme }: { curve: CatmullRomCurve3, progress
       </mesh>
 
       {/* Mini Route Path - Glowing Neon */}
-      <mesh>
-        <tubeGeometry args={tubeArgs} />
+      <mesh geometry={tubeGeo}>
         <meshStandardMaterial
           color={styles.lineColor}
           emissive={styles.lineColor}
@@ -823,10 +842,11 @@ function BeatMarker({
   curve: CatmullRomCurve3;
   riderProgress: number;
 }) {
-  const point = useMemo(
-    () => curve.getPointAt(beat.progress),
-    [curve, beat.progress],
-  );
+  const point = useMemo(() => {
+    if (!Number.isFinite(beat.progress)) return new Vector3(0, 0, 0);
+    const p = curve.getPointAt(Math.max(0, Math.min(1, beat.progress)));
+    return isFiniteVector3(p) ? p : new Vector3(0, 0, 0);
+  }, [curve, beat.progress]);
 
   // Proximity logic for animation
   const distance = Math.abs(riderProgress - beat.progress);
@@ -981,6 +1001,9 @@ function Scene({
   const curve = useRouteCurve(elevationProfile);
   const styles = THEMES[theme];
   const lastBeatRef = useRef<number>(-1);
+  const smoothedLookTargetRef = useRef(new Vector3());
+  const smoothedShakeRef = useRef(new Vector3());
+  const _shakeTargetVec = useRef(new Vector3());
 
   // Get performance tier for adaptive quality - use quality.fps as proxy if available
   const performanceTier = quality?.fps === 30 ? "low" : quality?.fps === 45 ? "medium" : "high";
@@ -1050,9 +1073,15 @@ function Scene({
         .add(side.multiplyScalar(3))
         .add(new Vector3(0, 10, 0));
 
-      const lerpSpeed = mode === "ride" ? 0.12 : 0.06;
+      const lerpSpeed = mode === "ride" ? 0.06 : 0.04;
       state.camera.position.lerp(targetCamPos, lerpSpeed);
-      state.camera.lookAt(lookTarget);
+
+      if (!isFiniteVector3(smoothedLookTargetRef.current) || smoothedLookTargetRef.current.lengthSq() === 0) {
+        smoothedLookTargetRef.current.copy(lookTarget);
+      } else {
+        smoothedLookTargetRef.current.lerp(lookTarget, lerpSpeed * 2);
+      }
+      state.camera.lookAt(smoothedLookTargetRef.current);
 
       const cam = state.camera as ThreePerspectiveCamera;
       if (cam.fov !== undefined) {
@@ -1064,10 +1093,15 @@ function Scene({
 
       if (stats.power > 350) {
         const shake = Math.min(1, (stats.power - 350) / 450);
-        const rand = (Math.random() - 0.5) * shake * 0.15;
-        state.camera.position.x += rand;
-        state.camera.position.y += rand * 0.5;
+        const rawShake = (Math.random() - 0.5) * shake * 0.08;
+        _shakeTargetVec.current.set(rawShake, rawShake * 0.5, 0);
+        smoothedShakeRef.current.lerp(_shakeTargetVec.current, 0.15);
+      } else {
+        _shakeTargetVec.current.set(0, 0, 0);
+        smoothedShakeRef.current.lerp(_shakeTargetVec.current, 0.1);
       }
+      state.camera.position.x += smoothedShakeRef.current.x;
+      state.camera.position.y += smoothedShakeRef.current.y;
     }
   });
 

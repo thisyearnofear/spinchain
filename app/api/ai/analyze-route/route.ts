@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/app/lib/api/response";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -90,10 +91,7 @@ Return ONLY valid JSON, no markdown.`;
     return NextResponse.json(analysis);
   } catch (error) {
     console.error("Route analysis error:", error);
-    return NextResponse.json(
-      { error: "Failed to analyze route" },
-      { status: 500 }
-    );
+    return apiError("Failed to analyze route", "INTERNAL_ERROR", 500, error);
   }
 }
 

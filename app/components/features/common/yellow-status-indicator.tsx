@@ -16,7 +16,9 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { AlertTriangle } from "lucide-react";
 import { isClearNodeConnected } from "@/app/lib/rewards/yellow/clearnode";
+import { useNetworkStatus } from "@/app/hooks/use-network-status";
 
 interface YellowStatusIndicatorProps {
   compact?: boolean;
@@ -156,4 +158,33 @@ export function YellowStatusIndicator({
  */
 export function YellowStatusBadge() {
   return <YellowStatusIndicator compact />;
+}
+
+// ============================================================================
+// NETWORK STATUS BANNER
+// Unified demo/preview mode indicator — shows nothing when production-ready
+// ============================================================================
+
+export function NetworkStatusBanner() {
+  const status = useNetworkStatus();
+
+  if (status.ready) return null;
+
+  return (
+    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 backdrop-blur-sm">
+      <div className="flex items-center gap-3">
+        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+              Preview Mode
+            </span>
+          </div>
+          <p className="text-xs text-amber-200/70 mt-0.5">
+            {status.summary}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }

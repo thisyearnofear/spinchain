@@ -25,13 +25,18 @@ import {
   Trophy,
   Sparkles,
   CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import {
   fetchGhostWithFallback,
   GhostPerformance,
 } from "@/app/lib/analytics/ghost-service";
+import { NetworkStatusBanner } from "@/app/components/features/common/yellow-status-indicator";
+
+import { useNetworkStatus } from "@/app/hooks/use-network-status";
 
 export default function InstructorLivePage() {
+  const networkStatus = useNetworkStatus();
   const [isAgentPaused, setIsAgentPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [riderCount, setRiderCount] = useState(42);
@@ -108,6 +113,8 @@ export default function InstructorLivePage() {
           <PrimaryNav />
         </div>
 
+        <NetworkStatusBanner />
+
         {/* Header with Live Status */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
@@ -115,7 +122,7 @@ export default function InstructorLivePage() {
               <div className="flex items-center gap-1.5 bg-red-500/20 border border-red-500/30 px-3 py-1 rounded-full">
                 <span className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
                 <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">
-                  Live Session
+                  {networkStatus.ready ? "Live Session" : "Demo Session"}
                 </span>
               </div>
               <Tag className="bg-indigo-500/10 border-indigo-500/20 text-indigo-400">
@@ -498,6 +505,7 @@ export default function InstructorLivePage() {
                   <Users className="w-4 h-4 text-white/20" />
                 </div>
                 <div className="space-y-4">
+                  {/* Demo placeholder data */}
                   {[
                     { name: "Satoshi_N", score: "842", trend: "up" },
                     { name: "Vitalik.eth", score: "815", trend: "down" },
