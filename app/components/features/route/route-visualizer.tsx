@@ -702,57 +702,59 @@ function RiderMarker({
         color={styles.riderColor}
         attenuation={(t) => t * t}
       >
-        {/* Avatar and Equipment Models */}
-        {avatar && (
-          <group position={[0, equipment?.type === "bike" ? 0.8 : 0, 0]}>
-            <Model url={avatar.modelUrl} scale={1.5} rotation={[0, Math.PI, 0]} />
-          </group>
-        )}
+        <group>
+          {/* Avatar and Equipment Models */}
+          {avatar ? (
+            <group position={[0, equipment?.type === "bike" ? 0.8 : 0, 0]}>
+              <Model url={avatar.modelUrl} scale={1.5} rotation={[0, Math.PI, 0]} />
+            </group>
+          ) : null}
 
-        {equipment ? (
-          <Model url={equipment.modelUrl} scale={equipment?.type === "vehicle" ? 2 : 1.2} />
-        ) : (
-          /* Stylized cyclist fallback */
-          <group rotation={[Math.PI / 2, 0, 0]}>
-            {/* Body */}
-            <mesh position={[0, 0, 0.2]}>
-              <capsuleGeometry args={[0.45, 1.0, 8, 16]} />
-              <meshStandardMaterial
-                color={styles.riderColor}
-                emissive={styles.riderColor}
-                emissiveIntensity={3}
-                toneMapped={false}
-              />
-            </mesh>
-            {/* Head */}
-            <mesh position={[0, 0, 1.2]}>
-              <sphereGeometry args={[0.35, 16, 16]} />
-              <meshStandardMaterial
-                color={styles.riderColor}
-                emissive={styles.riderColor}
-                emissiveIntensity={3}
-                toneMapped={false}
-              />
-            </mesh>
-          </group>
-        )}
+          {equipment ? (
+            <Model url={equipment.modelUrl} scale={equipment?.type === "vehicle" ? 2 : 1.2} />
+          ) : (
+            /* Stylized cyclist fallback */
+            <group rotation={[Math.PI / 2, 0, 0]}>
+              {/* Body */}
+              <mesh position={[0, 0, 0.2]}>
+                <capsuleGeometry args={[0.45, 1.0, 8, 16]} />
+                <meshStandardMaterial
+                  color={styles.riderColor}
+                  emissive={styles.riderColor}
+                  emissiveIntensity={3}
+                  toneMapped={false}
+                />
+              </mesh>
+              {/* Head */}
+              <mesh position={[0, 0, 1.2]}>
+                <sphereGeometry args={[0.35, 16, 16]} />
+                <meshStandardMaterial
+                  color={styles.riderColor}
+                  emissive={styles.riderColor}
+                  emissiveIntensity={3}
+                  toneMapped={false}
+                />
+              </mesh>
+            </group>
+          )}
 
-        {/* Pulsing Aura */}
-        <mesh ref={auraRef} rotation={[Math.PI / 2, 0, 0]}>
-          <sphereGeometry args={[2, 32, 32]} />
-          <meshBasicMaterial
+          {/* Pulsing Aura */}
+          <mesh ref={auraRef} rotation={[Math.PI / 2, 0, 0]}>
+            <sphereGeometry args={[2, 32, 32]} />
+            <meshBasicMaterial
+              color={styles.riderColor}
+              transparent
+              opacity={0.05 + stats.power / 2000}
+            />
+          </mesh>
+
+          <pointLight
+            ref={lightRef}
+            distance={30}
+            intensity={10}
             color={styles.riderColor}
-            transparent
-            opacity={0.05 + stats.power / 2000}
           />
-        </mesh>
-
-        <pointLight
-          ref={lightRef}
-          distance={30}
-          intensity={10}
-          color={styles.riderColor}
-        />
+        </group>
       </Trail>
 
       {/* Label — only visible during active ride */}
