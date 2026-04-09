@@ -10,6 +10,26 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { ThemeProvider, useTheme } from './components/layout/theme-provider';
 import { ToastProvider } from './components/ui/toast';
 
+// Stable RainbowKit theme objects (created once, never re-allocated)
+const RAINBOWKIT_DARK_THEME = darkTheme({
+  accentColor: "#6d7cff",
+  accentColorForeground: "white",
+  borderRadius: "medium",
+  overlayBlur: "small",
+});
+
+const RAINBOWKIT_LIGHT_THEME = lightTheme({
+  accentColor: "#4f46e5",
+  accentColorForeground: "white",
+  borderRadius: "medium",
+  overlayBlur: "small",
+});
+
+const RAINBOWKIT_APP_INFO = {
+  appName: "SpinChain",
+  learnMoreUrl: "https://spinchain.xyz",
+};
+
 // Create a stable query client for SSR
 function makeQueryClient() {
   return new QueryClient({
@@ -43,20 +63,26 @@ import { flushAnalytics } from './lib/analytics/events';
 function useWalletReconnection() {
   const { isConnected, isConnecting, isReconnecting } = useAccount();
   const hasAttemptedReconnectRef = useRef(false);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    // Initialize background manager for native session persistence
-    // Only run on client-side
-    if (typeof window !== 'undefined') {
+    if (!initializedRef.current && typeof window !== 'undefined') {
+      initializedRef.current = true;
       backgroundManager.initialize();
     }
-    
-    // On mobile, wallet connections can be flaky after page navigation
-    // This ensures we attempt reconnection once on mount
+  }, []);
+
+  useEffect(() => {
     if (!hasAttemptedReconnectRef.current && !isConnected && !isConnecting && !isReconnecting) {
       hasAttemptedReconnectRef.current = true;
     }
   }, [isConnected, isConnecting, isReconnecting]);
+}
+
+// Isolated component so useAccount re-renders don't propagate to RainbowKitProvider
+function WalletReconnectionManager() {
+  useWalletReconnection();
+  return null;
 }
 
 // RainbowKit wrapper that responds to theme changes
@@ -69,31 +95,12 @@ function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  // Handle mobile wallet reconnection
-  useWalletReconnection();
-
   const rainbowTheme = resolvedTheme === 'dark' 
-    ? darkTheme({
-        accentColor: "#6d7cff",
-        accentColorForeground: "white",
-        borderRadius: "medium",
-        overlayBlur: "small",
-      })
-    : lightTheme({
-        accentColor: "#4f46e5",
-        accentColorForeground: "white",
-        borderRadius: "medium",
-        overlayBlur: "small",
-      });
+    ? RAINBOWKIT_DARK_THEME
+    : RAINBOWKIT_LIGHT_THEME;
 
   return (
-    <RainbowKitProvider 
-      theme={rainbowTheme}
-      appInfo={{
-        appName: "SpinChain",
-        learnMoreUrl: "https://spinchain.xyz",
-      }}
-    >
+    <RainbowKitProvider theme={rainbowTheme} appInfo={RAINBOWKIT_APP_INFO}>
       {mounted ? children : <div style={{ visibility: 'hidden' }} />}
     </RainbowKitProvider>
   );
@@ -124,6 +131,7 @@ function InnerProviders({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <SuiProvider>
         <WagmiProvider config={wagmiConfig} reconnectOnMount={true}>
+          <WalletReconnectionManager />
           <RainbowKitThemeWrapper>
             {children}
           </RainbowKitThemeWrapper>
