@@ -329,27 +329,47 @@ export function usePanelState(
         rideLayoutActiveRef.current = true;
       }
 
+      const nextMobileRideWidgets = deviceType === 'mobile' ? 'minimized' : prev.mobileRideWidgets;
+      const nextWorkoutPlan = prev.workoutPlan === 'expanded' ? 'collapsed' : prev.workoutPlan;
+      const nextInputMode = prev.inputMode === 'expanded' ? 'collapsed' : prev.inputMode;
+      const nextDeviceSelector = prev.deviceSelector === 'expanded' ? 'collapsed' : prev.deviceSelector;
+
+      if (
+        prev.focusLeft === 'minimized' &&
+        prev.focusRight === 'minimized' &&
+        prev.focusBottom === 'minimized' &&
+        prev.mobileRideWidgets === nextMobileRideWidgets &&
+        prev.workoutPlan === nextWorkoutPlan &&
+        prev.inputMode === nextInputMode &&
+        prev.deviceSelector === nextDeviceSelector
+      ) {
+        return prev;
+      }
+
       return {
         ...prev,
-        mobileRideWidgets: deviceType === 'mobile' ? 'minimized' : prev.mobileRideWidgets,
+        mobileRideWidgets: nextMobileRideWidgets,
         focusLeft: 'minimized',
         focusRight: 'minimized',
         focusBottom: 'minimized',
-        workoutPlan: prev.workoutPlan === 'expanded' ? 'collapsed' : prev.workoutPlan,
-        inputMode: prev.inputMode === 'expanded' ? 'collapsed' : prev.inputMode,
-        deviceSelector: prev.deviceSelector === 'expanded' ? 'collapsed' : prev.deviceSelector,
+        workoutPlan: nextWorkoutPlan,
+        inputMode: nextInputMode,
+        deviceSelector: nextDeviceSelector,
       };
     });
   }, [deviceType, positions]);
 
   const endRideLayout = useCallback(() => {
-    setState(preRideSnapshotRef.current ?? getDefaultState(deviceType));
-    if (preRidePositionsSnapshotRef.current) {
-      setPositions(preRidePositionsSnapshotRef.current);
-    }
+    if (!rideLayoutActiveRef.current && preRideSnapshotRef.current === null) return;
+    const nextState = preRideSnapshotRef.current ?? getDefaultState(deviceType);
+    const nextPositions = preRidePositionsSnapshotRef.current;
     rideLayoutActiveRef.current = false;
     preRideSnapshotRef.current = null;
     preRidePositionsSnapshotRef.current = null;
+    setState(nextState);
+    if (nextPositions) {
+      setPositions(nextPositions);
+    }
   }, [deviceType]);
 
   const setMobileRideWidgetsMode = useCallback((mode: WidgetMode) => {

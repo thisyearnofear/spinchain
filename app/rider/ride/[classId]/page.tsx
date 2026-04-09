@@ -141,26 +141,26 @@ export default function LiveRidePage() {
   const panelState = usePanelState(deviceType);
 
   // Keyboard shortcut for collapse all (C key)
+  const { isAllCollapsed: panelIsAllCollapsed, expandAll: panelExpandAll, collapseAll: panelCollapseAll } = panelState;
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "c" || e.key === "C") {
-        // Only toggle if not in an input field
         if (
           e.target instanceof HTMLInputElement ||
           e.target instanceof HTMLTextAreaElement
         )
           return;
         e.preventDefault();
-        if (panelState.isAllCollapsed) {
-          panelState.expandAll();
+        if (panelIsAllCollapsed) {
+          panelExpandAll();
         } else {
-          panelState.collapseAll();
+          panelCollapseAll();
         }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [panelState]);
+  }, [panelIsAllCollapsed, panelExpandAll, panelCollapseAll]);
 
   // Persisted HUD preference (client-only)
   useEffect(() => {
@@ -297,13 +297,14 @@ export default function LiveRidePage() {
     [deviceType, panelState],
   );
 
+  const { startRideLayout, endRideLayout } = panelState;
   useEffect(() => {
     if (isRiding) {
-      panelState.startRideLayout();
+      startRideLayout();
     } else {
-      panelState.endRideLayout();
+      endRideLayout();
     }
-  }, [isRiding, panelState]);
+  }, [isRiding, startRideLayout, endRideLayout]);
 
   const widgetsVisible =
     !isRiding || panelState.state.mobileRideWidgets !== "minimized";
