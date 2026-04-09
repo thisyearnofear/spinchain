@@ -18,6 +18,23 @@ export interface TelemetryData {
   source?: "ble" | "healthkit" | "simulated";
 }
 
+// Hook to get telemetry from Zustand store in the expected format
+// This provides backward compatibility while using granular subscriptions
+import { useFullTelemetry } from "@/app/hooks/ride/use-telemetry-store";
+
+export function useTelemetryData(): TelemetryData {
+  const telemetry = useFullTelemetry();
+  return {
+    heartRate: telemetry.heartRate,
+    power: telemetry.power,
+    cadence: telemetry.cadence,
+    speed: telemetry.speed,
+    effort: telemetry.effort,
+    currentGear: telemetry.currentGear,
+    gearRatio: telemetry.gearRatio,
+  };
+}
+
 interface RideHUDProps {
   telemetry: TelemetryData;
   ghostState?: GhostState;

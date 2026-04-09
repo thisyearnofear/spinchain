@@ -420,10 +420,12 @@ function PostEffects({ theme = "neon", stats, mode, performanceTier = "high" }: 
     setReady(true);
   }, []);
 
-  const powerFactor = Math.min(1, stats.power / 600);
+  // Quantize power to bands to prevent constant useMemo recalculation
+  const powerBand = Math.round(stats.power / 50) * 50;
+  const powerFactor = Math.min(1, powerBand / 600);
   const intensityMultiplier = performanceTier === "medium" ? 0.5 : 1;
   const bloomIntensity = (0.5 + powerFactor * 2.0) * intensityMultiplier;
-  const chromaticOffset = stats.power > 300 ? powerFactor * 0.005 * intensityMultiplier : 0;
+  const chromaticOffset = powerBand > 300 ? powerFactor * 0.005 * intensityMultiplier : 0;
   const noiseOpacity = theme === 'neon' ? 0.03 * intensityMultiplier : 0;
 
   const effects = useMemo(() => {
@@ -690,6 +692,7 @@ function RiderMarker({
 
   const powerBucket = stats.power > 400 ? 2 : stats.power > 200 ? 1 : 0;
   const trailLength = powerBucket === 2 ? 25 : powerBucket === 1 ? 15 : 10;
+  const trailWidth = 2 + powerBucket * 1.5; // Quantized width to match length buckets
 
   return (
     <group ref={groupRef}>
@@ -697,7 +700,7 @@ function RiderMarker({
       {showYouLabel && <HoloHUD stats={stats} theme={theme} curve={curve} progressRef={progressRef} />}
 
       <Trail
-        width={2 + stats.power / 200}
+        width={trailWidth}
         length={trailLength}
         color={styles.riderColor}
         attenuation={(t) => t * t}
@@ -1083,9 +1086,34 @@ function Scene({
     mode === "preview" ? START_OFFSET : mapToCurveProgress(progress),
   );
   const frameCountRef = useRef(0);
+  const lastDisplayProgressRef = useRef(renderProgressRef.current);
   // displayProgress drives HTML overlays (BeatMarker labels, ghost positions).
   // Throttled to ~10fps — smooth enough for text/UI, avoids constant re-renders.
   const [displayProgress, setDisplayProgress] = useState(renderProgressRef.current);
+
+  // Use RAF-based effect for HTML overlay updates (outside useFrame)
+  useEffect(() => {
+    if (mode === "preview") return;
+    
+    let rafId: number;
+    let lastUpdate = 0;
+    const updateInterval = 100; // 10fps for HTML overlays
+
+    const updateDisplayProgress = (timestamp: number) => {
+      if (timestamp - lastUpdate >= updateInterval) {
+        const currentProgress = renderProgressRef.current;
+        if (Math.abs(currentProgress - lastDisplayProgressRef.current) > 0.001) {
+          lastDisplayProgressRef.current = currentProgress;
+          setDisplayProgress(currentProgress);
+        }
+        lastUpdate = timestamp;
+      }
+      rafId = requestAnimationFrame(updateDisplayProgress);
+    };
+
+    rafId = requestAnimationFrame(updateDisplayProgress);
+    return () => cancelAnimationFrame(rafId);
+  }, [mode]);
 
   useFrame((state, delta) => {
     // --- 1. Compute raw progress ---
@@ -1100,13 +1128,7 @@ function Scene({
     const curveProgress = mode === "preview" ? rawProgress : mapToCurveProgress(rawProgress);
     renderProgressRef.current = curveProgress;
 
-    // --- 2. Throttle React state to ~10fps for HTML overlay elements ---
-    frameCountRef.current++;
-    if (frameCountRef.current % 6 === 0) {
-      setDisplayProgress(curveProgress);
-    }
-
-    // --- 3. Beat tracking (no state needed) ---
+    // --- 2. Beat tracking (no state needed) ---
     storyBeats.forEach((beat, index) => {
       if (
         rawProgress >= beat.progress &&
@@ -1118,7 +1140,7 @@ function Scene({
     });
     if (rawProgress < 0.01) lastBeatRef.current = -1;
 
-    // --- 4. Chase camera ---
+    // --- 3. Chase camera ---
     if (mode !== "preview") {
       const safeCurveP = Number.isFinite(curveProgress)
         ? Math.max(0, Math.min(curveProgress, 1))
@@ -1152,18 +1174,28 @@ function Scene({
       }
       state.camera.lookAt(smoothedLookTargetRef.current);
 
+      // FOV update with dead-zone to avoid unnecessary updateProjectionMatrix calls
       const cam = state.camera as ThreePerspectiveCamera;
       if (cam.fov !== undefined) {
         const baseFov = 60;
         const targetFov = baseFov + Math.min(25, (stats.power / 400) * 20);
-        cam.fov = MathUtils.lerp(cam.fov, targetFov, 0.05);
-        cam.updateProjectionMatrix();
+        const fovDiff = Math.abs(cam.fov - targetFov);
+        
+        // Only update if difference is significant (dead-zone optimization)
+        if (fovDiff > 0.1) {
+          cam.fov = MathUtils.lerp(cam.fov, targetFov, 0.05);
+          cam.updateProjectionMatrix();
+        }
       }
 
+      // Camera shake with deterministic noise (avoid Math.random jitter)
       if (stats.power > 350) {
         const shake = Math.min(1, (stats.power - 350) / 450);
-        const rawShake = (Math.random() - 0.5) * shake * 0.08;
-        _shakeTargetVec.current.set(rawShake, rawShake * 0.5, 0);
+        // Use time-based sine for frame-coherent shake instead of Math.random()
+        const t = state.clock.elapsedTime * 20;
+        const rawShakeX = Math.sin(t) * shake * 0.08;
+        const rawShakeY = Math.sin(t * 1.3) * shake * 0.04;
+        _shakeTargetVec.current.set(rawShakeX, rawShakeY, 0);
         smoothedShakeRef.current.lerp(_shakeTargetVec.current, 0.15);
       } else {
         _shakeTargetVec.current.set(0, 0, 0);
