@@ -73,6 +73,7 @@ circuits/*/target/
 .zencoder
 .zenflow
 .junie
+.letta/
 
 # External repos
 /remix-glassmorphism-analytics-/
