@@ -24,7 +24,7 @@ export function useRideFocusAdapter(deviceType: "mobile" | "tablet" | "desktop")
   }, [deviceType, initForDevice]);
   
   // Map focus config to legacy HUD mode
-  const hudMode = (() => {
+  const hudMode: "full" | "compact" | "minimal" = (() => {
     switch (config.centerHud) {
       case "none":
         return "minimal";
@@ -36,10 +36,10 @@ export function useRideFocusAdapter(deviceType: "mobile" | "tablet" | "desktop")
       default:
         return "full";
     }
-  })() as "full" | "compact" | "minimal";
+  })();
   
   // Map focus config to legacy widget mode
-  const widgetsMode = (() => {
+  const widgetsMode: "expanded" | "collapsed" | "minimized" = (() => {
     switch (config.bottomPanel) {
       case "none":
         return "minimized";
@@ -51,10 +51,10 @@ export function useRideFocusAdapter(deviceType: "mobile" | "tablet" | "desktop")
       default:
         return "expanded";
     }
-  })() as "expanded" | "collapsed" | "minimized";
+  })();
   
   // Map focus config to legacy view mode
-  const viewMode = config.centerHud === "none" ? "focus" : "immersive";
+  const viewMode: "immersive" | "focus" = config.centerHud === "none" ? "focus" : "immersive";
   
   return {
     // Legacy compatibility

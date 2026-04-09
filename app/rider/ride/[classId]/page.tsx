@@ -1742,7 +1742,7 @@ export default function LiveRidePage() {
         simulatedReward={simulatedRewards}
         telemetry={telemetry}
         telemetryHistory={telemetryHistory}
-        ghostState={ghostState}
+        ghostState={ghostStateRef.current}
         currentInterval={currentInterval}
         aiLogs={aiLogs}
         aiActive={aiActive}
