@@ -19,6 +19,8 @@ import {
 import { RideVisualization } from "../../../components/features/ride/ride-visualization";
 import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overlay";
 import { RideModals } from "../../../components/features/ride/ride-modals";
+import { RideGestureZone } from "../../../components/features/ride/ride-gesture-zone";
+import { useRideFocusKeyboard } from "../../../hooks/ui/use-ride-focus-mode";
 import type { RewardClaimStatus } from "../../../components/features/ride/ride-completion";
 import type { StoryBeat } from "../../../components/features/route/route-visualizer";
 import { useSimulatedRewards } from "../../../hooks/ride/use-simulated-rewards";
@@ -1069,7 +1071,20 @@ export default function LiveRidePage() {
       timestamp: metrics.timestamp ?? Date.now(),
     };
     // Simulator is a user-driven control; update UI immediately for responsiveness
-    setTelemetry(telemetryRawRef.current);
+    updateTelemetryStore({
+      heartRate: telemetryRawRef.current.heartRate,
+      power: telemetryRawRef.current.power,
+      cadence: telemetryRawRef.current.cadence,
+      speed: telemetryRawRef.current.speed,
+      effort: telemetryRawRef.current.effort,
+      wBal: telemetryRawRef.current.wBal,
+      wBalPercentage: telemetryRawRef.current.wBalPercentage,
+      distance: telemetryRawRef.current.distance,
+      currentGear: telemetryRawRef.current.currentGear,
+      gearRatio: telemetryRawRef.current.gearRatio,
+      resistance: telemetryRawRef.current.resistance,
+      timestamp: telemetryRawRef.current.timestamp,
+    });
 
     // Advance ride progress cadence-weighted: no pedaling = no progress.
     // Use refs for isRiding/classData to avoid stale closures in the metrics callback.
@@ -1406,6 +1421,18 @@ export default function LiveRidePage() {
     setIsRiding(false);
     playSound("recover");
   };
+  
+  const togglePauseResume = () => {
+    if (isRiding) {
+      pauseRide();
+    } else if (rideProgress > 0 && rideProgress < 100) {
+      // Resume ride
+      isRidingRef.current = true;
+      setIsRiding(true);
+      playSound("resistanceUp");
+    }
+  };
+  
   const exitRide = async () => {
     setIsExiting(true);
     stopAudio();
@@ -1558,6 +1585,28 @@ export default function LiveRidePage() {
     router.push("/rider");
   };
 
+  // Keyboard shortcuts for focus mode and ride controls
+  const handleFocusKeyboard = useRideFocusKeyboard({
+    onPauseResume: togglePauseResume,
+  });
+  
+  useEffect(() => {
+    window.addEventListener("keydown", handleFocusKeyboard);
+    return () => window.removeEventListener("keydown", handleFocusKeyboard);
+  }, [handleFocusKeyboard]);
+  
+  // Add ride-active class to body for Tab key behavior
+  useEffect(() => {
+    if (isRiding) {
+      document.body.classList.add("ride-active");
+    } else {
+      document.body.classList.remove("ride-active");
+    }
+    return () => {
+      document.body.classList.remove("ride-active");
+    };
+  }, [isRiding]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -1613,15 +1662,19 @@ export default function LiveRidePage() {
   }
 
   return (
-    <div
-      className="fixed inset-0 bg-black"
-      style={{
-        height: deviceType === "mobile" ? `${viewportHeight}px` : "100vh",
-      }}
+    <RideGestureZone
+      enabled={deviceType === "mobile" && isRiding}
+      onHaptic={haptic.trigger}
     >
-      <div className="absolute top-2 left-2 right-2 z-50">
-        <NetworkStatusBanner />
-      </div>
+      <div
+        className="fixed inset-0 bg-black"
+        style={{
+          height: deviceType === "mobile" ? `${viewportHeight}px` : "100vh",
+        }}
+      >
+        <div className="absolute top-2 left-2 right-2 z-50">
+          <NetworkStatusBanner />
+        </div>
 
       <SectionErrorBoundary title="ride visualization">
         <RideVisualization
@@ -1899,5 +1952,6 @@ export default function LiveRidePage() {
         onSimulatorMetrics={handleSimulatorMetrics}
       />
     </div>
+    </RideGestureZone>
   );
 }

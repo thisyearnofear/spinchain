@@ -24,6 +24,8 @@ interface RideTopBarProps {
   viewMode: "immersive" | "focus";
   hudMode: "full" | "compact" | "minimal";
   deviceType: "mobile" | "tablet" | "desktop";
+  // Focus mode control
+  showClassInfo?: boolean;
   // Simulated rewards
   simulatedReward?: { isSimulating: boolean; formattedReward: string };
   // Callbacks

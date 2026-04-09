@@ -25,6 +25,9 @@ interface RideBottomPanelProps {
   bleConnected: boolean;
   walletConnected: boolean;
   connectionHint: string | null;
+  // Focus mode control
+  showIntervalBanner?: boolean;
+  showAiCoach?: boolean;
   // Telemetry
   telemetryEffort: number;
   telemetryCadence: number;

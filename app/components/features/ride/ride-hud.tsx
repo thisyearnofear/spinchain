@@ -267,6 +267,9 @@ function GearBadge({ gear, ratio }: { gear?: number; ratio?: number }) {
  * RideHUD - Telemetry display with responsive layouts
 ...
  * Shows heart rate, power, cadence, speed based on device and HUD mode
+ * 
+ * Desktop: Edge-docked cards (corners) for unobstructed 3D view
+ * Mobile: Center overlay or compact pill
  */
 export function RideHUD({
   telemetry,
@@ -295,6 +298,9 @@ export function RideHUD({
   const phaseLabel = intervalPhase
     ? intervalPhase.charAt(0).toUpperCase() + intervalPhase.slice(1)
     : "Cruise";
+
+  // Edge-docked layout for desktop (Priority 2: move cards from center to edges)
+  const useEdgeDocked = deviceType === "desktop" && hudMode === "full";
 
   // Calculate intensity based on target RPM if available
   const rpmIntensity = useMemo(() => {
@@ -477,37 +483,91 @@ export function RideHUD({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-6 sm:gap-8">
-          <MetricCard
-            label={phaseMetrics.primary.label}
-            value={phaseMetrics.primary.value}
-            unit={phaseMetrics.primary.unit}
-            color={phaseMetrics.primary.color}
-            emphasized
-            intensity={rpmIntensity}
-          />
-          <MetricCard
-            label={phaseMetrics.secondary[0].label}
-            value={phaseMetrics.secondary[0].value}
-            unit={phaseMetrics.secondary[0].unit}
-            color={phaseMetrics.secondary[0].color}
-            intensity={telemetry.heartRate / 200}
-          />
-          <MetricCard
-            label={phaseMetrics.secondary[1].label}
-            value={phaseMetrics.secondary[1].value}
-            unit={phaseMetrics.secondary[1].unit}
-            color={phaseMetrics.secondary[1].color}
-            intensity={telemetry.cadence / 120}
-          />
-          <MetricCard
-            label="Speed"
-            value={telemetry.speed.toFixed(1)}
-            unit="km/h"
-            color="text-emerald-400"
-            intensity={telemetry.speed / 45}
-          />
-        </div>
+        {/* Priority 2: Edge-docked metrics for desktop (unobstructed 3D view) */}
+        {useEdgeDocked ? (
+          <div className="fixed inset-0 pointer-events-none">
+            {/* Top-left: Primary metric (Power/Cadence/HR based on phase) */}
+            <div className="absolute top-24 left-6 pointer-events-auto">
+              <MetricCard
+                label={phaseMetrics.primary.label}
+                value={phaseMetrics.primary.value}
+                unit={phaseMetrics.primary.unit}
+                color={phaseMetrics.primary.color}
+                emphasized
+                intensity={rpmIntensity}
+                compact
+              />
+            </div>
+            
+            {/* Top-right: Heart Rate */}
+            <div className="absolute top-24 right-6 pointer-events-auto">
+              <MetricCard
+                label={phaseMetrics.secondary[0].label}
+                value={phaseMetrics.secondary[0].value}
+                unit={phaseMetrics.secondary[0].unit}
+                color={phaseMetrics.secondary[0].color}
+                intensity={telemetry.heartRate / 200}
+                compact
+              />
+            </div>
+            
+            {/* Bottom-left: Secondary metric */}
+            <div className="absolute bottom-32 left-6 pointer-events-auto">
+              <MetricCard
+                label={phaseMetrics.secondary[1].label}
+                value={phaseMetrics.secondary[1].value}
+                unit={phaseMetrics.secondary[1].unit}
+                color={phaseMetrics.secondary[1].color}
+                intensity={telemetry.cadence / 120}
+                compact
+              />
+            </div>
+            
+            {/* Bottom-right: Speed (reserved for focus control button) */}
+            <div className="absolute bottom-32 right-24 pointer-events-auto">
+              <MetricCard
+                label="Speed"
+                value={telemetry.speed.toFixed(1)}
+                unit="km/h"
+                color="text-emerald-400"
+                intensity={telemetry.speed / 45}
+                compact
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-6 sm:gap-8">
+            <MetricCard
+              label={phaseMetrics.primary.label}
+              value={phaseMetrics.primary.value}
+              unit={phaseMetrics.primary.unit}
+              color={phaseMetrics.primary.color}
+              emphasized
+              intensity={rpmIntensity}
+            />
+            <MetricCard
+              label={phaseMetrics.secondary[0].label}
+              value={phaseMetrics.secondary[0].value}
+              unit={phaseMetrics.secondary[0].unit}
+              color={phaseMetrics.secondary[0].color}
+              intensity={telemetry.heartRate / 200}
+            />
+            <MetricCard
+              label={phaseMetrics.secondary[1].label}
+              value={phaseMetrics.secondary[1].value}
+              unit={phaseMetrics.secondary[1].unit}
+              color={phaseMetrics.secondary[1].color}
+              intensity={telemetry.cadence / 120}
+            />
+            <MetricCard
+              label="Speed"
+              value={telemetry.speed.toFixed(1)}
+              unit="km/h"
+              color="text-emerald-400"
+              intensity={telemetry.speed / 45}
+            />
+          </div>
+        )}
 
         {isRiding && (
           <div className="flex justify-center mt-4">{agentInsight}</div>
@@ -524,6 +584,7 @@ const MetricCard = memo(function MetricCard({
   color,
   emphasized = false,
   intensity = 0, // 0-1 based on target proximity or effort
+  compact = false, // Edge-docked compact mode for desktop
 }: {
   label: string;
   value: string | number;
@@ -531,7 +592,44 @@ const MetricCard = memo(function MetricCard({
   color: string;
   emphasized?: boolean;
   intensity?: number;
+  compact?: boolean;
 }) {
+  // Compact mode: smaller, translucent, edge-docked
+  if (compact) {
+    return (
+      <div
+        className={`
+        relative rounded-2xl overflow-hidden
+        bg-black/30 backdrop-blur-xl border border-white/10
+        p-4 min-w-[140px]
+        transition-all duration-500
+        hover:bg-black/40 hover:border-white/20
+        shadow-lg
+      `}
+      >
+        {/* Subtle glow for high intensity */}
+        {intensity > 0.7 && (
+          <div
+            className={`absolute inset-0 opacity-10 blur-2xl ${color.replace("text-", "bg-")}`}
+          />
+        )}
+
+        <div className="relative z-10">
+          <p className="text-[9px] uppercase font-bold tracking-wider text-white/40 mb-1">
+            {label}
+          </p>
+          <p className={`text-4xl font-black tracking-tight ${color}`}>
+            {value}
+          </p>
+          <p className="text-xs font-medium text-white/30 mt-0.5 uppercase">
+            {unit}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Full mode: original large cards
   return (
     <div
       className={`
