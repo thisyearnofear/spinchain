@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { motion } from "framer-motion";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTelemetryStore } from "../../../hooks/ride/use-telemetry-store";
@@ -377,7 +378,7 @@ export default function LiveRidePage() {
   const updateTelemetryStore = useTelemetryStore((state) => state.updateMetrics);
   
   // Compatibility: Create telemetry object from store for components that haven't been refactored yet
-  const telemetry = useTelemetryStore((state) => ({
+  const telemetry = useTelemetryStore(useShallow((state) => ({
     heartRate: state.heartRate,
     power: state.power,
     cadence: state.cadence,
@@ -390,7 +391,7 @@ export default function LiveRidePage() {
     gearRatio: state.gearRatio,
     resistance: state.resistance,
     timestamp: state.timestamp,
-  }));
+  })));
   
   const [telemetryHistory, setTelemetryHistory] = useState<{
     power: number[];
@@ -1244,6 +1245,19 @@ export default function LiveRidePage() {
     return () => clearInterval(interval);
   }, [isRiding, telemetry.effort, isPracticeMode, isGuestMode]);
 
+  const agentMetrics = useMemo(() => ({
+    ...telemetry,
+    wBalPercentage: telemetry.wBalPercentage || 100,
+  }), [telemetry]);
+
+  const stableSetResistance = useCallback(async (level: number) => {
+    return await setResistance(level);
+  }, [setResistance]);
+
+  const instructorProfile = useMemo(() => classData?.metadata
+    ? { name: classData.metadata.instructor, specialties: [] as string[] }
+    : undefined, [classData?.metadata]);
+
   const {
     aiLogs,
     reasonerState,
@@ -1259,23 +1273,12 @@ export default function LiveRidePage() {
         | "drill-sergeant"
         | "data") ?? "drill-sergeant"),
     sessionObjectId: classId,
-    metrics: {
-      ...telemetry,
-      wBalPercentage: telemetry.wBalPercentage || 100,
-    },
+    metrics: agentMetrics,
     currentInterval,
     isEnabled: aiActive,
-    setResistance: async (level) => {
-      // Hardware actuation via unified BLE
-      return await setResistance(level);
-    },
+    setResistance: stableSetResistance,
     playSound,
-    instructorProfile: classData?.metadata
-      ? {
-          name: classData.metadata.instructor,
-          specialties: [],
-        }
-      : undefined,
+    instructorProfile,
     marketStats, // Phase 3: Revenue optimization
   });
 

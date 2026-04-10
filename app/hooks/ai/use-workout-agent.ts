@@ -9,7 +9,7 @@
  * - MODULAR: Composable agent logic
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useAiInstructor } from "./use-ai-instructor";
 import { useAgentReasoner } from "./use-agent-reasoner";
 import { useVoiceCommands } from "./use-voice-commands";
@@ -58,6 +58,11 @@ export function useWorkoutAgent({
   });
 
   const { rhythm, light: hapticLight } = useHaptic();
+
+  // Stabilize metrics reference to prevent effect churn
+  const metricsRef = useRef(metrics);
+  metricsRef.current = metrics;
+
   const [socialEvents, setSocialEvents] = useState<
     Array<{
       id: string;
@@ -67,6 +72,9 @@ export function useWorkoutAgent({
       from?: string;
     }>
   >([]);
+
+  // Counter for stable, monotonically increasing IDs
+  const socialIdCounter = useRef(0);
 
   const handleHighFive = useCallback(
     (riderId: string) => {
@@ -78,7 +86,7 @@ export function useWorkoutAgent({
         setSocialEvents((prev) =>
           [
             {
-              id: Math.random().toString(36).substring(2, 11),
+              id: `hifive-${++socialIdCounter.current}`,
               type: "highfive",
               message: msg,
               timestamp: Date.now(),
@@ -94,15 +102,17 @@ export function useWorkoutAgent({
   );
 
   // Cadence Sync Haptics - Pulse when below target RPM
+  const cadence = metrics?.cadence;
+  const targetRpm = currentInterval?.targetRpm;
   useEffect(() => {
-    if (!isEnabled || !metrics?.cadence || !currentInterval?.targetRpm) return;
-    const [minRpm] = currentInterval.targetRpm;
+    if (!isEnabled || !cadence || !targetRpm) return;
+    const [minRpm] = targetRpm;
     
-    if (metrics.cadence < minRpm - 5) {
+    if (cadence < minRpm - 5) {
       // Pulse at target cadence to help rider find the beat
       rhythm(minRpm, 3000);
     }
-  }, [isEnabled, metrics?.cadence, currentInterval, rhythm]);
+  }, [isEnabled, cadence, targetRpm, rhythm]);
 
   // 2. Long-term Strategic Reasoning (Phase 3)
   const { 
@@ -160,25 +170,32 @@ export function useWorkoutAgent({
   });
 
   // 4. Trigger Adaptive Reasoning Loop
-  useEffect(() => {
-    if (!isEnabled || !metrics) return;
+  const instructorProfileRef = useRef(instructorProfile);
+  instructorProfileRef.current = instructorProfile;
+  const thoughtLogRef = useRef(thoughtLog);
+  thoughtLogRef.current = thoughtLog;
+  const marketStatsRef = useRef(marketStats);
+  marketStatsRef.current = marketStats;
 
-    // Adaptive frequency based on intensity
-    // High intensity (HR > 150) = reason every 15s
-    // Recovery (HR < 120) = reason every 30s
-    const hr = metrics.heartRate || 0;
-    const intervalMs = hr > 150 ? 15000 : hr < 120 ? 30000 : 20000;
+  useEffect(() => {
+    if (!isEnabled) return;
+
+    // Use a fixed interval; read current metrics inside the callback
+    const intervalMs = 20000;
 
     const interval = setInterval(() => {
+      const m = metricsRef.current;
+      if (!m) return;
+
       // Phase 2: Inject instructor style into reasoning context
       const savedAnchors = typeof window !== 'undefined' 
         ? JSON.parse(localStorage.getItem("instructor_style_anchors") || "[]") 
         : [];
 
       const styleContext = {
-        instructorName: instructorProfile?.name || agentName,
-        teachingStyle: instructorProfile?.bio || personality,
-        specialties: instructorProfile?.specialties || [],
+        instructorName: instructorProfileRef.current?.name || agentName,
+        teachingStyle: instructorProfileRef.current?.bio || personality,
+        specialties: instructorProfileRef.current?.specialties || [],
         styleAnchors: savedAnchors,
       };
 
@@ -190,12 +207,12 @@ export function useWorkoutAgent({
 
       reason({
         telemetry: {
-          avgBpm: metrics.heartRate,
-          resistance: metrics.resistance || 0,
+          avgBpm: m.heartRate,
+          resistance: m.resistance || 0,
           duration: 0, // Should be passed from parent
         },
-        market: marketStats,
-        recentDecisions: thoughtLog.slice(0, 3),
+        market: marketStatsRef.current,
+        recentDecisions: thoughtLogRef.current.slice(0, 3),
         styleContext,
         // @ts-ignore - Gossip context for cross-class coordination
         gossipContext,
@@ -203,7 +220,7 @@ export function useWorkoutAgent({
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [isEnabled, metrics, instructorProfile, personality, reason, thoughtLog]);
+  }, [isEnabled, agentName, personality, reason]);
 
   // Auto-start voice listening when enabled
   useEffect(() => {
@@ -216,18 +233,21 @@ export function useWorkoutAgent({
 
   // 5. Social Agency: Proactive Rider Outreach (Phase 3+)
   useEffect(() => {
-    if (!isEnabled || !metrics) return;
+    if (!isEnabled) return;
 
     // Simulate outreach every 45s based on effort (using power/wBal as proxy)
     const interval = setInterval(() => {
-      const power = metrics.power || 0;
-      const wBal = metrics.wBalPercentage || 100;
+      const m = metricsRef.current;
+      if (!m) return;
+
+      const power = m.power || 0;
+      const wBal = m.wBalPercentage || 100;
       
       if (power > 250 || wBal < 30) {
         const msg = `Recommending "Elite Recovery" class to top performer.`;
         addLog(`Social Agency: ${msg}`, "info");
         setSocialEvents(prev => [{
-          id: Math.random().toString(36).substring(2, 11),
+          id: `social-${++socialIdCounter.current}`,
           type: "recommendation",
           message: msg,
           timestamp: Date.now()
@@ -236,7 +256,7 @@ export function useWorkoutAgent({
         const msg = `Sending "Keep it up" nudge to struggling rider.`;
         addLog(`Social Agency: ${msg}`, "alert");
         setSocialEvents(prev => [{
-          id: Math.random().toString(36).substring(2, 11),
+          id: `social-${++socialIdCounter.current}`,
           type: "nudge",
           message: msg,
           timestamp: Date.now()
@@ -245,7 +265,7 @@ export function useWorkoutAgent({
     }, 45000);
 
     return () => clearInterval(interval);
-  }, [isEnabled, metrics, addLog]);
+  }, [isEnabled, addLog]);
 
   return {
     aiLogs,
