@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useCallback, useMemo } from "react";
 
 /**
  * Unified Ride Focus Mode - replaces the fragmented 3-axis control system
@@ -334,8 +335,17 @@ export const useRideFocusMode = create<RideFocusStore>()(
       },
       
       initForDevice: (deviceType) => {
-        const defaultMode = deviceType === "mobile" ? get().mobileDefault : get().desktopDefault;
-        set({ mode: defaultMode, config: buildConfig(defaultMode, get().customConfigs) });
+        const currentMode = get().mode;
+        const defaultMode =
+          deviceType === "mobile" ? get().mobileDefault : get().desktopDefault;
+
+        // Only set if current mode is different from default (avoid infinite loops/re-render churn)
+        if (currentMode !== defaultMode) {
+          set({
+            mode: defaultMode,
+            config: buildConfig(defaultMode, get().customConfigs),
+          });
+        }
       },
     }),
     {
@@ -370,7 +380,7 @@ export function useRideFocusKeyboard(options?: {
 }) {
   const { cycleMode, toggleZen, togglePanel, setMode } = useRideFocusMode();
   
-  return (event: KeyboardEvent) => {
+  return useCallback((event: KeyboardEvent) => {
     // Ignore if typing in input
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
       return;
@@ -428,7 +438,7 @@ export function useRideFocusKeyboard(options?: {
         }
         break;
     }
-  };
+  }, [cycleMode, toggleZen, togglePanel, setMode, options?.onPauseResume]);
 }
 
 // Mobile gesture handler for progressive disclosure

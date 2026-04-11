@@ -404,51 +404,57 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   }, [mode]);
 
   // ============================================================================
-  // Return
+  // Return Value (Memoized to prevent unnecessary re-renders in consumers)
   // ============================================================================
   
-  return {
-    // Mode
+  return useMemo(() => ({
     mode,
     modeConfig,
-    
-    // Actions
     startEarning,
     recordEffort,
     finalizeRewards,
-    
-    // State
     accumulatedReward,
     formattedReward,
     isActive,
     isConnecting: mode === "yellow-stream" ? yellow.isConnecting : false,
-    isGeneratingProof:
-      mode === "zk-batch" ? zkClaim.isGeneratingProof : false,
-    error: mode === "zk-batch" ? zkClaim.error : yellow.error,
-    
-    // Yellow-specific
+    isGeneratingProof: mode === "zk-batch" ? zkClaim.isGeneratingProof : false,
+    error: mode === "yellow-stream" ? (yellow.error || yellowSettlement.error) : (mode === "zk-batch" ? zkClaim.error : null),
     streamState: mode === "yellow-stream" ? yellow.streamState : undefined,
     streamingStatus,
     streamingRate,
-    channel: yellow.channel,
-    updates,
-    
-    // ZK-specific
     privacyScore: mode === "zk-batch" ? zkClaim.privacyScore : undefined,
     privacyLevel: mode === "zk-batch" ? zkClaim.privacyLevel : undefined,
-
-    // ClearNode status
-    clearNodeConnected: mode === "yellow-stream" ? clearNodeConnected : undefined,
-
-    // Per-chain availability for UI degradation indicators
+    channel: mode === "yellow-stream" ? yellow.channel : null,
+    updates: mode === "yellow-stream" ? updates : [],
+    clearNodeConnected,
     chainHealth: {
-      avalanche: (mode === "zk-batch" && zkClaim.error) ? "degraded" as const : "connected" as const,
-      yellow: mode === "yellow-stream"
-        ? (clearNodeConnected ? "connected" as const : yellow.error ? "unavailable" as const : "degraded" as const)
-        : "unavailable" as const,
-      sui: mode === "sui-native" ? "degraded" as const : "unavailable" as const,
-    } satisfies ChainHealth,
-  };
+      avalanche: "connected",
+      yellow: clearNodeConnected ? "connected" : "degraded",
+      sui: "connected"
+    }
+  }), [
+    mode,
+    modeConfig,
+    startEarning,
+    recordEffort,
+    finalizeRewards,
+    accumulatedReward,
+    formattedReward,
+    isActive,
+    yellow.isConnecting,
+    yellow.error,
+    yellow.streamState,
+    yellow.channel,
+    zkClaim.isGeneratingProof,
+    zkClaim.error,
+    zkClaim.privacyScore,
+    zkClaim.privacyLevel,
+    yellowSettlement.error,
+    streamingStatus,
+    streamingRate,
+    updates,
+    clearNodeConnected
+  ]);
 }
 
 // ============================================================================

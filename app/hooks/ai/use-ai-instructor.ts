@@ -50,20 +50,30 @@ export function useAiInstructor({
     ]);
   };
 
+  // Stabilize metrics with ref for effect performance (avoid constant clearInterval/setInterval)
+  const metricsRef = useRef(metrics);
+  useEffect(() => {
+    metricsRef.current = metrics;
+  }, [metrics]);
+
   // Agent decision loop based on real telemetry
   useEffect(() => {
-    if (!isEnabled || !metrics) return;
+    if (!isEnabled) return;
 
     const intervalId = setInterval(() => {
+      const currentMetrics = metricsRef.current;
+      if (!currentMetrics) return;
+
       const now = Date.now();
-      const canTakeAction = now - lastActionTimestamp.current > ACTION_COOLDOWN_MS;
-      
+      const canTakeAction =
+        now - lastActionTimestamp.current > ACTION_COOLDOWN_MS;
+
       // 1. Data Analysis (Personality-agnostic)
-      const hr = metrics.heartRate;
-      const power = metrics.power;
-      const cadence = metrics.cadence;
-      const wBalPct = metrics.wBalPercentage ?? 100;
-      
+      const hr = currentMetrics.heartRate;
+      const power = currentMetrics.power;
+      const cadence = currentMetrics.cadence;
+      const wBalPct = currentMetrics.wBalPercentage ?? 100;
+
       const targetHrZone = currentInterval?.targetHrZone;
       const targetRpm = currentInterval?.targetRpm;
       const targetPower = currentInterval?.targetPower;
@@ -79,19 +89,28 @@ export function useAiInstructor({
         } else if (hr < 130 && wBalPct > 80 && canTakeAction) {
           const message = `${agentName}: "You have plenty of fuel left in the tank! Increasing resistance. DIG DEEPER!"`;
           addLog(message, "action");
-          setResistance?.(metrics.resistance ? Math.min(100, metrics.resistance + 10) : 50);
+          setResistance?.(
+            currentMetrics.resistance
+              ? Math.min(100, currentMetrics.resistance + 10)
+              : 50,
+          );
           triggerBeat("Intensity Surge", "climb", 7);
           lastActionTimestamp.current = now;
         }
-      } 
-      
-      else if (personality === "zen") {
+      } else if (personality === "zen") {
         // Recovery/Flow focus: Calm if over-exerting
         if ((hr > 175 || wBalPct < 20) && canTakeAction) {
-          const status = wBalPct < 20 ? "Your energy is nearly depleted." : "Your heart is racing beyond the zone.";
+          const status =
+            wBalPct < 20
+              ? "Your energy is nearly depleted."
+              : "Your heart is racing beyond the zone.";
           const message = `${agentName}: "${status} Lowering resistance. Soften your grip. Breathe deep."`;
           addLog(message, "action");
-          setResistance?.(metrics.resistance ? Math.max(0, metrics.resistance - 15) : 20);
+          setResistance?.(
+            currentMetrics.resistance
+              ? Math.max(0, currentMetrics.resistance - 15)
+              : 20,
+          );
           triggerBeat("Find Your Center", "rest", 3);
           lastActionTimestamp.current = now;
         } else if (targetRpm && cadence > targetRpm[1] + 10 && canTakeAction) {
@@ -99,40 +118,63 @@ export function useAiInstructor({
           addLog(message, "info");
           lastActionTimestamp.current = now;
         }
-      } 
-      
-      else if (personality === "data") {
+      } else if (personality === "data") {
         // Technical focus: Compliance and efficiency
-        if (targetPower && (power < targetPower[0] || power > targetPower[1]) && canTakeAction) {
+        if (
+          targetPower &&
+          (power < targetPower[0] || power > targetPower[1]) &&
+          canTakeAction
+        ) {
           const status = power < targetPower[0] ? "low" : "high";
           const message = `${agentName}: "Power output is ${status} (Target: ${targetPower[0]}-${targetPower[1]}W). Adjusting resistance for optimal efficiency."`;
           addLog(message, "info");
-          
+
           if (status === "low") {
-            setResistance?.(metrics.resistance ? Math.min(100, metrics.resistance + 5) : 40);
+            setResistance?.(
+              currentMetrics.resistance
+                ? Math.min(100, currentMetrics.resistance + 5)
+                : 40,
+            );
             triggerBeat("Power Target Correction", "climb", 6);
           } else {
-            setResistance?.(metrics.resistance ? Math.max(0, metrics.resistance - 5) : 30);
+            setResistance?.(
+              currentMetrics.resistance
+                ? Math.max(0, currentMetrics.resistance - 5)
+                : 30,
+            );
           }
           lastActionTimestamp.current = now;
         } else {
           // Periodic efficiency report
           if (Math.random() > 0.7) {
-             const efficiency = Math.round(85 + (power / 300) * 10);
-             addLog(`${agentName}: "Telemetry Analysis: Power efficiency at ${efficiency}%. Form looks stable."`, "info");
+            const efficiency = Math.round(85 + (power / 300) * 10);
+            addLog(
+              `${agentName}: "Telemetry Analysis: Power efficiency at ${efficiency}%. Form looks stable."`,
+              "info",
+            );
           }
         }
       }
 
       // 3. Fallback/Standard Monitoring
-      if (now - lastActionTimestamp.current > 30000) { // Log status every 30s if no actions
-        addLog(`Monitoring: HR:${hr} | PWR:${power} | W'bal:${Math.round(wBalPct)}%`, "info");
+      if (now - lastActionTimestamp.current > 30000) {
+        // Log status every 30s if no actions
+        addLog(
+          `Monitoring: HR:${hr} | PWR:${power} | W'bal:${Math.round(wBalPct)}%`,
+          "info",
+        );
       }
-
     }, 5000); // Check every 5 seconds
 
     return () => clearInterval(intervalId);
-  }, [isEnabled, metrics, currentInterval, personality, agentName, triggerBeat]);
+  }, [
+    isEnabled,
+    currentInterval,
+    personality,
+    agentName,
+    triggerBeat,
+    setResistance,
+  ]);
 
   return {
     logs,

@@ -754,9 +754,6 @@ export default function LiveRidePage() {
   // Track interval transitions for audio cues
   const lastIntervalRef = useRef<number>(-1);
 
-  // Coach message overlay — last spoken text, cleared after 4s
-  const [lastCoachMessage, setLastCoachMessage] = useState<string | null>(null);
-
   // Keyboard Shifting (Virtual Gears)
   useEffect(() => {
     if (typeof window === "undefined" || !isRiding) return;
@@ -947,139 +944,156 @@ export default function LiveRidePage() {
   // Removed separate power history effect - now handled in main loop
 
   // Handle BLE metrics updates
-  const handleBleMetrics = async (metrics: {
-    heartRate?: number;
-    power?: number;
-    cadence?: number;
-    speed?: number;
-    effort?: number;
-    distance?: number;
-    timestamp?: number;
-  }) => {
-    // Mutate ref directly (no object spreading - 5% jank reduction)
-    if (metrics.heartRate !== undefined)
-      telemetryRawRef.current.heartRate = metrics.heartRate;
-    if (metrics.power !== undefined)
-      telemetryRawRef.current.power = metrics.power;
-    if (metrics.cadence !== undefined)
-      telemetryRawRef.current.cadence = metrics.cadence;
-    if (metrics.speed !== undefined)
-      telemetryRawRef.current.speed = metrics.speed;
-    if (metrics.effort !== undefined)
-      telemetryRawRef.current.effort = metrics.effort;
-    if (metrics.distance !== undefined)
-      telemetryRawRef.current.distance = metrics.distance;
-    telemetryRawRef.current.timestamp = metrics.timestamp ?? Date.now();
+  const handleBleMetrics = useCallback(
+    async (metrics: {
+      heartRate?: number;
+      power?: number;
+      cadence?: number;
+      speed?: number;
+      effort?: number;
+      distance?: number;
+      timestamp?: number;
+    }) => {
+      // Mutate ref directly (no object spreading - 5% jank reduction)
+      if (metrics.heartRate !== undefined)
+        telemetryRawRef.current.heartRate = metrics.heartRate;
+      if (metrics.power !== undefined)
+        telemetryRawRef.current.power = metrics.power;
+      if (metrics.cadence !== undefined)
+        telemetryRawRef.current.cadence = metrics.cadence;
+      if (metrics.speed !== undefined)
+        telemetryRawRef.current.speed = metrics.speed;
+      if (metrics.effort !== undefined)
+        telemetryRawRef.current.effort = metrics.effort;
+      if (metrics.distance !== undefined)
+        telemetryRawRef.current.distance = metrics.distance;
+      telemetryRawRef.current.timestamp = metrics.timestamp ?? Date.now();
 
-    if (metrics.heartRate || metrics.power) {
-      if (!bleConnected) setBleConnected(true); // Guard to avoid no-op re-renders
-      if (!trackedLiveTelemetryRef.current) {
-        trackedLiveTelemetryRef.current = true;
-        trackEvent(ANALYTICS_EVENTS.TELEMETRY_LIVE_READY, {
-          classId,
-          practiceMode: isPracticeMode,
-        });
-      }
-    }
-
-    // Record effort for Yellow rewards (rate-limited; do not block UI)
-    // Skip recording in training mode (simulator in paid class) - rewards disabled
-    if (
-      isRiding &&
-      rewards.isActive &&
-      (metrics.heartRate || metrics.power) &&
-      !isTrainingMode
-    ) {
-      const now = Date.now();
-      const minIntervalMs = deviceType === "mobile" ? 500 : 250; // 2Hz mobile, 4Hz desktop
-
-      if (
-        !pendingRewardRecordRef.current &&
-        now - lastRewardRecordMsRef.current >= minIntervalMs
-      ) {
-        pendingRewardRecordRef.current = true;
-        lastRewardRecordMsRef.current = now;
-
-        void rewards
-          .recordEffort({
-            timestamp: now,
-            heartRate: metrics.heartRate || telemetry.heartRate,
-            power: metrics.power || telemetry.power,
-            cadence: metrics.cadence || telemetry.cadence,
-          })
-          .catch((err) => {
-            // Best-effort
-            console.debug("[Ride] Failed to record effort:", err);
-          })
-          .finally(() => {
-            pendingRewardRecordRef.current = false;
+      if (metrics.heartRate || metrics.power) {
+        if (!bleConnected) setBleConnected(true); // Guard to avoid no-op re-renders
+        if (!trackedLiveTelemetryRef.current) {
+          trackedLiveTelemetryRef.current = true;
+          trackEvent(ANALYTICS_EVENTS.TELEMETRY_LIVE_READY, {
+            classId,
+            practiceMode: isPracticeMode,
           });
+        }
       }
-    }
-  };
+
+      // Record effort for Yellow rewards (rate-limited; do not block UI)
+      // Skip recording in training mode (simulator in paid class) - rewards disabled
+      if (
+        isRiding &&
+        rewards.isActive &&
+        (metrics.heartRate || metrics.power) &&
+        !isTrainingMode
+      ) {
+        const now = Date.now();
+        const minIntervalMs = deviceType === "mobile" ? 500 : 250; // 2Hz mobile, 4Hz desktop
+
+        if (
+          !pendingRewardRecordRef.current &&
+          now - lastRewardRecordMsRef.current >= minIntervalMs
+        ) {
+          pendingRewardRecordRef.current = true;
+          lastRewardRecordMsRef.current = now;
+
+          void rewards
+            .recordEffort({
+              timestamp: now,
+              heartRate: metrics.heartRate || telemetry.heartRate,
+              power: metrics.power || telemetry.power,
+              cadence: metrics.cadence || telemetry.cadence,
+            })
+            .catch((err) => {
+              // Best-effort
+              console.debug("[Ride] Failed to record effort:", err);
+            })
+            .finally(() => {
+              pendingRewardRecordRef.current = false;
+            });
+        }
+      }
+    },
+    [
+      bleConnected,
+      classId,
+      deviceType,
+      isPracticeMode,
+      isRiding,
+      isTrainingMode,
+      rewards,
+      telemetry.cadence,
+      telemetry.heartRate,
+      telemetry.power,
+    ],
+  );
 
   // Handle simulator metrics updates
-  const handleSimulatorMetrics = (metrics: {
-    heartRate: number;
-    power: number;
-    cadence: number;
-    speed: number;
-    effort: number;
-    distance?: number;
-    timestamp?: number;
-  }) => {
-    telemetryRawRef.current = {
-      ...telemetryRawRef.current,
-      ...metrics,
-      distance: metrics.distance ?? telemetryRawRef.current.distance,
-      timestamp: metrics.timestamp ?? Date.now(),
-    };
-    // Simulator is a user-driven control; update UI immediately for responsiveness
-    updateTelemetryStore({
-      heartRate: telemetryRawRef.current.heartRate,
-      power: telemetryRawRef.current.power,
-      cadence: telemetryRawRef.current.cadence,
-      speed: telemetryRawRef.current.speed,
-      effort: telemetryRawRef.current.effort,
-      wBal: telemetryRawRef.current.wBal,
-      wBalPercentage: telemetryRawRef.current.wBalPercentage,
-      distance: telemetryRawRef.current.distance,
-      currentGear: telemetryRawRef.current.currentGear,
-      gearRatio: telemetryRawRef.current.gearRatio,
-      resistance: telemetryRawRef.current.resistance,
-      timestamp: telemetryRawRef.current.timestamp,
-    });
-
-    // Advance ride progress cadence-weighted: no pedaling = no progress.
-    // Use refs for isRiding/classData to avoid stale closures in the metrics callback.
-    // Simulator uses compressed time (3-min effective duration) so progress is visually meaningful.
-    const currentClassData = classDataRef.current;
-    if (isRidingRef.current && currentClassData && metrics.cadence > 0) {
-      const TARGET_CADENCE = 80;
-      const cadenceRatio = Math.min(metrics.cadence / TARGET_CADENCE, 1.5);
-      const tickSeconds = 0.5 * cadenceRatio;
-
-      // Compress ride duration for simulator: map real elapsed time to full ride duration
-      // so a ~3 minute pedaling session completes the route visually.
-      const SIMULATOR_DURATION_SECONDS = 3 * 60; // 3 minutes of pedaling = full route
-      const realDuration = (currentClassData.metadata?.duration || 45) * 60;
-      const timeScale = realDuration / SIMULATOR_DURATION_SECONDS;
-      const scaledTick = tickSeconds * timeScale;
-
-      setElapsedTime((prev) => {
-        const newTime = prev + scaledTick;
-        const newProgress = Math.min((newTime / realDuration) * 100, 100);
-        setRideProgress(newProgress);
-
-        if (newProgress >= 100) {
-          isRidingRef.current = false;
-          setIsRiding(false);
-        }
-
-        return newTime;
+  const handleSimulatorMetrics = useCallback(
+    (metrics: {
+      heartRate: number;
+      power: number;
+      cadence: number;
+      speed: number;
+      effort: number;
+      distance?: number;
+      timestamp?: number;
+    }) => {
+      telemetryRawRef.current = {
+        ...telemetryRawRef.current,
+        ...metrics,
+        distance: metrics.distance ?? telemetryRawRef.current.distance,
+        timestamp: metrics.timestamp ?? Date.now(),
+      };
+      // Simulator is a user-driven control; update UI immediately for responsiveness
+      updateTelemetryStore({
+        heartRate: telemetryRawRef.current.heartRate,
+        power: telemetryRawRef.current.power,
+        cadence: telemetryRawRef.current.cadence,
+        speed: telemetryRawRef.current.speed,
+        effort: telemetryRawRef.current.effort,
+        wBal: telemetryRawRef.current.wBal,
+        wBalPercentage: telemetryRawRef.current.wBalPercentage,
+        distance: telemetryRawRef.current.distance,
+        currentGear: telemetryRawRef.current.currentGear,
+        gearRatio: telemetryRawRef.current.gearRatio,
+        resistance: telemetryRawRef.current.resistance,
+        timestamp: telemetryRawRef.current.timestamp,
       });
-    }
-  };
+
+      // Advance ride progress cadence-weighted: no pedaling = no progress.
+      // Use refs for isRiding/classData to avoid stale closures in the metrics callback.
+      // Simulator uses compressed time (3-min effective duration) so progress is visually meaningful.
+      const currentClassData = classDataRef.current;
+      if (isRidingRef.current && currentClassData && metrics.cadence > 0) {
+        const TARGET_CADENCE = 80;
+        const cadenceRatio = Math.min(metrics.cadence / TARGET_CADENCE, 1.5);
+        const tickSeconds = 0.5 * cadenceRatio;
+
+        // Compress ride duration for simulator: map real elapsed time to full ride duration
+        // so a ~3 minute pedaling session completes the route visually.
+        const SIMULATOR_DURATION_SECONDS = 3 * 60; // 3 minutes of pedaling = full route
+        const realDuration = (currentClassData.metadata?.duration || 45) * 60;
+        const timeScale = realDuration / SIMULATOR_DURATION_SECONDS;
+        const scaledTick = tickSeconds * timeScale;
+
+        setElapsedTime((prev) => {
+          const newTime = prev + scaledTick;
+          const newProgress = Math.min((newTime / realDuration) * 100, 100);
+          setRideProgress(newProgress);
+
+          if (newProgress >= 100) {
+            isRidingRef.current = false;
+            setIsRiding(false);
+          }
+
+          return newTime;
+        });
+      }
+    },
+    [setIsRiding, setRideProgress, updateTelemetryStore],
+  );
 
   // Auto-adjust view mode only while following system defaults.
   useEffect(() => {
@@ -1317,13 +1331,6 @@ export default function LiveRidePage() {
       setTimeout(() => setShowMilestone(null), 5000);
     }
   }, [telemetry.effort, isRiding, haptic, playSound]);
-
-  // Handle message display sync
-  useEffect(() => {
-    if (consolidatedCoachMessage) {
-      setLastCoachMessage(consolidatedCoachMessage);
-    }
-  }, [consolidatedCoachMessage]);
 
   useEffect(() => {
     const practiceAiEnabled =
@@ -1868,7 +1875,7 @@ export default function LiveRidePage() {
         />
 
         <CoachMessageOverlay
-          message={isRiding ? lastCoachMessage : null}
+          message={isRiding ? consolidatedCoachMessage : null}
           phase={currentInterval?.phase}
         />
 
