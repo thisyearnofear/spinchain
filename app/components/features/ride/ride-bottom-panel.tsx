@@ -85,6 +85,8 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   bleConnected,
   walletConnected,
   connectionHint,
+  showIntervalBanner,
+  showAiCoach,
   telemetryEffort,
   telemetryCadence,
   workoutPlan,
