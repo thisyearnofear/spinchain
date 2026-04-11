@@ -161,15 +161,15 @@ function Road({
     if (!meshRef.current) return;
     const material = meshRef.current.material as any;
 
-    // Dynamic emissive pulsing based on cadence
+    // Power-reactive emissive intensity with cadence pulse
     const pulse = 0.5 + Math.sin(state.clock.elapsedTime * (stats.cadence / 20)) * 0.5;
     const baseEmissive = styles.roadEmissiveIntensity || 0;
+    const powerBoost = Math.min(1, stats.power / 600);
+    
+    // Combine cadence pulse with power boost for dynamic road glow
+    material.emissiveIntensity = baseEmissive + (pulse * 0.1 * powerBoost) + (powerBoost * 0.4);
 
-    // Boost effect when sprinting
-    const sprintFactor = Math.min(1, stats.power / 600);
-    material.emissiveIntensity = baseEmissive + (pulse * 0.1) + (sprintFactor * 0.4);
-
-    // Dynamic color shift if on rainbow theme
+    // Rainbow theme: dynamic color shift
     if (theme === 'rainbow') {
       const hue = (state.clock.elapsedTime / 10) % 1;
       material.emissive.setHSL(hue, 1, 0.5);
@@ -193,7 +193,6 @@ function Road({
       bevelEnabled: false,
     });
 
-    // Add Road Markings to the same geometry
     const dashShape = new Shape();
     dashShape.moveTo(-0.1, 0.51);
     dashShape.lineTo(0.1, 0.51);
@@ -226,29 +225,12 @@ function Road({
       bevelEnabled: false,
     });
 
-    // Merge geometries
-    const geometries = [roadGeo, dashGeo, edgeGeo];
-    const colors = [];
-    const roadColor = new Color(styles.roadColor);
-    const lineColor = new Color(styles.lineColor);
-
-    geometries.forEach((g, i) => {
-      const color = i === 0 ? roadColor : lineColor;
-      const count = g.attributes.position.count;
-      for (let j = 0; j < count; j++) {
-        colors.push(color.r, color.g, color.b);
-      }
-    });
-
-    // Simplified merge: this is a placeholder for real BufferGeometry merging
-    // In a real scenario we'd use BufferGeometryUtils.mergeGeometries
-    // For now, let's keep them separate but optimize the materials.
     sanitizeGeometry(roadGeo);
     sanitizeGeometry(dashGeo);
     sanitizeGeometry(edgeGeo);
 
     return { roadGeo, dashGeo, edgeGeo };
-  }, [curve, theme, steps, styles.roadColor, styles.lineColor]);
+  }, [curve, theme, steps]);
 
   return (
     <group>
@@ -261,7 +243,6 @@ function Road({
           metalness={0.9}
         />
       </mesh>
-      {/* Optimized RoadMarkings - rendered directly here to keep structure clean */}
       <mesh geometry={geometry.dashGeo}>
         <meshStandardMaterial
           color={styles.lineColor}
@@ -692,7 +673,10 @@ function RiderMarker({
 
   const powerBucket = stats.power > 400 ? 2 : stats.power > 200 ? 1 : 0;
   const trailLength = powerBucket === 2 ? 25 : powerBucket === 1 ? 15 : 10;
-  const trailWidth = 2 + powerBucket * 1.5; // Quantized width to match length buckets
+  const trailWidth = 2 + powerBucket * 1.5;
+  
+  // Power-reactive trail opacity
+  const trailOpacity = 0.3 + (stats.power / 600) * 0.4;
 
   return (
     <group ref={groupRef}>
@@ -703,7 +687,7 @@ function RiderMarker({
         width={trailWidth}
         length={trailLength}
         color={styles.riderColor}
-        attenuation={(t) => t * t}
+        attenuation={(t) => t * t * trailOpacity}
       >
         <group>
           {/* Avatar and Equipment Models */}
@@ -741,13 +725,13 @@ function RiderMarker({
             </group>
           )}
 
-          {/* Pulsing Aura */}
+          {/* Power-reactive pulsing aura */}
           <mesh ref={auraRef} rotation={[Math.PI / 2, 0, 0]}>
             <sphereGeometry args={[2, 32, 32]} />
             <meshBasicMaterial
               color={styles.riderColor}
               transparent
-              opacity={0.05 + stats.power / 2000}
+              opacity={0.05 + (stats.power / 1500)}
             />
           </mesh>
 
@@ -839,7 +823,7 @@ function FloatingParticles({ theme = "neon", stats, performanceTier = "high" }: 
 
   useFrame((state) => {
     if (!starsRef.current) return;
-    // Stars move faster when rider is pushing more power
+    // Power-reactive rotation speed
     const speed = 0.5 + (stats.power / 200);
     starsRef.current.rotation.y += 0.0001 * speed;
     starsRef.current.rotation.z += 0.0002 * speed;
@@ -848,6 +832,10 @@ function FloatingParticles({ theme = "neon", stats, performanceTier = "high" }: 
   if (!styles.stars) return null;
 
   const count = performanceTier === "high" ? 2000 : performanceTier === "medium" ? 1000 : 500;
+  // Power-reactive size and speed
+  const powerFactor = Math.min(1, stats.power / 300);
+  const size = 4 + powerFactor * 2;
+  const speed = 0.5 + powerFactor;
 
   return (
     <Stars
@@ -855,10 +843,10 @@ function FloatingParticles({ theme = "neon", stats, performanceTier = "high" }: 
       radius={120}
       depth={50}
       count={count}
-      factor={4}
+      factor={size}
       saturation={theme === 'rainbow' ? 1 : 0}
       fade
-      speed={0.5}
+      speed={speed}
     />
   );
 }
