@@ -5,6 +5,7 @@ import { SPIN_CLASS_ABI, INCENTIVE_ENGINE_ABI, INCENTIVE_ENGINE_ADDRESS } from "
 import { parseEther } from "viem";
 import { useTransaction } from "@/app/hooks/evm/use-transaction";
 import { CONTRACT_ERROR_CONTEXT } from "../../lib/errors";
+import { useMemo } from "react";
 
 // Ticket purchase hook
 export function usePurchaseTicket(classAddress: `0x${string}`) {
@@ -18,11 +19,13 @@ export function usePurchaseTicket(classAddress: `0x${string}`) {
     query: { enabled: !!userAddress && !!classAddress },
   });
 
-  const { write: purchaseTicket, ...state } = useTransaction({
+  const transactionOptions = useMemo(() => ({
     successMessage: 'Ticket Purchased! 🎫',
     pendingMessage: 'Purchasing Ticket...',
     errorContext: CONTRACT_ERROR_CONTEXT.purchaseTicket,
-  });
+  }), []);
+
+  const { write: purchaseTicket, ...state } = useTransaction(transactionOptions);
 
   const purchase = (price: string) => {
     purchaseTicket({
@@ -38,10 +41,12 @@ export function usePurchaseTicket(classAddress: `0x${string}`) {
 
 // Check-in hook
 export function useCheckIn(classAddress: `0x${string}`) {
-  const { write: checkIn, ...state } = useTransaction({
+  const transactionOptions = useMemo(() => ({
     successMessage: 'Checked In! ✅',
     pendingMessage: 'Checking In...',
-  });
+  }), []);
+
+  const { write: checkIn, ...state } = useTransaction(transactionOptions);
 
   const checkInToken = (tokenId: number) => {
     checkIn({
@@ -57,11 +62,13 @@ export function useCheckIn(classAddress: `0x${string}`) {
 
 // Rewards claim hook
 export function useClaimRewards() {
-  const { write: claimReward, ...state } = useTransaction({
+  const transactionOptions = useMemo(() => ({
     successMessage: 'Rewards Claimed! 🎉',
     pendingMessage: 'Claiming Rewards...',
     errorContext: CONTRACT_ERROR_CONTEXT.claimReward,
-  });
+  }), []);
+
+  const { write: claimReward, ...state } = useTransaction(transactionOptions);
 
   const claim = (params: {
     spinClass: `0x${string}`;

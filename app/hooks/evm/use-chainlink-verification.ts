@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import { useTransaction } from "./use-transaction";
 import { CONTRACTS, CHAINLINK_CONFIG } from "@/app/config";
@@ -18,15 +18,18 @@ export function useChainlinkVerification() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [requestId, setRequestId] = useState<`0x${string}` | null>(null);
 
-  const requestTx = useTransaction({
+  const requestTxOptions = useMemo(() => ({
     successMessage: "Verification requested via Chainlink CRE",
     pendingMessage: "Requesting decentralized biometric verification...",
-  });
+  }), []);
 
-  const claimTx = useTransaction({
+  const claimTxOptions = useMemo(() => ({
     successMessage: "Rewards claimed via Chainlink proof!",
     pendingMessage: "Claiming rewards...",
-  });
+  }), []);
+
+  const requestTx = useTransaction(requestTxOptions);
+  const claimTx = useTransaction(claimTxOptions);
 
   /**
    * Request biometric verification via Chainlink Runtime Environment (CRE)

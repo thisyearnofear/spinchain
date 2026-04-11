@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useTransaction } from "./use-transaction";
 import { CLASS_FACTORY_ADDRESS, CLASS_FACTORY_ABI } from "@/app/lib/contracts";
 import { parseEther } from "viem";
@@ -29,13 +30,15 @@ interface CreateClassParams {
 }
 
 export function useCreateClass(options?: UseCreateClassOptions) {
-  const { write, ...state } = useTransaction({
+  const transactionOptions = useMemo(() => ({
     successMessage: 'Class Created! 🎉',
     pendingMessage: 'Creating Class...',
     errorContext: CONTRACT_ERROR_CONTEXT.createClass,
     onSuccess: options?.onSuccess,
     onError: options?.onError,
-  });
+  }), [options?.onSuccess, options?.onError]);
+
+  const { write, ...state } = useTransaction(transactionOptions);
 
   const createClass = (params: CreateClassParams) => {
     // Convert metadata to JSON string if it's an object

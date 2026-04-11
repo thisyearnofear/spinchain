@@ -62,7 +62,7 @@ export function useTransaction(options: UseTransactionOptions): UseTransactionRe
       
       options.onError?.(error);
     }
-  }, [isError, error, options, toast]);
+  }, [isError, error, options.errorContext, options.onError, toast]);
 
   // Handle success
   useEffect(() => {
@@ -81,7 +81,7 @@ export function useTransaction(options: UseTransactionOptions): UseTransactionRe
       
       options.onSuccess?.(hash);
     }
-  }, [isSuccess, hash, options, toast]);
+  }, [isSuccess, hash, options.successMessage, options.onSuccess, toast]);
 
   const write = useCallback((args: WriteContractArgs) => {
     toast.loading(options.pendingMessage, 'Confirm in your wallet');

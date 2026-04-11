@@ -3,7 +3,7 @@
 // ZK-Enabled Rewards Claim Hook with On-Chain Verification
 // Integrates Noir proofs with Avalanche verification
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTransaction } from './use-transaction';
 import { CONTRACT_ERROR_CONTEXT } from '@/app/lib/errors';
 import { getLocalOracle, type LocalProofResult } from '@/app/lib/zk/oracle';
@@ -41,11 +41,13 @@ export function useZKClaim() {
   });
   
   // Use IncentiveEngine for on-chain verification + mint
-  const { write: submitToEngine, ...txState } = useTransaction({
+  const transactionOptions = useMemo(() => ({
     successMessage: 'ZK reward claimed on-chain',
     pendingMessage: 'Submitting ZK reward claim...',
     errorContext: CONTRACT_ERROR_CONTEXT.claimReward,
-  });
+  }), []);
+
+  const { write: submitToEngine, ...txState } = useTransaction(transactionOptions);
   
   // Generate ZK proof from session data
   const generateProof = useCallback(async (

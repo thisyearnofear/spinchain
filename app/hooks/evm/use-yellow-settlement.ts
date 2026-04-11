@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useAccount, useSignTypedData } from "wagmi";
 import { useTransaction } from "./use-transaction";
 import {
@@ -65,10 +65,12 @@ export function useYellowSettlement() {
 
   const { signTypedDataAsync } = useSignTypedData();
 
-  const tx = useTransaction({
+  const txOptions = useMemo(() => ({
     successMessage: "Yellow channel settled on Avalanche",
     pendingMessage: "Settling Yellow channel...",
-  });
+  }), []);
+
+  const tx = useTransaction(txOptions);
 
   const signFinalState = useCallback(
     async (params: {

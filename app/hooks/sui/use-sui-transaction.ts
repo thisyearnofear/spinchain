@@ -44,14 +44,11 @@ export function useSuiTransaction(
   const [isSuccess, setIsSuccess] = useState(false);
   const [lastError, setLastError] = useState<Error | null>(null);
 
-  // Reset state when data changes (new transaction)
+  // Handle success
   useEffect(() => {
-    if (data) {
-      // Use a microtask to defer the state update
-      Promise.resolve().then(() => {
-        setDigest(data.digest);
-        setIsSuccess(true);
-      });
+    if (data && !isSuccess) {
+      setDigest(data.digest);
+      setIsSuccess(true);
 
       toast.success(
         options.successMessage || "Transaction confirmed",
@@ -69,24 +66,21 @@ export function useSuiTransaction(
 
       options.onSuccess?.(data);
     }
-  }, [data, options, toast]);
+  }, [data, isSuccess, options.successMessage, options.onSuccess, toast]);
 
   // Handle errors
   useEffect(() => {
-    if (error) {
+    if (error && !lastError) {
       const err = error instanceof Error ? error : new Error(String(error));
-      // Use a microtask to defer the state update
-      Promise.resolve().then(() => {
-        setLastError(err);
-        setIsSuccess(false);
-      });
+      setLastError(err);
+      setIsSuccess(false);
 
       const errorMsg = options.errorMessage || "Transaction failed";
       toast.error("Transaction Failed", err.message || errorMsg);
 
       options.onError?.(err);
     }
-  }, [error, options, toast]);
+  }, [error, lastError, options.errorMessage, options.onError, toast]);
 
   const execute = useCallback(async (tx: Transaction): Promise<boolean> => {
     // Reset previous state

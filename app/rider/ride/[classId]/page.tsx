@@ -10,16 +10,17 @@ import { usePracticeConfig } from "../../../hooks/ride/use-practice-config";
 import { useRideLifecycle } from "../../../hooks/ride/use-ride-lifecycle";
 import { useAccount } from "wagmi";
 import { usePanelState } from "../../../hooks/ui/use-panel-state";
-import {
-  useRideTutorial,
-} from "../../../components/features/ride/ride-tutorial";
+import { useRideTutorial } from "../../../components/features/ride/ride-tutorial";
 import {
   RideLoading,
   RideNotFound,
 } from "../../../components/features/ride/ride-loading";
 import { RideVisualization } from "../../../components/features/ride/ride-visualization";
 import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overlay";
-import { useRideFocusMode, useRideFocusKeyboard } from "@/app/hooks/ui/use-ride-focus-mode";
+import {
+  useRideFocusMode,
+  useRideFocusKeyboard,
+} from "@/app/hooks/ui/use-ride-focus-mode";
 import { RideModals } from "../../../components/features/ride/ride-modals";
 
 import { RideGestureZone } from "../../../components/features/ride/ride-gesture-zone";
@@ -71,9 +72,7 @@ import {
   DEFAULT_ROAD_GEARS,
   type WBalConfig,
 } from "../../../lib/analytics/physiological-models";
-import {
-  type RideRecordPoint,
-} from "../../../lib/analytics/ride-recorder";
+import { type RideRecordPoint } from "../../../lib/analytics/ride-recorder";
 import {
   calculateGhostState,
   fetchGhostWithFallback,
@@ -131,7 +130,11 @@ export default function LiveRidePage() {
   const panelState = usePanelState(deviceType);
 
   // Keyboard shortcut for collapse all (C key)
-  const { isAllCollapsed: panelIsAllCollapsed, expandAll: panelExpandAll, collapseAll: panelCollapseAll } = panelState;
+  const {
+    isAllCollapsed: panelIsAllCollapsed,
+    expandAll: panelExpandAll,
+    collapseAll: panelCollapseAll,
+  } = panelState;
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "c" || e.key === "C") {
@@ -318,24 +321,28 @@ export default function LiveRidePage() {
   }, [bleConnected, isPracticeMode, useSimulator]);
 
   // Using granular Zustand store instead of monolithic state (25% jank reduction)
-  const updateTelemetryStore = useTelemetryStore((state) => state.updateMetrics);
-  
+  const updateTelemetryStore = useTelemetryStore(
+    (state) => state.updateMetrics,
+  );
+
   // Compatibility: Create telemetry object from store for components that haven't been refactored yet
-  const telemetry = useTelemetryStore(useShallow((state) => ({
-    heartRate: state.heartRate,
-    power: state.power,
-    cadence: state.cadence,
-    speed: state.speed,
-    effort: state.effort,
-    wBal: state.wBal,
-    wBalPercentage: state.wBalPercentage,
-    distance: state.distance,
-    currentGear: state.currentGear,
-    gearRatio: state.gearRatio,
-    resistance: state.resistance,
-    timestamp: state.timestamp,
-  })));
-  
+  const telemetry = useTelemetryStore(
+    useShallow((state) => ({
+      heartRate: state.heartRate,
+      power: state.power,
+      cadence: state.cadence,
+      speed: state.speed,
+      effort: state.effort,
+      wBal: state.wBal,
+      wBalPercentage: state.wBalPercentage,
+      distance: state.distance,
+      currentGear: state.currentGear,
+      gearRatio: state.gearRatio,
+      resistance: state.resistance,
+      timestamp: state.timestamp,
+    })),
+  );
+
   const [telemetryHistory, setTelemetryHistory] = useState<{
     power: number[];
     cadence: number[];
@@ -387,7 +394,12 @@ export default function LiveRidePage() {
   const cadenceHistoryBuffer = useRef<Float32Array>(new Float32Array(30));
   const heartRateHistoryBuffer = useRef<Float32Array>(new Float32Array(30));
   const recentPowerBuffer = useRef<Float32Array>(new Float32Array(20));
-  const historyIndexRef = useRef({ power: 0, cadence: 0, heartRate: 0, recentPower: 0 });
+  const historyIndexRef = useRef({
+    power: 0,
+    cadence: 0,
+    heartRate: 0,
+    recentPower: 0,
+  });
 
   // Telemetry averages for completion screen
   const telemetrySamples = useRef<
@@ -419,12 +431,12 @@ export default function LiveRidePage() {
   // Refs for RAF loop to avoid dependency array churn
   const elapsedTimeRef = useRef(elapsedTime);
   const currentRouteCoordinateRef = useRef(currentRouteCoordinate);
-  
+
   // Keep refs in sync with state
   useEffect(() => {
     elapsedTimeRef.current = elapsedTime;
   }, [elapsedTime]);
-  
+
   useEffect(() => {
     currentRouteCoordinateRef.current = currentRouteCoordinate;
   }, [currentRouteCoordinate]);
@@ -683,7 +695,7 @@ export default function LiveRidePage() {
     classData?.route?.route?.coordinates || [],
     telemetry.distance,
     elapsedTime,
-    isRiding
+    isRiding,
   );
 
   const socialRiders = multiGhostState;
@@ -693,7 +705,9 @@ export default function LiveRidePage() {
     mode: rewardMode,
     classId: classId as string,
     instructor: (classData?.instructor as `0x${string}`) || "0x0",
-    depositAmount: classData?.currentPrice ? BigInt(Math.floor(parseFloat(classData.currentPrice) * 1e18)) : BigInt(0),
+    depositAmount: classData?.currentPrice
+      ? BigInt(Math.floor(parseFloat(classData.currentPrice) * 1e18))
+      : BigInt(0),
   });
 
   // Mobile experience hooks - wake lock, fullscreen, haptic
@@ -791,13 +805,13 @@ export default function LiveRidePage() {
       if (!isRunning) return;
 
       const now = Date.now();
-      
+
       // Schedule next frame immediately to maintain smooth loop
       rafId = requestAnimationFrame(updateLoop);
 
       // Throttle calculations to adaptive Hz (not 60fps)
       if (now - lastCalculationMs < calculationIntervalMs) return;
-      
+
       const prevCommitMs = lastTelemetryCommitMsRef.current;
       const deltaSeconds =
         lastWBalUpdateMsRef.current > 0
@@ -830,7 +844,8 @@ export default function LiveRidePage() {
       );
 
       // Mutate ref directly (no object spreading - 5% jank reduction)
-      telemetryRawRef.current.speed = virtualSpeed > 0 ? virtualSpeed : telemetryRawRef.current.speed;
+      telemetryRawRef.current.speed =
+        virtualSpeed > 0 ? virtualSpeed : telemetryRawRef.current.speed;
       telemetryRawRef.current.distance += (virtualSpeed * deltaSeconds) / 3600;
       telemetryRawRef.current.wBal = nextWBal;
       telemetryRawRef.current.wBalPercentage = percentage;
@@ -844,7 +859,8 @@ export default function LiveRidePage() {
       historyIndexRef.current.power = (powerIdx + 1) % 30;
 
       const cadenceIdx = historyIndexRef.current.cadence;
-      cadenceHistoryBuffer.current[cadenceIdx] = telemetryRawRef.current.cadence;
+      cadenceHistoryBuffer.current[cadenceIdx] =
+        telemetryRawRef.current.cadence;
       historyIndexRef.current.cadence = (cadenceIdx + 1) % 30;
 
       const hrIdx = historyIndexRef.current.heartRate;
@@ -872,7 +888,10 @@ export default function LiveRidePage() {
           altitude: currentCoord?.ele,
         });
         if (ridePointsRef.current.length > MAX_RIDE_POINTS) {
-          ridePointsRef.current.splice(0, ridePointsRef.current.length - MAX_RIDE_POINTS);
+          ridePointsRef.current.splice(
+            0,
+            ridePointsRef.current.length - MAX_RIDE_POINTS,
+          );
         }
       }
 
@@ -923,13 +942,7 @@ export default function LiveRidePage() {
       isRunning = false;
       cancelAnimationFrame(rafId);
     };
-  }, [
-    isRiding,
-    deviceType,
-    performanceTier,
-    currentGear,
-    ghostPerformance,
-  ]);
+  }, [isRiding, deviceType, performanceTier, currentGear, ghostPerformance]);
 
   // Removed separate power history effect - now handled in main loop
 
@@ -944,14 +957,20 @@ export default function LiveRidePage() {
     timestamp?: number;
   }) => {
     // Mutate ref directly (no object spreading - 5% jank reduction)
-    if (metrics.heartRate !== undefined) telemetryRawRef.current.heartRate = metrics.heartRate;
-    if (metrics.power !== undefined) telemetryRawRef.current.power = metrics.power;
-    if (metrics.cadence !== undefined) telemetryRawRef.current.cadence = metrics.cadence;
-    if (metrics.speed !== undefined) telemetryRawRef.current.speed = metrics.speed;
-    if (metrics.effort !== undefined) telemetryRawRef.current.effort = metrics.effort;
-    if (metrics.distance !== undefined) telemetryRawRef.current.distance = metrics.distance;
+    if (metrics.heartRate !== undefined)
+      telemetryRawRef.current.heartRate = metrics.heartRate;
+    if (metrics.power !== undefined)
+      telemetryRawRef.current.power = metrics.power;
+    if (metrics.cadence !== undefined)
+      telemetryRawRef.current.cadence = metrics.cadence;
+    if (metrics.speed !== undefined)
+      telemetryRawRef.current.speed = metrics.speed;
+    if (metrics.effort !== undefined)
+      telemetryRawRef.current.effort = metrics.effort;
+    if (metrics.distance !== undefined)
+      telemetryRawRef.current.distance = metrics.distance;
     telemetryRawRef.current.timestamp = metrics.timestamp ?? Date.now();
-    
+
     if (metrics.heartRate || metrics.power) {
       if (!bleConnected) setBleConnected(true); // Guard to avoid no-op re-renders
       if (!trackedLiveTelemetryRef.current) {
@@ -1082,7 +1101,13 @@ export default function LiveRidePage() {
 
   // Simulate telemetry when BLE not connected and not using simulator (Demo/Guest mode only)
   useEffect(() => {
-    if (!isRiding || bleConnected || useSimulator || (!isPracticeMode && !isGuestMode)) return;
+    if (
+      !isRiding ||
+      bleConnected ||
+      useSimulator ||
+      (!isPracticeMode && !isGuestMode)
+    )
+      return;
 
     const interval = setInterval(() => {
       const prev = telemetryRawRef.current;
@@ -1103,34 +1128,15 @@ export default function LiveRidePage() {
         effort: newTelemetry.effort,
       });
       if (telemetrySamples.current.length > MAX_TELEMETRY_SAMPLES) {
-        telemetrySamples.current.splice(0, telemetrySamples.current.length - MAX_TELEMETRY_SAMPLES);
+        telemetrySamples.current.splice(
+          0,
+          telemetrySamples.current.length - MAX_TELEMETRY_SAMPLES,
+        );
       }
     }, 1000);
 
     return () => clearInterval(interval);
   }, [isRiding, bleConnected, useSimulator, isPracticeMode, isGuestMode]);
-
-  // Also collect BLE and simulator telemetry samples
-  useEffect(() => {
-    if (isRiding && (bleConnected || useSimulator) && telemetry.heartRate > 0) {
-      telemetrySamples.current.push({
-        hr: telemetry.heartRate,
-        power: telemetry.power,
-        effort: telemetry.effort,
-      });
-      if (telemetrySamples.current.length > MAX_TELEMETRY_SAMPLES) {
-        telemetrySamples.current.splice(0, telemetrySamples.current.length - MAX_TELEMETRY_SAMPLES);
-      }
-    }
-  }, [
-    isRiding,
-    bleConnected,
-    useSimulator,
-    isPracticeMode,
-    telemetry.heartRate,
-    telemetry.power,
-    telemetry.effort,
-  ]);
 
   const refreshTelemetryAverages = useCallback(() => {
     const samples = telemetrySamples.current;
@@ -1153,11 +1159,34 @@ export default function LiveRidePage() {
     });
   }, []);
 
+  // Also collect BLE and simulator telemetry samples
   useEffect(() => {
-    refreshTelemetryAverages();
-  }, [telemetry.heartRate, telemetry.power, telemetry.effort, refreshTelemetryAverages]);
+    if (isRiding && (bleConnected || useSimulator) && telemetry.heartRate > 0) {
+      telemetrySamples.current.push({
+        hr: telemetry.heartRate,
+        power: telemetry.power,
+        effort: telemetry.effort,
+      });
+      if (telemetrySamples.current.length > MAX_TELEMETRY_SAMPLES) {
+        telemetrySamples.current.splice(
+          0,
+          telemetrySamples.current.length - MAX_TELEMETRY_SAMPLES,
+        );
+      }
+      // Refresh averages immediately after collection (only 1 update vs 2 separate effects)
+      refreshTelemetryAverages();
+    }
+  }, [
+    isRiding,
+    bleConnected,
+    useSimulator,
+    isPracticeMode,
+    telemetry.heartRate,
+    telemetry.power,
+    telemetry.effort,
+    refreshTelemetryAverages,
+  ]);
 
-  // 1. Unified AI Coaching Agent (Phase 1/2/3)
   const [marketStats, setMarketStats] = useState({
     ticketsSold: 0,
     revenue: 0,
@@ -1182,18 +1211,28 @@ export default function LiveRidePage() {
     return () => clearInterval(interval);
   }, [isRiding, telemetry.effort, isPracticeMode, isGuestMode]);
 
-  const agentMetrics = useMemo(() => ({
-    ...telemetry,
-    wBalPercentage: telemetry.wBalPercentage || 100,
-  }), [telemetry]);
+  const agentMetrics = useMemo(
+    () => ({
+      ...telemetry,
+      wBalPercentage: telemetry.wBalPercentage || 100,
+    }),
+    [telemetry],
+  );
 
-  const stableSetResistance = useCallback(async (level: number) => {
-    return await setResistance(level);
-  }, [setResistance]);
+  const stableSetResistance = useCallback(
+    async (level: number) => {
+      return await setResistance(level);
+    },
+    [setResistance],
+  );
 
-  const instructorProfile = useMemo(() => classData?.metadata
-    ? { name: classData.metadata.instructor, specialties: [] as string[] }
-    : undefined, [classData?.metadata]);
+  const instructorProfile = useMemo(
+    () =>
+      classData?.metadata
+        ? { name: classData.metadata.instructor, specialties: [] as string[] }
+        : undefined,
+    [classData?.metadata],
+  );
 
   const {
     aiLogs,
@@ -1205,10 +1244,10 @@ export default function LiveRidePage() {
   } = useWorkoutAgent({
     agentName: classData?.metadata?.instructor || "Coach Atlas",
     personality:
-      ((classData?.metadata?.ai?.personality as
+      (classData?.metadata?.ai?.personality as
         | "zen"
         | "drill-sergeant"
-        | "data") ?? "drill-sergeant"),
+        | "data") ?? "drill-sergeant",
     sessionObjectId: classId,
     metrics: agentMetrics,
     currentInterval,
@@ -1287,9 +1326,19 @@ export default function LiveRidePage() {
   }, [consolidatedCoachMessage]);
 
   useEffect(() => {
-    const practiceAiEnabled = isPracticeMode && Boolean(practiceConfig?.aiEnabled);
-    setAiActive(isRiding && (practiceAiEnabled || Boolean(classData?.metadata?.ai?.enabled)));
-  }, [isRiding, isPracticeMode, practiceConfig?.aiEnabled, classData?.metadata?.ai, setAiActive]);
+    const practiceAiEnabled =
+      isPracticeMode && Boolean(practiceConfig?.aiEnabled);
+    setAiActive(
+      isRiding &&
+        (practiceAiEnabled || Boolean(classData?.metadata?.ai?.enabled)),
+    );
+  }, [
+    isRiding,
+    isPracticeMode,
+    practiceConfig?.aiEnabled,
+    classData?.metadata?.ai,
+    setAiActive,
+  ]);
 
   const handleEnableSimulatorFromModal = useCallback(() => {
     setShowNoBikeModal(false);
@@ -1362,7 +1411,7 @@ export default function LiveRidePage() {
     setIsRiding(false);
     playSound("recover");
   };
-  
+
   const togglePauseResume = () => {
     if (isRiding) {
       pauseRide();
@@ -1373,7 +1422,7 @@ export default function LiveRidePage() {
       playSound("resistanceUp");
     }
   };
-  
+
   const exitRide = async () => {
     setIsExiting(true);
     stopAudio();
@@ -1530,12 +1579,12 @@ export default function LiveRidePage() {
   const handleFocusKeyboard = useRideFocusKeyboard({
     onPauseResume: togglePauseResume,
   });
-  
+
   useEffect(() => {
     window.addEventListener("keydown", handleFocusKeyboard);
     return () => window.removeEventListener("keydown", handleFocusKeyboard);
   }, [handleFocusKeyboard]);
-  
+
   // Add ride-active class to body for Tab key behavior
   useEffect(() => {
     if (isRiding) {
@@ -1607,260 +1656,267 @@ export default function LiveRidePage() {
           <NetworkStatusBanner />
         </div>
 
-      <SectionErrorBoundary title="ride visualization">
-        <RideVisualization
-          viewMode={viewMode}
-          deviceType={deviceType}
+        <SectionErrorBoundary title="ride visualization">
+          <RideVisualization
+            viewMode={viewMode}
+            deviceType={deviceType}
+            isRiding={isRiding}
+            rideProgress={rideProgress}
+            elapsedTime={elapsedTime}
+            telemetry={telemetry}
+            routeElevationProfile={routeElevationProfile}
+            routeCoordinates={routeCoordinates}
+            currentRouteCoordinate={currentRouteCoordinate}
+            classData={
+              (classData as {
+                name: string;
+                instructor: string;
+                route?: { route?: { storyBeats?: StoryBeat[] } } | null;
+                metadata?: EnhancedClassMetadata | null;
+              }) ?? {
+                name: practiceConfig?.name || "SpinChain Ride",
+                instructor: practiceConfig?.instructor || agentName,
+              }
+            }
+            workoutPlan={workoutPlan}
+            currentIntervalIndex={currentIntervalIndex}
+            currentInterval={currentInterval}
+            intervalProgress={intervalProgress}
+            routeTheme={routeTheme}
+            searchParams={searchParams}
+            panelState={panelState.state}
+            panelPositions={panelState.positions}
+            onTogglePanel={handleTogglePanel}
+            onSetPanelPosition={panelState.setPanelPosition}
+            onSnapPanel={(key) =>
+              panelState.snapPanelToEdge(key, {
+                width: window.innerWidth,
+                height: window.innerHeight,
+              })
+            }
+            onTrackWidgetInteraction={trackWidgetInteraction}
+            onExpandOne={panelState.expandOne}
+            onHaptic={haptic.trigger}
+            isPracticeMode={isPracticeMode}
+            recentPowerHistory={recentPowerHistory}
+          />
+        </SectionErrorBoundary>
+
+        <RideHUDOverlay
+          classData={classData}
+          isPracticeMode={isPracticeMode}
+          routeIsGenerated={classData?.routeIsGenerated}
           isRiding={isRiding}
+          isExiting={isExiting}
           rideProgress={rideProgress}
-          elapsedTime={elapsedTime}
+          isTrainingMode={isTrainingMode}
+          isGuestMode={isGuestMode}
+          useSimulator={useSimulator}
+          bleConnected={bleConnected}
+          walletConnected={walletConnected}
+          rewardMode={rewardMode}
+          rewardsFormattedReward={rewards.formattedReward}
+          rewardsIsActive={rewards.isActive}
+          rewardsClearNodeConnected={rewards.clearNodeConnected}
+          deviceType={deviceType}
+          simulatedReward={simulatedRewards}
           telemetry={telemetry}
-          routeElevationProfile={routeElevationProfile}
-          routeCoordinates={routeCoordinates}
-          currentRouteCoordinate={currentRouteCoordinate}
-          classData={(classData as {
-            name: string;
-            instructor: string;
-            route?: { route?: { storyBeats?: StoryBeat[] } } | null;
-            metadata?: EnhancedClassMetadata | null;
-          }) ?? {
-            name: practiceConfig?.name || "SpinChain Ride",
-            instructor: practiceConfig?.instructor || agentName,
-          }}
+          telemetryHistory={telemetryHistory}
+          ghostState={ghostStateRef.current}
+          currentInterval={currentInterval}
+          aiLogs={aiLogs}
+          aiActive={aiActive}
+          agentName={agentName}
+          reasonerState={reasonerState}
+          lastDecision={lastDecision}
+          thoughtLog={thoughtLog}
+          isSpeaking={isSpeaking}
+          widgetsVisible={widgetsVisible}
+          panelState={panelState.state}
+          elapsedTime={elapsedTime}
+          connectionHint={connectionHint}
+          telemetryEffort={telemetry.effort}
+          telemetryCadence={telemetry.cadence}
           workoutPlan={workoutPlan}
           currentIntervalIndex={currentIntervalIndex}
-          currentInterval={currentInterval}
           intervalProgress={intervalProgress}
-          routeTheme={routeTheme}
-          searchParams={searchParams}
-          panelState={panelState.state}
-          panelPositions={panelState.positions}
+          intervalRemaining={intervalRemaining}
+          rewardsStreamState={rewards.streamState ?? null}
+          rewardsMode={rewards.mode}
+          orientation={orientation}
+          onSetUseSimulator={setUseSimulator}
+          onSetRewardMode={setRewardMode}
+          onExitRide={exitRide}
+          onResetPrefs={() => {
+            try {
+              window.localStorage.removeItem("spinchain:ride:viewMode");
+              window.localStorage.removeItem("spinchain:ride:hudMode");
+              // Reset focus mode store too
+              useRideFocusMode
+                .getState()
+                .initForDevice(
+                  deviceType === "tablet" ? "desktop" : deviceType,
+                );
+            } catch {
+              /* ignore */
+            }
+            viewModePreferenceRef.current = "system";
+            panelState.resetLayout();
+            trackEvent(ANALYTICS_EVENTS.WIDGET_LAYOUT_RESET, {
+              phase: isRiding
+                ? "in_ride"
+                : rideProgress > 0
+                  ? "post_ride"
+                  : "pre_ride",
+              viewMode,
+              deviceType,
+            });
+          }}
+          onCollapseToggle={() => {
+            if (isRiding && viewMode === "immersive") {
+              cycleRideWidgetsMode();
+              return;
+            }
+            if (panelState.isAllCollapsed) panelState.expandAll();
+            else panelState.collapseAll();
+          }}
+          isAllCollapsed={
+            isRiding && viewMode === "immersive"
+              ? widgetsMode !== "expanded"
+              : panelState.isAllCollapsed
+          }
           onTogglePanel={handleTogglePanel}
-          onSetPanelPosition={panelState.setPanelPosition}
-          onSnapPanel={(key) =>
-            panelState.snapPanelToEdge(key, {
-              width: window.innerWidth,
-              height: window.innerHeight,
-            })
-          }
-          onTrackWidgetInteraction={trackWidgetInteraction}
-          onExpandOne={panelState.expandOne}
+          onStartRide={startRide}
+          onPauseRide={pauseRide}
+          onSetWorkoutPlan={setWorkoutPlan}
+          onSetUseSimulator2={setUseSimulator}
+          onBleMetrics={handleBleMetrics}
+          onSimulatorMetrics={handleSimulatorMetrics}
           onHaptic={haptic.trigger}
-          isPracticeMode={isPracticeMode}
-          recentPowerHistory={recentPowerHistory}
+          formatTime={formatTime}
+          trackWidgetInteraction={trackWidgetInteraction}
+          cycleRideWidgetsMode={cycleRideWidgetsMode}
+          multiGhostState={multiGhostState}
+          socialRiders={socialRiders}
         />
-      </SectionErrorBoundary>
 
-      <RideHUDOverlay
-        classData={classData}
-        isPracticeMode={isPracticeMode}
-        routeIsGenerated={classData?.routeIsGenerated}
-        isRiding={isRiding}
-        isExiting={isExiting}
-        rideProgress={rideProgress}
-        isTrainingMode={isTrainingMode}
-        isGuestMode={isGuestMode}
-        useSimulator={useSimulator}
-        bleConnected={bleConnected}
-        walletConnected={walletConnected}
-        rewardMode={rewardMode}
-        rewardsFormattedReward={rewards.formattedReward}
-        rewardsIsActive={rewards.isActive}
-        rewardsClearNodeConnected={rewards.clearNodeConnected}
-        deviceType={deviceType}
-        simulatedReward={simulatedRewards}
-        telemetry={telemetry}
-        telemetryHistory={telemetryHistory}
-        ghostState={ghostStateRef.current}
-        currentInterval={currentInterval}
-        aiLogs={aiLogs}
-        aiActive={aiActive}
-        agentName={agentName}
-        reasonerState={reasonerState}
-        lastDecision={lastDecision}
-        thoughtLog={thoughtLog}
-        isSpeaking={isSpeaking}
-        widgetsVisible={widgetsVisible}
-        panelState={panelState.state}
-        elapsedTime={elapsedTime}
-        connectionHint={connectionHint}
-        telemetryEffort={telemetry.effort}
-        telemetryCadence={telemetry.cadence}
-        workoutPlan={workoutPlan}
-        currentIntervalIndex={currentIntervalIndex}
-        intervalProgress={intervalProgress}
-        intervalRemaining={intervalRemaining}
-        rewardsStreamState={rewards.streamState ?? null}
-        rewardsMode={rewards.mode}
-        orientation={orientation}
-        onSetUseSimulator={setUseSimulator}
-        onSetRewardMode={setRewardMode}
-        onExitRide={exitRide}
-        onResetPrefs={() => {
-          try {
-            window.localStorage.removeItem("spinchain:ride:viewMode");
-            window.localStorage.removeItem("spinchain:ride:hudMode");
-            // Reset focus mode store too
-            useRideFocusMode.getState().initForDevice(deviceType === "tablet" ? "desktop" : deviceType);
-          } catch {
-            /* ignore */
-          }
-          viewModePreferenceRef.current = "system";
-          panelState.resetLayout();
-          trackEvent(ANALYTICS_EVENTS.WIDGET_LAYOUT_RESET, {
-            phase: isRiding
-              ? "in_ride"
-              : rideProgress > 0
-                ? "post_ride"
-                : "pre_ride",
-            viewMode,
-            deviceType,
-          });
-        }}
-        onCollapseToggle={() => {
-          if (isRiding && viewMode === "immersive") {
-            cycleRideWidgetsMode();
-            return;
-          }
-          if (panelState.isAllCollapsed) panelState.expandAll();
-          else panelState.collapseAll();
-        }}
-        isAllCollapsed={
-          isRiding && viewMode === "immersive"
-            ? widgetsMode !== "expanded"
-            : panelState.isAllCollapsed
-        }
-        onTogglePanel={handleTogglePanel}
-        onStartRide={startRide}
-        onPauseRide={pauseRide}
-        onSetWorkoutPlan={setWorkoutPlan}
-        onSetUseSimulator2={setUseSimulator}
-        onBleMetrics={handleBleMetrics}
-        onSimulatorMetrics={handleSimulatorMetrics}
-        onHaptic={haptic.trigger}
-        formatTime={formatTime}
-        trackWidgetInteraction={trackWidgetInteraction}
-        cycleRideWidgetsMode={cycleRideWidgetsMode}
-        multiGhostState={multiGhostState}
-        socialRiders={socialRiders}
-      />
+        <RiderSocialFeed events={socialEvents} onHighFive={handleHighFive} />
 
-      <RiderSocialFeed events={socialEvents} onHighFive={handleHighFive} />
+        {/* Performance Trends (Immersive only) */}
+        {isRiding && viewMode === "immersive" && (
+          <div className="fixed top-32 right-6 z-40 flex flex-col gap-4">
+            <PerformanceGraph
+              data={telemetryHistory.power}
+              color="text-yellow-400"
+              label="Power"
+              max={400}
+            />
+            <PerformanceGraph
+              data={telemetryHistory.cadence}
+              color="text-blue-400"
+              label="Cadence"
+              max={140}
+            />
+          </div>
+        )}
 
-      {/* Performance Trends (Immersive only) */}
-      {isRiding && viewMode === "immersive" && (
-        <div className="fixed top-32 right-6 z-40 flex flex-col gap-4">
-          <PerformanceGraph
-            data={telemetryHistory.power}
-            color="text-yellow-400"
-            label="Power"
-            max={400}
-          />
-          <PerformanceGraph
-            data={telemetryHistory.cadence}
-            color="text-blue-400"
-            label="Cadence"
-            max={140}
-          />
-        </div>
-      )}
-
-      {/* Social Presence: Other riders in the class */}
-      {isRiding && viewMode === "immersive" && multiGhostState.length > 0 && (
-        <div className="fixed top-32 left-6 z-40 flex flex-col gap-3">
-          {multiGhostState.map((rider) => (
-            <motion.div
-              key={rider.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-3 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full pl-1.5 pr-4 py-1.5"
-            >
-              <div className="relative">
-                <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-black text-indigo-300">
-                  {rider.name.substring(0, 2).toUpperCase()}
+        {/* Social Presence: Other riders in the class */}
+        {isRiding && viewMode === "immersive" && multiGhostState.length > 0 && (
+          <div className="fixed top-32 left-6 z-40 flex flex-col gap-3">
+            {multiGhostState.map((rider) => (
+              <motion.div
+                key={rider.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-3 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full pl-1.5 pr-4 py-1.5"
+              >
+                <div className="relative">
+                  <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-black text-indigo-300">
+                    {rider.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  {rider.active && (
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-black animate-pulse" />
+                  )}
                 </div>
-                {rider.active && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-black animate-pulse" />
-                )}
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black text-white/80 leading-none">
-                  {rider.name}
-                </span>
-                <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-0.5">
-                  {rider.power}W | {rider.leadLagTime > 0 ? "+" : ""}{rider.leadLagTime.toFixed(1)}s
-                </span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-white/80 leading-none">
+                    {rider.name}
+                  </span>
+                  <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-0.5">
+                    {rider.power}W | {rider.leadLagTime > 0 ? "+" : ""}
+                    {rider.leadLagTime.toFixed(1)}s
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
-      <FlowBackground
-        intensity={flowIntensity}
-        color={flowColor}
-        isRiding={isRiding && viewMode === "immersive"}
-      />
+        <FlowBackground
+          intensity={flowIntensity}
+          color={flowColor}
+          isRiding={isRiding && viewMode === "immersive"}
+        />
 
-      {/* Live Settlement Stream visualizer */}
-      <SettlementStream
-        isActive={
-          isRiding && rewards.mode === "yellow-stream" && rewards.isActive
-        }
-        accumulated={Number(rewards.accumulatedReward)}
-        rate={rewards.streamingRate ? Number(rewards.streamingRate) : 0}
-      />
+        {/* Live Settlement Stream visualizer */}
+        <SettlementStream
+          isActive={
+            isRiding && rewards.mode === "yellow-stream" && rewards.isActive
+          }
+          accumulated={Number(rewards.accumulatedReward)}
+          rate={rewards.streamingRate ? Number(rewards.streamingRate) : 0}
+        />
 
-      <CoachMessageOverlay
-        message={isRiding ? lastCoachMessage : null}
-        phase={currentInterval?.phase}
-      />
+        <CoachMessageOverlay
+          message={isRiding ? lastCoachMessage : null}
+          phase={currentInterval?.phase}
+        />
 
-      {/* Sprint flash border — pulses red on sprint phase entry */}
-      {isRiding && currentInterval?.phase === "sprint" && (
-        <div className="absolute inset-0 pointer-events-none rounded-none border-4 border-red-500/60 animate-pulse" />
-      )}
+        {/* Sprint flash border — pulses red on sprint phase entry */}
+        {isRiding && currentInterval?.phase === "sprint" && (
+          <div className="absolute inset-0 pointer-events-none rounded-none border-4 border-red-500/60 animate-pulse" />
+        )}
 
-      <RideModals
-        rideProgress={rideProgress}
-        isPracticeMode={isPracticeMode}
-        isTrainingMode={isTrainingMode}
-        isRiding={isRiding}
-        elapsedTime={elapsedTime}
-        telemetryAverages={telemetryAverages}
-        bleConnected={bleConnected}
-        useSimulator={useSimulator}
-        classId={classId}
-        classData={classData}
-        practiceConfig={practiceConfig}
-        rewardsFormattedReward={rewards.formattedReward}
-        handleClaimRewards={handleClaimRewards}
-        rewardClaimStatus={rewardClaimStatus}
-        completionSyncStatus={completionSyncStatus}
-        completionPrimaryAction={completionPrimaryAction}
-        showMilestone={showMilestone}
-        showNoBikeModal={showNoBikeModal}
-        showKeyboardHints={showKeyboardHints}
-        showDemoModal={showDemoModal}
-        demoStats={demoStats}
-        showTutorial={showTutorial}
-        tutorialStep={tutorialStep}
-        agentName={agentName}
-        aiPersonality={aiPersonality || "data"}
-        _rewardMode={rewardMode}
-        _walletConnected={walletConnected}
-        ridePointsRef={ridePointsRef}
-        router={router}
-        onExitRide={exitRide}
-        onEnableSimulatorFromModal={handleEnableSimulatorFromModal}
-        onDismissNoBike={() => setShowNoBikeModal(false)}
-        onDismissKeyboardHints={() => setShowKeyboardHints(false)}
-        onDemoModalClose={handleDemoModalClose}
-        onNextTutorial={nextTutorial}
-        onDismissTutorial={dismissTutorial}
-        onSimulatorMetrics={handleSimulatorMetrics}
-      />
-    </div>
+        <RideModals
+          rideProgress={rideProgress}
+          isPracticeMode={isPracticeMode}
+          isTrainingMode={isTrainingMode}
+          isRiding={isRiding}
+          elapsedTime={elapsedTime}
+          telemetryAverages={telemetryAverages}
+          bleConnected={bleConnected}
+          useSimulator={useSimulator}
+          classId={classId}
+          classData={classData}
+          practiceConfig={practiceConfig}
+          rewardsFormattedReward={rewards.formattedReward}
+          handleClaimRewards={handleClaimRewards}
+          rewardClaimStatus={rewardClaimStatus}
+          completionSyncStatus={completionSyncStatus}
+          completionPrimaryAction={completionPrimaryAction}
+          showMilestone={showMilestone}
+          showNoBikeModal={showNoBikeModal}
+          showKeyboardHints={showKeyboardHints}
+          showDemoModal={showDemoModal}
+          demoStats={demoStats}
+          showTutorial={showTutorial}
+          tutorialStep={tutorialStep}
+          agentName={agentName}
+          aiPersonality={aiPersonality || "data"}
+          _rewardMode={rewardMode}
+          _walletConnected={walletConnected}
+          ridePointsRef={ridePointsRef}
+          router={router}
+          onExitRide={exitRide}
+          onEnableSimulatorFromModal={handleEnableSimulatorFromModal}
+          onDismissNoBike={() => setShowNoBikeModal(false)}
+          onDismissKeyboardHints={() => setShowKeyboardHints(false)}
+          onDemoModalClose={handleDemoModalClose}
+          onNextTutorial={nextTutorial}
+          onDismissTutorial={dismissTutorial}
+          onSimulatorMetrics={handleSimulatorMetrics}
+        />
+      </div>
     </RideGestureZone>
   );
 }

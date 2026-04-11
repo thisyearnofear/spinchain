@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useAccount } from "wagmi";
 import { useTransaction } from "./use-transaction";
 import { CONTRACTS, PAYMENT_CONFIG } from "@/app/config";
@@ -25,15 +25,18 @@ export function useStablecoinPayment() {
     return "Unknown";
   }, []);
 
-  const approveTx = useTransaction({
+  const approveTxOptions = useMemo(() => ({
     successMessage: "Payment approved",
     pendingMessage: "Approving payment...",
-  });
+  }), []);
 
-  const purchaseTx = useTransaction({
+  const purchaseTxOptions = useMemo(() => ({
     successMessage: "Ticket purchased!",
     pendingMessage: "Purchasing ticket...",
-  });
+  }), []);
+
+  const approveTx = useTransaction(approveTxOptions);
+  const purchaseTx = useTransaction(purchaseTxOptions);
 
   /**
    * Get stablecoin contract address for payment method

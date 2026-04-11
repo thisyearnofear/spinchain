@@ -2,7 +2,7 @@
 
 import { useSuiClient, useCurrentAccount } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { SUI_CONFIG } from "@/app/config";
 import { useSuiTransaction } from "./use-sui-transaction";
 
@@ -28,10 +28,13 @@ export interface StoryBeat {
 export function useSuiTelemetry(sessionId: string | null, statsObjectId: string | null) {
     const suiClient = useSuiClient();
     const account = useCurrentAccount();
-    const { execute, isPending: isUpdating, error } = useSuiTransaction({
+
+    const transactionOptions = useMemo(() => ({
         successMessage: "Telemetry updated",
         pendingMessage: "Submitting telemetry...",
-    });
+    }), []);
+
+    const { execute, isPending: isUpdating, error } = useSuiTransaction(transactionOptions);
     const [lastUpdate, setLastUpdate] = useState<TelemetryUpdate | null>(null);
 
     /**
