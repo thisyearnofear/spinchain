@@ -76,8 +76,8 @@ function getPresetMetrics(mode: RideFocusMode): MetricConfig[] {
         priority: m.key === "power" ? 1 : m.key === "heartRate" ? 2 : m.priority
       }));
     case "balanced":
-      // Balanced: standard set
-      return base.map(m => ({ ...m, visible: !["effort", "wBal"].includes(m.key) }));
+      // Balanced: standard set (4 core metrics only for clean default)
+      return base.map(m => ({ ...m, visible: ["power", "heartRate", "cadence", "speed"].includes(m.key) }));
     case "data":
       // Data: everything visible
       return base.map(m => ({ ...m, visible: true }));

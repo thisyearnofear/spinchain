@@ -139,25 +139,26 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
         />
       )}
 
-      {/* Center HUD - controlled by focus mode */}
-      {visibility.showCenterMetrics && (!props.isRiding || props.deviceType !== "mobile" || props.widgetsVisible) && (
-        <RideHUD
-          telemetry={props.telemetry}
-          deviceType={props.deviceType}
-          orientation={props.orientation}
-          hudMode={focusAdapter.hudMode}
-          isRiding={props.isRiding}
-          rideProgress={props.rideProgress}
-          rewardsActive={props.rewardsIsActive}
-          rewardsStreamState={props.rewardsStreamState}
-          rewardsMode={props.rewardsMode}
-          intervalPhase={props.currentInterval?.phase ?? null}
-          aiLog={props.aiLogs[0]}
-          ghostState={visibility.showGhostPacer ? props.ghostState : undefined}
-          multiGhostState={visibility.showGhostPacer ? props.multiGhostState : []}
-          targetRpm={props.currentInterval?.targetRpm}
-        />
-      )}
+        {/* Center HUD - controlled by focus mode */}
+        {visibility.showCenterMetrics && (!props.isRiding || props.deviceType !== "mobile" || props.widgetsVisible) && (
+          <RideHUD
+            telemetry={props.telemetry}
+            deviceType={props.deviceType}
+            orientation={props.orientation}
+            hudMode={focusAdapter.hudMode}
+            isRiding={props.isRiding}
+            rideProgress={props.rideProgress}
+            rewardsActive={props.rewardsIsActive}
+            rewardsStreamState={props.rewardsStreamState}
+            rewardsMode={props.rewardsMode}
+            intervalPhase={props.currentInterval?.phase ?? null}
+            aiLog={props.aiLogs[0]}
+            ghostState={visibility.showGhostPacer ? props.ghostState : undefined}
+            multiGhostState={visibility.showGhostPacer ? props.multiGhostState : []}
+            targetRpm={props.currentInterval?.targetRpm}
+            showBottomPanel={visibility.showBottomPanel}
+          />
+        )}
 
       {/* Unified focus control - replaces the cryptic FAB */}
       {props.isRiding && (

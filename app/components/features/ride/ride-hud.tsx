@@ -74,6 +74,7 @@ interface RideHUDProps {
     isBackgroundActive: boolean;
     isHealthKitActive: boolean;
   };
+  targetRpm?: [number, number];
   showBottomPanel?: boolean;
 }
 
@@ -324,6 +325,7 @@ export function RideHUD({
           mobileBridgeStatus={mobileBridgeStatus}
           ghostState={ghostState}
           agentInsight={agentInsight}
+          showBottomPanel={showBottomPanel}
         />
       </>
     );
@@ -614,6 +616,7 @@ function MobileCompactHUD({
   mobileBridgeStatus,
   ghostState,
   agentInsight,
+  showBottomPanel,
 }: {
   telemetry: TelemetryData;
   activeMetrics: MetricConfig[];
@@ -629,6 +632,7 @@ function MobileCompactHUD({
   };
   ghostState?: GhostState;
   agentInsight?: React.ReactNode;
+  showBottomPanel?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [visibleMetricIndex, setVisibleMetricIndex] = useState(0);
@@ -672,7 +676,7 @@ function MobileCompactHUD({
 
   return (
     <div
-      className="absolute inset-0 flex flex-col items-center justify-end pointer-events-none p-4 pb-12"
+      className={`absolute inset-0 flex flex-col items-center justify-end pointer-events-none p-4 ${showBottomPanel ? "pb-32" : "pb-12"}`}
       style={{ willChange: "transform" }}
     >
       {/* Status indicators at top - minimal - only show when expanded */}
