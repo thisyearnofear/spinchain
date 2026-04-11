@@ -19,9 +19,10 @@ import {
 } from "../../../components/features/ride/ride-loading";
 import { RideVisualization } from "../../../components/features/ride/ride-visualization";
 import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overlay";
+import { useRideFocusMode, useRideFocusKeyboard } from "@/app/hooks/ui/use-ride-focus-mode";
 import { RideModals } from "../../../components/features/ride/ride-modals";
+
 import { RideGestureZone } from "../../../components/features/ride/ride-gesture-zone";
-import { useRideFocusKeyboard } from "../../../hooks/ui/use-ride-focus-mode";
 import type { RewardClaimStatus } from "../../../components/features/ride/ride-completion";
 import type { StoryBeat } from "../../../components/features/route/route-visualizer";
 import { useSimulatedRewards } from "../../../hooks/ride/use-simulated-rewards";
@@ -95,18 +96,6 @@ import { SectionErrorBoundary } from "../../../components/layout/error-boundary"
 const MAX_RIDE_POINTS = 10_800;
 const MAX_TELEMETRY_SAMPLES = 5_400;
 
-function getSystemHudMode(
-  deviceType: "mobile" | "tablet" | "desktop",
-  orientation: "portrait" | "landscape",
-  prefersReducedMotion: boolean,
-): "full" | "compact" | "minimal" {
-  if (prefersReducedMotion) return "minimal";
-  if (deviceType === "mobile") return "compact";
-  if (deviceType === "tablet")
-    return orientation === "portrait" ? "compact" : "full";
-  return "full";
-}
-
 function getSystemViewMode(
   deviceType: "mobile" | "tablet" | "desktop",
   performanceTier: "high" | "medium" | "low",
@@ -163,18 +152,6 @@ export default function LiveRidePage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [panelIsAllCollapsed, panelExpandAll, panelCollapseAll]);
 
-  // Persisted HUD preference (client-only)
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem("spinchain:ride:hudMode");
-      if (stored === "full" || stored === "compact" || stored === "minimal") {
-        hudModePreferenceRef.current = "stored";
-        setHudMode(stored);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
   const [viewMode, setViewMode] = useState<"immersive" | "focus">(
     getSystemViewMode(deviceType, performanceTier, false),
   );
@@ -191,36 +168,6 @@ export default function LiveRidePage() {
       // ignore
     }
   }, []);
-
-  const applyViewMode = (
-    next: "immersive" | "focus",
-    source: "system" | "manual",
-  ) => {
-    setViewMode(next);
-    viewModePreferenceRef.current = source;
-    if (source === "manual") {
-      try {
-        window.localStorage.setItem("spinchain:ride:viewMode", next);
-      } catch {
-        // ignore
-      }
-    }
-  };
-
-  const applyHudMode = (
-    next: "full" | "compact" | "minimal",
-    source: "system" | "manual",
-  ) => {
-    setHudMode(next);
-    hudModePreferenceRef.current = source;
-    if (source === "manual") {
-      try {
-        window.localStorage.setItem("spinchain:ride:hudMode", next);
-      } catch {
-        // ignore
-      }
-    }
-  };
 
   // Accessibility: prefer reduced motion => default to focus mode + minimal HUD
   useEffect(() => {
@@ -273,10 +220,6 @@ export default function LiveRidePage() {
     useSimulator,
   });
 
-  const [hudMode, setHudMode] = useState<"full" | "compact" | "minimal">(
-    "full",
-  );
-  const hudModePreferenceRef = useRef<"system" | "stored" | "manual">("system");
   const viewModePreferenceRef = useRef<"system" | "stored" | "manual">(
     "system",
   );
@@ -1119,14 +1062,8 @@ export default function LiveRidePage() {
     }
   };
 
-  // Auto-adjust HUD and view mode only while following system defaults.
+  // Auto-adjust view mode only while following system defaults.
   useEffect(() => {
-    if (hudModePreferenceRef.current === "system") {
-      setHudMode(
-        getSystemHudMode(deviceType, orientation, prefersReducedMotion),
-      );
-    }
-
     if (viewModePreferenceRef.current === "system") {
       setViewMode(
         getSystemViewMode(deviceType, performanceTier, prefersReducedMotion),
@@ -1617,16 +1554,6 @@ export default function LiveRidePage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const cycleHudMode = () => {
-    const next =
-      hudMode === "full"
-        ? "compact"
-        : hudMode === "compact"
-          ? "minimal"
-          : "full";
-    applyHudMode(next, "manual");
-  };
-
   useEffect(() => {
     if (rideProgress < 100 || trackedCompletionRef.current) return;
     trackedCompletionRef.current = true;
@@ -1740,8 +1667,6 @@ export default function LiveRidePage() {
         rewardsFormattedReward={rewards.formattedReward}
         rewardsIsActive={rewards.isActive}
         rewardsClearNodeConnected={rewards.clearNodeConnected}
-        viewMode={viewMode}
-        hudMode={hudMode}
         deviceType={deviceType}
         simulatedReward={simulatedRewards}
         telemetry={telemetry}
@@ -1756,7 +1681,6 @@ export default function LiveRidePage() {
         thoughtLog={thoughtLog}
         isSpeaking={isSpeaking}
         widgetsVisible={widgetsVisible}
-        widgetsMode={widgetsMode}
         panelState={panelState.state}
         elapsedTime={elapsedTime}
         connectionHint={connectionHint}
@@ -1771,35 +1695,17 @@ export default function LiveRidePage() {
         orientation={orientation}
         onSetUseSimulator={setUseSimulator}
         onSetRewardMode={setRewardMode}
-        onToggleViewMode={() =>
-          applyViewMode(
-            viewMode === "immersive" ? "focus" : "immersive",
-            "manual",
-          )
-        }
-        onCycleHudMode={cycleHudMode}
         onExitRide={exitRide}
         onResetPrefs={() => {
           try {
             window.localStorage.removeItem("spinchain:ride:viewMode");
             window.localStorage.removeItem("spinchain:ride:hudMode");
+            // Reset focus mode store too
+            useRideFocusMode.getState().initForDevice(deviceType === "tablet" ? "desktop" : deviceType);
           } catch {
             /* ignore */
           }
-          hudModePreferenceRef.current = "system";
           viewModePreferenceRef.current = "system";
-          applyHudMode(
-            getSystemHudMode(deviceType, orientation, prefersReducedMotion),
-            "system",
-          );
-          applyViewMode(
-            getSystemViewMode(
-              deviceType,
-              performanceTier,
-              prefersReducedMotion,
-            ),
-            "system",
-          );
           panelState.resetLayout();
           trackEvent(ANALYTICS_EVENTS.WIDGET_LAYOUT_RESET, {
             phase: isRiding
@@ -1825,7 +1731,6 @@ export default function LiveRidePage() {
             : panelState.isAllCollapsed
         }
         onTogglePanel={handleTogglePanel}
-        onSetWidgetsMode={panelState.setMobileRideWidgetsMode}
         onStartRide={startRide}
         onPauseRide={pauseRide}
         onSetWorkoutPlan={setWorkoutPlan}

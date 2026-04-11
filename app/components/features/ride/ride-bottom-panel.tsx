@@ -40,7 +40,6 @@ interface RideBottomPanelProps {
     durationSeconds: number;
   } | null;
   currentIntervalIndex: number;
-  intervalProgress: number;
   intervalRemaining: number;
   // AI
   aiActive: boolean;
@@ -57,9 +56,8 @@ interface RideBottomPanelProps {
   isSpeaking: boolean;
   // Panel state
   panelState: PanelState;
-  onTogglePanel: (key: PanelKey) => void;
-  onSetWidgetsMode: (mode: WidgetMode) => void;
   // Callbacks
+  onTogglePanel: (key: PanelKey) => void;
   onStartRide: () => void;
   onPauseRide: () => void;
   onSetWorkoutPlan: (plan: WorkoutPlan | null) => void;
@@ -92,7 +90,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   workoutPlan,
   currentInterval,
   currentIntervalIndex,
-  intervalProgress,
   intervalRemaining,
   aiActive,
   agentName,
@@ -102,7 +99,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   isSpeaking,
   panelState,
   onTogglePanel,
-  onSetWidgetsMode,
   onStartRide,
   onPauseRide,
   onSetWorkoutPlan,
@@ -175,13 +171,9 @@ export const RideBottomPanel = memo(function RideBottomPanel({
         className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-auto"
         style={{ zIndex: Z_LAYERS.widgets }}
       >
-        <button
-          onClick={() => onSetWidgetsMode("expanded")}
-          className="rounded-full border border-white/20 bg-black/70 px-3 py-1.5 text-xs text-white/80 shadow-lg backdrop-blur transition-all hover:bg-black/80 active:scale-95"
-          aria-label="Restore widgets"
-        >
-          Restore widgets
-        </button>
+        <div className="rounded-full border border-white/20 bg-black/70 px-3 py-1.5 text-xs text-white/80 shadow-lg backdrop-blur">
+          Widgets minimized (use focus control to restore)
+        </div>
       </div>
     );
   }
@@ -194,18 +186,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
       >
         <div className="flex items-center gap-2 rounded-full border border-white/20 bg-black/75 px-3 py-1.5 text-xs text-white/80 shadow-lg backdrop-blur">
           <span>Widgets collapsed</span>
-          <button
-            onClick={() => onSetWidgetsMode("expanded")}
-            className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] text-white hover:bg-white/25"
-          >
-            Expand
-          </button>
-          <button
-            onClick={() => onSetWidgetsMode("minimized")}
-            className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] text-white hover:bg-white/25"
-          >
-            Minimize
-          </button>
         </div>
       </div>
     );
@@ -234,22 +214,8 @@ export const RideBottomPanel = memo(function RideBottomPanel({
             onPointerUp={handleDragEnd}
           >
             <span>
-              {deviceType === "mobile" ? "Widget controls" : "Drag widgets bar"}
+              {deviceType === "mobile" ? "Ride stats" : "Drag widgets bar"}
             </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => onSetWidgetsMode("collapsed")}
-                className="rounded bg-white/10 px-2 py-1 text-white/80 hover:bg-white/20"
-              >
-                Collapse
-              </button>
-              <button
-                onClick={() => onSetWidgetsMode("minimized")}
-                className="rounded bg-white/10 px-2 py-1 text-white/80 hover:bg-white/20"
-              >
-                Minimize
-              </button>
-            </div>
           </div>
         )}
 

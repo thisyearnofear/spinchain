@@ -8,9 +8,24 @@ import { persist } from "zustand/middleware";
  * 
  * Single mental model: 4 clearly named presets that define what's visible
  * across all layers (HUD, bottom panel, top bar)
+ * 
+ * CORE PRINCIPLE: Per-metric customization extends focus modes, not replaces them.
+ * Users start with presets, then optionally customize visible metrics.
  */
 
 export type RideFocusMode = "zen" | "immersive" | "balanced" | "data";
+
+// Available metrics for display
+export type MetricKey = "power" | "heartRate" | "cadence" | "speed" | "effort" | "gear" | "wBal";
+
+export interface MetricConfig {
+  key: MetricKey;
+  label: string;
+  unit: string;
+  color: string;
+  visible: boolean;
+  priority: number; // Lower = higher priority (displayed first)
+}
 
 interface RideFocusConfig {
   // Top bar visibility
@@ -27,6 +42,46 @@ interface RideFocusConfig {
   showAiCoach: boolean;
   showGhostPacer: boolean;
   showFlowBackground: boolean;
+  
+  // Per-metric customization (Priority 4: Per-metric customization)
+  // Each focus mode has its own metric config, but user can override
+  metrics: MetricConfig[];
+  useCustomMetrics: boolean; // When true, use custom config instead of preset
+}
+
+// Default metric configurations for each focus mode
+const DEFAULT_METRICS: MetricConfig[] = [
+  { key: "power", label: "Power", unit: "W", color: "text-yellow-400", visible: true, priority: 1 },
+  { key: "heartRate", label: "Heart Rate", unit: "BPM", color: "text-rose-400", visible: true, priority: 2 },
+  { key: "cadence", label: "Cadence", unit: "RPM", color: "text-blue-400", visible: true, priority: 3 },
+  { key: "speed", label: "Speed", unit: "km/h", color: "text-emerald-400", visible: true, priority: 4 },
+  { key: "effort", label: "Effort", unit: "%", color: "text-orange-400", visible: false, priority: 5 },
+  { key: "gear", label: "Gear", unit: "", color: "text-cyan-400", visible: true, priority: 6 },
+  { key: "wBal", label: "W'Bal", unit: "kJ", color: "text-purple-400", visible: false, priority: 7 },
+];
+
+// Helper to get metrics for a specific mode
+function getPresetMetrics(mode: RideFocusMode): MetricConfig[] {
+  const base = [...DEFAULT_METRICS];
+  
+  switch (mode) {
+    case "zen":
+      // Zen mode: all metrics hidden (user sees pure experience)
+      return base.map(m => ({ ...m, visible: false }));
+    case "immersive":
+      // Immersive: only essential metrics, power primary
+      return base.map(m => ({ 
+        ...m, 
+        visible: ["power", "heartRate"].includes(m.key),
+        priority: m.key === "power" ? 1 : m.key === "heartRate" ? 2 : m.priority
+      }));
+    case "balanced":
+      // Balanced: standard set
+      return base.map(m => ({ ...m, visible: !["effort", "wBal"].includes(m.key) }));
+    case "data":
+      // Data: everything visible
+      return base.map(m => ({ ...m, visible: true }));
+  }
 }
 
 const FOCUS_PRESETS: Record<RideFocusMode, RideFocusConfig> = {
@@ -38,6 +93,8 @@ const FOCUS_PRESETS: Record<RideFocusMode, RideFocusConfig> = {
     showAiCoach: false,
     showGhostPacer: false,
     showFlowBackground: true,
+    metrics: getPresetMetrics("zen"),
+    useCustomMetrics: false,
   },
   immersive: {
     topBar: "minimal",
@@ -47,6 +104,8 @@ const FOCUS_PRESETS: Record<RideFocusMode, RideFocusConfig> = {
     showAiCoach: false,
     showGhostPacer: true,
     showFlowBackground: true,
+    metrics: getPresetMetrics("immersive"),
+    useCustomMetrics: false,
   },
   balanced: {
     topBar: "status",
@@ -56,6 +115,8 @@ const FOCUS_PRESETS: Record<RideFocusMode, RideFocusConfig> = {
     showAiCoach: true,
     showGhostPacer: true,
     showFlowBackground: true,
+    metrics: getPresetMetrics("balanced"),
+    useCustomMetrics: false,
   },
   data: {
     topBar: "full",
@@ -65,6 +126,8 @@ const FOCUS_PRESETS: Record<RideFocusMode, RideFocusConfig> = {
     showAiCoach: true,
     showGhostPacer: true,
     showFlowBackground: false,
+    metrics: getPresetMetrics("data"),
+    useCustomMetrics: false,
   },
 };
 
@@ -76,8 +139,11 @@ interface RideFocusStore {
   mobileDefault: RideFocusMode;
   desktopDefault: RideFocusMode;
   
-  // Current config (derived from mode)
+  // Current config (derived from mode + customizations)
   config: RideFocusConfig;
+  
+  // Per-mode custom overrides (Priority 4: user-customized metric configs per mode)
+  customConfigs: Partial<Record<RideFocusMode, Pick<RideFocusConfig, "metrics" | "useCustomMetrics">>>;
   
   // Actions
   setMode: (mode: RideFocusMode) => void;
@@ -87,11 +153,32 @@ interface RideFocusStore {
   // Granular overrides (for advanced users)
   togglePanel: (panel: keyof Pick<RideFocusConfig, "showIntervalBanner" | "showAiCoach" | "showGhostPacer">) => void;
   
+  // Per-metric customization (Priority 4)
+  toggleMetricVisibility: (metricKey: MetricKey) => void;
+  setMetricPriority: (metricKey: MetricKey, newPriority: number) => void;
+  reorderMetrics: (fromIndex: number, toIndex: number) => void;
+  resetMetricsToPreset: () => void;
+  enableCustomMetrics: (enabled: boolean) => void;
+  
   // Device-specific initialization
   initForDevice: (deviceType: "mobile" | "desktop") => void;
 }
 
 const MODE_CYCLE: RideFocusMode[] = ["zen", "immersive", "balanced", "data"];
+
+// Helper to build config with custom overrides
+function buildConfig(
+  mode: RideFocusMode,
+  customConfigs: Partial<Record<RideFocusMode, Pick<RideFocusConfig, "metrics" | "useCustomMetrics">>>
+): RideFocusConfig {
+  const preset = FOCUS_PRESETS[mode];
+  const custom = customConfigs[mode];
+  
+  if (custom?.useCustomMetrics && custom.metrics) {
+    return { ...preset, ...custom };
+  }
+  return preset;
+}
 
 export const useRideFocusMode = create<RideFocusStore>()(
   persist(
@@ -100,21 +187,31 @@ export const useRideFocusMode = create<RideFocusStore>()(
       mobileDefault: "immersive",
       desktopDefault: "balanced",
       config: FOCUS_PRESETS.balanced,
+      customConfigs: {},
       
-      setMode: (mode) => set({ mode, config: FOCUS_PRESETS[mode] }),
+      setMode: (mode) => set({ 
+        mode, 
+        config: buildConfig(mode, get().customConfigs) 
+      }),
       
       cycleMode: () => {
         const current = get().mode;
         const currentIndex = MODE_CYCLE.indexOf(current);
         const nextIndex = (currentIndex + 1) % MODE_CYCLE.length;
         const nextMode = MODE_CYCLE[nextIndex];
-        set({ mode: nextMode, config: FOCUS_PRESETS[nextMode] });
+        set({ 
+          mode: nextMode, 
+          config: buildConfig(nextMode, get().customConfigs) 
+        });
       },
       
       toggleZen: () => {
         const current = get().mode;
         const nextMode = current === "zen" ? get().mobileDefault : "zen";
-        set({ mode: nextMode, config: FOCUS_PRESETS[nextMode] });
+        set({ 
+          mode: nextMode, 
+          config: buildConfig(nextMode, get().customConfigs) 
+        });
       },
       
       togglePanel: (panel) => {
@@ -127,9 +224,118 @@ export const useRideFocusMode = create<RideFocusStore>()(
         });
       },
       
+      // Priority 4: Per-metric customization
+      toggleMetricVisibility: (metricKey) => {
+        const currentMode = get().mode;
+        const currentCustom = get().customConfigs[currentMode];
+        const currentMetrics = currentCustom?.useCustomMetrics 
+          ? currentCustom.metrics! 
+          : [...FOCUS_PRESETS[currentMode].metrics];
+        
+        const updatedMetrics = currentMetrics.map(m => 
+          m.key === metricKey ? { ...m, visible: !m.visible } : m
+        );
+        
+        const newCustomConfigs = {
+          ...get().customConfigs,
+          [currentMode]: { useCustomMetrics: true, metrics: updatedMetrics }
+        };
+        
+        set({
+          customConfigs: newCustomConfigs,
+          config: buildConfig(currentMode, newCustomConfigs)
+        });
+      },
+      
+      setMetricPriority: (metricKey, newPriority) => {
+        const currentMode = get().mode;
+        const currentCustom = get().customConfigs[currentMode];
+        const currentMetrics = currentCustom?.useCustomMetrics 
+          ? currentCustom.metrics! 
+          : [...FOCUS_PRESETS[currentMode].metrics];
+        
+        const updatedMetrics = currentMetrics.map(m => 
+          m.key === metricKey ? { ...m, priority: newPriority } : m
+        );
+        
+        const newCustomConfigs = {
+          ...get().customConfigs,
+          [currentMode]: { useCustomMetrics: true, metrics: updatedMetrics }
+        };
+        
+        set({
+          customConfigs: newCustomConfigs,
+          config: buildConfig(currentMode, newCustomConfigs)
+        });
+      },
+      
+      reorderMetrics: (fromIndex, toIndex) => {
+        const currentMode = get().mode;
+        const currentCustom = get().customConfigs[currentMode];
+        const currentMetrics = currentCustom?.useCustomMetrics 
+          ? [...currentCustom.metrics!] 
+          : [...FOCUS_PRESETS[currentMode].metrics];
+        
+        // Remove from old position and insert at new position
+        const [moved] = currentMetrics.splice(fromIndex, 1);
+        currentMetrics.splice(toIndex, 0, moved);
+        
+        // Update priority values to match new order
+        const updatedMetrics = currentMetrics.map((m, idx) => ({
+          ...m,
+          priority: idx + 1
+        }));
+        
+        const newCustomConfigs = {
+          ...get().customConfigs,
+          [currentMode]: { useCustomMetrics: true, metrics: updatedMetrics }
+        };
+        
+        set({
+          customConfigs: newCustomConfigs,
+          config: buildConfig(currentMode, newCustomConfigs)
+        });
+      },
+      
+      resetMetricsToPreset: () => {
+        const currentMode = get().mode;
+        const { [currentMode]: _, ...remainingCustomConfigs } = get().customConfigs;
+        
+        set({
+          customConfigs: remainingCustomConfigs,
+          config: FOCUS_PRESETS[currentMode]
+        });
+      },
+      
+      enableCustomMetrics: (enabled) => {
+        const currentMode = get().mode;
+        
+        if (enabled) {
+          // Copy preset metrics as starting point for customization
+          const newCustomConfigs = {
+            ...get().customConfigs,
+            [currentMode]: { 
+              useCustomMetrics: true, 
+              metrics: [...FOCUS_PRESETS[currentMode].metrics] 
+            }
+          };
+          set({
+            customConfigs: newCustomConfigs,
+            config: buildConfig(currentMode, newCustomConfigs)
+          });
+        } else {
+          // Disable custom metrics - revert to preset
+          const { [currentMode]: _, ...remainingCustomConfigs } = get().customConfigs;
+          set({
+            customConfigs: remainingCustomConfigs,
+            config: FOCUS_PRESETS[currentMode]
+          });
+        }
+      },
+      
       initForDevice: (deviceType) => {
         const defaultMode = deviceType === "mobile" ? get().mobileDefault : get().desktopDefault;
-        set({ mode: defaultMode, config: FOCUS_PRESETS[defaultMode] });
+        set({ mode: defaultMode, config: buildConfig(defaultMode, get().customConfigs) });
       },
     }),
     {
@@ -137,6 +343,7 @@ export const useRideFocusMode = create<RideFocusStore>()(
       partialize: (state) => ({
         mobileDefault: state.mobileDefault,
         desktopDefault: state.desktopDefault,
+        customConfigs: state.customConfigs, // Persist custom metric configs
       }),
     }
   )
@@ -145,6 +352,17 @@ export const useRideFocusMode = create<RideFocusStore>()(
 // Convenience hooks for components
 export const useRideFocusConfig = () => useRideFocusMode((state) => state.config);
 export const useIsZenMode = () => useRideFocusMode((state) => state.mode === "zen");
+export const useRideFocusModeValue = () => useRideFocusMode((state) => state.mode);
+export const useCustomMetrics = () => useRideFocusMode((state) => ({
+  useCustomMetrics: state.config.useCustomMetrics,
+  metrics: state.config.metrics,
+  // Expose actions
+  toggleMetricVisibility: state.toggleMetricVisibility,
+  setMetricPriority: state.setMetricPriority,
+  reorderMetrics: state.reorderMetrics,
+  resetMetricsToPreset: state.resetMetricsToPreset,
+  enableCustomMetrics: state.enableCustomMetrics,
+}));
 
 // Keyboard shortcut handler
 export function useRideFocusKeyboard(options?: {

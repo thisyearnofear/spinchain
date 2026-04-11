@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, memo, useMemo } from "react";
+import { useState, memo, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { YellowRewardTicker } from "@/app/components/features/common/yellow-reward-ticker";
 import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
 import type { IntervalPhase } from "@/app/lib/workout-plan";
 import type { GhostState } from "@/app/lib/analytics/ghost-service";
+
+import { useRideFocusConfig, type MetricConfig, type MetricKey } from "@/app/hooks/ui/use-ride-focus-mode";
 
 export interface TelemetryData {
   heartRate: number;
@@ -33,6 +35,19 @@ export function useTelemetryData(): TelemetryData {
     currentGear: telemetry.currentGear,
     gearRatio: telemetry.gearRatio,
   };
+}
+
+function getMetricValue(key: MetricKey, telemetry: TelemetryData): string | number {
+  switch (key) {
+    case "power": return telemetry.power;
+    case "heartRate": return telemetry.heartRate;
+    case "cadence": return telemetry.cadence;
+    case "speed": return telemetry.speed.toFixed(1);
+    case "effort": return (telemetry.effort / 10).toFixed(0);
+    case "gear": return telemetry.currentGear || "--";
+    case "wBal": return "--"; // Not yet implemented in telemetry
+    default: return "--";
+  }
 }
 
 interface RideHUDProps {
@@ -96,84 +111,6 @@ function getPhaseAccent(phase?: IntervalPhase | null) {
     border: "border-yellow-400/30",
     bg: "bg-yellow-500/12",
     glow: "shadow-yellow-500/20",
-  };
-}
-
-function getPhaseMetrics(
-  telemetry: TelemetryData,
-  phase?: IntervalPhase | null,
-) {
-  if (phase === "sprint") {
-    return {
-      primary: {
-        label: "Cadence",
-        value: telemetry.cadence,
-        unit: "rpm",
-        color: "text-blue-300",
-      },
-      secondary: [
-        {
-          label: "Power",
-          value: telemetry.power,
-          unit: "W",
-          color: "text-yellow-300",
-        },
-        {
-          label: "Heart Rate",
-          value: telemetry.heartRate,
-          unit: "bpm",
-          color: "text-rose-300",
-        },
-      ],
-    };
-  }
-
-  if (phase === "recovery" || phase === "cooldown") {
-    return {
-      primary: {
-        label: "Heart Rate",
-        value: telemetry.heartRate,
-        unit: "bpm",
-        color: "text-sky-300",
-      },
-      secondary: [
-        {
-          label: "Cadence",
-          value: telemetry.cadence,
-          unit: "rpm",
-          color: "text-blue-300",
-        },
-        {
-          label: "Power",
-          value: telemetry.power,
-          unit: "W",
-          color: "text-yellow-300",
-        },
-      ],
-    };
-  }
-
-  return {
-    primary: {
-      label: "Power",
-      value: telemetry.power,
-      unit: "W",
-      color: "text-yellow-300",
-    },
-    secondary: [
-      {
-        label: "Heart Rate",
-        value: telemetry.heartRate,
-        unit: "bpm",
-        color: "text-rose-300",
-      },
-      {
-        label: "Cadence",
-        value: telemetry.cadence,
-        unit: "rpm",
-        color: "text-blue-300",
-      },
-    ],
   };
 }
 
@@ -288,19 +225,14 @@ export function RideHUD({
   mobileBridgeStatus,
   targetRpm,
 }: RideHUDProps) {
-  // Don't show if minimal mode or not riding
-  if (hudMode === "minimal" || (!isRiding && rideProgress === 0)) {
-    return null;
-  }
-
-  const phaseAccent = getPhaseAccent(intervalPhase);
-  const phaseMetrics = getPhaseMetrics(telemetry, intervalPhase);
-  const phaseLabel = intervalPhase
-    ? intervalPhase.charAt(0).toUpperCase() + intervalPhase.slice(1)
-    : "Cruise";
-
-  // Edge-docked layout for desktop (Priority 2: move cards from center to edges)
-  const useEdgeDocked = deviceType === "desktop" && hudMode === "full";
+  const { metrics, centerHud } = useRideFocusConfig();
+  
+  // Filter and sort metrics based on config (Priority 4)
+  const activeMetrics = useMemo(() => {
+    return metrics
+      .filter(m => m.visible)
+      .sort((a, b) => a.priority - b.priority);
+  }, [metrics]);
 
   // Calculate intensity based on target RPM if available
   const rpmIntensity = useMemo(() => {
@@ -310,6 +242,19 @@ export function RideHUD({
     if (telemetry.cadence < min) return telemetry.cadence / min;
     return 1.0 - Math.min(0.5, (telemetry.cadence - max) / 100);
   }, [targetRpm, telemetry.cadence, telemetry.effort]);
+
+  // Don't show if minimal mode or not riding
+  if (centerHud === "none" || (!isRiding && rideProgress === 0)) {
+    return null;
+  }
+
+  const phaseAccent = getPhaseAccent(intervalPhase);
+  const phaseLabel = intervalPhase
+    ? intervalPhase.charAt(0).toUpperCase() + intervalPhase.slice(1)
+    : "Cruise";
+
+  // Edge-docked layout for desktop (Priority 2: move cards from center to edges)
+  const useEdgeDocked = deviceType === "desktop" && hudMode === "full";
 
   // Agent Intelligence Section
   const agentInsight = (
@@ -368,7 +313,7 @@ export function RideHUD({
         {flowStateVisualizer}
         <MobileCompactHUD
           telemetry={telemetry}
-          phaseMetrics={phaseMetrics}
+          activeMetrics={activeMetrics}
           phaseLabel={phaseLabel}
           phaseAccent={phaseAccent}
           isRiding={isRiding}
@@ -389,18 +334,9 @@ export function RideHUD({
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
         {flowStateVisualizer}
         <div className="flex flex-col gap-3 w-full max-w-xs">
-          {[
-            phaseMetrics.primary,
-            ...phaseMetrics.secondary,
-            {
-              label: "Speed",
-              value: telemetry.speed.toFixed(1),
-              unit: "km/h",
-              color: "text-green-400",
-            },
-          ].map((metric, index) => (
+          {activeMetrics.map((metric, index) => (
             <div
-              key={metric.label}
+              key={metric.key}
               className={`rounded-2xl border bg-black/60 p-4 backdrop-blur-xl transition-all duration-500 ${index === 0 ? `${phaseAccent.border} ${phaseAccent.bg} ${phaseAccent.glow}` : "border-white/10"}`}
             >
               <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">
@@ -409,7 +345,7 @@ export function RideHUD({
               <p
                 className={`text-4xl font-black ${metric.color} tracking-tighter`}
               >
-                {metric.value}
+                {getMetricValue(metric.key, telemetry)}
                 <span className="text-sm text-white/20 ml-2 uppercase">
                   {metric.unit}
                 </span>
@@ -486,86 +422,42 @@ export function RideHUD({
         {/* Priority 2: Edge-docked metrics for desktop (unobstructed 3D view) */}
         {useEdgeDocked ? (
           <div className="fixed inset-0 pointer-events-none">
-            {/* Top-left: Primary metric (Power/Cadence/HR based on phase) */}
-            <div className="absolute top-24 left-6 pointer-events-auto">
-              <MetricCard
-                label={phaseMetrics.primary.label}
-                value={phaseMetrics.primary.value}
-                unit={phaseMetrics.primary.unit}
-                color={phaseMetrics.primary.color}
-                emphasized
-                intensity={rpmIntensity}
-                compact
-              />
-            </div>
-            
-            {/* Top-right: Heart Rate */}
-            <div className="absolute top-24 right-6 pointer-events-auto">
-              <MetricCard
-                label={phaseMetrics.secondary[0].label}
-                value={phaseMetrics.secondary[0].value}
-                unit={phaseMetrics.secondary[0].unit}
-                color={phaseMetrics.secondary[0].color}
-                intensity={telemetry.heartRate / 200}
-                compact
-              />
-            </div>
-            
-            {/* Bottom-left: Secondary metric */}
-            <div className="absolute bottom-32 left-6 pointer-events-auto">
-              <MetricCard
-                label={phaseMetrics.secondary[1].label}
-                value={phaseMetrics.secondary[1].value}
-                unit={phaseMetrics.secondary[1].unit}
-                color={phaseMetrics.secondary[1].color}
-                intensity={telemetry.cadence / 120}
-                compact
-              />
-            </div>
-            
-            {/* Bottom-right: Speed (reserved for focus control button) */}
-            <div className="absolute bottom-32 right-24 pointer-events-auto">
-              <MetricCard
-                label="Speed"
-                value={telemetry.speed.toFixed(1)}
-                unit="km/h"
-                color="text-emerald-400"
-                intensity={telemetry.speed / 45}
-                compact
-              />
-            </div>
+            {/* Corner placements based on priority */}
+            {activeMetrics.slice(0, 4).map((metric, idx) => {
+              const positions = [
+                "top-24 left-6",
+                "top-24 right-6",
+                "bottom-32 left-6",
+                "bottom-32 right-24"
+              ];
+              return (
+                <div key={metric.key} className={`absolute ${positions[idx]} pointer-events-auto`}>
+                  <MetricCard
+                    label={metric.label}
+                    value={getMetricValue(metric.key, telemetry)}
+                    unit={metric.unit}
+                    color={metric.color}
+                    emphasized={idx === 0}
+                    intensity={idx === 0 ? rpmIntensity : 0.5}
+                    compact
+                  />
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-6 sm:gap-8">
-            <MetricCard
-              label={phaseMetrics.primary.label}
-              value={phaseMetrics.primary.value}
-              unit={phaseMetrics.primary.unit}
-              color={phaseMetrics.primary.color}
-              emphasized
-              intensity={rpmIntensity}
-            />
-            <MetricCard
-              label={phaseMetrics.secondary[0].label}
-              value={phaseMetrics.secondary[0].value}
-              unit={phaseMetrics.secondary[0].unit}
-              color={phaseMetrics.secondary[0].color}
-              intensity={telemetry.heartRate / 200}
-            />
-            <MetricCard
-              label={phaseMetrics.secondary[1].label}
-              value={phaseMetrics.secondary[1].value}
-              unit={phaseMetrics.secondary[1].unit}
-              color={phaseMetrics.secondary[1].color}
-              intensity={telemetry.cadence / 120}
-            />
-            <MetricCard
-              label="Speed"
-              value={telemetry.speed.toFixed(1)}
-              unit="km/h"
-              color="text-emerald-400"
-              intensity={telemetry.speed / 45}
-            />
+            {activeMetrics.map((metric, idx) => (
+              <MetricCard
+                key={metric.key}
+                label={metric.label}
+                value={getMetricValue(metric.key, telemetry)}
+                unit={metric.unit}
+                color={metric.color}
+                emphasized={idx === 0}
+                intensity={idx === 0 ? rpmIntensity : 0.5}
+              />
+            ))}
           </div>
         )}
 
@@ -699,7 +591,7 @@ const MetricCard = memo(function MetricCard({
 // Mobile Compact HUD - Floating pill with swipe-to-cycle (no auto-cycle for performance)
 function MobileCompactHUD({
   telemetry,
-  phaseMetrics,
+  activeMetrics,
   phaseLabel,
   phaseAccent,
   isRiding,
@@ -711,10 +603,7 @@ function MobileCompactHUD({
   agentInsight,
 }: {
   telemetry: TelemetryData;
-  phaseMetrics: {
-    primary: { label: string; value: number; unit: string; color: string };
-    secondary: { label: string; value: number; unit: string; color: string }[];
-  };
+  activeMetrics: MetricConfig[];
   phaseLabel: string;
   phaseAccent: { border: string };
   isRiding: boolean;
@@ -729,46 +618,17 @@ function MobileCompactHUD({
   agentInsight?: React.ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [visibleWidget, setVisibleWidget] = useState<
-    "primary" | "power" | "heartrate" | "cadence"
-  >(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("mobile-widget-preference");
-      if (
-        saved &&
-        ["primary", "power", "heartrate", "cadence"].includes(saved)
-      ) {
-        return saved as "primary" | "power" | "heartrate" | "cadence";
-      }
-    }
-    return "primary";
-  });
+  const [visibleMetricIndex, setVisibleMetricIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
     null,
   );
-
-  // Persist widget preference to localStorage
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("mobile-widget-preference", visibleWidget);
-    }
-  }, [visibleWidget]);
 
   // No auto-cycle — user swipes/taps to cycle manually (performance improvement)
   const handleTap = () => {
     if (expanded) {
       setExpanded(false);
     } else {
-      setVisibleWidget((prev) => {
-        const widgets: (typeof prev)[] = [
-          "primary",
-          "power",
-          "heartrate",
-          "cadence",
-        ];
-        const currentIdx = widgets.indexOf(prev);
-        return widgets[(currentIdx + 1) % widgets.length];
-      });
+      setVisibleMetricIndex((prev) => (prev + 1) % activeMetrics.length);
     }
   };
 
@@ -784,56 +644,18 @@ function MobileCompactHUD({
 
     // Only trigger if horizontal swipe is dominant
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
-      setVisibleWidget((prev) => {
-        const widgets: (typeof prev)[] = [
-          "primary",
-          "power",
-          "heartrate",
-          "cadence",
-        ];
-        const currentIdx = widgets.indexOf(prev);
-        const direction = deltaX > 0 ? 1 : -1; // Right swipe = next, left swipe = prev
-        const newIdx =
-          (currentIdx + direction + widgets.length) % widgets.length;
-        return widgets[newIdx];
-      });
+      const direction = deltaX > 0 ? 1 : -1; // Right swipe = next, left swipe = prev
+      setVisibleMetricIndex((prev) => 
+        (prev + direction + activeMetrics.length) % activeMetrics.length
+      );
     }
     setTouchStart(null);
   };
 
-  const metrics = [
-    {
-      key: "primary",
-      label: phaseMetrics.primary.label,
-      value: phaseMetrics.primary.value,
-      color: phaseMetrics.primary.color,
-      unit: phaseMetrics.primary.unit,
-    },
-    {
-      key: "power",
-      label: "Power",
-      value: `${telemetry.power || 0}`,
-      color: "text-orange-400",
-      unit: "W",
-    },
-    {
-      key: "heartrate",
-      label: "Heart Rate",
-      value: `${telemetry.heartRate || "--"}`,
-      color: "text-red-400",
-      unit: "BPM",
-    },
-    {
-      key: "cadence",
-      label: "Cadence",
-      value: `${telemetry.cadence || "--"}`,
-      color: "text-cyan-400",
-      unit: "RPM",
-    },
-  ];
-
-  const currentMetric =
-    metrics.find((m) => m.key === visibleWidget) || metrics[0];
+  // Adjust index in render to avoid synchronous setState in useEffect
+  const displayIndex = visibleMetricIndex >= activeMetrics.length ? 0 : visibleMetricIndex;
+  const currentMetric = activeMetrics[displayIndex] || activeMetrics[0];
+  if (!currentMetric) return null;
 
   return (
     <div
@@ -891,7 +713,7 @@ function MobileCompactHUD({
                 <span
                   className={`text-3xl font-black tracking-tighter ${currentMetric.color}`}
                 >
-                  {currentMetric.value}
+                  {getMetricValue(currentMetric.key, telemetry)}
                 </span>
                 <span className="text-[10px] font-bold text-white/20 uppercase">
                   {currentMetric.unit}
@@ -906,11 +728,11 @@ function MobileCompactHUD({
             </div>
             {/* Swipe affordance dots */}
             <div className="flex items-center gap-1.5 ml-3">
-              {metrics.map((m) => (
+              {activeMetrics.map((m, idx) => (
                 <div
                   key={m.key}
                   className={`rounded-full transition-all duration-300 ${
-                    m.key === visibleWidget
+                    idx === visibleMetricIndex
                       ? "w-4 h-1.5 bg-white/60"
                       : "w-1.5 h-1.5 bg-white/20"
                   }`}
@@ -921,17 +743,17 @@ function MobileCompactHUD({
         ) : (
           // Expanded: show all metrics in a grid - more compact
           <div className="flex flex-col gap-6">
-            {/* Primary metric */}
+            {/* Primary metric (First in active metrics) */}
             <div className="text-center">
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 mb-1">
-                {phaseMetrics.primary.label}
+                {activeMetrics[0].label}
               </p>
               <p
-                className={`text-6xl font-black tracking-tighter ${phaseMetrics.primary.color}`}
+                className={`text-6xl font-black tracking-tighter ${activeMetrics[0].color}`}
               >
-                {phaseMetrics.primary.value}
+                {getMetricValue(activeMetrics[0].key, telemetry)}
                 <span className="text-base font-bold text-white/20 ml-2 uppercase">
-                  {phaseMetrics.primary.unit}
+                  {activeMetrics[0].unit}
                 </span>
               </p>
               <div className="inline-block mt-2 rounded-full px-4 py-1 text-[9px] font-black uppercase tracking-[0.3em] bg-white/5 border border-white/10 text-white/60">
@@ -939,11 +761,11 @@ function MobileCompactHUD({
               </div>
             </div>
 
-            {/* Secondary metrics grid */}
+            {/* Secondary metrics grid (Rest of active metrics) */}
             <div className="grid grid-cols-3 gap-3">
-              {phaseMetrics.secondary.map((metric) => (
+              {activeMetrics.slice(1).map((metric) => (
                 <div
-                  key={metric.label}
+                  key={metric.key}
                   className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center"
                 >
                   <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">
@@ -952,7 +774,7 @@ function MobileCompactHUD({
                   <p
                     className={`text-xl font-black tracking-tighter ${metric.color}`}
                   >
-                    {metric.value}
+                    {getMetricValue(metric.key, telemetry)}
                   </p>
                 </div>
               ))}

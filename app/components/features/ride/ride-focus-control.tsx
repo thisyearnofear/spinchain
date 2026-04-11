@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useRideFocusMode, FOCUS_MODE_META, type RideFocusMode } from "@/app/hooks/ui/use-ride-focus-mode";
 import { useState, useRef, useEffect } from "react";
+import { HUDSettings } from "./hud-settings";
 
 /**
  * Unified Ride Focus Control - replaces the fragmented FAB + HUD mode buttons
@@ -14,18 +15,17 @@ import { useState, useRef, useEffect } from "react";
 interface RideFocusControlProps {
   position?: "bottom-right" | "top-right";
   size?: "sm" | "md" | "lg";
-  enableGestures?: boolean; // Mobile gesture zones
   onHaptic?: (type?: "light" | "medium" | "heavy") => void;
 }
 
 export function RideFocusControl({ 
   position = "bottom-right", 
   size = "md",
-  enableGestures = true,
   onHaptic,
 }: RideFocusControlProps) {
   const { mode, cycleMode } = useRideFocusMode();
   const [showMenu, setShowMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [quickPeek, setQuickPeek] = useState(false);
   const quickPeekTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -58,7 +58,7 @@ export function RideFocusControl({
     }
     
     // If menu wasn't shown, it was a quick tap - cycle mode
-    if (!showMenu) {
+    if (!showMenu && !showSettings) {
       onHaptic?.("light");
       cycleMode();
     }
@@ -148,11 +148,11 @@ export function RideFocusControl({
             
             {/* Menu items */}
             <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-              <div className="relative w-64 h-64 pointer-events-auto">
+              <div className="relative w-72 h-72 pointer-events-auto">
                 {(Object.keys(FOCUS_MODE_META) as RideFocusMode[]).map((modeKey, index) => {
                   const modeMeta = FOCUS_MODE_META[modeKey];
                   const angle = (index * 90 - 45) * (Math.PI / 180); // Spread in circle
-                  const radius = 80;
+                  const radius = 90;
                   const x = Math.cos(angle) * radius;
                   const y = Math.sin(angle) * radius;
                   
@@ -180,6 +180,23 @@ export function RideFocusControl({
                   );
                 })}
                 
+                {/* Settings Toggle (Priority 4) */}
+                <motion.button
+                  className="absolute bottom-4 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center shadow-lg hover:bg-zinc-700 transition-colors"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ delay: 0.2 }}
+                  onClick={() => {
+                    onHaptic?.("medium");
+                    setShowMenu(false);
+                    setShowSettings(true);
+                  }}
+                  title="HUD Settings"
+                >
+                  <span className="text-xl">⚙️</span>
+                </motion.button>
+                
                 {/* Center label */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
                   <div className="text-sm text-white/60 font-medium">Select Mode</div>
@@ -190,6 +207,13 @@ export function RideFocusControl({
           </>
         )}
       </AnimatePresence>
+
+      {/* HUD Settings Modal (Priority 4) */}
+      <HUDSettings 
+        isOpen={showSettings} 
+        onClose={() => setShowSettings(false)} 
+        onHaptic={onHaptic}
+      />
     </>
   );
 }

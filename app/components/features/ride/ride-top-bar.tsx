@@ -23,7 +23,6 @@ interface RideTopBarProps {
   rewardsClearNodeConnected?: boolean;
   viewMode: "immersive" | "focus";
   hudMode: "full" | "compact" | "minimal";
-  deviceType: "mobile" | "tablet" | "desktop";
   // Focus mode control
   showClassInfo?: boolean;
   // Simulated rewards
@@ -31,8 +30,6 @@ interface RideTopBarProps {
   // Callbacks
   onSetUseSimulator: (v: boolean) => void;
   onSetRewardMode: (m: RewardMode) => void;
-  onToggleViewMode: () => void;
-  onCycleHudMode: () => void;
   onExitRide: () => void;
   onResetPrefs: () => void;
   onCollapseToggle: () => void;
@@ -57,12 +54,9 @@ export const RideTopBar = memo(function RideTopBar({
   rewardsIsActive,
   rewardsClearNodeConnected,
   viewMode,
-  deviceType,
   simulatedReward,
   onSetUseSimulator,
   onSetRewardMode,
-  onToggleViewMode,
-  onCycleHudMode,
   onExitRide,
   onResetPrefs,
   onCollapseToggle,
@@ -213,29 +207,6 @@ export const RideTopBar = memo(function RideTopBar({
           <span className="sm:hidden inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 text-[10px] text-white/50">
             {viewMode === "focus" ? "2D" : "3D"}
           </span>
-
-          {/* View Mode Toggle */}
-          <button
-            onClick={onToggleViewMode}
-            className="rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/70 hover:bg-white/20 active:scale-95 transition-all touch-manipulation min-h-[44px]"
-            aria-label="Toggle view mode"
-          >
-            {viewMode === "immersive" ? "→ 2D" : "→ 3D"}
-          </button>
-
-          {/* HUD Mode Toggle (mobile) */}
-          {deviceType === "mobile" && (
-            <button
-              onClick={onCycleHudMode}
-              className="rounded-lg bg-white/10 p-2 text-white/70 hover:bg-white/20 active:scale-95 transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
-              aria-label="Toggle HUD"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            </button>
-          )}
 
           {/* Exit Button */}
           <button

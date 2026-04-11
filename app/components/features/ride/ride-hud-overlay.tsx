@@ -9,7 +9,7 @@ import { useRideFocusAdapter, useRideFocusVisibility } from "@/app/hooks/ui/use-
 import { useRideFocusKeyboard } from "@/app/hooks/ui/use-ride-focus-mode";
 import type { GhostState } from "@/app/lib/analytics/ghost-service";
 import type { IntervalPhase, WorkoutPlan } from "@/app/lib/workout-plan";
-import type { WidgetMode, PanelKey, PanelState } from "@/app/hooks/ui/use-panel-state";
+import type { PanelKey, PanelState } from "@/app/hooks/ui/use-panel-state";
 import type { RewardMode, RewardStreamState } from "@/app/hooks/rewards/use-rewards";
 import type { HapticType } from "@/app/hooks/use-haptic";
 import type { TelemetryData } from "./ride-hud";
@@ -32,8 +32,6 @@ interface RideHUDOverlayProps {
   rewardsFormattedReward: string;
   rewardsIsActive: boolean;
   rewardsClearNodeConnected?: boolean;
-  viewMode: "immersive" | "focus";
-  hudMode: "full" | "compact" | "minimal";
   deviceType: "mobile" | "tablet" | "desktop";
   simulatedReward: { isSimulating: boolean; formattedReward: string };
   telemetry: TelemetryData;
@@ -54,7 +52,6 @@ interface RideHUDOverlayProps {
   thoughtLog: string[];
   isSpeaking: boolean;
   widgetsVisible: boolean;
-  widgetsMode: WidgetMode;
   panelState: PanelState;
   elapsedTime: number;
   connectionHint: string | null;
@@ -69,14 +66,11 @@ interface RideHUDOverlayProps {
   orientation: "portrait" | "landscape";
   onSetUseSimulator: (v: boolean) => void;
   onSetRewardMode: (m: RewardMode) => void;
-  onToggleViewMode: () => void;
-  onCycleHudMode: () => void;
   onExitRide: () => void;
   onResetPrefs: () => void;
   onCollapseToggle: () => void;
   isAllCollapsed: boolean;
   onTogglePanel: (key: PanelKey) => void;
-  onSetWidgetsMode: (m: WidgetMode) => void;
   onStartRide: () => void;
   onPauseRide: () => void;
   onSetWorkoutPlan: (p: WorkoutPlan | null) => void;
@@ -111,10 +105,6 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
     return () => window.removeEventListener("keydown", keyboardHandler);
   }, [props.isRiding, keyboardHandler]);
   
-  // Use focus mode values, fallback to props for backward compatibility
-  const effectiveHudMode = focusAdapter.hudMode;
-  const effectiveWidgetsMode = focusAdapter.widgetsMode;
-  
   return (
     <div className="absolute inset-0 pointer-events-none z-30">
       {/* Top bar - controlled by focus mode */}
@@ -137,13 +127,10 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
           rewardsIsActive={props.rewardsIsActive}
           rewardsClearNodeConnected={props.rewardsClearNodeConnected}
           viewMode={focusAdapter.viewMode}
-          hudMode={effectiveHudMode}
-          deviceType={props.deviceType}
+          hudMode={focusAdapter.hudMode}
           simulatedReward={props.simulatedReward}
           onSetUseSimulator={props.onSetUseSimulator}
           onSetRewardMode={props.onSetRewardMode}
-          onToggleViewMode={props.onToggleViewMode}
-          onCycleHudMode={props.onCycleHudMode}
           onExitRide={props.onExitRide}
           onResetPrefs={props.onResetPrefs}
           onCollapseToggle={props.onCollapseToggle}
@@ -158,7 +145,7 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
           telemetry={props.telemetry}
           deviceType={props.deviceType}
           orientation={props.orientation}
-          hudMode={effectiveHudMode}
+          hudMode={focusAdapter.hudMode}
           isRiding={props.isRiding}
           rideProgress={props.rideProgress}
           rewardsActive={props.rewardsIsActive}
@@ -188,9 +175,9 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
           isStarting={false}
           rideProgress={props.rideProgress}
           elapsedTime={props.elapsedTime}
-          hudMode={effectiveHudMode}
+          hudMode={focusAdapter.hudMode}
           deviceType={props.deviceType}
-          widgetsMode={effectiveWidgetsMode}
+          widgetsMode={focusAdapter.widgetsMode}
           useSimulator={props.useSimulator}
           isPracticeMode={props.isPracticeMode}
           isTrainingMode={props.isTrainingMode}
@@ -202,7 +189,6 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
           workoutPlan={props.workoutPlan}
           currentInterval={props.currentInterval}
           currentIntervalIndex={props.currentIntervalIndex}
-          intervalProgress={props.intervalProgress}
           intervalRemaining={props.intervalRemaining}
           aiActive={props.aiActive}
           agentName={props.agentName}
@@ -212,7 +198,6 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
           isSpeaking={props.isSpeaking}
           panelState={props.panelState}
           onTogglePanel={props.onTogglePanel}
-          onSetWidgetsMode={props.onSetWidgetsMode}
           onStartRide={props.onStartRide}
           onPauseRide={props.onPauseRide}
           onSetWorkoutPlan={props.onSetWorkoutPlan}
