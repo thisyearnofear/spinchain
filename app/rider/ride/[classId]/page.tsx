@@ -780,7 +780,7 @@ export default function LiveRidePage() {
         performanceTier === "low" ? 2 : performanceTier === "medium" ? 3 : 4;
     }
     const hudUpdateIntervalMs = Math.floor(1000 / uiHz);
-    const historyUpdateIntervalMs = 1000; // Update history at 1Hz
+    const historyUpdateIntervalMs = 2000; // Update history at 0.5Hz (Reduce jank)
     const calculationIntervalMs = hudUpdateIntervalMs; // Throttle calculations to same rate
 
     let rafId: number;

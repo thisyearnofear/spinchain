@@ -93,5 +93,7 @@ export interface AgentDecision {
   action: string;
   parameters: Record<string, unknown>;
   confidence: number;
+  reasoning?: string;
+  expectedOutcome?: string;
   emotion?: "calm" | "intense" | "focused" | "excited" | "stern" | "encouraging";
 }

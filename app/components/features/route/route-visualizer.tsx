@@ -931,7 +931,9 @@ function BeatMarker({
 
 function BeatMarkers({ curve, storyBeats, riderProgress }: { curve: CatmullRomCurve3; storyBeats: StoryBeat[]; riderProgress: number }) {
   const meshRef = useRef<InstancedMesh>(null);
-  const validBeats = storyBeats.filter((beat): beat is StoryBeat => beat != null);
+  const validBeats = useMemo(() => storyBeats.filter((beat): beat is StoryBeat => beat != null), [storyBeats]);
+
+  if (validBeats.length === 0) return null;
 
   return (
     <group>

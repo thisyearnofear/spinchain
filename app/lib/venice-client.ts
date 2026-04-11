@@ -95,10 +95,10 @@ ${request.preferences ? `Preferences: ${request.preferences}` : ""}`;
   try {
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) ||
                       content.match(/```\s*([\s\S]*?)\s*```/) ||
-                      content.match(/\{[\s\S]*\}/);
+                      content.match(/(\{[\s\S]*\})/);
     
     const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
-    const route = JSON.parse(jsonText) as RouteResponse;
+    const route = JSON.parse(jsonText.trim()) as RouteResponse;
     
     // Validate and fill defaults
     if (!route.coordinates || route.coordinates.length < 10) {
@@ -106,7 +106,7 @@ ${request.preferences ? `Preferences: ${request.preferences}` : ""}`;
     }
 
     return route;
-  } catch (parseError) {
+  } catch (_parseError) {
     console.error("Failed to parse Venice response:", content);
     throw new Error("Failed to parse route from Venice AI");
   }
@@ -168,8 +168,8 @@ Respond with JSON:
   const content = data.choices[0]?.message?.content;
 
   try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    return JSON.parse(jsonMatch ? jsonMatch[0] : content);
+    const jsonMatch = content.match(/(\{[\s\S]*\})/);
+    return JSON.parse(jsonMatch ? jsonMatch[0] : content.trim());
   } catch {
     return {
       narrative: content.trim().slice(0, 300),
@@ -268,8 +268,8 @@ Respond with JSON:
   const content = data.choices[0]?.message?.content;
 
   try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    return JSON.parse(jsonMatch ? jsonMatch[0] : content);
+    const jsonMatch = content.match(/(\{[\s\S]*\})/);
+    return JSON.parse(jsonMatch ? jsonMatch[0] : content.trim());
   } catch {
     return {
       message: content.trim().slice(0, 200),
@@ -336,12 +336,38 @@ Respond with JSON:
   const data = await response.json();
   const content = data.choices[0]?.message?.content;
 
+  if (!content) {
+    throw new Error("Empty response from Venice AI");
+  }
+
   try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    const decision = JSON.parse(jsonMatch ? jsonMatch[0] : content);
-    decision.confidence = Math.max(0, Math.min(1, decision.confidence || 0.5));
-    return decision;
-  } catch {
-    throw new Error("Failed to parse agent reasoning from Venice AI");
+    // Robust JSON extraction: look for json block first, then first '{' to last '}'
+    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || 
+                      content.match(/```\s*([\s\S]*?)\s*```/) ||
+                      content.match(/(\{[\s\S]*\})/);
+    
+    const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+    const decision = JSON.parse(jsonText.trim()) as AgentDecision;
+    
+    // Ensure essential fields exist
+    return {
+      thoughtProcess: decision.thoughtProcess || "Analyzing current state...",
+      action: decision.action || "wait",
+      parameters: decision.parameters || {},
+      confidence: Math.max(0, Math.min(1, decision.confidence ?? 0.5)),
+      reasoning: decision.reasoning || "Balanced approach based on current telemetry.",
+      expectedOutcome: decision.expectedOutcome || "Maintain stability."
+    };
+  } catch (_parseError) {
+    console.warn("Failed to parse Venice agent reasoning, content:", content);
+    // Return a safe default instead of crashing the API
+    return {
+      thoughtProcess: "Telemetry stream stable. No immediate correction needed.",
+      action: "wait",
+      parameters: {},
+      confidence: 0.5,
+      reasoning: "Standard operational parameters maintained.",
+      expectedOutcome: "Stability."
+    };
   }
 }

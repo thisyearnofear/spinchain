@@ -74,7 +74,7 @@ interface RideHUDProps {
     isBackgroundActive: boolean;
     isHealthKitActive: boolean;
   };
-  targetRpm?: [number, number];
+  showBottomPanel?: boolean;
 }
 
 function getPhaseAccent(phase?: IntervalPhase | null) {
@@ -224,13 +224,14 @@ export function RideHUD({
   aiLog,
   mobileBridgeStatus,
   targetRpm,
+  showBottomPanel,
 }: RideHUDProps) {
   const { metrics, centerHud } = useRideFocusConfig();
   
   // Filter and sort metrics based on config (Priority 4)
   const activeMetrics = useMemo(() => {
     return metrics
-      .filter(m => m.visible)
+      .filter(m => m.visible && m.key !== "gear") // Gear is shown in status bar as badge
       .sort((a, b) => a.priority - b.priority);
   }, [metrics]);
 
@@ -254,7 +255,7 @@ export function RideHUD({
     : "Cruise";
 
   // Edge-docked layout for desktop (Priority 2: move cards from center to edges)
-  const useEdgeDocked = deviceType === "desktop" && hudMode === "full";
+  const useEdgeDocked = deviceType === "desktop" && (hudMode === "full" || hudMode === "compact");
 
   // Agent Intelligence Section
   const agentInsight = (
@@ -423,15 +424,27 @@ export function RideHUD({
         {useEdgeDocked ? (
           <div className="fixed inset-0 pointer-events-none">
             {/* Corner placements based on priority */}
-            {activeMetrics.slice(0, 4).map((metric, idx) => {
+            {activeMetrics.map((metric, idx) => {
+              // Cycle through 4 corners
               const positions = [
                 "top-24 left-6",
                 "top-24 right-6",
                 "bottom-32 left-6",
                 "bottom-32 right-24"
               ];
+              // Offset if stacking more than 4 metrics
+              const stackOffset = Math.floor(idx / 4) * 90; 
+              const posIndex = idx % 4;
+              
               return (
-                <div key={metric.key} className={`absolute ${positions[idx]} pointer-events-auto`}>
+                <div 
+                  key={metric.key} 
+                  className={`absolute ${positions[posIndex]} pointer-events-auto`}
+                  style={{ 
+                    marginTop: posIndex < 2 ? `${stackOffset}px` : "0px",
+                    marginBottom: posIndex >= 2 ? `${stackOffset}px` : "0px"
+                  }}
+                >
                   <MetricCard
                     label={metric.label}
                     value={getMetricValue(metric.key, telemetry)}

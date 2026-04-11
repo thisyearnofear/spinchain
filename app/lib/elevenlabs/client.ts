@@ -119,10 +119,12 @@ export async function generateSoundEffect(request: SoundEffectRequest): Promise<
       prompt_influence: request.prompt_influence ?? 0.7,
     }),
   }).then(async (response) => {
+    if (response.status === 402) {
+      quotaExceeded = true;
+      console.warn('[ElevenLabs] SFX quota exceeded — sound effects disabled for this session');
+      return new ArrayBuffer(0);
+    }
     if (!response.ok) {
-      if (response.status === 402) {
-        throw new Error('ElevenLabs quota exceeded or payment required');
-      }
       const error = await response.text();
       throw new Error(`SFX error: ${response.status} - ${error}`);
     }

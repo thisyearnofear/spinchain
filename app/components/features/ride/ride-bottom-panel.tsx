@@ -164,39 +164,14 @@ export const RideBottomPanel = memo(function RideBottomPanel({
     [],
   );
 
-  // Show a minimized pill during ride when widgets are minimized
-  if (isRiding && isWidgetsMinimized) {
-    return (
-      <div
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-auto"
-        style={{ zIndex: Z_LAYERS.widgets }}
-      >
-        <div className="rounded-full border border-white/20 bg-black/70 px-3 py-1.5 text-xs text-white/80 shadow-lg backdrop-blur">
-          Widgets minimized (use focus control to restore)
-        </div>
-      </div>
-    );
-  }
-
-  if (isRiding && isWidgetsCollapsed) {
-    return (
-      <div
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-auto"
-        style={{ zIndex: Z_LAYERS.widgets }}
-      >
-        <div className="flex items-center gap-2 rounded-full border border-white/20 bg-black/75 px-3 py-1.5 text-xs text-white/80 shadow-lg backdrop-blur">
-          <span>Widgets collapsed</span>
-        </div>
-      </div>
-    );
-  }
+  const isFullPanelHidden = isRiding && (isWidgetsMinimized || isWidgetsCollapsed);
 
   return (
     <div
-      className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom transition-all duration-300 ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${!isRiding && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`}
+      className={`absolute bottom-0 inset-x-0 ${isFullPanelHidden ? "pointer-events-none" : "bg-gradient-to-t from-black/90 to-transparent pointer-events-auto"} safe-bottom transition-all duration-300 ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${!isRiding && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`}
       style={{
         zIndex: Z_LAYERS.widgets,
-        ...(deviceType !== "mobile" && isRiding
+        ...(deviceType !== "mobile" && isRiding && !isFullPanelHidden
           ? {
               transform: `translate(${desktopOffset.x}px, ${desktopOffset.y}px)`,
             }
@@ -206,7 +181,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
       <div
         className={`max-w-7xl mx-auto ${!isRiding && deviceType === "desktop" ? "overflow-y-auto flex-1 min-h-0" : ""}`}
       >
-        {isRiding && (
+        {isRiding && !isFullPanelHidden && (
           <div
             className="mb-2 flex items-center justify-between rounded-lg bg-black/40 px-3 py-1.5 text-[11px] text-white/70"
             onPointerDown={handleDragStart}
@@ -219,92 +194,100 @@ export const RideBottomPanel = memo(function RideBottomPanel({
           </div>
         )}
 
-        {/* Progress Info + Interval Status */}
-        {hudMode !== "minimal" && (
-          <div className="mb-3 sm:mb-4">
+        {/* Progress Info + Interval Status - Always show if requested by focus mode */}
+        {(hudMode !== "minimal" || showIntervalBanner || showAiCoach) && (
+          <div className={`mb-3 sm:mb-4 ${isFullPanelHidden ? "pointer-events-none" : ""}`}>
             {/* Current Interval Banner */}
-            {isRiding && currentInterval && (
-              <IntervalBanner
-                currentInterval={currentInterval}
-                currentIntervalIndex={currentIntervalIndex}
-                intervalRemaining={intervalRemaining}
-                telemetryCadence={telemetryCadence}
-                workoutPlan={workoutPlan}
-                formatTime={formatTime}
-              />
+            {isRiding && currentInterval && showIntervalBanner && (
+              <div className="pointer-events-auto">
+                <IntervalBanner
+                  currentInterval={currentInterval}
+                  currentIntervalIndex={currentIntervalIndex}
+                  intervalRemaining={intervalRemaining}
+                  telemetryCadence={telemetryCadence}
+                  workoutPlan={workoutPlan}
+                  formatTime={formatTime}
+                />
+              </div>
             )}
 
             {/* AI Feedback */}
-            {isRiding && aiActive && (
-              <AgentFeedback
-                agentName={agentName}
-                reasonerState={reasonerState}
-                lastDecision={lastDecision}
-                thoughtLog={thoughtLog}
-              />
+            {isRiding && aiActive && showAiCoach && (
+              <div className="pointer-events-auto">
+                <AgentFeedback
+                  agentName={agentName}
+                  reasonerState={reasonerState}
+                  lastDecision={lastDecision}
+                  thoughtLog={thoughtLog}
+                />
+              </div>
             )}
 
-            {/* Main stats row */}
-            <div className="flex items-center justify-between text-white">
-              <div className="text-left">
-                <p className="text-[10px] sm:text-sm text-white/50">Progress</p>
-                <p className="text-xl sm:text-2xl font-bold">
-                  {rideProgress.toFixed(0)}%
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-[10px] sm:text-sm text-white/50">Time</p>
-                <div className="flex items-center gap-2 justify-center">
+            {/* Main stats row - Only show in full panel */}
+            {!isFullPanelHidden && (
+              <div className="flex items-center justify-between text-white">
+                <div className="text-left">
+                  <p className="text-[10px] sm:text-sm text-white/50">Progress</p>
                   <p className="text-xl sm:text-2xl font-bold">
-                    {formatTime(elapsedTime)}
+                    {rideProgress.toFixed(0)}%
                   </p>
-                  {isRiding && (
-                    <button
-                      onClick={onPauseRide}
-                      className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white transition-all active:scale-95 touch-manipulation"
-                      aria-label="Pause ride"
-                    >
-                      ⏸ Pause
-                    </button>
-                  )}
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] sm:text-sm text-white/50">Time</p>
+                  <div className="flex items-center gap-2 justify-center">
+                    <p className="text-xl sm:text-2xl font-bold">
+                      {formatTime(elapsedTime)}
+                    </p>
+                    {isRiding && (
+                      <button
+                        onClick={onPauseRide}
+                        className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white transition-all active:scale-95 touch-manipulation"
+                        aria-label="Pause ride"
+                      >
+                        ⏸ Pause
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] sm:text-sm text-white/50">Effort</p>
+                  <p className="text-xl sm:text-2xl font-bold text-purple-400">
+                    {telemetryEffort}
+                  </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-[10px] sm:text-sm text-white/50">Effort</p>
-                <p className="text-xl sm:text-2xl font-bold text-purple-400">
-                  {telemetryEffort}
-                </p>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
-        <RideControls
-          isRiding={isRiding}
-          isStarting={isStarting}
-          rideProgress={rideProgress}
-          isPracticeMode={isPracticeMode}
-          isTrainingMode={isTrainingMode}
-          useSimulator={useSimulator}
-          deviceType={deviceType}
-          workoutPlan={workoutPlan}
-          bleConnected={bleConnected}
-          walletConnected={walletConnected}
-          canStartRide={bleConnected || useSimulator}
-          startHint={connectionHint}
-          onStartRide={onStartRide}
-          onPauseRide={onPauseRide}
-          onSetWorkoutPlan={onSetWorkoutPlan}
-          onSetUseSimulator={onSetUseSimulator}
-          onBleMetrics={onBleMetrics}
-          onSimulatorMetrics={onSimulatorMetrics}
-          onHaptic={onHaptic}
-          panelState={panelState}
-          onTogglePanel={onTogglePanel}
-        />
+        {!isFullPanelHidden && (
+          <RideControls
+            isRiding={isRiding}
+            isStarting={isStarting}
+            rideProgress={rideProgress}
+            isPracticeMode={isPracticeMode}
+            isTrainingMode={isTrainingMode}
+            useSimulator={useSimulator}
+            deviceType={deviceType}
+            workoutPlan={workoutPlan}
+            bleConnected={bleConnected}
+            walletConnected={walletConnected}
+            canStartRide={bleConnected || useSimulator}
+            startHint={connectionHint}
+            onStartRide={onStartRide}
+            onPauseRide={onPauseRide}
+            onSetWorkoutPlan={onSetWorkoutPlan}
+            onSetUseSimulator={onSetUseSimulator}
+            onBleMetrics={onBleMetrics}
+            onSimulatorMetrics={onSimulatorMetrics}
+            onHaptic={onHaptic}
+            panelState={panelState}
+            onTogglePanel={onTogglePanel}
+          />
+        )}
 
         {/* Coach voice indicator */}
-        {isRiding && isSpeaking && (
+        {isRiding && isSpeaking && !isFullPanelHidden && (
           <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[10px] text-indigo-400">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
             Speaking
