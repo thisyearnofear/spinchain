@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useEffect, ReactNode, useState } from "react";
-import { motion } from "framer-motion";
-import { useRideFocusGestures } from "@/app/hooks/ui/use-ride-focus-mode";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRideFocusGestures, useRideFocusMode, FOCUS_MODE_META } from "@/app/hooks/ui/use-ride-focus-mode";
 
 /**
  * Mobile gesture zones for progressive disclosure (Priority 3)
@@ -21,6 +21,19 @@ interface RideGestureZoneProps {
 export function RideGestureZone({ children, enabled = true, onHaptic }: RideGestureZoneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { onSwipeUp, onSwipeDown, onLongPress } = useRideFocusGestures();
+  const mode = useRideFocusMode((s) => s.mode);
+  const [modeToast, setModeToast] = useState<string | null>(null);
+  const prevModeRef = useRef(mode);
+  
+  useEffect(() => {
+    if (mode !== prevModeRef.current) {
+      const meta = FOCUS_MODE_META[mode];
+      setModeToast(`${meta.icon} ${meta.label}`);
+      prevModeRef.current = mode;
+      const timer = setTimeout(() => setModeToast(null), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [mode]);
   
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -110,6 +123,23 @@ export function RideGestureZone({ children, enabled = true, onHaptic }: RideGest
       {enabled && (
         <GestureHints />
       )}
+      
+      {/* Mode change toast */}
+      <AnimatePresence>
+        {modeToast && (
+          <motion.div
+            className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-40"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            key={modeToast}
+          >
+            <div className="bg-black/70 backdrop-blur-xl border border-white/20 rounded-2xl px-6 py-3 shadow-2xl">
+              <span className="text-lg font-bold text-white/90">{modeToast}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

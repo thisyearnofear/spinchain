@@ -904,6 +904,19 @@ function MobileCompactHUD({
             >
               {phaseLabel}
             </div>
+            {/* Swipe affordance dots */}
+            <div className="flex items-center gap-1.5 ml-3">
+              {metrics.map((m) => (
+                <div
+                  key={m.key}
+                  className={`rounded-full transition-all duration-300 ${
+                    m.key === visibleWidget
+                      ? "w-4 h-1.5 bg-white/60"
+                      : "w-1.5 h-1.5 bg-white/20"
+                  }`}
+                />
+              ))}
+            </div>
           </div>
         ) : (
           // Expanded: show all metrics in a grid - more compact
