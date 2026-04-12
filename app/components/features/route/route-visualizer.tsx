@@ -161,16 +161,22 @@ function Road({
     if (!meshRef.current) return;
     const material = meshRef.current.material as any;
 
-    // Power-reactive emissive intensity with cadence pulse
+    // Power-reactive emissive with smooth color transitions
     const pulse = 0.5 + Math.sin(state.clock.elapsedTime * (stats.cadence / 20)) * 0.5;
     const baseEmissive = styles.roadEmissiveIntensity || 0;
     const powerBoost = Math.min(1, stats.power / 600);
     
-    // Combine cadence pulse with power boost for dynamic road glow
+    // Dynamic intensity combining cadence pulse and power
     material.emissiveIntensity = baseEmissive + (pulse * 0.1 * powerBoost) + (powerBoost * 0.4);
 
-    // Rainbow theme: dynamic color shift
-    if (theme === 'rainbow') {
+    // Dynamic color mixing for intensity feedback
+    if (theme !== 'rainbow' && powerBoost > 0.5) {
+      // Mix in brighter color at high power
+      const baseColor = new Color(styles.roadEmissive);
+      const sprintColor = new Color(styles.lineColor);
+      material.emissive.lerpColors(baseColor, sprintColor, (powerBoost - 0.5) * 2);
+    } else if (theme === 'rainbow') {
+      // Rainbow theme: continuous color shift
       const hue = (state.clock.elapsedTime / 10) % 1;
       material.emissive.setHSL(hue, 1, 0.5);
     }
@@ -657,17 +663,27 @@ function RiderMarker({
     _lookAt.copy(point).add(tangent);
     groupRef.current.lookAt(_lookAt);
 
-    // Reactive pulsing
+    // Power-reactive pulsing with cadence
     if (auraRef.current) {
-      // Pulse scale based on cadence
-      const pulse =
-        1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.2;
-      auraRef.current.scale.set(pulse, pulse, pulse);
+      const cadencePulse = Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.2;
+      const powerBoost = Math.min(1, stats.power / 400) * 0.3;
+      const scale = 1 + cadencePulse + powerBoost;
+      auraRef.current.scale.set(scale, scale, scale);
+      
+      // Fresnel-like opacity boost at high power
+      const material = auraRef.current.material as any;
+      if (material) {
+        const baseOpacity = 0.05 + (stats.power / 1500);
+        const fresnelBoost = powerBoost * 0.15;
+        material.opacity = baseOpacity + fresnelBoost;
+      }
     }
 
     if (lightRef.current) {
-      // Intensity based on heart rate
-      lightRef.current.intensity = 5 + (stats.hr / 40) * 5;
+      // Intensity based on heart rate and power
+      const hrIntensity = 5 + (stats.hr / 40) * 5;
+      const powerIntensity = (stats.power / 300) * 3;
+      lightRef.current.intensity = hrIntensity + powerIntensity;
     }
   });
 
@@ -1063,6 +1079,10 @@ function Scene({
   const _targetCamPos = useMemo(() => new Vector3(), []);
   const _tempVec = useMemo(() => new Vector3(), []);
 
+  // Frame time monitoring for adaptive quality
+  const frameTimesRef = useRef<number[]>([]);
+  const qualityAdjustmentRef = useRef(1.0); // 1.0 = full quality, 0.5 = reduced
+
   // Get performance tier for adaptive quality - use quality.fps as proxy if available
   const performanceTier = quality?.fps === 30 ? "low" : quality?.fps === 45 ? "medium" : "high";
 
@@ -1106,6 +1126,24 @@ function Scene({
   }, [mode]);
 
   useFrame((state, delta) => {
+    // --- Frame time monitoring for adaptive quality ---
+    if (mode === "ride") {
+      frameTimesRef.current.push(delta);
+      if (frameTimesRef.current.length >= 60) {
+        const avgFrameTime = frameTimesRef.current.reduce((a, b) => a + b) / 60;
+        const targetFrameTime = 0.0167; // 60fps
+        
+        // Adjust quality factor if consistently slow
+        if (avgFrameTime > targetFrameTime * 1.5) {
+          qualityAdjustmentRef.current = Math.max(0.5, qualityAdjustmentRef.current - 0.1);
+        } else if (avgFrameTime < targetFrameTime * 1.1) {
+          qualityAdjustmentRef.current = Math.min(1.0, qualityAdjustmentRef.current + 0.05);
+        }
+        
+        frameTimesRef.current = [];
+      }
+    }
+
     // --- 1. Compute raw progress ---
     let rawProgress: number;
     if (mode === "preview") {
@@ -1196,10 +1234,12 @@ function Scene({
     }
   });
 
-  // Adaptive particle count based on quality
-  const particleCount = quality?.particleCount || 100;
-  const sparkleCount = Math.min(particleCount, 20 + Math.floor(stats.power / 6));
-  const speedLineCount = quality?.particleCount ? Math.min(30, Math.floor(stats.power / 8)) : 0;
+  // Adaptive particle count based on quality and frame time
+  const qualityFactor = qualityAdjustmentRef.current;
+  const baseParticleCount = quality?.particleCount || 100;
+  const particleCount = Math.floor(baseParticleCount * qualityFactor);
+  const sparkleCount = Math.min(particleCount, Math.floor((20 + stats.power / 6) * qualityFactor));
+  const speedLineCount = quality?.particleCount ? Math.min(30, Math.floor((stats.power / 8) * qualityFactor)) : 0;
 
   return (
     <>
