@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSuiTelemetry } from "../sui/use-sui-telemetry";
 import type { FitnessMetrics } from "@/app/lib/ble/types";
 import type { WorkoutInterval } from "@/app/lib/workout-plan";
@@ -43,12 +43,12 @@ export function useAiInstructor({
   const lastActionTimestamp = useRef<number>(0);
   const ACTION_COOLDOWN_MS = 45000;
 
-  const addLog = (message: string, type: AgentLog["type"] = "info") => {
+  const addLog = useCallback((message: string, type: AgentLog["type"] = "info") => {
     setLogs((prev) => [
       { timestamp: Date.now(), message, type },
       ...prev.slice(0, 19), // Keep last 20 logs
     ]);
-  };
+  }, []);
 
   // Stabilize metrics with ref for effect performance (avoid constant clearInterval/setInterval)
   const metricsRef = useRef(metrics);

@@ -23,7 +23,7 @@ export function SettlementStream({ isActive, accumulated, rate }: SettlementStre
     const interval = setInterval(() => {
       setParticles(prev => [
         { 
-          id: Date.now(), 
+          id: Math.random(), 
           x: Math.random() * 80 + 10, // 10% to 90%
           delay: Math.random() * 0.5 
         },
