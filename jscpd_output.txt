@@ -1,0 +1,1220 @@
+Clone found (typescript):
+ - app/api/ai/elevenlabs/sfx/route.ts [65:24 - 74:16] (9 lines, 83 tokens)
+   app/api/ai/elevenlabs/stt/route.ts [56:24 - 65:17]
+
+Clone found (typescript):
+ - app/lib/rewards/yellow/streaming.ts [239:2 - 249:2] (10 lines, 87 tokens)
+   app/lib/rewards/yellow/streaming.ts [223:2 - 233:20]
+
+Clone found (typescript):
+ - app/lib/rewards/yellow/clearnode.ts [301:5 - 311:12] (10 lines, 113 tokens)
+   app/lib/rewards/yellow/clearnode.ts [265:2 - 275:18]
+
+Clone found (tsx):
+ - app/components/features/route/route-selection-step.tsx [368:7 - 379:82] (11 lines, 115 tokens)
+   app/components/features/route/route-selection-step.tsx [353:2 - 364:27]
+
+Clone found (tsx):
+ - app/components/features/route/route-library.tsx [248:17 - 253:2] (5 lines, 81 tokens)
+   app/components/features/route/route-library.tsx [154:9 - 159:2]
+
+Clone found (tsx):
+ - app/components/features/route/focus-route-visualizer.tsx [491:3 - 496:2] (5 lines, 119 tokens)
+   app/components/features/route/focus-route-visualizer.tsx [487:4 - 492:2]
+
+Clone found (tsx):
+ - app/components/features/route/focus-route-visualizer.tsx [496:2 - 504:5] (8 lines, 166 tokens)
+   app/components/features/route/focus-route-visualizer.tsx [488:2 - 487:4]
+
+Clone found (tsx):
+ - app/components/features/route/focus-route-visualizer.tsx [501:15 - 506:7] (5 lines, 88 tokens)
+   app/components/features/route/focus-route-visualizer.tsx [480:5 - 485:15]
+
+Clone found (javascript):
+ - app/components/features/ride/ride-visualization.tsx [141:15 - 149:12] (8 lines, 59 tokens)
+   app/components/features/ride/ride-visualization.tsx [111:11 - 119:10]
+
+Clone found (javascript):
+ - app/components/features/ride/ride-hud.tsx [467:4 - 515:8] (48 lines, 274 tokens)
+   app/components/features/ride/ride-hud.tsx [412:2 - 467:7]
+
+Clone found (tsx):
+ - app/components/features/ride/ride-hud-overlay.tsx [20:2 - 35:11] (15 lines, 103 tokens)
+   app/components/features/ride/ride-top-bar.tsx [9:7 - 24:9]
+
+Clone found (tsx):
+ - app/components/features/ride/ride-header.tsx [123:27 - 128:2] (5 lines, 148 tokens)
+   app/components/features/ride/ride-top-bar.tsx [219:5 - 224:2]
+
+Clone found (tsx):
+ - app/components/features/ride/ride-controls.tsx [431:3 - 437:2] (6 lines, 162 tokens)
+   app/components/features/ride/ride-top-bar.tsx [219:21 - 129:2]
+
+Clone found (tsx):
+ - app/components/features/ride/ride-completion.tsx [245:3 - 261:9] (16 lines, 84 tokens)
+   app/components/features/ride/ride-completion.tsx [227:2 - 243:7]
+
+Clone found (tsx):
+ - app/components/features/ride/ride-completion.tsx [263:15 - 279:12] (16 lines, 89 tokens)
+   app/components/features/ride/ride-completion.tsx [244:15 - 243:7]
+
+Clone found (tsx):
+ - app/components/features/ride/ride-completion.tsx [327:30 - 339:9] (12 lines, 61 tokens)
+   app/components/features/ride/ride-completion.tsx [230:30 - 243:7]
+
+Clone found (tsx):
+ - app/components/features/ride/ride-completion.tsx [340:3 - 355:7] (15 lines, 82 tokens)
+   app/components/features/ride/ride-completion.tsx [324:2 - 243:7]
+
+Clone found (tsx):
+ - app/components/features/ride/ride-completion.tsx [355:8 - 372:9] (17 lines, 91 tokens)
+   app/components/features/ride/ride-completion.tsx [339:10 - 243:7]
+
+Clone found (tsx):
+ - app/components/features/ride/ride-completion.tsx [373:15 - 390:9] (17 lines, 91 tokens)
+   app/components/features/ride/ride-completion.tsx [339:10 - 243:7]
+
+Clone found (javascript):
+ - app/components/features/home/features-grid-section.tsx [62:4 - 71:2] (9 lines, 94 tokens)
+   app/components/features/home/features-grid-section.tsx [34:4 - 43:2]
+
+Clone found (tsx):
+ - app/components/features/home/features-grid-section.tsx [60:19 - 79:3] (19 lines, 148 tokens)
+   app/components/features/home/features-grid-section.tsx [32:14 - 52:2]
+
+Clone found (javascript):
+ - app/components/features/common/selection-garage.tsx [157:6 - 174:6] (17 lines, 126 tokens)
+   app/components/features/common/selection-garage.tsx [135:7 - 152:5]
+
+Clone found (tsx):
+ - app/components/features/class/animated-class-card.tsx [138:101 - 150:7] (12 lines, 72 tokens)
+   app/components/features/route/mini-route-visualizer.tsx [77:101 - 89:54]
+
+Clone found (typescript):
+ - app/api/ai/chat/route.ts [43:1 - 51:16] (8 lines, 120 tokens)
+   app/api/ai/generate-narrative/route.ts [29:1 - 37:17]
+
+Clone found (typescript):
+ - app/api/ai/agent-reasoning/route.ts [40:1 - 48:22] (8 lines, 120 tokens)
+   app/api/ai/generate-narrative/route.ts [29:1 - 37:17]
+
+Clone found (typescript):
+ - app/api/ai/agent-reasoning/route.ts [53:41 - 62:10] (9 lines, 84 tokens)
+   app/api/ai/generate-narrative/route.ts [46:20 - 55:6]
+
+Clone found (typescript):
+ - app/api/ai/agent-reasoning/route.ts [125:1 - 133:23] (8 lines, 109 tokens)
+   app/api/ai/generate-narrative/route.ts [118:1 - 126:29]
+
+Clone found (typescript):
+ - app/lib/elevenlabs/client.ts [129:13 - 142:4] (13 lines, 76 tokens)
+   app/lib/elevenlabs/client.ts [51:13 - 64:4]
+
+Clone found (typescript):
+ - app/lib/ble/service.ts [305:2 - 313:6] (8 lines, 132 tokens)
+   app/lib/mobile-bridge/ble.ts [381:2 - 390:10]
+
+Clone found (typescript):
+ - app/lib/analytics/ride-history.ts [575:3 - 581:7] (6 lines, 108 tokens)
+   app/lib/analytics/ride-history.ts [533:12 - 537:2]
+
+Clone found (typescript):
+ - app/hooks/ui/use-ride-focus-mode.ts [251:12 - 259:9] (8 lines, 108 tokens)
+   app/hooks/ui/use-ride-focus-mode.ts [229:10 - 237:8]
+
+Clone found (typescript):
+ - app/hooks/ui/use-ride-focus-mode.ts [259:2 - 273:15] (14 lines, 93 tokens)
+   app/hooks/ui/use-ride-focus-mode.ts [237:2 - 251:18]
+
+Clone found (typescript):
+ - app/hooks/sui/use-sui-session.ts [144:3 - 152:16] (8 lines, 80 tokens)
+   app/hooks/sui/use-sui-session.ts [102:3 - 110:18]
+
+Clone found (typescript):
+ - app/hooks/ride/use-ride-telemetry.ts [372:7 - 379:15] (7 lines, 79 tokens)
+   app/hooks/ride/use-ride-telemetry.ts [350:2 - 357:23]
+
+Clone found (typescript):
+ - app/hooks/evm/use-yellow-settlement.ts [39:13 - 46:2] (7 lines, 107 tokens)
+   app/lib/contracts/yellow-settlement.ts [12:11 - 19:2]
+
+Clone found (typescript):
+ - app/hooks/evm/use-yellow-settlement.ts [50:13 - 60:2] (10 lines, 158 tokens)
+   app/lib/contracts/yellow-settlement.ts [27:11 - 37:2]
+
+Clone found (typescript):
+ - app/hooks/evm/use-yellow-settlement.ts [116:2 - 126:2] (10 lines, 91 tokens)
+   app/lib/rewards/yellow/streaming.ts [37:2 - 47:8]
+
+Clone found (typescript):
+ - app/hooks/evm/use-yellow-settlement.ts [211:2 - 225:2] (14 lines, 142 tokens)
+   app/hooks/evm/use-yellow-settlement.ts [168:8 - 182:8]
+
+Clone found (tsx):
+ - app/components/ui/ui.tsx [386:2 - 396:5] (10 lines, 129 tokens)
+   app/components/ui/ui.tsx [347:2 - 360:3]
+
+Clone found (tsx):
+ - app/components/ui/scroll-animations.tsx [103:10 - 114:13] (11 lines, 86 tokens)
+   app/components/ui/scroll-animations.tsx [54:10 - 65:6]
+
+Clone found (tsx):
+ - app/components/ui/scroll-animations.tsx [147:5 - 157:6] (10 lines, 79 tokens)
+   app/components/ui/scroll-animations.tsx [55:25 - 65:6]
+
+Clone found (tsx):
+ - app/components/ui/scroll-animations.tsx [190:16 - 204:2] (14 lines, 107 tokens)
+   app/components/ui/scroll-animations.tsx [51:13 - 65:2]
+
+Clone found (tsx):
+ - app/components/ui/scroll-animations.tsx [244:5 - 260:9] (16 lines, 117 tokens)
+   app/components/ui/scroll-animations.tsx [49:9 - 65:6]
+
+Clone found (tsx):
+ - app/components/ui/animated-card.tsx [37:5 - 47:7] (10 lines, 95 tokens)
+   app/components/features/class/animated-class-card.tsx [175:5 - 185:56]
+
+Clone found (tsx):
+ - app/components/layout/theme-toggle.tsx [50:26 - 58:26] (8 lines, 78 tokens)
+   app/components/layout/theme-toggle.tsx [42:22 - 50:26]
+
+Clone found (typescript):
+ - app/lib/venice-client.ts [147:3 - 157:7] (10 lines, 85 tokens)
+   app/lib/venice-client.ts [63:9 - 74:9]
+
+Clone found (typescript):
+ - app/lib/venice-client.ts [190:114 - 202:4] (12 lines, 99 tokens)
+   app/lib/venice-client.ts [63:9 - 75:2]
+
+Clone found (typescript):
+ - app/lib/venice-client.ts [247:3 - 258:4] (11 lines, 101 tokens)
+   app/lib/venice-client.ts [63:9 - 158:4]
+
+Clone found (typescript):
+ - app/lib/venice-client.ts [264:28 - 275:8] (11 lines, 104 tokens)
+   app/lib/venice-client.ts [164:40 - 175:10]
+
+Clone found (typescript):
+ - app/lib/venice-client.ts [316:3 - 328:4] (12 lines, 108 tokens)
+   app/lib/venice-client.ts [63:9 - 259:4]
+
+Clone found (typescript):
+ - app/lib/gemini-client.ts [479:25 - 488:7] (9 lines, 97 tokens)
+   app/lib/venice-client.ts [285:25 - 294:6]
+
+Clone found (typescript):
+ - app/lib/contracts.ts [470:23 - 476:2] (6 lines, 89 tokens)
+   app/lib/contracts.ts [460:18 - 466:2]
+
+Clone found (typescript):
+ - app/lib/contracts.ts [668:3 - 673:2] (5 lines, 87 tokens)
+   app/lib/route-storage.ts [205:3 - 209:29]
+
+Clone found (typescript):
+ - app/lib/ai-service.ts [69:2 - 76:13] (7 lines, 84 tokens)
+   app/lib/api-client.ts [336:2 - 343:2]
+
+Clone found (typescript):
+ - app/lib/ai-service.ts [313:15 - 321:2] (8 lines, 94 tokens)
+   app/lib/venice-client.ts [285:25 - 293:2]
+
+Clone found (tsx):
+ - app/instructor/loading.tsx [4:18 - 15:33] (11 lines, 82 tokens)
+   app/rider/loading.tsx [4:13 - 15:32]
+
+Clone found (tsx):
+ - app/agent/coach-profile.tsx [421:23 - 426:2] (5 lines, 82 tokens)
+   app/components/features/class/instructor-wizard.tsx [403:23 - 408:12]
+
+Clone found (css):
+ - app/globals.css [47:2 - 66:2] (19 lines, 160 tokens)
+   app/globals.css [25:2 - 45:59]
+
+Clone found (typescript):
+ - app/api/ai/elevenlabs/sfx/route.ts [65:24 - 74:16] (9 lines, 83 tokens)
+   app/api/ai/elevenlabs/stt/route.ts [56:24 - 65:17]
+
+ 65 │ 56 │ , error);                                                  
+ 66 │ 57 │     return apiError(String(error), "INTERNAL_ERROR", 500); 
+ 67 │ 58 │   }                                                        
+ 68 │ 59 │ }                                                          
+ 69 │ 60 │                                                            
+ 70 │ 61 │ export async function GET() {                              
+ 71 │ 62 │   const configured = !!ELEVENLABS_API_KEY;                 
+ 72 │ 63 │   return NextResponse.json({                               
+ 73 │ 64 │     status: configured ? "ready" : "not_configured",       
+ 74 │ 65 │     features: ["sound-effects"                             
+
+Clone found (typescript):
+ - app/lib/rewards/yellow/streaming.ts [239:2 - 249:2] (10 lines, 87 tokens)
+   app/lib/rewards/yellow/streaming.ts [223:2 - 233:20]
+
+ 239 │ 223 │ {                                                            
+ 240 │ 224 │           channelId: channel.id as unknown as `0x${string}`, 
+ 241 │ 225 │           classId: channel.classId,                          
+ 242 │ 226 │           rider: channel.rider,                              
+ 243 │ 227 │           instructor: channel.instructor,                    
+ 244 │ 228 │           timestamp: now,                                    
+ 245 │ 229 │           sequence,                                          
+ 246 │ 230 │           accumulatedReward: newAccumulated,                 
+ 247 │ 231 │           heartRate: telemetry.heartRate,                    
+ 248 │ 232 │           power: telemetry.power,                            
+ 249 │ 233 │         }                                                    
+
+Clone found (typescript):
+ - app/lib/rewards/yellow/clearnode.ts [301:5 - 311:12] (10 lines, 113 tokens)
+   app/lib/rewards/yellow/clearnode.ts [265:2 - 275:18]
+
+ 301 │ 265 │ > {                                                               
+ 302 │ 266 │   if (!ws || ws.readyState !== WebSocket.OPEN || !rpcSigner) {    
+ 303 │ 267 │     throw new Error("ClearNode not connected");                   
+ 304 │ 268 │   }                                                               
+ 305 │ 269 │                                                                   
+ 306 │ 270 │   const requestId = generateRequestId();                          
+ 307 │ 271 │                                                                   
+ 308 │ 272 │   const allocations = allParticipants.map((p) => ({               
+ 309 │ 273 │     participant: p,                                               
+ 310 │ 274 │     asset: "spin",                                                
+ 311 │ 275 │     amount: p.toLowerCase() === rider.toLowerCase() ? finalReward 
+
+Clone found (tsx):
+ - app/components/features/route/route-selection-step.tsx [368:7 - 379:82] (11 lines, 115 tokens)
+   app/components/features/route/route-selection-step.tsx [353:2 - 364:27]
+
+ 368 │ 353 │ >                                                                                                                                                                         
+ 369 │ 354 │           <button                                                                                                                                                         
+ 370 │ 355 │             onClick={() => setMode("library")}                                                                                                                            
+ 371 │ 356 │             className={`flex-1 rounded-[24px] px-6 py-4 text-xs font-black uppercase tracking-widest transition-all ${                                                    
+ 372 │ 357 │               (mode as string) === "library"                                                                                                                              
+ 373 │ 358 │                 ? "bg-white text-black shadow-2xl shadow-white/10"                                                                                                        
+ 374 │ 359 │                 : "text-white/40 hover:text-white hover:bg-white/5"                                                                                                       
+ 375 │ 360 │             }`}                                                                                                                                                           
+ 376 │ 361 │           >                                                                                                                                                               
+ 377 │ 362 │             <div className="flex items-center justify-center gap-3">                                                                                                      
+ 378 │ 363 │               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">                                                                             
+ 379 │ 364 │                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4 
+
+Clone found (tsx):
+ - app/components/features/route/route-library.tsx [248:17 - 253:2] (5 lines, 81 tokens)
+   app/components/features/route/route-library.tsx [154:9 - 159:2]
+
+ 248 │ 154 │ >                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+ 249 │ 155 │                   <svg className="h-4 w-4" fill={route.isFavorite ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">                                                                                                                                                                                                                                                                                                                               
+ 250 │ 156 │                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /> 
+ 251 │ 157 │                   </svg>                                                                                                                                                                                                                                                                                                                                                                                                                                              
+ 252 │ 158 │                 </button>                                                                                                                                                                                                                                                                                                                                                                                                                                             
+ 253 │ 159 │                 <                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+
+Clone found (tsx):
+ - app/components/features/route/focus-route-visualizer.tsx [491:3 - 496:2] (5 lines, 119 tokens)
+   app/components/features/route/focus-route-visualizer.tsx [487:4 - 492:2]
+
+ 491 │ 487 │ " stopColor={`${styles.terrainAccent}55`} />                                                    
+ 492 │ 488 │             <stop offset="100%" stopColor={`${styles.terrainColor}00`} />                       
+ 493 │ 489 │           </linearGradient>                                                                     
+ 494 │ 490 │           <linearGradient id={`${gradientId}-terrain-front`} x1="0%" y1="0%" x2="0%" y2="100%"> 
+ 495 │ 491 │             <stop offset="0%" stopColor={`${styles.terrainColor}ee`} />                         
+ 496 │ 492 │             <stop offset="100%" stopColor=                                                      
+
+Clone found (tsx):
+ - app/components/features/route/focus-route-visualizer.tsx [496:2 - 504:5] (8 lines, 166 tokens)
+   app/components/features/route/focus-route-visualizer.tsx [488:2 - 487:4]
+
+ 496 │ 488 │  />                                                                                        
+ 497 │ 489 │           </linearGradient>                                                                
+ 498 │ 490 │           <linearGradient id={`${gradientId}-fill`} x1="0%" y1="0%" x2="0%" y2="100%">     
+ 499 │ 491 │             <stop offset="0%" stopColor={`${styles.horizonGlow}44`} />                     
+ 500 │ 492 │             <stop offset="100%" stopColor={`${styles.terrainColor}00`} />                  
+ 501 │ 493 │           </linearGradient>                                                                
+ 502 │ 494 │           <linearGradient id={`${gradientId}-progress`} x1="0%" y1="0%" x2="100%" y2="0%"> 
+ 503 │ 495 │             <stop offset="0%" stopColor={styles.lineColor} />                              
+ 504 │ 496 │             <stop offset="100%                                                             
+
+Clone found (tsx):
+ - app/components/features/route/focus-route-visualizer.tsx [501:15 - 506:7] (5 lines, 88 tokens)
+   app/components/features/route/focus-route-visualizer.tsx [480:5 - 485:15]
+
+ 501 │ 480 │ >                                                                                          
+ 502 │ 481 │           <linearGradient id={`${gradientId}-progress`} x1="0%" y1="0%" x2="100%" y2="0%"> 
+ 503 │ 482 │             <stop offset="0%" stopColor={styles.lineColor} />                              
+ 504 │ 483 │             <stop offset="100%" stopColor={currentZone.color} />                           
+ 505 │ 484 │           </linearGradient>                                                                
+ 506 │ 485 │           <filter                                                                          
+
+Clone found (javascript):
+ - app/components/features/ride/ride-visualization.tsx [141:15 - 149:12] (8 lines, 59 tokens)
+   app/components/features/ride/ride-visualization.tsx [111:11 - 119:10]
+
+ 141 │ 111 │ }                                                                    
+ 142 │ 112 │           stats={{                                                   
+ 143 │ 113 │             hr: telemetry.heartRate,                                 
+ 144 │ 114 │             power: telemetry.power,                                  
+ 145 │ 115 │             cadence: telemetry.cadence,                              
+ 146 │ 116 │           }}                                                         
+ 147 │ 117 │           avatarId={searchParams.get("avatarId") || undefined}       
+ 148 │ 118 │           equipmentId={searchParams.get("equipmentId") || undefined} 
+ 149 │ 119 │           quality={deviceType                                        
+
+Clone found (javascript):
+ - app/components/features/ride/ride-hud.tsx [467:4 - 515:8] (48 lines, 274 tokens)
+   app/components/features/ride/ride-hud.tsx [412:2 - 467:7]
+
+ 467 │ 412 │ }                                                                        
+ 468 │ 413 │                 label={metric.label}                                     
+ 469 │ 414 │                 value={getMetricValue(metric.key, telemetry)}            
+ 470 │ 415 │                 unit={metric.unit}                                       
+ 471 │ 416 │                 color={metric.color}                                     
+ 472 │ 417 │                 emphasized={idx === 0}                                   
+ 473 │ 418 │                 intensity={idx === 0 ? rpmIntensity : 0.5}               
+ 474 │ 419 │               />                                                         
+ 475 │ 420 │             ))}                                                          
+ 476 │ 421 │           </div>                                                         
+ 477 │ 422 │         )}                                                               
+ 478 │ 423 │                                                                          
+ 479 │ 424 │         {isRiding && (                                                   
+ 480 │ 425 │           <div className="flex justify-center mt-4">{agentInsight}</div> 
+ 481 │ 426 │         )}                                                               
+ 482 │ 427 │       </div>                                                             
+ 483 │ 428 │     </div>                                                               
+ 484 │ 429 │   );                                                                     
+ 485 │ 430 │ }                                                                        
+ 486 │ 431 │                                                                          
+ 487 │ 432 │ const MetricCard = memo(function MetricCard({                            
+ 488 │ 433 │   label,                                                                 
+ 489 │ 434 │   value,                                                                 
+ 490 │ 435 │   unit,                                                                  
+ 491 │ 436 │   color,                                                                 
+ 492 │ 437 │   emphasized = false,                                                    
+ 493 │ 438 │   intensity = 0, // 0-1 based on target proximity or effort              
+ 494 │ 439 │   compact = false, // Edge-docked compact mode for desktop               
+ 495 │ 440 │ }: {                                                                     
+ 496 │ 441 │   label: string;                                                         
+ 497 │ 442 │   value: string | number;                                                
+ 498 │ 443 │   unit: string;                                                          
+ 499 │ 444 │   color: string;                                                         
+ 500 │ 445 │   emphasized?: boolean;                                                  
+ 501 │ 446 │   intensity?: number;                                                    
+ 502 │ 447 │   compact?: boolean;                                                     
+ 503 │ 448 │ }) {                                                                     
+ 504 │ 449 │   // Compact mode: smaller, translucent, edge-docked                     
+ 505 │ 450 │   if (compact) {                                                         
+ 506 │ 451 │     return (                                                             
+ 507 │ 452 │       <div                                                               
+ 508 │ 453 │         className={`                                                     
+ 509 │ 454 │         relative rounded-2xl overflow-hidden                             
+ 510 │ 455 │         bg-black/30 backdrop-blur-xl border border-white/10              
+ 511 │ 456 │         p-4 min-w-[140px]                                                
+ 512 │ 457 │         transition-all duration-500                                      
+ 513 │ 458 │         hover:bg-black/40 hover:border-white/20                          
+ 514 │ 459 │         shadow-lg                                                        
+ 515 │ 460 │       `                                                                  
+
+Clone found (tsx):
+ - app/components/features/ride/ride-hud-overlay.tsx [20:2 - 35:11] (15 lines, 103 tokens)
+   app/components/features/ride/ride-top-bar.tsx [9:7 - 24:9]
+
+ 20 │ 9  │ ;                                      
+ 21 │ 10 │   isPracticeMode: boolean;             
+ 22 │ 11 │   routeIsGenerated?: boolean;          
+ 23 │ 12 │   isRiding: boolean;                   
+ 24 │ 13 │   isExiting: boolean;                  
+ 25 │ 14 │   rideProgress: number;                
+ 26 │ 15 │   isTrainingMode: boolean;             
+ 27 │ 16 │   isGuestMode: boolean;                
+ 28 │ 17 │   useSimulator: boolean;               
+ 29 │ 18 │   bleConnected: boolean;               
+ 30 │ 19 │   walletConnected: boolean;            
+ 31 │ 20 │   rewardMode: RewardMode;              
+ 32 │ 21 │   rewardsFormattedReward: string;      
+ 33 │ 22 │   rewardsIsActive: boolean;            
+ 34 │ 23 │   rewardsClearNodeConnected?: boolean; 
+ 35 │ 24 │   deviceType                           
+
+Clone found (tsx):
+ - app/components/features/ride/ride-header.tsx [123:27 - 128:2] (5 lines, 148 tokens)
+   app/components/features/ride/ride-top-bar.tsx [219:5 - 224:2]
+
+ 123 │ 219 │ ">                                                                                                                                        
+ 124 │ 220 │       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 4" opacity="0.3" />   
+ 125 │ 221 │       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="15 45" opacity="0.8" /> 
+ 126 │ 222 │       <circle cx="12" cy="12" r="2" fill="currentColor" />                                                                                
+ 127 │ 223 │     </svg>                                                                                                                                
+ 128 │ 224 │   );                                                                                                                                      
+
+Clone found (tsx):
+ - app/components/features/ride/ride-controls.tsx [431:3 - 437:2] (6 lines, 162 tokens)
+   app/components/features/ride/ride-top-bar.tsx [219:21 - 129:2]
+
+ 431 │ 219 │ " viewBox="0 0 24 24" fill="none">                                                                                                        
+ 432 │ 220 │       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 4" opacity="0.3" />   
+ 433 │ 221 │       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="15 45" opacity="0.8" /> 
+ 434 │ 222 │       <circle cx="12" cy="12" r="2" fill="currentColor" />                                                                                
+ 435 │ 223 │     </svg>                                                                                                                                
+ 436 │ 224 │   );                                                                                                                                      
+ 437 │ 225 │ }                                                                                                                                         
+
+Clone found (tsx):
+ - app/components/features/ride/ride-completion.tsx [245:3 - 261:9] (16 lines, 84 tokens)
+   app/components/features/ride/ride-completion.tsx [227:2 - 243:7]
+
+ 245 │ 227 │ >                                                         
+ 246 │ 228 │             <li className="flex items-start gap-2">       
+ 247 │ 229 │               <svg                                        
+ 248 │ 230 │                 className="h-4 w-4 text-amber-400 mt-0.5" 
+ 249 │ 231 │                 fill="none"                               
+ 250 │ 232 │                 viewBox="0 0 24 24"                       
+ 251 │ 233 │                 stroke="currentColor"                     
+ 252 │ 234 │               >                                           
+ 253 │ 235 │                 <path                                     
+ 254 │ 236 │                   strokeLinecap="round"                   
+ 255 │ 237 │                   strokeLinejoin="round"                  
+ 256 │ 238 │                   strokeWidth={2}                         
+ 257 │ 239 │                   d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"      
+ 258 │ 240 │                 />                                        
+ 259 │ 241 │               </svg>                                      
+ 260 │ 242 │               <span>                                      
+ 261 │ 243 │                 Duration                                  
+
+Clone found (tsx):
+ - app/components/features/ride/ride-completion.tsx [263:15 - 279:12] (16 lines, 89 tokens)
+   app/components/features/ride/ride-completion.tsx [244:15 - 243:7]
+
+ 263 │ 244 │ </span>                                                   
+ 264 │ 245 │             </li>                                         
+ 265 │ 246 │             <li className="flex items-start gap-2">       
+ 266 │ 247 │               <svg                                        
+ 267 │ 248 │                 className="h-4 w-4 text-amber-400 mt-0.5" 
+ 268 │ 249 │                 fill="none"                               
+ 269 │ 250 │                 viewBox="0 0 24 24"                       
+ 270 │ 251 │                 stroke="currentColor"                     
+ 271 │ 252 │               >                                           
+ 272 │ 253 │                 <path                                     
+ 273 │ 254 │                   strokeLinecap="round"                   
+ 274 │ 255 │                   strokeLinejoin="round"                  
+ 275 │ 256 │                   strokeWidth={2}                         
+ 276 │ 257 │                   d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"      
+ 277 │ 258 │                 />                                        
+ 278 │ 259 │               </svg>                                      
+ 279 │ 260 │               <span>Consistency                           
+
+Clone found (tsx):
+ - app/components/features/ride/ride-completion.tsx [327:30 - 339:9] (12 lines, 61 tokens)
+   app/components/features/ride/ride-completion.tsx [230:30 - 243:7]
+
+ 327 │ 230 │ "                                                    
+ 328 │ 231 │                 fill="none"                          
+ 329 │ 232 │                 viewBox="0 0 24 24"                  
+ 330 │ 233 │                 stroke="currentColor"                
+ 331 │ 234 │               >                                      
+ 332 │ 235 │                 <path                                
+ 333 │ 236 │                   strokeLinecap="round"              
+ 334 │ 237 │                   strokeLinejoin="round"             
+ 335 │ 238 │                   strokeWidth={2}                    
+ 336 │ 239 │                   d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" 
+ 337 │ 240 │                 />                                   
+ 338 │ 241 │               </svg>                                 
+ 339 │ 242 │               <span>Increase                         
+
+Clone found (tsx):
+ - app/components/features/ride/ride-completion.tsx [340:3 - 355:7] (15 lines, 82 tokens)
+   app/components/features/ride/ride-completion.tsx [324:2 - 243:7]
+
+ 340 │ 324 │ >                                                         
+ 341 │ 325 │             <li className="flex items-start gap-2">       
+ 342 │ 326 │               <svg                                        
+ 343 │ 327 │                 className="h-4 w-4 text-green-400 mt-0.5" 
+ 344 │ 328 │                 fill="none"                               
+ 345 │ 329 │                 viewBox="0 0 24 24"                       
+ 346 │ 330 │                 stroke="currentColor"                     
+ 347 │ 331 │               >                                           
+ 348 │ 332 │                 <path                                     
+ 349 │ 333 │                   strokeLinecap="round"                   
+ 350 │ 334 │                   strokeLinejoin="round"                  
+ 351 │ 335 │                   strokeWidth={2}                         
+ 352 │ 336 │                   d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"      
+ 353 │ 337 │                 />                                        
+ 354 │ 338 │               </svg>                                      
+ 355 │ 339 │               <span>Extend                                
+
+Clone found (tsx):
+ - app/components/features/ride/ride-completion.tsx [355:8 - 372:9] (17 lines, 91 tokens)
+   app/components/features/ride/ride-completion.tsx [339:10 - 243:7]
+
+ 355 │ 339 │ </span>                                                   
+ 356 │ 340 │             </li>                                         
+ 357 │ 341 │             <li className="flex items-start gap-2">       
+ 358 │ 342 │               <svg                                        
+ 359 │ 343 │                 className="h-4 w-4 text-green-400 mt-0.5" 
+ 360 │ 344 │                 fill="none"                               
+ 361 │ 345 │                 viewBox="0 0 24 24"                       
+ 362 │ 346 │                 stroke="currentColor"                     
+ 363 │ 347 │               >                                           
+ 364 │ 348 │                 <path                                     
+ 365 │ 349 │                   strokeLinecap="round"                   
+ 366 │ 350 │                   strokeLinejoin="round"                  
+ 367 │ 351 │                   strokeWidth={2}                         
+ 368 │ 352 │                   d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"      
+ 369 │ 353 │                 />                                        
+ 370 │ 354 │               </svg>                                      
+ 371 │ 355 │               <span>                                      
+ 372 │ 356 │                 Maintain                                  
+
+Clone found (tsx):
+ - app/components/features/ride/ride-completion.tsx [373:15 - 390:9] (17 lines, 91 tokens)
+   app/components/features/ride/ride-completion.tsx [339:10 - 243:7]
+
+ 373 │ 339 │ </span>                                                   
+ 374 │ 340 │             </li>                                         
+ 375 │ 341 │             <li className="flex items-start gap-2">       
+ 376 │ 342 │               <svg                                        
+ 377 │ 343 │                 className="h-4 w-4 text-green-400 mt-0.5" 
+ 378 │ 344 │                 fill="none"                               
+ 379 │ 345 │                 viewBox="0 0 24 24"                       
+ 380 │ 346 │                 stroke="currentColor"                     
+ 381 │ 347 │               >                                           
+ 382 │ 348 │                 <path                                     
+ 383 │ 349 │                   strokeLinecap="round"                   
+ 384 │ 350 │                   strokeLinejoin="round"                  
+ 385 │ 351 │                   strokeWidth={2}                         
+ 386 │ 352 │                   d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"      
+ 387 │ 353 │                 />                                        
+ 388 │ 354 │               </svg>                                      
+ 389 │ 355 │               <span>                                      
+ 390 │ 356 │                 Complete                                  
+
+Clone found (javascript):
+ - app/components/features/home/features-grid-section.tsx [62:4 - 71:2] (9 lines, 94 tokens)
+   app/components/features/home/features-grid-section.tsx [34:4 - 43:2]
+
+ 62 │ 34 │ ={item}                                                                                                  
+ 63 │ 35 │                 initial={{ opacity: 0, x: -10 }}                                                         
+ 64 │ 36 │                 whileInView={{ opacity: 1, x: 0 }}                                                       
+ 65 │ 37 │                 transition={{ delay: i * 0.1 }}                                                          
+ 66 │ 38 │                 viewport={{ once: true }}                                                                
+ 67 │ 39 │                 className="flex items-center gap-3 text-xs md:text-sm text-[color:var(--foreground)]/80" 
+ 68 │ 40 │               >                                                                                          
+ 69 │ 41 │                 <motion.span                                                                             
+ 70 │ 42 │                   className="h-2 w-2 rounded-full bg-[color:var(--accent)]"                              
+ 71 │ 43 │                   whileHover={{ scale: 1.5 }}                                                            
+
+Clone found (tsx):
+ - app/components/features/home/features-grid-section.tsx [60:19 - 79:3] (19 lines, 148 tokens)
+   app/components/features/home/features-grid-section.tsx [32:14 - 52:2]
+
+ 60 │ 32 │ .map((item, i) => (                                                                                      
+ 61 │ 33 │               <motion.div                                                                                
+ 62 │ 34 │                 key={item}                                                                               
+ 63 │ 35 │                 initial={{ opacity: 0, x: -10 }}                                                         
+ 64 │ 36 │                 whileInView={{ opacity: 1, x: 0 }}                                                       
+ 65 │ 37 │                 transition={{ delay: i * 0.1 }}                                                          
+ 66 │ 38 │                 viewport={{ once: true }}                                                                
+ 67 │ 39 │                 className="flex items-center gap-3 text-xs md:text-sm text-[color:var(--foreground)]/80" 
+ 68 │ 40 │               >                                                                                          
+ 69 │ 41 │                 <motion.span                                                                             
+ 70 │ 42 │                   className="h-2 w-2 rounded-full bg-[color:var(--accent)]"                              
+ 71 │ 43 │                   whileHover={{ scale: 1.5 }}                                                            
+ 72 │ 44 │                 />                                                                                       
+ 73 │ 45 │                 {item}                                                                                   
+ 74 │ 46 │               </motion.div>                                                                              
+ 75 │ 47 │             ))}                                                                                          
+ 76 │ 48 │           </div>                                                                                         
+ 77 │ 49 │         </SurfaceCard>                                                                                   
+ 78 │ 50 │       </FadeIn>                                                                                          
+ 79 │ 51 │     </                                                                                                   
+
+Clone found (javascript):
+ - app/components/features/common/selection-garage.tsx [157:6 - 174:6] (17 lines, 126 tokens)
+   app/components/features/common/selection-garage.tsx [135:7 - 152:5]
+
+ 157 │ 135 │ );                                                 
+ 158 │ 136 │                     }}                             
+ 159 │ 137 │                   />                               
+ 160 │ 138 │                 ))}                                
+ 161 │ 139 │               </motion.div>                        
+ 162 │ 140 │             )}                                     
+ 163 │ 141 │                                                    
+ 164 │ 142 │             {activeTab === "world" && (            
+ 165 │ 143 │               <motion.div                          
+ 166 │ 144 │                 key="world-grid"                   
+ 167 │ 145 │                 initial={{ opacity: 0, x: -20 }}   
+ 168 │ 146 │                 animate={{ opacity: 1, x: 0 }}     
+ 169 │ 147 │                 exit={{ opacity: 0, x: 20 }}       
+ 170 │ 148 │                 className="grid grid-cols-2 gap-3" 
+ 171 │ 149 │               >                                    
+ 172 │ 150 │                 {WORLDS.map((world) => (           
+ 173 │ 151 │                   <AssetCard                       
+ 174 │ 152 │                     key={world                     
+
+Clone found (tsx):
+ - app/components/features/class/animated-class-card.tsx [138:101 - 150:7] (12 lines, 72 tokens)
+   app/components/features/route/mini-route-visualizer.tsx [77:101 - 89:54]
+
+ 138 │ 77 │ ">                                                                                          
+ 139 │ 78 │         <span>0m</span>                                                                     
+ 140 │ 79 │         <span className="flex items-center gap-0.5">                                        
+ 141 │ 80 │           <span className="w-1 h-1 rounded-full bg-[color:var(--success)] animate-pulse" /> 
+ 142 │ 81 │           LIVE                                                                              
+ 143 │ 82 │         </span>                                                                             
+ 144 │ 83 │         <span>+420m</span>                                                                  
+ 145 │ 84 │       </div>                                                                                
+ 146 │ 85 │     </div>                                                                                  
+ 147 │ 86 │   );                                                                                        
+ 148 │ 87 │ }                                                                                           
+ 149 │ 88 │                                                                                             
+ 150 │ 89 │ export                                                                                      
+
+Clone found (typescript):
+ - app/api/ai/chat/route.ts [43:1 - 51:16] (8 lines, 120 tokens)
+   app/api/ai/generate-narrative/route.ts [29:1 - 37:17]
+
+ 43 │ 29 │ export async function POST(req: NextRequest) {                                              
+ 44 │ 30 │   try {                                                                                     
+ 45 │ 31 │     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";      
+ 46 │ 32 │     const rateCheck = checkRateLimit(ip);                                                   
+ 47 │ 33 │     if (!rateCheck.allowed) {                                                               
+ 48 │ 34 │       return apiError("Rate limit exceeded. Please try again later.", "RATE_LIMITED", 429); 
+ 49 │ 35 │     }                                                                                       
+ 50 │ 36 │                                                                                             
+ 51 │ 37 │     const body = (await req.json()) as CoachingRequest                                      
+
+Clone found (typescript):
+ - app/api/ai/agent-reasoning/route.ts [40:1 - 48:22] (8 lines, 120 tokens)
+   app/api/ai/generate-narrative/route.ts [29:1 - 37:17]
+
+ 40 │ 29 │ export async function POST(req: NextRequest) {                                              
+ 41 │ 30 │   try {                                                                                     
+ 42 │ 31 │     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";      
+ 43 │ 32 │     const rateCheck = checkRateLimit(ip);                                                   
+ 44 │ 33 │     if (!rateCheck.allowed) {                                                               
+ 45 │ 34 │       return apiError("Rate limit exceeded. Please try again later.", "RATE_LIMITED", 429); 
+ 46 │ 35 │     }                                                                                       
+ 47 │ 36 │                                                                                             
+ 48 │ 37 │     const body = (await req.json()) as AgentReasoningRequest                                
+
+Clone found (typescript):
+ - app/api/ai/agent-reasoning/route.ts [53:41 - 62:10] (9 lines, 84 tokens)
+   app/api/ai/generate-narrative/route.ts [46:20 - 55:6]
+
+ 53 │ 46 │ , "MISSING_FIELD", 400);                                                                                          
+ 54 │ 47 │     }                                                                                                             
+ 55 │ 48 │                                                                                                                   
+ 56 │ 49 │     const VENICE_API_KEY = process.env.VENICE_API_KEY;                                                            
+ 57 │ 50 │     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;                                                            
+ 58 │ 51 │     if (!VENICE_API_KEY && !GEMINI_API_KEY) {                                                                     
+ 59 │ 52 │       return apiError("No AI provider configured. Set VENICE_API_KEY or GEMINI_API_KEY.", "NOT_CONFIGURED", 503); 
+ 60 │ 53 │     }                                                                                                             
+ 61 │ 54 │                                                                                                                   
+ 62 │ 55 │     const cacheKey = `${agentName                                                                                 
+
+Clone found (typescript):
+ - app/api/ai/agent-reasoning/route.ts [125:1 - 133:23] (8 lines, 109 tokens)
+   app/api/ai/generate-narrative/route.ts [118:1 - 126:29]
+
+ 125 │ 118 │ export async function GET() {                                                         
+ 126 │ 119 │   const hasApiKey = !!process.env.VENICE_API_KEY || !!process.env.GEMINI_API_KEY;     
+ 127 │ 120 │                                                                                       
+ 128 │ 121 │   return NextResponse.json({                                                          
+ 129 │ 122 │     status: hasApiKey ? "ready" : "not_configured",                                   
+ 130 │ 123 │     provider: process.env.VENICE_API_KEY ? "venice" : "gemini",                       
+ 131 │ 124 │     model: process.env.VENICE_API_KEY ? "llama-3.3-70b" : "gemini-3.0-flash-preview", 
+ 132 │ 125 │     features: [                                                                       
+ 133 │ 126 │       "structured_reasoning"                                                          
+
+Clone found (typescript):
+ - app/lib/elevenlabs/client.ts [129:13 - 142:4] (13 lines, 76 tokens)
+   app/lib/elevenlabs/client.ts [51:13 - 64:4]
+
+ 129 │ 51 │ ${response.status} - ${error}`);       
+ 130 │ 52 │     }                                  
+ 131 │ 53 │     return response.arrayBuffer();     
+ 132 │ 54 │   }).finally(() => {                   
+ 133 │ 55 │     pendingRequests.delete(key);       
+ 134 │ 56 │   });                                  
+ 135 │ 57 │                                        
+ 136 │ 58 │   pendingRequests.set(key, promise);   
+ 137 │ 59 │   return promise;                      
+ 138 │ 60 │ }                                      
+ 139 │ 61 │                                        
+ 140 │ 62 │ /**                                    
+ 141 │ 63 │  * Generate avatar video (placeholder) 
+ 142 │ 64 │  */                                    
+
+Clone found (typescript):
+ - app/lib/ble/service.ts [305:2 - 313:6] (8 lines, 132 tokens)
+   app/lib/mobile-bridge/ble.ts [381:2 - 390:10]
+
+ 305 │ 381 │ = {                                                           
+ 306 │ 382 │         power: next.power ?? current?.power ?? 0,             
+ 307 │ 383 │         cadence: next.cadence ?? current?.cadence ?? 0,       
+ 308 │ 384 │         heartRate: next.heartRate ?? current?.heartRate ?? 0, 
+ 309 │ 385 │         speed: next.speed ?? current?.speed ?? 0,             
+ 310 │ 386 │         distance: next.distance ?? current?.distance ?? 0,    
+ 311 │ 387 │         timestamp: Date.now(),                                
+ 312 │ 388 │       };                                                      
+ 313 │ 389 │       this.state                                              
+
+Clone found (typescript):
+ - app/lib/analytics/ride-history.ts [575:3 - 581:7] (6 lines, 108 tokens)
+   app/lib/analytics/ride-history.ts [533:12 - 537:2]
+
+ 575 │ 533 │ );                                                                                                        
+ 576 │ 534 │   const onejan = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));                                            
+ 577 │ 535 │   const week = Math.ceil((((d.getTime() - onejan.getTime()) / 86_400_000) + onejan.getUTCDay() + 1) / 7); 
+ 578 │ 536 │   return `${d.getUTCFullYear()}-${week}`;                                                                 
+ 579 │ 537 │ }                                                                                                         
+ 580 │ 538 │                                                                                                           
+ 581 │ 539 │ export                                                                                                    
+
+Clone found (typescript):
+ - app/hooks/ui/use-ride-focus-mode.ts [251:12 - 259:9] (8 lines, 108 tokens)
+   app/hooks/ui/use-ride-focus-mode.ts [229:10 - 237:8]
+
+ 251 │ 229 │ ) => {                                                          
+ 252 │ 230 │         const currentMode = get().mode;                         
+ 253 │ 231 │         const currentCustom = get().customConfigs[currentMode]; 
+ 254 │ 232 │         const currentMetrics = currentCustom?.useCustomMetrics  
+ 255 │ 233 │           ? currentCustom.metrics!                              
+ 256 │ 234 │           : [...FOCUS_PRESETS[currentMode].metrics];            
+ 257 │ 235 │                                                                 
+ 258 │ 236 │         const updatedMetrics = currentMetrics.map(m =>          
+ 259 │ 237 │           m.key === metricKey ? { ...m, priority                
+
+Clone found (typescript):
+ - app/hooks/ui/use-ride-focus-mode.ts [259:2 - 273:15] (14 lines, 93 tokens)
+   app/hooks/ui/use-ride-focus-mode.ts [237:2 - 251:18]
+
+ 259 │ 237 │ } : m                                                                        
+ 260 │ 238 │         );                                                                   
+ 261 │ 239 │                                                                              
+ 262 │ 240 │         const newCustomConfigs = {                                           
+ 263 │ 241 │           ...get().customConfigs,                                            
+ 264 │ 242 │           [currentMode]: { useCustomMetrics: true, metrics: updatedMetrics } 
+ 265 │ 243 │         };                                                                   
+ 266 │ 244 │                                                                              
+ 267 │ 245 │         set({                                                                
+ 268 │ 246 │           customConfigs: newCustomConfigs,                                   
+ 269 │ 247 │           config: buildConfig(currentMode, newCustomConfigs)                 
+ 270 │ 248 │         });                                                                  
+ 271 │ 249 │       },                                                                     
+ 272 │ 250 │                                                                              
+ 273 │ 251 │       reorderMetrics                                                         
+
+Clone found (typescript):
+ - app/hooks/sui/use-sui-session.ts [144:3 - 152:16] (8 lines, 80 tokens)
+   app/hooks/sui/use-sui-session.ts [102:3 - 110:18]
+
+ 144 │ 102 │ ): Promise<string | null> => {                                        
+ 145 │ 103 │     if (!account) {                                                   
+ 146 │ 104 │       console.warn("[SuiSession] Wallet not connected");              
+ 147 │ 105 │       return null;                                                    
+ 148 │ 106 │     }                                                                 
+ 149 │ 107 │                                                                       
+ 150 │ 108 │     const tx = new Transaction();                                     
+ 151 │ 109 │     tx.moveCall({                                                     
+ 152 │ 110 │       target: `${SUI_CONFIG.packageId}::${MODULE_NAME}::join_session` 
+
+Clone found (typescript):
+ - app/hooks/ride/use-ride-telemetry.ts [372:7 - 379:15] (7 lines, 79 tokens)
+   app/hooks/ride/use-ride-telemetry.ts [350:2 - 357:23]
+
+ 372 │ 350 │ telemetryRawRef.current.effort = metrics.effort;                                               
+ 373 │ 351 │       if (metrics.distance !== undefined) telemetryRawRef.current.distance = metrics.distance; 
+ 374 │ 352 │       telemetryRawRef.current.timestamp = metrics.timestamp ?? Date.now();                     
+ 375 │ 353 │     },                                                                                         
+ 376 │ 354 │     [],                                                                                        
+ 377 │ 355 │   );                                                                                           
+ 378 │ 356 │                                                                                                
+ 379 │ 357 │   const resetTelemetry                                                                         
+
+Clone found (typescript):
+ - app/hooks/evm/use-yellow-settlement.ts [39:13 - 46:2] (7 lines, 107 tokens)
+   app/lib/contracts/yellow-settlement.ts [12:11 - 19:2]
+
+ 39 │ 12 │ : [                                           
+ 40 │ 13 │     { name: "channelId", type: "bytes32" },   
+ 41 │ 14 │     { name: "rider", type: "address" },       
+ 42 │ 15 │     { name: "instructor", type: "address" },  
+ 43 │ 16 │     { name: "classId", type: "bytes32" },     
+ 44 │ 17 │     { name: "finalReward", type: "uint256" }, 
+ 45 │ 18 │     { name: "effortScore", type: "uint16" },  
+ 46 │ 19 │   ]                                           
+
+Clone found (typescript):
+ - app/hooks/evm/use-yellow-settlement.ts [50:13 - 60:2] (10 lines, 158 tokens)
+   app/lib/contracts/yellow-settlement.ts [27:11 - 37:2]
+
+ 50 │ 27 │ : [                                                 
+ 51 │ 28 │     { name: "channelId", type: "bytes32" },         
+ 52 │ 29 │     { name: "classId", type: "bytes32" },           
+ 53 │ 30 │     { name: "rider", type: "address" },             
+ 54 │ 31 │     { name: "instructor", type: "address" },        
+ 55 │ 32 │     { name: "timestamp", type: "uint256" },         
+ 56 │ 33 │     { name: "sequence", type: "uint256" },          
+ 57 │ 34 │     { name: "accumulatedReward", type: "uint256" }, 
+ 58 │ 35 │     { name: "heartRate", type: "uint16" },          
+ 59 │ 36 │     { name: "power", type: "uint16" },              
+ 60 │ 37 │   ]                                                 
+
+Clone found (typescript):
+ - app/hooks/evm/use-yellow-settlement.ts [116:2 - 126:2] (10 lines, 91 tokens)
+   app/lib/rewards/yellow/streaming.ts [37:2 - 47:8]
+
+ 116 │ 37 │ (params: {                       
+ 117 │ 38 │       channelId: `0x${string}`;  
+ 118 │ 39 │       classId: `0x${string}`;    
+ 119 │ 40 │       rider: `0x${string}`;      
+ 120 │ 41 │       instructor: `0x${string}`; 
+ 121 │ 42 │       timestamp: number;         
+ 122 │ 43 │       sequence: number;          
+ 123 │ 44 │       accumulatedReward: bigint; 
+ 124 │ 45 │       heartRate: number;         
+ 125 │ 46 │       power: number;             
+ 126 │ 47 │     }) => {                      
+
+Clone found (typescript):
+ - app/hooks/evm/use-yellow-settlement.ts [211:2 - 225:2] (14 lines, 142 tokens)
+   app/hooks/evm/use-yellow-settlement.ts [168:8 - 182:8]
+
+ 211 │ 168 │ .updates.map((u) => ({                                       
+ 212 │ 169 │           channelId: u.channelId,                            
+ 213 │ 170 │           classId: u.classId,                                
+ 214 │ 171 │           rider: u.rider,                                    
+ 215 │ 172 │           instructor: u.instructor,                          
+ 216 │ 173 │           timestamp: BigInt(Math.floor(u.timestamp / 1000)), 
+ 217 │ 174 │           sequence: BigInt(u.sequence),                      
+ 218 │ 175 │           accumulatedReward: BigInt(u.accumulatedReward),    
+ 219 │ 176 │           heartRate: u.heartRate,                            
+ 220 │ 177 │           power: u.power,                                    
+ 221 │ 178 │           signature: u.signature,                            
+ 222 │ 179 │         }));                                                 
+ 223 │ 180 │                                                              
+ 224 │ 181 │         const state = {                                      
+ 225 │ 182 │           channelId: p                                       
+
+Clone found (tsx):
+ - app/components/ui/ui.tsx [386:2 - 396:5] (10 lines, 129 tokens)
+   app/components/ui/ui.tsx [347:2 - 360:3]
+
+ 386 │ 347 │ () => {                                            
+ 387 │ 348 │       const canvas = canvasRef.current;            
+ 388 │ 349 │       if (!canvas) return;                         
+ 389 │ 350 │       const ctx = canvas.getContext("2d");         
+ 390 │ 351 │       if (!ctx) return;                            
+ 391 │ 352 │       const rect = canvas.getBoundingClientRect(); 
+ 392 │ 353 │       const dpr = window.devicePixelRatio || 1;    
+ 393 │ 354 │       canvas.width = rect.width * dpr;             
+ 394 │ 355 │       canvas.height = height * dpr;                
+ 395 │ 356 │       ctx.scale(dpr, dpr);                         
+ 396 │ 357 │       draw                                         
+
+Clone found (tsx):
+ - app/components/ui/scroll-animations.tsx [103:10 - 114:13] (11 lines, 86 tokens)
+   app/components/ui/scroll-animations.tsx [54:10 - 65:6]
+
+ 103 │ 54 │ ,                                                
+ 104 │ 55 │         toggleActions: "play none none reverse", 
+ 105 │ 56 │       },                                         
+ 106 │ 57 │     });                                          
+ 107 │ 58 │                                                  
+ 108 │ 59 │     return () => {                               
+ 109 │ 60 │       animation.kill();                          
+ 110 │ 61 │       ScrollTrigger.getAll().forEach(st => {     
+ 111 │ 62 │         if (st.trigger === element) st.kill();   
+ 112 │ 63 │       });                                        
+ 113 │ 64 │     };                                           
+ 114 │ 65 │   }, [staggerDelay                               
+
+Clone found (tsx):
+ - app/components/ui/scroll-animations.tsx [147:5 - 157:6] (10 lines, 79 tokens)
+   app/components/ui/scroll-animations.tsx [55:25 - 65:6]
+
+ 147 │ 55 │ ,                                              
+ 148 │ 56 │       },                                       
+ 149 │ 57 │     });                                        
+ 150 │ 58 │                                                
+ 151 │ 59 │     return () => {                             
+ 152 │ 60 │       animation.kill();                        
+ 153 │ 61 │       ScrollTrigger.getAll().forEach(st => {   
+ 154 │ 62 │         if (st.trigger === element) st.kill(); 
+ 155 │ 63 │       });                                      
+ 156 │ 64 │     };                                         
+ 157 │ 65 │   }, [speed                                    
+
+Clone found (tsx):
+ - app/components/ui/scroll-animations.tsx [190:16 - 204:2] (14 lines, 107 tokens)
+   app/components/ui/scroll-animations.tsx [51:13 - 65:2]
+
+ 190 │ 51 │ ,                                                
+ 191 │ 52 │       scrollTrigger: {                           
+ 192 │ 53 │         trigger: element,                        
+ 193 │ 54 │         start: "top 85%",                        
+ 194 │ 55 │         toggleActions: "play none none reverse", 
+ 195 │ 56 │       },                                         
+ 196 │ 57 │     });                                          
+ 197 │ 58 │                                                  
+ 198 │ 59 │     return () => {                               
+ 199 │ 60 │       animation.kill();                          
+ 200 │ 61 │       ScrollTrigger.getAll().forEach(st => {     
+ 201 │ 62 │         if (st.trigger === element) st.kill();   
+ 202 │ 63 │       });                                        
+ 203 │ 64 │     };                                           
+ 204 │ 65 │   }, [delay]                                     
+
+Clone found (tsx):
+ - app/components/ui/scroll-animations.tsx [244:5 - 260:9] (16 lines, 117 tokens)
+   app/components/ui/scroll-animations.tsx [49:9 - 65:6]
+
+ 244 │ 49 │ ,                                                
+ 245 │ 50 │       delay,                                     
+ 246 │ 51 │       ease: "power3.out",                        
+ 247 │ 52 │       scrollTrigger: {                           
+ 248 │ 53 │         trigger: element,                        
+ 249 │ 54 │         start: "top 85%",                        
+ 250 │ 55 │         toggleActions: "play none none reverse", 
+ 251 │ 56 │       },                                         
+ 252 │ 57 │     });                                          
+ 253 │ 58 │                                                  
+ 254 │ 59 │     return () => {                               
+ 255 │ 60 │       animation.kill();                          
+ 256 │ 61 │       ScrollTrigger.getAll().forEach(st => {     
+ 257 │ 62 │         if (st.trigger === element) st.kill();   
+ 258 │ 63 │       });                                        
+ 259 │ 64 │     };                                           
+ 260 │ 65 │   }, [children                                   
+
+Clone found (tsx):
+ - app/components/ui/animated-card.tsx [37:5 - 47:7] (10 lines, 95 tokens)
+   app/components/features/class/animated-class-card.tsx [175:5 - 185:56]
+
+ 37 │ 175 │ x.set((e.clientX - centerX) / rect.width);      
+ 38 │ 176 │     y.set((e.clientY - centerY) / rect.height); 
+ 39 │ 177 │   };                                            
+ 40 │ 178 │                                                 
+ 41 │ 179 │   const handleMouseLeave = () => {              
+ 42 │ 180 │     x.set(0);                                   
+ 43 │ 181 │     y.set(0);                                   
+ 44 │ 182 │     setIsHovered(false);                        
+ 45 │ 183 │   };                                            
+ 46 │ 184 │                                                 
+ 47 │ 185 │   return                                        
+
+Clone found (tsx):
+ - app/components/layout/theme-toggle.tsx [50:26 - 58:26] (8 lines, 78 tokens)
+   app/components/layout/theme-toggle.tsx [42:22 - 50:26]
+
+ 50 │ 42 │ " viewBox="0 0 4 4">                                                           
+ 51 │ 43 │               <circle cx="2" cy="2" r="1.5" fill="currentColor" />             
+ 52 │ 44 │             </svg>                                                             
+ 53 │ 45 │           </div>                                                               
+ 54 │ 46 │           <div className={`                                                    
+ 55 │ 47 │             absolute bottom-2 left-3 transition-opacity duration-500 delay-100 
+ 56 │ 48 │             ${isDark ? 'opacity-100' : 'opacity-0'}                            
+ 57 │ 49 │           `}>                                                                  
+ 58 │ 50 │             <svg className="w-0.5 h-0.5 text-white/50                          
+
+Clone found (typescript):
+ - app/lib/venice-client.ts [147:3 - 157:7] (10 lines, 85 tokens)
+   app/lib/venice-client.ts [63:9 - 74:9]
+
+ 147 │ 63 │ ;                                                                      
+ 148 │ 64 │                                                                        
+ 149 │ 65 │   const response = await fetch(`${VENICE_API_URL}/chat/completions`, { 
+ 150 │ 66 │     method: "POST",                                                    
+ 151 │ 67 │     headers: {                                                         
+ 152 │ 68 │       "Content-Type": "application/json",                              
+ 153 │ 69 │       "Authorization": `Bearer ${apiKey}`,                             
+ 154 │ 70 │     },                                                                 
+ 155 │ 71 │     body: JSON.stringify({                                             
+ 156 │ 72 │       model: DEFAULT_MODEL,                                            
+ 157 │ 73 │       messages: [{ role: "user"                                        
+
+Clone found (typescript):
+ - app/lib/venice-client.ts [190:114 - 202:4] (12 lines, 99 tokens)
+   app/lib/venice-client.ts [63:9 - 75:2]
+
+ 190 │ 63 │ ;                                                                      
+ 191 │ 64 │                                                                        
+ 192 │ 65 │   const response = await fetch(`${VENICE_API_URL}/chat/completions`, { 
+ 193 │ 66 │     method: "POST",                                                    
+ 194 │ 67 │     headers: {                                                         
+ 195 │ 68 │       "Content-Type": "application/json",                              
+ 196 │ 69 │       "Authorization": `Bearer ${apiKey}`,                             
+ 197 │ 70 │     },                                                                 
+ 198 │ 71 │     body: JSON.stringify({                                             
+ 199 │ 72 │       model: DEFAULT_MODEL,                                            
+ 200 │ 73 │       messages: [                                                      
+ 201 │ 74 │         { role: "system", content: systemPrompt },                     
+ 202 │ 75 │         ...                                                            
+
+Clone found (typescript):
+ - app/lib/venice-client.ts [247:3 - 258:4] (11 lines, 101 tokens)
+   app/lib/venice-client.ts [63:9 - 158:4]
+
+ 247 │ 63 │ ;                                                                      
+ 248 │ 64 │                                                                        
+ 249 │ 65 │   const response = await fetch(`${VENICE_API_URL}/chat/completions`, { 
+ 250 │ 66 │     method: "POST",                                                    
+ 251 │ 67 │     headers: {                                                         
+ 252 │ 68 │       "Content-Type": "application/json",                              
+ 253 │ 69 │       "Authorization": `Bearer ${apiKey}`,                             
+ 254 │ 70 │     },                                                                 
+ 255 │ 71 │     body: JSON.stringify({                                             
+ 256 │ 72 │       model: DEFAULT_MODEL,                                            
+ 257 │ 73 │       messages: [{ role: "user", content: prompt }],                   
+ 258 │ 74 │       temperature: 0.7                                                 
+
+Clone found (typescript):
+ - app/lib/venice-client.ts [264:28 - 275:8] (11 lines, 104 tokens)
+   app/lib/venice-client.ts [164:40 - 175:10]
+
+ 264 │ 164 │ );                                                                
+ 265 │ 165 │   }                                                               
+ 266 │ 166 │                                                                   
+ 267 │ 167 │   const data = await response.json();                             
+ 268 │ 168 │   const content = data.choices[0]?.message?.content;              
+ 269 │ 169 │                                                                   
+ 270 │ 170 │   try {                                                           
+ 271 │ 171 │     const jsonMatch = content.match(/(\{[\s\S]*\})/);             
+ 272 │ 172 │     return JSON.parse(jsonMatch ? jsonMatch[0] : content.trim()); 
+ 273 │ 173 │   } catch {                                                       
+ 274 │ 174 │     return {                                                      
+ 275 │ 175 │       message                                                     
+
+Clone found (typescript):
+ - app/lib/venice-client.ts [316:3 - 328:4] (12 lines, 108 tokens)
+   app/lib/venice-client.ts [63:9 - 259:4]
+
+ 316 │ 63 │ ;                                                                      
+ 317 │ 64 │                                                                        
+ 318 │ 65 │   const response = await fetch(`${VENICE_API_URL}/chat/completions`, { 
+ 319 │ 66 │     method: "POST",                                                    
+ 320 │ 67 │     headers: {                                                         
+ 321 │ 68 │       "Content-Type": "application/json",                              
+ 322 │ 69 │       "Authorization": `Bearer ${apiKey}`,                             
+ 323 │ 70 │     },                                                                 
+ 324 │ 71 │     body: JSON.stringify({                                             
+ 325 │ 72 │       model: DEFAULT_MODEL,                                            
+ 326 │ 73 │       messages: [{ role: "user", content: prompt }],                   
+ 327 │ 74 │       temperature: 0.7,                                                
+ 328 │ 75 │       max_tokens: 800                                                  
+
+Clone found (typescript):
+ - app/lib/gemini-client.ts [479:25 - 488:7] (9 lines, 97 tokens)
+   app/lib/venice-client.ts [285:25 - 294:6]
+
+ 479 │ 285 │ (                                                                        
+ 480 │ 286 │   agentName: string,                                                     
+ 481 │ 287 │   personality: string,                                                   
+ 482 │ 288 │   context: {                                                             
+ 483 │ 289 │     telemetry: { avgBpm: number; resistance: number; duration: number }; 
+ 484 │ 290 │     market: { ticketsSold: number; revenue: number; capacity: number };  
+ 485 │ 291 │     recentDecisions: string[];                                           
+ 486 │ 292 │   }                                                                      
+ 487 │ 293 │ ): Promise<AgentDecision> {                                              
+ 488 │ 294 │   return                                                                 
+
+Clone found (typescript):
+ - app/lib/contracts.ts [470:23 - 476:2] (6 lines, 89 tokens)
+   app/lib/contracts.ts [460:18 - 466:2]
+
+ 470 │ 460 │ ,                                                          
+ 471 │ 461 │     inputs: [                                              
+ 472 │ 462 │       { indexed: true, name: "rider", type: "address" },   
+ 473 │ 463 │       { indexed: true, name: "classId", type: "bytes32" }, 
+ 474 │ 464 │       { name: "amount", type: "uint256" },                 
+ 475 │ 465 │       { name: "effortScore", type: "uint16" },             
+ 476 │ 466 │       {                                                    
+
+Clone found (typescript):
+ - app/lib/contracts.ts [668:3 - 673:2] (5 lines, 87 tokens)
+   app/lib/route-storage.ts [205:3 - 209:29]
+
+ 668 │ 205 │ let hash = 0;                             
+ 669 │ 206 │   for (let i = 0; i < data.length; i++) { 
+ 670 │ 207 │     const char = data.charCodeAt(i);      
+ 671 │ 208 │     hash = (hash << 5) - hash + char;     
+ 672 │ 209 │     hash = hash & hash;                   
+ 673 │ 210 │   }                                       
+
+Clone found (typescript):
+ - app/lib/ai-service.ts [69:2 - 76:13] (7 lines, 84 tokens)
+   app/lib/api-client.ts [336:2 - 343:2]
+
+ 69 │ 336 │ {                                                                        
+ 70 │ 337 │   agentName: string;                                                     
+ 71 │ 338 │   personality: string;                                                   
+ 72 │ 339 │   context: {                                                             
+ 73 │ 340 │     telemetry: { avgBpm: number; resistance: number; duration: number }; 
+ 74 │ 341 │     market: { ticketsSold: number; revenue: number; capacity: number };  
+ 75 │ 342 │     recentDecisions: string[];                                           
+ 76 │ 343 │     styleContext                                                         
+
+Clone found (typescript):
+ - app/lib/ai-service.ts [313:15 - 321:2] (8 lines, 94 tokens)
+   app/lib/venice-client.ts [285:25 - 293:2]
+
+ 313 │ 285 │ (                                                                          
+ 314 │ 286 │     agentName: string,                                                     
+ 315 │ 287 │     personality: string,                                                   
+ 316 │ 288 │     context: {                                                             
+ 317 │ 289 │       telemetry: { avgBpm: number; resistance: number; duration: number }; 
+ 318 │ 290 │       market: { ticketsSold: number; revenue: number; capacity: number };  
+ 319 │ 291 │       recentDecisions: string[];                                           
+ 320 │ 292 │     }                                                                      
+ 321 │ 293 │   ): Promise<AgentDecision &                                               
+
+Clone found (tsx):
+ - app/instructor/loading.tsx [4:18 - 15:33] (11 lines, 82 tokens)
+   app/rider/loading.tsx [4:13 - 15:32]
+
+ 4  │ 4  │ () {                                                                                                                            
+ 5  │ 5  │   return (                                                                                                                      
+ 6  │ 6  │     <div className="min-h-screen bg-[color:var(--background)]">                                                                 
+ 7  │ 7  │       <div className="fixed inset-0 bg-gradient-radial pointer-events-none" />                                                  
+ 8  │ 8  │                                                                                                                                 
+ 9  │ 9  │       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">                       
+ 10 │ 10 │         {/* Nav skeleton */}                                                                                                    
+ 11 │ 11 │         <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-8 py-10 backdrop-blur"> 
+ 12 │ 12 │           <div className="h-12 w-32 animate-pulse rounded-lg bg-[color:var(--surface-strong)]" />                               
+ 13 │ 13 │         </div>                                                                                                                  
+ 14 │ 14 │                                                                                                                                 
+ 15 │ 15 │         {/* Business Overview skeleton */                                                                                       
+
+Clone found (tsx):
+ - app/agent/coach-profile.tsx [421:23 - 426:2] (5 lines, 82 tokens)
+   app/components/features/class/instructor-wizard.tsx [403:23 - 408:12]
+
+ 421 │ 403 │ ">                                                                      
+ 422 │ 404 │                 {[                                                      
+ 423 │ 405 │                   { id: "zen", label: "Zen", icon: "🧘" },              
+ 424 │ 406 │                   { id: "drill-sergeant", label: "Drill", icon: "⚡" }, 
+ 425 │ 407 │                   { id: "data", label: "Quant", icon: "📊" },           
+ 426 │ 408 │                 ].map((p                                                
+
+Clone found (css):
+ - app/globals.css [47:2 - 66:2] (19 lines, 160 tokens)
+   app/globals.css [25:2 - 45:59]
+
+ 47 │ 25 │ {                                         
+ 48 │ 26 │     --background: #fafbfc;                
+ 49 │ 27 │     --foreground: #0f172a;                
+ 50 │ 28 │     --surface: #ffffff;                   
+ 51 │ 29 │     --surface-strong: #f1f5f9;            
+ 52 │ 30 │     --surface-elevated: #e2e8f0;          
+ 53 │ 31 │     --muted: #64748b;                     
+ 54 │ 32 │     --accent: #4f46e5;                    
+ 55 │ 33 │     --accent-strong: #7c3aed;             
+ 56 │ 34 │     --success: #10b981;                   
+ 57 │ 35 │     --warning: #f59e0b;                   
+ 58 │ 36 │     --error: #ef4444;                     
+ 59 │ 37 │     --border: rgba(0, 0, 0, 0.08);        
+ 60 │ 38 │     --border-strong: rgba(0, 0, 0, 0.15); 
+ 61 │ 39 │     --shadow: rgba(0, 0, 0, 0.08);        
+ 62 │ 40 │     --glow: rgba(79, 70, 229, 0.15);      
+ 63 │ 41 │     --gradient-from: #e0e7ff;             
+ 64 │ 42 │     --gradient-to: #f3e8ff;               
+ 65 │ 43 │   }                                       
+ 66 │ 44 │ }                                         
+
+Found 58 clones.
+time: 23.906s

@@ -21,22 +21,12 @@ export default function RideLoading() {
       <div className="border-t border-white/10 bg-black/80 backdrop-blur-xl">
         {/* Stats row */}
         <div className="flex justify-around px-4 py-4 border-b border-white/5">
-          <div className="text-center">
-            <div className="h-4 w-12 animate-pulse rounded bg-white/10 mx-auto mb-1" />
-            <div className="h-8 w-16 animate-pulse rounded bg-white/10" />
-          </div>
-          <div className="text-center">
-            <div className="h-4 w-12 animate-pulse rounded bg-white/10 mx-auto mb-1" />
-            <div className="h-8 w-16 animate-pulse rounded bg-white/10" />
-          </div>
-          <div className="text-center">
-            <div className="h-4 w-12 animate-pulse rounded bg-white/10 mx-auto mb-1" />
-            <div className="h-8 w-16 animate-pulse rounded bg-white/10" />
-          </div>
-          <div className="text-center">
-            <div className="h-4 w-12 animate-pulse rounded bg-white/10 mx-auto mb-1" />
-            <div className="h-8 w-16 animate-pulse rounded bg-white/10" />
-          </div>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="text-center">
+              <div className="h-4 w-12 animate-pulse rounded bg-white/10 mx-auto mb-1" />
+              <div className="h-8 w-16 animate-pulse rounded bg-white/10" />
+            </div>
+          ))}
         </div>
 
         {/* Controls skeleton */}

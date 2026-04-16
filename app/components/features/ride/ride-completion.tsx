@@ -225,59 +225,16 @@ export function RideCompletion({
             Earn SPIN tokens based on your performance:
           </p>
           <ul className="text-white/60 space-y-1 pl-4">
-            <li className="flex items-start gap-2">
-              <svg
-                className="h-4 w-4 text-amber-400 mt-0.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                />
-              </svg>
-              <span>
-                Effort Score ({avgEffort}/1000): Higher effort = more tokens
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <svg
-                className="h-4 w-4 text-amber-400 mt-0.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                />
-              </svg>
-              <span>
-                Duration ({formatTime(elapsedTime)}): Longer workouts = higher
-                rewards
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <svg
-                className="h-4 w-4 text-amber-400 mt-0.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                />
-              </svg>
-              <span>Consistency: Steady effort throughout = bonus tokens</span>
-            </li>
+            <TipItem color="amber">
+              Effort Score ({avgEffort}/1000): Higher effort = more tokens
+            </TipItem>
+            <TipItem color="amber">
+              Duration ({formatTime(elapsedTime)}): Longer workouts = higher
+              rewards
+            </TipItem>
+            <TipItem color="amber">
+              Consistency: Steady effort throughout = bonus tokens
+            </TipItem>
           </ul>
           <p className="text-white/60 mt-2">
             Your {avgEffort} effort score earned you {spinEarned} SPIN tokens.
@@ -322,74 +279,18 @@ export function RideCompletion({
             Improve your SPIN earnings with these tips:
           </p>
           <ul className="text-white/60 space-y-1 pl-4">
-            <li className="flex items-start gap-2">
-              <svg
-                className="h-4 w-4 text-green-400 mt-0.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                />
-              </svg>
-              <span>Increase effort score: Push harder during intervals</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <svg
-                className="h-4 w-4 text-green-400 mt-0.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                />
-              </svg>
-              <span>Extend duration: Add 5-10 minutes to your workout</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <svg
-                className="h-4 w-4 text-green-400 mt-0.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                />
-              </svg>
-              <span>
-                Maintain consistency: Keep effort above 700 throughout
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <svg
-                className="h-4 w-4 text-green-400 mt-0.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                />
-              </svg>
-              <span>
-                Complete more classes: Regular workouts = bonus rewards
-              </span>
-            </li>
+            <TipItem color="green">
+              Increase effort score: Push harder during intervals
+            </TipItem>
+            <TipItem color="green">
+              Extend duration: Add 5-10 minutes to your workout
+            </TipItem>
+            <TipItem color="green">
+              Maintain consistency: Keep effort above 700 throughout
+            </TipItem>
+            <TipItem color="green">
+              Complete more classes: Regular workouts = bonus rewards
+            </TipItem>
           </ul>
         </div>
 
@@ -796,5 +697,33 @@ function Stat({
         {value}
       </p>
     </div>
+  );
+}
+
+function TipItem({
+  color,
+  children,
+}: {
+  color: "amber" | "green";
+  children: React.ReactNode;
+}) {
+  const colorClass = color === "amber" ? "text-amber-400" : "text-green-400";
+  return (
+    <li className="flex items-start gap-2">
+      <svg
+        className={`h-4 w-4 ${colorClass} mt-0.5 shrink-0`}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+        />
+      </svg>
+      <span>{children}</span>
+    </li>
   );
 }
