@@ -10,6 +10,7 @@
  */
 
 import { getUserAIPreferences } from "./ai-providers";
+import type { AgentReasoningParams } from "./ai-service";
 
 // API Configuration
 const API_CONFIG = {
@@ -333,16 +334,7 @@ export const aiClient = {
   /**
    * Agent reasoning for autonomous decisions
    */
-  async agentReasoning(params: {
-    agentName: string;
-    personality: string;
-    context: {
-      telemetry: { avgBpm: number; resistance: number; duration: number };
-      market: { ticketsSold: number; revenue: number; capacity: number };
-      recentDecisions: string[];
-    };
-    provider?: string;
-  }) {
+  async agentReasoning(params: AgentReasoningParams & { provider?: string }) {
     return apiClient.post<{
       action: string;
       intensity: number;
