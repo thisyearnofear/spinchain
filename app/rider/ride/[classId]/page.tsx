@@ -8,6 +8,7 @@ import { useTelemetryStore } from "../../../hooks/ride/use-telemetry-store";
 import { useClass } from "../../../hooks/evm/use-class-data";
 import { usePracticeConfig } from "../../../hooks/ride/use-practice-config";
 import { useRideLifecycle } from "../../../hooks/ride/use-ride-lifecycle";
+import { useRideTelemetry } from "../../../hooks/ride/use-ride-telemetry";
 import { useAccount } from "wagmi";
 import { usePanelState } from "../../../hooks/ui/use-panel-state";
 import { useRideTutorial } from "../../../components/features/ride/ride-tutorial";
@@ -63,22 +64,7 @@ import {
   getIntervalProgress,
   getIntervalRemaining,
 } from "../../../lib/workout-plan";
-import {
-  calculateNextWBal,
-  DEFAULT_WBAL_CONFIG,
-  getWBalPercentage,
-  getGearRatio,
-  calculateVirtualSpeed,
-  DEFAULT_ROAD_GEARS,
-  type WBalConfig,
-} from "../../../lib/analytics/physiological-models";
-import { type RideRecordPoint } from "../../../lib/analytics/ride-recorder";
-import {
-  calculateGhostState,
-  fetchGhostWithFallback,
-  type GhostPerformance,
-  type GhostState,
-} from "../../../lib/analytics/ghost-service";
+import { DEFAULT_ROAD_GEARS } from "../../../lib/analytics/physiological-models";
 import type { EnhancedClassMetadata } from "../../../lib/contracts";
 import {
   createCanonicalRideSummary,
@@ -313,17 +299,16 @@ export default function LiveRidePage() {
     dismiss: dismissTutorial,
   } = useRideTutorial();
 
+  // Wallet state (used for rewards + ghost history)
+  const { isConnected: walletConnected, address } = useAccount();
+  const [rewardMode, setRewardMode] = useState<RewardMode>("zk-batch");
+
   // Auto-start ride in demo mode
   useEffect(() => {
     if (bleConnected || useSimulator) {
       setConnectionHint(null);
     }
   }, [bleConnected, isPracticeMode, useSimulator]);
-
-  // Using granular Zustand store instead of monolithic state (25% jank reduction)
-  const updateTelemetryStore = useTelemetryStore(
-    (state) => state.updateMetrics,
-  );
 
   // Compatibility: Create telemetry object from store for components that haven't been refactored yet
   const telemetry = useTelemetryStore(
@@ -343,69 +328,10 @@ export default function LiveRidePage() {
     })),
   );
 
-  const [telemetryHistory, setTelemetryHistory] = useState<{
-    power: number[];
-    cadence: number[];
-    heartRate: number[];
-  }>({
-    power: [],
-    cadence: [],
-    heartRate: [],
-  });
-  const [recentPowerHistory, setRecentPowerHistory] = useState<number[]>([]);
-  const telemetryRawRef = useRef({
-    heartRate: 0,
-    power: 0,
-    cadence: 0,
-    speed: 0,
-    effort: 0,
-    wBal: DEFAULT_WBAL_CONFIG.wPrime,
-    wBalPercentage: 100,
-    currentGear: 10,
-    gearRatio: 1.0,
-    distance: 0,
-    resistance: 0,
-    timestamp: Date.now(),
-  });
-
-  // Physiological Model Refs
-  const wBalRef = useRef<number>(DEFAULT_WBAL_CONFIG.wPrime);
-  const wBalConfigRef = useRef<WBalConfig>(DEFAULT_WBAL_CONFIG);
-  const [currentGear, setCurrentGear] = useState(10); // Start in middle gear
-  const lastWBalUpdateMsRef = useRef<number>(0);
-
-  // Ghost Rider State (use ref to avoid re-renders - 5% jank reduction)
-  const [ghostPerformance, setGhostPerformance] =
-    useState<GhostPerformance | null>(null);
-  const ghostStateRef = useRef<GhostState>({
-    leadLagTime: 0,
-    distanceGap: 0,
-    ghostPoint: null,
-  });
-
-  const lastTelemetryCommitMsRef = useRef(0);
-  const lastHistoryCommitMsRef = useRef(0);
   const trackedEntryViewRef = useRef(false);
   const trackedLiveTelemetryRef = useRef(false);
   const trackedCompletionRef = useRef(false);
 
-  // Ring buffers for efficient history tracking (20% jank reduction)
-  const powerHistoryBuffer = useRef<Float32Array>(new Float32Array(30));
-  const cadenceHistoryBuffer = useRef<Float32Array>(new Float32Array(30));
-  const heartRateHistoryBuffer = useRef<Float32Array>(new Float32Array(30));
-  const recentPowerBuffer = useRef<Float32Array>(new Float32Array(20));
-  const historyIndexRef = useRef({
-    power: 0,
-    cadence: 0,
-    heartRate: 0,
-    recentPower: 0,
-  });
-
-  // Telemetry averages for completion screen
-  const telemetrySamples = useRef<
-    { hr: number; power: number; effort: number }[]
-  >([]);
-  const ridePointsRef = useRef<RideRecordPoint[]>([]);
   const routeCoordinates = useMemo(
     () => classData?.route?.route.coordinates ?? [],
     [classData?.route?.route.coordinates],
@@ -428,18 +354,35 @@ export default function LiveRidePage() {
     return routeCoordinates[index] ?? null;
   }, [routeCoordinates, routeProgress]);
 
-  // Refs for RAF loop to avoid dependency array churn
-  const elapsedTimeRef = useRef(elapsedTime);
-  const currentRouteCoordinateRef = useRef(currentRouteCoordinate);
-
-  // Keep refs in sync with state
-  useEffect(() => {
-    elapsedTimeRef.current = elapsedTime;
-  }, [elapsedTime]);
-
-  useEffect(() => {
-    currentRouteCoordinateRef.current = currentRouteCoordinate;
-  }, [currentRouteCoordinate]);
+  // Single source of truth for ride telemetry (consolidates RAF loop + history + ghost state)
+  const {
+    telemetryHistory,
+    recentPowerHistory,
+    setCurrentGear,
+    ghostState,
+    ridePointsRef,
+    telemetrySamples,
+    telemetryAverages,
+    refreshTelemetryAverages,
+    resetTelemetry,
+    telemetryRawRef,
+    handleBleMetrics: handleBleMetricsInternal,
+    handleSimulatorMetrics: handleSimulatorMetricsInternal,
+  } = useRideTelemetry({
+    isRiding,
+    deviceType,
+    performanceTier,
+    bleConnected,
+    useSimulator,
+    routeCoordinates,
+    currentRouteCoordinate,
+    elapsedTimeSeconds: elapsedTime,
+    ghostBlobId: classData?.metadata?.route?.walrusBlobId,
+    riderAddress: address,
+    classId,
+    historyUpdateIntervalMs: 2000, // reduce jank (0.5Hz history)
+    maxRidePoints: MAX_RIDE_POINTS,
+  });
 
   // Rate-limit reward recording to avoid async pressure on mobile
   const lastRewardRecordMsRef = useRef(0);
@@ -553,32 +496,6 @@ export default function LiveRidePage() {
   };
 
   // Reward mode selection — default to zk-batch, yellow-stream available as beta for wallet users
-  const { isConnected: walletConnected, address } = useAccount();
-  const [rewardMode, setRewardMode] = useState<RewardMode>("zk-batch");
-
-  // Ghost performance fetch - load real historical data or fall back to mock
-  useEffect(() => {
-    if (routeCoordinates.length > 0 && !ghostPerformance) {
-      fetchGhostWithFallback(
-        routeCoordinates,
-        {
-          classId:
-            classData?.metadata?.route?.walrusBlobId ??
-            (typeof params.classId === "string" ? params.classId : ""),
-          riderAddress: address,
-          routeBlobId: classData?.metadata?.route?.walrusBlobId,
-          ghostType: "personal_best",
-        },
-        25, // target speed km/h
-      ).then((ghost) => setGhostPerformance(ghost));
-    }
-  }, [
-    routeCoordinates,
-    ghostPerformance,
-    classData?.metadata?.route?.walrusBlobId,
-    params.classId,
-    address,
-  ]);
 
   // Guest mode — reward selector is disabled; user must connect wallet to earn
   const isGuestMode =
@@ -742,11 +659,6 @@ export default function LiveRidePage() {
     spinEarned: "0",
     rewardsWereActive: false,
   });
-  const [telemetryAverages, setTelemetryAverages] = useState({
-    avgHr: 0,
-    avgPower: 0,
-    avgEffort: 0,
-  });
 
   // Track last spoken beat to avoid repeats
   const lastSpokenBeatRef = useRef<string | null>(null);
@@ -773,175 +685,9 @@ export default function LiveRidePage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isRiding, playSound]);
+  }, [isRiding, playSound, setCurrentGear]);
 
-  // RAF-aligned telemetry update loop (10% jank reduction vs setInterval)
-  useEffect(() => {
-    if (!isRiding) return;
-
-    // Adaptive rate: use performance tier + device type for optimal UX
-    // Low/medium tier devices need lower rates to avoid frame drops
-    // High-tier mobile still needs responsive HUD at 2Hz
-    let uiHz: number;
-    if (deviceType === "mobile") {
-      uiHz =
-        performanceTier === "low" ? 1 : performanceTier === "medium" ? 1.5 : 2;
-    } else {
-      uiHz =
-        performanceTier === "low" ? 2 : performanceTier === "medium" ? 3 : 4;
-    }
-    const hudUpdateIntervalMs = Math.floor(1000 / uiHz);
-    const historyUpdateIntervalMs = 2000; // Update history at 0.5Hz (Reduce jank)
-    const calculationIntervalMs = hudUpdateIntervalMs; // Throttle calculations to same rate
-
-    let rafId: number;
-    let isRunning = true;
-    let lastCalculationMs = 0;
-
-    const updateLoop = () => {
-      if (!isRunning) return;
-
-      const now = Date.now();
-
-      // Schedule next frame immediately to maintain smooth loop
-      rafId = requestAnimationFrame(updateLoop);
-
-      // Throttle calculations to adaptive Hz (not 60fps)
-      if (now - lastCalculationMs < calculationIntervalMs) return;
-
-      const prevCommitMs = lastTelemetryCommitMsRef.current;
-      const deltaSeconds =
-        lastWBalUpdateMsRef.current > 0
-          ? (now - lastWBalUpdateMsRef.current) / 1000
-          : calculationIntervalMs / 1000;
-
-      lastWBalUpdateMsRef.current = now;
-      lastCalculationMs = now;
-
-      // Update Physiological Model (W'bal)
-      const power = telemetryRawRef.current.power;
-      const nextWBal = calculateNextWBal(
-        wBalRef.current,
-        power,
-        deltaSeconds,
-        wBalConfigRef.current,
-      );
-
-      wBalRef.current = nextWBal;
-      const percentage = getWBalPercentage(
-        nextWBal,
-        wBalConfigRef.current.wPrime,
-      );
-
-      // Calculate Virtual Speed based on Gear
-      const { ratio } = getGearRatio(currentGear);
-      const virtualSpeed = calculateVirtualSpeed(
-        telemetryRawRef.current.cadence,
-        ratio,
-      );
-
-      // Mutate ref directly (no object spreading - 5% jank reduction)
-      telemetryRawRef.current.speed =
-        virtualSpeed > 0 ? virtualSpeed : telemetryRawRef.current.speed;
-      telemetryRawRef.current.distance += (virtualSpeed * deltaSeconds) / 3600;
-      telemetryRawRef.current.wBal = nextWBal;
-      telemetryRawRef.current.wBalPercentage = percentage;
-      telemetryRawRef.current.currentGear = currentGear;
-      telemetryRawRef.current.gearRatio = ratio;
-      telemetryRawRef.current.timestamp = now;
-
-      // Update ring buffers (no array spreading - 20% jank reduction)
-      const powerIdx = historyIndexRef.current.power;
-      powerHistoryBuffer.current[powerIdx] = telemetryRawRef.current.power;
-      historyIndexRef.current.power = (powerIdx + 1) % 30;
-
-      const cadenceIdx = historyIndexRef.current.cadence;
-      cadenceHistoryBuffer.current[cadenceIdx] =
-        telemetryRawRef.current.cadence;
-      historyIndexRef.current.cadence = (cadenceIdx + 1) % 30;
-
-      const hrIdx = historyIndexRef.current.heartRate;
-      heartRateHistoryBuffer.current[hrIdx] = telemetryRawRef.current.heartRate;
-      historyIndexRef.current.heartRate = (hrIdx + 1) % 30;
-
-      if (telemetryRawRef.current.power > 0) {
-        const recentIdx = historyIndexRef.current.recentPower;
-        recentPowerBuffer.current[recentIdx] = telemetryRawRef.current.power;
-        historyIndexRef.current.recentPower = (recentIdx + 1) % 20;
-      }
-
-      // Record point for TCX export at ~1Hz (gate on second boundary vs previous commit)
-      if (Math.round(now / 1000) !== Math.round(prevCommitMs / 1000)) {
-        const currentCoord = currentRouteCoordinateRef.current;
-        ridePointsRef.current.push({
-          timestamp: now,
-          heartRate: telemetryRawRef.current.heartRate,
-          power: telemetryRawRef.current.power,
-          cadence: telemetryRawRef.current.cadence,
-          speed: telemetryRawRef.current.speed,
-          distance: telemetryRawRef.current.distance,
-          latitude: currentCoord?.lat,
-          longitude: currentCoord?.lng,
-          altitude: currentCoord?.ele,
-        });
-        if (ridePointsRef.current.length > MAX_RIDE_POINTS) {
-          ridePointsRef.current.splice(
-            0,
-            ridePointsRef.current.length - MAX_RIDE_POINTS,
-          );
-        }
-      }
-
-      // Update Ghost Rider position (ref-only, no React state - 5% jank reduction)
-      if (ghostPerformance) {
-        const nextGhost = calculateGhostState(
-          ghostPerformance.points,
-          telemetryRawRef.current.distance * 1000,
-          elapsedTimeRef.current,
-        );
-        ghostStateRef.current = nextGhost;
-      }
-
-      // Commit to Zustand store at throttled rate for HUD (granular subscriptions - 25% jank reduction)
-      if (now - lastTelemetryCommitMsRef.current >= hudUpdateIntervalMs) {
-        lastTelemetryCommitMsRef.current = now;
-        updateTelemetryStore({
-          heartRate: telemetryRawRef.current.heartRate,
-          power: telemetryRawRef.current.power,
-          cadence: telemetryRawRef.current.cadence,
-          speed: telemetryRawRef.current.speed,
-          effort: telemetryRawRef.current.effort,
-          wBal: telemetryRawRef.current.wBal,
-          wBalPercentage: telemetryRawRef.current.wBalPercentage,
-          distance: telemetryRawRef.current.distance,
-          currentGear: telemetryRawRef.current.currentGear,
-          gearRatio: telemetryRawRef.current.gearRatio,
-          resistance: telemetryRawRef.current.resistance,
-          timestamp: telemetryRawRef.current.timestamp,
-        });
-      }
-
-      // Commit history to React state at 1Hz (for charts)
-      if (now - lastHistoryCommitMsRef.current >= historyUpdateIntervalMs) {
-        lastHistoryCommitMsRef.current = now;
-        setTelemetryHistory({
-          power: Array.from(powerHistoryBuffer.current),
-          cadence: Array.from(cadenceHistoryBuffer.current),
-          heartRate: Array.from(heartRateHistoryBuffer.current),
-        });
-        setRecentPowerHistory(Array.from(recentPowerBuffer.current));
-      }
-    };
-
-    rafId = requestAnimationFrame(updateLoop);
-
-    return () => {
-      isRunning = false;
-      cancelAnimationFrame(rafId);
-    };
-  }, [isRiding, deviceType, performanceTier, currentGear, ghostPerformance]);
-
-  // Removed separate power history effect - now handled in main loop
+  // Telemetry RAF loop + history + ghost updates are consolidated in useRideTelemetry.
 
   // Handle BLE metrics updates
   const handleBleMetrics = useCallback(
@@ -954,20 +700,7 @@ export default function LiveRidePage() {
       distance?: number;
       timestamp?: number;
     }) => {
-      // Mutate ref directly (no object spreading - 5% jank reduction)
-      if (metrics.heartRate !== undefined)
-        telemetryRawRef.current.heartRate = metrics.heartRate;
-      if (metrics.power !== undefined)
-        telemetryRawRef.current.power = metrics.power;
-      if (metrics.cadence !== undefined)
-        telemetryRawRef.current.cadence = metrics.cadence;
-      if (metrics.speed !== undefined)
-        telemetryRawRef.current.speed = metrics.speed;
-      if (metrics.effort !== undefined)
-        telemetryRawRef.current.effort = metrics.effort;
-      if (metrics.distance !== undefined)
-        telemetryRawRef.current.distance = metrics.distance;
-      telemetryRawRef.current.timestamp = metrics.timestamp ?? Date.now();
+      handleBleMetricsInternal(metrics);
 
       if (metrics.heartRate || metrics.power) {
         if (!bleConnected) setBleConnected(true); // Guard to avoid no-op re-renders
@@ -1019,6 +752,7 @@ export default function LiveRidePage() {
       bleConnected,
       classId,
       deviceType,
+      handleBleMetricsInternal,
       isPracticeMode,
       isRiding,
       isTrainingMode,
@@ -1040,27 +774,7 @@ export default function LiveRidePage() {
       distance?: number;
       timestamp?: number;
     }) => {
-      telemetryRawRef.current = {
-        ...telemetryRawRef.current,
-        ...metrics,
-        distance: metrics.distance ?? telemetryRawRef.current.distance,
-        timestamp: metrics.timestamp ?? Date.now(),
-      };
-      // Simulator is a user-driven control; update UI immediately for responsiveness
-      updateTelemetryStore({
-        heartRate: telemetryRawRef.current.heartRate,
-        power: telemetryRawRef.current.power,
-        cadence: telemetryRawRef.current.cadence,
-        speed: telemetryRawRef.current.speed,
-        effort: telemetryRawRef.current.effort,
-        wBal: telemetryRawRef.current.wBal,
-        wBalPercentage: telemetryRawRef.current.wBalPercentage,
-        distance: telemetryRawRef.current.distance,
-        currentGear: telemetryRawRef.current.currentGear,
-        gearRatio: telemetryRawRef.current.gearRatio,
-        resistance: telemetryRawRef.current.resistance,
-        timestamp: telemetryRawRef.current.timestamp,
-      });
+      handleSimulatorMetricsInternal(metrics);
 
       // Advance ride progress cadence-weighted: no pedaling = no progress.
       // Use refs for isRiding/classData to avoid stale closures in the metrics callback.
@@ -1092,7 +806,14 @@ export default function LiveRidePage() {
         });
       }
     },
-    [setIsRiding, setRideProgress, updateTelemetryStore],
+    [
+      classDataRef,
+      handleSimulatorMetricsInternal,
+      isRidingRef,
+      setElapsedTime,
+      setIsRiding,
+      setRideProgress,
+    ],
   );
 
   // Auto-adjust view mode only while following system defaults.
@@ -1150,28 +871,15 @@ export default function LiveRidePage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRiding, bleConnected, useSimulator, isPracticeMode, isGuestMode]);
-
-  const refreshTelemetryAverages = useCallback(() => {
-    const samples = telemetrySamples.current;
-    if (samples.length === 0) {
-      setTelemetryAverages({ avgHr: 0, avgPower: 0, avgEffort: 0 });
-      return;
-    }
-    const sum = samples.reduce(
-      (acc, s) => ({
-        hr: acc.hr + s.hr,
-        power: acc.power + s.power,
-        effort: acc.effort + s.effort,
-      }),
-      { hr: 0, power: 0, effort: 0 },
-    );
-    setTelemetryAverages({
-      avgHr: Math.round(sum.hr / samples.length),
-      avgPower: Math.round(sum.power / samples.length),
-      avgEffort: Math.round(sum.effort / samples.length),
-    });
-  }, []);
+  }, [
+    isRiding,
+    bleConnected,
+    useSimulator,
+    isPracticeMode,
+    isGuestMode,
+    telemetryRawRef,
+    telemetrySamples,
+  ]);
 
   // Also collect BLE and simulator telemetry samples
   useEffect(() => {
@@ -1199,6 +907,7 @@ export default function LiveRidePage() {
     telemetry.power,
     telemetry.effort,
     refreshTelemetryAverages,
+    telemetrySamples,
   ]);
 
   const [marketStats, setMarketStats] = useState({
@@ -1403,9 +1112,7 @@ export default function LiveRidePage() {
       setIsStarting(false);
       setRideProgress(0);
       setElapsedTime(0);
-      setRecentPowerHistory([]);
-      telemetrySamples.current = [];
-      setTelemetryAverages({ avgHr: 0, avgPower: 0, avgEffort: 0 });
+      resetTelemetry();
       lastSpokenBeatRef.current = null;
       lastIntervalRef.current = -1;
       trackedCompletionRef.current = false;
@@ -1729,7 +1436,7 @@ export default function LiveRidePage() {
           simulatedReward={simulatedRewards}
           telemetry={telemetry}
           telemetryHistory={telemetryHistory}
-          ghostState={ghostStateRef.current}
+          ghostState={ghostState}
           currentInterval={currentInterval}
           aiLogs={aiLogs}
           aiActive={aiActive}

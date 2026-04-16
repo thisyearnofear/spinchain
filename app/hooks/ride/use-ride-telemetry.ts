@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   calculateNextWBal,
   DEFAULT_WBAL_CONFIG,
@@ -93,9 +93,13 @@ export function useRideTelemetry({
   bleConnected: _bleConnected,
   useSimulator: _useSimulator,
   routeCoordinates,
+  currentRouteCoordinate,
+  elapsedTimeSeconds,
   ghostBlobId,
   riderAddress,
   classId,
+  historyUpdateIntervalMs = 1000,
+  maxRidePoints = 10_800,
 }: {
   isRiding: boolean;
   deviceType: "mobile" | "tablet" | "desktop";
@@ -103,9 +107,13 @@ export function useRideTelemetry({
   bleConnected: boolean;
   useSimulator: boolean;
   routeCoordinates: { lat: number; lng: number; ele?: number }[];
+  currentRouteCoordinate: { lat: number; lng: number; ele?: number } | null;
+  elapsedTimeSeconds: number;
   ghostBlobId?: string;
   riderAddress?: `0x${string}`;
   classId: string;
+  historyUpdateIntervalMs?: number;
+  maxRidePoints?: number;
 }) {
   // Using granular Zustand store instead of monolithic state (25% jank reduction)
   const updateTelemetryStore = useTelemetryStore((state) => state.updateMetrics);
@@ -129,6 +137,7 @@ export function useRideTelemetry({
   const lastWBalUpdateMsRef = useRef<number>(0);
   const lastTelemetryCommitMsRef = useRef(0);
   const lastHistoryCommitMsRef = useRef(0);
+  const lastRidePointCommitSecRef = useRef<number>(-1);
 
   // Ring buffers replace array spreading for 20% jank reduction
   const powerHistoryBuffer = useRef(new RingBuffer(30));
@@ -138,7 +147,7 @@ export function useRideTelemetry({
 
   const [ghostPerformance, setGhostPerformance] =
     useState<GhostPerformance | null>(null);
-  const ghostStateRef = useRef<GhostState>({
+  const [ghostState, setGhostState] = useState<GhostState>({
     leadLagTime: 0,
     distanceGap: 0,
     ghostPoint: null,
@@ -168,11 +177,6 @@ export function useRideTelemetry({
     });
   }, []);
 
-  const currentRouteCoordinate = useMemo(() => {
-    if (routeCoordinates.length === 0) return null;
-    return routeCoordinates[0] ?? null;
-  }, [routeCoordinates]);
-
   // Load ghost performance data
   useEffect(() => {
     if (routeCoordinates.length > 0 && !ghostPerformance) {
@@ -200,7 +204,6 @@ export function useRideTelemetry({
       uiHz = performanceTier === "low" ? 2 : performanceTier === "medium" ? 3 : 4;
     }
     const hudUpdateIntervalMs = Math.floor(1000 / uiHz);
-    const historyUpdateIntervalMs = 1000; // Update history at 1Hz
     const calculationIntervalMs = hudUpdateIntervalMs; // Throttle calculations to same rate
 
     let rafId: number;
@@ -257,7 +260,9 @@ export function useRideTelemetry({
       }
 
       // Record point for TCX export at ~1Hz
-      if (Math.round(now / 1000) !== Math.round(lastTelemetryCommitMsRef.current / 1000)) {
+      const nowSec = Math.floor(now / 1000);
+      if (nowSec !== lastRidePointCommitSecRef.current) {
+        lastRidePointCommitSecRef.current = nowSec;
         const currentCoord = currentRouteCoordinate;
         ridePointsRef.current.push({
           timestamp: now,
@@ -270,8 +275,8 @@ export function useRideTelemetry({
           longitude: currentCoord?.lng,
           altitude: currentCoord?.ele,
         });
-        if (ridePointsRef.current.length > 1000) {
-          ridePointsRef.current.splice(0, ridePointsRef.current.length - 1000);
+        if (ridePointsRef.current.length > maxRidePoints) {
+          ridePointsRef.current.splice(0, ridePointsRef.current.length - maxRidePoints);
         }
       }
 
@@ -280,9 +285,9 @@ export function useRideTelemetry({
         const nextGhost = calculateGhostState(
           ghostPerformance.points,
           telemetryRawRef.current.distance * 1000,
-          0,
+          elapsedTimeSeconds,
         );
-        ghostStateRef.current = nextGhost;
+        setGhostState(nextGhost);
       }
 
       // Commit to Zustand store at throttled rate for HUD (granular subscriptions - 25% jank reduction)
@@ -322,7 +327,18 @@ export function useRideTelemetry({
       isRunning = false;
       cancelAnimationFrame(rafId);
     };
-  }, [isRiding, deviceType, performanceTier, currentGear, ghostPerformance, currentRouteCoordinate]);
+  }, [
+    isRiding,
+    deviceType,
+    performanceTier,
+    currentGear,
+    ghostPerformance,
+    currentRouteCoordinate,
+    elapsedTimeSeconds,
+    historyUpdateIntervalMs,
+    maxRidePoints,
+    updateTelemetryStore,
+  ]);
 
   const handleBleMetrics = useCallback(
     (metrics: Partial<Telemetry>) => {
@@ -360,17 +376,42 @@ export function useRideTelemetry({
     [],
   );
 
+  const resetTelemetry = useCallback(() => {
+    const now = Date.now();
+    telemetryRawRef.current = { ...INITIAL_TELEMETRY, timestamp: now };
+    wBalRef.current = DEFAULT_WBAL_CONFIG.wPrime;
+    lastWBalUpdateMsRef.current = 0;
+    lastTelemetryCommitMsRef.current = 0;
+    lastHistoryCommitMsRef.current = 0;
+    lastRidePointCommitSecRef.current = -1;
+
+    setCurrentGear(INITIAL_TELEMETRY.currentGear);
+
+    powerHistoryBuffer.current.clear();
+    cadenceHistoryBuffer.current.clear();
+    heartRateHistoryBuffer.current.clear();
+    recentPowerBuffer.current.clear();
+
+    setTelemetryHistory({ power: [], cadence: [], heartRate: [] });
+    setRecentPowerHistory([]);
+
+    ridePointsRef.current = [];
+    telemetrySamples.current = [];
+    setTelemetryAverages({ avgHr: 0, avgPower: 0, avgEffort: 0 });
+  }, []);
+
 
   return {
     telemetryHistory,
     recentPowerHistory,
     currentGear,
     setCurrentGear,
-    ghostState: ghostStateRef.current, // Return ref value directly
+    ghostState,
     ghostPerformance,
     ridePointsRef,
     telemetrySamples,
     telemetryAverages,
+    resetTelemetry,
     refreshTelemetryAverages,
     telemetryRawRef,
     handleBleMetrics,
