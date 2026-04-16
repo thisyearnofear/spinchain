@@ -52,9 +52,17 @@ export function useAiInstructor({
 
   // Stabilize metrics with ref for effect performance (avoid constant clearInterval/setInterval)
   const metricsRef = useRef(metrics);
-  useEffect(() => {
-    metricsRef.current = metrics;
-  }, [metrics]);
+  metricsRef.current = metrics;
+
+  // Stabilize currentInterval, triggerBeat, and setResistance via refs to prevent
+  // the effect from restarting when these props change, which causes the infinite
+  // re-render loop (React #185).
+  const currentIntervalRef = useRef(currentInterval);
+  currentIntervalRef.current = currentInterval;
+  const triggerBeatRef = useRef(triggerBeat);
+  triggerBeatRef.current = triggerBeat;
+  const setResistanceRef = useRef(setResistance);
+  setResistanceRef.current = setResistance;
 
   // Agent decision loop based on real telemetry
   useEffect(() => {
@@ -74,9 +82,10 @@ export function useAiInstructor({
       const cadence = currentMetrics.cadence;
       const wBalPct = currentMetrics.wBalPercentage ?? 100;
 
-      const targetHrZone = currentInterval?.targetHrZone;
-      const targetRpm = currentInterval?.targetRpm;
-      const targetPower = currentInterval?.targetPower;
+      const ci = currentIntervalRef.current;
+      const targetHrZone = ci?.targetHrZone;
+      const targetRpm = ci?.targetRpm;
+      const targetPower = ci?.targetPower;
 
       // 2. Personality-driven Logic
       if (personality === "drill-sergeant") {
@@ -84,17 +93,17 @@ export function useAiInstructor({
         if (targetRpm && cadence < targetRpm[0] && canTakeAction) {
           const message = `${agentName}: "I see those legs slowing down! Target is ${targetRpm[0]} RPM. PICK IT UP!"`;
           addLog(message, "action");
-          triggerBeat("Leg Speed Attack!", "sprint", 8);
+          triggerBeatRef.current?.("Leg Speed Attack!", "sprint", 8);
           lastActionTimestamp.current = now;
         } else if (hr < 130 && wBalPct > 80 && canTakeAction) {
           const message = `${agentName}: "You have plenty of fuel left in the tank! Increasing resistance. DIG DEEPER!"`;
           addLog(message, "action");
-          setResistance?.(
+          setResistanceRef.current?.(
             currentMetrics.resistance
               ? Math.min(100, currentMetrics.resistance + 10)
               : 50,
           );
-          triggerBeat("Intensity Surge", "climb", 7);
+          triggerBeatRef.current?.("Intensity Surge", "climb", 7);
           lastActionTimestamp.current = now;
         }
       } else if (personality === "zen") {
@@ -106,12 +115,12 @@ export function useAiInstructor({
               : "Your heart is racing beyond the zone.";
           const message = `${agentName}: "${status} Lowering resistance. Soften your grip. Breathe deep."`;
           addLog(message, "action");
-          setResistance?.(
+          setResistanceRef.current?.(
             currentMetrics.resistance
               ? Math.max(0, currentMetrics.resistance - 15)
               : 20,
           );
-          triggerBeat("Find Your Center", "rest", 3);
+          triggerBeatRef.current?.("Find Your Center", "rest", 3);
           lastActionTimestamp.current = now;
         } else if (targetRpm && cadence > targetRpm[1] + 10 && canTakeAction) {
           const message = `${agentName}: "Too much frantic energy. Find the rhythm, don't chase it."`;
@@ -130,14 +139,14 @@ export function useAiInstructor({
           addLog(message, "info");
 
           if (status === "low") {
-            setResistance?.(
+            setResistanceRef.current?.(
               currentMetrics.resistance
                 ? Math.min(100, currentMetrics.resistance + 5)
                 : 40,
             );
-            triggerBeat("Power Target Correction", "climb", 6);
+            triggerBeatRef.current?.("Power Target Correction", "climb", 6);
           } else {
-            setResistance?.(
+            setResistanceRef.current?.(
               currentMetrics.resistance
                 ? Math.max(0, currentMetrics.resistance - 5)
                 : 30,
@@ -169,11 +178,9 @@ export function useAiInstructor({
     return () => clearInterval(intervalId);
   }, [
     isEnabled,
-    currentInterval,
     personality,
     agentName,
-    triggerBeat,
-    setResistance,
+    addLog,
   ]);
 
   return {

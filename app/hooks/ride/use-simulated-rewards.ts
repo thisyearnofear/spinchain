@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface UseSimulatedRewardsOptions {
   isRiding: boolean;
@@ -23,6 +23,11 @@ export function useSimulatedRewards({
   const [simulatedReward, setSimulatedReward] = useState(0);
   const shouldSimulate = isRiding && (isTrainingMode || isGuestMode);
 
+  // Use ref for effortScore to prevent the effect from restarting on every
+  // telemetry update, which causes the infinite re-render loop (React #185).
+  const effortScoreRef = useRef(effortScore);
+  effortScoreRef.current = effortScore;
+
   useEffect(() => {
     if (!shouldSimulate) {
       if (!isRiding) setSimulatedReward(0);
@@ -30,14 +35,14 @@ export function useSimulatedRewards({
     }
 
     const interval = setInterval(() => {
-      const clampedEffort = Math.min(1000, effortScore);
+      const clampedEffort = Math.min(1000, effortScoreRef.current);
       // Spread total potential reward over a 45-minute ride
       const ratePerSecond = (10 + (clampedEffort * 90) / 1000) / (45 * 60);
       setSimulatedReward(prev => prev + ratePerSecond);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [shouldSimulate, isRiding, effortScore]);
+  }, [shouldSimulate, isRiding]);
 
   const reset = useCallback(() => setSimulatedReward(0), []);
 

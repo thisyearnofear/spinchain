@@ -959,13 +959,29 @@ export default function LiveRidePage() {
     return () => clearInterval(interval);
   }, [isRiding, isPracticeMode, isGuestMode]);
 
-  const agentMetrics = useMemo(
-    () => ({
-      ...telemetry,
-      wBalPercentage: telemetry.wBalPercentage || 100,
-    }),
-    [telemetry],
-  );
+  // agentMetrics is passed to useWorkoutAgent/useAiInstructor.
+  // Previously depended on `telemetry` which changes 2-4x/sec from the RAF loop,
+  // creating a new object every update and cascading into infinite re-render loops (React #185).
+  // Now we use a ref and only update the object when the component actually reads it.
+  const telemetryForAgentRef = useRef(telemetry);
+  telemetryForAgentRef.current = telemetry;
+  // Stable object identity — hooks read metrics via their own metricsRef internally.
+  // WARNING: Do NOT pass this to React.memo-wrapped components — they will never
+  // detect changes since the object reference is always the same.
+  const agentMetrics = useMemo(() => ({
+    get heartRate() { return telemetryForAgentRef.current.heartRate; },
+    get power() { return telemetryForAgentRef.current.power; },
+    get cadence() { return telemetryForAgentRef.current.cadence; },
+    get speed() { return telemetryForAgentRef.current.speed; },
+    get effort() { return telemetryForAgentRef.current.effort; },
+    get wBal() { return telemetryForAgentRef.current.wBal; },
+    get wBalPercentage() { return telemetryForAgentRef.current.wBalPercentage || 100; },
+    get distance() { return telemetryForAgentRef.current.distance; },
+    get currentGear() { return telemetryForAgentRef.current.currentGear; },
+    get gearRatio() { return telemetryForAgentRef.current.gearRatio; },
+    get resistance() { return telemetryForAgentRef.current.resistance; },
+    get timestamp() { return telemetryForAgentRef.current.timestamp; },
+  }), []);
 
   const stableSetResistance = useCallback(
     async (level: number) => {
@@ -1006,17 +1022,33 @@ export default function LiveRidePage() {
     marketStats, // Phase 3: Revenue optimization
   });
 
-  const flowIntensity = useMemo(() => {
-    if (!currentInterval?.targetRpm) return telemetry.effort / 100;
-    const [min] = currentInterval.targetRpm;
-    return Math.min(1, telemetry.cadence / min);
-  }, [telemetry.cadence, telemetry.effort, currentInterval]);
+  // flowIntensity uses refs to read telemetry so it doesn't recalculate on every
+  // telemetry update. Instead, it's driven by a state update from a low-frequency interval.
+  const flowIntensityMemosRef = useRef({ cadence: telemetry.cadence, effort: telemetry.effort, interval: currentInterval });
+  flowIntensityMemosRef.current = { cadence: telemetry.cadence, effort: telemetry.effort, interval: currentInterval };
+  const [flowIntensity, setFlowIntensity] = useState(0);
+  useEffect(() => {
+    if (!isRiding) return;
+    // Set initial value immediately to avoid 500ms flash at zero intensity
+    const init = flowIntensityMemosRef.current;
+    setFlowIntensity(!init.interval?.targetRpm ? init.effort / 100 : Math.min(1, init.cadence / init.interval.targetRpm[0]));
+    const id = setInterval(() => {
+      const { cadence, effort, interval } = flowIntensityMemosRef.current;
+      if (!interval?.targetRpm) {
+        setFlowIntensity(effort / 100);
+      } else {
+        const [min] = interval.targetRpm;
+        setFlowIntensity(Math.min(1, cadence / min));
+      }
+    }, 500);
+    return () => clearInterval(id);
+  }, [isRiding]);
 
   const flowColor = useMemo(() => {
     if (currentInterval?.phase === "sprint") return "bg-rose-500";
     if (currentInterval?.phase === "recovery") return "bg-sky-500";
     return "bg-yellow-500";
-  }, [currentInterval?.phase]);
+  }, [currentInterval?.phase]); // stable — phase only changes on interval transitions
 
   // Biometric Music Sync
   // Uses a ref to read telemetry.cadence inside an interval so the effect

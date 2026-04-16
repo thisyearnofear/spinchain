@@ -102,17 +102,28 @@ export function useWorkoutAgent({
   );
 
   // Cadence Sync Haptics - Pulse when below target RPM
-  const cadence = metrics?.cadence;
-  const targetRpm = currentInterval?.targetRpm;
+  // Uses ref-based polling instead of direct cadence dependency to prevent
+  // the effect from re-running on every telemetry update (React #185).
+  const cadenceCheckRef = useRef<{ cadence: number; targetRpm: [number, number] } | null>(null);
+  // Update ref on every render (cheap) instead of using cadence/targetRpm as effect deps
+  if (metrics?.cadence && currentInterval?.targetRpm) {
+    cadenceCheckRef.current = { cadence: metrics.cadence, targetRpm: currentInterval.targetRpm };
+  } else {
+    cadenceCheckRef.current = null;
+  }
   useEffect(() => {
-    if (!isEnabled || !cadence || !targetRpm) return;
-    const [minRpm] = targetRpm;
-    
-    if (cadence < minRpm - 5) {
-      // Pulse at target cadence to help rider find the beat
-      rhythm(minRpm, 3000);
-    }
-  }, [isEnabled, cadence, targetRpm, rhythm]);
+    if (!isEnabled) return;
+    const id = setInterval(() => {
+      const check = cadenceCheckRef.current;
+      if (!check) return;
+      const { cadence, targetRpm } = check;
+      const [minRpm] = targetRpm;
+      if (cadence < minRpm - 5) {
+        rhythm(minRpm, 3000);
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isEnabled, rhythm]);
 
   // 2. Long-term Strategic Reasoning (Phase 3)
   const { 
@@ -127,15 +138,18 @@ export function useWorkoutAgent({
   });
 
   // 3. Hands-free Voice Control (Phase 1 Integration)
+  // Uses metricsRef instead of metrics directly to prevent callback recreation
+  // on every telemetry update, which causes useVoiceCommands to re-initialize (React #185).
   const handleVoiceCommand = useCallback((parsed: any) => {
     if (!parsed.action) return;
+    const m = metricsRef.current;
 
     addLog(`Voice Command Recognized: ${parsed.rawText}`, "info");
 
     switch (parsed.action) {
       case "increase_resistance":
         playSound?.("resistanceUp");
-        setResistance?.(metrics?.resistance ? Math.min(100, metrics.resistance + 10) : 50);
+        setResistance?.(m?.resistance ? Math.min(100, m.resistance + 10) : 50);
         // Haptic: Two short pulses for increase
         if (typeof window !== 'undefined' && navigator.vibrate) {
           navigator.vibrate([100, 50, 100]);
@@ -143,7 +157,7 @@ export function useWorkoutAgent({
         break;
       case "decrease_resistance":
         playSound?.("resistanceDown");
-        setResistance?.(metrics?.resistance ? Math.max(0, metrics.resistance - 10) : 20);
+        setResistance?.(m?.resistance ? Math.max(0, m.resistance - 10) : 20);
         // Haptic: One long pulse for decrease
         if (typeof window !== 'undefined' && navigator.vibrate) {
           navigator.vibrate(200);
@@ -162,7 +176,7 @@ export function useWorkoutAgent({
         }
         break;
     }
-  }, [metrics, setResistance, addLog, playSound]);
+  }, [setResistance, addLog, playSound]);
 
   const { isListening, startListening, stopListening } = useVoiceCommands({
     onCommand: handleVoiceCommand,

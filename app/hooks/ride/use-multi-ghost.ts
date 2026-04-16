@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { fetchGhostWithFallback, type GhostPerformance } from "@/app/lib/analytics/ghost-service";
 
 export interface MultiGhostState {
@@ -58,27 +58,47 @@ export function useMultiGhost(
     loadGhosts();
   }, [classId, isRiding, routeCoordinates.length]);
 
-  const multiGhostState = useMemo(() => {
-    return ghosts.map((ghost) => {
-      // Find the ghost's point at current time to get lead/lag and power
-      const ghostPoint = ghost.points.find(p => 
-        (p.timestamp - ghost.points[0].timestamp) >= currentElapsedTime * 1000
-      ) || ghost.points[ghost.points.length - 1];
+  // Use refs for rapidly-changing distance/elapsedTime to prevent the useMemo
+  // from recalculating on every telemetry update (which would create a new array
+  // reference and cascade into child component re-renders, React #185).
+  const currentDistanceRef = useRef(currentDistance);
+  currentDistanceRef.current = currentDistance;
+  const currentElapsedTimeRef = useRef(currentElapsedTime);
+  currentElapsedTimeRef.current = currentElapsedTime;
 
-      const ghostTimeAtDistance = ghost.points.find(p => p.distance >= currentDistance / 1000) 
-        ? (ghost.points.find(p => p.distance >= currentDistance / 1000)!.timestamp - ghost.points[0].timestamp) / 1000
-        : currentElapsedTime;
+  // Update ghost state at low frequency via interval instead of useMemo
+  const [multiGhostState, setMultiGhostState] = useState<MultiGhostState[]>([]);
+  useEffect(() => {
+    if (!isRiding || ghosts.length === 0) {
+      if (ghosts.length > 0 && !isRiding) setMultiGhostState([]);
+      return;
+    }
+    const id = setInterval(() => {
+      const dist = currentDistanceRef.current;
+      const elapsed = currentElapsedTimeRef.current;
+      setMultiGhostState(
+        ghosts.map((ghost) => {
+          const ghostPoint = ghost.points.find(p =>
+            (p.timestamp - ghost.points[0].timestamp) >= elapsed * 1000
+          ) || ghost.points[ghost.points.length - 1];
 
-      return {
-        id: ghost.id,
-        name: ghost.riderName,
-        leadLagTime: ghostTimeAtDistance - currentElapsedTime,
-        distanceGap: currentDistance - (ghostPoint.distance * 1000),
-        active: true,
-        power: ghostPoint.power,
-      };
-    });
-  }, [ghosts, currentDistance, currentElapsedTime]);
+          const ghostTimeAtDistance = ghost.points.find(p => p.distance >= dist / 1000)
+            ? (ghost.points.find(p => p.distance >= dist / 1000)!.timestamp - ghost.points[0].timestamp) / 1000
+            : elapsed;
+
+          return {
+            id: ghost.id,
+            name: ghost.riderName,
+            leadLagTime: ghostTimeAtDistance - elapsed,
+            distanceGap: dist - (ghostPoint.distance * 1000),
+            active: true,
+            power: ghostPoint.power,
+          };
+        }),
+      );
+    }, 1000); // Update at 1Hz — smooth enough for ghost comparison
+    return () => clearInterval(id);
+  }, [ghosts, isRiding]);
 
   return {
     multiGhostState,
