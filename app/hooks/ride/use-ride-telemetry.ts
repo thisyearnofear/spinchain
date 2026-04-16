@@ -139,6 +139,13 @@ export function useRideTelemetry({
   const lastHistoryCommitMsRef = useRef(0);
   const lastRidePointCommitSecRef = useRef<number>(-1);
 
+  // Stabilize rapidly-changing props via refs so the RAF loop effect
+  // doesn't restart on every frame, which causes the infinite re-render loop (React #185).
+  const currentRouteCoordinateRef = useRef(currentRouteCoordinate);
+  currentRouteCoordinateRef.current = currentRouteCoordinate;
+  const elapsedTimeSecondsRef = useRef(elapsedTimeSeconds);
+  elapsedTimeSecondsRef.current = elapsedTimeSeconds;
+
   // Ring buffers replace array spreading for 20% jank reduction
   const powerHistoryBuffer = useRef(new RingBuffer(30));
   const cadenceHistoryBuffer = useRef(new RingBuffer(30));
@@ -194,6 +201,9 @@ export function useRideTelemetry({
   }, [routeCoordinates, ghostPerformance, ghostBlobId, classId, riderAddress]);
 
   // RAF-aligned telemetry update loop (replaces setInterval for 10% jank reduction)
+  // NOTE: currentRouteCoordinate and elapsedTimeSeconds are read via refs inside the loop
+  // so they don't appear in the dependency array. This prevents the RAF loop from
+  // restarting on every frame (which causes the infinite re-render loop, React #185).
   useEffect(() => {
     if (!isRiding) return;
 
@@ -263,7 +273,8 @@ export function useRideTelemetry({
       const nowSec = Math.floor(now / 1000);
       if (nowSec !== lastRidePointCommitSecRef.current) {
         lastRidePointCommitSecRef.current = nowSec;
-        const currentCoord = currentRouteCoordinate;
+        // Read current route coordinate from ref (stabilized to prevent RAF restarts)
+        const currentCoord = currentRouteCoordinateRef.current;
         ridePointsRef.current.push({
           timestamp: now,
           heartRate: telemetryRawRef.current.heartRate,
@@ -282,10 +293,12 @@ export function useRideTelemetry({
 
       // Update ghost state (ref-only, no React state for 5% jank reduction)
       if (ghostPerformance) {
+        // Read elapsed time from ref (stabilized to prevent RAF restarts)
+        const elapsed = elapsedTimeSecondsRef.current;
         const nextGhost = calculateGhostState(
           ghostPerformance.points,
           telemetryRawRef.current.distance * 1000,
-          elapsedTimeSeconds,
+          elapsed,
         );
         setGhostState(nextGhost);
       }
@@ -333,8 +346,6 @@ export function useRideTelemetry({
     performanceTier,
     currentGear,
     ghostPerformance,
-    currentRouteCoordinate,
-    elapsedTimeSeconds,
     historyUpdateIntervalMs,
     maxRidePoints,
     updateTelemetryStore,

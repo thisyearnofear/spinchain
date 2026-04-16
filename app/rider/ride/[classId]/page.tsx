@@ -338,6 +338,7 @@ export default function LiveRidePage() {
   const trackedEntryViewRef = useRef(false);
   const trackedLiveTelemetryRef = useRef(false);
   const trackedCompletionRef = useRef(false);
+  const trackedMilestoneRef = useRef(false); // Separate from completion to avoid blocking ride-completed analytics
 
   const routeCoordinates = useMemo(
     () => classData?.route?.route.coordinates ?? [],
@@ -643,13 +644,17 @@ export default function LiveRidePage() {
   const haptic = useHaptic();
 
   // Activate wake lock when riding starts on mobile
+  // Uses a ref for wakeLockActive to prevent the effect from re-running when
+  // the wake lock is acquired (which would create an infinite loop).
+  const wakeLockActiveRef = useRef(wakeLockActive);
+  wakeLockActiveRef.current = wakeLockActive;
   useEffect(() => {
     if (isRiding && deviceType === "mobile") {
       requestWakeLock();
-    } else if (!isRiding && wakeLockActive) {
+    } else if (!isRiding && wakeLockActiveRef.current) {
       releaseWakeLock();
     }
-  }, [isRiding, deviceType, requestWakeLock, releaseWakeLock, wakeLockActive]);
+  }, [isRiding, deviceType, requestWakeLock, releaseWakeLock]);
 
   // Demo complete modal state
   const [showDemoModal, setShowDemoModal] = useState(false);
@@ -697,6 +702,17 @@ export default function LiveRidePage() {
   // Telemetry RAF loop + history + ghost updates are consolidated in useRideTelemetry.
 
   // Handle BLE metrics updates
+  // Uses refs for rewards and telemetry to prevent callback recreation on every
+  // telemetry update, which would trigger infinite re-render loops (React #185).
+  const rewardsRef = useRef(rewards);
+  rewardsRef.current = rewards;
+  const telemetryRef = useRef(telemetry);
+  telemetryRef.current = telemetry;
+  const isTrainingModeRef = useRef(isTrainingMode);
+  isTrainingModeRef.current = isTrainingMode;
+  const bleConnectedRef = useRef(bleConnected);
+  bleConnectedRef.current = bleConnected;
+
   const handleBleMetrics = useCallback(
     async (metrics: {
       heartRate?: number;
@@ -710,7 +726,7 @@ export default function LiveRidePage() {
       handleBleMetricsInternal(metrics);
 
       if (metrics.heartRate || metrics.power) {
-        if (!bleConnected) setBleConnected(true); // Guard to avoid no-op re-renders
+        if (!bleConnectedRef.current) setBleConnected(true); // Guard to avoid no-op re-renders
         if (!trackedLiveTelemetryRef.current) {
           trackedLiveTelemetryRef.current = true;
           trackEvent(ANALYTICS_EVENTS.TELEMETRY_LIVE_READY, {
@@ -722,11 +738,13 @@ export default function LiveRidePage() {
 
       // Record effort for Yellow rewards (rate-limited; do not block UI)
       // Skip recording in training mode (simulator in paid class) - rewards disabled
+      const currentRewards = rewardsRef.current;
+      const currentTelemetry = telemetryRef.current;
       if (
-        isRiding &&
-        rewards.isActive &&
+        isRidingRef.current &&
+        currentRewards.isActive &&
         (metrics.heartRate || metrics.power) &&
-        !isTrainingMode
+        !isTrainingModeRef.current
       ) {
         const now = Date.now();
         const minIntervalMs = deviceType === "mobile" ? 500 : 250; // 2Hz mobile, 4Hz desktop
@@ -738,12 +756,12 @@ export default function LiveRidePage() {
           pendingRewardRecordRef.current = true;
           lastRewardRecordMsRef.current = now;
 
-          void rewards
+          void currentRewards
             .recordEffort({
               timestamp: now,
-              heartRate: metrics.heartRate || telemetry.heartRate,
-              power: metrics.power || telemetry.power,
-              cadence: metrics.cadence || telemetry.cadence,
+              heartRate: metrics.heartRate || currentTelemetry.heartRate,
+              power: metrics.power || currentTelemetry.power,
+              cadence: metrics.cadence || currentTelemetry.cadence,
             })
             .catch((err) => {
               // Best-effort
@@ -756,17 +774,10 @@ export default function LiveRidePage() {
       }
     },
     [
-      bleConnected,
       classId,
       deviceType,
       handleBleMetricsInternal,
       isPracticeMode,
-      isRiding,
-      isTrainingMode,
-      rewards,
-      telemetry.cadence,
-      telemetry.heartRate,
-      telemetry.power,
     ],
   );
 
@@ -889,12 +900,19 @@ export default function LiveRidePage() {
   ]);
 
   // Also collect BLE and simulator telemetry samples
+  // Uses refs to read telemetry so the effect doesn't re-run on every telemetry change,
+  // preventing the infinite re-render loop (React #185).
+  const telemetryRefForSamples = useRef(telemetry);
+  telemetryRefForSamples.current = telemetry;
   useEffect(() => {
-    if (isRiding && (bleConnected || useSimulator) && telemetry.heartRate > 0) {
+    if (!isRiding || (!bleConnected && !useSimulator)) return;
+    const id = setInterval(() => {
+      const t = telemetryRefForSamples.current;
+      if (t.heartRate <= 0) return;
       telemetrySamples.current.push({
-        hr: telemetry.heartRate,
-        power: telemetry.power,
-        effort: telemetry.effort,
+        hr: t.heartRate,
+        power: t.power,
+        effort: t.effort,
       });
       if (telemetrySamples.current.length > MAX_TELEMETRY_SAMPLES) {
         telemetrySamples.current.splice(
@@ -902,17 +920,13 @@ export default function LiveRidePage() {
           telemetrySamples.current.length - MAX_TELEMETRY_SAMPLES,
         );
       }
-      // Refresh averages immediately after collection (only 1 update vs 2 separate effects)
       refreshTelemetryAverages();
-    }
+    }, 1000);
+    return () => clearInterval(id);
   }, [
     isRiding,
     bleConnected,
     useSimulator,
-    isPracticeMode,
-    telemetry.heartRate,
-    telemetry.power,
-    telemetry.effort,
     refreshTelemetryAverages,
     telemetrySamples,
   ]);
@@ -924,12 +938,16 @@ export default function LiveRidePage() {
   });
 
   // Simulate market activity for Phase 3 autonomy (Demo/Guest mode only)
+  // Uses a ref to read telemetry.effort inside the interval so the effect
+  // doesn't re-run on every telemetry change, preventing the infinite re-render loop.
+  const telemetryEffortRef = useRef(telemetry.effort);
+  telemetryEffortRef.current = telemetry.effort;
   useEffect(() => {
     if (!isRiding || (!isPracticeMode && !isGuestMode)) return;
     const interval = setInterval(() => {
       setMarketStats((prev) => {
         // More "intense" classes drive more late-ticket sales
-        const intensityFactor = telemetry.effort / 100;
+        const intensityFactor = telemetryEffortRef.current / 100;
         const newTickets = Math.random() < 0.1 + intensityFactor * 0.2 ? 1 : 0;
         return {
           ...prev,
@@ -939,7 +957,7 @@ export default function LiveRidePage() {
       });
     }, 15000);
     return () => clearInterval(interval);
-  }, [isRiding, telemetry.effort, isPracticeMode, isGuestMode]);
+  }, [isRiding, isPracticeMode, isGuestMode]);
 
   const agentMetrics = useMemo(
     () => ({
@@ -1001,14 +1019,24 @@ export default function LiveRidePage() {
   }, [currentInterval?.phase]);
 
   // Biometric Music Sync
+  // Uses a ref to read telemetry.cadence inside an interval so the effect
+  // doesn't re-run on every cadence change, preventing the infinite re-render loop.
+  const telemetryCadenceRef = useRef(telemetry.cadence);
+  telemetryCadenceRef.current = telemetry.cadence;
+  const currentIntervalRef2 = useRef(currentInterval);
+  currentIntervalRef2.current = currentInterval;
   useEffect(() => {
-    if (!isRiding || !telemetry.cadence || !currentInterval?.targetRpm) return;
-    const [minRpm] = currentInterval.targetRpm;
-    // Calculate playback rate based on cadence vs target
-    // 1.0 is normal speed, range [0.85, 1.2]
-    const rate = Math.max(0.85, Math.min(1.2, telemetry.cadence / minRpm));
-    setMusicSpeed(rate);
-  }, [isRiding, telemetry.cadence, currentInterval, setMusicSpeed]);
+    if (!isRiding) return;
+    const id = setInterval(() => {
+      const ci = currentIntervalRef2.current;
+      const cadence = telemetryCadenceRef.current;
+      if (!cadence || !ci?.targetRpm) return;
+      const [minRpm] = ci.targetRpm;
+      const rate = Math.max(0.85, Math.min(1.2, cadence / minRpm));
+      setMusicSpeed(rate);
+    }, 2000);
+    return () => clearInterval(id);
+  }, [isRiding, setMusicSpeed]);
 
   const stableStoryBeats = useMemo(
     () => classData?.route?.route.storyBeats || [],
@@ -1039,19 +1067,28 @@ export default function LiveRidePage() {
   } | null>(null);
 
   // Milestone Celebration logic
+  // Uses a ref to read telemetry.effort inside an interval so the effect
+  // doesn't re-run on every effort change, preventing the infinite re-render loop.
+  const milestoneHapticRef = useRef(haptic);
+  milestoneHapticRef.current = haptic;
+  const milestonePlaySoundRef = useRef(playSound);
+  milestonePlaySoundRef.current = playSound;
   useEffect(() => {
     if (!isRiding) return;
-
-    if (telemetry.effort > 900 && !trackedCompletionRef.current) {
-      setShowMilestone({
-        title: "ELITE EFFORT",
-        subtitle: "You just crossed 900 effort points!",
-      });
-      haptic.success();
-      playSound("achievement");
-      setTimeout(() => setShowMilestone(null), 5000);
-    }
-  }, [telemetry.effort, isRiding, haptic, playSound]);
+    const id = setInterval(() => {
+      if (telemetryEffortRef.current > 900 && !trackedMilestoneRef.current) {
+        trackedMilestoneRef.current = true;
+        setShowMilestone({
+          title: "ELITE EFFORT",
+          subtitle: "You just crossed 900 effort points!",
+        });
+        milestoneHapticRef.current.success();
+        milestonePlaySoundRef.current("achievement");
+        setTimeout(() => setShowMilestone(null), 5000);
+      }
+    }, 2000);
+    return () => clearInterval(id);
+  }, [isRiding]);
 
   useEffect(() => {
     const practiceAiEnabled =
