@@ -7,8 +7,11 @@ import {
   YELLOW_SETTLEMENT_ADDRESS,
   YELLOW_SETTLEMENT_ABI,
   ACTIVE_NETWORK,
+  CHANNEL_STATE_COMPONENTS,
+  SIGNED_UPDATE_COMPONENTS,
 } from "@/app/lib/contracts";
 import type { PendingYellowSettlement } from "@/app/lib/rewards/yellow/pending-store";
+import type { SignedUpdateParams } from "@/app/lib/rewards/yellow/streaming";
 
 function normalizeWalletError(err: unknown): Error {
   if (err instanceof Error) return err;
@@ -36,28 +39,11 @@ const DOMAIN = {
 } as const;
 
 const CHANNEL_STATE_TYPES = {
-  ChannelState: [
-    { name: "channelId", type: "bytes32" },
-    { name: "rider", type: "address" },
-    { name: "instructor", type: "address" },
-    { name: "classId", type: "bytes32" },
-    { name: "finalReward", type: "uint256" },
-    { name: "effortScore", type: "uint16" },
-  ],
+  ChannelState: CHANNEL_STATE_COMPONENTS,
 } as const;
 
 const SIGNED_UPDATE_TYPES = {
-  SignedUpdate: [
-    { name: "channelId", type: "bytes32" },
-    { name: "classId", type: "bytes32" },
-    { name: "rider", type: "address" },
-    { name: "instructor", type: "address" },
-    { name: "timestamp", type: "uint256" },
-    { name: "sequence", type: "uint256" },
-    { name: "accumulatedReward", type: "uint256" },
-    { name: "heartRate", type: "uint16" },
-    { name: "power", type: "uint16" },
-  ],
+  SignedUpdate: SIGNED_UPDATE_COMPONENTS,
 } as const;
 
 export function useYellowSettlement() {
@@ -113,17 +99,7 @@ export function useYellowSettlement() {
   );
 
   const signUpdate = useCallback(
-    async (params: {
-      channelId: `0x${string}`;
-      classId: `0x${string}`;
-      rider: `0x${string}`;
-      instructor: `0x${string}`;
-      timestamp: number;
-      sequence: number;
-      accumulatedReward: bigint;
-      heartRate: number;
-      power: number;
-    }) => {
+    async (params: SignedUpdateParams) => {
       if (!address) {
         throw new Error("Connect wallet to sign Yellow reward updates.");
       }

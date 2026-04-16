@@ -8,7 +8,13 @@
  */
 
 import type { RouteResponse } from "./ai-types";
-import { YELLOW_SETTLEMENT_ABI as YELLOW_SETTLEMENT_CONTRACT_ABI } from "./contracts/yellow-settlement";
+import { 
+  YELLOW_SETTLEMENT_ABI as YELLOW_SETTLEMENT_CONTRACT_ABI,
+  CHANNEL_STATE_COMPONENTS,
+  SIGNED_UPDATE_COMPONENTS,
+} from "./contracts/yellow-settlement";
+
+export { CHANNEL_STATE_COMPONENTS, SIGNED_UPDATE_COMPONENTS };
 
 // ============================================================================
 // NETWORK CONFIGURATION

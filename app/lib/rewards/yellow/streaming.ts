@@ -34,7 +34,7 @@ const STREAMING_INTERVAL = 10000; // 10 seconds
 // Types
 // ============================================================================
 
-export type UpdateSigner = (params: {
+export type SignedUpdateParams = {
   channelId: `0x${string}`;
   classId: `0x${string}`;
   rider: `0x${string}`;
@@ -44,7 +44,9 @@ export type UpdateSigner = (params: {
   accumulatedReward: bigint;
   heartRate: number;
   power: number;
-}) => Promise<string>;
+};
+
+export type UpdateSigner = (params: SignedUpdateParams) => Promise<string>;
 
 export interface UseYellowStreamingReturn {
   // State
