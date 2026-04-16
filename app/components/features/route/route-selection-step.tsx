@@ -351,36 +351,35 @@ export function RouteSelectionStep({
 
         {/* Mode Toggle - Glassmorphism 2.0 */}
         <div className="flex gap-4 p-2 rounded-[32px] bg-black/40 border border-white/10 backdrop-blur-3xl max-w-xl mx-auto">
-          <button
-            onClick={() => setMode("generate")}
-            className={`flex-1 rounded-[24px] px-6 py-4 text-xs font-black uppercase tracking-widest transition-all ${
-              mode === "generate"
-                ? "bg-white text-black shadow-2xl shadow-white/10"
-                : "text-white/40 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <div className="flex items-center justify-center gap-3">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              AI Synthesis
-            </div>
-          </button>
-          <button
-            onClick={() => setMode("library")}
-            className={`flex-1 rounded-[24px] px-6 py-4 text-xs font-black uppercase tracking-widest transition-all ${
-              (mode as string) === "library"
-                ? "bg-white text-black shadow-2xl shadow-white/10"
-                : "text-white/40 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <div className="flex items-center justify-center gap-3">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-              </svg>
-              Library ({routes.length})
-            </div>
-          </button>
+          {[
+            {
+              id: "generate",
+              label: "AI Synthesis",
+              icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            },
+            {
+              id: "library",
+              label: `Library (${routes.length})`,
+              icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            }
+          ].map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setMode(m.id as "generate" | "library")}
+              className={`flex-1 rounded-[24px] px-6 py-4 text-xs font-black uppercase tracking-widest transition-all ${
+                mode === m.id
+                  ? "bg-white text-black shadow-2xl shadow-white/10"
+                  : "text-white/40 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <div className="flex items-center justify-center gap-3">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {m.icon}
+                </svg>
+                {m.label}
+              </div>
+            </button>
+          ))}
         </div>
 
         {/* AI Route Generator */}
