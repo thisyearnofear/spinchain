@@ -219,8 +219,8 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
         return null;
       }
 
-      // Create signed update payload (for on-chain settlement)
-      const update: Omit<SignedRewardUpdate, "riderSignature"> = {
+      // Create base update object
+      const baseUpdate = {
         channelId: channel.id as unknown as `0x${string}`,
         classId: channel.classId,
         rider: channel.rider,
@@ -230,23 +230,18 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
         accumulatedReward: newAccumulated,
         heartRate: telemetry.heartRate,
         power: telemetry.power,
+      };
+
+      // Create signed update payload (for on-chain settlement)
+      const update: Omit<SignedRewardUpdate, "riderSignature"> = {
+        ...baseUpdate,
         instructorSignature: undefined,
       };
 
       // Sign the update with wallet (for EIP-712 on-chain settlement proof)
       let signature: string;
       try {
-        signature = await signUpdateRef.current!({
-          channelId: channel.id as unknown as `0x${string}`,
-          classId: channel.classId,
-          rider: channel.rider,
-          instructor: channel.instructor,
-          timestamp: now,
-          sequence,
-          accumulatedReward: newAccumulated,
-          heartRate: telemetry.heartRate,
-          power: telemetry.power,
-        });
+        signature = await signUpdateRef.current!(baseUpdate);
       } catch (err) {
         console.error("[YellowStreaming] Failed to sign update:", err);
         return null;
