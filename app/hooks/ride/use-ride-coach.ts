@@ -52,6 +52,29 @@ export function useRideCoach({
   const lastCadenceCheckRef = useRef<number>(Date.now());
   const lastDriftNudgeRef = useRef<string | null>(null);
 
+  // Stabilize all rapidly-changing values via refs to prevent infinite re-render loops
+  const aiLogsRef = useRef(aiLogs);
+  aiLogsRef.current = aiLogs;
+  const isSpeakingRef = useRef(isSpeaking);
+  isSpeakingRef.current = isSpeaking;
+  const lastDecisionRef = useRef(lastDecision);
+  lastDecisionRef.current = lastDecision;
+  const rideProgressRef = useRef(rideProgress);
+  rideProgressRef.current = rideProgress;
+  const telemetryCadenceRef = useRef(telemetryCadence);
+  telemetryCadenceRef.current = telemetryCadence;
+  const currentIntervalRef = useRef(currentInterval);
+  currentIntervalRef.current = currentInterval;
+  const intervalRemainingRef = useRef(intervalRemaining);
+  intervalRemainingRef.current = intervalRemaining;
+  const speakRef = useRef(speak);
+  speakRef.current = speak;
+  const playSoundRef = useRef(playSound);
+  playSoundRef.current = playSound;
+
+  // Track the last aiLogs length to detect genuinely new entries
+  const lastAiLogsLengthRef = useRef(0);
+
   const showMessage = useCallback((message: string, durationMs = 4000) => {
     setLastCoachMessage(message);
     if (coachMessageTimerRef.current) clearTimeout(coachMessageTimerRef.current);
@@ -72,90 +95,114 @@ export function useRideCoach({
     if (!interval) return;
 
     if (interval.phase === "sprint") {
-      playSound("intervalStart");
+      playSoundRef.current("intervalStart");
     } else if (interval.phase === "recovery" || interval.phase === "cooldown") {
-      playSound("recover");
+      playSoundRef.current("recover");
     } else if (interval.phase === "interval") {
-      playSound("resistanceUp");
+      playSoundRef.current("resistanceUp");
     }
 
     if (interval.coachCue) {
       const emotion = PHASE_DEFAULTS[interval.phase].coachEmotion;
-      speak(interval.coachCue, emotion);
+      speakRef.current(interval.coachCue, emotion);
       showMessage(interval.coachCue);
     }
-  }, [isRiding, workoutPlan, currentIntervalIndex, playSound, speak, showMessage]);
+  }, [isRiding, workoutPlan, currentIntervalIndex, showMessage]);
 
-  // 2. Countdown warning at 5s before interval ends
+  // 2. Countdown warning at 5s before interval ends (poll via interval)
   useEffect(() => {
-    if (!isRiding || !workoutPlan || !currentInterval) return;
-    if (intervalRemaining <= 5 && intervalRemaining > 4) {
-      playSound("countdown");
-    }
-  }, [isRiding, workoutPlan, currentInterval, intervalRemaining, playSound]);
+    if (!isRiding || !workoutPlan) return;
+    const id = setInterval(() => {
+      const rem = intervalRemainingRef.current;
+      const ci = currentIntervalRef.current;
+      if (ci && rem <= 5 && rem > 4) {
+        playSoundRef.current("countdown");
+      }
+    }, 500);
+    return () => clearInterval(id);
+  }, [isRiding, workoutPlan]);
 
-  // 3. Speak AI instructor actions (Real-time coaching)
+  // 3. Speak AI instructor actions — poll for new entries instead of depending on array ref
   useEffect(() => {
-    if (!aiActive || aiLogs.length === 0) return;
-    const latest = aiLogs[0];
-    if (latest.type === "action" && !isSpeaking) {
-      // Use agent's chosen emotion if available, fallback to intense
-      const emotion = lastDecision?.emotion || "intense";
-      speak(latest.message, emotion);
-      showMessage(latest.message);
+    if (!aiActive) {
+      lastAiLogsLengthRef.current = 0;
+      return;
     }
-  }, [aiActive, aiLogs, isSpeaking, speak, showMessage, lastDecision]);
+    const id = setInterval(() => {
+      const logs = aiLogsRef.current;
+      if (logs.length > lastAiLogsLengthRef.current && logs.length > 0) {
+        lastAiLogsLengthRef.current = logs.length;
+        const latest = logs[0];
+        if (latest.type === "action" && !isSpeakingRef.current) {
+          const emotion = lastDecisionRef.current?.emotion || "intense";
+          speakRef.current(latest.message, emotion);
+          showMessage(latest.message);
+        }
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [aiActive, showMessage]);
 
-  // 4. Cadence drift detection — nudge if below target RPM for >8s
+  // 4. Cadence drift detection — poll instead of depending on telemetryCadence
   useEffect(() => {
-    if (!isRiding || !currentInterval?.targetRpm) return;
-    const [minRpm] = currentInterval.targetRpm;
-    const now = Date.now();
-    const delta = now - lastCadenceCheckRef.current;
-    lastCadenceCheckRef.current = now;
+    if (!isRiding) return;
+    const id = setInterval(() => {
+      const ci = currentIntervalRef.current;
+      if (!ci?.targetRpm) return;
+      const [minRpm] = ci.targetRpm;
+      const cadence = telemetryCadenceRef.current;
+      const now = Date.now();
+      const delta = now - lastCadenceCheckRef.current;
+      lastCadenceCheckRef.current = now;
 
-    if (telemetryCadence < minRpm - 10) {
-      cadenceDriftMsRef.current += delta;
-    } else {
-      cadenceDriftMsRef.current = 0;
-    }
+      if (cadence < minRpm - 10) {
+        cadenceDriftMsRef.current += delta;
+      } else {
+        cadenceDriftMsRef.current = 0;
+      }
 
-    const intervalKey = `${currentIntervalIndex}-${currentInterval.phase}`;
-    if (cadenceDriftMsRef.current >= 8000 && lastDriftNudgeRef.current !== intervalKey) {
-      lastDriftNudgeRef.current = intervalKey;
-      cadenceDriftMsRef.current = 0;
-      const nudge = "Pick up the pace!";
-      speak(nudge, "intense");
-      showMessage(nudge);
-    }
-  }, [isRiding, telemetryCadence, currentInterval, currentIntervalIndex, speak, showMessage]);
+      const intervalKey = `${currentIntervalIndex}-${ci.phase}`;
+      if (cadenceDriftMsRef.current >= 8000 && lastDriftNudgeRef.current !== intervalKey) {
+        lastDriftNudgeRef.current = intervalKey;
+        cadenceDriftMsRef.current = 0;
+        const nudge = "Pick up the pace!";
+        speakRef.current(nudge, "intense");
+        showMessage(nudge);
+      }
+    }, 2000);
+    return () => clearInterval(id);
+  }, [isRiding, currentIntervalIndex, showMessage]);
 
-  // 5. Announce story beats (Terrain/Environment)
+  // 5. Announce story beats — poll rideProgress via ref
   useEffect(() => {
     if (!isRiding || !storyBeats.length) return;
-    
-    const currentBeat = storyBeats.find((beat) => {
-      const beatProgress = beat.progress * 100;
-      return rideProgress >= beatProgress && rideProgress < beatProgress + 3;
-    });
 
-    if (!currentBeat) return;
-    
-    const beatKey = `${currentBeat.progress}-${currentBeat.label}`;
-    if (lastSpokenBeatRef.current === beatKey) return;
-    lastSpokenBeatRef.current = beatKey;
+    const id = setInterval(() => {
+      const progress = rideProgressRef.current;
+      const currentBeat = storyBeats.find((beat) => {
+        const beatProgress = beat.progress * 100;
+        return progress >= beatProgress && progress < beatProgress + 3;
+      });
 
-    if (currentBeat.type === "sprint") playSound("sprint");
-    else if (currentBeat.type === "climb") playSound("climb");
-    else if (currentBeat.type === "rest") playSound("recover");
+      if (!currentBeat) return;
 
-    const emotion = currentBeat.type === "sprint" ? "intense"
-      : currentBeat.type === "climb" ? "focused"
-        : currentBeat.type === "rest" ? "calm"
-          : "focused";
-    speak(currentBeat.label, emotion);
-    showMessage(currentBeat.label);
-  }, [isRiding, storyBeats, rideProgress, playSound, speak, showMessage]);
+      const beatKey = `${currentBeat.progress}-${currentBeat.label}`;
+      if (lastSpokenBeatRef.current === beatKey) return;
+      lastSpokenBeatRef.current = beatKey;
+
+      if (currentBeat.type === "sprint") playSoundRef.current("sprint");
+      else if (currentBeat.type === "climb") playSoundRef.current("climb");
+      else if (currentBeat.type === "rest") playSoundRef.current("recover");
+
+      const emotion = currentBeat.type === "sprint" ? "intense"
+        : currentBeat.type === "climb" ? "focused"
+          : currentBeat.type === "rest" ? "calm"
+            : "focused";
+      speakRef.current(currentBeat.label, emotion);
+      showMessage(currentBeat.label);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isRiding, storyBeats, showMessage]);
 
   const reset = useCallback(() => {
     lastSpokenBeatRef.current = null;
