@@ -101,6 +101,11 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastTelemetryRef = useRef<TelemetryPoint | null>(null);
   const signUpdateRef = useRef<UpdateSigner | null>(null);
+  const accumulatedRef = useRef<bigint>(BigInt(0));
+  const channelRef = useRef<RewardChannel | null>(null);
+
+  accumulatedRef.current = streamState.accumulated;
+  channelRef.current = channel;
 
   // Cleanup on unmount
   useEffect(() => {
@@ -114,7 +119,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
         closeRewardChannel(streamState.accumulated).catch(console.error);
       }
     };
-  }, [streamState.accumulated]);
+  }, []);
 
   /**
    * Start streaming rewards via Yellow state channel
@@ -167,6 +172,9 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
         setIsConnecting(false);
 
         // Start periodic updates
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
         intervalRef.current = setInterval(() => {
           if (lastTelemetryRef.current) {
             void sendUpdateInternal(lastTelemetryRef.current);
@@ -208,13 +216,14 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
             power: lastTelemetryRef.current.power,
             timestamp: lastTelemetryRef.current.timestamp,
           },
-          streamState.accumulated,
+          accumulatedRef.current,
         );
       } else {
-        newAccumulated = streamState.accumulated;
+        newAccumulated = accumulatedRef.current;
       }
 
-      if (!channel) {
+      const activeChannel = channelRef.current;
+      if (!activeChannel) {
         console.warn(
           "[YellowStreaming] Cannot send update: no channel in state",
         );
@@ -223,10 +232,10 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
 
       // Create base update object
       const baseUpdate = {
-        channelId: channel.id as unknown as `0x${string}`,
-        classId: channel.classId,
-        rider: channel.rider,
-        instructor: channel.instructor,
+        channelId: activeChannel.id as unknown as `0x${string}`,
+        classId: activeChannel.classId,
+        rider: activeChannel.rider,
+        instructor: activeChannel.instructor,
         timestamp: now,
         sequence,
         accumulatedReward: newAccumulated,
@@ -257,8 +266,8 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
       // Submit to ClearNode via SDK (best-effort, non-blocking)
       if (isClearNodeConnected()) {
         submitState(
-          channel.id as `0x${string}`,
-          channel.rider,
+          activeChannel.id as `0x${string}`,
+          activeChannel.rider,
           newAccumulated,
           sequence,
           {
@@ -266,7 +275,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
             power: telemetry.power,
             timestamp: now,
           },
-          channel.participants || [channel.rider, channel.instructor],
+          activeChannel.participants || [activeChannel.rider, activeChannel.instructor],
         ).catch((err) => {
           console.warn("[YellowStreaming] ClearNode update failed:", err);
         });
@@ -284,7 +293,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
 
       return signedUpdate;
     },
-    [streamState.accumulated, channel],
+    [],
   );
 
   /**
@@ -315,7 +324,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
         intervalRef.current = null;
       }
 
-      const reward = finalReward ?? streamState.accumulated;
+      const reward = finalReward ?? accumulatedRef.current;
 
       try {
         const closedChannel = await closeRewardChannel(reward);
@@ -337,7 +346,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
         return null;
       }
     },
-    [streamState.accumulated],
+    [],
   );
 
   return {
