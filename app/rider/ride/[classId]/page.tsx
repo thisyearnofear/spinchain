@@ -1059,7 +1059,7 @@ export default function LiveRidePage() {
     isRiding,
     isPracticeMode,
     practiceConfig?.aiEnabled,
-    classData?.metadata?.ai,
+    classData?.metadata?.ai?.enabled,
     setAiActive,
   ]);
 
