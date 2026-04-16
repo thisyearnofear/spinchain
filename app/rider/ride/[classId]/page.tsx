@@ -231,7 +231,14 @@ export default function LiveRidePage() {
   );
 
   const { startRideLayout, endRideLayout } = panelState;
+  // Track the previous isRiding state to prevent unnecessary re-renders
+  const previousIsRidingRef = useRef<boolean | null>(null);
+  
   useEffect(() => {
+    // Only trigger layout changes when isRiding actually changes
+    if (previousIsRidingRef.current === isRiding) return;
+    previousIsRidingRef.current = isRiding;
+    
     if (isRiding) {
       startRideLayout();
     } else {

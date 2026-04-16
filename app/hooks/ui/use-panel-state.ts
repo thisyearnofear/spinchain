@@ -235,6 +235,8 @@ export function usePanelState(
   const preRideSnapshotRef = useRef<PanelState | null>(null);
   const preRidePositionsSnapshotRef = useRef<PanelPositions | null>(null);
   const rideLayoutActiveRef = useRef(false);
+  // Guard to prevent re-entrant calls that could cause infinite re-renders
+  const layoutTransitionInProgressRef = useRef(false);
   const [positions, setPositions] = useState<PanelPositions>(() => {
     const stored = loadStoredState();
     return stored?.positions ?? getDefaultPositions();
@@ -322,17 +324,21 @@ export function usePanelState(
   }, [deviceType]);
 
   const startRideLayout = useCallback(() => {
-    setState((prev) => {
+    // Guard against re-entrant calls that could cause infinite re-renders
+    if (layoutTransitionInProgressRef.current) return;
+    layoutTransitionInProgressRef.current = true;
+    
+    setState((prev): PanelState => {
       if (!rideLayoutActiveRef.current) {
         preRideSnapshotRef.current = prev;
         preRidePositionsSnapshotRef.current = positions;
         rideLayoutActiveRef.current = true;
       }
 
-      const nextMobileRideWidgets = deviceType === 'mobile' ? 'minimized' : prev.mobileRideWidgets;
-      const nextWorkoutPlan = prev.workoutPlan === 'expanded' ? 'collapsed' : prev.workoutPlan;
-      const nextInputMode = prev.inputMode === 'expanded' ? 'collapsed' : prev.inputMode;
-      const nextDeviceSelector = prev.deviceSelector === 'expanded' ? 'collapsed' : prev.deviceSelector;
+      const nextMobileRideWidgets: WidgetMode = deviceType === 'mobile' ? 'minimized' : prev.mobileRideWidgets;
+      const nextWorkoutPlan: WidgetMode = prev.workoutPlan === 'expanded' ? 'collapsed' : prev.workoutPlan;
+      const nextInputMode: WidgetMode = prev.inputMode === 'expanded' ? 'collapsed' : prev.inputMode;
+      const nextDeviceSelector: WidgetMode = prev.deviceSelector === 'expanded' ? 'collapsed' : prev.deviceSelector;
 
       if (
         prev.focusLeft === 'minimized' &&
@@ -343,10 +349,11 @@ export function usePanelState(
         prev.inputMode === nextInputMode &&
         prev.deviceSelector === nextDeviceSelector
       ) {
+        layoutTransitionInProgressRef.current = false;
         return prev;
       }
 
-      return {
+      const result: PanelState = {
         ...prev,
         mobileRideWidgets: nextMobileRideWidgets,
         focusLeft: 'minimized',
@@ -356,11 +363,25 @@ export function usePanelState(
         inputMode: nextInputMode,
         deviceSelector: nextDeviceSelector,
       };
+      
+      // Schedule reset of the guard after React updates
+      setTimeout(() => {
+        layoutTransitionInProgressRef.current = false;
+      }, 0);
+      
+      return result;
     });
   }, [deviceType, positions]);
 
   const endRideLayout = useCallback(() => {
-    if (!rideLayoutActiveRef.current && preRideSnapshotRef.current === null) return;
+    // Guard against re-entrant calls that could cause infinite re-renders
+    if (layoutTransitionInProgressRef.current) return;
+    layoutTransitionInProgressRef.current = true;
+    
+    if (!rideLayoutActiveRef.current && preRideSnapshotRef.current === null) {
+      layoutTransitionInProgressRef.current = false;
+      return;
+    }
     const nextState = preRideSnapshotRef.current ?? getDefaultState(deviceType);
     const nextPositions = preRidePositionsSnapshotRef.current;
     rideLayoutActiveRef.current = false;
@@ -370,6 +391,10 @@ export function usePanelState(
     if (nextPositions) {
       setPositions(nextPositions);
     }
+    // Reset the guard after React updates
+    setTimeout((): void => {
+      layoutTransitionInProgressRef.current = false;
+    }, 0);
   }, [deviceType]);
 
   const setMobileRideWidgetsMode = useCallback((mode: WidgetMode) => {
