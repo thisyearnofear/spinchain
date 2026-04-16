@@ -55,6 +55,21 @@ export function useVoiceCommands(options: UseVoiceCommandsOptions = {}): UseVoic
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const transcriberRef = useRef<RealtimeTranscriber | null>(null);
+  const onCommandRef = useRef(onCommand);
+  const hasPermissionRef = useRef(hasPermission);
+  const isListeningRef = useRef(isListening);
+
+  useEffect(() => {
+    onCommandRef.current = onCommand;
+  }, [onCommand]);
+
+  useEffect(() => {
+    hasPermissionRef.current = hasPermission;
+  }, [hasPermission]);
+
+  useEffect(() => {
+    isListeningRef.current = isListening;
+  }, [isListening]);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     const granted = await requestMicrophoneAccess();
@@ -66,18 +81,20 @@ export function useVoiceCommands(options: UseVoiceCommandsOptions = {}): UseVoic
     setLastCommand(command);
     setTranscript(command.rawText);
     setConfidence(command.confidence);
-    if (command.action && onCommand) {
-      onCommand(command);
+    if (command.action && onCommandRef.current) {
+      onCommandRef.current(command);
     }
-  }, [onCommand]);
+  }, []);
 
   const startListening = useCallback(async () => {
+    if (isListeningRef.current) return;
+
     if (!isSupported) {
       console.warn('Speech recognition not supported');
       return;
     }
 
-    if (!hasPermission) {
+    if (!hasPermissionRef.current) {
       const granted = await requestPermission();
       if (!granted) return;
     }
@@ -99,9 +116,11 @@ export function useVoiceCommands(options: UseVoiceCommandsOptions = {}): UseVoic
     } catch (e) {
       setIsListening(false);
     }
-  }, [isSupported, hasPermission, useLocalOnly, requestPermission, handleRecognizedCommand]);
+  }, [isSupported, useLocalOnly, requestPermission, handleRecognizedCommand]);
 
   const stopListening = useCallback(() => {
+    if (!isListeningRef.current) return;
+
     setIsListening(false);
     
     if (useLocalOnly) {

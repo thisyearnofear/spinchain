@@ -169,6 +169,12 @@ export function useWorkoutAgent({
     continuous: true,
   });
 
+  const startListeningRef = useRef(startListening);
+  startListeningRef.current = startListening;
+  const stopListeningRef = useRef(stopListening);
+  stopListeningRef.current = stopListening;
+  const wasEnabledRef = useRef(false);
+
   // 4. Trigger Adaptive Reasoning Loop
   const instructorProfileRef = useRef(instructorProfile);
   instructorProfileRef.current = instructorProfile;
@@ -225,11 +231,18 @@ export function useWorkoutAgent({
   // Auto-start voice listening when enabled
   useEffect(() => {
     if (isEnabled) {
-      startListening().catch(console.error);
-    } else {
-      stopListening();
+      if (!wasEnabledRef.current) {
+        wasEnabledRef.current = true;
+        startListeningRef.current().catch(console.error);
+      }
+      return;
     }
-  }, [isEnabled, startListening, stopListening]);
+
+    if (wasEnabledRef.current) {
+      wasEnabledRef.current = false;
+      stopListeningRef.current();
+    }
+  }, [isEnabled]);
 
   // 5. Social Agency: Proactive Rider Outreach (Phase 3+)
   useEffect(() => {
