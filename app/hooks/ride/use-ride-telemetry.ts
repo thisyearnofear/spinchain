@@ -291,7 +291,8 @@ export function useRideTelemetry({
         }
       }
 
-      // Update ghost state (ref-only, no React state for 5% jank reduction)
+      // Update ghost state — only setState when values actually change
+      // to prevent no-op re-renders that contribute to React #185.
       if (ghostPerformance) {
         // Read elapsed time from ref (stabilized to prevent RAF restarts)
         const elapsed = elapsedTimeSecondsRef.current;
@@ -300,7 +301,14 @@ export function useRideTelemetry({
           telemetryRawRef.current.distance * 1000,
           elapsed,
         );
-        setGhostState(nextGhost);
+        // Shallow equality check to avoid no-op setState calls
+        setGhostState((prev) =>
+          prev.leadLagTime === nextGhost.leadLagTime &&
+          prev.distanceGap === nextGhost.distanceGap &&
+          prev.ghostPoint === nextGhost.ghostPoint
+            ? prev
+            : nextGhost,
+        );
       }
 
       // Commit to Zustand store at throttled rate for HUD (granular subscriptions - 25% jank reduction)

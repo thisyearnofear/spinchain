@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import type { TelemetryPoint } from "../../zk/oracle";
 import type {
   RewardChannel,
@@ -122,76 +122,8 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
   }, []);
 
   /**
-   * Start streaming rewards via Yellow state channel
-   */
-  const startStreaming = useCallback(
-    async (
-      rider: `0x${string}`,
-      instructor: `0x${string}`,
-      classId: `0x${string}`,
-      depositAmount: bigint,
-      signUpdate: UpdateSigner,
-      extraParticipants: `0x${string}`[] = [],
-    ): Promise<void> => {
-      setIsConnecting(true);
-      setError(null);
-
-      try {
-        signUpdateRef.current = signUpdate;
-
-        const callbacks: ChannelCallbacks = {
-          onOpen: (ch) => {
-            setChannel(ch);
-            setUpdates([]);
-            setStreamState((prev) => ({
-              ...prev,
-              status: "open",
-              lastUpdate: Date.now(),
-            }));
-          },
-          onError: (err) => {
-            setError(err);
-            setStreamState((prev) => ({
-              ...prev,
-              status: "error",
-              error: err.message,
-            }));
-          },
-        };
-
-        const ch = await openRewardChannel(
-          rider,
-          instructor,
-          classId,
-          depositAmount,
-          callbacks,
-          extraParticipants,
-        );
-
-        setChannel(ch);
-        setIsConnecting(false);
-
-        // Start periodic updates
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-        }
-        intervalRef.current = setInterval(() => {
-          if (lastTelemetryRef.current) {
-            void sendUpdateInternal(lastTelemetryRef.current);
-          }
-        }, STREAMING_INTERVAL);
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        setError(error);
-        setIsConnecting(false);
-        throw error;
-      }
-    },
-    [],
-  );
-
-  /**
    * Send a telemetry update (internal)
+   * Declared before startStreaming so it can be referenced in the interval.
    */
   const sendUpdateInternal = useCallback(
     async (
@@ -296,6 +228,80 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
     [],
   );
 
+  // Ref so startStreaming can call sendUpdateInternal from an interval without
+  // needing it as a useCallback dependency (which would recreate startStreaming).
+  const sendUpdateInternalRef = useRef(sendUpdateInternal);
+  sendUpdateInternalRef.current = sendUpdateInternal;
+
+  /**
+   * Start streaming rewards via Yellow state channel
+   */
+  const startStreaming = useCallback(
+    async (
+      rider: `0x${string}`,
+      instructor: `0x${string}`,
+      classId: `0x${string}`,
+      depositAmount: bigint,
+      signUpdate: UpdateSigner,
+      extraParticipants: `0x${string}`[] = [],
+    ): Promise<void> => {
+      setIsConnecting(true);
+      setError(null);
+
+      try {
+        signUpdateRef.current = signUpdate;
+
+        const callbacks: ChannelCallbacks = {
+          onOpen: (ch) => {
+            setChannel(ch);
+            setUpdates([]);
+            setStreamState((prev) => ({
+              ...prev,
+              status: "open",
+              lastUpdate: Date.now(),
+            }));
+          },
+          onError: (err) => {
+            setError(err);
+            setStreamState((prev) => ({
+              ...prev,
+              status: "error",
+              error: err.message,
+            }));
+          },
+        };
+
+        const ch = await openRewardChannel(
+          rider,
+          instructor,
+          classId,
+          depositAmount,
+          callbacks,
+          extraParticipants,
+        );
+
+        setChannel(ch);
+        setIsConnecting(false);
+
+        // Start periodic updates using ref to avoid dep on sendUpdateInternal
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+        intervalRef.current = setInterval(() => {
+          if (lastTelemetryRef.current) {
+            void sendUpdateInternalRef.current(lastTelemetryRef.current);
+          }
+        }, STREAMING_INTERVAL);
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
+        setIsConnecting(false);
+        throw error;
+      }
+    },
+    [],
+  );
+
   /**
    * Send a telemetry update (public API)
    */
@@ -349,17 +355,31 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
     [],
   );
 
-  return {
+  // Memoize the return value to prevent creating a new object every render.
+  // Without this, useRewards sees a new `yellow` object on every render,
+  // which makes its useCallbacks unstable, cascading into React #185.
+  return useMemo(() => ({
     channel,
     streamState,
     updates,
     startStreaming,
     sendUpdate,
     stopStreaming,
-    isActive: isChannelOpen(),
+    isActive: streamState.status === "open",
     isConnecting,
     error,
-  };
+  }), [
+    channel,
+    streamState,
+    updates,
+    startStreaming,
+    sendUpdate,
+    stopStreaming,
+    isConnecting,
+    error,
+    // isActive is derived from streamState.status which is React state,
+    // so it's always in sync. Using isChannelOpen() (module-level) would go stale.
+  ]);
 }
 
 // ============================================================================

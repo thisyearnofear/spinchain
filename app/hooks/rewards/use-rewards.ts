@@ -12,7 +12,7 @@
 
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
 import { isAddress } from "viem";
 import { useYellowSettlement } from "@/app/hooks/evm/use-yellow-settlement";
@@ -136,6 +136,19 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   // Updates history (Yellow mode)
   const [updates, setUpdates] = useState<SignedRewardUpdate[]>([]);
 
+  // Stabilize rapidly-changing values via refs so that useCallbacks don't
+  // need them as dependencies, preventing React #185 infinite re-render loops.
+  const batchAccumulatorRef = useRef(batchAccumulator);
+  batchAccumulatorRef.current = batchAccumulator;
+  const yellowRef = useRef(yellow);
+  yellowRef.current = yellow;
+  const yellowSettlementRef = useRef(yellowSettlement);
+  yellowSettlementRef.current = yellowSettlement;
+  const updatesRef = useRef(updates);
+  updatesRef.current = updates;
+  const zkClaimRef = useRef(zkClaim);
+  zkClaimRef.current = zkClaim;
+
   // ============================================================================
   // Start Earning
   // ============================================================================
@@ -145,12 +158,12 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
       case "yellow-stream": {
         if (!rider) throw new Error("Wallet required for Yellow streaming");
 
-        await yellow.startStreaming(
+        await yellowRef.current.startStreaming(
           rider,
           instructor,
           classId as `0x${string}`,
           depositAmount,
-          yellowSettlement.signUpdate
+          yellowSettlementRef.current.signUpdate
         );
         break;
       }
@@ -168,16 +181,18 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
         break;
       }
     }
-  }, [mode, rider, instructor, classId, depositAmount, yellow, yellowSettlement]);
+  }, [mode, rider, instructor, classId, depositAmount]);
 
   // ============================================================================
   // Record Effort
   // ============================================================================
   
+  // Read batch accumulator from ref to prevent callback recreation on every
+  // addToBatch call (which creates a new object and cascades into React #185).
   const recordEffort = useCallback(async (telemetry: TelemetryPoint): Promise<void> => {
     switch (mode) {
       case "yellow-stream": {
-        const signed = await yellow.sendUpdate(telemetry);
+        const signed = await yellowRef.current.sendUpdate(telemetry);
         if (signed) {
           setUpdates((prev) => [...prev, signed]);
         }
@@ -185,10 +200,11 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
       }
       
       case "zk-batch": {
-        if (!batchAccumulator) return;
+        const currentBatch = batchAccumulatorRef.current;
+        if (!currentBatch) return;
         
         const newBatch = addToBatch(
-          batchAccumulator,
+          currentBatch,
           telemetry.heartRate,
           telemetry.power || 0
         );
@@ -202,45 +218,53 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
         break;
       }
     }
-  }, [mode, yellow, batchAccumulator]);
+  }, [mode]);
 
   // ============================================================================
   // Finalize Rewards
   // ============================================================================
   
+  // Use refs for all frequently-changing values to prevent callback recreation,
+  // which would cascade through the useMemo return value into React #185.
   const finalizeRewards = useCallback(async (): Promise<{ 
     success: boolean; 
     amount: bigint; 
     hash?: string 
   }> => {
+    const currentYellow = yellowRef.current;
+    const currentSettlement = yellowSettlementRef.current;
+    const currentUpdates = updatesRef.current;
+    const currentBatch = batchAccumulatorRef.current;
+    const currentZkClaim = zkClaimRef.current;
+
     switch (mode) {
       case "yellow-stream": {
-        const closedChannel = await yellow.stopStreaming();
+        const closedChannel = await currentYellow.stopStreaming();
         if (!closedChannel) {
           return { success: false, amount: BigInt(0) };
         }
 
         // Rider signs the final state (EIP-712). Instructor will co-sign later in /instructor/yellow.
-        const avgHeartRate = updates.length > 0 
-          ? updates.reduce((sum, u) => sum + u.heartRate, 0) / updates.length 
+        const avgHeartRate = currentUpdates.length > 0 
+          ? currentUpdates.reduce((sum, u) => sum + u.heartRate, 0) / currentUpdates.length 
           : 0;
-        const avgPower = updates.length > 0 
-          ? updates.reduce((sum, u) => sum + u.power, 0) / updates.length 
+        const avgPower = currentUpdates.length > 0 
+          ? currentUpdates.reduce((sum, u) => sum + u.power, 0) / currentUpdates.length 
           : 0;
         
         const { calculateEffortScore } = await import("@/app/lib/rewards/calculator");
         const effortScore = Math.floor(calculateEffortScore({
           heartRate: avgHeartRate,
           power: avgPower,
-          durationSeconds: updates.length * 10, // 10s intervals
+          durationSeconds: currentUpdates.length * 10, // 10s intervals
         }));
 
-        const riderSig = await yellowSettlement.signFinalState({
+        const riderSig = await currentSettlement.signFinalState({
           channelId: closedChannel.id as `0x${string}`,
           classId: closedChannel.classId,
           rider: closedChannel.rider,
           instructor: closedChannel.instructor,
-          finalReward: yellow.streamState.accumulated,
+          finalReward: currentYellow.streamState.accumulated,
           effortScore,
         });
 
@@ -252,11 +276,11 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
           classId: closedChannel.classId,
           rider: closedChannel.rider,
           instructor: closedChannel.instructor,
-          finalReward: yellow.streamState.accumulated,
+          finalReward: currentYellow.streamState.accumulated,
           effortScore,
           riderSignature: riderSig,
           instructorSignature: undefined,
-          updates: toStoredUpdates(updates),
+          updates: toStoredUpdates(currentUpdates),
           status: "rider_signed",
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -264,13 +288,13 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
 
         return {
           success: true,
-          amount: yellow.streamState.accumulated,
+          amount: currentYellow.streamState.accumulated,
           hash: closedChannel.id,
         };
       }
       
       case "zk-batch": {
-        if (!batchAccumulator || !rider) {
+        if (!currentBatch || !rider) {
           return { success: false, amount: BigInt(0) };
         }
 
@@ -279,12 +303,12 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
           return { success: false, amount: BigInt(0) };
         }
 
-        const heartRateSamples = batchAccumulator.telemetryPoints.map(
+        const heartRateSamples = currentBatch.telemetryPoints.map(
           (point) => point.heartRate,
         );
         const durationSeconds = Math.max(
           1,
-          Math.floor(batchAccumulator.totalDuration || heartRateSamples.length),
+          Math.floor(currentBatch.totalDuration || heartRateSamples.length),
         );
         const averageHeartRate =
           heartRateSamples.length > 0
@@ -292,23 +316,23 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
                 heartRateSamples.reduce((sum, value) => sum + value, 0) /
                   heartRateSamples.length,
               )
-            : batchAccumulator.maxHeartRate;
+            : currentBatch.maxHeartRate;
 
-        const proofResult = await zkClaim.generateProof({
+        const proofResult = await currentZkClaim.generateProof({
           heartRate: averageHeartRate,
           threshold: zkThreshold,
           durationSeconds,
           classId,
           riderId: rider,
           heartRateSamples,
-          avgPower: batchAccumulator.avgPower,
+          avgPower: currentBatch.avgPower,
         });
 
         if (!proofResult.success || !proofResult.proof) {
           return { success: false, amount: BigInt(0) };
         }
 
-        await zkClaim.submitProof(
+        await currentZkClaim.submitProof(
           {
             spinClass: classId,
             rider,
@@ -329,7 +353,7 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
         return {
           success: true,
           amount: reward.totalAmount,
-          hash: zkClaim.hash,
+          hash: currentZkClaim.hash,
         };
       }
       
@@ -341,13 +365,8 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
     }
   }, [
     mode,
-    yellow,
-    yellowSettlement,
-    updates,
-    batchAccumulator,
     classId,
     rider,
-    zkClaim,
     zkThreshold,
   ]);
 

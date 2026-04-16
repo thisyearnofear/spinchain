@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRideFocusMode, useRideFocusConfig } from "./use-ride-focus-mode";
 
 /**
@@ -18,10 +18,15 @@ export function useRideFocusAdapter(deviceType: "mobile" | "tablet" | "desktop")
   const config = useRideFocusConfig();
   const { initForDevice } = useRideFocusMode();
   
-  // Initialize mode based on device on mount
+  // Initialize mode based on device — only on mount or when deviceType changes.
+  // Use a ref for initForDevice to prevent the effect from re-running when
+  // the store updates (which gives initForDevice a new identity), preventing
+  // React #185 infinite loops.
+  const initForDeviceRef = useRef(initForDevice);
+  initForDeviceRef.current = initForDevice;
   useEffect(() => {
-    initForDevice(deviceType === "tablet" ? "mobile" : deviceType);
-  }, [deviceType, initForDevice]);
+    initForDeviceRef.current(deviceType === "tablet" ? "mobile" : deviceType);
+  }, [deviceType]);
   
   // Map focus config to legacy HUD mode
   const hudMode: "full" | "compact" | "minimal" = (() => {

@@ -14,7 +14,7 @@
  *   // state.workoutPlan === true means EXPANDED, false means COLLAPSED
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 
 export type WidgetMode = 'expanded' | 'collapsed' | 'minimized';
 
@@ -446,7 +446,12 @@ export function usePanelState(
   const isAllCollapsed = Object.values(state).every((v) => v === 'collapsed' || v === 'minimized');
   const isAllExpanded = Object.values(state).every((v) => v === 'expanded');
 
-  return {
+  // Memoize the return value to prevent creating a new object every render.
+  // Without this, every consumer (handleTogglePanel, trackWidgetInteraction, etc.)
+  // gets a new `panelState` reference on every render, making their useCallbacks
+  // unstable, which cascades into keyboard effects and other effects re-running
+  // on every render — the React #185 infinite loop.
+  return useMemo(() => ({
     state,
     positions,
     toggle,
@@ -467,5 +472,26 @@ export function usePanelState(
     resetLayout,
     isAllCollapsed,
     isAllExpanded,
-  };
+  }), [
+    state,
+    positions,
+    toggle,
+    expand,
+    minimize,
+    setMode,
+    expandOne,
+    collapse,
+    expandAll,
+    collapseAll,
+    reset,
+    startRideLayout,
+    endRideLayout,
+    setMobileRideWidgetsMode,
+    toggleMobileRideWidgets,
+    setPanelPosition,
+    snapPanelToEdge,
+    resetLayout,
+    isAllCollapsed,
+    isAllExpanded,
+  ]);
 }

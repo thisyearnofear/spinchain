@@ -1201,22 +1201,28 @@ export default function LiveRidePage() {
     }, 3000);
   };
 
-  const pauseRide = () => {
+  const pauseRide = useCallback(() => {
     isRidingRef.current = false;
     setIsRiding(false);
     playSound("recover");
-  };
+  }, [playSound]);
 
-  const togglePauseResume = () => {
-    if (isRiding) {
+  // Memoize togglePauseResume to prevent keyboard handler from being recreated
+  // on every render, which would cause the keydown effect to re-run every render
+  // and contribute to React #185 infinite re-render loops.
+  // Uses refs for isRiding/rideProgress so the callback identity stays stable.
+  const rideProgressRef = useRef(rideProgress);
+  rideProgressRef.current = rideProgress;
+  const togglePauseResume = useCallback(() => {
+    if (isRidingRef.current) {
       pauseRide();
-    } else if (rideProgress > 0 && rideProgress < 100) {
+    } else if (rideProgressRef.current > 0 && rideProgressRef.current < 100) {
       // Resume ride
       isRidingRef.current = true;
       setIsRiding(true);
       playSound("resistanceUp");
     }
-  };
+  }, [pauseRide, playSound]);
 
   const exitRide = async () => {
     setIsExiting(true);
