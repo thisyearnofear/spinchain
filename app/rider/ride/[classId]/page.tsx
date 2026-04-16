@@ -1010,6 +1010,11 @@ export default function LiveRidePage() {
     setMusicSpeed(rate);
   }, [isRiding, telemetry.cadence, currentInterval, setMusicSpeed]);
 
+  const stableStoryBeats = useMemo(
+    () => classData?.route?.route.storyBeats || [],
+    [classData?.route?.route.storyBeats],
+  );
+
   // 2. Consolidated Workout Coaching Logic (Phase 1/3)
   const { lastCoachMessage: consolidatedCoachMessage } = useRideCoach({
     isRiding,
@@ -1024,7 +1029,7 @@ export default function LiveRidePage() {
     playSound,
     speak,
     rideProgress,
-    storyBeats: classData?.route?.route.storyBeats || [],
+    storyBeats: stableStoryBeats,
     lastDecision,
   });
 

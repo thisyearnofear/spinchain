@@ -49,6 +49,14 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
   const mixerRef = useRef(getAudioMixer());
   const sessionApiCallsRef = useRef(0);
 
+  // Stabilize frequently-changing values via refs to prevent callback churn
+  const personalityRef = useRef(personality);
+  personalityRef.current = personality;
+  const intensityRef = useRef(intensity);
+  intensityRef.current = intensity;
+  const isConfiguredRef = useRef(isConfigured);
+  isConfiguredRef.current = isConfigured;
+
   // Initialize mixer and check configuration on mount
   useEffect(() => {
     const init = async () => {
@@ -64,8 +72,8 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
   }, []);
 
   const getVoiceSettings = useCallback((emotion?: string): VoiceSettings => {
-    const baseVoice = COACH_VOICES[personality];
-    const intensitySettings = INTENSITY_VOICE_SETTINGS[Math.round(intensity * 10) / 10] || {};
+    const baseVoice = COACH_VOICES[personalityRef.current];
+    const intensitySettings = INTENSITY_VOICE_SETTINGS[Math.round(intensityRef.current * 10) / 10] || {};
     
     // Emotion overrides
     const emotionSettings: Partial<VoiceSettings> = {
@@ -80,13 +88,13 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
       ...intensitySettings,
       ...emotionSettings,
     } as VoiceSettings;
-  }, [personality, intensity]);
+  }, []);
 
   const speak = useCallback(async (
     text: string,
     emotion?: 'calm' | 'focused' | 'intense' | 'celebratory'
   ) => {
-    if (!isConfigured) {
+    if (!isConfiguredRef.current) {
       console.warn('ElevenLabs not configured');
       return;
     }
@@ -101,7 +109,7 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
       // Ensure mixer is initialized
       await mixerRef.current.resume();
 
-      const cacheKey = `${personality}:${emotion}:${text}`;
+      const cacheKey = `${personalityRef.current}:${emotion}:${text}`;
       let audioBuffer: ArrayBuffer | undefined;
 
       try {
@@ -120,7 +128,7 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
         }
         sessionApiCallsRef.current++;
 
-        const voice = COACH_VOICES[personality];
+        const voice = COACH_VOICES[personalityRef.current];
         audioBuffer = await generateSpeech({
           text,
           voice_id: voice.id,
@@ -172,7 +180,7 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
     } finally {
       setIsLoading(false);
     }
-  }, [isConfigured, personality, intensity, getVoiceSettings]);
+  }, [getVoiceSettings]);
 
   const stop = useCallback(() => {
     if (currentLayerId.current) {
