@@ -50,6 +50,85 @@ const themeScript = `
   })();
 `;
 
+const reactLoopDetectorScript = `
+  (function() {
+    if (window.__SPINCHAIN_REACT_LOOP_DETECTOR__) return;
+    window.__SPINCHAIN_REACT_LOOP_DETECTOR__ = true;
+
+    const LOOP_WINDOW_MS = 2500;
+    const LOOP_THRESHOLD = 18;
+    const recent = [];
+
+    function recordRenderLoopSignal(source, payload) {
+      const now = Date.now();
+      recent.push(now);
+      while (recent.length && now - recent[0] > LOOP_WINDOW_MS) {
+        recent.shift();
+      }
+
+      if (recent.length >= LOOP_THRESHOLD) {
+        const error = new Error('[ReactLoopDetector] probable update loop');
+        console.groupCollapsed('[ReactLoopDetector] probable update loop detected');
+        console.log('source:', source);
+        console.log('signalsInWindow:', recent.length);
+        console.log('windowMs:', LOOP_WINDOW_MS);
+        console.log('payload:', payload);
+        console.log('stack:', error.stack);
+        console.groupEnd();
+
+        window.dispatchEvent(new CustomEvent('spinchain:react-loop-detected', {
+          detail: {
+            source,
+            payload,
+            signalsInWindow: recent.length,
+            windowMs: LOOP_WINDOW_MS,
+            timestamp: now,
+            stack: error.stack,
+          },
+        }));
+      }
+    }
+
+    const originalConsoleError = console.error;
+    console.error = function patchedConsoleError(...args) {
+      try {
+        const first = args[0];
+        const text = typeof first === 'string'
+          ? first
+          : (first && typeof first.message === 'string' ? first.message : '');
+        if (
+          text.includes('Maximum update depth exceeded') ||
+          text.includes('Minified React error #185')
+        ) {
+          recordRenderLoopSignal('console.error', args);
+        }
+      } catch {
+        // no-op
+      }
+      return originalConsoleError.apply(console, args);
+    };
+
+    window.addEventListener('error', function(ev) {
+      try {
+        const message = (ev && ev.message) || '';
+        if (
+          message.includes('Maximum update depth exceeded') ||
+          message.includes('Minified React error #185')
+        ) {
+          recordRenderLoopSignal('window.error', {
+            message,
+            filename: ev.filename,
+            lineno: ev.lineno,
+            colno: ev.colno,
+          });
+        }
+      } catch {
+        // no-op
+      }
+    });
+  })();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -59,6 +138,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {process.env.NEXT_PUBLIC_REACT_LOOP_DETECTOR === "1" && (
+          <script dangerouslySetInnerHTML={{ __html: reactLoopDetectorScript }} />
+        )}
       </head>
       <body className="antialiased">
         <ErrorBoundary>

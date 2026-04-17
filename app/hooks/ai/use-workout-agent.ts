@@ -188,6 +188,12 @@ export function useWorkoutAgent({
   const stopListeningRef = useRef(stopListening);
   stopListeningRef.current = stopListening;
   const wasEnabledRef = useRef(false);
+  const reasonRef = useRef(reason);
+  reasonRef.current = reason;
+  const agentNameRef = useRef(agentName);
+  agentNameRef.current = agentName;
+  const personalityRef = useRef(personality);
+  personalityRef.current = personality;
 
   // 4. Trigger Adaptive Reasoning Loop
   const instructorProfileRef = useRef(instructorProfile);
@@ -213,8 +219,8 @@ export function useWorkoutAgent({
         : [];
 
       const styleContext = {
-        instructorName: instructorProfileRef.current?.name || agentName,
-        teachingStyle: instructorProfileRef.current?.bio || personality,
+        instructorName: instructorProfileRef.current?.name || agentNameRef.current,
+        teachingStyle: instructorProfileRef.current?.bio || personalityRef.current,
         specialties: instructorProfileRef.current?.specialties || [],
         styleAnchors: savedAnchors,
       };
@@ -225,7 +231,7 @@ export function useWorkoutAgent({
         { classId: "neon-sprint", riders: 12, capacity: 50, status: "starting_now" }
       ];
 
-      reason({
+      reasonRef.current({
         telemetry: {
           avgBpm: m.heartRate,
           resistance: m.resistance || 0,
@@ -240,7 +246,7 @@ export function useWorkoutAgent({
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [isEnabled, agentName, personality, reason]);
+  }, [isEnabled]);
 
   // Auto-start voice listening when enabled
   useEffect(() => {
