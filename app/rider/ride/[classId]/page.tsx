@@ -80,6 +80,7 @@ import { SectionErrorBoundary } from "../../../components/layout/error-boundary"
 
 const MAX_RIDE_POINTS = 10_800;
 const MAX_TELEMETRY_SAMPLES = 5_400;
+const DISABLE_RIDE_AUDIO_AND_VOICE = true;
 
 function getSystemViewMode(
   deviceType: "mobile" | "tablet" | "desktop",
@@ -443,6 +444,45 @@ export default function LiveRidePage() {
     personality: coachPersonality,
     intensity: rideProgress / 100,
   });
+  const safePlaySound = useCallback(
+    (sound: Parameters<typeof playSound>[0]) => {
+      if (DISABLE_RIDE_AUDIO_AND_VOICE) return Promise.resolve();
+      return playSound(sound);
+    },
+    [playSound],
+  );
+  const safePlayCountdown = useCallback(
+    (seconds: number) => {
+      if (DISABLE_RIDE_AUDIO_AND_VOICE) return;
+      playCountdown(seconds);
+    },
+    [playCountdown],
+  );
+  const safeSpeak = useCallback(
+    (
+      text: string,
+      emotion?: Parameters<typeof speak>[1],
+    ) => {
+      if (DISABLE_RIDE_AUDIO_AND_VOICE) return Promise.resolve();
+      return speak(text, emotion);
+    },
+    [speak],
+  );
+  const safeStopAudio = useCallback(() => {
+    if (DISABLE_RIDE_AUDIO_AND_VOICE) return;
+    stopAudio();
+  }, [stopAudio]);
+  const safeStopVoice = useCallback(() => {
+    if (DISABLE_RIDE_AUDIO_AND_VOICE) return;
+    stopVoice();
+  }, [stopVoice]);
+  const safeSetMusicSpeed = useCallback(
+    (rate: number) => {
+      if (DISABLE_RIDE_AUDIO_AND_VOICE) return;
+      setMusicSpeed(rate);
+    },
+    [setMusicSpeed],
+  );
 
   // AI Instructor State
   const { setResistance } = useUnifiedBle();
@@ -1015,9 +1055,9 @@ export default function LiveRidePage() {
     sessionObjectId: classId,
     metrics: agentMetrics,
     currentInterval,
-    isEnabled: aiActive,
+    isEnabled: aiActive && !DISABLE_RIDE_AUDIO_AND_VOICE,
     setResistance: stableSetResistance,
-    playSound,
+    playSound: safePlaySound,
     instructorProfile,
     marketStats, // Phase 3: Revenue optimization
   });
@@ -1065,10 +1105,10 @@ export default function LiveRidePage() {
       if (!cadence || !ci?.targetRpm) return;
       const [minRpm] = ci.targetRpm;
       const rate = Math.max(0.85, Math.min(1.2, cadence / minRpm));
-      setMusicSpeed(rate);
+      safeSetMusicSpeed(rate);
     }, 2000);
     return () => clearInterval(id);
-  }, [isRiding, setMusicSpeed]);
+  }, [isRiding, safeSetMusicSpeed]);
 
   const stableStoryBeats = useMemo(
     () => classData?.route?.route.storyBeats || [],
@@ -1085,9 +1125,9 @@ export default function LiveRidePage() {
     intervalRemaining,
     telemetryCadence: telemetry.cadence,
     aiLogs,
-    isSpeaking,
-    playSound,
-    speak,
+    isSpeaking: DISABLE_RIDE_AUDIO_AND_VOICE ? false : isSpeaking,
+    playSound: safePlaySound,
+    speak: safeSpeak,
     rideProgress,
     storyBeats: stableStoryBeats,
     lastDecision,
@@ -1103,8 +1143,8 @@ export default function LiveRidePage() {
   // doesn't re-run on every effort change, preventing the infinite re-render loop.
   const milestoneHapticRef = useRef(haptic);
   milestoneHapticRef.current = haptic;
-  const milestonePlaySoundRef = useRef(playSound);
-  milestonePlaySoundRef.current = playSound;
+  const milestonePlaySoundRef = useRef(safePlaySound);
+  milestonePlaySoundRef.current = safePlaySound;
   useEffect(() => {
     if (!isRiding) return;
     const id = setInterval(() => {
@@ -1126,7 +1166,8 @@ export default function LiveRidePage() {
     const practiceAiEnabled =
       isPracticeMode && Boolean(practiceConfig?.aiEnabled);
     setAiActive(
-      isRiding &&
+      !DISABLE_RIDE_AUDIO_AND_VOICE &&
+        isRiding &&
         (practiceAiEnabled || Boolean(classData?.metadata?.ai?.enabled)),
     );
   }, [
@@ -1162,7 +1203,7 @@ export default function LiveRidePage() {
     });
 
     setIsStarting(true);
-    playCountdown(3);
+    safePlayCountdown(3);
 
     // Pre-ride ClearNode connectivity check for Yellow mode
     if (rewardMode === "yellow-stream" && !rewards.clearNodeConnected) {
@@ -1197,15 +1238,15 @@ export default function LiveRidePage() {
       lastSpokenBeatRef.current = null;
       lastIntervalRef.current = -1;
       trackedCompletionRef.current = false;
-      speak("Let's go!", "intense");
+      safeSpeak("Let's go!", "intense");
     }, 3000);
   };
 
   const pauseRide = useCallback(() => {
     isRidingRef.current = false;
     setIsRiding(false);
-    playSound("recover");
-  }, [playSound]);
+    safePlaySound("recover");
+  }, [safePlaySound]);
 
   // Memoize togglePauseResume to prevent keyboard handler from being recreated
   // on every render, which would cause the keydown effect to re-run every render
@@ -1220,14 +1261,14 @@ export default function LiveRidePage() {
       // Resume ride
       isRidingRef.current = true;
       setIsRiding(true);
-      playSound("resistanceUp");
+      safePlaySound("resistanceUp");
     }
-  }, [pauseRide, playSound]);
+  }, [pauseRide, safePlaySound]);
 
   const exitRide = async () => {
     setIsExiting(true);
-    stopAudio();
-    stopVoice();
+    safeStopAudio();
+    safeStopVoice();
     setAiActive(false);
 
     // Calculate demo stats
