@@ -131,10 +131,9 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   const yellowSettlement = useYellowSettlement();
   
   // Local state for batch accumulation (ZK mode)
-  // batchAccumulator is a ref (not state) because it changes on every telemetry tick (2-4Hz).
-  // Only isActive (boolean) needs to be state — it flips once from false→true on startEarning.
+  // Both are refs — NO state changes in zk-batch mode to avoid React #185.
   const batchAccumulatorRef = useRef<BatchAccumulator | null>(null);
-  const [zkBatchActive, setZkBatchActive] = useState(false);
+  const zkBatchActiveRef = useRef(false);
   
   // Updates history (Yellow mode)
   const [updates, setUpdates] = useState<SignedRewardUpdate[]>([]);
@@ -170,9 +169,9 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
       }
       
       case "zk-batch": {
-        // Initialize batch accumulator
+        // Initialize batch accumulator — refs only, NO state change to avoid React #185
         batchAccumulatorRef.current = createBatchAccumulator();
-        setZkBatchActive(true);
+        zkBatchActiveRef.current = true;
         break;
       }
       
@@ -391,16 +390,16 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
     return formatReward(accumulatedReward);
   }, [accumulatedReward]);
 
-  const isActive = useMemo(() => {
-    switch (mode) {
-      case "yellow-stream":
-        return yellow.isActive;
-      case "zk-batch":
-        return zkBatchActive;
-      case "sui-native":
-        return false;
-    }
-  }, [mode, yellow.isActive, zkBatchActive]);
+  const isActive = mode === "yellow-stream" ? yellow.isActive : mode === "zk-batch" ? zkBatchActiveRef.current : false;
+
+  // For zk-batch, isActive is read from a ref and won't trigger useMemo recalculation.
+  // Consumers that need the live value (handleBleMetrics) read via rewardsRef which
+  // gets the return object — we use a getter so it reads the ref at call time.
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
+  // Update when yellow mode changes
+  if (mode === "yellow-stream") isActiveRef.current = yellow.isActive;
+  if (mode === "zk-batch") isActiveRef.current = zkBatchActiveRef.current;
 
   const streamingStatus = useMemo(() => {
     if (mode !== "yellow-stream") return undefined;
@@ -435,7 +434,9 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
     finalizeRewards,
     accumulatedReward,
     formattedReward,
-    isActive,
+    // Getter: reads live ref value so consumers always see current state
+    // without requiring a React state change (which would cause #185).
+    get isActive() { return mode === "zk-batch" ? zkBatchActiveRef.current : isActiveRef.current; },
     isConnecting: mode === "yellow-stream" ? yellow.isConnecting : false,
     isGeneratingProof: mode === "zk-batch" ? zkClaim.isGeneratingProof : false,
     error: mode === "yellow-stream" ? (yellow.error || yellowSettlement.error) : (mode === "zk-batch" ? zkClaim.error : null),
@@ -460,7 +461,6 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
     finalizeRewards,
     accumulatedReward,
     formattedReward,
-    isActive,
     yellow.isConnecting,
     yellow.error,
     yellow.streamState,
