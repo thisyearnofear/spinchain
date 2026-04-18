@@ -51,7 +51,6 @@ function getMetricValue(key: MetricKey, telemetry: TelemetryData): string | numb
 }
 
 interface RideHUDProps {
-  telemetry: TelemetryData;
   ghostState?: GhostState;
   multiGhostState?: Array<{
     id: string;
@@ -210,7 +209,6 @@ function GearBadge({ gear, ratio }: { gear?: number; ratio?: number }) {
  * Mobile: Center overlay or compact pill
  */
 export function RideHUD({
-  telemetry,
   ghostState,
   multiGhostState,
   deviceType,
@@ -227,6 +225,8 @@ export function RideHUD({
   targetRpm,
   showBottomPanel,
 }: RideHUDProps) {
+  // Subscribe directly to telemetry store — avoids parent re-render cascade
+  const telemetry = useTelemetryData();
   const { metrics, centerHud } = useRideFocusConfig();
   
   // Filter and sort metrics based on config (Priority 4)

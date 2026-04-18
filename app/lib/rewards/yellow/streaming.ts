@@ -80,7 +80,7 @@ export interface UseYellowStreamingReturn {
 // Hook
 // ============================================================================
 
-export function useYellowStreaming(): UseYellowStreamingReturn {
+export function useYellowStreaming(enabled = true): UseYellowStreamingReturn {
   // Channel state
   const [channel, setChannel] = useState<RewardChannel | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -355,10 +355,28 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
     [],
   );
 
+  // When disabled (e.g. zk-batch mode), return a stable frozen object so
+  // useRewards doesn't see a new reference on every render.
+  const noopStartStreaming = useCallback(async () => {}, []);
+  const noopSendUpdate = useCallback(async () => null as SignedRewardUpdate | null, []);
+  const noopStopStreaming = useCallback(async () => null as RewardChannel | null, []);
+
+  const inertReturn = useMemo<UseYellowStreamingReturn>(() => ({
+    channel: null,
+    streamState: { accumulated: BigInt(0), lastUpdate: 0, updateCount: 0, status: "closed" as const },
+    updates: [],
+    startStreaming: noopStartStreaming as UseYellowStreamingReturn["startStreaming"],
+    sendUpdate: noopSendUpdate,
+    stopStreaming: noopStopStreaming,
+    isActive: false,
+    isConnecting: false,
+    error: null,
+  }), [noopStartStreaming, noopSendUpdate, noopStopStreaming]);
+
   // Memoize the return value to prevent creating a new object every render.
   // Without this, useRewards sees a new `yellow` object on every render,
   // which makes its useCallbacks unstable, cascading into React #185.
-  return useMemo(() => ({
+  return enabled ? {
     channel,
     streamState,
     updates,
@@ -368,18 +386,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
     isActive: streamState.status === "open",
     isConnecting,
     error,
-  }), [
-    channel,
-    streamState,
-    updates,
-    startStreaming,
-    sendUpdate,
-    stopStreaming,
-    isConnecting,
-    error,
-    // isActive is derived from streamState.status which is React state,
-    // so it's always in sync. Using isChannelOpen() (module-level) would go stale.
-  ]);
+  } : inertReturn;
 }
 
 // ============================================================================

@@ -215,20 +215,25 @@ export default function LiveRidePage() {
   );
 
   // Mobile accordion: when expanding a panel on mobile, collapse others (one at a time)
+  // Uses a ref for panelState so the callback identity stays stable across panel state changes.
+  const panelStateRef = useRef(panelState);
+  panelStateRef.current = panelState;
+
   const handleTogglePanel = useCallback(
     (key: Parameters<typeof panelState.toggle>[0]) => {
+      const ps = panelStateRef.current;
       if (deviceType === "mobile") {
-        const isCurrentlyExpanded = panelState.state[key] === "expanded";
+        const isCurrentlyExpanded = ps.state[key] === "expanded";
         if (isCurrentlyExpanded) {
-          panelState.collapse(key);
+          ps.collapse(key);
         } else {
-          panelState.expandOne(key);
+          ps.expandOne(key);
         }
       } else {
-        panelState.toggle(key);
+        ps.toggle(key);
       }
     },
-    [deviceType, panelState],
+    [deviceType],
   );
 
   const { startRideLayout, endRideLayout } = panelState;
@@ -1505,7 +1510,6 @@ export default function LiveRidePage() {
             isRiding={isRiding}
             rideProgress={rideProgress}
             elapsedTime={elapsedTime}
-            telemetry={telemetry}
             routeElevationProfile={routeElevationProfile}
             routeCoordinates={routeCoordinates}
             currentRouteCoordinate={currentRouteCoordinate}
@@ -1562,7 +1566,6 @@ export default function LiveRidePage() {
           rewardsClearNodeConnected={rewards.clearNodeConnected}
           deviceType={deviceType}
           simulatedReward={simulatedRewards}
-          telemetry={telemetry}
           telemetryHistory={telemetryHistory}
           ghostState={ghostState}
           currentInterval={currentInterval}

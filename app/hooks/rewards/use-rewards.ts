@@ -126,7 +126,7 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   const modeConfig = REWARD_MODES[mode];
   
   // Mode-specific hooks
-  const yellow = useYellowStreaming();
+  const yellow = useYellowStreaming(mode === "yellow-stream");
   const zkClaim = useOnchainZKClaim();
   const yellowSettlement = useYellowSettlement();
   

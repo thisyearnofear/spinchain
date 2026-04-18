@@ -4,7 +4,7 @@
 // DRY: Eliminates duplicate toast/error logic across all contract hooks
 
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { useToast } from "@/app/components/ui/toast";
 import { parseError, type ErrorCategory } from "@/app/lib/errors";
 import type { Abi, Address } from "viem";
@@ -88,11 +88,11 @@ export function useTransaction(options: UseTransactionOptions): UseTransactionRe
     writeContract(args as Parameters<typeof writeContract>[0]);
   }, [writeContract, toast, options.pendingMessage]);
 
-  return {
+  return useMemo(() => ({
     write,
     hash,
     isPending: isWritePending || isWaiting,
     isSuccess,
     error,
-  };
+  }), [write, hash, isWritePending, isWaiting, isSuccess, error]);
 }

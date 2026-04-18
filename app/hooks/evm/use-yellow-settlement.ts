@@ -241,7 +241,7 @@ export function useYellowSettlement() {
     [address]
   );
 
-  return {
+  return useMemo(() => ({
     signFinalState,
     signUpdate,
     settleOnChain,
@@ -251,5 +251,13 @@ export function useYellowSettlement() {
 
     // tx state
     ...tx,
-  };
+  }), [
+    signFinalState,
+    signUpdate,
+    settleOnChain,
+    batchSettleOnChain,
+    canInstructorSign,
+    canRiderSign,
+    tx,
+  ]);
 }

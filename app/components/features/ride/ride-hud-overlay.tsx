@@ -34,7 +34,6 @@ interface RideHUDOverlayProps {
   rewardsClearNodeConnected?: boolean;
   deviceType: "mobile" | "tablet" | "desktop";
   simulatedReward: { isSimulating: boolean; formattedReward: string };
-  telemetry: TelemetryData;
   telemetryHistory: { power: number[]; cadence: number[]; heartRate: number[] };
   ghostState: GhostState;
   multiGhostState: MultiGhostState[];
@@ -142,7 +141,6 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
         {/* Center HUD - controlled by focus mode */}
         {visibility.showCenterMetrics && (!props.isRiding || props.deviceType !== "mobile" || props.widgetsVisible) && (
           <RideHUD
-            telemetry={props.telemetry}
             deviceType={props.deviceType}
             orientation={props.orientation}
             hudMode={focusAdapter.hudMode}

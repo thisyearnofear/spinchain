@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import dynamic from "next/dynamic";
 import FocusRouteVisualizer from "@/app/components/features/route/focus-route-visualizer";
 import type { WorkoutPlan, IntervalPhase } from "@/app/lib/workout-plan";
@@ -14,11 +15,15 @@ import type {
 } from "@/app/hooks/ui/use-panel-state";
 import type { HapticType } from "@/app/hooks/use-haptic";
 import type { StoryBeat } from "@/app/components/features/route/route-visualizer";
+import { useCoreMetrics } from "@/app/hooks/ride/use-telemetry-store";
 
-const RouteVisualizer = dynamic(
+const RouteVisualizerRaw = dynamic(
   () => import("@/app/components/features/route/route-visualizer"),
   { ssr: false },
 );
+
+// Memoize to prevent WebGL context thrashing from parent re-renders
+const RouteVisualizer = memo(RouteVisualizerRaw);
 
 interface RideVisualizationProps {
   viewMode: "immersive" | "focus";
@@ -26,11 +31,6 @@ interface RideVisualizationProps {
   isRiding: boolean;
   rideProgress: number;
   elapsedTime: number;
-  telemetry: {
-    heartRate: number;
-    power: number;
-    cadence: number;
-  };
   routeElevationProfile: number[];
   routeCoordinates: { lat: number; lng: number; ele?: number }[];
   currentRouteCoordinate: { lat: number; lng: number; ele?: number } | null;
@@ -66,7 +66,6 @@ export function RideVisualization({
   isRiding,
   rideProgress,
   elapsedTime,
-  telemetry,
   routeElevationProfile,
   routeCoordinates,
   currentRouteCoordinate,
@@ -88,6 +87,8 @@ export function RideVisualization({
   isPracticeMode,
   recentPowerHistory,
 }: RideVisualizationProps) {
+  // Subscribe directly to telemetry store — avoids parent re-renders passing telemetry as a prop
+  const telemetry = useCoreMetrics();
   const routeProgress = isRiding || rideProgress > 0 ? rideProgress / 100 : 0;
   const visualizerMode: "preview" | "ride" | "finished" =
     rideProgress >= 100 ? "finished" : isRiding || rideProgress > 0 ? "ride" : "preview";
