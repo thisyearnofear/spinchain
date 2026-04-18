@@ -60,7 +60,7 @@ interface RideVisualizationProps {
   recentPowerHistory: number[];
 }
 
-export function RideVisualization({
+export const RideVisualization = memo(function RideVisualization({
   viewMode,
   deviceType,
   isRiding,
@@ -231,4 +231,4 @@ export function RideVisualization({
       )}
     </div>
   );
-}
+});

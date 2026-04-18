@@ -142,9 +142,11 @@ export function useRideTelemetry({
   // Stabilize rapidly-changing props via refs so the RAF loop effect
   // doesn't restart on every frame, which causes the infinite re-render loop (React #185).
   const currentRouteCoordinateRef = useRef(currentRouteCoordinate);
-  currentRouteCoordinateRef.current = currentRouteCoordinate;
   const elapsedTimeSecondsRef = useRef(elapsedTimeSeconds);
-  elapsedTimeSecondsRef.current = elapsedTimeSeconds;
+  useEffect(() => {
+    currentRouteCoordinateRef.current = currentRouteCoordinate;
+    elapsedTimeSecondsRef.current = elapsedTimeSeconds;
+  });
 
   // Ring buffers replace array spreading for 20% jank reduction
   const powerHistoryBuffer = useRef(new RingBuffer(30));
@@ -331,14 +333,28 @@ export function useRideTelemetry({
       }
 
       // Commit history to React state at 1Hz (for charts)
+      // Compare before setting to avoid new object identity when values haven't changed.
       if (now - lastHistoryCommitMsRef.current >= historyUpdateIntervalMs) {
         lastHistoryCommitMsRef.current = now;
-        setTelemetryHistory({
-          power: powerHistoryBuffer.current.toArray(),
-          cadence: cadenceHistoryBuffer.current.toArray(),
-          heartRate: heartRateHistoryBuffer.current.toArray(),
+        const nextPower = powerHistoryBuffer.current.toArray();
+        const nextCadence = cadenceHistoryBuffer.current.toArray();
+        const nextHr = heartRateHistoryBuffer.current.toArray();
+        setTelemetryHistory((prev) => {
+          if (
+            prev.power.length === nextPower.length &&
+            prev.cadence.length === nextCadence.length &&
+            prev.heartRate.length === nextHr.length &&
+            prev.power[prev.power.length - 1] === nextPower[nextPower.length - 1] &&
+            prev.cadence[prev.cadence.length - 1] === nextCadence[nextCadence.length - 1] &&
+            prev.heartRate[prev.heartRate.length - 1] === nextHr[nextHr.length - 1]
+          ) return prev;
+          return { power: nextPower, cadence: nextCadence, heartRate: nextHr };
         });
-        setRecentPowerHistory(recentPowerBuffer.current.toArray());
+        const nextRecent = recentPowerBuffer.current.toArray();
+        setRecentPowerHistory((prev) => {
+          if (prev.length === nextRecent.length && prev[prev.length - 1] === nextRecent[nextRecent.length - 1]) return prev;
+          return nextRecent;
+        });
       }
     };
 

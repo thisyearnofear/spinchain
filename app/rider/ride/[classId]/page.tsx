@@ -256,14 +256,25 @@ export default function LiveRidePage() {
     !isRiding || panelState.state.mobileRideWidgets !== "minimized";
   const widgetsMode = panelState.state.mobileRideWidgets;
 
+  // Analytics callback — reads all rapidly-changing values from refs to stay stable.
+  const isRidingRefForAnalytics = useRef(isRiding);
+  isRidingRefForAnalytics.current = isRiding;
+  const rideProgressRefForAnalytics = useRef(rideProgress);
+  rideProgressRefForAnalytics.current = rideProgress;
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
+
   const trackWidgetInteraction = useCallback(
     (
       action: "toggle" | "minimize" | "restore" | "drag",
       panel: keyof typeof panelState.state,
     ) => {
-      const phase = isRiding
+      const ps = panelStateRef.current;
+      const riding = isRidingRefForAnalytics.current;
+      const progress = rideProgressRefForAnalytics.current;
+      const phase = riding
         ? "in_ride"
-        : rideProgress > 0
+        : progress > 0
           ? "post_ride"
           : "pre_ride";
       const eventName =
@@ -278,22 +289,24 @@ export default function LiveRidePage() {
       trackEvent(eventName, {
         panel,
         phase,
-        viewMode,
+        viewMode: viewModeRef.current,
         deviceType,
-        panelMode: panelState.state[panel],
+        panelMode: ps.state[panel],
       });
     },
-    [deviceType, isRiding, panelState, rideProgress, viewMode],
+    [deviceType],
   );
 
   const cycleRideWidgetsMode = useCallback(() => {
+    const ps = panelStateRef.current;
+    const wm = ps.state.mobileRideWidgets;
     const nextMode =
-      widgetsMode === "expanded"
+      wm === "expanded"
         ? "collapsed"
-        : widgetsMode === "collapsed"
+        : wm === "collapsed"
           ? "minimized"
           : "expanded";
-    panelState.setMobileRideWidgetsMode(nextMode);
+    ps.setMobileRideWidgetsMode(nextMode);
     trackWidgetInteraction(
       nextMode === "minimized"
         ? "minimize"
@@ -302,7 +315,7 @@ export default function LiveRidePage() {
           : "toggle",
       "mobileRideWidgets",
     );
-  }, [panelState, trackWidgetInteraction, widgetsMode]);
+  }, [trackWidgetInteraction]);
 
   // Onboarding Tutorial (extracted to reusable hook + component)
   const {
@@ -1450,6 +1463,64 @@ export default function LiveRidePage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Stable callbacks extracted from inline arrows to prevent new function identity every render
+  const handleSnapPanel = useCallback(
+    (key: Parameters<typeof panelState.snapPanelToEdge>[0]) =>
+      panelStateRef.current.snapPanelToEdge(key, {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      }),
+    [],
+  );
+
+  const handleResetPrefs = useCallback(() => {
+    try {
+      window.localStorage.removeItem("spinchain:ride:viewMode");
+      window.localStorage.removeItem("spinchain:ride:hudMode");
+      useRideFocusMode
+        .getState()
+        .initForDevice(deviceType === "tablet" ? "desktop" : deviceType);
+    } catch {
+      /* ignore */
+    }
+    viewModePreferenceRef.current = "system";
+    panelStateRef.current.resetLayout();
+    trackEvent(ANALYTICS_EVENTS.WIDGET_LAYOUT_RESET, {
+      phase: isRidingRefForAnalytics.current
+        ? "in_ride"
+        : rideProgressRefForAnalytics.current > 0
+          ? "post_ride"
+          : "pre_ride",
+      viewMode: viewModeRef.current,
+      deviceType,
+    });
+  }, [deviceType]);
+
+  const handleCollapseToggle = useCallback(() => {
+    const ps = panelStateRef.current;
+    if (isRidingRefForAnalytics.current && viewModeRef.current === "immersive") {
+      cycleRideWidgetsMode();
+      return;
+    }
+    if (ps.isAllCollapsed) ps.expandAll();
+    else ps.collapseAll();
+  }, [cycleRideWidgetsMode]);
+
+  // Memoize classData fallback to avoid new object literal every render
+  const classDataForViz = useMemo(
+    () =>
+      (classData as {
+        name: string;
+        instructor: string;
+        route?: { route?: { storyBeats?: StoryBeat[] } } | null;
+        metadata?: EnhancedClassMetadata | null;
+      }) ?? {
+        name: practiceConfig?.name || "SpinChain Ride",
+        instructor: practiceConfig?.instructor || agentName,
+      },
+    [classData, practiceConfig?.name, practiceConfig?.instructor, agentName],
+  );
+
   useEffect(() => {
     if (rideProgress < 100 || trackedCompletionRef.current) return;
     trackedCompletionRef.current = true;
@@ -1513,17 +1584,7 @@ export default function LiveRidePage() {
             routeElevationProfile={routeElevationProfile}
             routeCoordinates={routeCoordinates}
             currentRouteCoordinate={currentRouteCoordinate}
-            classData={
-              (classData as {
-                name: string;
-                instructor: string;
-                route?: { route?: { storyBeats?: StoryBeat[] } } | null;
-                metadata?: EnhancedClassMetadata | null;
-              }) ?? {
-                name: practiceConfig?.name || "SpinChain Ride",
-                instructor: practiceConfig?.instructor || agentName,
-              }
-            }
+            classData={classDataForViz}
             workoutPlan={workoutPlan}
             currentIntervalIndex={currentIntervalIndex}
             currentInterval={currentInterval}
@@ -1534,12 +1595,7 @@ export default function LiveRidePage() {
             panelPositions={panelState.positions}
             onTogglePanel={handleTogglePanel}
             onSetPanelPosition={panelState.setPanelPosition}
-            onSnapPanel={(key) =>
-              panelState.snapPanelToEdge(key, {
-                width: window.innerWidth,
-                height: window.innerHeight,
-              })
-            }
+            onSnapPanel={handleSnapPanel}
             onTrackWidgetInteraction={trackWidgetInteraction}
             onExpandOne={panelState.expandOne}
             onHaptic={haptic.trigger}
@@ -1592,39 +1648,8 @@ export default function LiveRidePage() {
           onSetUseSimulator={setUseSimulator}
           onSetRewardMode={setRewardMode}
           onExitRide={exitRide}
-          onResetPrefs={() => {
-            try {
-              window.localStorage.removeItem("spinchain:ride:viewMode");
-              window.localStorage.removeItem("spinchain:ride:hudMode");
-              // Reset focus mode store too
-              useRideFocusMode
-                .getState()
-                .initForDevice(
-                  deviceType === "tablet" ? "desktop" : deviceType,
-                );
-            } catch {
-              /* ignore */
-            }
-            viewModePreferenceRef.current = "system";
-            panelState.resetLayout();
-            trackEvent(ANALYTICS_EVENTS.WIDGET_LAYOUT_RESET, {
-              phase: isRiding
-                ? "in_ride"
-                : rideProgress > 0
-                  ? "post_ride"
-                  : "pre_ride",
-              viewMode,
-              deviceType,
-            });
-          }}
-          onCollapseToggle={() => {
-            if (isRiding && viewMode === "immersive") {
-              cycleRideWidgetsMode();
-              return;
-            }
-            if (panelState.isAllCollapsed) panelState.expandAll();
-            else panelState.collapseAll();
-          }}
+          onResetPrefs={handleResetPrefs}
+          onCollapseToggle={handleCollapseToggle}
           isAllCollapsed={
             isRiding && viewMode === "immersive"
               ? widgetsMode !== "expanded"

@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 
 // Granular telemetry store - each property can be subscribed to independently
 // This prevents a power change from re-rendering the heart rate gauge, etc.
@@ -52,29 +53,33 @@ export const useHeartRate = () => useTelemetryStore((state) => state.heartRate);
 export const useCadence = () => useTelemetryStore((state) => state.cadence);
 export const useSpeed = () => useTelemetryStore((state) => state.speed);
 export const useEffort = () => useTelemetryStore((state) => state.effort);
-export const useWBal = () => useTelemetryStore((state) => ({ wBal: state.wBal, wBalPercentage: state.wBalPercentage }));
+export const useWBal = () => useTelemetryStore(useShallow((state) => ({ wBal: state.wBal, wBalPercentage: state.wBalPercentage })));
 export const useDistance = () => useTelemetryStore((state) => state.distance);
-export const useGear = () => useTelemetryStore((state) => ({ currentGear: state.currentGear, gearRatio: state.gearRatio }));
+export const useGear = () => useTelemetryStore(useShallow((state) => ({ currentGear: state.currentGear, gearRatio: state.gearRatio })));
 
 // Composite selector for components that need multiple related values
-export const useCoreMetrics = () => useTelemetryStore((state) => ({
-  heartRate: state.heartRate,
-  power: state.power,
-  cadence: state.cadence,
-}));
+export const useCoreMetrics = () => useTelemetryStore(
+  useShallow((state) => ({
+    heartRate: state.heartRate,
+    power: state.power,
+    cadence: state.cadence,
+  })),
+);
 
 // Full telemetry for backward compatibility (use sparingly)
-export const useFullTelemetry = () => useTelemetryStore((state) => ({
-  heartRate: state.heartRate,
-  power: state.power,
-  cadence: state.cadence,
-  speed: state.speed,
-  effort: state.effort,
-  wBal: state.wBal,
-  wBalPercentage: state.wBalPercentage,
-  distance: state.distance,
-  currentGear: state.currentGear,
-  gearRatio: state.gearRatio,
-  resistance: state.resistance,
-  timestamp: state.timestamp,
-}));
+export const useFullTelemetry = () => useTelemetryStore(
+  useShallow((state) => ({
+    heartRate: state.heartRate,
+    power: state.power,
+    cadence: state.cadence,
+    speed: state.speed,
+    effort: state.effort,
+    wBal: state.wBal,
+    wBalPercentage: state.wBalPercentage,
+    distance: state.distance,
+    currentGear: state.currentGear,
+    gearRatio: state.gearRatio,
+    resistance: state.resistance,
+    timestamp: state.timestamp,
+  })),
+);
