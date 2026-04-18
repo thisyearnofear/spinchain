@@ -131,15 +131,16 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   const yellowSettlement = useYellowSettlement();
   
   // Local state for batch accumulation (ZK mode)
-  const [batchAccumulator, setBatchAccumulator] = useState<BatchAccumulator | null>(null);
+  // batchAccumulator is a ref (not state) because it changes on every telemetry tick (2-4Hz).
+  // Only isActive (boolean) needs to be state — it flips once from false→true on startEarning.
+  const batchAccumulatorRef = useRef<BatchAccumulator | null>(null);
+  const [zkBatchActive, setZkBatchActive] = useState(false);
   
   // Updates history (Yellow mode)
   const [updates, setUpdates] = useState<SignedRewardUpdate[]>([]);
 
   // Stabilize rapidly-changing values via refs so that useCallbacks don't
   // need them as dependencies, preventing React #185 infinite re-render loops.
-  const batchAccumulatorRef = useRef(batchAccumulator);
-  batchAccumulatorRef.current = batchAccumulator;
   const yellowRef = useRef(yellow);
   yellowRef.current = yellow;
   const yellowSettlementRef = useRef(yellowSettlement);
@@ -170,7 +171,8 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
       
       case "zk-batch": {
         // Initialize batch accumulator
-        setBatchAccumulator(createBatchAccumulator());
+        batchAccumulatorRef.current = createBatchAccumulator();
+        setZkBatchActive(true);
         break;
       }
       
@@ -203,12 +205,11 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
         const currentBatch = batchAccumulatorRef.current;
         if (!currentBatch) return;
         
-        const newBatch = addToBatch(
+        batchAccumulatorRef.current = addToBatch(
           currentBatch,
           telemetry.heartRate,
           telemetry.power || 0
         );
-        setBatchAccumulator(newBatch);
         break;
       }
       
@@ -395,11 +396,11 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
       case "yellow-stream":
         return yellow.isActive;
       case "zk-batch":
-        return !!batchAccumulator;
+        return zkBatchActive;
       case "sui-native":
         return false;
     }
-  }, [mode, yellow.isActive, batchAccumulator]);
+  }, [mode, yellow.isActive, zkBatchActive]);
 
   const streamingStatus = useMemo(() => {
     if (mode !== "yellow-stream") return undefined;

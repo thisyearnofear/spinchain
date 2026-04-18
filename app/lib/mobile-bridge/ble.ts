@@ -1,6 +1,8 @@
 // Mobile BLE Bridge - unified BLE interface for web + native
 // Uses Web Bluetooth service on web and Capacitor BLE on native apps.
 
+import { useMemo } from 'react';
+
 import { BleClient } from '@capacitor-community/bluetooth-le';
 import { isNativeApp, hasNativeBluetooth } from './platform';
 import { bleService } from '../ble/service';
@@ -581,7 +583,7 @@ export function getUnifiedBleService(): UnifiedBleService {
 
 export function useUnifiedBle() {
   const service = getUnifiedBleService();
-  return {
+  return useMemo(() => ({
     metrics: service.getMetrics(),
     status: service.getStatus(),
     device: service.getDevice(),
@@ -594,7 +596,8 @@ export function useUnifiedBle() {
     setResistance: service.setResistance.bind(service),
     removeSavedDevice: service.removeSavedDevice.bind(service),
     clearSavedDevices: service.clearSavedDevices.bind(service),
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [service]);
 }
 
 export function isBleAvailable(): boolean {

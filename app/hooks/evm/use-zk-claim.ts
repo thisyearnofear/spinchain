@@ -207,7 +207,7 @@ export function useZKClaim() {
     return false;
   }, []);
   
-  return {
+  return useMemo(() => ({
     // Actions
     generateProof,
     submitProof,
@@ -225,7 +225,17 @@ export function useZKClaim() {
     isSuccess: txState.isSuccess,
     hash: txState.hash,
     error: txState.error || zkState.error,
-  };
+  }), [
+    generateProof,
+    submitProof,
+    claimWithZK,
+    checkProofUsed,
+    zkState,
+    txState.isPending,
+    txState.isSuccess,
+    txState.hash,
+    txState.error,
+  ]);
 }
 
 // Legacy-compatible hook (signed attestations with ZK upgrade path)

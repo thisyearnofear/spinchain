@@ -122,7 +122,7 @@ export function useChainlinkVerification() {
     }
   });
 
-  return {
+  return useMemo(() => ({
     // Actions
     requestVerification,
     claimRewards,
@@ -132,7 +132,7 @@ export function useChainlinkVerification() {
     // State
     isVerifying,
     isRequestSuccess: requestTx.isSuccess,
-    isClaiming: claimTx.isPending,
+    isClaiming: requestTx.isPending,
     requestId,
     verifiedScore: verifiedScore ? Number(verifiedScore) : 0,
     isVerified: verifiedScore ? Number(verifiedScore) > 0 : false,
@@ -142,5 +142,19 @@ export function useChainlinkVerification() {
 
     // Config
     chainlinkConfig: CHAINLINK_CONFIG,
-  };
+  }), [
+    requestVerification,
+    claimRewards,
+    finalizeRewards,
+    refetchStatus,
+    isVerifying,
+    requestTx.isSuccess,
+    requestTx.isPending,
+    requestTx.error,
+    requestId,
+    verifiedScore,
+    claimTx.isSuccess,
+    claimTx.hash,
+    claimTx.error,
+  ]);
 }
