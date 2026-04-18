@@ -1590,7 +1590,8 @@ export default function LiveRidePage() {
             currentInterval={currentInterval}
             intervalProgress={intervalProgress}
             routeTheme={routeTheme}
-            searchParams={searchParams}
+            avatarId={searchParams.get("avatarId") || undefined}
+            equipmentId={searchParams.get("equipmentId") || undefined}
             panelState={panelState.state}
             panelPositions={panelState.positions}
             onTogglePanel={handleTogglePanel}

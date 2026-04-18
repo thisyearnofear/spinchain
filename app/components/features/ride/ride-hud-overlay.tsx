@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, memo } from "react";
 import { RideTopBar } from "./ride-top-bar";
 import { RideHUD } from "./ride-hud";
 import { RideBottomPanel } from "./ride-bottom-panel";
@@ -91,7 +91,7 @@ interface RideHUDOverlayProps {
   socialRiders: MultiGhostState[];
 }
 
-export function RideHUDOverlay(props: RideHUDOverlayProps) {
+export const RideHUDOverlay = memo(function RideHUDOverlay(props: RideHUDOverlayProps) {
   // Integrate unified focus mode system
   const focusAdapter = useRideFocusAdapter(props.deviceType);
   const visibility = useRideFocusVisibility();
@@ -211,4 +211,4 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
       )}
     </div>
   );
-}
+});

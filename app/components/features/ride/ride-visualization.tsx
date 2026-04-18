@@ -47,7 +47,8 @@ interface RideVisualizationProps {
   currentInterval: { phase: IntervalPhase } | null;
   intervalProgress: number;
   routeTheme: VisualizerTheme;
-  searchParams: URLSearchParams;
+  avatarId?: string;
+  equipmentId?: string;
   panelState: PanelState;
   panelPositions: PanelPositions;
   onTogglePanel: (key: PanelKey) => void;
@@ -58,6 +59,29 @@ interface RideVisualizationProps {
   onHaptic?: (type?: HapticType) => boolean;
   isPracticeMode: boolean;
   recentPowerHistory: number[];
+}
+
+// Custom comparator: skip callback/handler props — they're only used on user
+// interaction, not for rendering the 3D scene or SVG visualizer.
+function vizPropsEqual(prev: RideVisualizationProps, next: RideVisualizationProps) {
+  return (
+    prev.viewMode === next.viewMode &&
+    prev.deviceType === next.deviceType &&
+    prev.isRiding === next.isRiding &&
+    prev.rideProgress === next.rideProgress &&
+    prev.elapsedTime === next.elapsedTime &&
+    prev.routeTheme === next.routeTheme &&
+    prev.currentIntervalIndex === next.currentIntervalIndex &&
+    prev.intervalProgress === next.intervalProgress &&
+    prev.isPracticeMode === next.isPracticeMode &&
+    prev.routeElevationProfile === next.routeElevationProfile &&
+    prev.routeCoordinates === next.routeCoordinates &&
+    prev.currentRouteCoordinate === next.currentRouteCoordinate &&
+    prev.classData === next.classData &&
+    prev.workoutPlan === next.workoutPlan &&
+    prev.recentPowerHistory === next.recentPowerHistory &&
+    prev.panelState === next.panelState
+  );
 }
 
 export const RideVisualization = memo(function RideVisualization({
@@ -75,7 +99,8 @@ export const RideVisualization = memo(function RideVisualization({
   currentInterval,
   intervalProgress,
   routeTheme,
-  searchParams,
+  avatarId,
+  equipmentId,
   panelState,
   panelPositions,
   onTogglePanel,
@@ -115,8 +140,8 @@ export const RideVisualization = memo(function RideVisualization({
             power: telemetry.power,
             cadence: telemetry.cadence,
           }}
-          avatarId={searchParams.get("avatarId") || undefined}
-          equipmentId={searchParams.get("equipmentId") || undefined}
+          avatarId={avatarId}
+          equipmentId={equipmentId}
           routeName={classData.metadata?.route?.name || classData.name}
           routeStartCoordinate={routeCoordinates[0] ?? null}
           currentCoordinate={currentRouteCoordinate}
@@ -145,8 +170,8 @@ export const RideVisualization = memo(function RideVisualization({
             power: telemetry.power,
             cadence: telemetry.cadence,
           }}
-          avatarId={searchParams.get("avatarId") || undefined}
-          equipmentId={searchParams.get("equipmentId") || undefined}
+          avatarId={avatarId}
+          equipmentId={equipmentId}
           quality={deviceType === "mobile" ? "low" : "high"}
           className="h-full w-full"
         />
@@ -231,4 +256,4 @@ export const RideVisualization = memo(function RideVisualization({
       )}
     </div>
   );
-});
+}, vizPropsEqual);
