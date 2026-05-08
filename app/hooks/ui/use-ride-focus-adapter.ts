@@ -16,7 +16,8 @@ import { useRideFocusMode, useRideFocusConfig } from "./use-ride-focus-mode";
 
 export function useRideFocusAdapter(deviceType: "mobile" | "tablet" | "desktop") {
   const config = useRideFocusConfig();
-  const { initForDevice } = useRideFocusMode();
+  // Use targeted selector — only get the action, not the entire store
+  const initForDevice = useRideFocusMode((s) => s.initForDevice);
   
   // Initialize mode based on device — only on mount or when deviceType changes.
   // Use a ref for initForDevice to prevent the effect from re-running when

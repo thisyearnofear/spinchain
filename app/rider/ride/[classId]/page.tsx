@@ -843,31 +843,19 @@ export default function LiveRidePage() {
       // Advance ride progress cadence-weighted: no pedaling = no progress.
       // Use refs for isRiding/classData to avoid stale closures in the metrics callback.
       // Simulator uses compressed time (3-min effective duration) so progress is visually meaningful.
+      // IMPORTANT: Do NOT call setState inside setElapsedTime updater — causes React #185.
       const currentClassData = classDataRef.current;
       if (isRidingRef.current && currentClassData && metrics.cadence > 0) {
         const TARGET_CADENCE = 80;
         const cadenceRatio = Math.min(metrics.cadence / TARGET_CADENCE, 1.5);
         const tickSeconds = 0.5 * cadenceRatio;
 
-        // Compress ride duration for simulator: map real elapsed time to full ride duration
-        // so a ~3 minute pedaling session completes the route visually.
-        const SIMULATOR_DURATION_SECONDS = 3 * 60; // 3 minutes of pedaling = full route
+        const SIMULATOR_DURATION_SECONDS = 3 * 60;
         const realDuration = (currentClassData.metadata?.duration || 45) * 60;
         const timeScale = realDuration / SIMULATOR_DURATION_SECONDS;
         const scaledTick = tickSeconds * timeScale;
 
-        setElapsedTime((prev) => {
-          const newTime = prev + scaledTick;
-          const newProgress = Math.min((newTime / realDuration) * 100, 100);
-          setRideProgress(newProgress);
-
-          if (newProgress >= 100) {
-            isRidingRef.current = false;
-            setIsRiding(false);
-          }
-
-          return newTime;
-        });
+        setElapsedTime((prev) => prev + scaledTick);
       }
     },
     [
@@ -879,6 +867,22 @@ export default function LiveRidePage() {
       setRideProgress,
     ],
   );
+
+  // Derive ride progress and auto-stop from elapsed time (simulator path).
+  // The lifecycle hook handles this for non-simulator mode; this covers the
+  // simulator case where elapsedTime is advanced by handleSimulatorMetrics.
+  useEffect(() => {
+    if (!isRiding || !useSimulator) return;
+    const currentClassData = classDataRef.current;
+    if (!currentClassData) return;
+    const realDuration = (currentClassData.metadata?.duration || 45) * 60;
+    const newProgress = Math.min((elapsedTime / realDuration) * 100, 100);
+    setRideProgress(newProgress);
+    if (newProgress >= 100) {
+      isRidingRef.current = false;
+      setIsRiding(false);
+    }
+  }, [isRiding, useSimulator, elapsedTime]);
 
   // Auto-adjust view mode only while following system defaults.
   useEffect(() => {
@@ -1169,8 +1173,22 @@ export default function LiveRidePage() {
     setConnectionHint(null);
   }, []);
 
-  const startRide = async () => {
-    const telemetryReady = bleConnected || useSimulator;
+  // Ref-stable callbacks for startRide/exitRide: wrap in useCallback([]) and read
+  // all changing values from refs. This prevents new function identity every render,
+  // which defeats memo() on RideHUDOverlay and causes cascading re-renders.
+  const bleConnectedRefForStart = useRef(bleConnected);
+  bleConnectedRefForStart.current = bleConnected;
+  const useSimulatorRefForStart = useRef(useSimulator);
+  useSimulatorRefForStart.current = useSimulator;
+  const isTrainingModeRefForStart = useRef(isTrainingMode);
+  isTrainingModeRefForStart.current = isTrainingMode;
+  const rewardsRefForStart = useRef(rewards);
+  rewardsRefForStart.current = rewards;
+  const rewardModeRefForStart = useRef(rewardMode);
+  rewardModeRefForStart.current = rewardMode;
+
+  const startRide = useCallback(async () => {
+    const telemetryReady = bleConnectedRefForStart.current || useSimulatorRefForStart.current;
     if (!telemetryReady) {
       setShowNoBikeModal(true);
       trackEvent(ANALYTICS_EVENTS.RIDE_START_BLOCKED_NO_TELEMETRY, {
@@ -1182,25 +1200,21 @@ export default function LiveRidePage() {
 
     trackEvent(ANALYTICS_EVENTS.RIDE_STARTED, {
       classId,
-      source: bleConnected ? "live-bike" : "simulator",
+      source: bleConnectedRefForStart.current ? "live-bike" : "simulator",
       practiceMode: isPracticeMode,
     });
 
     safePlayCountdown(3);
 
-    // Initialize rewards SYNCHRONOUSLY before any state change.
-    // rewards.startEarning() in zk-batch mode only mutates refs (no setState).
-    if (!isTrainingMode) {
+    if (!isTrainingModeRefForStart.current) {
       try {
-        await rewards.startEarning();
-        console.log("[Ride] Rewards channel opened, mode:", rewardMode);
+        await rewardsRefForStart.current.startEarning();
+        console.log("[Ride] Rewards channel opened, mode:", rewardModeRefForStart.current);
       } catch (err) {
         console.warn("[Ride] Rewards init skipped:", err);
       }
     }
 
-    // ALL state changes happen in a single batch inside setTimeout.
-    // This avoids triggering any re-render during the async setup phase.
     setTimeout(() => {
       isRidingRef.current = true;
       setIsRiding(true);
@@ -1212,7 +1226,7 @@ export default function LiveRidePage() {
       trackedCompletionRef.current = false;
       safeSpeak("Let's go!", "intense");
     }, 3000);
-  };
+  }, [classId, isPracticeMode, safePlayCountdown, resetTelemetry, safeSpeak, setIsRiding, setRideProgress, setElapsedTime]);
 
   const pauseRide = useCallback(() => {
     isRidingRef.current = false;
@@ -1237,7 +1251,7 @@ export default function LiveRidePage() {
     }
   }, [pauseRide, safePlaySound]);
 
-  const exitRide = async () => {
+  const exitRide = useCallback(async () => {
     setIsExiting(true);
     safeStopAudio();
     safeStopVoice();
@@ -1374,19 +1388,19 @@ export default function LiveRidePage() {
         maxHeartRate: maxHR,
         effortScore,
         spinEarned: displaySpin,
-        rewardsWereActive: true, // Show "You would have earned" with the calculated amount
+        rewardsWereActive: true,
       });
       setIsExiting(false);
       setShowDemoModal(true);
     } else {
       router.push("/rider/journey?completed=true");
     }
-  };
+  }, [isPracticeMode, router]);
 
-  const handleDemoModalClose = () => {
+  const handleDemoModalClose = useCallback(() => {
     setShowDemoModal(false);
     router.push("/rider");
-  };
+  }, [router]);
 
   // Keyboard shortcuts for focus mode and ride controls
   const handleFocusKeyboard = useRideFocusKeyboard({

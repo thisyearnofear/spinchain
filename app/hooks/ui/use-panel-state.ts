@@ -241,6 +241,9 @@ export function usePanelState(
     const stored = loadStoredState();
     return stored?.positions ?? getDefaultPositions();
   });
+  // Ref for positions so startRideLayout doesn't need positions in its dependency array
+  const positionsRef = useRef(positions);
+  positionsRef.current = positions;
   const [state, setState] = useState<PanelState>(() => {
     const stored = loadStoredState();
     if (stored) {
@@ -331,7 +334,7 @@ export function usePanelState(
     setState((prev): PanelState => {
       if (!rideLayoutActiveRef.current) {
         preRideSnapshotRef.current = prev;
-        preRidePositionsSnapshotRef.current = positions;
+        preRidePositionsSnapshotRef.current = positionsRef.current;
         rideLayoutActiveRef.current = true;
       }
 
@@ -371,7 +374,7 @@ export function usePanelState(
       
       return result;
     });
-  }, [deviceType, positions]);
+  }, [deviceType]);
 
   const endRideLayout = useCallback(() => {
     // Guard against re-entrant calls that could cause infinite re-renders

@@ -378,7 +378,12 @@ export const useCustomMetrics = () => useRideFocusMode((state) => ({
 export function useRideFocusKeyboard(options?: {
   onPauseResume?: () => void;
 }) {
-  const { cycleMode, toggleZen, togglePanel, setMode } = useRideFocusMode();
+  // Use targeted selector to avoid subscribing to the entire store.
+  // Zustand actions are stable references, so this selector never triggers re-renders.
+  const cycleMode = useRideFocusMode((s) => s.cycleMode);
+  const toggleZen = useRideFocusMode((s) => s.toggleZen);
+  const togglePanel = useRideFocusMode((s) => s.togglePanel);
+  const setMode = useRideFocusMode((s) => s.setMode);
   
   return useCallback((event: KeyboardEvent) => {
     // Ignore if typing in input

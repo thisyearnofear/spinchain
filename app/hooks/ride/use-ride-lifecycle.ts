@@ -48,27 +48,31 @@ export function useRideLifecycle({
   }, []);
 
   // Simulate ride progress (only when BLE not connected and not using simulator)
+  // IMPORTANT: Do NOT call other setState inside setElapsedTime updater —
+  // this causes React #185 (Maximum update depth exceeded) because React
+  // re-invokes updaters when concurrent state changes are detected.
   useEffect(() => {
     if (!isRiding || !classData || bleConnected || useSimulator) return;
 
     const interval = setInterval(() => {
-      setElapsedTime((prev) => {
-        const newTime = prev + 1;
-        const duration = (classData.metadata?.duration || 45) * 60;
-        const newProgress = Math.min((newTime / duration) * 100, 100);
-        setRideProgress(newProgress);
-
-        if (newProgress >= 100) {
-          isRidingRef.current = false;
-          setIsRiding(false);
-        }
-
-        return newTime;
-      });
+      setElapsedTime((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
   }, [isRiding, classData, bleConnected, useSimulator]);
+
+  // Derive ride progress and auto-stop from elapsed time (separate effect)
+  useEffect(() => {
+    if (!isRiding || !classData) return;
+    const duration = (classData.metadata?.duration || 45) * 60;
+    const newProgress = Math.min((elapsedTime / duration) * 100, 100);
+    setRideProgress(newProgress);
+
+    if (newProgress >= 100) {
+      isRidingRef.current = false;
+      setIsRiding(false);
+    }
+  }, [isRiding, classData, elapsedTime]);
 
   return {
     isRiding,
