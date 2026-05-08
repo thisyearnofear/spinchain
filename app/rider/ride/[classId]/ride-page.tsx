@@ -836,7 +836,9 @@ export default function RidePage() {
   }, [isRiding, s.useSimulator, elapsedTime]);
 
   const startRide = useCallback(async () => {
-    const telemetryReady = s.bleConnected || s.useSimulator;
+    // Read from store directly to avoid stale closure values
+    const currentState = store.getState();
+    const telemetryReady = currentState.bleConnected || currentState.useSimulator;
     if (!telemetryReady) {
       store.setState({ showNoBikeModal: true });
       trackEvent(ANALYTICS_EVENTS.RIDE_START_BLOCKED_NO_TELEMETRY, {
@@ -847,7 +849,7 @@ export default function RidePage() {
     }
     trackEvent(ANALYTICS_EVENTS.RIDE_STARTED, {
       classId,
-      source: s.bleConnected ? "live-bike" : "simulator",
+      source: currentState.bleConnected ? "live-bike" : "simulator",
       practiceMode: isPracticeMode,
     });
     safePlayCountdown(3);
@@ -890,6 +892,11 @@ export default function RidePage() {
   }, [pauseRide, safePlaySound]);
 
   const exitRide = useCallback(async () => {
+    // If no ride has happened, just navigate back
+    if (rideProgress === 0 && elapsedTime === 0) {
+      router.push("/rider");
+      return;
+    }
     setIsExiting(true);
     safeStopAudio();
     safeStopVoice();
@@ -1028,7 +1035,7 @@ export default function RidePage() {
     agentName, elapsedTime, telemetryAverages, rewards, s.bleConnected,
     s.useSimulator, s.rewardMode, rewardClaimStatus, useChainlinkRewards,
     chainlinkSuccess, zkSuccess, privacyScore, privacyLevel, walletConnected,
-    safeStopAudio, safeStopVoice, setIsExiting,
+    safeStopAudio, safeStopVoice, setIsExiting, rideProgress,
   ]);
 
   const handleClaimRewards = useCallback(async () => {
