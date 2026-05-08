@@ -539,21 +539,38 @@ function HoloHUD({
 }) {
   const styles = THEMES[theme];
   const groupRef = useRef<Group>(null);
-  // Local throttled state for the HTML progress bar (~10fps is plenty for text)
+  // Ref-driven progress display: useFrame updates a ref, a throttled RAF loop
+  // syncs to state at ~10fps. This avoids calling setState inside useFrame
+  // which causes React re-renders every animation frame (React #185).
+  const displayProgressRef = useRef(progressRef.current);
   const [displayProgress, setDisplayProgress] = useState(progressRef.current);
-  const hudFrameRef = useRef(0);
 
   useFrame((state) => {
     if (!groupRef.current) return;
     const breathe = Math.sin(state.clock.elapsedTime * 2.5) * 0.08;
     groupRef.current.position.y = 1.9 + breathe;
     groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.4) * 0.08;
-    // Throttle progress text update independently of parent render cycle
-    hudFrameRef.current++;
-    if (hudFrameRef.current % 6 === 0) {
-      setDisplayProgress(progressRef.current);
-    }
+    // Update ref only — no setState inside useFrame
+    displayProgressRef.current = progressRef.current;
   });
+
+  // Throttled sync of ref → state for HTML overlay (~10fps)
+  useEffect(() => {
+    let rafId: number;
+    let lastUpdate = 0;
+    const sync = (timestamp: number) => {
+      if (timestamp - lastUpdate >= 100) {
+        const current = displayProgressRef.current;
+        setDisplayProgress((prev) =>
+          Math.abs(current - prev) > 0.0001 ? current : prev,
+        );
+        lastUpdate = timestamp;
+      }
+      rafId = requestAnimationFrame(sync);
+    };
+    rafId = requestAnimationFrame(sync);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
 
   return (
     <group ref={groupRef} position={[0, 1.9, -1.8]}>

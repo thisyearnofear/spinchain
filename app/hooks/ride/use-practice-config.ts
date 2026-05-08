@@ -108,5 +108,5 @@ export function usePracticeConfig(classId: string) {
     };
   }, [practiceConfig, classId]);
 
-  return { isPracticeMode, practiceConfig, practiceClassData };
+  return useMemo(() => ({ isPracticeMode, practiceConfig, practiceClassData }), [isPracticeMode, practiceConfig, practiceClassData]);
 }

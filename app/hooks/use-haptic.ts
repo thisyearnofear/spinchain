@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 export type HapticType = "light" | "medium" | "heavy" | "success" | "warning" | "error";
 
@@ -65,7 +65,7 @@ export function useHaptic() {
     return vibrate(pattern);
   }, [isSupported, vibrate]);
 
-  return {
+  return useMemo(() => ({
     isSupported,
     trigger,
     light,
@@ -76,5 +76,5 @@ export function useHaptic() {
     error,
     vibrate,
     rhythm,
-  };
+  }), [isSupported, trigger, light, medium, heavy, success, warning, error, vibrate, rhythm]);
 }

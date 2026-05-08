@@ -10,7 +10,7 @@
  * - CLEAN: Clear event-to-sound mapping
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   generateSoundEffect,
   WORKOUT_SOUNDS,
@@ -179,13 +179,13 @@ export function useWorkoutAudio(): UseWorkoutAudioReturn {
     await Promise.all(promises);
   }, [isConfigured]);
 
-  return {
+  return useMemo(() => ({
     playSound,
     playCountdown,
     stopAll,
-    isPlaying: isPlaying || activeLayers.current.size > 0,
+    isPlaying,
     isConfigured,
     preloadSounds,
     setMusicSpeed,
-  };
+  }), [playSound, playCountdown, stopAll, isPlaying, isConfigured, preloadSounds, setMusicSpeed]);
 }

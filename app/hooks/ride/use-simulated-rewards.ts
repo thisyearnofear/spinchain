@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
 interface UseSimulatedRewardsOptions {
   isRiding: boolean;
@@ -46,10 +46,12 @@ export function useSimulatedRewards({
 
   const reset = useCallback(() => setSimulatedReward(0), []);
 
-  return {
+  const formattedReward = useMemo(() => simulatedReward.toFixed(1), [simulatedReward]);
+
+  return useMemo(() => ({
     simulatedReward,
     isSimulating: shouldSimulate,
-    formattedReward: simulatedReward.toFixed(1),
+    formattedReward,
     reset,
-  };
+  }), [simulatedReward, shouldSimulate, formattedReward, reset]);
 }

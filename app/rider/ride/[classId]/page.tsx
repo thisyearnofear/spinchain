@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useShallow } from "zustand/react/shallow";
 import { motion } from "framer-motion";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useTelemetryStore } from "../../../hooks/ride/use-telemetry-store";
 import { useClass } from "../../../hooks/evm/use-class-data";
 import { usePracticeConfig } from "../../../hooks/ride/use-practice-config";
 import { useRideLifecycle } from "../../../hooks/ride/use-ride-lifecycle";
@@ -336,23 +334,9 @@ export default function LiveRidePage() {
     }
   }, [bleConnected, isPracticeMode, useSimulator]);
 
-  // Compatibility: Create telemetry object from store for components that haven't been refactored yet
-  const telemetry = useTelemetryStore(
-    useShallow((state) => ({
-      heartRate: state.heartRate,
-      power: state.power,
-      cadence: state.cadence,
-      speed: state.speed,
-      effort: state.effort,
-      wBal: state.wBal,
-      wBalPercentage: state.wBalPercentage,
-      distance: state.distance,
-      currentGear: state.currentGear,
-      gearRatio: state.gearRatio,
-      resistance: state.resistance,
-      timestamp: state.timestamp,
-    })),
-  );
+  // Telemetry is read via refs (telemetryRawRef) to avoid subscribing the entire
+  // page to the 2-4Hz Zustand store updates. For one-off render-time reads,
+  // use useTelemetryStore.getState() which doesn't create a subscription.
 
   const trackedEntryViewRef = useRef(false);
   const trackedLiveTelemetryRef = useRef(false);
@@ -504,7 +488,12 @@ export default function LiveRidePage() {
 
   // AI Instructor State
   const { setResistance } = useUnifiedBle();
-  const [aiActive, setAiActive] = useState(false);
+  // aiActive is derived, not set via effect — avoids synchronous setState during render cascade
+  const aiActive =
+    !DISABLE_RIDE_AUDIO_AND_VOICE &&
+    isRiding &&
+    ((isPracticeMode && Boolean(practiceConfig?.aiEnabled)) ||
+      Boolean(classData?.metadata?.ai?.enabled));
   const agentName = classData?.instructor || "Coach";
 
   // ZK Proof + Privacy
@@ -552,7 +541,7 @@ export default function LiveRidePage() {
         classId: classId as `0x${string}`,
       },
       {
-        heartRate: telemetryAverages.avgHr || telemetry.heartRate,
+        heartRate: telemetryAverages.avgHr || telemetryRawRef.current.heartRate,
         threshold,
         durationSeconds,
         heartRateSamples: telemetrySamples.current.map((sample) => sample.hr),
@@ -666,17 +655,18 @@ export default function LiveRidePage() {
   }, [completedRideId, rewardClaimStatus]);
 
   // Simulated reward ticker for training/guest mode (incentivizes wallet connection)
+  // Reads effort from telemetryRawRef to avoid subscribing to the Zustand store.
   const simulatedRewards = useSimulatedRewards({
     isRiding,
     isTrainingMode,
     isGuestMode,
-    effortScore: telemetry.effort,
+    effortScore: telemetryRawRef.current.effort,
   });
 
   const { multiGhostState } = useMultiGhost(
     classId as string,
     classData?.route?.route?.coordinates || [],
-    telemetry.distance,
+    telemetryRawRef.current.distance,
     elapsedTime,
     isRiding,
   );
@@ -760,12 +750,10 @@ export default function LiveRidePage() {
   // Telemetry RAF loop + history + ghost updates are consolidated in useRideTelemetry.
 
   // Handle BLE metrics updates
-  // Uses refs for rewards and telemetry to prevent callback recreation on every
+  // Uses refs for rewards to prevent callback recreation on every
   // telemetry update, which would trigger infinite re-render loops (React #185).
   const rewardsRef = useRef(rewards);
   rewardsRef.current = rewards;
-  const telemetryRef = useRef(telemetry);
-  telemetryRef.current = telemetry;
   const isTrainingModeRef = useRef(isTrainingMode);
   isTrainingModeRef.current = isTrainingMode;
   const bleConnectedRef = useRef(bleConnected);
@@ -797,7 +785,7 @@ export default function LiveRidePage() {
       // Record effort for Yellow rewards (rate-limited; do not block UI)
       // Skip recording in training mode (simulator in paid class) - rewards disabled
       const currentRewards = rewardsRef.current;
-      const currentTelemetry = telemetryRef.current;
+      const currentTelemetry = telemetryRawRef.current;
       if (
         isRidingRef.current &&
         currentRewards.isActive &&
@@ -958,14 +946,11 @@ export default function LiveRidePage() {
   ]);
 
   // Also collect BLE and simulator telemetry samples
-  // Uses refs to read telemetry so the effect doesn't re-run on every telemetry change,
-  // preventing the infinite re-render loop (React #185).
-  const telemetryRefForSamples = useRef(telemetry);
-  telemetryRefForSamples.current = telemetry;
+  // Reads from telemetryRawRef (already a ref) so no extra sync needed.
   useEffect(() => {
     if (!isRiding || (!bleConnected && !useSimulator)) return;
     const id = setInterval(() => {
-      const t = telemetryRefForSamples.current;
+      const t = telemetryRawRef.current;
       if (t.heartRate <= 0) return;
       telemetrySamples.current.push({
         hr: t.heartRate,
@@ -998,8 +983,8 @@ export default function LiveRidePage() {
   // Simulate market activity for Phase 3 autonomy (Demo/Guest mode only)
   // Uses a ref to read telemetry.effort inside the interval so the effect
   // doesn't re-run on every telemetry change, preventing the infinite re-render loop.
-  const telemetryEffortRef = useRef(telemetry.effort);
-  telemetryEffortRef.current = telemetry.effort;
+  const telemetryEffortRef = useRef(telemetryRawRef.current.effort);
+  telemetryEffortRef.current = telemetryRawRef.current.effort;
   useEffect(() => {
     if (!isRiding || (!isPracticeMode && !isGuestMode)) return;
     const interval = setInterval(() => {
@@ -1021,8 +1006,8 @@ export default function LiveRidePage() {
   // Previously depended on `telemetry` which changes 2-4x/sec from the RAF loop,
   // creating a new object every update and cascading into infinite re-render loops (React #185).
   // Now we use a ref and only update the object when the component actually reads it.
-  const telemetryForAgentRef = useRef(telemetry);
-  telemetryForAgentRef.current = telemetry;
+  const telemetryForAgentRef = useRef(telemetryRawRef.current);
+  telemetryForAgentRef.current = telemetryRawRef.current;
   // Stable object identity — hooks read metrics via their own metricsRef internally.
   // WARNING: Do NOT pass this to React.memo-wrapped components — they will never
   // detect changes since the object reference is always the same.
@@ -1082,14 +1067,11 @@ export default function LiveRidePage() {
 
   // flowIntensity uses refs to read telemetry so it doesn't recalculate on every
   // telemetry update. Instead, it's driven by a state update from a low-frequency interval.
-  const flowIntensityMemosRef = useRef({ cadence: telemetry.cadence, effort: telemetry.effort, interval: currentInterval });
-  flowIntensityMemosRef.current = { cadence: telemetry.cadence, effort: telemetry.effort, interval: currentInterval };
+  const flowIntensityMemosRef = useRef({ cadence: telemetryRawRef.current.cadence, effort: telemetryRawRef.current.effort, interval: currentInterval });
+  flowIntensityMemosRef.current = { cadence: telemetryRawRef.current.cadence, effort: telemetryRawRef.current.effort, interval: currentInterval };
   const [flowIntensity, setFlowIntensity] = useState(0);
   useEffect(() => {
     if (!isRiding) return;
-    // Set initial value immediately to avoid 500ms flash at zero intensity
-    const init = flowIntensityMemosRef.current;
-    setFlowIntensity(!init.interval?.targetRpm ? init.effort / 100 : Math.min(1, init.cadence / init.interval.targetRpm[0]));
     const id = setInterval(() => {
       const { cadence, effort, interval } = flowIntensityMemosRef.current;
       if (!interval?.targetRpm) {
@@ -1111,8 +1093,8 @@ export default function LiveRidePage() {
   // Biometric Music Sync
   // Uses a ref to read telemetry.cadence inside an interval so the effect
   // doesn't re-run on every cadence change, preventing the infinite re-render loop.
-  const telemetryCadenceRef = useRef(telemetry.cadence);
-  telemetryCadenceRef.current = telemetry.cadence;
+  const telemetryCadenceRef = useRef(telemetryRawRef.current.cadence);
+  telemetryCadenceRef.current = telemetryRawRef.current.cadence;
   const currentIntervalRef2 = useRef(currentInterval);
   currentIntervalRef2.current = currentInterval;
   useEffect(() => {
@@ -1141,7 +1123,7 @@ export default function LiveRidePage() {
     currentIntervalIndex,
     currentInterval,
     intervalRemaining,
-    telemetryCadence: telemetry.cadence,
+    telemetryCadence: telemetryRawRef.current.cadence,
     aiLogs,
     isSpeaking: DISABLE_RIDE_AUDIO_AND_VOICE ? false : isSpeaking,
     playSound: safePlaySound,
@@ -1180,22 +1162,6 @@ export default function LiveRidePage() {
     return () => clearInterval(id);
   }, [isRiding]);
 
-  useEffect(() => {
-    const practiceAiEnabled =
-      isPracticeMode && Boolean(practiceConfig?.aiEnabled);
-    setAiActive(
-      !DISABLE_RIDE_AUDIO_AND_VOICE &&
-        isRiding &&
-        (practiceAiEnabled || Boolean(classData?.metadata?.ai?.enabled)),
-    );
-  }, [
-    isRiding,
-    isPracticeMode,
-    practiceConfig?.aiEnabled,
-    classData?.metadata?.ai?.enabled,
-    setAiActive,
-  ]);
-
   const handleEnableSimulatorFromModal = useCallback(() => {
     setShowNoBikeModal(false);
     setUseSimulator(true);
@@ -1220,36 +1186,24 @@ export default function LiveRidePage() {
       practiceMode: isPracticeMode,
     });
 
-    setIsStarting(true);
     safePlayCountdown(3);
 
-    // Pre-ride ClearNode connectivity check for Yellow mode
-    if (rewardMode === "yellow-stream" && !rewards.clearNodeConnected) {
-      // Non-blocking warning — ride can still start but rewards may not stream
-      console.warn(
-        "[Ride] Yellow mode selected but ClearNode is not connected. Rewards may not stream.",
-      );
-    }
-
-    // Initialize rewards (gracefully handles no-wallet for zk-batch)
-    // Skip in training mode - simulator in paid class doesn't earn rewards
+    // Initialize rewards SYNCHRONOUSLY before any state change.
+    // rewards.startEarning() in zk-batch mode only mutates refs (no setState).
     if (!isTrainingMode) {
       try {
         await rewards.startEarning();
         console.log("[Ride] Rewards channel opened, mode:", rewardMode);
       } catch (err) {
-        // Non-blocking — guest users can still ride without earning
         console.warn("[Ride] Rewards init skipped:", err);
       }
-    } else {
-      console.log("[Ride] Training mode - rewards disabled");
     }
 
-    // Start ride after countdown finishes
+    // ALL state changes happen in a single batch inside setTimeout.
+    // This avoids triggering any re-render during the async setup phase.
     setTimeout(() => {
       isRidingRef.current = true;
       setIsRiding(true);
-      setIsStarting(false);
       setRideProgress(0);
       setElapsedTime(0);
       resetTelemetry();
@@ -1287,7 +1241,6 @@ export default function LiveRidePage() {
     setIsExiting(true);
     safeStopAudio();
     safeStopVoice();
-    setAiActive(false);
 
     // Calculate demo stats
     const samples = telemetrySamples.current;
@@ -1637,8 +1590,8 @@ export default function LiveRidePage() {
           panelState={panelState.state}
           elapsedTime={elapsedTime}
           connectionHint={connectionHint}
-          telemetryEffort={telemetry.effort}
-          telemetryCadence={telemetry.cadence}
+          telemetryEffort={telemetryRawRef.current.effort}
+          telemetryCadence={telemetryRawRef.current.cadence}
           workoutPlan={workoutPlan}
           currentIntervalIndex={currentIntervalIndex}
           intervalProgress={intervalProgress}

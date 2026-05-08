@@ -10,7 +10,7 @@
  * - CLEAN: Clear separation from UI
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   generateSpeech,
   COACH_VOICES,
@@ -190,12 +190,12 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
     setIsSpeaking(false);
   }, []);
 
-  return {
+  return useMemo(() => ({
     speak,
     isSpeaking,
     isLoading,
     error,
     stop,
     isConfigured,
-  };
+  }), [speak, isSpeaking, isLoading, error, stop, isConfigured]);
 }
