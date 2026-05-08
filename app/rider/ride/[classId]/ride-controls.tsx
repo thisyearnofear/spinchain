@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+
 /**
  * RideControls — HUD overlay, modals, loading/not-found states.
  * Subscribes to ride store for lifecycle state, connection, UI modals.
@@ -146,6 +148,12 @@ function formatTime(seconds: number) {
 }
 
 export function RideControls(props: RideControlsProps) {
+  // Diagnostic: track render count to identify infinite loop source
+  const renderCount = useRef(0);
+  renderCount.current++;
+  if (renderCount.current > 20) {
+    console.error(`[RideControls] Render loop detected! Count: ${renderCount.current}`);
+  }
   // Subscribe to ride store
   const isRiding = useRideStore((s) => s.isRiding);
   const isExiting = useRideStore((s) => s.isExiting);
@@ -212,67 +220,9 @@ export function RideControls(props: RideControlsProps) {
         onHaptic={props.haptic?.trigger}
       >
         {props.rewards && props.panelState && (
-          <RideHUDOverlay
-            classData={props.classData || { name: "", instructor: "" }}
-            isPracticeMode={props.isPracticeMode}
-            routeIsGenerated={props.classData?.routeIsGenerated}
-            isRiding={isRiding}
-            isExiting={isExiting}
-            rideProgress={rideProgress}
-            isTrainingMode={isTrainingMode}
-            isGuestMode={isGuestMode}
-            useSimulator={useSimulator}
-            bleConnected={bleConnected}
-            walletConnected={props.walletConnected || false}
-            rewardMode={rewardMode}
-            rewardsFormattedReward={props.rewards.formattedReward}
-            rewardsIsActive={props.rewards.isActive}
-            rewardsClearNodeConnected={props.rewards.clearNodeConnected}
-            deviceType={deviceType}
-            simulatedReward={props.simulatedRewards || { isSimulating: false, formattedReward: "0.0" }}
-            telemetryHistory={props.telemetryHistory || { power: [], cadence: [], heartRate: [] }}
-            ghostState={props.ghostState || { leadLagTime: 0, distanceGap: 0, ghostPoint: null }}
-            currentInterval={props.currentInterval || null}
-            aiLogs={props.aiLogs || []}
-            aiActive={props.aiActive || false}
-            agentName={props.agentName || "Coach"}
-            reasonerState={props.reasonerState || "idle"}
-            lastDecision={props.lastDecision || null}
-            thoughtLog={props.thoughtLog || []}
-            isSpeaking={props.isSpeaking || false}
-            widgetsVisible={widgetsVisible}
-            panelState={props.panelState.state}
-            elapsedTime={elapsedTime}
-            connectionHint={connectionHint}
-            telemetryEffort={props.telemetryRawRef?.current.effort || 0}
-            telemetryCadence={props.telemetryRawRef?.current.cadence || 0}
-            workoutPlan={workoutPlan}
-            currentIntervalIndex={props.currentIntervalIndex || 0}
-            intervalProgress={props.intervalProgress || 0}
-            intervalRemaining={props.intervalRemaining || 0}
-            rewardsStreamState={props.rewards.streamState ?? null}
-            rewardsMode={props.rewards.mode}
-            orientation={props.orientation || "landscape"}
-            onSetUseSimulator={(v) => useRideStore.setState({ useSimulator: v })}
-            onSetRewardMode={(m) => useRideStore.setState({ rewardMode: m })}
-            onExitRide={props.onExitRide || (() => {})}
-            onResetPrefs={() => {}}
-            onCollapseToggle={() => {}}
-            isAllCollapsed={props.panelState.isAllCollapsed}
-            onTogglePanel={props.panelState.toggle}
-            onStartRide={props.onStartRide || (() => {})}
-            onPauseRide={props.onPauseRide || (() => {})}
-            onSetWorkoutPlan={props.onSetWorkoutPlan || (() => {})}
-            onSetUseSimulator2={(v) => useRideStore.setState({ useSimulator: v })}
-            onBleMetrics={props.onBleMetrics || (() => {})}
-            onSimulatorMetrics={props.onSimulatorMetrics || (() => {})}
-            onHaptic={props.haptic?.trigger || (() => false)}
-            formatTime={formatTime}
-            trackWidgetInteraction={() => {}}
-            cycleRideWidgetsMode={() => {}}
-            multiGhostState={props.multiGhostState || []}
-            socialRiders={props.multiGhostState || []}
-          />
+          <div style={{position:'fixed',top:0,left:0,right:0,zIndex:50,pointerEvents:'none'}}>
+            {/* DIAGNOSTIC: RideHUDOverlay temporarily disabled to isolate #185 */}
+          </div>
         )}
 
         <RideModals
