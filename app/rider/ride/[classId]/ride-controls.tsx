@@ -201,21 +201,16 @@ export function RideControls(props: RideControlsProps) {
   const isTrainingMode = props.isTrainingMode || false;
 
   return (
-    <RideGestureZone
-      enabled={deviceType === "mobile" && isRiding}
-      onHaptic={props.haptic?.trigger}
-    >
-      <div
-        className="fixed inset-0 bg-black"
-        style={{
-          height: "100vh",
-        }}
-      >
-        {/* Network status — small corner badge, not blocking content */}
-        <div className="absolute top-3 right-3 z-50 max-w-xs">
-          <NetworkStatusBanner />
-        </div>
+    <>
+      {/* Network status — bottom-right corner, non-blocking */}
+      <div className="fixed bottom-3 right-3 z-[60] max-w-xs">
+        <NetworkStatusBanner />
+      </div>
 
+      <RideGestureZone
+        enabled={deviceType === "mobile" && isRiding}
+        onHaptic={props.haptic?.trigger}
+      >
         {props.rewards && props.panelState && (
           <RideHUDOverlay
             classData={props.classData || { name: "", instructor: "" }}
@@ -318,6 +313,10 @@ export function RideControls(props: RideControlsProps) {
               showKeyboardHints: true,
               connectionHint: null,
             });
+            // Auto-start ride after enabling simulator
+            setTimeout(() => {
+              props.onStartRide?.();
+            }, 100);
           }}
           onDismissNoBike={() => useRideStore.setState({ showNoBikeModal: false })}
           onDismissKeyboardHints={() => useRideStore.setState({ showKeyboardHints: false })}
@@ -329,7 +328,7 @@ export function RideControls(props: RideControlsProps) {
           onDismissTutorial={props.onDismissTutorial || (() => {})}
           onSimulatorMetrics={props.onSimulatorMetrics || (() => {})}
         />
-      </div>
-    </RideGestureZone>
+      </RideGestureZone>
+    </>
   );
 }

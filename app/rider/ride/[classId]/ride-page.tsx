@@ -1096,7 +1096,7 @@ export default function RidePage() {
   }
 
   return (
-    <>
+    <div className="fixed inset-0 bg-black" style={{ height: "100vh" }}>
       <RideScene
         classId={classId}
         classData={classData}
@@ -1188,6 +1188,6 @@ export default function RidePage() {
         classDataRef={classDataRef}
         isRidingRef={isRidingRef}
       />
-    </>
+    </div>
   );
 }
