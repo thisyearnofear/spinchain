@@ -120,6 +120,25 @@ export default function RidePage() {
   const { showTutorial, tutorialStep, nextStep, dismiss: dismissTutorial } =
     useRideTutorial();
 
+  // Initialize simulator mode for practice/demo rides
+  useEffect(() => {
+    if (isPracticeMode) {
+      store.setState({ useSimulator: true });
+    }
+  }, [isPracticeMode]);
+
+  // Initialize viewMode from localStorage
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("spinchain:ride:viewMode");
+      if (stored === "focus" || stored === "immersive") {
+        store.setState({ viewMode: stored });
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // Lifecycle
   const {
     isRiding,
