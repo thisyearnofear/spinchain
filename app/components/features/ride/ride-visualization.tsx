@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, Component, type ReactNode, useMemo } from "react";
 import dynamic from "next/dynamic";
 import FocusRouteVisualizer from "@/app/components/features/route/focus-route-visualizer";
 import type { WorkoutPlan, IntervalPhase } from "@/app/lib/workout-plan";
@@ -24,6 +24,88 @@ const RouteVisualizerRaw = dynamic(
 
 // Memoize to prevent WebGL context thrashing from parent re-renders
 const RouteVisualizer = memo(RouteVisualizerRaw);
+
+// ============================================================================
+// Session-level WebGL Degradation Tracking
+// ============================================================================
+//
+// After repeated 3D failures within the same browser session, we permanently
+// degrade to 2D SVG to avoid the React #185 infinite retry loop. The threshold
+// is intentionally low (2 failures) because a WebGL context loss on the first
+// attempt strongly suggests a persistent GPU/device limitation.
+//
+const WEBGL_DEGRADE_KEY = "spinchain:webgl:degraded";
+const WEBGL_FAILURE_COUNT_KEY = "spinchain:webgl:failureCount";
+const WEBGL_MAX_FAILURES = 2;
+
+function getWebGLFailureCount(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    return parseInt(
+      sessionStorage.getItem(WEBGL_FAILURE_COUNT_KEY) || "0",
+      10,
+    );
+  } catch {
+    return 0;
+  }
+}
+
+function incrementWebGLFailureCount(): number {
+  const count = getWebGLFailureCount() + 1;
+  try {
+    sessionStorage.setItem(WEBGL_FAILURE_COUNT_KEY, String(count));
+    if (count >= WEBGL_MAX_FAILURES) {
+      sessionStorage.setItem(WEBGL_DEGRADE_KEY, "true");
+    }
+  } catch {
+    // storage unavailable — proceed normally
+  }
+  return count;
+}
+
+function isWebGLPermanentlyDegraded(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return sessionStorage.getItem(WEBGL_DEGRADE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================================
+// WebGL Error Boundary — catches 3D rendering failures and degrades to 2D SVG
+// ============================================================================
+//
+// When the WebGL context is lost or R3F throws during rendering, this boundary
+// catches the error at the source and renders FocusRouteVisualizer (2D SVG)
+// instead of letting the error propagate up through Suspense/error boundaries,
+// which causes React #185 ("Looping waitForRootToLoad detected").
+//
+class WebGLErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    const failureCount = incrementWebGLFailureCount();
+    console.warn(
+      `[WebGLErrorBoundary] 3D renderer failed (attempt ${failureCount}/${WEBGL_MAX_FAILURES}) — degrading to 2D SVG:`,
+      error.message,
+    );
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
 
 interface RideVisualizationProps {
   viewMode: "immersive" | "focus";
@@ -118,63 +200,72 @@ export const RideVisualization = memo(function RideVisualization({
   const visualizerMode: "preview" | "ride" | "finished" =
     rideProgress >= 100 ? "finished" : isRiding || rideProgress > 0 ? "ride" : "preview";
 
+  // If WebGL has failed repeatedly this session, skip 3D entirely
+  const permanentlyDegraded = useMemo(() => isWebGLPermanentlyDegraded(), []);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const focusFallback = (
+    <FocusRouteVisualizer
+      elevationProfile={routeElevationProfile}
+      storyBeats={(classData.route?.route?.storyBeats ?? []).filter((b): b is StoryBeat => b != null)}
+      progress={routeProgress}
+      currentPower={telemetry.power}
+      recentPower={recentPowerHistory}
+      ftp={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
+      theme={routeTheme}
+      stats={{
+        hr: telemetry.heartRate,
+        power: telemetry.power,
+        cadence: telemetry.cadence,
+      }}
+      avatarId={avatarId}
+      equipmentId={equipmentId}
+      routeName={classData.metadata?.route?.name || classData.name}
+      routeStartCoordinate={routeCoordinates[0] ?? null}
+      currentCoordinate={currentRouteCoordinate}
+      intervalPhase={currentInterval?.phase ?? null}
+      className="h-full w-full"
+      panelState={panelState}
+      panelPositions={panelPositions}
+      onTogglePanel={onTogglePanel}
+      onSetPanelPosition={onSetPanelPosition}
+      onSnapPanel={onSnapPanel}
+      onTrackWidgetInteraction={onTrackWidgetInteraction}
+      useAccordion={deviceType === "mobile"}
+      onExpandOne={onExpandOne}
+      onHaptic={deviceType === "mobile" ? onHaptic : undefined}
+      showStreetView={!isPracticeMode}
+    />
+  );
+
   return (
     <div className="absolute inset-0">
-      {viewMode === "focus" ? (
-        <FocusRouteVisualizer
-          elevationProfile={routeElevationProfile}
-          storyBeats={(classData.route?.route?.storyBeats ?? []).filter((b): b is StoryBeat => b != null)}
-          progress={routeProgress}
-          currentPower={telemetry.power}
-          recentPower={recentPowerHistory}
-          ftp={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
-          theme={routeTheme}
-          stats={{
-            hr: telemetry.heartRate,
-            power: telemetry.power,
-            cadence: telemetry.cadence,
-          }}
-          avatarId={avatarId}
-          equipmentId={equipmentId}
-          routeName={classData.metadata?.route?.name || classData.name}
-          routeStartCoordinate={routeCoordinates[0] ?? null}
-          currentCoordinate={currentRouteCoordinate}
-          intervalPhase={currentInterval?.phase ?? null}
-          className="h-full w-full"
-          panelState={panelState}
-          panelPositions={panelPositions}
-          onTogglePanel={onTogglePanel}
-          onSetPanelPosition={onSetPanelPosition}
-          onSnapPanel={onSnapPanel}
-          onTrackWidgetInteraction={onTrackWidgetInteraction}
-          useAccordion={deviceType === "mobile"}
-          onExpandOne={onExpandOne}
-          onHaptic={deviceType === "mobile" ? onHaptic : undefined}
-          showStreetView={!isPracticeMode}
-        />
+      {viewMode === "focus" || permanentlyDegraded ? (
+        focusFallback
       ) : (
-        <RouteVisualizer
-          elevationProfile={routeElevationProfile}
-          theme={routeTheme}
-          storyBeats={(classData.route?.route?.storyBeats ?? []).filter((b): b is StoryBeat => b != null)}
-          progress={routeProgress}
-          mode={visualizerMode}
-          stats={{
-            hr: telemetry.heartRate,
-            power: telemetry.power,
-            cadence: telemetry.cadence,
-          }}
-          avatarId={avatarId}
-          equipmentId={equipmentId}
-          quality={deviceType === "mobile" ? "low" : "high"}
-          className="h-full w-full"
-        />
+        <WebGLErrorBoundary fallback={focusFallback}>
+          <RouteVisualizer
+            elevationProfile={routeElevationProfile}
+            theme={routeTheme}
+            storyBeats={(classData.route?.route?.storyBeats ?? []).filter((b): b is StoryBeat => b != null)}
+            progress={routeProgress}
+            mode={visualizerMode}
+            stats={{
+              hr: telemetry.heartRate,
+              power: telemetry.power,
+              cadence: telemetry.cadence,
+            }}
+            avatarId={avatarId}
+            equipmentId={equipmentId}
+            quality={deviceType === "mobile" ? "low" : "high"}
+            className="h-full w-full"
+          />
+        </WebGLErrorBoundary>
       )}
 
       {/* Mini Stats Bar - Mobile: Always visible during ride */}

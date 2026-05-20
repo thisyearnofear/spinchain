@@ -27,7 +27,7 @@ import {
   Noise,
 } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
-import { useMemo, useRef, useState, useEffect, Suspense, type MutableRefObject } from "react";
+import { useMemo, useRef, useState, useEffect, type MutableRefObject } from "react";
 import {
   OrbitControls,
   Environment,
@@ -1414,35 +1414,6 @@ export default function RouteVisualizer({
   const avatar = useMemo(() => AVATARS.find(a => a.id === avatarId), [avatarId]);
   const equipment = useMemo(() => EQUIPMENT.find(e => e.id === equipmentId), [equipmentId]);
 
-  // Graceful WebGL context-loss handling (prevents a "blank ride" if the GPU resets)
-  const [webglContextLost, setWebglContextLost] = useState(false);
-  const [canvasKey, setCanvasKey] = useState(0);
-  const canvasElRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    const canvas = canvasElRef.current;
-    if (!canvas) return;
-
-    const onLost = (e: Event) => {
-      // Prevent the browser default which may permanently disable the context.
-      // We show a recovery UI and allow the user to remount the canvas.
-      e.preventDefault?.();
-      setWebglContextLost(true);
-    };
-
-    const onRestored = () => {
-      setWebglContextLost(false);
-    };
-
-    canvas.addEventListener("webglcontextlost", onLost as EventListener, false);
-    canvas.addEventListener("webglcontextrestored", onRestored as EventListener, false);
-
-    return () => {
-      canvas.removeEventListener("webglcontextlost", onLost as EventListener);
-      canvas.removeEventListener("webglcontextrestored", onRestored as EventListener);
-    };
-  }, [canvasKey]);
-
   // Simulation loop for stats if progress is live
   useEffect(() => {
     if (performanceTier === "low") return; // Skip on low-end devices
@@ -1475,60 +1446,29 @@ export default function RouteVisualizer({
         }}
       />
 
-      <Suspense fallback={
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="text-white/60 text-sm">Loading 3D route...</div>
-        </div>
-      }>
         <div className="relative w-full h-full">
-          {!webglContextLost ? (
-            <Canvas
-              key={canvasKey}
-              gl={{ alpha: true, antialias: false, powerPreference: "high-performance" }}
-              dpr={effectiveQuality.pixelRatio}
-              frameloop={mode === "ride" ? "always" : "demand"}
-              performance={{ min: 0.5 }}
-              onCreated={({ gl }) => {
-                canvasElRef.current = gl.domElement;
-              }}
-            >
-              <Scene
-                elevationProfile={elevationProfile}
-                theme={theme}
-                progress={progress}
-                mode={mode}
-                storyBeats={storyBeats}
-                ghosts={ghosts}
-                stats={stats}
-                avatar={avatar}
-                equipment={equipment}
-                quality={effectiveQuality}
-                performanceTier={renderTier}
-                userDisplayName={userDisplayName}
-              />
-            </Canvas>
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-              <div className="rounded-2xl border border-white/10 bg-black/60 px-5 py-4 text-center">
-                <div className="text-sm font-semibold text-white/90">Graphics reset detected</div>
-                <div className="mt-1 text-xs text-white/70">
-                  Tap to reload the visualizer.
-                </div>
-                <button
-                  type="button"
-                  className="mt-3 rounded-lg bg-white/10 px-3 py-2 text-xs text-white/90 hover:bg-white/15"
-                  onClick={() => {
-                    setWebglContextLost(false);
-                    setCanvasKey((k) => k + 1);
-                  }}
-                >
-                  Reload visuals
-                </button>
-              </div>
-            </div>
-          )}
+          <Canvas
+            gl={{ alpha: true, antialias: false, powerPreference: "high-performance" }}
+            dpr={effectiveQuality.pixelRatio}
+            frameloop={mode === "ride" ? "always" : "demand"}
+            performance={{ min: 0.5 }}
+          >
+            <Scene
+              elevationProfile={elevationProfile}
+              theme={theme}
+              progress={progress}
+              mode={mode}
+              storyBeats={storyBeats}
+              ghosts={ghosts}
+              stats={stats}
+              avatar={avatar}
+              equipment={equipment}
+              quality={effectiveQuality}
+              performanceTier={renderTier}
+              userDisplayName={userDisplayName}
+            />
+          </Canvas>
         </div>
-      </Suspense>
 
       {/* Overlay UI — only show in preview mode to avoid duplicating the ride HUD */}
       {mode === "preview" && (
