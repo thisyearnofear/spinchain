@@ -19,6 +19,7 @@ import { EventBus } from "./event-bus";
 import { TelemetryEngine } from "./telemetry-engine";
 import { DeviceEngine } from "./device-engine";
 import { CoachingEngine } from "./coaching-engine";
+import { AudioEngine } from "./audio-engine";
 import { VisualizationEngine } from "./visualization-engine";
 import type { RideStartConfig, TelemetrySnapshot } from "./types";
 import { useRideStore } from "@/app/stores/ride-store";
@@ -28,6 +29,7 @@ export class RideCoordinator {
   readonly telemetry: TelemetryEngine;
   readonly device: DeviceEngine;
   readonly coaching: CoachingEngine;
+  readonly audio: AudioEngine;
   readonly visualization: VisualizationEngine;
 
   private config: RideStartConfig | null = null;
@@ -40,6 +42,7 @@ export class RideCoordinator {
     this.telemetry = new TelemetryEngine(this.bus);
     this.device = new DeviceEngine(this.bus);
     this.coaching = new CoachingEngine(this.bus);
+    this.audio = new AudioEngine(this.bus);
     this.visualization = new VisualizationEngine(this.bus);
 
     // Wire device → telemetry ingestion
@@ -102,6 +105,11 @@ export class RideCoordinator {
       }
     }, 1000);
 
+    // Start audio engine (mixer init, EventBus subscriptions)
+    this.audio.start().catch((err) =>
+      console.warn("[Coordinator] AudioEngine start failed:", err),
+    );
+
     // Start visualization engine (GPU probe + FPS monitoring)
     this.visualization.start();
 
@@ -131,6 +139,7 @@ export class RideCoordinator {
   async stop(): Promise<void> {
     this.rafRunning = false;
     this.clearTimers();
+    this.audio.stop();
     this.telemetry.stop();
     this.telemetry.dispose();
 
@@ -156,6 +165,7 @@ export class RideCoordinator {
     this.clearTimers();
     this.telemetry.dispose();
     this.device.dispose();
+    this.audio.dispose();
     this.visualization.dispose();
     if (this.unsubTick) {
       this.unsubTick();

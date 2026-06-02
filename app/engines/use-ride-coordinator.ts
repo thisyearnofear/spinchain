@@ -21,6 +21,7 @@
 
 import { useRef, useCallback, useEffect } from "react";
 import { RideCoordinator } from "./coordinator";
+import type { WorkoutSoundType } from "@/app/lib/elevenlabs";
 import type { RideStartConfig, TelemetrySnapshot } from "./types";
 
 export function useRideCoordinator() {
@@ -118,6 +119,56 @@ export function useRideCoordinator() {
     coordinatorRef.current?.telemetry.setCurrentGear(gear);
   }, []);
 
+  // ─── Audio Methods ─────────────────────────────────────────────
+
+  /** Speak a coach voice message */
+  const speak = useCallback(
+    async (
+      text: string,
+      emotion?: "calm" | "focused" | "intense" | "celebratory",
+    ): Promise<void> => {
+      await coordinatorRef.current?.audio.speak(text, emotion);
+    },
+    [],
+  );
+
+  /** Play a workout sound effect */
+  const playSound = useCallback(
+    async (type: WorkoutSoundType): Promise<void> => {
+      await coordinatorRef.current?.audio.playSound(type);
+    },
+    [],
+  );
+
+  /** Play a countdown sequence */
+  const playCountdown = useCallback(
+    (seconds: number): void => {
+      coordinatorRef.current?.audio.playCountdown(seconds);
+    },
+    [],
+  );
+
+  /** Stop all audio (voice + SFX + music) */
+  const stopAudio = useCallback((): void => {
+    coordinatorRef.current?.audio.stopAll();
+  }, []);
+
+  /** Set music playback rate for biometric sync */
+  const setMusicSpeed = useCallback(
+    (rate: number): void => {
+      coordinatorRef.current?.audio.setMusicSpeed(rate);
+    },
+    [],
+  );
+
+  /** Preload sound effects for low-latency playback */
+  const preloadSounds = useCallback(
+    async (types: WorkoutSoundType[]): Promise<void> => {
+      await coordinatorRef.current?.audio.preloadSounds(types);
+    },
+    [],
+  );
+
   // Cleanup on unmount — dispose the coordinator to stop RAF loops and EventBus
   useEffect(() => {
     return () => {
@@ -138,5 +189,11 @@ export function useRideCoordinator() {
     stopRide,
     setElapsedSeconds,
     setCurrentGear,
+    speak,
+    playSound,
+    playCountdown,
+    stopAudio,
+    setMusicSpeed,
+    preloadSounds,
   };
 }

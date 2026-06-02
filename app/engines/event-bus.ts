@@ -45,6 +45,9 @@ export interface RideEvents {
 
   "visualization:mode-changed": { mode: string };
   "visualization:degraded": { fromMode: string; toMode: string; fps: number };
+
+  "audio:speaking": { isSpeaking: boolean };
+  "audio:playing": { isPlaying: boolean };
 }
 
 export class EventBus {
