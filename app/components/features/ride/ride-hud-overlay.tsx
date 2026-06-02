@@ -11,7 +11,7 @@ import type { HapticType } from "@/app/hooks/use-haptic";
 import type { TelemetryData } from "./ride-hud";
 import type { AgentDecision } from "@/app/lib/ai-types";
 
-import type { MultiGhostState } from "@/app/hooks/ride/use-multi-ghost";
+import type { MultiGhostState } from "@/app/engines/types";
 
 interface RideHUDOverlayProps {
   classData: { name: string; instructor: string };

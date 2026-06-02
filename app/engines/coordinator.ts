@@ -22,6 +22,7 @@ import { CoachingEngine } from "./coaching-engine";
 import { AudioEngine } from "./audio-engine";
 import { RewardsEngine } from "./rewards-engine";
 import { VisualizationEngine } from "./visualization-engine";
+import { SuiEngine } from "./sui-engine";
 import type { RideStartConfig, TelemetrySnapshot } from "./types";
 import { useRideStore } from "@/app/stores/ride-store";
 
@@ -33,6 +34,7 @@ export class RideCoordinator {
   readonly audio: AudioEngine;
   readonly rewards: RewardsEngine;
   readonly visualization: VisualizationEngine;
+  readonly sui: SuiEngine;
 
   private config: RideStartConfig | null = null;
   private unsubTick: (() => void) | null = null;
@@ -51,6 +53,7 @@ export class RideCoordinator {
       instructor: "0x0" as `0x${string}`,
     });
     this.visualization = new VisualizationEngine(this.bus);
+    this.sui = new SuiEngine(this.bus);
 
     // Wire device → telemetry ingestion
     this.device.onTelemetry = (update) => {
@@ -124,15 +127,21 @@ export class RideCoordinator {
       console.warn("[Coordinator] AudioEngine start failed:", err),
     );
 
+    // Start Sui engine (subscribe to telemetry:committed events)
+    this.sui.start();
+
     // Start visualization engine (GPU probe + FPS monitoring)
     this.visualization.start();
 
-    // Load ghost data (async, best-effort)
+    // Load single ghost data (async, best-effort)
     this.telemetry.loadGhost(
       config.classId,
       config.ghostBlobId,
       config.address,
     );
+
+    // Load multi-ghost data (social riders UI)
+    this.telemetry.loadMultiGhost(config.classId);
 
     // Update Zustand store with initial state
     useRideStore.setState({
@@ -155,6 +164,7 @@ export class RideCoordinator {
     this.clearTimers();
     this.audio.stop();
     this.rewards.stop();
+    this.sui.stop();
     this.telemetry.stop();
     this.telemetry.dispose();
 
@@ -182,6 +192,7 @@ export class RideCoordinator {
     this.device.dispose();
     this.audio.dispose();
     this.rewards.dispose();
+    this.sui.dispose();
     this.visualization.dispose();
     if (this.unsubTick) {
       this.unsubTick();
@@ -261,6 +272,8 @@ export class RideCoordinator {
         maxPower: Math.max(store.stats.maxPower, snapshot.power),
         totalDistance: snapshot.distance,
       },
+      // Bridge multi-ghost state to store for social riders UI
+      multiGhostState: [...this.telemetry.multiGhostState],
     });
   }
 

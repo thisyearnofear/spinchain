@@ -169,6 +169,79 @@ export function useRideCoordinator() {
     [],
   );
 
+  // ─── Sui Methods ───────────────────────────────────────────────
+
+  /** Start a new Sui session */
+  const startSuiSession = useCallback(
+    async (classId: string, duration: number): Promise<string | null> => {
+      return coordinatorRef.current?.sui.startSession(classId, duration) ?? null;
+    },
+    [],
+  );
+
+  /** Join an existing Sui session */
+  const joinSuiSession = useCallback(
+    async (sessionId: string): Promise<string | null> => {
+      return coordinatorRef.current?.sui.joinSession(sessionId) ?? null;
+    },
+    [],
+  );
+
+  /** Close the active Sui session */
+  const closeSuiSession = useCallback(
+    async (): Promise<boolean> => {
+      return coordinatorRef.current?.sui.closeSession() ?? false;
+    },
+    [],
+  );
+
+  /** Mint SPIN reward for the current session */
+  const mintSuiReward = useCallback(
+    async (amount: number, reason: string): Promise<boolean> => {
+      return coordinatorRef.current?.sui.mintReward(amount, reason) ?? false;
+    },
+    [],
+  );
+
+  /** Batch mint SPIN rewards to multiple recipients */
+  const batchMintSuiRewards = useCallback(
+    async (recipients: string[], amounts: number[], reason: string): Promise<boolean> => {
+      return coordinatorRef.current?.sui.batchMintRewards(recipients, amounts, reason) ?? false;
+    },
+    [],
+  );
+
+  /** Submit a single telemetry update to Sui */
+  const submitSuiTelemetry = useCallback(
+    async (hr: number, power: number, cadence: number): Promise<boolean> => {
+      return coordinatorRef.current?.sui.submitTelemetry(hr, power, cadence) ?? false;
+    },
+    [],
+  );
+
+  /** Flush buffered telemetry to Sui */
+  const flushSuiTelemetry = useCallback(
+    async (): Promise<boolean> => {
+      return coordinatorRef.current?.sui.flushTelemetry() ?? false;
+    },
+    [],
+  );
+
+  /** Update the Sui engine config (e.g. when wallet connects) */
+  const updateSuiConfig = useCallback(
+    (config: Partial<import("./sui-engine").SuiEngineConfig>): void => {
+      coordinatorRef.current?.sui.updateConfig(config);
+    },
+    [],
+  );
+
+  /** Get the current Sui session state */
+  const getSuiSessionState = useCallback((): import("./sui-engine").SuiSessionState | null => {
+    const ref = coordinatorRef.current;
+    if (ref === null || ref === undefined) return null;
+    return { ...ref.sui.sessionState } as import("./sui-engine").SuiSessionState;
+  }, []);
+
   // Cleanup on unmount — dispose the coordinator to stop RAF loops and EventBus
   useEffect(() => {
     return () => {
@@ -195,5 +268,14 @@ export function useRideCoordinator() {
     stopAudio,
     setMusicSpeed,
     preloadSounds,
+    startSuiSession,
+    joinSuiSession,
+    closeSuiSession,
+    mintSuiReward,
+    batchMintSuiRewards,
+    submitSuiTelemetry,
+    flushSuiTelemetry,
+    updateSuiConfig,
+    getSuiSessionState,
   };
 }

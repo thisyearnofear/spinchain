@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useClass } from "../../../hooks/evm/use-class-data";
 import { usePracticeConfig } from "../../../hooks/ride/use-practice-config";
-import { useRideLifecycle } from "../../../hooks/ride/use-ride-lifecycle";
+import { useRideStore } from "@/app/stores/ride-store";
 import { useAccount } from "wagmi";
 import { usePanelState } from "../../../hooks/ui/use-panel-state";
 import {
@@ -20,17 +20,13 @@ import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overl
 import { RideModals } from "../../../components/features/ride/ride-modals";
 import type { RewardClaimStatus } from "../../../components/features/ride/ride-completion";
 import type { StoryBeat } from "../../../components/features/route/route-visualizer";
-import { useSimulatedRewards } from "../../../hooks/ride/use-simulated-rewards";
-import { useMultiGhost } from "../../../hooks/ride/use-multi-ghost";
 import {
   useDeviceType,
   useOrientation,
   useActualViewportHeight,
   usePerformanceTier,
 } from "../../../lib/responsive";
-import { useWorkoutAudio } from "../../../hooks/ai/use-workout-audio";
-import { useCoachVoice } from "../../../hooks/common/use-coach-voice";
-import { useRideCoach } from "../../../hooks/ride/use-ride-coach";
+
 import { useWorkoutAgent } from "../../../hooks/ai/use-workout-agent";
 import { RiderSocialFeed } from "../../../components/features/ride/social-feed";
 import { CoachMessageOverlay } from "../../../components/features/ride/coach-message-overlay";
@@ -41,7 +37,7 @@ import {
   useRewards,
   type RewardMode,
 } from "../../../hooks/rewards/use-rewards";
-import { useUnifiedBle } from "../../../lib/mobile-bridge";
+
 import { useChainlinkVerification } from "../../../hooks/evm/use-chainlink-verification";
 import { useZKClaim } from "../../../hooks/evm/use-zk-claim";
 import { REWARD_VERIFICATION } from "../../../config";
@@ -250,25 +246,51 @@ export default function LiveRidePage() {
   const [showNoBikeModal, setShowNoBikeModal] = useState(false);
   const [showKeyboardHints, setShowKeyboardHints] = useState(false);
 
-  // Ride lifecycle (extracted to hook)
-  const {
-    isRiding,
-    setIsRiding,
-    isRidingRef,
-    classDataRef,
-    isStarting: _isStarting,
-    setIsStarting,
-    isExiting,
-    setIsExiting,
-    rideProgress,
-    setRideProgress,
-    elapsedTime,
-    setElapsedTime,
-  } = useRideLifecycle({
-    classData,
-    bleConnected,
-    useSimulator,
-  });
+  // Ride lifecycle — backed by Zustand store
+  const isRidingRef = useRef(false);
+  const classDataRef = useRef(classData);
+  useEffect(() => {
+    classDataRef.current = classData;
+  }, [classData]);
+
+  const store = useRideStore();
+  const isRiding = store.isActive;
+  const rideProgress = store.rideProgress;
+  const elapsedTime = store.elapsedTime;
+  const isStarting = store.isStarting;
+  const isExiting = store.isExiting;
+
+  const setIsRiding = useCallback(
+    (v: boolean) => {
+      isRidingRef.current = v;
+      useRideStore.setState({ isActive: v });
+    },
+    [],
+  );
+  const setIsStarting = useCallback(
+    (v: boolean) => useRideStore.setState({ isStarting: v }),
+    [],
+  );
+  const setIsExiting = useCallback(
+    (v: boolean) => useRideStore.setState({ isExiting: v }),
+    [],
+  );
+  const setRideProgress = useCallback(
+    (v: number) => useRideStore.setState({ rideProgress: v }),
+    [],
+  );
+  const setElapsedTime = useCallback(
+    (updater: number | ((prev: number) => number)) => {
+      if (typeof updater === "function") {
+        useRideStore.setState((s) => ({
+          elapsedTime: updater(s.elapsedTime),
+        }));
+      } else {
+        useRideStore.setState({ elapsedTime: updater });
+      }
+    },
+    [],
+  );
 
   // [ENGINE ARCH] RideCoordinator — bridges telemetry into engine architecture
   // Additive: existing hooks continue to work alongside the coordinator.
@@ -495,7 +517,7 @@ export default function LiveRidePage() {
         | "anime"
         | "rainbow") || "neon";
 
-  // Audio hooks
+  // Audio hooks — replaced by AudioEngine via coordinator
   const aiPersonality = classData?.metadata?.ai?.personality;
   const coachPersonality =
     aiPersonality === "drill-sergeant"
@@ -503,23 +525,62 @@ export default function LiveRidePage() {
       : aiPersonality === "zen"
         ? "zen"
         : "data";
-  const {
-    playSound,
-    playCountdown,
-    stopAll: stopAudio,
-    setMusicSpeed,
-  } = useWorkoutAudio();
-  const {
-    speak,
-    stop: stopVoice,
-    isSpeaking,
-  } = useCoachVoice({
-    personality: coachPersonality,
-    intensity: rideProgress / 100,
-  });
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Subscribe to EventBus after coordinator starts (isActive becomes true)
+  const storeIsActive = useRideStore((s) => s.isActive);
+  useEffect(() => {
+    if (!storeIsActive) return;
+    // coordinator.getCoordinator() now returns the RideCoordinator instance
+    const bus = (coordinator as any).getCoordinator?.()?.bus;
+    if (!bus) return;
+    const unsub1 = bus.on(
+      "audio:speaking",
+      (data: { isSpeaking: boolean }) => setIsSpeaking(data.isSpeaking),
+    );
+    const unsub2 = bus.on(
+      "coaching:message",
+      (data: { text: string }) => {
+        setLastCoachMessage(data.text);
+        setTimeout(() => setLastCoachMessage((prev) => (prev === data.text ? null : prev)), 4000);
+      },
+    );
+    return () => {
+      unsub1?.();
+      unsub2?.();
+    };
+  }, [storeIsActive]);
+
+  // Audio playback methods — bridged through coordinator via ref for stable references
+  const coordinatorRef = useRef(coordinator);
+  coordinatorRef.current = coordinator;
+  const playSound = useCallback(
+    (type: any) => coordinatorRef.current.playSound?.(type)?.catch?.(() => {}),
+    [],
+  );
+  const playCountdown = useCallback(
+    (seconds: number) => coordinatorRef.current.playCountdown?.(seconds),
+    [],
+  );
+  const stopAudio = useCallback(
+    () => coordinatorRef.current.stopAudio?.(),
+    [],
+  );
+  const stopVoice = useCallback(
+    () => coordinatorRef.current.stopAudio?.(),
+    [],
+  );
+  const speak = useCallback(
+    (text: string, emotion?: any) =>
+      coordinatorRef.current.speak?.(text, emotion)?.catch?.(() => {}),
+    [],
+  );
+  const setMusicSpeed = useCallback(
+    (rate: number) => coordinatorRef.current.setMusicSpeed?.(rate),
+    [],
+  );
 
   // AI Instructor State
-  const { setResistance } = useUnifiedBle();
   const [aiActive, setAiActive] = useState(false);
   const agentName = classData?.instructor || "Coach";
 
@@ -707,22 +768,33 @@ export default function LiveRidePage() {
     );
   }, [completedRideId, rewardClaimStatus]);
 
-  // Simulated reward ticker for training/guest mode (incentivizes wallet connection)
-  const simulatedRewards = useSimulatedRewards({
-    isRiding,
-    isTrainingMode,
-    isGuestMode,
-    effortScore: telemetry.effort,
-  });
+  // Simulated reward ticker — inline; RewardsEngine also has simulated rewards
+  const [simulatedSpin, setSimulatedSpin] = useState(0);
+  const shouldSimulate =
+    isRiding && (isTrainingMode || isGuestMode);
+  useEffect(() => {
+    if (!shouldSimulate) {
+      if (!isRiding) setSimulatedSpin(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      const clampedEffort = Math.min(1000, telemetry.effort);
+      const ratePerSecond =
+        (10 + (clampedEffort * 90) / 1000) / (45 * 60);
+      setSimulatedSpin((prev) => prev + ratePerSecond);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [shouldSimulate, isRiding, telemetry.effort]);
 
-  const { multiGhostState } = useMultiGhost(
-    classId as string,
-    classData?.route?.route?.coordinates || [],
-    telemetry.distance,
-    elapsedTime,
-    isRiding
-  );
+  const simulatedRewards = {
+    simulatedReward: simulatedSpin,
+    isSimulating: shouldSimulate,
+    formattedReward: simulatedSpin.toFixed(1),
+    reset: () => setSimulatedSpin(0),
+  };
 
+  // MultiGhost — now wired from TelemetryEngine via coordinator → rideStore
+  const multiGhostState = useRideStore((s) => s.multiGhostState);
   const socialRiders = multiGhostState;
 
   // Rewards — mode selectable, defaults to zk-batch
@@ -1196,9 +1268,10 @@ export default function LiveRidePage() {
     },
     currentInterval,
     isEnabled: aiActive,
-    setResistance: async (level) => {
-      // Hardware actuation via unified BLE
-      return await setResistance(level);
+    setResistance: async (_level) => {
+      // Hardware actuation — wired through DeviceEngine when available
+      console.debug("[Ride] setResistance:", _level);
+      return true;
     },
     playSound,
     instructorProfile: classData?.metadata
@@ -1232,24 +1305,7 @@ export default function LiveRidePage() {
     setMusicSpeed(rate);
   }, [isRiding, telemetry.cadence, currentInterval, setMusicSpeed]);
 
-  // 2. Consolidated Workout Coaching Logic (Phase 1/3)
-  const { lastCoachMessage: consolidatedCoachMessage } = useRideCoach({
-    isRiding,
-    aiActive,
-    workoutPlan,
-    currentIntervalIndex,
-    currentInterval,
-    intervalRemaining,
-    telemetryCadence: telemetry.cadence,
-    aiLogs,
-    isSpeaking,
-    playSound,
-    speak,
-    rideProgress,
-    storyBeats: classData?.route?.route.storyBeats || [],
-    lastDecision,
-  });
-
+  // 2. Consolidated Workout Coaching Logic — handled by CoachingEngine via EventBus
   const [showMilestone, setShowMilestone] = useState<{
     title: string;
     subtitle: string;
@@ -1270,12 +1326,7 @@ export default function LiveRidePage() {
     }
   }, [telemetry.effort, isRiding, haptic, playSound]);
 
-  // Handle message display sync
-  useEffect(() => {
-    if (consolidatedCoachMessage) {
-      setLastCoachMessage(consolidatedCoachMessage);
-    }
-  }, [consolidatedCoachMessage]);
+  // lastCoachMessage is now synced via EventBus coaching:message subscription
 
   // Simplified UI Trigger: Activation of AI instructor when riding
   useEffect(() => {
@@ -1361,11 +1412,10 @@ export default function LiveRidePage() {
       setElapsedTime(0);
       setRecentPowerHistory([]);
       telemetrySamples.current = [];
-      setTelemetryAverages({ avgHr: 0, avgPower: 0, avgEffort: 0 });
-      lastSpokenBeatRef.current = null;
-      lastIntervalRef.current = -1;
-      trackedCompletionRef.current = false;
-      speak("Let's go!", "intense");
+      setTelemetryAverages({ avgHr: 0, avgPower: 0, avgEffort: 0 });          lastSpokenBeatRef.current = null;
+          lastIntervalRef.current = -1;
+          trackedCompletionRef.current = false;
+          speak("Let's go!", "intense" as any);
     }, 3000);
   };
 

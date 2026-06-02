@@ -16,6 +16,7 @@ import type {
   TelemetryHistory,
   DeviceType,
   PerformanceTier,
+  MultiGhostState,
 } from "./types";
 import {
   calculateNextWBal,
@@ -83,8 +84,15 @@ export class TelemetryEngine {
   /** Total ride duration in seconds (set in start()) */
   private totalDurationSeconds = 45 * 60;
 
+  /** Multi-ghost performances (personal_best, leaderboard, instructor) */
+  private multiGhostPerformances: GhostPerformance[] = [];
+
+  /** Computed multi-ghost state (updated on each commit) */
+  multiGhostState: MultiGhostState[] = [];
+
   /** Ghost fetch state */
   private ghostFetched = false;
+  private multiGhostFetched = false;
 
   constructor(
     private readonly bus: EventBus,
@@ -109,6 +117,9 @@ export class TelemetryEngine {
     this.lastWBalUpdateMs = 0;
     this.lastCommitMs = 0;
     this.ghostFetched = false;
+    this.multiGhostFetched = false;
+    this.multiGhostPerformances = [];
+    this.multiGhostState = [];
     this.ghostPerformance = null;
     this.elapsedSeconds = 0;
   }
@@ -120,6 +131,8 @@ export class TelemetryEngine {
   dispose(): void {
     this.ridePoints.length = 0;
     this.samples.length = 0;
+    this.multiGhostPerformances = [];
+    this.multiGhostState = [];
     this.ghostPerformance = null;
   }
 
@@ -227,7 +240,7 @@ export class TelemetryEngine {
       }
     }
 
-    // Update ghost
+    // Update single ghost
     if (this.ghostPerformance) {
       this.ghostState = calculateGhostState(
         this.ghostPerformance.points,
@@ -235,6 +248,9 @@ export class TelemetryEngine {
         this.elapsedSeconds,
       );
     }
+
+    // Update multi-ghost state
+    this.updateMultiGhostState();
 
     // Collect sample for averages
     this.samples.push({
@@ -301,6 +317,75 @@ export class TelemetryEngine {
       // Ghost is best-effort
       this.ghostPerformance = null;
     }
+  }
+
+  /** Loads multiple ghosts for the social riders UI (best-effort).
+   *  Fetches 3 ghosts: personal_best, leaderboard, and instructor-level pacer. */
+  async loadMultiGhost(classId: string): Promise<void> {
+    if (this.multiGhostFetched || this.routeCoordinates.length === 0) return;
+    this.multiGhostFetched = true;
+
+    try {
+      const [pb, leaderboard, pacer] = await Promise.all([
+        fetchGhostWithFallback(
+          this.routeCoordinates,
+          { classId, ghostType: "personal_best", riderName: "Your Best" },
+          30,
+        ),
+        fetchGhostWithFallback(
+          this.routeCoordinates,
+          { classId, ghostType: "leaderboard", riderName: "Peloton Avg" },
+          25,
+        ),
+        fetchGhostWithFallback(
+          this.routeCoordinates,
+          { classId, ghostType: "instructor", riderName: "Gold Standard" },
+          22,
+        ),
+      ]);
+      this.multiGhostPerformances = [pb, leaderboard, pacer];
+    } catch {
+      this.multiGhostPerformances = [];
+    }
+  }
+
+  /** Updates multiGhostState based on current rider telemetry.
+   *  Called on every commit(). */
+  private updateMultiGhostState(): void {
+    if (this.multiGhostPerformances.length === 0) {
+      this.multiGhostState = [];
+      return;
+    }
+
+    const currentDistance = this.rawSnapshot.distance * 1000; // km → m
+    const elapsed = this.elapsedSeconds;
+
+    this.multiGhostState = this.multiGhostPerformances.map((ghost) => {
+      // Find ghost point at current elapsed time
+      const ghostPointAtTime =
+        ghost.points.find(
+          (p) => p.timestamp - ghost.points[0].timestamp >= elapsed * 1000,
+        ) || ghost.points[ghost.points.length - 1];
+
+      // Find ghost point at rider's current distance (for time gap)
+      const ghostPointAtDistance =
+        ghost.points.find((p) => p.distance >= currentDistance / 1000) ||
+        ghost.points[ghost.points.length - 1];
+
+      const ghostTimeAtDistance =
+        (ghostPointAtDistance.timestamp - ghost.points[0].timestamp) / 1000;
+      const leadLagTime = ghostTimeAtDistance - elapsed;
+      const distanceGap = currentDistance - ghostPointAtTime.distance * 1000;
+
+      return {
+        id: ghost.id,
+        name: ghost.riderName,
+        leadLagTime,
+        distanceGap,
+        active: true,
+        power: ghostPointAtTime.power,
+      } as MultiGhostState;
+    });
   }
 
   // ─── Averages ──────────────────────────────────────────────────

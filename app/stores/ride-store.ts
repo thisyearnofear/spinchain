@@ -12,6 +12,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { WorkoutPlan, WorkoutInterval } from "@/app/lib/workout-plan";
+import type { GhostState, GhostPerformance } from "@/app/lib/analytics/ghost-service";
+import type { TelemetrySnapshot, MultiGhostState } from "@/app/engines/types";
 
 // Types
 export interface RideSession {
@@ -72,6 +74,33 @@ interface RideState {
   // Rewards
   rewards: RewardState;
   
+  // Ride lifecycle
+  rideProgress: number;
+  isStarting: boolean;
+  isExiting: boolean;
+
+  // Ghost & multiplayer
+  ghostState: GhostState;
+  ghostPerformance: GhostPerformance | null;
+  multiGhostState: MultiGhostState[];
+
+  // Telemetry averages
+  telemetryAverages: {
+    avgHr: number;
+    avgPower: number;
+    avgEffort: number;
+  };
+
+  // Coach message (latest from EventBus)
+  lastCoachMessage: string | null;
+
+  // AI coaching state
+  aiActive: boolean;
+
+  // Route state
+  routeProgress: number;
+  currentGear: number;
+
   // UI State
   showDemoModal: boolean;
   showCompleteModal: boolean;
@@ -109,6 +138,28 @@ interface RideActions {
   toggleAudio: () => void;
   toggleCoaching: () => void;
   
+  // Ride lifecycle actions
+  setRideProgress: (progress: number) => void;
+  setIsStarting: (starting: boolean) => void;
+  setIsExiting: (exiting: boolean) => void;
+
+  // Ghost actions
+  setGhostState: (state: GhostState) => void;
+  setGhostPerformance: (perf: GhostPerformance | null) => void;
+  setMultiGhostState: (state: MultiGhostState[]) => void;
+
+  // Telemetry averages
+  setTelemetryAverages: (avgs: { avgHr: number; avgPower: number; avgEffort: number }) => void;
+
+  // Coach message
+  setLastCoachMessage: (msg: string | null) => void;
+
+  // AI coaching
+  setAiActive: (active: boolean) => void;
+
+  // Gear / route
+  setCurrentGear: (gear: number) => void;
+
   // Time tracking
   tick: (deltaMs: number) => void;
   
@@ -157,6 +208,17 @@ const initialState: RideState = {
   telemetryHistory: [],
   stats: { ...defaultStats },
   rewards: { ...defaultRewards },
+  rideProgress: 0,
+  isStarting: false,
+  isExiting: false,
+  ghostState: { leadLagTime: 0, distanceGap: 0, ghostPoint: null },
+  ghostPerformance: null,
+  multiGhostState: [],
+  telemetryAverages: { avgHr: 0, avgPower: 0, avgEffort: 0 },
+  lastCoachMessage: null,
+  aiActive: false,
+  routeProgress: 0,
+  currentGear: 10,
   showDemoModal: false,
   showCompleteModal: false,
   audioEnabled: true,
@@ -292,6 +354,28 @@ export const useRideStore = create<RideState & RideActions>()(
         set((state) => ({ coachingEnabled: !state.coachingEnabled }));
       },
 
+      // Ride lifecycle
+      setRideProgress: (progress) => set({ rideProgress: progress, routeProgress: progress / 100 }),
+      setIsStarting: (starting) => set({ isStarting: starting }),
+      setIsExiting: (exiting) => set({ isExiting: exiting }),
+
+      // Ghost
+      setGhostState: (state) => set({ ghostState: state }),
+      setGhostPerformance: (perf) => set({ ghostPerformance: perf }),
+      setMultiGhostState: (state) => set({ multiGhostState: state }),
+
+      // Telemetry averages
+      setTelemetryAverages: (avgs) => set({ telemetryAverages: avgs }),
+
+      // Coach message
+      setLastCoachMessage: (msg) => set({ lastCoachMessage: msg }),
+
+      // AI coaching
+      setAiActive: (active) => set({ aiActive: active }),
+
+      // Gear
+      setCurrentGear: (gear) => set({ currentGear: gear }),
+
       // Time tracking
       tick: (deltaMs) => {
         const { isActive, isPaused } = get();
@@ -346,6 +430,17 @@ export function useRideTimer() {
     tick,
   };
 }
+
+// Selectors for performance
+export const selectRideProgress = (state: RideState & RideActions) => state.rideProgress;
+export const selectIsStarting = (state: RideState & RideActions) => state.isStarting;
+export const selectIsExiting = (state: RideState & RideActions) => state.isExiting;
+export const selectGhostState = (state: RideState & RideActions) => state.ghostState;
+export const selectMultiGhostState = (state: RideState & RideActions) => state.multiGhostState;
+export const selectTelemetryAverages = (state: RideState & RideActions) => state.telemetryAverages;
+export const selectLastCoachMessage = (state: RideState & RideActions) => state.lastCoachMessage;
+export const selectAiActive = (state: RideState & RideActions) => state.aiActive;
+export const selectCurrentGear = (state: RideState & RideActions) => state.currentGear;
 
 // Utility to format duration
 function formatDuration(ms: number): string {

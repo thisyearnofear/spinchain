@@ -15,6 +15,7 @@ export { CoachingEngine } from "./coaching-engine";
 export { RewardsEngine } from "./rewards-engine";
 export { AudioEngine } from "./audio-engine";
 export { VisualizationEngine } from "./visualization-engine";
+export { SuiEngine } from "./sui-engine";
 export { DeviceEngine } from "./device-engine";
 export type { TelemetryCallback } from "./device-engine";
 

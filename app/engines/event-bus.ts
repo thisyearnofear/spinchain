@@ -42,6 +42,8 @@ export interface RideEvents {
 
   "sui:session-started": { sessionId: string };
   "sui:session-ended": { sessionId: string };
+  "sui:telemetry-submitted": { count: number; sessionId: string };
+  "sui:reward-minted": { amount: number; sessionId: string };
 
   "visualization:mode-changed": { mode: string };
   "visualization:degraded": { fromMode: string; toMode: string; fps: number };
