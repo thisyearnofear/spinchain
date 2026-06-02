@@ -12,6 +12,7 @@ export type { RideEvents } from "./event-bus";
 export { RideCoordinator } from "./coordinator";
 export { TelemetryEngine } from "./telemetry-engine";
 export { CoachingEngine } from "./coaching-engine";
+export { RewardsEngine } from "./rewards-engine";
 export { AudioEngine } from "./audio-engine";
 export { VisualizationEngine } from "./visualization-engine";
 export { DeviceEngine } from "./device-engine";

@@ -20,6 +20,7 @@ import { TelemetryEngine } from "./telemetry-engine";
 import { DeviceEngine } from "./device-engine";
 import { CoachingEngine } from "./coaching-engine";
 import { AudioEngine } from "./audio-engine";
+import { RewardsEngine } from "./rewards-engine";
 import { VisualizationEngine } from "./visualization-engine";
 import type { RideStartConfig, TelemetrySnapshot } from "./types";
 import { useRideStore } from "@/app/stores/ride-store";
@@ -30,6 +31,7 @@ export class RideCoordinator {
   readonly device: DeviceEngine;
   readonly coaching: CoachingEngine;
   readonly audio: AudioEngine;
+  readonly rewards: RewardsEngine;
   readonly visualization: VisualizationEngine;
 
   private config: RideStartConfig | null = null;
@@ -43,6 +45,11 @@ export class RideCoordinator {
     this.device = new DeviceEngine(this.bus);
     this.coaching = new CoachingEngine(this.bus);
     this.audio = new AudioEngine(this.bus);
+    this.rewards = new RewardsEngine(this.bus, {
+      mode: "zk-batch",
+      classId: "",
+      instructor: "0x0" as `0x${string}`,
+    });
     this.visualization = new VisualizationEngine(this.bus);
 
     // Wire device → telemetry ingestion
@@ -105,6 +112,13 @@ export class RideCoordinator {
       }
     }, 1000);
 
+    // Configure rewards engine
+    this.rewards.updateConfig({
+      mode: config.rewardMode,
+      classId: config.classId,
+      instructor: ("0x0" as `0x${string}`),
+    });
+
     // Start audio engine (mixer init, EventBus subscriptions)
     this.audio.start().catch((err) =>
       console.warn("[Coordinator] AudioEngine start failed:", err),
@@ -140,6 +154,7 @@ export class RideCoordinator {
     this.rafRunning = false;
     this.clearTimers();
     this.audio.stop();
+    this.rewards.stop();
     this.telemetry.stop();
     this.telemetry.dispose();
 
@@ -166,6 +181,7 @@ export class RideCoordinator {
     this.telemetry.dispose();
     this.device.dispose();
     this.audio.dispose();
+    this.rewards.dispose();
     this.visualization.dispose();
     if (this.unsubTick) {
       this.unsubTick();
