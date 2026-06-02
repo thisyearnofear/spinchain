@@ -3,6 +3,7 @@
 # dependencies
 /node_modules
 /.pnp
+.pnpm/
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -73,6 +74,8 @@ circuits/*/target/
 .zencoder
 .zenflow
 .junie
+.blackboxcli/
+.letta/
 
 # External repos
 /remix-glassmorphism-analytics-/
