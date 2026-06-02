@@ -18,6 +18,8 @@
 import { EventBus } from "./event-bus";
 import { TelemetryEngine } from "./telemetry-engine";
 import { DeviceEngine } from "./device-engine";
+import { CoachingEngine } from "./coaching-engine";
+import { VisualizationEngine } from "./visualization-engine";
 import type { RideStartConfig, TelemetrySnapshot } from "./types";
 import { useRideStore } from "@/app/stores/ride-store";
 
@@ -25,6 +27,8 @@ export class RideCoordinator {
   readonly bus: EventBus;
   readonly telemetry: TelemetryEngine;
   readonly device: DeviceEngine;
+  readonly coaching: CoachingEngine;
+  readonly visualization: VisualizationEngine;
 
   private config: RideStartConfig | null = null;
   private unsubTick: (() => void) | null = null;
@@ -35,6 +39,8 @@ export class RideCoordinator {
     this.bus = new EventBus();
     this.telemetry = new TelemetryEngine(this.bus);
     this.device = new DeviceEngine(this.bus);
+    this.coaching = new CoachingEngine(this.bus);
+    this.visualization = new VisualizationEngine(this.bus);
 
     // Wire device → telemetry ingestion
     this.device.onTelemetry = (update) => {
@@ -65,9 +71,19 @@ export class RideCoordinator {
       this.device.connectSimulator("Simulator active — use arrow keys to pedal");
     }
 
+    // Configure coaching engine
+    this.coaching.start({
+      agentName: config.coachingConfig.agentName,
+      personality: config.coachingConfig.personality,
+      workoutPlan: config.coachingConfig.workoutPlan,
+      aiActive: config.coachingConfig.aiActive,
+      storyBeats: config.classData?.route?.route?.storyBeats,
+    });
+
     // Wire cross-engine events
-    this.unsubTick = this.bus.on("lifecycle:tick", ({ elapsed }) => {
+    this.unsubTick = this.bus.on("lifecycle:tick", ({ elapsed, progress }) => {
       this.telemetry.setElapsedSeconds(elapsed);
+      this.coaching.onTick(elapsed, progress);
     });
 
     // Start RAF commit loop (single loop, no mixed timers)
@@ -85,6 +101,9 @@ export class RideCoordinator {
         this.telemetry.samples.splice(0, this.telemetry.samples.length - 5_400);
       }
     }, 1000);
+
+    // Start visualization engine (GPU probe + FPS monitoring)
+    this.visualization.start();
 
     // Load ghost data (async, best-effort)
     this.telemetry.loadGhost(
@@ -118,6 +137,8 @@ export class RideCoordinator {
     useRideStore.setState({ isActive: false });
 
     document.body.classList.remove("ride-active");
+
+    this.visualization.stop();
   }
 
   pause(): void {
@@ -135,6 +156,7 @@ export class RideCoordinator {
     this.clearTimers();
     this.telemetry.dispose();
     this.device.dispose();
+    this.visualization.dispose();
     if (this.unsubTick) {
       this.unsubTick();
       this.unsubTick = null;
@@ -190,6 +212,14 @@ export class RideCoordinator {
 
   private bridgeSnapshotToStore(snapshot: ReturnType<TelemetryEngine["commit"]>): void {
     const store = useRideStore.getState();
+
+    // Forward cadence + interval info to coaching engine
+    this.coaching.onTelemetry(
+      snapshot.cadence,
+      this.coaching.currentIntervalIndex,
+      "",
+    );
+
     useRideStore.setState({
       latestTelemetry: {
         heartRate: snapshot.heartRate,

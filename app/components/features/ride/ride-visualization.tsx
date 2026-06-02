@@ -1,7 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import FocusRouteVisualizer from "@/app/components/features/route/focus-route-visualizer";
 import type { WorkoutPlan, IntervalPhase } from "@/app/lib/workout-plan";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import type { VisualizerTheme } from "@/app/components/features/route/route-visualizer";
@@ -14,11 +12,11 @@ import type {
 } from "@/app/hooks/ui/use-panel-state";
 import type { HapticType } from "@/app/hooks/use-haptic";
 import type { StoryBeat } from "@/app/components/features/route/route-visualizer";
-
-const RouteVisualizer = dynamic(
-  () => import("@/app/components/features/route/route-visualizer"),
-  { ssr: false },
-);
+import { TronRenderer } from "@/app/components/features/renderers/tron-renderer";
+import { FocusRenderer } from "@/app/components/features/renderers/focus-renderer";
+import type { VisualizationConfig, RenderMode } from "@/app/engines/types";
+import { useEffect, useState } from "react";
+import { probeGpu, getQualitySettings } from "@/app/lib/gpu-probe";
 
 interface RideVisualizationProps {
   viewMode: "immersive" | "focus";
@@ -58,8 +56,20 @@ interface RideVisualizationProps {
   onHaptic?: (type?: HapticType) => boolean;
   isPracticeMode: boolean;
   recentPowerHistory: number[];
+  /** Optional: render config from the VisualizationEngine (bridged from coordinator) */
+  visualizationConfig?: VisualizationConfig;
 }
 
+/**
+ * RideVisualization — Selects the active renderer based on the
+ * VisualizationEngine's GPU probe result.
+ *
+ * - "immersive" viewMode + Tron-capable GPU → 3D R3F Renderer (TronRenderer)
+ * - "focus" viewMode OR low-end GPU → 2D SVG Focus Renderer (FocusRenderer)
+ *
+ * When a `visualizationConfig` prop is provided (bridged from the coordinator),
+ * it uses that as the source of truth. Otherwise it probes the GPU locally.
+ */
 export function RideVisualization({
   viewMode,
   deviceType,
@@ -87,7 +97,42 @@ export function RideVisualization({
   onHaptic,
   isPracticeMode,
   recentPowerHistory,
+  visualizationConfig,
 }: RideVisualizationProps) {
+  // Probe GPU on mount — determines whether to use 3D or 2D
+  // Only used when visualizationConfig prop is not provided (local fallback)
+  const [localRenderConfig, setLocalRenderConfig] = useState<VisualizationConfig | null>(null);
+
+  useEffect(() => {
+    const probe = probeGpu();
+    const quality = getQualitySettings(probe);
+    setLocalRenderConfig({
+      mode: probe.recommendedMode,
+      canRender3d: probe.recommendedMode === "tron-3d",
+      quality,
+      gpu: {
+        webgl2: probe.webgl2,
+        webgpu: probe.webgpu,
+        vendor: probe.vendor,
+        isLowEnd: probe.isLowEnd,
+        canPostProcess: probe.canPostProcess,
+      },
+      degraded: false,
+      lastDegradedAt: null,
+    });
+  }, []);
+
+  // Use the engine's config if provided, otherwise fall back to local probe
+  const renderConfig = visualizationConfig ?? localRenderConfig;
+
+  // Determine effective render mode
+  // - If the user chose "focus" view, always use 2D
+  // - Otherwise use the engine's recommendation
+  const effectiveMode: RenderMode =
+    viewMode === "focus"
+      ? "focus-2d"
+      : renderConfig?.mode ?? "tron-3d";
+
   const routeProgress = isRiding || rideProgress > 0 ? rideProgress / 100 : 0;
   const visualizerMode: "preview" | "ride" | "finished" =
     rideProgress >= 100 ? "finished" : isRiding || rideProgress > 0 ? "ride" : "preview";
@@ -100,8 +145,8 @@ export function RideVisualization({
 
   return (
     <div className="absolute inset-0">
-      {viewMode === "focus" ? (
-        <FocusRouteVisualizer
+      {effectiveMode === "focus-2d" ? (
+        <FocusRenderer
           elevationProfile={routeElevationProfile}
           storyBeats={classData.route?.route?.storyBeats ?? []}
           progress={routeProgress}
@@ -133,21 +178,20 @@ export function RideVisualization({
           showStreetView={!isPracticeMode}
         />
       ) : (
-        <RouteVisualizer
-          elevationProfile={routeElevationProfile}
-          theme={routeTheme}
-          storyBeats={classData.route?.route?.storyBeats ?? []}
-          progress={routeProgress}
+        <TronRenderer
           mode={visualizerMode}
-          stats={{
-            hr: telemetry.heartRate,
-            power: telemetry.power,
-            cadence: telemetry.cadence,
-          }}
+          progress={routeProgress}
+          routeElevationProfile={routeElevationProfile}
+          routeCoordinates={routeCoordinates}
+          currentRouteCoordinate={currentRouteCoordinate}
+          telemetry={telemetry}
+          routeTheme={routeTheme}
+          storyBeats={classData.route?.route?.storyBeats ?? []}
           avatarId={searchParams.get("avatarId") || undefined}
           equipmentId={searchParams.get("equipmentId") || undefined}
-          quality={deviceType === "mobile" ? "low" : "high"}
+          quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
           className="h-full w-full"
+          userDisplayName={undefined}
         />
       )}
 

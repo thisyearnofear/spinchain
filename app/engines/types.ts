@@ -140,6 +140,40 @@ export interface SuiSessionStatus {
   error: string | null;
 }
 
+// ─── Visualization ────────────────────────────────────────────
+
+export type RenderMode = "tron-3d" | "focus-2d";
+
+export interface VisualizationConfig {
+  /** Currently active render mode */
+  mode: RenderMode;
+  /** Whether the engine has determined 3D is viable */
+  canRender3d: boolean;
+  /** Quality settings for the active renderer */
+  quality: {
+    pixelRatio: number;
+    shadows: boolean;
+    antialiasing: boolean;
+    particleCount: number;
+    meshDetail: "low" | "medium" | "high";
+    fps: number;
+    enableBloom: boolean;
+    enableSSAO: boolean;
+  };
+  /** GPU capability summary (from gpu-probe) */
+  gpu: {
+    webgl2: boolean;
+    webgpu: boolean;
+    vendor: string;
+    isLowEnd: boolean;
+    canPostProcess: boolean;
+  };
+  /** Whether the engine has detected a performance issue and degraded */
+  degraded: boolean;
+  /** Timestamp of last degradation event */
+  lastDegradedAt: number | null;
+}
+
 // ─── Configuration ──────────────────────────────────────────────
 
 export interface CoachingConfig {
