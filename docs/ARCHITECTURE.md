@@ -1,5 +1,7 @@
 # SpinChain: Architecture
 
+> **Note**: This document covers the blockchain settlement architecture. For the **ride application architecture** (engine architecture, visualization renderer system, lessons learned, implementation plan), see [ARCHITECTURE_GUIDE.md](./ARCHITECTURE_GUIDE.md).
+
 This document describes the intended architecture and the parts already present in the repo. Several sections below describe target architecture rather than a fully completed live deployment.
 
 ## Dual-Engine Execution Model

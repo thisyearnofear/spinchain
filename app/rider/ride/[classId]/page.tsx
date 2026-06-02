@@ -47,6 +47,7 @@ import { useZKClaim } from "../../../hooks/evm/use-zk-claim";
 import { REWARD_VERIFICATION } from "../../../config";
 import { ANALYTICS_EVENTS, trackEvent } from "../../../lib/analytics/events";
 import { useWakeLock } from "../../../hooks/use-wake-lock";
+import { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 import { NetworkStatusBanner } from "../../../components/features/common/yellow-status-indicator";
 import { useHaptic } from "../../../hooks/use-haptic";
 import {
@@ -269,6 +270,10 @@ export default function LiveRidePage() {
     useSimulator,
   });
 
+  // [ENGINE ARCH] RideCoordinator — bridges telemetry into engine architecture
+  // Additive: existing hooks continue to work alongside the coordinator.
+  const coordinator = useRideCoordinator();
+
   const [hudMode, setHudMode] = useState<"full" | "compact" | "minimal">(
     "full",
   );
@@ -361,6 +366,11 @@ export default function LiveRidePage() {
     nextStep: nextTutorial,
     dismiss: dismissTutorial,
   } = useRideTutorial();
+
+  // [ENGINE ARCH] Sync elapsed time to the coordinator's telemetry engine
+  useEffect(() => {
+    coordinator.setElapsedSeconds(elapsedTime);
+  }, [elapsedTime, coordinator]);
 
   // Auto-start ride in demo mode
   useEffect(() => {
@@ -925,6 +935,9 @@ export default function LiveRidePage() {
     distance?: number;
     timestamp?: number;
   }) => {
+    // [ENGINE ARCH] Forward BLE data to engine architecture
+    coordinator.ingestBleMetrics(metrics);
+
     // Buffer raw telemetry (do not trigger React rerender here)
     telemetryRawRef.current = {
       ...telemetryRawRef.current,
@@ -993,6 +1006,9 @@ export default function LiveRidePage() {
     distance?: number;
     timestamp?: number;
   }) => {
+    // [ENGINE ARCH] Forward simulator data to engine architecture
+    coordinator.ingestSimulatorMetrics(metrics);
+
     telemetryRawRef.current = {
       ...telemetryRawRef.current,
       ...metrics,
@@ -1314,6 +1330,27 @@ export default function LiveRidePage() {
     } else {
       console.log("[Ride] Training mode - rewards disabled");
     }
+
+    // [ENGINE ARCH] Start the coordinator's RAF commit loop and ghost loading
+    coordinator.startRide({
+      classId,
+      classData: classData as any,
+      deviceType: deviceType as "mobile" | "tablet" | "desktop",
+      performanceTier: performanceTier as "high" | "medium" | "low",
+      isPracticeMode,
+      walletConnected: !!walletConnected,
+      address: address as string | undefined,
+      rewardMode: rewardMode as "zk-batch" | "yellow-stream" | "sui-native",
+      coachingConfig: {
+        agentName,
+        personality: (classData?.metadata?.ai?.personality as "zen" | "drill-sergeant" | "data") || "data",
+        workoutPlan,
+        instructorProfile: null,
+        marketStats: { ticketsSold: 0, revenue: 0, capacity: 50 },
+        aiActive,
+      },
+      ghostBlobId: classData?.metadata?.route?.walrusBlobId as string | undefined,
+    }).catch((err: unknown) => console.warn("[Ride] Coordinator start failed:", err));
 
     // Start ride after countdown finishes
     setTimeout(() => {
