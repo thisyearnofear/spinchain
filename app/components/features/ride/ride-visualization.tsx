@@ -15,20 +15,14 @@ import type { StoryBeat } from "@/app/components/features/route/route-visualizer
 import { TronRenderer } from "@/app/components/features/renderers/tron-renderer";
 import { FocusRenderer } from "@/app/components/features/renderers/focus-renderer";
 import type { VisualizationConfig, RenderMode } from "@/app/engines/types";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { probeGpu, getQualitySettings } from "@/app/lib/gpu-probe";
+import { useRideStore } from "@/app/stores/ride-store";
+import { useTelemetryStore } from "@/app/stores/telemetry-store";
+import { useCoachingStore } from "@/app/stores/coaching-store";
+import { useUIStore } from "@/app/stores/ui-store";
 
 interface RideVisualizationProps {
-  viewMode: "immersive" | "focus";
-  deviceType: "mobile" | "tablet" | "desktop";
-  isRiding: boolean;
-  rideProgress: number;
-  elapsedTime: number;
-  telemetry: {
-    heartRate: number;
-    power: number;
-    cadence: number;
-  };
   routeElevationProfile: number[];
   routeCoordinates: { lat: number; lng: number; ele?: number }[];
   currentRouteCoordinate: { lat: number; lng: number; ele?: number } | null;
@@ -41,9 +35,6 @@ interface RideVisualizationProps {
     } | null;
   };
   workoutPlan: WorkoutPlan | null;
-  currentIntervalIndex: number;
-  currentInterval: { phase: IntervalPhase } | null;
-  intervalProgress: number;
   routeTheme: VisualizerTheme;
   searchParams: URLSearchParams;
   panelState: PanelState;
@@ -54,37 +45,15 @@ interface RideVisualizationProps {
   onTrackWidgetInteraction: (action: "toggle" | "minimize" | "restore" | "drag", panel: PanelKey) => void;
   onExpandOne: (key: PanelKey) => void;
   onHaptic?: (type?: HapticType) => boolean;
-  isPracticeMode: boolean;
-  recentPowerHistory: number[];
-  /** Optional: render config from the VisualizationEngine (bridged from coordinator) */
   visualizationConfig?: VisualizationConfig;
 }
 
-/**
- * RideVisualization — Selects the active renderer based on the
- * VisualizationEngine's GPU probe result.
- *
- * - "immersive" viewMode + Tron-capable GPU → 3D R3F Renderer (TronRenderer)
- * - "focus" viewMode OR low-end GPU → 2D SVG Focus Renderer (FocusRenderer)
- *
- * When a `visualizationConfig` prop is provided (bridged from the coordinator),
- * it uses that as the source of truth. Otherwise it probes the GPU locally.
- */
 export function RideVisualization({
-  viewMode,
-  deviceType,
-  isRiding,
-  rideProgress,
-  elapsedTime,
-  telemetry,
   routeElevationProfile,
   routeCoordinates,
   currentRouteCoordinate,
   classData,
   workoutPlan,
-  currentIntervalIndex,
-  currentInterval,
-  intervalProgress,
   routeTheme,
   searchParams,
   panelState,
@@ -95,12 +64,30 @@ export function RideVisualization({
   onTrackWidgetInteraction,
   onExpandOne,
   onHaptic,
-  isPracticeMode,
-  recentPowerHistory,
   visualizationConfig,
 }: RideVisualizationProps) {
-  // Probe GPU on mount — determines whether to use 3D or 2D
-  // Only used when visualizationConfig prop is not provided (local fallback)
+  const viewMode = useUIStore((s) => s.viewMode);
+  const deviceType = useUIStore((s) => s.deviceType);
+  const isPracticeMode = useUIStore((s) => s.isPracticeMode);
+
+  const isRiding = useRideStore((s) => s.isActive);
+  const rideProgress = useRideStore((s) => s.rideProgress);
+  const elapsedTime = useRideStore((s) => s.elapsedTime);
+
+  const heartRate = useTelemetryStore((s) => s.snapshot.heartRate);
+  const power = useTelemetryStore((s) => s.snapshot.power);
+  const cadence = useTelemetryStore((s) => s.snapshot.cadence);
+  const recentPowerHistory = useTelemetryStore((s) => s.recentPower);
+
+  const rendererStats = useMemo(() => ({ hr: heartRate, power, cadence }), [heartRate, power, cadence]);
+  const telemetryForTron = useMemo(() => ({ heartRate, power, cadence }), [heartRate, power, cadence]);
+
+  const currentIntervalIndex = useCoachingStore((s) => s.currentIntervalIndex);
+  const currentInterval = useCoachingStore((s) => s.currentInterval);
+  const intervalProgress = useCoachingStore((s) => s.intervalProgress);
+
+  const emptyStoryBeats = useMemo(() => [] as StoryBeat[], []);
+
   const [localRenderConfig, setLocalRenderConfig] = useState<VisualizationConfig | null>(null);
 
   useEffect(() => {
@@ -122,12 +109,8 @@ export function RideVisualization({
     });
   }, []);
 
-  // Use the engine's config if provided, otherwise fall back to local probe
   const renderConfig = visualizationConfig ?? localRenderConfig;
 
-  // Determine effective render mode
-  // - If the user chose "focus" view, always use 2D
-  // - Otherwise use the engine's recommendation
   const effectiveMode: RenderMode =
     viewMode === "focus"
       ? "focus-2d"
@@ -148,17 +131,13 @@ export function RideVisualization({
       {effectiveMode === "focus-2d" ? (
         <FocusRenderer
           elevationProfile={routeElevationProfile}
-          storyBeats={classData.route?.route?.storyBeats ?? []}
+          storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
           progress={routeProgress}
-          currentPower={telemetry.power}
+          currentPower={power}
           recentPower={recentPowerHistory}
           ftp={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
           theme={routeTheme}
-          stats={{
-            hr: telemetry.heartRate,
-            power: telemetry.power,
-            cadence: telemetry.cadence,
-          }}
+          stats={rendererStats}
           avatarId={searchParams.get("avatarId") || undefined}
           equipmentId={searchParams.get("equipmentId") || undefined}
           routeName={classData.metadata?.route?.name || classData.name}
@@ -184,9 +163,9 @@ export function RideVisualization({
           routeElevationProfile={routeElevationProfile}
           routeCoordinates={routeCoordinates}
           currentRouteCoordinate={currentRouteCoordinate}
-          telemetry={telemetry}
+          telemetry={telemetryForTron}
           routeTheme={routeTheme}
-          storyBeats={classData.route?.route?.storyBeats ?? []}
+          storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
           avatarId={searchParams.get("avatarId") || undefined}
           equipmentId={searchParams.get("equipmentId") || undefined}
           quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
@@ -195,7 +174,6 @@ export function RideVisualization({
         />
       )}
 
-      {/* Mini Stats Bar - Mobile: Always visible during ride */}
       {isRiding && deviceType === "mobile" && (
         <div
           className="absolute bottom-3 left-3 right-3 flex items-center justify-between rounded-xl border border-white/10 bg-black/80 backdrop-blur-xl px-4 py-2 pointer-events-none"
@@ -212,21 +190,20 @@ export function RideVisualization({
             </div>
           </div>
           <div className="flex items-center gap-4">
-            {telemetry.heartRate > 0 && (
+            {heartRate > 0 && (
               <div className="flex flex-col">
                 <span className="text-[10px] uppercase tracking-wider text-white/40">HR</span>
-                <span className="text-sm font-bold text-rose-400">{telemetry.heartRate}</span>
+                <span className="text-sm font-bold text-rose-400">{heartRate}</span>
               </div>
             )}
             <div className="flex flex-col">
               <span className="text-[10px] uppercase tracking-wider text-white/40">Watts</span>
-              <span className="text-sm font-bold text-yellow-400">{telemetry.power}</span>
+              <span className="text-sm font-bold text-yellow-400">{power}</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Progress Bar */}
       {(isRiding || rideProgress > 0) && (
         <div className="absolute inset-x-0 bottom-0 h-2 sm:h-3 bg-black/50 flex">
           {workoutPlan ? (

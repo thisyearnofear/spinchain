@@ -2,35 +2,19 @@
 
 import { memo } from "react";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
+import { useRideStore } from "@/app/stores/ride-store";
+import { useRewardsStore } from "@/app/stores/rewards-store";
+import { useUIStore } from "@/app/stores/ui-store";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 
 interface RideTopBarProps {
   className: string;
   instructor: string;
-  isPracticeMode: boolean;
   routeIsGenerated?: boolean;
-  isRiding: boolean;
-  isExiting: boolean;
-  rideProgress: number;
-  isTrainingMode: boolean;
-  isGuestMode: boolean;
-  useSimulator: boolean;
-  bleConnected: boolean;
   walletConnected: boolean;
-  rewardMode: RewardMode;
-  rewardsFormattedReward: string;
-  rewardsIsActive: boolean;
-  rewardsClearNodeConnected?: boolean;
-  viewMode: "immersive" | "focus";
-  hudMode: "full" | "compact" | "minimal";
-  deviceType: "mobile" | "tablet" | "desktop";
-  // Simulated rewards
   simulatedReward?: { isSimulating: boolean; formattedReward: string };
-  // Callbacks
   onSetUseSimulator: (v: boolean) => void;
   onSetRewardMode: (m: RewardMode) => void;
-  onToggleViewMode: () => void;
-  onCycleHudMode: () => void;
   onExitRide: () => void;
   onResetPrefs: () => void;
   onCollapseToggle: () => void;
@@ -40,32 +24,37 @@ interface RideTopBarProps {
 export const RideTopBar = memo(function RideTopBar({
   className,
   instructor,
-  isPracticeMode,
   routeIsGenerated = false,
-  isRiding,
-  isExiting,
-  rideProgress,
-  isTrainingMode,
-  isGuestMode,
-  useSimulator,
-  bleConnected,
   walletConnected,
-  rewardMode,
-  rewardsFormattedReward,
-  rewardsIsActive,
-  rewardsClearNodeConnected,
-  viewMode,
-  deviceType,
   simulatedReward,
   onSetUseSimulator,
   onSetRewardMode,
-  onToggleViewMode,
-  onCycleHudMode,
   onExitRide,
   onResetPrefs,
   onCollapseToggle,
   isAllCollapsed,
 }: RideTopBarProps) {
+  const isRiding = useRideStore((s) => s.isActive);
+  const isExiting = useRideStore((s) => s.isExiting);
+  const rideProgress = useRideStore((s) => s.rideProgress);
+
+  const rewardMode = useRewardsStore((s) => s.mode);
+  const rewardsFormattedReward = useRewardsStore((s) => s.formattedReward);
+  const rewardsIsActive = useRewardsStore((s) => s.isActive);
+  const rewardsClearNodeConnected = useRewardsStore((s) => s.clearNodeConnected);
+
+  const viewMode = useUIStore((s) => s.viewMode);
+  const hudMode = useUIStore((s) => s.hudMode);
+  const deviceType = useUIStore((s) => s.deviceType);
+  const useSimulator = useUIStore((s) => s.useSimulator);
+  const bleConnected = useUIStore((s) => s.bleConnected);
+  const isPracticeMode = useUIStore((s) => s.isPracticeMode);
+  const isTrainingMode = useUIStore((s) => s.isTrainingMode);
+  const isGuestMode = useUIStore((s) => s.isGuestMode);
+
+  const toggleViewMode = useUIStore((s) => s.toggleViewMode);
+  const cycleHudMode = useUIStore((s) => s.cycleHudMode);
+
   return (
     <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-top" style={{ zIndex: Z_LAYERS.widgets + 15 }}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -157,7 +146,6 @@ export const RideTopBar = memo(function RideTopBar({
             </div>
           ) : (
             <div className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-[10px] font-medium text-white/80">
-              {/* Simulated reward ticker for training/guest */}
               {simulatedReward?.isSimulating ? (
                 <>
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
@@ -214,7 +202,7 @@ export const RideTopBar = memo(function RideTopBar({
 
           {/* View Mode Toggle */}
           <button
-            onClick={onToggleViewMode}
+            onClick={toggleViewMode}
             className="rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/70 hover:bg-white/20 active:scale-95 transition-all touch-manipulation min-h-[44px]"
             aria-label="Toggle view mode"
           >
@@ -224,7 +212,7 @@ export const RideTopBar = memo(function RideTopBar({
           {/* HUD Mode Toggle (mobile) */}
           {deviceType === "mobile" && (
             <button
-              onClick={onCycleHudMode}
+              onClick={cycleHudMode}
               className="rounded-lg bg-white/10 p-2 text-white/70 hover:bg-white/20 active:scale-95 transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Toggle HUD"
             >

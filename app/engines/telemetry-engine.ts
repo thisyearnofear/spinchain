@@ -173,6 +173,10 @@ export class TelemetryEngine {
     this.elapsedSeconds = seconds;
   }
 
+  get elapsed(): number {
+    return this.elapsedSeconds;
+  }
+
   setCurrentGear(gear: number): void {
     this.currentGear = gear;
   }

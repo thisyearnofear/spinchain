@@ -10,53 +10,18 @@ import type {
   WidgetMode,
 } from "@/app/hooks/ui/use-panel-state";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
+import { useRideStore } from "@/app/stores/ride-store";
+import { useTelemetryStore } from "@/app/stores/telemetry-store";
+import { useCoachingStore } from "@/app/stores/coaching-store";
+import { useUIStore } from "@/app/stores/ui-store";
 
 interface RideBottomPanelProps {
-  isRiding: boolean;
-  isStarting: boolean;
-  rideProgress: number;
-  elapsedTime: number;
-  hudMode: "full" | "compact" | "minimal";
-  deviceType: "mobile" | "tablet" | "desktop";
-  widgetsMode: WidgetMode;
-  useSimulator: boolean;
-  isPracticeMode: boolean;
-  isTrainingMode: boolean;
-  bleConnected: boolean;
   walletConnected: boolean;
-  connectionHint: string | null;
-  // Telemetry
-  telemetryEffort: number;
-  telemetryCadence: number;
-  // Workout
   workoutPlan: WorkoutPlan | null;
-  currentInterval: {
-    phase: IntervalPhase;
-    coachCue?: string;
-    targetRpm?: [number, number];
-    durationSeconds: number;
-  } | null;
-  currentIntervalIndex: number;
-  intervalProgress: number;
-  intervalRemaining: number;
-  // AI
-  aiActive: boolean;
-  agentName: string;
-  reasonerState: string;
-  lastDecision: {
-    thoughtProcess: string;
-    action?: string;
-    confidence?: number;
-    reasoning?: string;
-  } | null;
-  thoughtLog: string[];
-  // Coach
-  isSpeaking: boolean;
-  // Panel state
+  connectionHint: string | null;
   panelState: PanelState;
   onTogglePanel: (key: PanelKey) => void;
   onSetWidgetsMode: (mode: WidgetMode) => void;
-  // Callbacks
   onStartRide: () => void;
   onPauseRide: () => void;
   onSetWorkoutPlan: (plan: WorkoutPlan | null) => void;
@@ -71,32 +36,9 @@ interface RideBottomPanelProps {
 }
 
 export const RideBottomPanel = memo(function RideBottomPanel({
-  isRiding,
-  isStarting,
-  rideProgress,
-  elapsedTime,
-  hudMode,
-  deviceType,
-  widgetsMode,
-  useSimulator,
-  isPracticeMode,
-  isTrainingMode,
-  bleConnected,
   walletConnected,
-  connectionHint,
-  telemetryEffort,
-  telemetryCadence,
   workoutPlan,
-  currentInterval,
-  currentIntervalIndex,
-  intervalProgress,
-  intervalRemaining,
-  aiActive,
-  agentName,
-  reasonerState,
-  lastDecision,
-  thoughtLog,
-  isSpeaking,
+  connectionHint,
   panelState,
   onTogglePanel,
   onSetWidgetsMode,
@@ -109,6 +51,33 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   onHaptic,
   formatTime,
 }: RideBottomPanelProps) {
+  const isRiding = useRideStore((s) => s.isActive);
+  const isStarting = useRideStore((s) => s.isStarting);
+  const rideProgress = useRideStore((s) => s.rideProgress);
+  const elapsedTime = useRideStore((s) => s.elapsedTime);
+
+  const hudMode = useUIStore((s) => s.hudMode);
+  const deviceType = useUIStore((s) => s.deviceType);
+  const widgetsMode = useUIStore((s) => s.widgetsMode);
+  const useSimulator = useUIStore((s) => s.useSimulator);
+  const isPracticeMode = useUIStore((s) => s.isPracticeMode);
+  const isTrainingMode = useUIStore((s) => s.isTrainingMode);
+  const bleConnected = useUIStore((s) => s.bleConnected);
+
+  const telemetryEffort = useTelemetryStore((s) => s.snapshot.effort);
+  const telemetryCadence = useTelemetryStore((s) => s.snapshot.cadence);
+
+  const currentInterval = useCoachingStore((s) => s.currentInterval);
+  const currentIntervalIndex = useCoachingStore((s) => s.currentIntervalIndex);
+  const intervalRemaining = useCoachingStore((s) => s.intervalRemaining);
+  const isSpeaking = useCoachingStore((s) => s.isSpeaking);
+  const agentName = useCoachingStore((s) => s.currentInterval ? "Coach" : "");
+  const reasonerState = useCoachingStore((s) => s.reasonerState);
+  const lastDecision = useCoachingStore((s) => s.lastDecision);
+  const thoughtLog = useCoachingStore((s) => s.thoughtLog);
+
+  const aiActive = isRiding && (isPracticeMode || true);
+
   const isWidgetsMinimized = widgetsMode === "minimized";
   const isWidgetsCollapsed = widgetsMode === "collapsed";
   const [desktopOffset, setDesktopOffset] = useState({ x: 0, y: 0 });
@@ -122,7 +91,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   const handleDragStart = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (deviceType === "mobile" || !isRiding || isWidgetsMinimized) return;
-      // Don't start drag if user clicked an interactive element (button, toggle, link)
       const target = event.target as HTMLElement;
       if (target.closest('button, a, [role="button"], input, select, textarea'))
         return;
@@ -165,7 +133,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
     [],
   );
 
-  // Show a minimized pill during ride when widgets are minimized
   if (isRiding && isWidgetsMinimized) {
     return (
       <div
@@ -253,7 +220,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
         {/* Progress Info + Interval Status */}
         {hudMode !== "minimal" && (
           <div className="mb-3 sm:mb-4">
-            {/* Current Interval Banner */}
             {isRiding && currentInterval && (
               <IntervalBanner
                 currentInterval={currentInterval}
@@ -265,7 +231,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
               />
             )}
 
-            {/* AI Feedback */}
             {isRiding && aiActive && (
               <AgentFeedback
                 agentName={agentName}
@@ -275,7 +240,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
               />
             )}
 
-            {/* Main stats row */}
             <div className="flex items-center justify-between text-white">
               <div className="text-left">
                 <p className="text-[10px] sm:text-sm text-white/50">Progress</p>
@@ -334,7 +298,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
           onTogglePanel={onTogglePanel}
         />
 
-        {/* Coach voice indicator */}
         {isRiding && isSpeaking && (
           <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[10px] text-indigo-400">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
@@ -346,7 +309,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   );
 });
 
-/** Interval phase banner with RPM zone comparison */
 function IntervalBanner({
   currentInterval,
   currentIntervalIndex,
@@ -392,7 +354,6 @@ function IntervalBanner({
       <span className="text-xs sm:text-sm font-mono text-white/70">
         {formatTime(Math.ceil(intervalRemaining))} left
       </span>
-      {/* Coming up next */}
       {workoutPlan &&
         currentIntervalIndex < workoutPlan.intervals.length - 1 &&
         (() => {
@@ -417,7 +378,6 @@ function IntervalBanner({
             </span>
           );
         })()}
-      {/* Target RPM zone */}
       {currentInterval.targetRpm && (
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-white/40">RPM</span>
@@ -443,7 +403,6 @@ function IntervalBanner({
   );
 }
 
-/** AI agent reasoning feedback */
 function AgentFeedback({
   agentName,
   reasonerState,

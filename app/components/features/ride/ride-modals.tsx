@@ -11,19 +11,13 @@ import { DemoCompleteModal } from "@/app/components/features/common/demo-complet
 import { RideTutorialOverlay, type TutorialStep } from "./ride-tutorial";
 import { downloadTCX, type RideRecordPoint } from "@/app/lib/analytics/ride-recorder";
 import type { RideSyncStatus } from "@/app/lib/analytics/ride-history";
-import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 import type { DemoCompleteModalProps } from "@/app/components/features/common/demo-complete-modal";
 import type { EnhancedClassMetadata } from "@/app/lib/contracts";
+import { useRideStore } from "@/app/stores/ride-store";
+import { useTelemetryStore } from "@/app/stores/telemetry-store";
+import { useUIStore } from "@/app/stores/ui-store";
 
 interface RideModalsProps {
-  rideProgress: number;
-  isPracticeMode: boolean;
-  isTrainingMode: boolean;
-  isRiding: boolean;
-  elapsedTime: number;
-  telemetryAverages: { avgHr: number; avgPower: number; avgEffort: number };
-  bleConnected: boolean;
-  useSimulator: boolean;
   classId: string;
   classData: { name: string; instructor: string; startTime?: number; metadata?: EnhancedClassMetadata | null } | null;
   practiceConfig: { name?: string; instructor?: string } | null;
@@ -41,7 +35,7 @@ interface RideModalsProps {
   tutorialStep: TutorialStep;
   agentName: string;
   aiPersonality: "zen" | "drill-sergeant" | "data";
-  _rewardMode: RewardMode;
+  _rewardMode: string;
   _walletConnected: boolean;
   ridePointsRef: React.MutableRefObject<RideRecordPoint[]>;
   router: AppRouterInstance;
@@ -64,14 +58,6 @@ interface RideModalsProps {
 }
 
 export function RideModals({
-  rideProgress,
-  isPracticeMode,
-  isTrainingMode,
-  isRiding,
-  elapsedTime,
-  telemetryAverages,
-  bleConnected,
-  useSimulator,
   classId,
   classData,
   practiceConfig: _practiceConfig,
@@ -102,9 +88,19 @@ export function RideModals({
   onDismissTutorial,
   onSimulatorMetrics,
 }: RideModalsProps) {
+  const rideProgress = useRideStore((s) => s.rideProgress);
+  const isRiding = useRideStore((s) => s.isActive);
+  const elapsedTime = useRideStore((s) => s.elapsedTime);
+
+  const isPracticeMode = useUIStore((s) => s.isPracticeMode);
+  const isTrainingMode = useUIStore((s) => s.isTrainingMode);
+  const bleConnected = useUIStore((s) => s.bleConnected);
+  const useSimulator = useUIStore((s) => s.useSimulator);
+
+  const telemetryAverages = useTelemetryStore((s) => s.averages);
+
   return (
     <>
-      {/* Milestone Celebration Overlay */}
       <AnimatePresence>
         {showMilestone && (
           <motion.div
@@ -135,7 +131,6 @@ export function RideModals({
         )}
       </AnimatePresence>
 
-      {/* Completion Modal */}
       {rideProgress >= 100 && (
         <RideCompletion
           isPracticeMode={isPracticeMode}
@@ -185,20 +180,17 @@ export function RideModals({
         />
       )}
 
-      {/* No Bike Connected Modal */}
       <NoBikeModal
         open={showNoBikeModal}
         onEnableSimulator={onEnableSimulatorFromModal}
         onDismiss={onDismissNoBike}
       />
 
-      {/* Keyboard Shortcut Overlay */}
       <KeyboardShortcutOverlay
         show={showKeyboardHints}
         onDismiss={onDismissKeyboardHints}
       />
 
-      {/* Pedal Simulator */}
       {useSimulator && (
         <PedalSimulator
           isActive={isRiding}
@@ -206,14 +198,12 @@ export function RideModals({
         />
       )}
 
-      {/* Demo Complete Modal */}
       <DemoCompleteModal
         isOpen={showDemoModal}
         onClose={onDemoModalClose}
         stats={demoStats}
       />
 
-      {/* Onboarding Tutorial Overlay */}
       {showTutorial && (
         <RideTutorialOverlay
           step={tutorialStep}

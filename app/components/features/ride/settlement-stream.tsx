@@ -3,14 +3,14 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useMemo } from "react";
 import { Coins, ShieldCheck, Zap } from "lucide-react";
+import { useRideStore } from "@/app/stores/ride-store";
+import { useRewardsStore } from "@/app/stores/rewards-store";
 
-interface SettlementStreamProps {
-  isActive: boolean;
-  accumulated: number;
-  rate: number; // tokens per second
-}
-
-export function SettlementStream({ isActive, accumulated, rate }: SettlementStreamProps) {
+export function SettlementStream() {
+  const isRiding = useRideStore((s) => s.isActive);
+  const isActive = useRewardsStore((s) => s.isActive && s.mode === "yellow-stream" && isRiding);
+  const accumulated = useRewardsStore((s) => Number(s.accumulatedReward));
+  const rate = useRewardsStore((s) => s.streamingRate);
   const [particles, setParticles] = useState<Array<{ id: number; x: number; delay: number }>>([]);
 
   // Generate "Coin" particles that flow upwards based on the rate

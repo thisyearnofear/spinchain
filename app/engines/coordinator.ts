@@ -25,6 +25,14 @@ import { VisualizationEngine } from "./visualization-engine";
 import { SuiEngine } from "./sui-engine";
 import type { RideStartConfig, TelemetrySnapshot } from "./types";
 import { useRideStore } from "@/app/stores/ride-store";
+import { useTelemetryStore } from "@/app/stores/telemetry-store";
+import { useCoachingStore } from "@/app/stores/coaching-store";
+import { useRewardsStore } from "@/app/stores/rewards-store";
+import {
+  getCurrentInterval,
+  getIntervalProgress,
+  getIntervalRemaining,
+} from "@/app/lib/workout-plan";
 
 export class RideCoordinator {
   readonly bus: EventBus;
@@ -38,6 +46,7 @@ export class RideCoordinator {
 
   private config: RideStartConfig | null = null;
   private unsubTick: (() => void) | null = null;
+  private eventUnsubs: Array<() => void> = [];
   private rafRunning = false;
   private sampleTimerId: ReturnType<typeof setInterval> | null = null;
 
@@ -143,6 +152,9 @@ export class RideCoordinator {
     // Load multi-ghost data (social riders UI)
     this.telemetry.loadMultiGhost(config.classId);
 
+    // Wire EventBus → domain stores for UI consumption
+    this.wireStoresToEventBus();
+
     // Update Zustand store with initial state
     useRideStore.setState({
       isActive: true,
@@ -166,6 +178,17 @@ export class RideCoordinator {
     this.rewards.stop();
     this.sui.stop();
     this.telemetry.stop();
+
+    // Finalize averages in telemetry-store
+    const averages = this.telemetry.refreshAverages();
+    useTelemetryStore.setState({ averages });
+
+    // Clear coaching UI state
+    useCoachingStore.setState({
+      lastCoachMessage: null,
+      isSpeaking: false,
+    });
+
     this.telemetry.dispose();
 
     useRideStore.setState({ isActive: false });
@@ -198,6 +221,8 @@ export class RideCoordinator {
       this.unsubTick();
       this.unsubTick = null;
     }
+    this.eventUnsubs.forEach((fn) => fn());
+    this.eventUnsubs = [];
     this.bus.dispose();
     document.body.classList.remove("ride-active");
   }
@@ -225,6 +250,16 @@ export class RideCoordinator {
     this.bridgeSnapshotToStore(snapshot);
   }
 
+  /** Set current gear (called from UI gear shift buttons) */
+  setCurrentGear(gear: number): void {
+    this.telemetry.setCurrentGear(gear);
+  }
+
+  /** Set elapsed seconds (synced from UI timer) */
+  setElapsedSeconds(seconds: number): void {
+    this.telemetry.setElapsedSeconds(seconds);
+  }
+
   // ─── Commit Loop (single RAF) ────────────────────────────────
 
   private startCommitLoop(): void {
@@ -248,8 +283,6 @@ export class RideCoordinator {
   }
 
   private bridgeSnapshotToStore(snapshot: ReturnType<TelemetryEngine["commit"]>): void {
-    const store = useRideStore.getState();
-
     // Forward cadence + interval info to coaching engine
     this.coaching.onTelemetry(
       snapshot.cadence,
@@ -257,24 +290,75 @@ export class RideCoordinator {
       "",
     );
 
-    useRideStore.setState({
-      latestTelemetry: {
-        heartRate: snapshot.heartRate,
-        power: snapshot.power,
-        cadence: snapshot.cadence,
-        speed: snapshot.speed,
-        distance: snapshot.distance,
-        timestamp: snapshot.timestamp,
-      },
-      stats: {
-        ...store.stats,
-        maxHeartRate: Math.max(store.stats.maxHeartRate, snapshot.heartRate),
-        maxPower: Math.max(store.stats.maxPower, snapshot.power),
-        totalDistance: snapshot.distance,
-      },
-      // Bridge multi-ghost state to store for social riders UI
+    // Write to telemetry-store (full snapshot for UI)
+    useTelemetryStore.setState({
+      snapshot,
+      ghostState: { ...this.telemetry.ghostState },
       multiGhostState: [...this.telemetry.multiGhostState],
     });
+
+    // Update interval progress in coaching-store
+    const plan = this.coaching.coachingConfig.workoutPlan;
+    if (plan) {
+      const elapsed = this.telemetry.elapsed;
+      const idx = getCurrentInterval(plan.intervals, elapsed);
+      const interval = plan.intervals[idx] ?? null;
+      const progress = getIntervalProgress(plan.intervals, elapsed);
+      const remaining = getIntervalRemaining(plan.intervals, elapsed);
+      useCoachingStore.setState({
+        currentInterval: interval,
+        currentIntervalIndex: idx,
+        intervalProgress: progress,
+        intervalRemaining: remaining,
+      });
+    }
+
+    // Update ride-store (lifecycle only — telemetry/stats live in domain stores)
+  }
+
+  /** Subscribes to EventBus events and writes to the domain Zustand stores */
+  private wireStoresToEventBus(): void {
+    this.eventUnsubs.push(
+      this.bus.on("coaching:message", (data) => {
+        useCoachingStore.setState({ lastCoachMessage: data.text });
+      }),
+    );
+
+    this.eventUnsubs.push(
+      this.bus.on("audio:speaking", (data) => {
+        useCoachingStore.setState({ isSpeaking: data.isSpeaking });
+      }),
+    );
+
+    this.eventUnsubs.push(
+      this.bus.on("interval:changed", (data) => {
+        useCoachingStore.setState({
+          currentIntervalIndex: data.index,
+          currentInterval: data.interval as never,
+        });
+      }),
+    );
+
+    this.eventUnsubs.push(
+      this.bus.on("rewards:tick", (data) => {
+        useRewardsStore.setState({
+          accumulatedReward: data.accumulated,
+          formattedReward: this.rewards.formattedReward,
+        });
+      }),
+    );
+
+    this.eventUnsubs.push(
+      this.bus.on("rewards:started", () => {
+        useRewardsStore.setState({ isActive: true });
+      }),
+    );
+
+    this.eventUnsubs.push(
+      this.bus.on("rewards:finalized", () => {
+        useRewardsStore.setState({ isActive: false });
+      }),
+    );
   }
 
   private clearTimers(): void {

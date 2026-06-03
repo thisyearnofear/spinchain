@@ -2,13 +2,11 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Zap, Target, Sparkles } from "lucide-react";
+import { useCoachingStore, selectLastCoachMessage, selectCurrentInterval } from "@/app/stores/coaching-store";
 
-interface CoachMessageOverlayProps {
-  message: string | null;
-  phase?: string | null;
-}
-
-export function CoachMessageOverlay({ message, phase }: CoachMessageOverlayProps) {
+export function CoachMessageOverlay() {
+  const message = useCoachingStore(selectLastCoachMessage);
+  const phase = useCoachingStore((s) => s.currentInterval?.phase);
   return (
     <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none px-4 w-full max-w-[90%] sm:max-w-md z-50">
       <AnimatePresence mode="wait">

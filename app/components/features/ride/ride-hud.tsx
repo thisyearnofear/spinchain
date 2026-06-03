@@ -3,9 +3,14 @@
 import { useState, useEffect, memo, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { YellowRewardTicker } from "@/app/components/features/common/yellow-reward-ticker";
-import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
+import { useTelemetryStore, selectHeartRate, selectPower, selectCadence, selectSpeed, selectEffort, selectCurrentGear, selectGearRatio } from "@/app/stores/telemetry-store";
+import { useCoachingStore } from "@/app/stores/coaching-store";
+import { useRewardsStore } from "@/app/stores/rewards-store";
+import { useRideStore } from "@/app/stores/ride-store";
+import { useUIStore } from "@/app/stores/ui-store";
 import type { IntervalPhase } from "@/app/lib/workout-plan";
 import type { GhostState } from "@/app/lib/analytics/ghost-service";
+import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
 
 export interface TelemetryData {
   heartRate: number;
@@ -16,33 +21,6 @@ export interface TelemetryData {
   currentGear?: number;
   gearRatio?: number;
   source?: "ble" | "healthkit" | "simulated";
-}
-
-interface RideHUDProps {
-  telemetry: TelemetryData;
-  ghostState?: GhostState;
-  multiGhostState?: Array<{
-    id: string;
-    name: string;
-    leadLagTime: number;
-    distanceGap: number;
-    active: boolean;
-  }>;
-  deviceType: "mobile" | "tablet" | "desktop";
-  orientation: "portrait" | "landscape";
-  hudMode: "full" | "compact" | "minimal";
-  isRiding: boolean;
-  rideProgress: number;
-  rewardsActive: boolean;
-  rewardsStreamState: RewardStreamState | null;
-  rewardsMode: "yellow-stream" | "zk-batch" | "sui-native";
-  intervalPhase?: IntervalPhase | null;
-  aiLog?: { type: string; message: string; timestamp: number } | null;
-  mobileBridgeStatus?: {
-    isBackgroundActive: boolean;
-    isHealthKitActive: boolean;
-  };
-  targetRpm?: [number, number];
 }
 
 function getPhaseAccent(phase?: IntervalPhase | null) {
@@ -160,32 +138,6 @@ function getPhaseMetrics(
   };
 }
 
-function MobileStatusBadges({
-  status,
-}: {
-  status?: RideHUDProps["mobileBridgeStatus"];
-}) {
-  if (!status || (!status.isBackgroundActive && !status.isHealthKitActive))
-    return null;
-
-  return (
-    <div className="flex gap-2 mb-3">
-      {status.isBackgroundActive && (
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-300 uppercase tracking-wider">
-          <span className="h-1 w-1 rounded-full bg-indigo-400 animate-pulse" />
-          Background Sync
-        </div>
-      )}
-      {status.isHealthKitActive && (
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-[10px] font-bold text-rose-300 uppercase tracking-wider">
-          <span className="h-1 w-1 rounded-full bg-rose-400 animate-pulse" />
-          HealthKit HR
-        </div>
-      )}
-    </div>
-  );
-}
-
 function GhostLeadLag({
   leadLagTime,
   distanceGap,
@@ -193,7 +145,7 @@ function GhostLeadLag({
   leadLagTime: number;
   distanceGap: number;
 }) {
-  const isLeading = leadLagTime < 0; // Negative leadLagTime means ghost is behind (in our logic)
+  const isLeading = leadLagTime < 0;
   const absTime = Math.abs(leadLagTime);
   const color = isLeading ? "text-emerald-400" : "text-rose-400";
   const label = isLeading ? "Lead" : "Lag";
@@ -246,29 +198,31 @@ function GearBadge({ gear, ratio }: { gear?: number; ratio?: number }) {
   );
 }
 
-/**
- * RideHUD - Telemetry display with responsive layouts
-...
- * Shows heart rate, power, cadence, speed based on device and HUD mode
- */
-export function RideHUD({
-  telemetry,
-  ghostState,
-  multiGhostState,
-  deviceType,
-  orientation,
-  hudMode,
-  isRiding,
-  rideProgress,
-  rewardsActive,
-  rewardsStreamState,
-  rewardsMode,
-  intervalPhase,
-  aiLog,
-  mobileBridgeStatus,
-  targetRpm,
-}: RideHUDProps) {
-  // Don't show if minimal mode or not riding
+export function RideHUD() {
+  const heartRate = useTelemetryStore(selectHeartRate);
+  const power = useTelemetryStore(selectPower);
+  const cadence = useTelemetryStore(selectCadence);
+  const speed = useTelemetryStore(selectSpeed);
+  const effort = useTelemetryStore(selectEffort);
+  const currentGear = useTelemetryStore(selectCurrentGear);
+  const gearRatio = useTelemetryStore(selectGearRatio);
+  const ghostState = useTelemetryStore((s) => s.ghostState);
+  const multiGhostState = useTelemetryStore((s) => s.multiGhostState);
+  const deviceType = useUIStore((s) => s.deviceType);
+  const orientation = useUIStore((s) => s.orientation);
+  const hudMode = useUIStore((s) => s.hudMode);
+  const isRiding = useRideStore((s) => s.isActive);
+  const rideProgress = useRideStore((s) => s.rideProgress);
+  const rewardsActive = useRewardsStore((s) => s.isActive);
+  const rewardsStreamState = useRewardsStore((s) => s.streamState);
+  const rewardsMode = useRewardsStore((s) => s.mode);
+  const intervalPhase = useCoachingStore((s) => s.currentInterval?.phase ?? null);
+  const targetRpm = useCoachingStore((s) => s.currentInterval?.targetRpm);
+
+  const telemetry: TelemetryData = useMemo(() => ({
+    heartRate, power, cadence, speed, effort, currentGear, gearRatio,
+  }), [heartRate, power, cadence, speed, effort, currentGear, gearRatio]);
+
   if (hudMode === "minimal" || (!isRiding && rideProgress === 0)) {
     return null;
   }
@@ -279,16 +233,14 @@ export function RideHUD({
     ? intervalPhase.charAt(0).toUpperCase() + intervalPhase.slice(1)
     : "Cruise";
 
-  // Calculate intensity based on target RPM if available
   const rpmIntensity = useMemo(() => {
-    if (!targetRpm || !telemetry.cadence) return telemetry.effort / 1000;
+    if (!targetRpm || !cadence) return effort / 1000;
     const [min, max] = targetRpm;
-    if (telemetry.cadence >= min && telemetry.cadence <= max) return 1.0;
-    if (telemetry.cadence < min) return telemetry.cadence / min;
-    return 1.0 - Math.min(0.5, (telemetry.cadence - max) / 100);
-  }, [targetRpm, telemetry.cadence, telemetry.effort]);
+    if (cadence >= min && cadence <= max) return 1.0;
+    if (cadence < min) return cadence / min;
+    return 1.0 - Math.min(0.5, (cadence - max) / 100);
+  }, [targetRpm, cadence, effort]);
 
-  // Agent Intelligence Section
   const agentInsight = (
     <div className="mt-4 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
       <div className="flex items-center gap-2 mb-2 mt-4">
@@ -302,12 +254,10 @@ export function RideHUD({
       </div>
 
       <div className="relative group max-w-[280px]">
-        {/* Subtle Accent Glow */}
         <div className="relative rounded-xl bg-black/60 border border-white/10 px-4 py-3 backdrop-blur shadow-2xl">
           <p className="text-[13px] text-white/90 leading-relaxed font-medium tracking-tight">
             <span className="text-indigo-400 mr-2">●</span>
-            {aiLog?.message ||
-              "Keep your breathing steady. You're crushing this climb!"}
+            Keep your breathing steady. You&apos;re crushing this climb!
           </p>
 
           {rewardsMode === "yellow-stream" && (
@@ -323,7 +273,6 @@ export function RideHUD({
     </div>
   );
 
-  // Flow State Visualizer (Background)
   const flowStateVisualizer = (
     <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10 opacity-40">
       <div
@@ -338,7 +287,6 @@ export function RideHUD({
     </div>
   );
 
-  // Mobile Compact Layout - Floating pill that expands on tap
   if (deviceType === "mobile" && hudMode === "compact") {
     return (
       <>
@@ -352,7 +300,6 @@ export function RideHUD({
           rewardsActive={rewardsActive}
           rewardsStreamState={rewardsStreamState}
           rewardsMode={rewardsMode}
-          mobileBridgeStatus={mobileBridgeStatus}
           ghostState={ghostState}
           agentInsight={agentInsight}
         />
@@ -360,7 +307,6 @@ export function RideHUD({
     );
   }
 
-  // Tablet Portrait Layout
   if (deviceType === "tablet" && orientation === "portrait") {
     return (
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
@@ -410,20 +356,15 @@ export function RideHUD({
     );
   }
 
-  // Desktop/Tablet Landscape Full Layout
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
       {flowStateVisualizer}
       <div className="flex flex-col gap-6">
-        <div className="flex justify-center">
-          <MobileStatusBadges status={mobileBridgeStatus} />
-        </div>
-
         {rewardsActive && rewardsStreamState && (
           <div className="flex justify-center">
             <YellowRewardTicker
-              streamState={rewardsStreamState}
-              mode={rewardsMode}
+              streamState={rewardsStreamState as RewardStreamState}
+              mode={rewardsMode as "yellow-stream" | "zk-batch" | "sui-native"}
               symbol="SPIN"
             />
           </div>
@@ -506,7 +447,7 @@ const MetricCard = memo(function MetricCard({
   unit,
   color,
   emphasized = false,
-  intensity = 0, // 0-1 based on target proximity or effort
+  intensity = 0,
 }: {
   label: string;
   value: string | number;
@@ -529,7 +470,6 @@ const MetricCard = memo(function MetricCard({
       }
     `}
     >
-      {/* Dynamic Performance Halo */}
       {intensity > 0.5 && (
         <div
           className={`absolute inset-0 opacity-20 blur-3xl animate-pulse ${color.replace("text-", "bg-")}`}
@@ -540,7 +480,6 @@ const MetricCard = memo(function MetricCard({
         />
       )}
 
-      {/* Decorative inner glow */}
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
       <div className="flex items-center justify-between mb-3 relative z-10">
@@ -570,7 +509,6 @@ const MetricCard = memo(function MetricCard({
         </p>
       </div>
 
-      {/* Real-time data stream visualizer */}
       <div className="absolute bottom-2 left-8 right-8 h-0.5 bg-white/5 rounded-full overflow-hidden">
         <div
           className={`h-full ${color.replace("text-", "bg-")} transition-all duration-300`}
@@ -581,7 +519,6 @@ const MetricCard = memo(function MetricCard({
   );
 });
 
-// Mobile Compact HUD - Floating pill with swipe-to-cycle (no auto-cycle for performance)
 function MobileCompactHUD({
   telemetry,
   phaseMetrics,
@@ -591,7 +528,6 @@ function MobileCompactHUD({
   rewardsActive,
   rewardsStreamState,
   rewardsMode,
-  mobileBridgeStatus,
   ghostState,
   agentInsight,
 }: {
@@ -606,10 +542,6 @@ function MobileCompactHUD({
   rewardsActive: boolean;
   rewardsStreamState?: RewardStreamState | null;
   rewardsMode?: "yellow-stream" | "zk-batch" | "sui-native";
-  mobileBridgeStatus?: {
-    isBackgroundActive: boolean;
-    isHealthKitActive: boolean;
-  };
   ghostState?: GhostState;
   agentInsight?: React.ReactNode;
 }) {
@@ -632,14 +564,12 @@ function MobileCompactHUD({
     null,
   );
 
-  // Persist widget preference to localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("mobile-widget-preference", visibleWidget);
     }
   }, [visibleWidget]);
 
-  // No auto-cycle — user swipes/taps to cycle manually (performance improvement)
   const handleTap = () => {
     if (expanded) {
       setExpanded(false);
@@ -657,7 +587,6 @@ function MobileCompactHUD({
     }
   };
 
-  // Swipe gesture handling
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
   };
@@ -667,7 +596,6 @@ function MobileCompactHUD({
     const deltaX = e.changedTouches[0].clientX - touchStart.x;
     const deltaY = e.changedTouches[0].clientY - touchStart.y;
 
-    // Only trigger if horizontal swipe is dominant
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
       setVisibleWidget((prev) => {
         const widgets: (typeof prev)[] = [
@@ -677,7 +605,7 @@ function MobileCompactHUD({
           "cadence",
         ];
         const currentIdx = widgets.indexOf(prev);
-        const direction = deltaX > 0 ? 1 : -1; // Right swipe = next, left swipe = prev
+        const direction = deltaX > 0 ? 1 : -1;
         const newIdx =
           (currentIdx + direction + widgets.length) % widgets.length;
         return widgets[newIdx];
@@ -725,7 +653,6 @@ function MobileCompactHUD({
       className="absolute inset-0 flex flex-col items-center justify-end pointer-events-none p-4 pb-12"
       style={{ willChange: "transform" }}
     >
-      {/* Status indicators at top - minimal - only show when expanded */}
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -734,14 +661,6 @@ function MobileCompactHUD({
             exit={{ opacity: 0, y: 10 }}
             className="flex items-center gap-2 mb-4 pointer-events-auto"
           >
-            {/* Connection status */}
-            {mobileBridgeStatus?.isBackgroundActive && (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest text-emerald-400">
-                <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-                Live
-              </span>
-            )}
-            {/* Rewards ticker if active */}
             {rewardsActive && rewardsStreamState && rewardsMode && (
               <YellowRewardTicker
                 streamState={rewardsStreamState}
@@ -754,7 +673,6 @@ function MobileCompactHUD({
         )}
       </AnimatePresence>
 
-      {/* Main floating pill - tap to cycle/expand - more minimal on mobile */}
       <button
         onClick={handleTap}
         onTouchStart={handleTouchStart}
@@ -764,7 +682,6 @@ function MobileCompactHUD({
         } ${phaseAccent.border}`}
       >
         {!expanded ? (
-          // Collapsed: show single metric - more compact
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-start">
               <span
@@ -791,9 +708,7 @@ function MobileCompactHUD({
             </div>
           </div>
         ) : (
-          // Expanded: show all metrics in a grid - more compact
           <div className="flex flex-col gap-6">
-            {/* Primary metric */}
             <div className="text-center">
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 mb-1">
                 {phaseMetrics.primary.label}
@@ -811,7 +726,6 @@ function MobileCompactHUD({
               </div>
             </div>
 
-            {/* Secondary metrics grid */}
             <div className="grid grid-cols-3 gap-3">
               {phaseMetrics.secondary.map((metric) => (
                 <div
@@ -830,7 +744,6 @@ function MobileCompactHUD({
               ))}
             </div>
 
-            {/* Gear and ghost */}
             <div className="flex items-center justify-between pt-4 border-t border-white/5">
               <GearBadge
                 gear={telemetry.currentGear}
@@ -847,7 +760,6 @@ function MobileCompactHUD({
         )}
       </button>
 
-      {/* Agent insight at bottom - only when expanded */}
       <AnimatePresence>
         {isRiding && agentInsight && expanded && (
           <motion.div

@@ -2,18 +2,29 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { useRideStore } from "@/app/stores/ride-store";
+import { useTelemetryStore, selectEffort, selectCadence } from "@/app/stores/telemetry-store";
+import { useCoachingStore, selectCurrentInterval } from "@/app/stores/coaching-store";
+import { useUIStore, selectViewMode } from "@/app/stores/ui-store";
 
-interface FlowBackgroundProps {
-  intensity: number; // 0-1
-  color: string;
-  isRiding: boolean;
-}
+export function FlowBackground() {
+  const isRiding = useRideStore((s) => s.isActive);
+  const effort = useTelemetryStore(selectEffort);
+  const cadence = useTelemetryStore(selectCadence);
+  const currentInterval = useCoachingStore(selectCurrentInterval);
+  const viewMode = useUIStore(selectViewMode);
 
-export function FlowBackground({
-  intensity,
-  color,
-  isRiding,
-}: FlowBackgroundProps) {
+  const intensity = useMemo(() => {
+    if (!currentInterval?.targetRpm) return effort / 100;
+    const [min] = currentInterval.targetRpm;
+    return Math.min(1, cadence / min);
+  }, [cadence, effort, currentInterval]);
+
+  const color = useMemo(() => {
+    if (currentInterval?.phase === "sprint") return "bg-rose-500";
+    if (currentInterval?.phase === "recovery") return "bg-sky-500";
+    return "bg-yellow-500";
+  }, [currentInterval?.phase]);
   const particles = useMemo(() => {
     return Array.from({ length: 20 }).map((_, i) => ({
       id: i,
@@ -24,7 +35,7 @@ export function FlowBackground({
     }));
   }, []);
 
-  if (!isRiding) return null;
+  if (!isRiding || viewMode !== "immersive") return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden -z-20 opacity-30">
