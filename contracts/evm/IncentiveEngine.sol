@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
@@ -26,10 +27,10 @@ interface IBiometricOracle {
 }
 
 /// @title IncentiveEngine
-/// @notice Reward distribution with tier multipliers and Chainlink oracle verification
-/// @dev Supports ZK proofs, signed attestations, and Chainlink-verified biometrics
+/// @notice Reward distribution with tier multipliers, ZK/Chainlink verification, and state channel settlement
+/// @dev Supports ZK proofs, signed attestations, Chainlink-verified biometrics, and Yellow channel settlement
 /// @custom:security-contact security@spinchain.xyz
-contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
+contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard, EIP712 {
     using ECDSA for bytes32;
     using TieredRewards for *;
 
@@ -46,10 +47,53 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     error InconsistentBatchProofs();
     error EmptyBatch();
     error VerifierNotConfigured();
+    // Channel settlement errors
+    error ChannelAlreadySettled();
+    error InvalidSignatures();
+    error InvalidChannel();
+    error RewardTooHigh();
+    error InvalidUpdateChain();
+    error EmptyUpdates();
 
     // ============ Constants ============
     uint256 public constant ATTESTATION_VALIDITY = 7 days;
     uint256 public constant DAILY_MINT_LIMIT = 1_000_000 * 1e18; // 1M SPIN per day
+    uint256 public constant MAX_REWARD_PER_CHANNEL = 1000 * 1e18; // 1000 SPIN max per class
+
+    // ============ EIP-712 Types (Channel Settlement) ============
+    bytes32 private constant CHANNEL_STATE_TYPEHASH = keccak256(
+        "ChannelState(bytes32 channelId,address rider,address instructor,bytes32 classId,uint256 finalReward,uint16 effortScore)"
+    );
+
+    bytes32 private constant UPDATE_TYPEHASH = keccak256(
+        "SignedUpdate(bytes32 channelId,bytes32 classId,address rider,address instructor,uint256 timestamp,uint256 sequence,uint256 accumulatedReward,uint16 heartRate,uint16 power)"
+    );
+
+    // ============ Channel State Structs ============
+    struct ChannelState {
+        bytes32 channelId;
+        address rider;
+        address instructor;
+        bytes32 classId;
+        uint256 finalReward;
+        uint16 effortScore; // 0-1000
+        bytes riderSignature;
+        bytes instructorSignature;
+        bool settled;
+    }
+
+    struct SignedUpdate {
+        bytes32 channelId;
+        bytes32 classId;
+        address rider;
+        address instructor;
+        uint256 timestamp;
+        uint256 sequence;
+        uint256 accumulatedReward;
+        uint16 heartRate;
+        uint16 power;
+        bytes signature;
+    }
 
     // ============ State ============
     ISpinToken public rewardToken;
@@ -67,6 +111,10 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
     mapping(address => uint256) public totalClaimed; // rider => total rewards
     mapping(address => TieredRewards.Tier) public userTiers; // cached tiers
     mapping(bytes32 => bool) public chainlinkClaimsUsed; // classId+rider => claimed
+
+    // Channel settlement state (merged from YellowSettlement)
+    mapping(bytes32 => ChannelState) public channels;
+    mapping(address => uint256) public totalSettled; // rider => total channel-settled rewards
 
     // ============ Events ============
     event AttestationSignerUpdated(address indexed signer);
@@ -86,9 +134,19 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
         uint16 proofsVerified
     );
     event ChainlinkRewardClaimed(address indexed rider, bytes32 indexed classId, uint256 amount, uint16 effortScore);
+    event ChannelRewardClaimed(
+        bytes32 indexed channelId,
+        address indexed rider,
+        address indexed instructor,
+        uint256 reward,
+        uint16 effortScore
+    );
     event TierRewardBoost(address indexed rider, TieredRewards.Tier tier, uint256 baseAmount, uint256 boostedAmount);
 
-    constructor(address owner_, address token_, address signer_, address verifier_, address treasury_) Ownable(owner_) {
+    constructor(address owner_, address token_, address signer_, address verifier_, address treasury_)
+        EIP712("SpinChainYellowSettlement", "1")
+        Ownable(owner_)
+    {
         rewardToken = ISpinToken(token_);
         spinToken = IERC20(token_);
         attestationSigner = signer_;
@@ -309,6 +367,209 @@ contract IncentiveEngine is Ownable, Pausable, ReentrancyGuard {
         if (tier != TieredRewards.Tier.NONE) {
             emit TierRewardBoost(msg.sender, tier, baseAmount, boostedAmount);
         }
+    }
+
+    // ============ Channel Settlement (merged from YellowSettlement) ============
+
+    /// @notice Settle rewards from a Yellow state channel
+    /// @param state Final signed state from the channel
+    /// @param updates Array of signed updates proving effort
+    function submitChannelProof(
+        ChannelState calldata state,
+        SignedUpdate[] calldata updates
+    ) external nonReentrant whenNotPaused {
+        // Validate channel not already settled
+        if (channels[state.channelId].settled) revert ChannelAlreadySettled();
+
+        // Validate reward amount
+        if (state.finalReward > MAX_REWARD_PER_CHANNEL) revert RewardTooHigh();
+
+        // Verify signatures and update chain
+        if (!_verifyChannelState(state, updates)) revert InvalidSignatures();
+
+        // Mark as settled
+        ChannelState storage stored = channels[state.channelId];
+        stored.channelId = state.channelId;
+        stored.rider = state.rider;
+        stored.instructor = state.instructor;
+        stored.classId = state.classId;
+        stored.finalReward = state.finalReward;
+        stored.effortScore = state.effortScore;
+        stored.settled = true;
+
+        // Mint rewards with tier multiplier
+        TieredRewards.Tier tier = getUserTier(state.rider);
+        uint256 boostedAmount = TieredRewards.applyMultiplier(state.finalReward, tier);
+
+        _mintWithLimit(state.rider, boostedAmount);
+        totalSettled[state.rider] += boostedAmount;
+
+        if (tier != TieredRewards.Tier.NONE) {
+            emit TierRewardBoost(state.rider, tier, state.finalReward, boostedAmount);
+        }
+
+        emit ChannelRewardClaimed(
+            state.channelId,
+            state.rider,
+            state.instructor,
+            boostedAmount,
+            state.effortScore
+        );
+    }
+
+    /// @notice Batch settle multiple channels (for instructor efficiency)
+    /// @param states Array of channel states to settle
+    /// @param updatesArray Array of update arrays for each channel
+    function batchSubmitChannelProof(
+        ChannelState[] calldata states,
+        SignedUpdate[][] calldata updatesArray
+    ) external nonReentrant whenNotPaused {
+        if (states.length != updatesArray.length) revert InvalidChannel();
+
+        for (uint256 i = 0; i < states.length; i++) {
+            ChannelState calldata state = states[i];
+            SignedUpdate[] calldata updates = updatesArray[i];
+
+            // Skip already settled channels to allow idempotent batching
+            if (channels[state.channelId].settled) continue;
+            if (state.finalReward > MAX_REWARD_PER_CHANNEL) revert RewardTooHigh();
+
+            if (!_verifyChannelState(state, updates)) revert InvalidSignatures();
+
+            ChannelState storage stored = channels[state.channelId];
+            stored.channelId = state.channelId;
+            stored.rider = state.rider;
+            stored.instructor = state.instructor;
+            stored.classId = state.classId;
+            stored.finalReward = state.finalReward;
+            stored.effortScore = state.effortScore;
+            stored.settled = true;
+
+            TieredRewards.Tier tier = getUserTier(state.rider);
+            uint256 boostedAmount = TieredRewards.applyMultiplier(state.finalReward, tier);
+
+            _mintWithLimit(state.rider, boostedAmount);
+            totalSettled[state.rider] += boostedAmount;
+
+            if (tier != TieredRewards.Tier.NONE) {
+                emit TierRewardBoost(state.rider, tier, state.finalReward, boostedAmount);
+            }
+
+            emit ChannelRewardClaimed(
+                state.channelId,
+                state.rider,
+                state.instructor,
+                boostedAmount,
+                state.effortScore
+            );
+        }
+    }
+
+    // ============ Channel Settlement View Functions ============
+
+    /// @notice Check if a channel has been settled
+    function isSettled(bytes32 channelId) external view returns (bool) {
+        return channels[channelId].settled;
+    }
+
+    /// @notice Get total rewards settled for a rider via channels
+    function getChannelTotalSettled(address rider) external view returns (uint256) {
+        return totalSettled[rider];
+    }
+
+    // ============ Channel Verification (EIP-712) ============
+
+    function _verifyChannelState(
+        ChannelState calldata state,
+        SignedUpdate[] calldata updates
+    ) internal view returns (bool) {
+        // Verify we have updates
+        if (updates.length == 0) revert EmptyUpdates();
+
+        // Bind channelId to this contract + chainId + participants + class
+        bytes32 expectedChannelId = keccak256(
+            abi.encode(
+                block.chainid,
+                address(this),
+                state.rider,
+                state.instructor,
+                state.classId
+            )
+        );
+        if (state.channelId != expectedChannelId) revert InvalidChannel();
+
+        // Verify final reward matches last update
+        SignedUpdate calldata lastUpdate = updates[updates.length - 1];
+        if (lastUpdate.accumulatedReward != state.finalReward) revert InvalidUpdateChain();
+
+        // Verify rider + instructor signatures on final state (EIP-712)
+        bytes32 stateStructHash = keccak256(
+            abi.encode(
+                CHANNEL_STATE_TYPEHASH,
+                state.channelId,
+                state.rider,
+                state.instructor,
+                state.classId,
+                state.finalReward,
+                state.effortScore
+            )
+        );
+        bytes32 stateDigest = _hashTypedDataV4(stateStructHash);
+
+        address recoveredRider = stateDigest.recover(state.riderSignature);
+        if (recoveredRider != state.rider) return false;
+
+        address recoveredInstructor = stateDigest.recover(state.instructorSignature);
+        if (recoveredInstructor != state.instructor) return false;
+
+        // Verify updates are ordered, consistent, and signed by rider
+        uint256 prevSequence = 0;
+        uint256 prevTimestamp = 0;
+        uint256 prevAccumulated = 0;
+
+        for (uint256 i = 0; i < updates.length; i++) {
+            SignedUpdate calldata u = updates[i];
+
+            if (u.sequence == 0) revert InvalidUpdateChain();
+            if (u.channelId != state.channelId) revert InvalidUpdateChain();
+            if (u.classId != state.classId) revert InvalidUpdateChain();
+            if (u.rider != state.rider) revert InvalidUpdateChain();
+            if (u.instructor != state.instructor) revert InvalidUpdateChain();
+
+            if (i == 0) {
+                prevSequence = u.sequence;
+                prevTimestamp = u.timestamp;
+                prevAccumulated = u.accumulatedReward;
+            } else {
+                if (u.sequence <= prevSequence) revert InvalidUpdateChain();
+                if (u.timestamp < prevTimestamp) revert InvalidUpdateChain();
+                if (u.accumulatedReward < prevAccumulated) revert InvalidUpdateChain();
+
+                prevSequence = u.sequence;
+                prevTimestamp = u.timestamp;
+                prevAccumulated = u.accumulatedReward;
+            }
+
+            bytes32 updateStructHash = keccak256(
+                abi.encode(
+                    UPDATE_TYPEHASH,
+                    u.channelId,
+                    u.classId,
+                    u.rider,
+                    u.instructor,
+                    u.timestamp,
+                    u.sequence,
+                    u.accumulatedReward,
+                    u.heartRate,
+                    u.power
+                )
+            );
+            bytes32 updateDigest = _hashTypedDataV4(updateStructHash);
+            address recoveredUpdateSigner = updateDigest.recover(u.signature);
+            if (recoveredUpdateSigner != state.rider) return false;
+        }
+
+        return true;
     }
 
     /// @notice Calculate base reward based on effort score (no tier multiplier)

@@ -4,9 +4,12 @@
  * Responsibilities:
  * - Session lifecycle: create / join / close Sui sessions
  * - Telemetry: single-point and batched submission to on-chain RiderStats
- * - Rewards: SPIN token minting and batch minting
  * - EventBus integration: auto-submit telemetry on telemetry:committed,
  *   emit sui:session-started / sui:session-ended
+ *
+ * NOTE: Reward minting was stripped from this engine in Phase 2 of the
+ * reward path consolidation. All rewards flow through IncentiveEngine
+ * on Avalanche. Sui handles telemetry and sessions only.
  *
  * Design rules:
  * - Plain TS class, no React imports
@@ -30,7 +33,6 @@ import type { TelemetrySnapshot } from "./types";
 export interface SuiEngineConfig {
   packageId?: string;
   network?: "testnet" | "mainnet";
-  treasuryCapId?: string;
   /** Callback that signs and executes a Transaction. Provided by the page's wallet hooks. */
   executeTransaction?: (tx: unknown) => Promise<{ digest: string } | null>;
   /** Optional SuiClient for read-only operations */
@@ -61,13 +63,8 @@ export interface TelemetryPoint {
 }
 
 const SPINSESSION_MODULE = "spinsession";
-const SPIN_TOKEN_MODULE = "spin_token";
 
 const DEFAULT_PACKAGE_ID = SUI_CONFIG.packageId;
-const DEFAULT_TREASURY_CAP_ID =
-  SUI_CONFIG.treasuryCapId ||
-  process.env.NEXT_PUBLIC_SUI_TREASURY_CAP_ID ||
-  "";
 
 // ─── Engine ─────────────────────────────────────────────────────
 
@@ -97,7 +94,6 @@ export class SuiEngine {
     this.config = {
       packageId: DEFAULT_PACKAGE_ID,
       network: SUI_CONFIG.network,
-      treasuryCapId: DEFAULT_TREASURY_CAP_ID,
       ...config,
     };
   }
@@ -346,83 +342,6 @@ export class SuiEngine {
     } catch (err) {
       console.error("[SuiEngine] Failed to flush telemetry:", err);
       this.telemetryBuffer.unshift(...batch);
-      return false;
-    }
-  }
-
-  // ─── Rewards ──────────────────────────────────────────────────
-
-  /**
-   * Mint SPIN reward for the current session.
-   * @param amount - Amount of SPIN tokens to mint (in base units)
-   * @param reason - Human-readable reason for the reward
-   * @param recipientAddress - Sui address to receive the reward. If omitted, uses
-   *   the transaction sender (signer) address via the Move function.
-   */
-  async mintReward(amount: number, reason: string, recipientAddress?: string): Promise<boolean> {
-    if (this.disposed) return false;
-    if (!this.session.sessionId || !this.config.executeTransaction) return false;
-    if (!this.config.treasuryCapId) {
-      console.warn("[SuiEngine] Treasury cap not configured");
-      return false;
-    }
-
-    try {
-      const tx = new Transaction();
-      tx.moveCall({
-        target: `${this.config.packageId}::${SPIN_TOKEN_MODULE}::mint_reward`,
-        arguments: [
-          tx.object(this.config.treasuryCapId),
-          tx.pure.u64(amount),
-          tx.pure.address(recipientAddress ?? "0x0"),
-          tx.pure.string(reason),
-          tx.pure.id(this.session.sessionId),
-        ],
-      });
-
-      const result = await this.config.executeTransaction(tx);
-      if (result) {
-        this.bus.emit("sui:reward-minted", {
-          amount,
-          sessionId: this.session.sessionId,
-        });
-      }
-      return !!result;
-    } catch (err) {
-      console.error("[SuiEngine] Failed to mint reward:", err);
-      return false;
-    }
-  }
-
-  /**
-   * Batch mint SPIN rewards to multiple recipients (instructor use).
-   */
-  async batchMintRewards(
-    recipients: string[],
-    amounts: number[],
-    reason: string,
-  ): Promise<boolean> {
-    if (this.disposed) return false;
-    if (!this.session.sessionId || !this.config.executeTransaction) return false;
-    if (!this.config.treasuryCapId) return false;
-    if (recipients.length !== amounts.length || recipients.length === 0) return false;
-
-    try {
-      const tx = new Transaction();
-      tx.moveCall({
-        target: `${this.config.packageId}::${SPIN_TOKEN_MODULE}::batch_mint_rewards`,
-        arguments: [
-          tx.object(this.config.treasuryCapId),
-          tx.pure.vector("address", recipients),
-          tx.pure.vector("u64", amounts),
-          tx.pure.string(reason),
-          tx.pure.id(this.session.sessionId),
-        ],
-      });
-
-      return !!(await this.config.executeTransaction(tx));
-    } catch (err) {
-      console.error("[SuiEngine] Failed to batch mint rewards:", err);
       return false;
     }
   }

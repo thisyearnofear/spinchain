@@ -8,7 +8,6 @@
  */
 
 import type { RouteResponse } from "./ai-types";
-import { YELLOW_SETTLEMENT_ABI as YELLOW_SETTLEMENT_CONTRACT_ABI } from "./contracts/yellow-settlement";
 
 // ============================================================================
 // NETWORK CONFIGURATION
@@ -77,10 +76,6 @@ export const CONTRACT_ADDRESSES = {
   TREASURY_SPLITTER: (process.env.NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS ??
     "0xDd787C22A28aA709021860485AC1b95620B5AcE3") as `0x${string}`,
 
-  /** Yellow state channel settlement — verified Fuji: https://testnet.snowtrace.io/address/0x960bbE91899D8A1D62e894348B9fa8B6358d9182 */
-  YELLOW_SETTLEMENT: (process.env.NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS ??
-    "0x960bbE91899D8A1D62e894348B9fa8B6358d9182") as `0x${string}`,
-
   /** Chainlink Runtime Environment (CRE) Biometric Oracle — verified Fuji: https://testnet.snowtrace.io/address/0xE0021E77f52761A69F611530A481B2B9371993d8 */
   BIOMETRIC_ORACLE: (process.env.NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS ??
     "0xE0021E77f52761A69F611530A481B2B9371993d8") as `0x${string}`,
@@ -94,7 +89,6 @@ export const CONTRACT_ADDRESSES = {
 export const CLASS_FACTORY_ADDRESS = CONTRACT_ADDRESSES.CLASS_FACTORY;
 export const INCENTIVE_ENGINE_ADDRESS = CONTRACT_ADDRESSES.INCENTIVE_ENGINE;
 export const SPIN_TOKEN_ADDRESS = CONTRACT_ADDRESSES.SPIN_TOKEN;
-export const YELLOW_SETTLEMENT_ADDRESS = CONTRACT_ADDRESSES.YELLOW_SETTLEMENT;
 export const BIOMETRIC_ORACLE_ADDRESS = CONTRACT_ADDRESSES.BIOMETRIC_ORACLE;
 
 // ============================================================================
@@ -384,8 +378,6 @@ export const SPIN_CLASS_ABI = [
   },
 ] as const;
 
-export const YELLOW_SETTLEMENT_ABI = YELLOW_SETTLEMENT_CONTRACT_ABI;
-
 export const INCENTIVE_ENGINE_ABI = [
   {
     type: "function",
@@ -486,6 +478,96 @@ export const INCENTIVE_ENGINE_ABI = [
       { name: "amount", type: "uint256" },
       { name: "attestationId", type: "bytes32" },
     ],
+  },
+  {
+    type: "event",
+    name: "ChannelRewardClaimed",
+    inputs: [
+      { indexed: true, name: "channelId", type: "bytes32" },
+      { indexed: true, name: "rider", type: "address" },
+      { indexed: true, name: "instructor", type: "address" },
+      { name: "reward", type: "uint256" },
+      { name: "effortScore", type: "uint16" },
+    ],
+  },
+  // ─── Channel Settlement Functions (merged from YellowSettlement) ───
+  {
+    type: "function",
+    name: "submitChannelProof",
+    inputs: [
+      {
+        name: "state",
+        type: "tuple",
+        components: [
+          { name: "channelId", type: "bytes32" },
+          { name: "rider", type: "address" },
+          { name: "instructor", type: "address" },
+          { name: "classId", type: "bytes32" },
+          { name: "finalReward", type: "uint256" },
+          { name: "effortScore", type: "uint16" },
+          { name: "riderSignature", type: "bytes" },
+          { name: "instructorSignature", type: "bytes" },
+          { name: "settled", type: "bool" },
+        ],
+      },
+      {
+        name: "updates",
+        type: "tuple[]",
+        components: [
+          { name: "channelId", type: "bytes32" },
+          { name: "classId", type: "bytes32" },
+          { name: "rider", type: "address" },
+          { name: "instructor", type: "address" },
+          { name: "timestamp", type: "uint256" },
+          { name: "sequence", type: "uint256" },
+          { name: "accumulatedReward", type: "uint256" },
+          { name: "heartRate", type: "uint16" },
+          { name: "power", type: "uint16" },
+          { name: "signature", type: "bytes" },
+        ],
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "batchSubmitChannelProof",
+    inputs: [
+      {
+        name: "states",
+        type: "tuple[]",
+        components: [
+          { name: "channelId", type: "bytes32" },
+          { name: "rider", type: "address" },
+          { name: "instructor", type: "address" },
+          { name: "classId", type: "bytes32" },
+          { name: "finalReward", type: "uint256" },
+          { name: "effortScore", type: "uint16" },
+          { name: "riderSignature", type: "bytes" },
+          { name: "instructorSignature", type: "bytes" },
+          { name: "settled", type: "bool" },
+        ],
+      },
+      {
+        name: "updatesArray",
+        type: "tuple[][]",
+        components: [
+          { name: "channelId", type: "bytes32" },
+          { name: "classId", type: "bytes32" },
+          { name: "rider", type: "address" },
+          { name: "instructor", type: "address" },
+          { name: "timestamp", type: "uint256" },
+          { name: "sequence", type: "uint256" },
+          { name: "accumulatedReward", type: "uint256" },
+          { name: "heartRate", type: "uint16" },
+          { name: "power", type: "uint16" },
+          { name: "signature", type: "bytes" },
+        ],
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
   },
 ] as const;
 

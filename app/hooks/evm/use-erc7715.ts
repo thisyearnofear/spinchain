@@ -3,13 +3,13 @@
 import { useCallback, useState } from "react";
 import { useAccount } from "wagmi";
 import { type Address, type Hex } from "viem";
-import { YELLOW_SETTLEMENT_ADDRESS } from "@/app/lib/contracts";
+import { INCENTIVE_ENGINE_ADDRESS } from "@/app/lib/contracts";
 
 /**
  * ERC-7715 Permissions Hook
  * 
  * Enables instructors to grant "Session Permissions" to the app
- * for seamless, one-click settlement of Yellow rewards.
+ * for seamless, one-click settlement of channel rewards.
  */
 
 export interface PermissionRequestParams {
@@ -29,7 +29,7 @@ export function useERC7715() {
     try {
       const expiry = params.expiry || Math.floor(Date.now() / 1000) + 86400; // 24h default
 
-      // ERC-7715: Request permissions for Yellow Settlement contract
+      // ERC-7715: Request permissions for IncentiveEngine contract
       // This allows the app to perform specific actions on behalf of the instructor.
       const request = {
         permission: {
@@ -42,7 +42,7 @@ export function useERC7715() {
           {
             type: "contract-call",
             data: {
-              address: YELLOW_SETTLEMENT_ADDRESS,
+              address: INCENTIVE_ENGINE_ADDRESS,
               // Ideally we'd restrict to specific functions here
             },
           },

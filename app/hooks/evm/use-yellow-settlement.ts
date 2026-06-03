@@ -4,8 +4,8 @@ import { useCallback } from "react";
 import { useAccount, useSignTypedData } from "wagmi";
 import { useTransaction } from "./use-transaction";
 import {
-  YELLOW_SETTLEMENT_ADDRESS,
-  YELLOW_SETTLEMENT_ABI,
+  INCENTIVE_ENGINE_ADDRESS,
+  INCENTIVE_ENGINE_ABI,
   ACTIVE_NETWORK,
 } from "@/app/lib/contracts";
 import type { PendingYellowSettlement } from "@/app/lib/rewards/yellow/pending-store";
@@ -66,8 +66,8 @@ export function useYellowSettlement() {
   const { signTypedDataAsync } = useSignTypedData();
 
   const tx = useTransaction({
-    successMessage: "Yellow channel settled on Avalanche",
-    pendingMessage: "Settling Yellow channel...",
+    successMessage: "Channel rewards claimed on IncentiveEngine",
+    pendingMessage: "Submitting channel proof...",
   });
 
   const signFinalState = useCallback(
@@ -88,7 +88,7 @@ export function useYellowSettlement() {
           domain: {
             ...DOMAIN,
             chainId: ACTIVE_NETWORK.id,
-            verifyingContract: YELLOW_SETTLEMENT_ADDRESS,
+            verifyingContract: INCENTIVE_ENGINE_ADDRESS,
           },
           types: CHANNEL_STATE_TYPES,
           primaryType: "ChannelState",
@@ -131,7 +131,7 @@ export function useYellowSettlement() {
           domain: {
             ...DOMAIN,
             chainId: ACTIVE_NETWORK.id,
-            verifyingContract: YELLOW_SETTLEMENT_ADDRESS,
+            verifyingContract: INCENTIVE_ENGINE_ADDRESS,
           },
           types: SIGNED_UPDATE_TYPES,
           primaryType: "SignedUpdate",
@@ -189,9 +189,9 @@ export function useYellowSettlement() {
       };
 
       tx.write({
-        address: YELLOW_SETTLEMENT_ADDRESS,
-        abi: YELLOW_SETTLEMENT_ABI,
-        functionName: "settleChannel",
+        address: INCENTIVE_ENGINE_ADDRESS,
+        abi: INCENTIVE_ENGINE_ABI,
+        functionName: "submitChannelProof",
         args: [state, updates],
       });
     },
@@ -238,9 +238,9 @@ export function useYellowSettlement() {
       if (states.length === 0) throw new Error("No co-signed settlements to batch");
 
       tx.write({
-        address: YELLOW_SETTLEMENT_ADDRESS,
-        abi: YELLOW_SETTLEMENT_ABI,
-        functionName: "batchSettle",
+        address: INCENTIVE_ENGINE_ADDRESS,
+        abi: INCENTIVE_ENGINE_ABI,
+        functionName: "batchSubmitChannelProof",
         args: [states, updatesArray],
       });
     },

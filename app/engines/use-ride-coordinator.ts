@@ -195,22 +195,6 @@ export function useRideCoordinator() {
     [],
   );
 
-  /** Mint SPIN reward for the current session */
-  const mintSuiReward = useCallback(
-    async (amount: number, reason: string): Promise<boolean> => {
-      return coordinatorRef.current?.sui.mintReward(amount, reason) ?? false;
-    },
-    [],
-  );
-
-  /** Batch mint SPIN rewards to multiple recipients */
-  const batchMintSuiRewards = useCallback(
-    async (recipients: string[], amounts: number[], reason: string): Promise<boolean> => {
-      return coordinatorRef.current?.sui.batchMintRewards(recipients, amounts, reason) ?? false;
-    },
-    [],
-  );
-
   /** Submit a single telemetry update to Sui */
   const submitSuiTelemetry = useCallback(
     async (hr: number, power: number, cadence: number): Promise<boolean> => {
@@ -271,8 +255,6 @@ export function useRideCoordinator() {
     startSuiSession,
     joinSuiSession,
     closeSuiSession,
-    mintSuiReward,
-    batchMintSuiRewards,
     submitSuiTelemetry,
     flushSuiTelemetry,
     updateSuiConfig,

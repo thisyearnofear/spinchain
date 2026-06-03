@@ -7,7 +7,6 @@ import {IncentiveEngine} from "./IncentiveEngine.sol";
 import {ClassFactory} from "./ClassFactory.sol";
 import {MockUltraVerifier} from "./MockUltraVerifier.sol";
 import {TreasurySplitter} from "./TreasurySplitter.sol";
-import {YellowSettlement} from "./YellowSettlement.sol";
 import {BiometricOracle} from "./BiometricOracle.sol";
 import {EffortThresholdVerifier} from "verifiers/EffortThresholdVerifier.sol";
 
@@ -82,15 +81,8 @@ contract DeployScript is Script {
         TreasurySplitter treasurySplitter = new TreasurySplitter(deployer, wallets, bps, false);
         console.log("TreasurySplitter:", address(treasurySplitter));
 
-        // YellowSettlement(owner, token, engine)
-        console.log("Deploying YellowSettlement...");
-        YellowSettlement yellowSettlement = new YellowSettlement(
-            deployer,
-            address(spinToken),
-            address(incentiveEngine),
-            deployer
-        );
-        console.log("YellowSettlement:", address(yellowSettlement));
+        // YellowSettlement is now consolidated into IncentiveEngine.
+        // Use submitChannelProof() / batchSubmitChannelProof() instead of YellowSettlement.settleChannel().
 
         // ClassFactory
         console.log("Deploying ClassFactory...");
@@ -110,8 +102,8 @@ contract DeployScript is Script {
         console.log("NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=", ultraVerifier);
         console.log("NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=", effortVerifierAddress);
         console.log("NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=", address(treasurySplitter));
-        console.log("NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS=", address(yellowSettlement));
         console.log("NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=", address(biometricOracle));
+        console.log("(YellowSettlement consolidated into IncentiveEngine - submitChannelProof replaces settleChannel)");
         console.log(
             "NEXT_PUBLIC_REWARD_VERIFICATION_MODE=",
             effortVerifierAddress != address(0) ? "zk" : "chainlink"
