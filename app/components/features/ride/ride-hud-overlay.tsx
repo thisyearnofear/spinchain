@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { RideTopBar } from "./ride-top-bar";
 import { RideHUD } from "./ride-hud";
 import { RideBottomPanel } from "./ride-bottom-panel";
@@ -39,7 +40,7 @@ interface RideHUDOverlayProps {
   formatTime: (s: number) => string;
 }
 
-export function RideHUDOverlay(props: RideHUDOverlayProps) {
+export const RideHUDOverlay = memo(function RideHUDOverlay(props: RideHUDOverlayProps) {
   const isRiding = useRideStore((s) => s.isActive);
   const deviceType = useUIStore((s) => s.deviceType);
   const widgetsMode = useUIStore((s) => s.widgetsMode);
@@ -116,4 +117,4 @@ export function RideHUDOverlay(props: RideHUDOverlayProps) {
       />
     </div>
   );
-}
+});

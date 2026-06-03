@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { memo } from "react";
 import { Sparkles } from "lucide-react";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { RideCompletion, type RewardClaimStatus } from "./ride-completion";
@@ -57,7 +58,7 @@ interface RideModalsProps {
   }) => void;
 }
 
-export function RideModals({
+export const RideModals = memo(function RideModals({
   classId,
   classData,
   practiceConfig: _practiceConfig,
@@ -213,4 +214,4 @@ export function RideModals({
       )}
     </>
   );
-}
+});

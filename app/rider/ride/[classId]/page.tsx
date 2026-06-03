@@ -530,7 +530,13 @@ export default function LiveRidePage() {
     return () => clearInterval(id);
   }, [shouldSimulate, isRiding, telemetryEffort]);
 
-  const simulatedRewards = { simulatedReward: simulatedSpin, isSimulating: shouldSimulate, formattedReward: simulatedSpin.toFixed(1), reset: () => setSimulatedSpin(0) };
+  const resetSimulatedSpin = useCallback(() => setSimulatedSpin(0), []);
+  const simulatedRewards = useMemo(() => ({
+    simulatedReward: simulatedSpin,
+    isSimulating: shouldSimulate,
+    formattedReward: simulatedSpin.toFixed(1),
+    reset: resetSimulatedSpin,
+  }), [simulatedSpin, shouldSimulate, resetSimulatedSpin]);
 
   // ─── Social Events (placeholder — CoachingEngine handles via EventBus) ──
   const socialEvents: Array<{ id: string; type: "shoutout" | "recommendation" | "nudge" | "highfive"; message: string; timestamp: number; from?: string }> = [];
