@@ -238,6 +238,10 @@ forge test -vvv
 - Treat CI and local verification as part of the launch work still in progress
 - See `docs/PRODUCTION_ROADMAP.md` for the current blocker list
 
+## Hackathon Submissions
+
+The deployment posture above is also the submission posture for the Sui Overflow 2026 (Walrus Track) and Tatum × Walrus hackathons. Both submissions target testnet and use the existing Walrus client (`app/lib/walrus/`) and Sui Move package (`contracts/move/spinchain/`) as deployed today. Tatum's Sui RPC is consumed by a single-file URL swap in `app/sui-provider.tsx` — no parallel Sui client, no new SDK, no architecture deviation. See `docs/HACKATHON_PLAN.md` for the file-level change list, phasing, and mainnet-readiness criteria required to unlock the 100% prize payout.
+
 ---
 
 ## Resources

@@ -56,6 +56,15 @@ NEXT_PUBLIC_SUI_PACKAGE_ID=0x...
 NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=0x...
 NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x...
 NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=0x...
+
+# Tatum Sui RPC (optional, see docs/HACKATHON_PLAN.md)
+# When set, Sui JSON-RPC traffic routes through Tatum's gateway.
+# Free key at https://dashboard.tatum.io
+NEXT_PUBLIC_TATUM_API_KEY=
+
+# Walrus network (optional, defaults to testnet)
+# Set to "mainnet" once Phase 4 in docs/HACKATHON_PLAN.md is executed
+NEXT_PUBLIC_WALRUS_NETWORK=testnet
 ```
 
 ---

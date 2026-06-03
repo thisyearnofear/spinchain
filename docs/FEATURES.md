@@ -232,6 +232,7 @@ function beforeSwap(...) override {
 - Plans stored as JSON
 - Persistent across devices
 - Cost-efficient (off-chain)
+- AI Coach system prompts and decision logs are stored as Walrus blobs and anchored on Sui `RiderStats` / `Coach` objects (see `docs/HACKATHON_PLAN.md`)
 
 ---
 

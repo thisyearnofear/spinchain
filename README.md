@@ -50,6 +50,7 @@ Open [http://localhost:3000](http://localhost:3000)
 | [Features](docs/FEATURES.md) | Implemented features vs. planned features |
 | [Deployment](docs/DEPLOYMENT.md) | Testnet deployment notes and current release blockers |
 | [Production Roadmap](docs/PRODUCTION_ROADMAP.md) | Current launch blockers and launch checklist |
+| [Hackathon Plan](docs/HACKATHON_PLAN.md) | Sui Overflow 2026 (Walrus Track) + Tatum × Walrus submissions, file-level change list, and phasing |
 
 ---
 

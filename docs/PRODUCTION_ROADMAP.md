@@ -296,6 +296,18 @@ Before mainnet, implement:
 - [ ] Resolve Honk verifier stack depth limitation for mainnet
 - [ ] Keep reward settlement and ride-summary anchoring status distinct across UI, storage, and relay flows
 
+## Active Workstream: Hackathon Submissions
+
+The Sui Overflow 2026 (Walrus Track) and Tatum × Walrus hackathons are running concurrently with the launch remediation above. They share the same code, the same testnet posture, and the same Core Principles — every hackathon-related change in `HACKATHON_PLAN.md` is additive to existing modules (`app/sui-provider.tsx`, `app/lib/walrus/`, `SuiEngine`, `RiderStats` Move struct). There is no new Sui client, no new Walrus client, and no new abstraction layer.
+
+Key posture decisions that overlap with this roadmap:
+
+- **Testnet stays the submission target.** Mainnet is a separate phase in the hackathon plan that is staged *after* the build period to avoid blocking the submission deadline.
+- **`MockUltraVerifier` posture is unchanged.** The hackathon narrative does not depend on the EVM verifier path.
+- **Reward settlement and ride-summary anchoring remain distinct.** The hackathon's "Walrus as agent memory" work adds a third concept (anchor `walrus_blob_id` on `RiderStats`) that is separate from both settlement and ride-summary sync.
+
+See `docs/HACKATHON_PLAN.md` for the file-level change list, phases, and risk register.
+
 ---
 
 ## Appendix: File Reference
