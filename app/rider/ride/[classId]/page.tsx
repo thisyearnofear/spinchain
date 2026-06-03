@@ -18,6 +18,7 @@ import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overl
 import { RideModals } from "../../../components/features/ride/ride-modals";
 import type { RewardClaimStatus } from "../../../components/features/ride/ride-completion";
 import type { StoryBeat } from "../../../components/features/route/route-visualizer";
+import type { RideRecordPoint } from "../../../lib/analytics/ride-recorder";
 import {
   useDeviceType,
   useOrientation,
@@ -83,7 +84,8 @@ export default function LiveRidePage() {
   const elapsedTime = useRideStore((s) => s.elapsedTime);
   const multiGhostState = useRideStore((s) => s.multiGhostState);
 
-  const telemetry = useTelemetryStore((s) => s.snapshot);
+  const telemetryHeartRate = useTelemetryStore((s) => s.snapshot.heartRate);
+  const telemetryEffort = useTelemetryStore((s) => s.snapshot.effort);
   const telemetryHistory = useTelemetryStore((s) => s.history);
   const telemetryAverages = useTelemetryStore((s) => s.averages);
 
@@ -94,6 +96,7 @@ export default function LiveRidePage() {
   const coordinatorRef = useRef(coordinator);
   coordinatorRef.current = coordinator;
   const isRidingRef = useRef(false);
+  const emptyRidePointsRef = useRef<RideRecordPoint[]>([]);
 
   // ─── Panel State ───────────────────────────────────────────────
   const panelState = usePanelState(deviceType);
@@ -116,6 +119,28 @@ export default function LiveRidePage() {
     },
     [deviceType, panelState],
   );
+
+  const handleSnapPanel = useCallback(
+    (key: Parameters<typeof panelState.snapPanelToEdge>[0]) => {
+      panelState.snapPanelToEdge(key, { width: window.innerWidth, height: window.innerHeight });
+    },
+    [panelState],
+  );
+
+  const handleTrackWidgetInteraction = useCallback(() => {}, []);
+
+  const handleResetPrefs = useCallback(() => {
+    useUIStore.getState().resetPrefs();
+    panelState.resetLayout();
+  }, [panelState]);
+
+  const handleCollapseToggle = useCallback(() => {
+    if (panelState.isAllCollapsed) panelState.expandAll();
+    else panelState.collapseAll();
+  }, [panelState]);
+
+  const handleDismissNoBike = useCallback(() => setShowNoBikeModal(false), []);
+  const handleDismissKeyboardHints = useCallback(() => setShowKeyboardHints(false), []);
 
   // ─── BLE / Simulator State ─────────────────────────────────────
   const [bleConnected, setBleConnected] = useState(false);
@@ -472,9 +497,9 @@ export default function LiveRidePage() {
     }
     await claimWithZK(
       { spinClass: classId as `0x${string}`, rider: address, rewardAmount: String(classData?.metadata?.rewards?.amount ?? 0), classId: classId as `0x${string}` },
-      { heartRate: telemetryAverages.avgHr || telemetry.heartRate, threshold, durationSeconds, heartRateSamples: [], avgPower: telemetryAverages.avgPower },
+      { heartRate: telemetryAverages.avgHr || telemetryHeartRate, threshold, durationSeconds, heartRateSamples: [], avgPower: telemetryAverages.avgPower },
     );
-  }, [isPracticeMode, address, classData, elapsedTime, useChainlinkRewards, finalizeChainlinkRewards, classId, claimWithZK, telemetryAverages, telemetry.heartRate]);
+  }, [isPracticeMode, address, classData, elapsedTime, useChainlinkRewards, finalizeChainlinkRewards, classId, claimWithZK, telemetryAverages, telemetryHeartRate]);
 
   const handleEnableSimulatorFromModal = useCallback(() => {
     setShowNoBikeModal(false);
@@ -500,10 +525,10 @@ export default function LiveRidePage() {
   useEffect(() => {
     if (!shouldSimulate) { if (!isRiding) setSimulatedSpin(0); return; }
     const id = setInterval(() => {
-      setSimulatedSpin((prev) => prev + (10 + (Math.min(1000, telemetry.effort) * 90) / 1000) / (45 * 60));
+      setSimulatedSpin((prev) => prev + (10 + (Math.min(1000, telemetryEffort) * 90) / 1000) / (45 * 60));
     }, 1000);
     return () => clearInterval(id);
-  }, [shouldSimulate, isRiding, telemetry.effort]);
+  }, [shouldSimulate, isRiding, telemetryEffort]);
 
   const simulatedRewards = { simulatedReward: simulatedSpin, isSimulating: shouldSimulate, formattedReward: simulatedSpin.toFixed(1), reset: () => setSimulatedSpin(0) };
 
@@ -516,14 +541,14 @@ export default function LiveRidePage() {
   const trackedMilestoneRef = useRef(false);
   useEffect(() => {
     if (!isRiding || trackedMilestoneRef.current) return;
-    if (telemetry.effort > 900) {
+    if (telemetryEffort > 900) {
       trackedMilestoneRef.current = true;
       setShowMilestone({ title: "ELITE EFFORT", subtitle: "You just crossed 900 effort points!" });
       haptic.success();
       playSound("achievement");
       setTimeout(() => setShowMilestone(null), 5000);
     }
-  }, [telemetry.effort, isRiding, haptic, playSound]);
+  }, [telemetryEffort, isRiding, haptic, playSound]);
 
   // ─── Loading / Not Found Gates ─────────────────────────────────
   if (isLoading && !isPracticeMode) {
@@ -553,7 +578,7 @@ export default function LiveRidePage() {
           routeElevationProfile={routeElevationProfile}
           routeCoordinates={routeCoordinates}
           currentRouteCoordinate={currentRouteCoordinate}
-          classData={(classData as { name: string; instructor: string; route?: { route?: { storyBeats?: StoryBeat[] } } | null; metadata?: EnhancedClassMetadata | null }) ?? { name: practiceConfig?.name || "SpinChain Ride", instructor: practiceConfig?.instructor || agentName }}
+          classData={classData}
           workoutPlan={workoutPlan}
           routeTheme={routeTheme}
           searchParams={searchParams}
@@ -561,8 +586,8 @@ export default function LiveRidePage() {
           panelPositions={panelState.positions}
           onTogglePanel={handleTogglePanel}
           onSetPanelPosition={panelState.setPanelPosition}
-          onSnapPanel={(key) => panelState.snapPanelToEdge(key, { width: window.innerWidth, height: window.innerHeight })}
-          onTrackWidgetInteraction={() => {}}
+          onSnapPanel={handleSnapPanel}
+          onTrackWidgetInteraction={handleTrackWidgetInteraction}
           onExpandOne={panelState.expandOne}
           onHaptic={haptic.trigger}
         />
@@ -580,8 +605,8 @@ export default function LiveRidePage() {
         onSetUseSimulator={setUseSimulator}
         onSetRewardMode={setRewardMode}
         onExitRide={exitRide}
-        onResetPrefs={() => { useUIStore.getState().resetPrefs(); panelState.resetLayout(); }}
-        onCollapseToggle={() => { if (panelState.isAllCollapsed) panelState.expandAll(); else panelState.collapseAll(); }}
+        onResetPrefs={handleResetPrefs}
+        onCollapseToggle={handleCollapseToggle}
         isAllCollapsed={panelState.isAllCollapsed}
         onTogglePanel={handleTogglePanel}
         onSetWidgetsMode={panelState.setMobileRideWidgetsMode}
@@ -652,12 +677,12 @@ export default function LiveRidePage() {
         aiPersonality={aiPersonality || "data"}
         _rewardMode={rewardMode}
         _walletConnected={walletConnected}
-        ridePointsRef={{ current: [] }}
+        ridePointsRef={emptyRidePointsRef}
         router={router}
         onExitRide={exitRide}
         onEnableSimulatorFromModal={handleEnableSimulatorFromModal}
-        onDismissNoBike={() => setShowNoBikeModal(false)}
-        onDismissKeyboardHints={() => setShowKeyboardHints(false)}
+        onDismissNoBike={handleDismissNoBike}
+        onDismissKeyboardHints={handleDismissKeyboardHints}
         onDemoModalClose={handleDemoModalClose}
         onNextTutorial={nextTutorial}
         onDismissTutorial={dismissTutorial}

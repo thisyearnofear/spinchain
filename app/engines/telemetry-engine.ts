@@ -354,7 +354,7 @@ export class TelemetryEngine {
   }
 
   /** Updates multiGhostState based on current rider telemetry.
-   *  Called on every commit(). */
+   *  Called on every commit(). Uses binary search for O(log n) lookups. */
   private updateMultiGhostState(): void {
     if (this.multiGhostPerformances.length === 0) {
       this.multiGhostState = [];
@@ -363,21 +363,33 @@ export class TelemetryEngine {
 
     const currentDistance = this.rawSnapshot.distance * 1000; // km → m
     const elapsed = this.elapsedSeconds;
+    const elapsedMs = elapsed * 1000;
 
     this.multiGhostState = this.multiGhostPerformances.map((ghost) => {
-      // Find ghost point at current elapsed time
-      const ghostPointAtTime =
-        ghost.points.find(
-          (p) => p.timestamp - ghost.points[0].timestamp >= elapsed * 1000,
-        ) || ghost.points[ghost.points.length - 1];
+      const points = ghost.points;
+      const baseTs = points[0].timestamp;
 
-      // Find ghost point at rider's current distance (for time gap)
-      const ghostPointAtDistance =
-        ghost.points.find((p) => p.distance >= currentDistance / 1000) ||
-        ghost.points[ghost.points.length - 1];
+      // Binary search: first point where (timestamp - base) >= elapsedMs
+      let lo = 0, hi = points.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (points[mid].timestamp - baseTs >= elapsedMs) hi = mid;
+        else lo = mid + 1;
+      }
+      const ghostPointAtTime = points[lo];
+
+      // Binary search: first point where distance >= currentDistance (in km)
+      const targetDist = currentDistance / 1000;
+      lo = 0; hi = points.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (points[mid].distance >= targetDist) hi = mid;
+        else lo = mid + 1;
+      }
+      const ghostPointAtDistance = points[lo];
 
       const ghostTimeAtDistance =
-        (ghostPointAtDistance.timestamp - ghost.points[0].timestamp) / 1000;
+        (ghostPointAtDistance.timestamp - baseTs) / 1000;
       const leadLagTime = ghostTimeAtDistance - elapsed;
       const distanceGap = currentDistance - ghostPointAtTime.distance * 1000;
 

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense } from "react";
+import { memo, Suspense } from "react";
 import type { VisualizerTheme } from "@/app/components/features/route/route-visualizer";
 import type { StoryBeat } from "@/app/components/features/route/route-visualizer";
 import type { RenderMode } from "@/app/engines/types";
@@ -35,7 +35,7 @@ export interface TronRendererProps {
  * It owns the lazy-loaded R3F bundle so the application only pays the
  * cost when the Tron renderer is actually selected by the engine.
  */
-export function TronRenderer(props: TronRendererProps) {
+export const TronRenderer = memo(function TronRenderer(props: TronRendererProps) {
   return (
     <Suspense
       fallback={
@@ -68,4 +68,4 @@ export function TronRenderer(props: TronRendererProps) {
       />
     </Suspense>
   );
-}
+});

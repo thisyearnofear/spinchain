@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense } from "react";
+import { memo, Suspense } from "react";
 import type { VisualizerTheme } from "@/app/components/features/route/visualizer-theme";
 import type { StoryBeat } from "@/app/routes/builder/gpx-uploader";
 import type { IntervalPhase } from "@/app/lib/workout-plan";
@@ -48,7 +48,7 @@ export interface FocusRendererProps {
  * Provides a consistent interface alongside TronRenderer so the
  * VisualizationEngine can dispatch to either seamlessly.
  */
-export function FocusRenderer(props: FocusRendererProps) {
+export const FocusRenderer = memo(function FocusRenderer(props: FocusRendererProps) {
   return (
     <Suspense
       fallback={
@@ -91,4 +91,4 @@ export function FocusRenderer(props: FocusRendererProps) {
       />
     </Suspense>
   );
-}
+});

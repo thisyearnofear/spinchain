@@ -283,37 +283,63 @@ export class RideCoordinator {
   }
 
   private bridgeSnapshotToStore(snapshot: ReturnType<TelemetryEngine["commit"]>): void {
-    // Forward cadence + interval info to coaching engine
     this.coaching.onTelemetry(
       snapshot.cadence,
       this.coaching.currentIntervalIndex,
       "",
     );
 
-    // Write to telemetry-store (full snapshot for UI)
-    useTelemetryStore.setState({
-      snapshot,
-      ghostState: { ...this.telemetry.ghostState },
-      multiGhostState: [...this.telemetry.multiGhostState],
-    });
+    // Write snapshot — components use granular selectors (s.snapshot.heartRate)
+    // so new object identity is fine; Zustand compares returned primitives.
+    const storeUpdate: Record<string, unknown> = { snapshot };
 
-    // Update interval progress in coaching-store
+    // Only write ghost state when values actually changed (avoids new object ref → re-render)
+    const prevGhost = useTelemetryStore.getState().ghostState;
+    const nextGhost = this.telemetry.ghostState;
+    if (
+      prevGhost.leadLagTime !== nextGhost.leadLagTime ||
+      prevGhost.distanceGap !== nextGhost.distanceGap ||
+      prevGhost.ghostPoint !== nextGhost.ghostPoint
+    ) {
+      storeUpdate.ghostState = { ...nextGhost };
+    }
+
+    // Only write multi-ghost state when the array length or any entry changed
+    const prevMulti = useTelemetryStore.getState().multiGhostState;
+    const nextMulti = this.telemetry.multiGhostState;
+    if (
+      prevMulti.length !== nextMulti.length ||
+      nextMulti.some((g, i) => {
+        const p = prevMulti[i];
+        return !p || p.leadLagTime !== g.leadLagTime || p.distanceGap !== g.distanceGap;
+      })
+    ) {
+      storeUpdate.multiGhostState = [...nextMulti];
+    }
+
+    useTelemetryStore.setState(storeUpdate as never);
+
+    // Update interval progress in coaching-store (skip if unchanged)
     const plan = this.coaching.coachingConfig.workoutPlan;
     if (plan) {
       const elapsed = this.telemetry.elapsed;
       const idx = getCurrentInterval(plan.intervals, elapsed);
-      const interval = plan.intervals[idx] ?? null;
       const progress = getIntervalProgress(plan.intervals, elapsed);
       const remaining = getIntervalRemaining(plan.intervals, elapsed);
-      useCoachingStore.setState({
-        currentInterval: interval,
-        currentIntervalIndex: idx,
-        intervalProgress: progress,
-        intervalRemaining: remaining,
-      });
+      const prev = useCoachingStore.getState();
+      if (
+        prev.currentIntervalIndex !== idx ||
+        Math.abs(prev.intervalProgress - progress) > 0.01
+      ) {
+        const interval = plan.intervals[idx] ?? null;
+        useCoachingStore.setState({
+          currentInterval: interval,
+          currentIntervalIndex: idx,
+          intervalProgress: progress,
+          intervalRemaining: remaining,
+        });
+      }
     }
-
-    // Update ride-store (lifecycle only — telemetry/stats live in domain stores)
   }
 
   /** Subscribes to EventBus events and writes to the domain Zustand stores */
