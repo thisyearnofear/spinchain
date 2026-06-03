@@ -68,14 +68,14 @@ export const CHAIN_CONFIG = {
 export const SUI_CONFIG = {
   // Deployed Sui Move Package ID (Testnet) — see docs/DEPLOYMENT.md
   // Contains: spinsession (telemetry, sessions, coaches) + spin_token (SPIN rewards)
+  // Sui is telemetry/sessions only. Reward minting and channel settlement
+  // both flow through IncentiveEngine on Avalanche (see HACKATHON_PLAN.md).
   packageId:
     process.env.NEXT_PUBLIC_SUI_PACKAGE_ID ||
     "0xc42b32ab25566a6f43db001e6f2c2fd6b2ccc7232e2af3cfca0b9beca824d7dc",
   network: "testnet" as const,
   // Optional: Gas station for sponsored transactions (gasless onboarding)
   gasStationUrl: process.env.NEXT_PUBLIC_SUI_GAS_STATION_URL,
-  // SPIN Token Treasury Cap (for minting rewards)
-  treasuryCapId: process.env.NEXT_PUBLIC_SUI_TREASURY_CAP_ID,
 } as const;
 
 export const ZK_CONFIG = {

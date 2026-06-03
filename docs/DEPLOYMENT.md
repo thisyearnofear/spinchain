@@ -42,7 +42,7 @@ See `contracts/DEPLOY.md` for detailed per-contract verification commands.
 
 ### Deployed Contracts (Fuji)
 
-All 8 contracts are **verified** on [Snowtrace](https://testnet.snowtrace.io).
+All 7 contracts are **verified** on [Snowtrace](https://testnet.snowtrace.io).
 See `contracts/DEPLOY.md` for the full address table with explorer links.
 
 | Contract | Address |
@@ -51,10 +51,11 @@ See `contracts/DEPLOY.md` for the full address table with explorer links.
 | `IncentiveEngine` | `0x8BF20C7fbc69cafd3144de3Bb30509A26F39FF3d` |
 | `ClassFactory` | `0xc4B4A722b55610bFa1556506B87Cbfe7983961A7` |
 | `TreasurySplitter` | `0xDd787C22A28aA709021860485AC1b95620B5AcE3` |
-| `YellowSettlement` | `0x960bbE91899D8A1D62e894348B9fa8B6358d9182` |
 | `MockUltraVerifier` | `0x202aEd029708F2e0540B63a4025Dcb2556F85ba1` |
 | `EffortThresholdVerifier` | `0x783C36f6502052EC31971e75E20D0012910dbA91` |
 | `BiometricOracle` | `0xE0021E77f52761A69F611530A481B2B9371993d8` |
+
+> `YellowSettlement` was consolidated into `IncentiveEngine` as `submitChannelProof` / `batchSubmitChannelProof`. The address above for `IncentiveEngine` is the canonical settlement target.
 
 ---
 
@@ -160,8 +161,8 @@ NEXT_PUBLIC_SPIN_TOKEN_ADDRESS=0x...
 NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=0x...
 NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=0x...
 NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=0x...
-NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS=0x...
 NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=0x...
+# Channel settlement is now on IncentiveEngine (submitChannelProof) — no separate YellowSettlement env var.
 ```
 
 ---

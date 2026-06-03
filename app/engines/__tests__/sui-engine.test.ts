@@ -55,7 +55,6 @@ vi.mock("@/app/config", () => ({
   SUI_CONFIG: {
     packageId: "0xpackageid",
     network: "testnet",
-    treasuryCapId: "0xtreasurycap",
   },
 }));
 

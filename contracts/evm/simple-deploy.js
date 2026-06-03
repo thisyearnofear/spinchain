@@ -1,14 +1,30 @@
 // Simple deployment script without Hardhat
+// Channel settlement is now consolidated into IncentiveEngine — see
+// contracts/evm/src/deploy.s.sol (Foundry script) as the canonical deployer.
+//
+// SECURITY: The previous version of this file hardcoded a 64-hex private key
+// in source. That key was a Fuji testnet deployer and has been removed from
+// this script. Use AVALANCHE_PRIVATE_KEY (or HARDHAT_NETWORK signer config)
+// to provide a key at runtime. The leaked key should be considered public and
+// any funds it controls should be rotated.
 const { ethers } = require("ethers");
 
 async function main() {
+  // Read the deployer key from the environment. Hard error if missing so a
+  // misconfigured run cannot fall back to a baked-in key.
+  const privateKey = process.env.AVALANCHE_PRIVATE_KEY;
+  if (!privateKey) {
+    throw new Error(
+      "AVALANCHE_PRIVATE_KEY is required. Set it in your shell or .env " +
+      "before running this script. Do not commit private keys to source."
+    );
+  }
+
   // Create a provider for Avalanche Fuji
   const provider = new ethers.providers.JsonRpcProvider(
     "https://api.avax-test.network/ext/bc/C/rpc"
   );
 
-  // Create a wallet with the private key
-  const privateKey = "258c60e0c53fea2f8179a9707c8e6af2c4603993556055fa526a784417d446ea";
   const wallet = new ethers.Wallet(privateKey, provider);
 
   // Get the contract factories
@@ -19,7 +35,6 @@ async function main() {
   const EffortThresholdVerifier = await ethers.getContractFactory("EffortThresholdVerifier");
   const TreasurySplitter = await ethers.getContractFactory("TreasurySplitter");
   const BiometricOracle = await ethers.getContractFactory("BiometricOracle");
-  const YellowSettlement = await ethers.getContractFactory("YellowSettlement");
 
   // Deploy contracts
   console.log("Deploying MockUltraVerifier...");
@@ -56,10 +71,8 @@ async function main() {
   await biometricOracle.deployed();
   console.log(`BiometricOracle deployed to: ${biometricOracle.address}`);
 
-  console.log("Deploying YellowSettlement...");
-  const yellowSettlement = await YellowSettlement.connect(wallet).deploy(spinToken.address, incentiveEngine.address);
-  await yellowSettlement.deployed();
-  console.log(`YellowSettlement deployed to: ${yellowSettlement.address}`);
+  // YellowSettlement removed — channel settlement now lives in IncentiveEngine
+  // (submitChannelProof / batchSubmitChannelProof).
 
   console.log("Deploying ClassFactory...");
   const classFactory = await ClassFactory.connect(wallet).deploy();
@@ -82,8 +95,9 @@ async function main() {
   console.log("NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS=", mockUltraVerifier.address);
   console.log("NEXT_PUBLIC_EFFORT_THRESHOLD_VERIFIER_ADDRESS=", effortThresholdVerifier.address);
   console.log("NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=", treasurySplitter.address);
-  console.log("NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS=", yellowSettlement.address);
   console.log("NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=", biometricOracle.address);
+  // Note: no NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS — channel settlement is
+  // now an IncentiveEngine function.
 }
 
 main()

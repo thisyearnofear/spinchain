@@ -8,6 +8,7 @@
 "use client";
 
 import type { RewardChannel, SignedRewardUpdate } from "../types";
+import { INCENTIVE_ENGINE_ADDRESS } from "../../contracts";
 import {
   createSession,
   closeSession,
@@ -105,9 +106,6 @@ export async function openRewardChannel(
       method: "eth_chainId",
     })) as string | undefined;
     const chainId = chainIdHex ? Number.parseInt(chainIdHex, 16) : 43113;
-    const settlementContract = (process.env
-      .NEXT_PUBLIC_YELLOW_SETTLEMENT_ADDRESS ||
-      "0x0000000000000000000000000000000000000000") as `0x${string}`;
 
     channelId = keccak256(
       encodeAbiParameters(
@@ -116,7 +114,7 @@ export async function openRewardChannel(
         ),
         [
           BigInt(chainId),
-          settlementContract,
+          INCENTIVE_ENGINE_ADDRESS,
           rider,
           instructor,
           classId,
