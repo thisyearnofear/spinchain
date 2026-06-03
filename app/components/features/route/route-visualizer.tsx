@@ -400,24 +400,14 @@ function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme
 function PostEffects({ theme = "neon", stats, mode, performanceTier = "high" }: { theme: VisualizerTheme; stats: RiderStats; mode: VisualizerMode; performanceTier?: "high" | "medium" | "low" }) {
   const styles = THEMES[theme];
 
-  // Skip all post-processing on low-performance devices
-  if (performanceTier === "low") {
-    return null;
-  }
-
-  // Dynamic intensities based on user exertion
   const powerFactor = Math.min(1, stats.power / 600);
-  
-  // Reduce effects intensity on medium tier
-  const intensityMultiplier = performanceTier === "medium" ? 0.5 : 1;
+  const intensityMultiplier = performanceTier === "low" ? 0 : performanceTier === "medium" ? 0.5 : 1;
   const bloomIntensity = (0.5 + powerFactor * 2.0) * intensityMultiplier;
-
-  // Use reactive values instead of conditional mounting for performance and type safety
   const chromaticOffset = stats.power > 300 ? powerFactor * 0.005 * intensityMultiplier : 0;
   const noiseOpacity = theme === 'neon' ? 0.03 * intensityMultiplier : 0;
 
-  // Build effects array - conditionally include Vignette
   const effects = useMemo(() => {
+    if (performanceTier === "low") return [];
     const e = [
       <Bloom
         key="bloom"
@@ -442,6 +432,8 @@ function PostEffects({ theme = "neon", stats, mode, performanceTier = "high" }: 
     }
     return e;
   }, [bloomIntensity, chromaticOffset, noiseOpacity, performanceTier]);
+
+  if (performanceTier === "low" || effects.length === 0) return null;
 
   return (
     <EffectComposer multisampling={performanceTier === "high" ? 8 : 0}>
