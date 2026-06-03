@@ -71,6 +71,7 @@ circuits/*/target/
 .windsurf/
 .crush
 .qwen
+.qoder/
 .zencoder
 .zenflow
 .junie
