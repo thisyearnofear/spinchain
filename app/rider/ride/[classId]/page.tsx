@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { motion } from "framer-motion";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useClass } from "../../../hooks/evm/use-class-data";
 import { usePracticeConfig } from "../../../hooks/ride/use-practice-config";
@@ -10,6 +9,7 @@ import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useUIStore } from "@/app/stores/ui-store";
 import { useAccount } from "wagmi";
+import { useSuiClient, useCurrentAccount, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { usePanelState } from "../../../hooks/ui/use-panel-state";
 import { useRideTutorial } from "../../../components/features/ride/ride-tutorial";
 import { RideLoading, RideNotFound } from "../../../components/features/ride/ride-loading";
@@ -58,6 +58,13 @@ import {
 import { persistRideSummaryToWalrus } from "../../../lib/walrus/ride-persistence";
 import { SectionErrorBoundary } from "../../../components/layout/error-boundary";
 
+type SocialEvent = { id: string; type: "shoutout" | "recommendation" | "nudge" | "highfive"; message: string; timestamp: number; from?: string };
+
+// Stable empty reference — social events are driven via the CoachingEngine/EventBus,
+// not local state. Hoisting this out of render keeps the prop identity stable so
+// RiderSocialFeed doesn't re-render on every parent render.
+const EMPTY_SOCIAL_EVENTS: SocialEvent[] = [];
+
 export default function LiveRidePage() {
   const params = useParams();
   const router = useRouter();
@@ -97,6 +104,38 @@ export default function LiveRidePage() {
   coordinatorRef.current = coordinator;
   const isRidingRef = useRef(false);
   const emptyRidePointsRef = useRef<RideRecordPoint[]>([]);
+
+  // ─── Sui Wallet (for Walrus-as-memory anchoring at ride end) ───
+  // Hooks declared unconditionally at top level (Rules of Hooks).
+  const suiClient = useSuiClient();
+  const suiAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecuteSui } = useSignAndExecuteTransaction();
+
+  const suiExecuteTransaction = useCallback(
+    async (tx: unknown): Promise<{ digest: string } | null> => {
+      try {
+        const result = await signAndExecuteSui({
+          transaction: tx as Parameters<typeof signAndExecuteSui>[0]["transaction"],
+        });
+        return result?.digest ? { digest: result.digest } : null;
+      } catch (err) {
+        console.error("[Ride] Sui transaction failed:", err);
+        return null;
+      }
+    },
+    [signAndExecuteSui],
+  );
+
+  // Inject the wallet signer into the SuiEngine once it (or the signer) changes.
+  useEffect(() => {
+    coordinatorRef.current?.updateSuiConfig({
+      executeTransaction: suiExecuteTransaction,
+      suiClient: suiClient as unknown as Parameters<
+        typeof coordinatorRef.current.updateSuiConfig
+      >[0]["suiClient"],
+    });
+  }, [suiExecuteTransaction, suiClient]);
+
 
   // ─── Panel State ───────────────────────────────────────────────
   const panelState = usePanelState(deviceType);
@@ -470,7 +509,29 @@ export default function LiveRidePage() {
       },
     });
     const saved = saveRideSummary(canonicalSummary);
-    void persistRideSummaryToWalrus(canonicalSummary);
+    // Walrus-as-memory: upload the ride to Walrus, then anchor the blob ID on
+    // Sui. Detached so it never blocks completion/navigation; the summary is
+    // re-saved (idempotent on id) with the anchoring result.
+    void (async () => {
+      const blobId = await persistRideSummaryToWalrus(canonicalSummary);
+      if (!blobId || !suiAccount) return;
+      const pointCount = useTelemetryStore.getState().ridePoints.length;
+      const anchorResult = await coordinatorRef.current?.anchorSuiTelemetry({
+        classId,
+        blobId,
+        epoch: 90,
+        pointCount,
+      });
+      saveRideSummary({
+        ...canonicalSummary,
+        anchoring: {
+          attempted: true,
+          txHash: anchorResult?.digest as `0x${string}` | undefined,
+          status: anchorResult ? "confirmed" : "failed",
+          commitmentEpoch: 90,
+        },
+      });
+    })();
     const latest = saved.find((ride) => ride.id === canonicalSummary.id) ?? canonicalSummary;
     const queued = enqueueRideSync(latest);
     setCompletedRideId(summaryId);
@@ -485,7 +546,7 @@ export default function LiveRidePage() {
     } else {
       router.push("/rider/journey?completed=true");
     }
-  }, [stopAudio, telemetryAverages, rewards, bleConnected, isPracticeMode, useSimulator, classData, practiceConfig, classId, agentName, address, elapsedTime, rewardMode, rewardClaimStatus, useChainlinkRewards, chainlinkSuccess, zkSuccess, privacyScore, privacyLevel, walletConnected, router]);
+  }, [stopAudio, telemetryAverages, rewards, bleConnected, isPracticeMode, useSimulator, classData, practiceConfig, classId, agentName, address, elapsedTime, rewardMode, rewardClaimStatus, useChainlinkRewards, chainlinkSuccess, zkSuccess, privacyScore, privacyLevel, walletConnected, router, suiAccount]);
 
   const handleClaimRewards = useCallback(async () => {
     if (isPracticeMode || !address) return;
@@ -539,7 +600,7 @@ export default function LiveRidePage() {
   }), [simulatedSpin, shouldSimulate, resetSimulatedSpin]);
 
   // ─── Social Events (placeholder — CoachingEngine handles via EventBus) ──
-  const socialEvents: Array<{ id: string; type: "shoutout" | "recommendation" | "nudge" | "highfive"; message: string; timestamp: number; from?: string }> = [];
+  const socialEvents = EMPTY_SOCIAL_EVENTS;
   const handleHighFive = useCallback(() => {}, []);
 
   // ─── Milestone Logic ───────────────────────────────────────────
@@ -637,7 +698,7 @@ export default function LiveRidePage() {
       {isRiding && viewMode === "immersive" && multiGhostState.length > 0 && (
         <div className="fixed top-32 left-6 z-40 flex flex-col gap-3">
           {multiGhostState.map((rider) => (
-            <motion.div key={rider.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full pl-1.5 pr-4 py-1.5">
+            <div key={rider.id} className="flex items-center gap-3 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full pl-1.5 pr-4 py-1.5 animate-in fade-in slide-in-from-left-5 duration-500">
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-black text-indigo-300">
                   {rider.name.substring(0, 2).toUpperCase()}
@@ -650,7 +711,7 @@ export default function LiveRidePage() {
                   {rider.power}W | {rider.leadLagTime > 0 ? "+" : ""}{rider.leadLagTime.toFixed(1)}s
                 </span>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}

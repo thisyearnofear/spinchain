@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useAdaptiveQuality, usePerformanceTier } from "@/app/lib/responsive";
+import { useAdaptiveQuality } from "@/app/lib/responsive";
 import {
   CatmullRomCurve3,
   Vector3,
@@ -1203,7 +1203,6 @@ export default function RouteVisualizer({
   storyBeats = [],
   ghosts = [],
   className = "",
-  onStatsUpdate,
   avatarId,
   equipmentId,
   quality,
@@ -1217,14 +1216,12 @@ export default function RouteVisualizer({
   storyBeats?: StoryBeat[];
   ghosts?: number[];
   className?: string;
-  onStatsUpdate?: (stats: RiderStats) => void;
   avatarId?: string;
   equipmentId?: string;
   quality?: "low" | "medium" | "high";
   userDisplayName?: string;
 }) {
   const adaptiveQuality = useAdaptiveQuality();
-  const performanceTier = usePerformanceTier();
 
   // Determine effective quality settings
   const effectiveQuality = useMemo(() => {
@@ -1246,23 +1243,6 @@ export default function RouteVisualizer({
 
   const avatar = useMemo(() => AVATARS.find(a => a.id === avatarId), [avatarId]);
   const equipment = useMemo(() => EQUIPMENT.find(e => e.id === equipmentId), [equipmentId]);
-
-  // Simulation loop for stats if progress is live
-  useEffect(() => {
-    if (performanceTier === "low") return; // Skip on low-end devices
-    if (mode === "ride" && onStatsUpdate) {
-      const interval = setInterval(() => {
-        // Subtle randomization around the current stats
-        const newStats = {
-          hr: Math.round(stats.hr + (Math.random() - 0.5) * 4),
-          power: Math.round(stats.power + (Math.random() - 0.5) * 10),
-          cadence: Math.round(stats.cadence + (Math.random() - 0.5) * 2),
-        };
-        onStatsUpdate(newStats);
-      }, 2000); // 2 seconds update for Sui telemetry
-      return () => clearInterval(interval);
-    }
-  }, [mode, stats, onStatsUpdate, performanceTier]);
 
   return (
     <div
@@ -1289,6 +1269,24 @@ export default function RouteVisualizer({
           dpr={effectiveQuality.pixelRatio}
           frameloop={mode === "ride" ? "always" : "demand"}
           performance={{ min: 0.5 }}
+          onCreated={({ gl, invalidate }) => {
+            // WebGL context-loss recovery. Without this, a lost GPU context
+            // (tab backgrounding, GPU reset, device sleep) leaves a blank/frozen
+            // canvas. preventDefault() opts into browser-driven restoration, and
+            // invalidate() forces a redraw once the context is back (needed in
+            // "demand" frameloop, where the loop is otherwise idle).
+            const canvas = gl.domElement;
+            canvas.addEventListener(
+              "webglcontextlost",
+              (e) => e.preventDefault(),
+              false,
+            );
+            canvas.addEventListener(
+              "webglcontextrestored",
+              () => invalidate(),
+              false,
+            );
+          }}
         >
           <Scene
             elevationProfile={elevationProfile}

@@ -96,43 +96,67 @@ Goal: every Sui read/write transparently routes through Tatum's gateway when `NE
 
 Goal: make the Walrus ↔ Move linkage concrete. Every Walrus blob stored by the app can be referenced from a Move object, and every AI Coach can persist its decision history to Walrus.
 
-**2a. Extend `RiderStats` Move struct** (additive, single source of truth)
+**Status (2026-06-17): IMPLEMENTED in code, NOT yet deployed.** End-of-ride telemetry is
+uploaded to Walrus and a `TelemetryAnchor` object is minted on-chain with the blob ID. The Move
+upgrade still needs to be published to testnet and `NEXT_PUBLIC_SUI_PACKAGE_ID` re-pointed at the
+new package ID before the path goes live.
 
-Add to `contracts/move/spinchain/sources/spinsession.move`:
+**Why a new object instead of extending `RiderStats`:** the package is already published (v1) with
+an upgrade cap, and Sui forbids changing an existing struct's layout on upgrade. We therefore anchor
+via a **new, upgrade-safe `TelemetryAnchor` object** + standalone entry fn + event, rather than
+adding fields to `RiderStats`. The anchor is end-of-ride only — the per-point streaming path
+(`SuiEngine.flushTelemetry`) is plumbed but intentionally not revived here.
+
+**2a. New `TelemetryAnchor` object + entry fn** (upgrade-safe, added to `spinsession.move`)
 
 ```move
-struct RiderStats has key, store {
-    // ... existing fields ...
-    walrus_blob_id: Option<String>,  // pointer to a Walrus blob
-    walrus_epoch: Option<u64>,       // retention epoch
+struct TelemetryAnchor has key, store {
+    id: UID,
+    rider: address,
+    class_id: String,     // String, not ID: practice/class IDs aren't always valid object IDs
+    blob_id: String,      // Walrus blob ID
+    epoch: u64,           // Walrus storage epoch (commitment)
+    point_count: u64,
+    anchored_at: u64,
 }
 
-public entry fun attach_telemetry_blob(
-    stats: &mut RiderStats,
-    blob_id: String,
-    epoch: u64,
-    ctx: &mut TxContext
+public entry fun anchor_telemetry_blob(
+    class_id: String, blob_id: String, epoch: u64,
+    point_count: u64, timestamp: u64, ctx: &mut TxContext
 ) {
-    assert!(stats.rider == tx_context::sender(ctx), ENotOwner);
-    stats.walrus_blob_id = std::option::some(blob_id);
-    stats.walrus_epoch = std::option::some(epoch);
-    event::emit(TelemetryBlobAttached { /* ... */ });
+    let rider = tx_context::sender(ctx);
+    let anchor = TelemetryAnchor { id: object::new(ctx), rider, class_id, blob_id, epoch, point_count, anchored_at: timestamp };
+    event::emit(TelemetryBlobAttached { anchor_id: object::id(&anchor), rider, class_id: anchor.class_id, blob_id: anchor.blob_id, epoch });
+    transfer::transfer(anchor, rider);
 }
 ```
 
-**2b. Extend `Coach` Move struct** (additive, single source of truth)
+**2b. AI Coach memory** (`Coach` struct decision log) — still future work, not built in this phase.
 
-Add `walrus_blob_id: Option<vector<u8>>` and an `append_decision_blob` entry that records a small decision log on Walrus. This is the "verifiable data and memory layer for an AI agent" the Walrus track asks for.
+**2c. Frontend glue** (implemented)
 
-**2c. Frontend glue** (one new function, one new method)
-
-- Add `linkWalrusBlobToRiderStats()` to `app/lib/walrus/ride-persistence.ts`
-- Add a `flushTelemetryAndAnchor()` method to `SuiEngine` that, on each batched flush, writes a compressed telemetry blob to Walrus and calls `attach_telemetry_blob` on the rider's `RiderStats`
+- `SuiEngine.anchorTelemetryBlob()` (`app/engines/sui-engine.ts`) builds the `anchor_telemetry_blob`
+  move call; surfaced through `coordinator` → `useRideCoordinator.anchorSuiTelemetry`.
+- Ride page (`app/rider/ride/[classId]/page.tsx`) wires the Sui wallet (`useSuiClient` /
+  `useCurrentAccount` / `useSignAndExecuteTransaction`) and, on ride complete, `await`s the Walrus
+  upload's blob ID then submits one anchor tx, re-saving the summary's `anchoring` field with the
+  tx digest/status.
+- Package-ID drift removed: `app/sui-provider.tsx` now re-exports `SUI_CONFIG.packageId` as the
+  single source of truth.
 
 **Acceptance criteria:**
-- After a ride, the rider's `RiderStats` object has a non-empty `walrus_blob_id` field
+- After a ride (wallet connected), the rider owns a `TelemetryAnchor` object whose `blob_id` matches
+  the Walrus upload
 - The blob is retrievable from Walrus by anyone with the ID
 - A `TelemetryBlobAttached` event is emitted on Sui testnet
+- The saved `RideSummary.anchoring` records the anchor tx digest and `"confirmed"`/`"failed"` status
+
+**Deploy (user-run — needs Sui CLI + a rotated deployer key):**
+```
+cd contracts/move/spinchain && sui move build
+sui client upgrade --upgrade-capability <SUI_UPGRADE_CAP_ID>
+# then set NEXT_PUBLIC_SUI_PACKAGE_ID to the new package ID
+```
 
 ### Phase 3 — Submission packaging
 

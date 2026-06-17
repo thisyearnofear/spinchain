@@ -3,6 +3,7 @@
 import { createNetworkConfig, SuiClientProvider, WalletProvider } from "@mysten/dapp-kit";
 import { getFullnodeUrl } from "@mysten/sui/client";
 import "@mysten/dapp-kit/dist/index.css";
+import { SUI_CONFIG } from "@/app/config";
 
 const { networkConfig } = createNetworkConfig({
 	localnet: { url: getFullnodeUrl("localnet") },
@@ -11,9 +12,8 @@ const { networkConfig } = createNetworkConfig({
 	mainnet: { url: getFullnodeUrl("mainnet") },
 });
 
-// Export Sui package ID for use across the app
-export const SUI_PACKAGE_ID = process.env.NEXT_PUBLIC_SUI_PACKAGE_ID || 
-  "0x98144f86c83bf486d90232833a6ed467aa3d853d237126537241a6e147f2b3f6";
+// Single source of truth for the Sui package ID (see app/config.ts).
+export const SUI_PACKAGE_ID = SUI_CONFIG.packageId;
 
 export function SuiProvider({ children }: { children: React.ReactNode }) {
 	return (

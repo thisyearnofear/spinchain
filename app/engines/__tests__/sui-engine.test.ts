@@ -332,6 +332,75 @@ describe("SuiEngine", () => {
     });
   });
 
+  // ─── Walrus Anchoring ─────────────────────────────────────────
+
+  describe("anchorTelemetryBlob", () => {
+    it("should build an anchor_telemetry_blob moveCall with the blob args", async () => {
+      const { engine } = createEngine();
+
+      const result = await engine.anchorTelemetryBlob({
+        classId: "class-1",
+        blobId: "walrus-blob-abc",
+        epoch: 90,
+        pointCount: 1200,
+      });
+
+      expect(result).toEqual({ digest: "0xdigest" });
+      expect(mockMoveCall).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: expect.stringContaining("anchor_telemetry_blob"),
+        }),
+      );
+      expect(mockPure.string).toHaveBeenCalledWith("class-1");
+      expect(mockPure.string).toHaveBeenCalledWith("walrus-blob-abc");
+      expect(mockPure.u64).toHaveBeenCalledWith(90);
+      expect(mockPure.u64).toHaveBeenCalledWith(1200);
+      expect(mockExecuteTransaction).toHaveBeenCalledTimes(1);
+    });
+
+    it("should not require an active session", async () => {
+      const { engine } = createEngine();
+      expect(engine.sessionState.isActive).toBe(false);
+
+      const result = await engine.anchorTelemetryBlob({
+        classId: "class-1",
+        blobId: "blob",
+        epoch: 90,
+        pointCount: 0,
+      });
+
+      expect(result).toEqual({ digest: "0xdigest" });
+    });
+
+    it("should return null without executeTransaction", async () => {
+      const bus = new EventBus();
+      const engine = new SuiEngine(bus, {});
+
+      const result = await engine.anchorTelemetryBlob({
+        classId: "class-1",
+        blobId: "blob",
+        epoch: 90,
+        pointCount: 0,
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null when disposed", async () => {
+      const { engine } = createEngine();
+      engine.dispose();
+
+      const result = await engine.anchorTelemetryBlob({
+        classId: "class-1",
+        blobId: "blob",
+        epoch: 90,
+        pointCount: 0,
+      });
+
+      expect(result).toBeNull();
+    });
+  });
+
   // ─── Lifecycle ────────────────────────────────────────────────
 
   describe("lifecycle", () => {

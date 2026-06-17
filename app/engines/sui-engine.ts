@@ -349,6 +349,42 @@ export class SuiEngine {
   // ─── Engine Lifecycle ─────────────────────────────────────────
 
   /**
+   * Anchor a Walrus telemetry blob on-chain ("Walrus-as-memory").
+   *
+   * Standalone — does NOT require an active session. Submits a single
+   * anchor_telemetry_blob moveCall that mints a TelemetryAnchor object and
+   * emits TelemetryBlobAttached. Returns the tx result, or null if no wallet
+   * callback is configured or the call fails.
+   */
+  async anchorTelemetryBlob(params: {
+    classId: string;
+    blobId: string;
+    epoch: number;
+    pointCount: number;
+  }): Promise<{ digest: string } | null> {
+    if (this.disposed || !this.config.executeTransaction) return null;
+
+    try {
+      const tx = new Transaction();
+      tx.moveCall({
+        target: `${this.config.packageId}::${SPINSESSION_MODULE}::anchor_telemetry_blob`,
+        arguments: [
+          tx.pure.string(params.classId),
+          tx.pure.string(params.blobId),
+          tx.pure.u64(params.epoch),
+          tx.pure.u64(params.pointCount),
+          tx.pure.u64(Date.now()),
+        ],
+      });
+
+      return await this.config.executeTransaction(tx);
+    } catch (err) {
+      console.error("[SuiEngine] anchorTelemetryBlob failed:", err);
+      return null;
+    }
+  }
+
+  /**
    * Start the engine: subscribe to telemetry:committed events for auto-submit.
    */
   start(): void {

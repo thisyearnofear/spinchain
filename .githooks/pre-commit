@@ -1,0 +1,99 @@
+#!/bin/sh
+# SpinChain pre-commit gate.
+# 1. Scans staged files for secrets (API keys, private keys, tokens)
+# 2. Lints staged TS/TSX with ESLint (react-hooks/rules-of-hooks)
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+# Skip a single commit:   git commit --no-verify   (use sparingly)
+
+# =============================================================================
+# STAGE 1: Secrets scan
+# =============================================================================
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -n "$staged" ]; then
+  echo "pre-commit: scanning for secrets..."
+
+  secrets_found=0
+
+  for file in $staged; do
+    # Skip binary files, common non-code files, and .githooks itself
+    case "$file" in
+      *.png|*.jpg|*.jpeg|*.gif|*.ico|*.pdf|*.zip|*.tar|*.gz|*.lock|.githooks/*)
+        continue
+        ;;
+    esac
+
+    # Get file content
+    content=$(git show ":0:$file" 2>/dev/null || true)
+    if [ -z "$content" ]; then
+      continue
+    fi
+
+    # Check for 64-char hex (Ethereum private keys)
+    if echo "$content" | grep -E '0x[0-9a-fA-F]{64}' >/dev/null 2>&1; then
+      echo "⚠️  POTENTIAL SECRET in $file: 0x... (64-char hex)"
+      secrets_found=1
+    fi
+
+    # Check for JWT tokens (eyJ...eyJ...eyJ)
+    if echo "$content" | grep -E 'eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+' >/dev/null 2>&1; then
+      echo "⚠️  POTENTIAL SECRET in $file: JWT token pattern"
+      secrets_found=1
+    fi
+
+    # Check for GitHub tokens (ghp_ or gho_ + 36 chars)
+    if echo "$content" | grep -E '(ghp_|gho_)[a-zA-Z0-9]{36}' >/dev/null 2>&1; then
+      echo "⚠️  POTENTIAL SECRET in $file: GitHub token"
+      secrets_found=1
+    fi
+
+    # Check for AWS Access Key ID (AKIA...)
+    if echo "$content" | grep -E 'AKIA[0-9A-Z]{16}' >/dev/null 2>&1; then
+      echo "⚠️  POTENTIAL SECRET in $file: AWS key"
+      secrets_found=1
+    fi
+
+    # Check for OpenAI API keys (sk-...)
+    if echo "$content" | grep -E 'sk-[a-zA-Z0-9]{48,}' >/dev/null 2>&1; then
+      echo "⚠️  POTENTIAL SECRET in $file: OpenAI key"
+      secrets_found=1
+    fi
+
+    # Check for PEM private key headers
+    if echo "$content" | grep -E 'BEGIN (RSA|EC|DSA|PGP|OPENSSH) PRIVATE KEY' >/dev/null 2>&1; then
+      echo "⚠️  POTENTIAL SECRET in $file: PEM private key"
+      secrets_found=1
+    fi
+  done
+
+  if [ $secrets_found -eq 1 ]; then
+    echo ""
+    echo "pre-commit: Secrets detected! Review the matches above."
+    echo "   If these are false positives, add them to a comment or rename."
+    echo "   To bypass: git commit --no-verify (use sparingly)"
+    exit 1
+  fi
+fi
+
+# =============================================================================
+# STAGE 2: ESLint
+# =============================================================================
+staged_tsx=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' || true)
+
+if [ -z "$staged_tsx" ]; then
+  exit 0
+fi
+
+echo "pre-commit: linting staged TS/TSX..."
+# shellcheck disable=SC2086
+pnpm exec eslint $staged_tsx
+status=$?
+
+if [ $status -ne 0 ]; then
+  echo ""
+  echo "pre-commit: ESLint failed. Fix the issues above, or re-run with --no-verify to bypass."
+  exit $status
+fi
+
+exit 0

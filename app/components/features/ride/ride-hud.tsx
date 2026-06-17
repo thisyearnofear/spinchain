@@ -223,6 +223,14 @@ export function RideHUD() {
     heartRate, power, cadence, speed, effort, currentGear, gearRatio,
   }), [heartRate, power, cadence, speed, effort, currentGear, gearRatio]);
 
+  const rpmIntensity = useMemo(() => {
+    if (!targetRpm || !cadence) return effort / 1000;
+    const [min, max] = targetRpm;
+    if (cadence >= min && cadence <= max) return 1.0;
+    if (cadence < min) return cadence / min;
+    return 1.0 - Math.min(0.5, (cadence - max) / 100);
+  }, [targetRpm, cadence, effort]);
+
   if (hudMode === "minimal" || (!isRiding && rideProgress === 0)) {
     return null;
   }
@@ -232,14 +240,6 @@ export function RideHUD() {
   const phaseLabel = intervalPhase
     ? intervalPhase.charAt(0).toUpperCase() + intervalPhase.slice(1)
     : "Cruise";
-
-  const rpmIntensity = useMemo(() => {
-    if (!targetRpm || !cadence) return effort / 1000;
-    const [min, max] = targetRpm;
-    if (cadence >= min && cadence <= max) return 1.0;
-    if (cadence < min) return cadence / min;
-    return 1.0 - Math.min(0.5, (cadence - max) / 100);
-  }, [targetRpm, cadence, effort]);
 
   const agentInsight = (
     <div className="mt-4 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000">

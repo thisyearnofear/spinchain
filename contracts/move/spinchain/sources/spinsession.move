@@ -68,6 +68,19 @@ module spinchain::spinsession {
         last_update: u64,
     }
 
+    /// Durable on-chain pointer to a rider's telemetry blob stored on Walrus.
+    /// "Walrus-as-memory": the ride's full time-series lives off-chain on Walrus,
+    /// while this owned object anchors the blob ID + storage epoch on Sui.
+    struct TelemetryAnchor has key, store {
+        id: UID,
+        rider: address,
+        class_id: String,
+        blob_id: String,
+        epoch: u64,
+        point_count: u64,
+        anchored_at: u64,
+    }
+
     // --- Events ---
 
     /// Event emitted when a telemetry update happens.
@@ -115,6 +128,15 @@ module spinchain::spinsession {
         session_id: ID,
         rider: address,
         stats_id: ID,
+    }
+
+    /// Event emitted when a rider anchors a Walrus telemetry blob on-chain.
+    struct TelemetryBlobAttached has copy, drop {
+        anchor_id: ID,
+        rider: address,
+        class_id: String,
+        blob_id: String,
+        epoch: u64,
     }
 
     // --- Functions ---
@@ -265,6 +287,40 @@ module spinchain::spinsession {
             cadence,
             timestamp,
         });
+    }
+
+    /// Anchors a Walrus telemetry blob on-chain ("Walrus-as-memory").
+    /// The ride's full time-series lives off-chain on Walrus; this mints an
+    /// owned TelemetryAnchor pointing at the blob and emits TelemetryBlobAttached.
+    /// Standalone (no Session/RiderStats refs) so it works for any completed ride.
+    public entry fun anchor_telemetry_blob(
+        class_id: String,
+        blob_id: String,
+        epoch: u64,
+        point_count: u64,
+        timestamp: u64,
+        ctx: &mut TxContext
+    ) {
+        let rider = tx_context::sender(ctx);
+        let anchor = TelemetryAnchor {
+            id: object::new(ctx),
+            rider,
+            class_id,
+            blob_id,
+            epoch,
+            point_count,
+            anchored_at: timestamp,
+        };
+
+        event::emit(TelemetryBlobAttached {
+            anchor_id: object::id(&anchor),
+            rider,
+            class_id: anchor.class_id,
+            blob_id: anchor.blob_id,
+            epoch,
+        });
+
+        transfer::transfer(anchor, rider);
     }
 
     /// Triggers a story beat event.

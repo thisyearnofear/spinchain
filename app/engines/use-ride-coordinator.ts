@@ -19,7 +19,7 @@
 
 "use client";
 
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useMemo } from "react";
 import { RideCoordinator } from "./coordinator";
 import type { WorkoutSoundType } from "@/app/lib/elevenlabs";
 import type { RideStartConfig, TelemetrySnapshot } from "./types";
@@ -219,6 +219,19 @@ export function useRideCoordinator() {
     [],
   );
 
+  /** Anchor a Walrus telemetry blob on-chain at ride end */
+  const anchorSuiTelemetry = useCallback(
+    async (params: {
+      classId: string;
+      blobId: string;
+      epoch: number;
+      pointCount: number;
+    }): Promise<{ digest: string } | null> => {
+      return coordinatorRef.current?.sui.anchorTelemetryBlob(params) ?? null;
+    },
+    [],
+  );
+
   /** Get the current Sui session state */
   const getSuiSessionState = useCallback((): import("./sui-engine").SuiSessionState | null => {
     const ref = coordinatorRef.current;
@@ -236,28 +249,60 @@ export function useRideCoordinator() {
     };
   }, []);
 
-  return {
-    getCoordinator,
-    startRide,
-    ingestBleMetrics,
-    ingestSimulatorMetrics,
-    pauseRide,
-    resumeRide,
-    stopRide,
-    setElapsedSeconds,
-    setCurrentGear,
-    speak,
-    playSound,
-    playCountdown,
-    stopAudio,
-    setMusicSpeed,
-    preloadSounds,
-    startSuiSession,
-    joinSuiSession,
-    closeSuiSession,
-    submitSuiTelemetry,
-    flushSuiTelemetry,
-    updateSuiConfig,
-    getSuiSessionState,
-  };
+  // Memoize the returned API so the object identity is stable across renders.
+  // Every member above is a stable useCallback (empty deps), so this object is
+  // computed once and never changes — preventing consumer callbacks that list
+  // the coordinator in their dependency arrays from churning on every render.
+  return useMemo(
+    () => ({
+      getCoordinator,
+      startRide,
+      ingestBleMetrics,
+      ingestSimulatorMetrics,
+      pauseRide,
+      resumeRide,
+      stopRide,
+      setElapsedSeconds,
+      setCurrentGear,
+      speak,
+      playSound,
+      playCountdown,
+      stopAudio,
+      setMusicSpeed,
+      preloadSounds,
+      startSuiSession,
+      joinSuiSession,
+      closeSuiSession,
+      submitSuiTelemetry,
+      flushSuiTelemetry,
+      updateSuiConfig,
+      anchorSuiTelemetry,
+      getSuiSessionState,
+    }),
+    [
+      getCoordinator,
+      startRide,
+      ingestBleMetrics,
+      ingestSimulatorMetrics,
+      pauseRide,
+      resumeRide,
+      stopRide,
+      setElapsedSeconds,
+      setCurrentGear,
+      speak,
+      playSound,
+      playCountdown,
+      stopAudio,
+      setMusicSpeed,
+      preloadSounds,
+      startSuiSession,
+      joinSuiSession,
+      closeSuiSession,
+      submitSuiTelemetry,
+      flushSuiTelemetry,
+      updateSuiConfig,
+      anchorSuiTelemetry,
+      getSuiSessionState,
+    ],
+  );
 }

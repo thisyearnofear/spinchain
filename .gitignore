@@ -47,6 +47,9 @@ debug.log
 # vercel
 .vercel
 
+# local agent / tooling config
+.openclaude/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

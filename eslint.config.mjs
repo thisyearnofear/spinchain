@@ -24,6 +24,15 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "**/.cre_build_tmp.js",
     "app/lib/chainlink/**/*.js",
+    // Non-app trees. Without these, a bare `eslint` from the repo root
+    // walks contracts/evm/.pnpm/** (thousands of dependency files) and
+    // aborts the process (SIGABRT) before linting any source.
+    "**/.pnpm/**",
+    "contracts/**",
+    "circuits/**",
+    "ios/**",
+    "android/**",
+    "scripts/**",
   ]),
 ]);
 

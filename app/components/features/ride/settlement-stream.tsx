@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { Coins, ShieldCheck, Zap } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { ShieldCheck, Zap } from "lucide-react";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
 

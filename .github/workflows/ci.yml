@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Lint (changed), Typecheck, Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Ratchet: lint only the app TS/TSX changed in this PR. This blocks any
+      # NEW error (including react-hooks/rules-of-hooks — the crash that has
+      # shipped twice) without failing on the ~48 pre-existing errors that are
+      # tracked separately. Full-project lint is available via `pnpm lint`.
+      - name: Lint changed files
+        if: github.event_name == 'pull_request'
+        run: |
+          BASE="origin/${{ github.base_ref }}"
+          FILES=$(git diff --name-only --diff-filter=ACM "$BASE"...HEAD -- 'app/**/*.ts' 'app/**/*.tsx')
+          if [ -z "$FILES" ]; then
+            echo "No changed app TS/TSX files to lint."
+            exit 0
+          fi
+          echo "Linting changed files:"
+          echo "$FILES"
+          # shellcheck disable=SC2086
+          pnpm exec eslint $FILES
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Test
+        run: pnpm exec vitest run
