@@ -65,7 +65,7 @@ function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setMounted(true);
   }, []);
 
@@ -103,10 +103,9 @@ function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
 function InnerProviders({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [queryClient] = useState(() => getQueryClient());
-  const [wagmiConfig, setWagmiConfig] = useState<Config | null>(null);
+  const [wagmiConfig] = useState<Config | null>(() => createBrowserWagmiConfig());
 
   useEffect(() => {
-    setWagmiConfig(createBrowserWagmiConfig());
     setMounted(true);
   }, []);
 

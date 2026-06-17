@@ -26,7 +26,6 @@
 import { EventBus } from "./event-bus";
 import { SUI_CONFIG } from "@/app/config";
 import { Transaction } from "@mysten/sui/transactions";
-import type { TelemetrySnapshot } from "./types";
 
 // ─── Types ───────────────────────────────────────────────────────
 

@@ -192,21 +192,52 @@ export function parseCommand(transcription: TranscriptionResult): ParsedCommand 
  * Local-First Browser Speech Recognition
  * Fallback for low-latency command parsing without cloud roundtrip
  */
+// Web Speech API types
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  length: number;
+  [index: number]: SpeechRecognitionAlternative;
+  isFinal: boolean;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
 export class LocalSpeechRecognizer {
-  private recognition: any = null;
+  private recognition: SpeechRecognitionInstance | null = null;
   private onCommand: (command: ParsedCommand) => void;
 
   constructor(onCommand: (command: ParsedCommand) => void) {
     this.onCommand = onCommand;
     
     if (typeof window !== 'undefined' && ('WebkitSpeechRecognition' in window || 'speechRecognition' in window)) {
-      const SpeechRecognition = (window as any).WebkitSpeechRecognition || (window as any).speechRecognition;
+      const SpeechRecognition = (window as unknown as { WebkitSpeechRecognition?: new () => SpeechRecognitionInstance; speechRecognition?: new () => SpeechRecognitionInstance }).WebkitSpeechRecognition || (window as unknown as { WebkitSpeechRecognition?: new () => SpeechRecognitionInstance; speechRecognition?: new () => SpeechRecognitionInstance }).speechRecognition;
       this.recognition = new SpeechRecognition();
       this.recognition.continuous = true;
       this.recognition.interimResults = false;
       this.recognition.lang = 'en-US';
 
-      this.recognition.onresult = (event: any) => {
+      this.recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[event.results.length - 1][0].transcript;
         const confidence = event.results[event.results.length - 1][0].confidence;
         

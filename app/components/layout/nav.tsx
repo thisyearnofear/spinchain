@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggleCompact } from "./theme-toggle";
 import { ConnectWallet } from "../features/wallet/connect-wallet";
@@ -97,13 +98,13 @@ function SettingsDropdown() {
 
 function NavLink({ href, children, onClick }: { href: string; children: React.ReactNode; onClick?: () => void }) {
   return (
-    <a
+    <Link
       href={href}
       onClick={onClick}
       className="block w-full text-center rounded-full border border-[color:var(--border)] px-5 py-2.5 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
     >
       {children}
-    </a>
+    </Link>
   );
 }
 
@@ -119,13 +120,13 @@ function PrimaryCTA({
   className?: string;
 }) {
   return (
-    <a
+    <Link
       href={href}
       onClick={onClick}
       className={`block w-full text-center rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[color:var(--glow)] ${className ?? ""}`}
     >
       {children}
-    </a>
+    </Link>
   );
 }
 
@@ -165,7 +166,7 @@ export function PrimaryNav() {
   return (
     <nav className="flex w-full flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
       <div className="flex items-center justify-between">
-        <a href="/" className="flex items-center gap-3 group" aria-label="SpinChain Home">
+        <Link href="/" className="flex items-center gap-3 group" aria-label="SpinChain Home">
           <span className={`grid h-11 w-11 place-items-center rounded-2xl text-xl font-semibold text-white shadow-lg transition-transform group-hover:scale-105 ${
             isInstructorMode 
               ? "bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] shadow-indigo-500/20" 
@@ -181,7 +182,7 @@ export function PrimaryNav() {
               {isInstructorMode ? "Instructor Console" : "Rider Experience"}
             </p>
           </div>
-        </a>
+        </Link>
         <div className="flex items-center gap-2 lg:hidden">
           <ModeToggle isInstructor={isInstructorMode} onToggle={handleModeToggle} />
           <MobileMenuButton isOpen={isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />

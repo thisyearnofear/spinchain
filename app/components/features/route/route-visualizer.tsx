@@ -6,13 +6,13 @@ import {
   CatmullRomCurve3,
   Vector3,
   Mesh,
+  MeshStandardMaterial,
   Shape,
   ExtrudeGeometry,
   TubeGeometry,
   Group,
   PointLight,
   MathUtils,
-  Color,
   PerspectiveCamera as ThreePerspectiveCamera,
 } from "three";
 import {
@@ -148,7 +148,7 @@ function Road({
 
   useFrame((state) => {
     if (!meshRef.current) return;
-    const material = meshRef.current.material as any;
+    const material = meshRef.current.material as MeshStandardMaterial;
 
     // Dynamic emissive pulsing based on cadence
     const pulse = 0.5 + Math.sin(state.clock.elapsedTime * (stats.cadence / 20)) * 0.5;
@@ -335,7 +335,7 @@ function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme
 
     // Pulse props with the beat
     const pulse = 1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.05;
-    meshGroupRef.current.children.forEach((child: any) => {
+    meshGroupRef.current.children.forEach((child) => {
       if (child.material) {
         // Only pulse if themed for it
         if (theme === 'neon' || theme === 'rainbow') {
@@ -345,26 +345,32 @@ function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme
       }
     });
   });
+  // Deterministic random using index as seed (avoids Math.random during render)
+  const seededRandom = (seed: number) => {
+    const x = Math.sin(seed * 9999) * 10000;
+    return x - Math.floor(x);
+  };
+
   const propPoints = useMemo(() => {
     if (!propConfig) return [];
     const points = [];
     for (let i = 0; i < propConfig.count; i++) {
-      const p = Math.random();
+      const p = seededRandom(i);
       const point = curve.getPointAt(p);
       const tangent = curve.getTangentAt(p);
       const side = new Vector3().crossVectors(tangent, new Vector3(0, 1, 0)).normalize();
 
       // Alternate sides, move out from road
-      const dist = 8 + Math.random() * 15;
+      const dist = 8 + seededRandom(i + 1000) * 15;
       const offset = side.multiplyScalar(i % 2 === 0 ? dist : -dist);
 
       points.push({
         position: [point.x + offset.x, point.y + offset.y + (propConfig.type === 'building' ? propConfig.scale[1] / 2 : 0), point.z + offset.z],
-        rotation: [0, Math.random() * Math.PI, 0],
+        rotation: [0, seededRandom(i + 2000) * Math.PI, 0],
         scale: [
-          propConfig.scale[0] * (0.8 + Math.random() * 0.4),
-          propConfig.scale[1] * (0.5 + Math.random() * 1.5),
-          propConfig.scale[2] * (0.8 + Math.random() * 0.4),
+          propConfig.scale[0] * (0.8 + seededRandom(i + 3000) * 0.4),
+          propConfig.scale[1] * (0.5 + seededRandom(i + 4000) * 1.5),
+          propConfig.scale[2] * (0.8 + seededRandom(i + 5000) * 0.4),
         ]
       });
     }
@@ -376,7 +382,7 @@ function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme
   return (
     <group ref={meshGroupRef}>
       {propPoints.map((p, i) => (
-        <mesh key={i} position={p.position as any} rotation={p.rotation as any} scale={p.scale as any}>
+        <mesh key={i} position={p.position} rotation={p.rotation} scale={p.scale}>
           {propConfig.type === 'building' ? (
             <boxGeometry />
           ) : propConfig.type === 'tree' ? (
@@ -397,8 +403,8 @@ function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme
   );
 }
 
-function PostEffects({ theme = "neon", stats, mode, performanceTier = "high" }: { theme: VisualizerTheme; stats: RiderStats; mode: VisualizerMode; performanceTier?: "high" | "medium" | "low" }) {
-  const styles = THEMES[theme];
+function PostEffects({ theme = "neon", stats, performanceTier = "high" }: { theme: VisualizerTheme; stats: RiderStats; performanceTier?: "high" | "medium" | "low" }) {
+  // Note: styles reserved for future theming of post-effects
 
   const powerFactor = Math.min(1, stats.power / 600);
   const intensityMultiplier = performanceTier === "low" ? 0 : performanceTier === "medium" ? 0.5 : 1;
@@ -525,8 +531,14 @@ function HoloHUD({
   const styles = THEMES[theme];
   const groupRef = useRef<Group>(null);
   // Local throttled state for the HTML progress bar (~10fps is plenty for text)
-  const [displayProgress, setDisplayProgress] = useState(progressRef.current);
+  const [displayProgress, setDisplayProgress] = useState(0);
   const hudFrameRef = useRef(0);
+
+  // Initialize displayProgress from ref after mount
+  useEffect(() => {
+    setDisplayProgress(progressRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useFrame((state) => {
     if (!groupRef.current) return;
@@ -799,9 +811,9 @@ function LineInstance({ line, color }: { line: SpeedLineData; color: string }) {
 
 function FloatingParticles({ theme = "neon", stats }: { theme?: VisualizerTheme; stats: RiderStats }) {
   const styles = THEMES[theme];
-  const starsRef = useRef<any>(null);
+  const starsRef = useRef<Group>(null);
 
-  useFrame((state) => {
+  useFrame(() => {
     if (!starsRef.current) return;
     // Stars move faster when rider is pushing more power
     const speed = 0.5 + (stats.power / 200);
@@ -1012,7 +1024,12 @@ function Scene({
   const frameCountRef = useRef(0);
   // displayProgress drives HTML overlays (BeatMarker labels, ghost positions).
   // Throttled to ~10fps — smooth enough for text/UI, avoids constant re-renders.
-  const [displayProgress, setDisplayProgress] = useState(renderProgressRef.current);
+  const [displayProgress, setDisplayProgress] = useState(0);
+
+  // Initialize displayProgress from ref after mount
+  useEffect(() => {
+    setDisplayProgress(renderProgressRef.current);
+  }, []);
 
   useFrame((state, delta) => {
     // --- 1. Compute raw progress ---
@@ -1117,7 +1134,7 @@ function Scene({
       <Environment preset={styles.envPreset} />
 
       {/* Dynamic atmospheric effects - disabled on low tier for performance */}
-      <PostEffects theme={theme} stats={stats} mode={mode} performanceTier={performanceTier} />
+      <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} />
 
       {/* Conditionally render expensive effects */}
       {particleCount > 100 && <FloatingParticles theme={theme} stats={stats} />}

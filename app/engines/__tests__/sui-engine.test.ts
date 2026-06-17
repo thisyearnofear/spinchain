@@ -81,7 +81,9 @@ function setActiveSession(
   engine: SuiEngine,
   overrides: Partial<SuiSessionState> = {},
 ): void {
-  (engine as any).session = {
+  // Use type assertion to set private session for testing
+  const engineAny = engine as unknown as { session: SuiSessionState };
+  engineAny.session = {
     sessionId: "0xsession",
     statsObjectId: "0xstats",
     classId: "class-1",
@@ -452,7 +454,8 @@ describe("SuiEngine", () => {
 
       engine.updateConfig({ executeTransaction: newExecute });
 
-      expect((engine as any).config.executeTransaction).toBe(newExecute);
+      const engineAny = engine as unknown as { config: SuiEngineConfig };
+      expect(engineAny.config.executeTransaction).toBe(newExecute);
     });
   });
 
@@ -465,7 +468,8 @@ describe("SuiEngine", () => {
       // Use startSession to initialize the flush timer, then set statsObjectId
       // so flushTelemetry's precondition passes
       await engine.startSession("class-1", 3600);
-      (engine as any).session.statsObjectId = "0xstats";
+      const engineAny = engine as unknown as { session: SuiSessionState };
+      engineAny.session.statsObjectId = "0xstats";
 
       engine.queueTelemetry(150, 200, 85);
       expect(engine.pendingTelemetryCount).toBe(1);
@@ -487,7 +491,8 @@ describe("SuiEngine", () => {
 
       // Use startSession to initialize the flush timer, then set statsObjectId
       await engine.startSession("class-1", 3600);
-      (engine as any).session.statsObjectId = "0xstats";
+      const engineAny = engine as unknown as { session: SuiSessionState };
+      engineAny.session.statsObjectId = "0xstats";
 
       const spy = vi.spyOn(engine, "flushTelemetry");
 

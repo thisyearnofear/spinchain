@@ -38,7 +38,7 @@ export function RoutePreviewCard({
   };
 
   // Generate elevation profile once to avoid Math.random() in render
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+   
   const elevationProfile = useMemo(() => {
     // Create a deterministic seed based on route data to generate consistent values
     const seed = routeData.name.split('').reduce((a: number, b: string) => {

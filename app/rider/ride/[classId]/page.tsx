@@ -17,7 +17,6 @@ import { RideVisualization } from "../../../components/features/ride/ride-visual
 import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overlay";
 import { RideModals } from "../../../components/features/ride/ride-modals";
 import type { RewardClaimStatus } from "../../../components/features/ride/ride-completion";
-import type { StoryBeat } from "../../../components/features/route/route-visualizer";
 import type { RideRecordPoint } from "../../../lib/analytics/ride-recorder";
 import {
   useDeviceType,
@@ -45,7 +44,6 @@ import {
   PRESET_WORKOUTS,
 } from "../../../lib/workout-plan";
 import { DEFAULT_ROAD_GEARS } from "../../../lib/analytics/physiological-models";
-import type { EnhancedClassMetadata } from "../../../lib/contracts";
 import {
   createCanonicalRideSummary,
   enqueueRideSync,
@@ -448,7 +446,7 @@ export default function LiveRidePage() {
       trackedCompletionRef.current = false;
       speak("Let's go!", "intense");
     }, 3000);
-  }, [bleConnected, useSimulator, classId, isPracticeMode, isTrainingMode, rewards, coordinator, classData, deviceType, performanceTier, walletConnected, address, rewardMode, agentName, workoutPlan, playCountdown, speak]);
+  }, [bleConnected, useSimulator, classId, isPracticeMode, isTrainingMode, rewards, coordinator, classData, deviceType, performanceTier, walletConnected, address, rewardMode, agentName, workoutPlan, playCountdown, speak, isRiding]);
 
   // ─── Pause / Exit Ride ─────────────────────────────────────────
   const pauseRide = useCallback(() => {
@@ -478,7 +476,7 @@ export default function LiveRidePage() {
     const displaySpin = spinEarned !== "0" ? spinEarned : potentialReward.toFixed(1);
 
     const telemetrySource = bleConnected ? "live-bike" as const : isPracticeMode && useSimulator ? "simulator" as const : "estimated" as const;
-    const threshold = classData?.metadata?.rewards?.threshold ?? 180;
+    const _threshold = classData?.metadata?.rewards?.threshold ?? 180;
     const summaryId = `${classId}-${Date.now()}`;
 
     const canonicalSummary = createCanonicalRideSummary({

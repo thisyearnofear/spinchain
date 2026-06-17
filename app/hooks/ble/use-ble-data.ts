@@ -150,7 +150,7 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
   // Auto-connect if requested
   useEffect(() => {
     if (autoConnect && status === 'disconnected') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       scanAndConnect();
     }
   }, [autoConnect, status, scanAndConnect]);

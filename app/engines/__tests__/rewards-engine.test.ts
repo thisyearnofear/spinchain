@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EventBus } from "../event-bus";
-import { RewardsEngine } from "../rewards-engine";
+import { RewardsEngine, type StartEarningConfig } from "../rewards-engine";
+import type { BatchAccumulator } from "@/app/lib/rewards/zk";
 
 // Mock all the reward library imports
 vi.mock("@/app/lib/rewards/calculator", () => ({
@@ -19,7 +20,7 @@ vi.mock("@/app/lib/rewards/zk", () => ({
     avgPower: 0,
   }),
   addToBatch: vi.fn().mockImplementation(
-    (batch: any, heartRate: number, power: number) => ({
+    (batch: BatchAccumulator, heartRate: number, power: number) => ({
       telemetryPoints: [...batch.telemetryPoints, { heartRate, power, timestamp: Date.now() }],
       totalDuration: batch.totalDuration + 10,
       maxHeartRate: Math.max(batch.maxHeartRate, heartRate),
@@ -169,7 +170,7 @@ describe("RewardsEngine", () => {
       const startedHandler = vi.fn();
       bus.on("rewards:started", startedHandler);
 
-      await engine.startEarning(startConfig as any);
+      await engine.startEarning(startConfig as StartEarningConfig);
 
       expect(engine.isActive).toBe(true);
       expect(engine.channel).not.toBeNull();
@@ -181,7 +182,7 @@ describe("RewardsEngine", () => {
       const tickHandler = vi.fn();
       bus.on("rewards:tick", tickHandler);
 
-      await engine.startEarning(startConfig as any);
+      await engine.startEarning(startConfig as StartEarningConfig);
 
       await engine.recordEffort({
         heartRate: 150,
@@ -203,7 +204,7 @@ describe("RewardsEngine", () => {
     });
 
     it("finalizeRewards closes the channel", async () => {
-      await engine.startEarning(startConfig as any);
+      await engine.startEarning(startConfig as StartEarningConfig);
       // First call seeds lastTelemetryForYellow (no accumulation)
       await engine.recordEffort({ heartRate: 150, power: 200, cadence: 80, timestamp: Date.now() });
       // Second call triggers calculateAccumulatedReward

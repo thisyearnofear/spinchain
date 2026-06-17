@@ -53,6 +53,9 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
     const keyActivity = useRef({ strokes: 0, windowStart: 0 });
     const repeatThrottle = useRef<Record<string, number>>({});
     const onMetricsUpdateRef = useRef(onMetricsUpdate);
+    // Keep ref updated with latest callback - intentional pattern
+     
+    // eslint-disable-next-line react-hooks/refs
     onMetricsUpdateRef.current = onMetricsUpdate;
 
     const calculateMetrics = useCallback(() => {

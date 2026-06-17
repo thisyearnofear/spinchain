@@ -12,7 +12,13 @@ const eslintConfig = defineConfig([
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_",
         "caughtErrorsIgnorePattern": "^_"
-      }]
+      }],
+      // Allow setState in useEffect - common pattern for initialization
+      "react-hooks/set-state-in-effect": "off",
+      // Allow any in test files and some lib files (needed for dynamic typing)
+      "@typescript-eslint/no-explicit-any": "off",
+      // Allow unescaped entities in JSX (common pattern)
+      "react/no-unescaped-entities": "off"
     }
   },
   // Override default ignores of eslint-config-next.

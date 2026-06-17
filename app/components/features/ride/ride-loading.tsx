@@ -27,7 +27,7 @@ export function RideLoading({
   onPracticeMode,
   onBack,
 }: RideLoadingProps) {
-  const loadingDurationMs = Date.now() - loadStartedAt;
+  const [loadingDurationMs] = useState(() => Date.now() - loadStartedAt);
   const isLikelyStuck = loadingDurationMs > 12000;
 
   const loadingStats = [

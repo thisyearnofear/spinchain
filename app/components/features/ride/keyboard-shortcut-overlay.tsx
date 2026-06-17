@@ -37,6 +37,7 @@ function KeyboardShortcutOverlayInternal({ show, duration = 5000, onDismiss }: K
         clearTimeout(hideTimer);
       };
     }
+     
   }, [show, duration, onDismiss]);
 
   if (!visible) return null;
