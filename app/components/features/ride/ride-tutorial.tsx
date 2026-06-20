@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useEffect, useCallback, useMemo, useRef } from "react";
+import { useRideModalStore } from "@/app/stores/ride-modal-store";
 
 type TutorialAudience = "web3" | "fitness";
 
@@ -61,8 +62,7 @@ const STORAGE_KEY = "spinchain:onboarding:ride-tutorial";
 export type TutorialStep = number;
 
 export function useRideTutorial(opts?: { isPracticeMode?: boolean; walletConnected?: boolean }) {
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [tutorialStep, setTutorialStep] = useState(0);
+  const modalStore = useRideModalStore;
 
   const audience: TutorialAudience =
     opts?.isPracticeMode || !opts?.walletConnected ? "fitness" : "web3";
@@ -73,32 +73,37 @@ export function useRideTutorial(opts?: { isPracticeMode?: boolean; walletConnect
   );
 
   useEffect(() => {
+    modalStore.getState().setTutorialSteps(steps);
+  }, [steps, modalStore]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const searchParams = new URLSearchParams(window.location.search);
     const hasSeenTutorial = localStorage.getItem(STORAGE_KEY);
     if (!hasSeenTutorial || searchParams.get("setup") === "true") {
       const frame = window.requestAnimationFrame(() => {
-        setShowTutorial(true);
+        modalStore.getState().setShowTutorial(true);
       });
       return () => window.cancelAnimationFrame(frame);
     }
-  }, []);
+  }, [modalStore]);
 
   const nextStep = useCallback(() => {
-    if (tutorialStep < steps.length - 1) {
-      setTutorialStep(s => s + 1);
+    const currentStep = modalStore.getState().tutorialStep;
+    if (currentStep < steps.length - 1) {
+      modalStore.getState().setTutorialStep(currentStep + 1);
     } else {
-      setShowTutorial(false);
+      modalStore.getState().setShowTutorial(false);
       localStorage.setItem(STORAGE_KEY, "true");
     }
-  }, [tutorialStep, steps.length]);
+  }, [steps.length, modalStore]);
 
   const dismiss = useCallback(() => {
-    setShowTutorial(false);
+    modalStore.getState().setShowTutorial(false);
     localStorage.setItem(STORAGE_KEY, "true");
-  }, []);
+  }, [modalStore]);
 
-  return { showTutorial, tutorialStep, nextStep, dismiss, steps };
+  return { nextStep, dismiss, steps };
 }
 
 export function RideTutorialOverlay({

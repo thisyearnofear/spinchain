@@ -9,39 +9,22 @@ import { NoBikeModal } from "./no-bike-modal";
 import { KeyboardShortcutOverlay } from "./keyboard-shortcut-overlay";
 import { PedalSimulator } from "@/app/components/features/common/pedal-simulator";
 import { DemoCompleteModal } from "@/app/components/features/common/demo-complete-modal";
-import { RideTutorialOverlay, type TutorialStep } from "./ride-tutorial";
-import type { TutorialStepDef } from "./ride-tutorial";
+import { RideTutorialOverlay } from "./ride-tutorial";
 import { downloadTCX, type RideRecordPoint } from "@/app/lib/analytics/ride-recorder";
-import type { RideSyncStatus } from "@/app/lib/analytics/ride-history";
-import type { DemoCompleteModalProps } from "@/app/components/features/common/demo-complete-modal";
 import type { EnhancedClassMetadata } from "@/app/lib/contracts";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useUIStore } from "@/app/stores/ui-store";
-import { useCoachingStore } from "@/app/stores/coaching-store";
+import { useRideModalStore } from "@/app/stores/ride-modal-store";
 
 interface RideModalsProps {
   classId: string;
   classData: { name: string; instructor: string; startTime?: number; metadata?: EnhancedClassMetadata | null } | null;
-  practiceConfig: { name?: string; instructor?: string } | null;
   rewardsFormattedReward: string;
   handleClaimRewards: () => void;
   rewardClaimStatus?: RewardClaimStatus;
-  completionSyncStatus: RideSyncStatus;
-  completionPrimaryAction: "view_history" | "ride_again";
-  showMilestone: { title: string; subtitle: string } | null;
-  showNoBikeModal: boolean;
-  showKeyboardHints: boolean;
-  showDemoModal: boolean;
-  demoStats: DemoCompleteModalProps["stats"];
-  showTutorial: boolean;
-  tutorialStep: TutorialStep;
-  tutorialSteps: TutorialStepDef[];
   agentName: string;
   aiPersonality: "zen" | "drill-sergeant" | "data";
-  _rewardMode: string;
-  _walletConnected: boolean;
-  walrusAnchorInfo?: { blobId: string; txDigest?: string } | null;
   ridePointsRef: React.MutableRefObject<RideRecordPoint[]>;
   router: AppRouterInstance;
   onExitRide: () => void;
@@ -65,25 +48,11 @@ interface RideModalsProps {
 export const RideModals = memo(function RideModals({
   classId,
   classData,
-  practiceConfig: _practiceConfig,
   rewardsFormattedReward,
   handleClaimRewards,
   rewardClaimStatus,
-  completionSyncStatus,
-  completionPrimaryAction,
-  showMilestone,
-  showNoBikeModal,
-  showKeyboardHints,
-  showDemoModal,
-  demoStats,
-  showTutorial,
-  tutorialStep,
-  tutorialSteps,
   agentName,
   aiPersonality,
-  _rewardMode,
-  _walletConnected,
-  walrusAnchorInfo,
   ridePointsRef,
   router,
   onExitRide,
@@ -105,7 +74,18 @@ export const RideModals = memo(function RideModals({
   const useSimulator = useUIStore((s) => s.useSimulator);
 
   const telemetryAverages = useTelemetryStore((s) => s.averages);
-  const currentInterval = useCoachingStore((s) => s.currentInterval);
+
+  const showMilestone = useRideModalStore((s) => s.showMilestone);
+  const showNoBikeModal = useRideModalStore((s) => s.showNoBikeModal);
+  const showKeyboardHints = useRideModalStore((s) => s.showKeyboardHints);
+  const showDemoModal = useRideModalStore((s) => s.showDemoModal);
+  const demoStats = useRideModalStore((s) => s.demoStats);
+  const showTutorial = useRideModalStore((s) => s.showTutorial);
+  const tutorialStep = useRideModalStore((s) => s.tutorialStep);
+  const tutorialSteps = useRideModalStore((s) => s.tutorialSteps);
+  const completionSyncStatus = useRideModalStore((s) => s.completionSyncStatus);
+  const completionPrimaryAction = useRideModalStore((s) => s.completionPrimaryAction);
+  const walrusAnchorInfo = useRideModalStore((s) => s.walrusAnchorInfo);
 
   return (
     <>

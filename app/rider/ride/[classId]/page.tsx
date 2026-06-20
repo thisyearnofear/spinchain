@@ -8,6 +8,7 @@ import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useUIStore } from "@/app/stores/ui-store";
+import { useRideModalStore } from "@/app/stores/ride-modal-store";
 import { useAccount } from "wagmi";
 import { usePanelState } from "../../../hooks/ui/use-panel-state";
 import { useRideTutorial } from "../../../components/features/ride/ride-tutorial";
@@ -271,11 +272,12 @@ export default function LiveRidePage() {
   });
 
   // Sync completedRideId back to rewards hook
+  const completedRideId = useRideModalStore((s) => s.completedRideId);
   useEffect(() => {
-    if (lifecycle.completedRideId) {
-      rewardsHook.setCompletedRideId(lifecycle.completedRideId);
+    if (completedRideId) {
+      rewardsHook.setCompletedRideId(completedRideId);
     }
-  }, [lifecycle.completedRideId, rewardsHook.setCompletedRideId]);
+  }, [completedRideId, rewardsHook.setCompletedRideId]);
 
   // ─── Visibility Pause (save CPU when tab hidden) ──────────────
   useEffect(() => {
@@ -297,7 +299,7 @@ export default function LiveRidePage() {
   }, []);
 
   // ─── Tutorial ──────────────────────────────────────────────────
-  const { showTutorial, tutorialStep, nextStep: nextTutorial, dismiss: dismissTutorial, steps: tutorialSteps } = useRideTutorial({ isPracticeMode, walletConnected });
+  const { nextStep: nextTutorial, dismiss: dismissTutorial } = useRideTutorial({ isPracticeMode, walletConnected });
 
   // ─── Loading / Not Found Gates ─────────────────────────────────
   if (isLoading && !isPracticeMode) {
@@ -409,27 +411,13 @@ export default function LiveRidePage() {
       <RideModals
         classId={classId}
         classData={classData}
-        practiceConfig={practiceConfig}
         rewardsFormattedReward={rewardsHook.rewards.formattedReward}
         handleClaimRewards={rewardsHook.handleClaimRewards}
         rewardClaimStatus={rewardsHook.rewardClaimStatus}
-        completionSyncStatus={lifecycle.completionSyncStatus}
-        completionPrimaryAction={lifecycle.completionPrimaryAction}
-        showMilestone={analyticsHook.showMilestone}
-        showNoBikeModal={lifecycle.showNoBikeModal}
-        showKeyboardHints={lifecycle.showKeyboardHints}
-        showDemoModal={lifecycle.showDemoModal}
-        demoStats={lifecycle.demoStats}
-        showTutorial={showTutorial}
-        tutorialStep={tutorialStep}
-        tutorialSteps={tutorialSteps}
         agentName={agentName}
         aiPersonality={aiPersonality || "data"}
-        _rewardMode={rewardMode}
-        _walletConnected={walletConnected}
         ridePointsRef={emptyRidePointsRef}
         router={router}
-        walrusAnchorInfo={lifecycle.walrusAnchorInfo}
         onExitRide={lifecycle.exitRide}
         onEnableSimulatorFromModal={lifecycle.handleEnableSimulatorFromModal}
         onDismissNoBike={lifecycle.handleDismissNoBike}

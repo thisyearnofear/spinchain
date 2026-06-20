@@ -6,11 +6,9 @@ import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
-import {
-  processRideSyncQueue,
-  type RideSyncStatus,
-} from "@/app/lib/analytics/ride-history";
+import { processRideSyncQueue } from "@/app/lib/analytics/ride-history";
 import { useRidePersistence } from "./use-ride-persistence";
+import { useRideModalStore } from "@/app/stores/ride-modal-store";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 import type { RewardClaimStatus } from "@/app/components/features/ride/ride-completion";
 import type { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
@@ -99,15 +97,9 @@ export function useRideLifecycle({
   const suiClient = useSuiClient();
   const { mutateAsync: signAndExecuteSui } = useSignAndExecuteTransaction();
 
-  const [showNoBikeModal, setShowNoBikeModal] = useState(false);
-  const [showKeyboardHints, setShowKeyboardHints] = useState(false);
   const [connectionHint, setConnectionHint] = useState<string | null>(null);
-  const [showDemoModal, setShowDemoModal] = useState(false);
-  const [completionSyncStatus, setCompletionSyncStatus] = useState<RideSyncStatus>("local_only");
-  const [completionPrimaryAction, setCompletionPrimaryAction] = useState<"view_history" | "ride_again">("view_history");
-  const [demoStats, setDemoStats] = useState({ duration: 0, avgHeartRate: 0, maxHeartRate: 0, effortScore: 0, spinEarned: "0", rewardsWereActive: false });
-  const [walrusAnchorInfo, setWalrusAnchorInfo] = useState<{ blobId: string; txDigest?: string } | null>(null);
-  const [completedRideId, setCompletedRideIdState] = useState<string | null>(null);
+
+  const modalStore = useRideModalStore;
 
   const suiExecuteTransaction = useCallback(
     async (tx: unknown): Promise<{ digest: string } | null> => {
@@ -138,7 +130,7 @@ export function useRideLifecycle({
   const startRide = useCallback(async () => {
     const telemetryReady = bleConnected || useSimulator;
     if (!telemetryReady) {
-      setShowNoBikeModal(true);
+      modalStore.getState().setShowNoBikeModal(true);
       trackEvent(ANALYTICS_EVENTS.RIDE_START_BLOCKED_NO_TELEMETRY, { classId, practiceMode: isPracticeMode });
       return;
     }
@@ -220,35 +212,35 @@ export function useRideLifecycle({
       coordinatorRef,
     });
 
-    setWalrusAnchorInfo(result.walrusAnchorInfo);
-    setCompletedRideIdState(result.canonicalSummary.id);
-    setCompletionSyncStatus(result.syncStatus);
-    setCompletionPrimaryAction(result.primaryAction);
+    modalStore.getState().setWalrusAnchorInfo(result.walrusAnchorInfo);
+    modalStore.getState().setCompletedRideId(result.canonicalSummary.id);
+    modalStore.getState().setCompletionSyncStatus(result.syncStatus);
+    modalStore.getState().setCompletionPrimaryAction(result.primaryAction);
     void processRideSyncQueue();
 
     if (isPracticeMode) {
-      setDemoStats({ duration: elapsedTime, avgHeartRate: result.avgHR, maxHeartRate: result.avgHR, effortScore: result.effortScore, spinEarned: result.spinEarned, rewardsWereActive: true });
+      modalStore.getState().setDemoStats({ duration: elapsedTime, avgHeartRate: result.avgHR, maxHeartRate: result.avgHR, effortScore: result.effortScore, spinEarned: result.spinEarned, rewardsWereActive: true });
       useRideStore.setState({ isExiting: false });
-      setShowDemoModal(true);
+      modalStore.getState().setShowDemoModal(true);
     } else {
       router.push("/rider/journey?completed=true");
     }
   }, [stopAudio, telemetryAverages, persistRide, classId, classData, practiceConfig, agentName, address, elapsedTime, bleConnected, isPracticeMode, useSimulator, rewardMode, rewardClaimStatus, useChainlinkRewards, chainlinkSuccess, zkSuccess, privacyScore, privacyLevel, walletConnected, rewards, coordinatorRef, router]);
 
   const handleEnableSimulatorFromModal = useCallback(() => {
-    setShowNoBikeModal(false);
+    modalStore.getState().setShowNoBikeModal(false);
     setUseSimulator(true);
-    setShowKeyboardHints(true);
+    modalStore.getState().setShowKeyboardHints(true);
     setConnectionHint(null);
-  }, [setUseSimulator]);
+  }, [setUseSimulator, modalStore]);
 
   const handleDemoModalClose = useCallback(() => {
-    setShowDemoModal(false);
+    modalStore.getState().setShowDemoModal(false);
     router.push("/rider");
-  }, [router]);
+  }, [router, modalStore]);
 
-  const handleDismissNoBike = useCallback(() => setShowNoBikeModal(false), []);
-  const handleDismissKeyboardHints = useCallback(() => setShowKeyboardHints(false), []);
+  const handleDismissNoBike = useCallback(() => modalStore.getState().setShowNoBikeModal(false), [modalStore]);
+  const handleDismissKeyboardHints = useCallback(() => modalStore.getState().setShowKeyboardHints(false), [modalStore]);
 
   const handleBleMetrics = useCallback((metrics: { heartRate?: number; power?: number; cadence?: number; speed?: number; effort?: number; distance?: number; timestamp?: number }) => {
     coordinator.ingestBleMetrics(metrics);
@@ -258,16 +250,7 @@ export function useRideLifecycle({
   }, [coordinator, trackLiveTelemetry]);
 
   return {
-    showNoBikeModal,
-    showKeyboardHints,
     connectionHint,
-    showDemoModal,
-    completionSyncStatus,
-    completionPrimaryAction,
-    demoStats,
-    walrusAnchorInfo,
-    completedRideId,
-    setCompletedRideId: setCompletedRideIdState,
     startRide,
     pauseRide,
     exitRide,
