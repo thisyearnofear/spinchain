@@ -121,7 +121,7 @@ export function InstructorModeSelector() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
           className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]"
         >
           {/* Animated gradient background */}

@@ -123,7 +123,7 @@ export default function InstructorAnalyticsPage() {
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-all ${
+                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-[background-color,color] duration-150 ${
                   timeRange === range
                     ? "bg-[color:var(--accent)] text-white"
                     : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
@@ -140,7 +140,7 @@ export default function InstructorAnalyticsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0, duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
           >
             <MetricTileEnhanced
               label="Total Revenue"
@@ -156,7 +156,7 @@ export default function InstructorAnalyticsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.05, duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
           >
             <MetricTileEnhanced
               label="Total Riders"
@@ -172,7 +172,7 @@ export default function InstructorAnalyticsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.1, duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
           >
             <MetricTileEnhanced
               label="Classes Taught"
@@ -188,7 +188,7 @@ export default function InstructorAnalyticsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.15, duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
           >
             <MetricTileEnhanced
               label="Avg Fill Rate"
@@ -238,7 +238,7 @@ export default function InstructorAnalyticsPage() {
                 </p>
               </div>
 
-              <button className="w-full mt-4 px-6 py-3 rounded-xl bg-[color:var(--accent)] text-white font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+              <button className="w-full mt-4 px-6 py-3 rounded-xl bg-[color:var(--accent)] text-white font-medium hover:opacity-90 transition-[transform,opacity] duration-150 active:scale-95 flex items-center justify-center gap-2">
                 <Download size={16} />
                 Withdraw {formatCurrency(analytics.revenue.pendingWithdrawal)}
               </button>
@@ -259,8 +259,8 @@ export default function InstructorAnalyticsPage() {
               </div>
               <div className="w-full h-2 bg-[color:var(--surface-strong)] rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all"
-                  style={{ width: `${analytics.engagement.avgAttendanceRate * 100}%` }}
+                  className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full origin-left"
+                  style={{ transform: `scaleX(${analytics.engagement.avgAttendanceRate})`, transition: "transform 400ms cubic-bezier(0.23, 1, 0.32, 1)" }}
                 />
               </div>
 
@@ -272,8 +272,8 @@ export default function InstructorAnalyticsPage() {
               </div>
               <div className="w-full h-2 bg-[color:var(--surface-strong)] rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
-                  style={{ width: `${analytics.engagement.repeatRiderRate * 100}%` }}
+                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full origin-left"
+                  style={{ transform: `scaleX(${analytics.engagement.repeatRiderRate})`, transition: "transform 400ms cubic-bezier(0.23, 1, 0.32, 1)" }}
                 />
               </div>
 
@@ -322,9 +322,9 @@ export default function InstructorAnalyticsPage() {
                 {analytics.classes.slice(0, 10).map((cls, i) => (
                   <motion.tr
                     key={cls.classAddress}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
+                    initial={{ opacity: 0, transform: "translateX(-20px)" }}
+                    animate={{ opacity: 1, transform: "translateX(0)" }}
+                    transition={{ delay: i * 0.05, duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
                     className="border-b border-[color:var(--border)] hover:bg-[color:var(--surface-strong)] transition-colors"
                   >
                     <td className="py-4 px-4">

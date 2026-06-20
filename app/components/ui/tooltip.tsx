@@ -18,6 +18,7 @@ export function Tooltip({
 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [hasShownOnce, setHasShownOnce] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -31,7 +32,15 @@ export function Tooltip({
   }, []);
 
   const handleMouseEnter = () => {
-    timeoutRef.current = setTimeout(() => setIsVisible(true), delay);
+    // After first tooltip has shown, skip delay on subsequent hovers
+    if (hasShownOnce) {
+      setIsVisible(true);
+      return;
+    }
+    timeoutRef.current = setTimeout(() => {
+      setIsVisible(true);
+      setHasShownOnce(true);
+    }, delay);
   };
 
   const handleMouseLeave = () => {
@@ -44,6 +53,13 @@ export function Tooltip({
     bottom: "top-full left-1/2 -translate-x-1/2 mt-2",
     left: "right-full top-1/2 -translate-y-1/2 mr-2",
     right: "left-full top-1/2 -translate-y-1/2 ml-2"
+  };
+
+  const transformOrigin = {
+    top: "bottom center",
+    bottom: "top center",
+    left: "right center",
+    right: "left center",
   };
 
   const arrowClasses = {
@@ -69,7 +85,8 @@ export function Tooltip({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: hasShownOnce ? 0 : 0.15, ease: [0.23, 1, 0.32, 1] }}
+            style={{ transformOrigin: transformOrigin[position] }}
             className={`absolute z-50 ${positionClasses[position]} pointer-events-none`}
           >
             <div className="relative px-3 py-2 rounded-lg bg-[color:var(--surface-strong)] border border-[color:var(--border)] shadow-lg whitespace-nowrap">

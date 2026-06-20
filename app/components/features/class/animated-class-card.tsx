@@ -336,10 +336,10 @@ export function AnimatedClassCard({
             <div className="h-1.5 rounded-full bg-[color:var(--surface-strong)] overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
-                style={{ background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})` }}
-                initial={{ width: 0 }}
-                animate={{ width: `${fillPercentage}%` }}
-                transition={{ duration: 1, delay: 0.2 }}
+                style={{ background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})`, transformOrigin: "left", scaleX: fillPercentage / 100 }}
+                initial={{ transform: "scaleX(0)" }}
+                animate={{ transform: `scaleX(${fillPercentage / 100})` }}
+                transition={{ duration: 0.8, delay: 0.2, ease: [0.23, 1, 0.32, 1] }}
               />
             </div>
           </div>

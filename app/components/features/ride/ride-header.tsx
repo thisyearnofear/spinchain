@@ -59,7 +59,7 @@ export function RideHeader({
           {/* Reset Preferences - Desktop Only */}
           <button
             onClick={onResetPreferences}
-            className="hidden sm:inline-flex rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/60 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
+            className="hidden sm:inline-flex rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/60 hover:bg-white/20 backdrop-blur active:scale-95 transition-[transform,background-color] duration-150 touch-manipulation min-h-[44px]"
             aria-label="Reset ride UI preferences"
           >
             Reset
@@ -68,7 +68,7 @@ export function RideHeader({
           {/* View Mode Toggle */}
           <button
             onClick={() => onViewModeChange(viewMode === "immersive" ? "focus" : "immersive")}
-            className="rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-h-[44px]"
+            className="rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-[transform,background-color] duration-150 touch-manipulation min-h-[44px]"
             aria-label={`Switch to ${viewMode === "immersive" ? "focus" : "immersive"} view`}
             aria-pressed={viewMode === "immersive"}
           >
@@ -90,7 +90,7 @@ export function RideHeader({
           <button
             onClick={onExit}
             disabled={isExiting}
-            className="rounded-lg bg-white/10 p-2 sm:p-2.5 text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-50"
+            className="rounded-lg bg-white/10 p-2 sm:p-2.5 text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-[transform,background-color] duration-150 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-50"
             aria-label="Exit ride"
           >
             {isExiting ? <LoadingSpinner /> : <CloseIcon />}

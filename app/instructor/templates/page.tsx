@@ -295,16 +295,16 @@ export default function TemplateMarketplacePage() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
                 >
-                  <GlassCard className="p-0 overflow-hidden group hover:border-indigo-500/30 transition-all cursor-pointer" >
+                  <GlassCard className="p-0 overflow-hidden group hover:border-indigo-500/30 transition-[border-color] duration-200 cursor-pointer" >
                     {/* Theme gradient header */}
                     <div className={`relative h-32 bg-gradient-to-br ${themeGradient} overflow-hidden`}>
                       <div className="absolute inset-0 bg-black/20" />
                       <div className="absolute top-3 right-3 flex gap-2">
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleSave(template.id); }}
-                          className={`p-2 rounded-xl backdrop-blur-md transition-all ${
+                          className={`p-2 rounded-xl backdrop-blur-md transition-[background-color,border-color,color] duration-150 ${
                             isSaved
                               ? "bg-indigo-500/30 border border-indigo-500/40 text-indigo-300"
                               : "bg-black/30 border border-white/10 text-white/40 hover:text-white"
@@ -382,7 +382,7 @@ export default function TemplateMarketplacePage() {
                       {/* Use button */}
                       <button
                         onClick={(e) => { e.stopPropagation(); applyTemplate(template); }}
-                        className="w-full py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-black uppercase tracking-widest text-[10px] hover:bg-indigo-500/20 transition-all flex items-center justify-center gap-2"
+                        className="w-full py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-black uppercase tracking-widest text-[10px] hover:bg-indigo-500/20 transition-[transform,background-color] duration-150 active:scale-95 flex items-center justify-center gap-2"
                       >
                         Use Template
                         <ArrowRight className="w-3 h-3" />

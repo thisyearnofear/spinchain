@@ -72,15 +72,17 @@
   --font-mono: var(--font-geist-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
 }
 
-/* Smooth theme transitions */
-html {
-  transition: background-color 0.3s ease, color 0.3s ease;
+/* Custom easing variables — use these everywhere */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-html * {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+/* Smooth theme transitions — scoped to html only, not wildcard */
+html {
+  transition: background-color 200ms var(--ease-out), color 200ms var(--ease-out);
 }
 
 /* Disable transitions on page load */
@@ -97,9 +99,15 @@ body {
   letter-spacing: -0.011em;
 }
 
-/* Custom easing */
+/* Custom easing utilities */
 .ease-spring {
-  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition-timing-function: var(--ease-spring);
+}
+.ease-out {
+  transition-timing-function: var(--ease-out);
+}
+.ease-in-out {
+  transition-timing-function: var(--ease-in-out);
 }
 
 /* Glass morphism utility */
@@ -107,6 +115,26 @@ body {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ─── Accessibility: Reduced motion ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Accessibility: Gate hover on touch devices ────────────── */
+@media (hover: none) or (pointer: coarse) {
+  .hover\:scale-105:hover,
+  .hover\:scale-102:hover {
+    transform: none;
+  }
 }
 
 .light .glass {

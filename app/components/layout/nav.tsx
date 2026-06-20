@@ -75,9 +75,9 @@ function SettingsDropdown() {
             initial={{ opacity: 0, scale: 0.95, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+            style={{ transformOrigin: "top center", zIndex: 9999 }}
             className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-64 max-w-[90vw] rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-xl backdrop-blur-xl p-4"
-            style={{ zIndex: 9999 }}
             data-testid="settings-dropdown"
           >
             <div className="flex flex-col gap-3">

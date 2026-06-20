@@ -157,7 +157,7 @@ export default function RiderPage() {
               <a
                 key={coach.name}
                 href={coach.href}
-                className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 text-left transition-all hover:bg-white/10 hover:border-white/20"
+                className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 text-left transition-[background-color,border-color] duration-200 hover:bg-white/10 hover:border-white/20"
               >
                 <div
                   className={`absolute top-0 right-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br ${coach.color} opacity-20 blur-2xl transition-transform group-hover:scale-150`}

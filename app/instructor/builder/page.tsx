@@ -387,6 +387,7 @@ export default function InstructorBuilderPage() {
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
               className="max-w-md w-full bg-[#12141c] border border-white/10 rounded-3xl p-8 shadow-2xl"
             >
               <div className="h-16 w-16 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-6">
@@ -410,7 +411,7 @@ export default function InstructorBuilderPage() {
 
               <button
                 onClick={() => setShowOnboarding(false)}
-                className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/20"
+                className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 rounded-2xl transition-[transform,background-color] duration-150 active:scale-95 shadow-lg shadow-indigo-500/20"
               >
                 Let&apos;s Build!
               </button>
@@ -438,7 +439,7 @@ export default function InstructorBuilderPage() {
             {steps.map((s) => (
               <div
                 key={s.number}
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-widest transition-all ${
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-widest transition-[background-color,color,box-shadow] duration-150 ${
                   step === s.number
                     ? "bg-white text-black shadow-lg"
                     : step > s.number

@@ -86,6 +86,7 @@ export function CommandPalette({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
           className="bg-[color:var(--surface)] rounded-2xl border border-[color:var(--border)] max-w-lg w-full max-h-[80vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
@@ -174,6 +175,7 @@ export function CommandPalette({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
                         className="overflow-hidden"
                       >
                         <div className="p-4 pt-0 space-y-2">

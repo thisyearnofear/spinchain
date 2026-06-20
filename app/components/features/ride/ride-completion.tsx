@@ -256,7 +256,7 @@ export function RideCompletion({
                   document.getElementById(`tab-${last.id}`)?.focus();
                 }
               }}
-              className={`flex-1 pb-2 text-xs sm:text-sm font-semibold transition-all border-b-2 -mb-px ${
+              className={`flex-1 pb-2 text-xs sm:text-sm font-semibold transition-[color,border-color] duration-150 border-b-2 -mb-px ${
                 activeTab === tab.id
                   ? "border-indigo-400 text-white"
                   : "border-transparent text-white/50 hover:text-white/80"
@@ -323,7 +323,7 @@ export function RideCompletion({
           {primaryAction === "view_history" ? (
             <button
               onClick={onExit}
-              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
+              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-[transform,opacity] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
               aria-label={isPracticeMode ? "Back to builder" : "View history"}
             >
               {isPracticeMode ? "Back to Builder" : "View History"}
@@ -331,7 +331,7 @@ export function RideCompletion({
           ) : (
             <button
               onClick={onExit}
-              className="flex-1 rounded-full border border-white/20 bg-white/10 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-white/20"
+              className="flex-1 rounded-full border border-white/20 bg-white/10 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold transition-[transform,background-color] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-white/20"
               aria-label={isPracticeMode ? "Back to builder" : "View history"}
             >
               {isPracticeMode ? "Back to Builder" : "View History"}
@@ -341,7 +341,7 @@ export function RideCompletion({
           {onRideAgain && (
             <button
               onClick={onRideAgain}
-              className={`flex-1 rounded-full py-2.5 sm:py-3 text-sm sm:text-base font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] ${
+              className={`flex-1 rounded-full py-2.5 sm:py-3 text-sm sm:text-base font-semibold transition-[transform,background-color,opacity] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] ${
                 primaryAction === "ride_again"
                   ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/40 hover:opacity-90"
                   : "border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20"
@@ -355,7 +355,7 @@ export function RideCompletion({
           {onShare && (
             <button
               onClick={onShare}
-              className="flex-1 rounded-full border border-fuchsia-500/40 bg-fuchsia-500/10 py-2.5 sm:py-3 text-sm sm:text-base text-fuchsia-200 font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-fuchsia-500/20"
+              className="flex-1 rounded-full border border-fuchsia-500/40 bg-fuchsia-500/10 py-2.5 sm:py-3 text-sm sm:text-base text-fuchsia-200 font-semibold transition-[transform,background-color] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-fuchsia-500/20"
               aria-label="Share ride"
             >
               Share
@@ -365,7 +365,7 @@ export function RideCompletion({
           {onExportTCX && (
             <button
               onClick={onExportTCX}
-              className="flex-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 py-2.5 sm:py-3 text-sm sm:text-base text-indigo-300 font-semibold transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-indigo-500/20"
+              className="flex-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 py-2.5 sm:py-3 text-sm sm:text-base text-indigo-300 font-semibold transition-[transform,background-color] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-indigo-500/20"
               aria-label="Export activity as TCX"
             >
               Export TCX
@@ -375,7 +375,7 @@ export function RideCompletion({
           {isPracticeMode && onDeploy ? (
             <button
               onClick={onDeploy}
-              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
+              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-[transform,opacity] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
               aria-label="Deploy class"
             >
               Deploy Class
@@ -384,7 +384,7 @@ export function RideCompletion({
             <button
               onClick={onClaimRewards}
               disabled={claimButtonDisabled}
-              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-[transform,opacity] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               aria-label="Request agent validation of rewards"
             >
               {claimButtonLabel}
