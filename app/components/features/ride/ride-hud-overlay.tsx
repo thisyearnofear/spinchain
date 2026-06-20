@@ -33,10 +33,8 @@ interface RideHUDOverlayProps {
   onStartRide: () => void;
   onPauseRide: () => void;
   onSetWorkoutPlan: (p: WorkoutPlan | null) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onBleMetrics: (m: any) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onSimulatorMetrics: (m: any) => void;
+  onBleMetrics: (m: { heartRate?: number; power?: number; cadence?: number; speed?: number; effort?: number; distance?: number; timestamp?: number }) => void;
+  onSimulatorMetrics: (m: { heartRate: number; power: number; cadence: number; speed: number; effort: number; distance?: number; timestamp?: number }) => void;
   onHaptic: (type?: HapticType) => boolean;
   formatTime: (s: number) => string;
 }

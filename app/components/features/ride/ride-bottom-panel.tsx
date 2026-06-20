@@ -14,6 +14,7 @@ import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useUIStore } from "@/app/stores/ui-store";
+import type { HapticType } from "@/app/hooks/use-haptic";
 
 interface RideBottomPanelProps {
   walletConnected: boolean;
@@ -26,12 +27,9 @@ interface RideBottomPanelProps {
   onPauseRide: () => void;
   onSetWorkoutPlan: (plan: WorkoutPlan | null) => void;
   onSetUseSimulator: (v: boolean) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onBleMetrics: (metrics: any) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onSimulatorMetrics: (metrics: any) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onHaptic: (type?: any) => any;
+  onBleMetrics: (metrics: { heartRate?: number; power?: number; cadence?: number; speed?: number; effort?: number; distance?: number; timestamp?: number }) => void;
+  onSimulatorMetrics: (metrics: { heartRate: number; power: number; cadence: number; speed: number; effort: number; distance?: number; timestamp?: number }) => void;
+  onHaptic: (type?: HapticType) => boolean;
   formatTime: (seconds: number) => string;
 }
 
