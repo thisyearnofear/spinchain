@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState, useRef, useEffect } from "react";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
@@ -45,7 +45,6 @@ export const RideTopBar = memo(function RideTopBar({
 
   const viewMode = useUIStore((s) => s.viewMode);
   const hudMode = useUIStore((s) => s.hudMode);
-  const deviceType = useUIStore((s) => s.deviceType);
   const useSimulator = useUIStore((s) => s.useSimulator);
   const bleConnected = useUIStore((s) => s.bleConnected);
   const isPracticeMode = useUIStore((s) => s.isPracticeMode);
@@ -54,6 +53,20 @@ export const RideTopBar = memo(function RideTopBar({
 
   const toggleViewMode = useUIStore((s) => s.toggleViewMode);
   const cycleHudMode = useUIStore((s) => s.cycleHudMode);
+
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setShowMoreMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showMoreMenu]);
 
   return (
     <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-top" style={{ zIndex: Z_LAYERS.widgets + 15 }}>
@@ -190,33 +203,56 @@ export const RideTopBar = memo(function RideTopBar({
             )
           )}
 
-          {/* Collapse/Expand (desktop only) */}
-          <button
-            onClick={onCollapseToggle}
-            className="hidden sm:inline-flex rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/60 hover:bg-white/20 active:scale-95 transition-all touch-manipulation min-h-[44px]"
-            aria-label={isAllCollapsed ? "Expand all panels" : "Collapse all panels"}
-            title="Press C to toggle"
-          >
-            {isAllCollapsed ? "▢ Expand" : "▤ Collapse"}
-          </button>
-
-          {/* Reset (desktop only) */}
-          <button
-            onClick={onResetPrefs}
-            className="hidden sm:inline-flex rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/60 hover:bg-white/20 active:scale-95 transition-all touch-manipulation min-h-[44px]"
-            aria-label="Reset ride UI preferences"
-          >
-            Reset
-          </button>
+          {/* Collapse / Reset — grouped in a dropdown (desktop only) */}
+          <div className="hidden sm relative" ref={moreMenuRef}>
+            <button
+              onClick={() => setShowMoreMenu(v => !v)}
+              className="rounded-lg bg-white/10 p-2 text-white/60 hover:bg-white/20 active:scale-95 transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="More options"
+              aria-expanded={showMoreMenu}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
+              </svg>
+            </button>
+            {showMoreMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMoreMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-white/10 bg-black/90 backdrop-blur-xl p-1 min-w-[160px] shadow-xl">
+                  <button
+                    onClick={() => { onCollapseToggle(); setShowMoreMenu(false); }}
+                    className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/70 hover:bg-white/10 transition-all"
+                  >
+                    {isAllCollapsed ? "▢ Expand panels" : "▤ Collapse panels"}
+                  </button>
+                  <button
+                    onClick={() => { onResetPrefs(); setShowMoreMenu(false); }}
+                    className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/70 hover:bg-white/10 transition-all"
+                  >
+                    Reset preferences
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* View Mode Toggle */}
           <button
             onClick={toggleViewMode}
-            className="rounded-lg bg-white/10 px-3 py-2 text-xs sm:text-sm text-white/70 hover:bg-white/20 active:scale-95 transition-all touch-manipulation min-h-[44px]"
+            className="rounded-lg bg-white/10 p-2 text-white/70 hover:bg-white/20 active:scale-95 transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Toggle view mode"
-            title="Press V to toggle"
+            title={`Press V — ${viewMode === "immersive" ? "Switch to 2D focus" : "Switch to immersive 3D"}`}
           >
-            {viewMode === "immersive" ? "Focus 2D" : "Immersive 3D"}
+            {viewMode === "immersive" ? (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9h6v6H9z" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z" />
+              </svg>
+            )}
           </button>
 
           {/* HUD Mode Toggle (all devices) */}
