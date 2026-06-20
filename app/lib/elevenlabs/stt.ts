@@ -232,6 +232,7 @@ export class LocalSpeechRecognizer {
     
     if (typeof window !== 'undefined' && ('WebkitSpeechRecognition' in window || 'speechRecognition' in window)) {
       const SpeechRecognition = (window as unknown as { WebkitSpeechRecognition?: new () => SpeechRecognitionInstance; speechRecognition?: new () => SpeechRecognitionInstance }).WebkitSpeechRecognition || (window as unknown as { WebkitSpeechRecognition?: new () => SpeechRecognitionInstance; speechRecognition?: new () => SpeechRecognitionInstance }).speechRecognition;
+      if (!SpeechRecognition) return;
       this.recognition = new SpeechRecognition();
       this.recognition.continuous = true;
       this.recognition.interimResults = false;

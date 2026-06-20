@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 // Loading and error screens for the ride page
 
 const LOADING_TIPS = [

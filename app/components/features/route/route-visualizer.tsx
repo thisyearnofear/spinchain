@@ -14,6 +14,7 @@ import {
   PointLight,
   MathUtils,
   PerspectiveCamera as ThreePerspectiveCamera,
+  Points,
 } from "three";
 import {
   EffectComposer,
@@ -336,11 +337,12 @@ function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme
     // Pulse props with the beat
     const pulse = 1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.05;
     meshGroupRef.current.children.forEach((child) => {
-      if (child.material) {
+      const mesh = child as Mesh;
+      if (mesh.material) {
         // Only pulse if themed for it
         if (theme === 'neon' || theme === 'rainbow') {
           const baseIntensity = theme === 'neon' ? 0.5 : 0.8;
-          child.material.emissiveIntensity = baseIntensity + (pulse - 1) * 2;
+          (mesh.material as MeshStandardMaterial).emissiveIntensity = baseIntensity + (pulse - 1) * 2;
         }
       }
     });
@@ -365,13 +367,13 @@ function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme
       const offset = side.multiplyScalar(i % 2 === 0 ? dist : -dist);
 
       points.push({
-        position: [point.x + offset.x, point.y + offset.y + (propConfig.type === 'building' ? propConfig.scale[1] / 2 : 0), point.z + offset.z],
-        rotation: [0, seededRandom(i + 2000) * Math.PI, 0],
+        position: [point.x + offset.x, point.y + offset.y + (propConfig.type === 'building' ? propConfig.scale[1] / 2 : 0), point.z + offset.z] as [number, number, number],
+        rotation: [0, seededRandom(i + 2000) * Math.PI, 0] as [number, number, number],
         scale: [
           propConfig.scale[0] * (0.8 + seededRandom(i + 3000) * 0.4),
           propConfig.scale[1] * (0.5 + seededRandom(i + 4000) * 1.5),
           propConfig.scale[2] * (0.8 + seededRandom(i + 5000) * 0.4),
-        ]
+        ] as [number, number, number],
       });
     }
     return points;
@@ -811,7 +813,7 @@ function LineInstance({ line, color }: { line: SpeedLineData; color: string }) {
 
 function FloatingParticles({ theme = "neon", stats }: { theme?: VisualizerTheme; stats: RiderStats }) {
   const styles = THEMES[theme];
-  const starsRef = useRef<Group>(null);
+  const starsRef = useRef<Points>(null);
 
   useFrame(() => {
     if (!starsRef.current) return;
