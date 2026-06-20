@@ -4,26 +4,23 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
-import { useSuiClient, useCurrentAccount, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
+import { useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import {
-  createCanonicalRideSummary,
-  enqueueRideSync,
-  getRetentionSignals,
   processRideSyncQueue,
-  saveRideSummary,
   type RideSyncStatus,
 } from "@/app/lib/analytics/ride-history";
-import { persistRideSummaryToWalrus } from "@/app/lib/walrus/ride-persistence";
+import { useRidePersistence } from "./use-ride-persistence";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 import type { RewardClaimStatus } from "@/app/components/features/ride/ride-completion";
 import type { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 import type { WorkoutPlan } from "@/app/lib/workout-plan";
 import type { DeviceType, PerformanceTier } from "@/app/engines/types";
+import type { ClassWithRoute } from "@/app/hooks/evm/use-class-data";
 
 interface UseRideLifecycleParams {
   classId: string;
-  classData?: any;
+  classData: ClassWithRoute | null;
   practiceConfig: { name?: string; instructor?: string } | null;
   isPracticeMode: boolean;
   isTrainingMode: boolean;
@@ -59,7 +56,7 @@ interface UseRideLifecycleParams {
   stopAudio: () => void;
   speak: (text: string, emotion?: unknown) => void;
   setUseSimulator: (v: boolean) => void;
-  setBleConnected?: (v: boolean) => void;
+  setBleConnected: (v: boolean) => void;
   trackLiveTelemetry: () => void;
 }
 
@@ -100,7 +97,6 @@ export function useRideLifecycle({
 }: UseRideLifecycleParams) {
   const router = useRouter();
   const suiClient = useSuiClient();
-  const suiAccount = useCurrentAccount();
   const { mutateAsync: signAndExecuteSui } = useSignAndExecuteTransaction();
 
   const [showNoBikeModal, setShowNoBikeModal] = useState(false);
@@ -137,6 +133,8 @@ export function useRideLifecycle({
     });
   }, [suiExecuteTransaction, suiClient, coordinatorRef]);
 
+  const { persistRide } = useRidePersistence();
+
   const startRide = useCallback(async () => {
     const telemetryReady = bleConnected || useSimulator;
     if (!telemetryReady) {
@@ -154,12 +152,15 @@ export function useRideLifecycle({
 
     coordinator.startRide({
       classId,
-      classData: classData as never,
+      classData: classData ? {
+        metadata: classData.metadata,
+        route: classData.route,
+      } : null,
       deviceType,
       performanceTier,
       isPracticeMode,
       walletConnected: !!walletConnected,
-      address: address as string | undefined,
+      address,
       rewardMode,
       coachingConfig: {
         agentName,
@@ -169,7 +170,7 @@ export function useRideLifecycle({
         marketStats: { ticketsSold: 0, revenue: 0, capacity: 50 },
         aiActive: isPracticeMode || Boolean(classData?.metadata?.ai?.enabled),
       },
-      ghostBlobId: classData?.metadata?.route?.walrusBlobId as string | undefined,
+      ghostBlobId: classData?.metadata?.route?.walrusBlobId,
     }).catch((err: unknown) => console.warn("[Ride] Coordinator start failed:", err));
 
     setTimeout(() => {
@@ -193,91 +194,46 @@ export function useRideLifecycle({
 
     const averages = telemetryAverages;
     const samples = useTelemetryStore.getState().snapshot;
-    const avgHR = averages.avgHr || samples.heartRate;
-    const maxHR = avgHR;
-    const effortScore = Math.min(1000, Math.round((avgHR / 200) * 1000));
-    const potentialReward = 10 + (effortScore * 90) / 1000;
 
-    let spinEarned = "0";
-    if (rewards.isActive) {
-      try {
-        const result = await rewards.finalizeRewards();
-        spinEarned = result.amount ? (Number(result.amount) / 1e18).toFixed(1) : "0";
-      } catch { /* non-blocking */ }
-    }
-    const displaySpin = spinEarned !== "0" ? spinEarned : potentialReward.toFixed(1);
-
-    const telemetrySource = bleConnected ? "live-bike" as const : isPracticeMode && useSimulator ? "simulator" as const : "estimated" as const;
-    const summaryId = `${classId}-${Date.now()}`;
-
-    const canonicalSummary = createCanonicalRideSummary({
-      id: summaryId,
-      riderId: address ?? "guest",
+    const result = await persistRide({
       classId,
-      className: classData?.name || practiceConfig?.name || "SpinChain Ride",
-      instructor: classData?.instructor || practiceConfig?.instructor || agentName,
-      completedAt: Date.now(),
-      durationSec: elapsedTime,
-      avgHeartRate: avgHR,
-      avgPower: averages.avgPower,
-      avgEffort: averages.avgEffort,
-      spinEarned: Number(displaySpin),
-      telemetrySource,
-      effortTier: averages.avgEffort >= 800 ? "platinum" : averages.avgEffort >= 650 ? "gold" : averages.avgEffort >= 500 ? "silver" : "bronze",
-      zones: { recovery: 25, endurance: 35, threshold: 25, sprint: 15 },
-      proof: {
-        mode: rewardMode === "sui-native" ? "none" : rewardMode,
-        status: rewardClaimStatus?.phase === "claimed" ? "claimed" : rewardClaimStatus?.phase === "ready" ? "ready" : rewardClaimStatus?.phase === "error" ? "failed" : "idle",
-        isVerified: useChainlinkRewards ? chainlinkSuccess : zkSuccess,
-        privacyScore, privacyLevel,
-        verifiedScore: rewardClaimStatus?.verifiedScore,
-      },
-      settlement: {
-        attempted: walletConnected,
-        status: walletConnected ? (useChainlinkRewards ? (chainlinkSuccess ? "confirmed" : "pending") : (zkSuccess ? "confirmed" : "pending")) : "skipped",
-      },
+      classData,
+      practiceConfig,
+      agentName,
+      address,
+      elapsedTime,
+      averages,
+      samples,
+      bleConnected,
+      isPracticeMode,
+      useSimulator,
+      rewardMode,
+      rewardClaimStatus,
+      useChainlinkRewards,
+      chainlinkSuccess,
+      zkSuccess,
+      privacyScore,
+      privacyLevel: (privacyLevel || "low") as "high" | "medium" | "low",
+      walletConnected,
+      rewardsIsActive: rewards.isActive,
+      rewardsFinalize: rewards.finalizeRewards,
+      coordinatorRef,
     });
-    const saved = saveRideSummary(canonicalSummary);
-    void (async () => {
-      const blobId = await persistRideSummaryToWalrus(canonicalSummary);
-      if (!blobId) return;
-      if (suiAccount) {
-        const pointCount = useTelemetryStore.getState().ridePoints.length;
-        const anchorResult = await coordinatorRef.current?.anchorSuiTelemetry({
-          classId,
-          blobId,
-          epoch: 90,
-          pointCount,
-        });
-        saveRideSummary({
-          ...canonicalSummary,
-          anchoring: {
-            attempted: true,
-            txHash: anchorResult?.digest as `0x${string}` | undefined,
-            status: anchorResult ? "confirmed" : "failed",
-            commitmentEpoch: 90,
-          },
-        });
-        setWalrusAnchorInfo({ blobId, txDigest: anchorResult?.digest });
-      } else {
-        setWalrusAnchorInfo({ blobId });
-      }
-    })();
-    const latest = saved.find((ride) => ride.id === canonicalSummary.id) ?? canonicalSummary;
-    const queued = enqueueRideSync(latest);
-    setCompletedRideIdState(summaryId);
-    setCompletionSyncStatus(queued.sync.status);
-    setCompletionPrimaryAction(getRetentionSignals(saved).ctaPrimary);
+
+    setWalrusAnchorInfo(result.walrusAnchorInfo);
+    setCompletedRideIdState(result.canonicalSummary.id);
+    setCompletionSyncStatus(result.syncStatus);
+    setCompletionPrimaryAction(result.primaryAction);
     void processRideSyncQueue();
 
     if (isPracticeMode) {
-      setDemoStats({ duration: elapsedTime, avgHeartRate: avgHR, maxHeartRate: maxHR, effortScore, spinEarned: displaySpin, rewardsWereActive: true });
+      setDemoStats({ duration: elapsedTime, avgHeartRate: result.avgHR, maxHeartRate: result.avgHR, effortScore: result.effortScore, spinEarned: result.spinEarned, rewardsWereActive: true });
       useRideStore.setState({ isExiting: false });
       setShowDemoModal(true);
     } else {
       router.push("/rider/journey?completed=true");
     }
-  }, [stopAudio, telemetryAverages, rewards, bleConnected, isPracticeMode, useSimulator, classData, practiceConfig, classId, agentName, address, elapsedTime, rewardMode, rewardClaimStatus, useChainlinkRewards, chainlinkSuccess, zkSuccess, privacyScore, privacyLevel, walletConnected, router, suiAccount, coordinatorRef]);
+  }, [stopAudio, telemetryAverages, persistRide, classId, classData, practiceConfig, agentName, address, elapsedTime, bleConnected, isPracticeMode, useSimulator, rewardMode, rewardClaimStatus, useChainlinkRewards, chainlinkSuccess, zkSuccess, privacyScore, privacyLevel, walletConnected, rewards, coordinatorRef, router]);
 
   const handleEnableSimulatorFromModal = useCallback(() => {
     setShowNoBikeModal(false);

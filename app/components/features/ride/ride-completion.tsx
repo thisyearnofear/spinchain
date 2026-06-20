@@ -213,11 +213,42 @@ export function RideCompletion({
         </div>
 
         {/* Tab Bar */}
-        <div className="flex gap-1 mb-3 shrink-0 rounded-xl bg-black/30 p-1">
-          {tabs.map((tab) => (
+        <div
+          className="flex gap-1 mb-3 shrink-0 rounded-xl bg-black/30 p-1"
+          role="tablist"
+          aria-label="Ride completion sections"
+        >
+          {tabs.map((tab, index) => (
             <button
               key={tab.id}
+              role="tab"
+              id={`tab-${tab.id}`}
+              aria-selected={activeTab === tab.id}
+              aria-controls={`tabpanel-${tab.id}`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
               onClick={() => setActiveTab(tab.id)}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                  e.preventDefault();
+                  const next = tabs[(index + 1) % tabs.length];
+                  setActiveTab(next.id);
+                  document.getElementById(`tab-${next.id}`)?.focus();
+                } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                  e.preventDefault();
+                  const prev = tabs[(index - 1 + tabs.length) % tabs.length];
+                  setActiveTab(prev.id);
+                  document.getElementById(`tab-${prev.id}`)?.focus();
+                } else if (e.key === "Home") {
+                  e.preventDefault();
+                  setActiveTab(tabs[0].id);
+                  document.getElementById(`tab-${tabs[0].id}`)?.focus();
+                } else if (e.key === "End") {
+                  e.preventDefault();
+                  const last = tabs[tabs.length - 1];
+                  setActiveTab(last.id);
+                  document.getElementById(`tab-${last.id}`)?.focus();
+                }
+              }}
               className={`flex-1 rounded-lg py-2 text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === tab.id
                   ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30"
@@ -230,7 +261,13 @@ export function RideCompletion({
         </div>
 
         {/* Tab Content — scrollable */}
-        <div className="overflow-y-auto flex-1 min-h-0 text-left">
+        <div
+          className="overflow-y-auto flex-1 min-h-0 text-left"
+          role="tabpanel"
+          aria-labelledby={`tab-${activeTab}`}
+          id={`tabpanel-${activeTab}`}
+          tabIndex={0}
+        >
           {activeTab === "summary" && (
             <SummaryTab
               agentPersonality={agentPersonality}
