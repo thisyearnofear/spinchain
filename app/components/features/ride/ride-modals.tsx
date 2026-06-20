@@ -10,6 +10,7 @@ import { KeyboardShortcutOverlay } from "./keyboard-shortcut-overlay";
 import { PedalSimulator } from "@/app/components/features/common/pedal-simulator";
 import { DemoCompleteModal } from "@/app/components/features/common/demo-complete-modal";
 import { RideTutorialOverlay, type TutorialStep } from "./ride-tutorial";
+import type { TutorialStepDef } from "./ride-tutorial";
 import { downloadTCX, type RideRecordPoint } from "@/app/lib/analytics/ride-recorder";
 import type { RideSyncStatus } from "@/app/lib/analytics/ride-history";
 import type { DemoCompleteModalProps } from "@/app/components/features/common/demo-complete-modal";
@@ -35,6 +36,7 @@ interface RideModalsProps {
   demoStats: DemoCompleteModalProps["stats"];
   showTutorial: boolean;
   tutorialStep: TutorialStep;
+  tutorialSteps: TutorialStepDef[];
   agentName: string;
   aiPersonality: "zen" | "drill-sergeant" | "data";
   _rewardMode: string;
@@ -76,6 +78,7 @@ export const RideModals = memo(function RideModals({
   demoStats,
   showTutorial,
   tutorialStep,
+  tutorialSteps,
   agentName,
   aiPersonality,
   _rewardMode,
@@ -213,6 +216,7 @@ export const RideModals = memo(function RideModals({
       {showTutorial && (
         <RideTutorialOverlay
           step={tutorialStep}
+          steps={tutorialSteps}
           onNext={onNextTutorial}
           onDismiss={onDismissTutorial}
         />

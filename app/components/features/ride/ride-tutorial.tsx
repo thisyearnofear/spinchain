@@ -1,41 +1,69 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
-const TUTORIAL_STEPS = [
+type TutorialAudience = "web3" | "fitness";
+
+export interface TutorialStepDef {
+  title: string;
+  content: string;
+  position: string;
+  audience: TutorialAudience;
+}
+
+const ALL_STEPS: TutorialStepDef[] = [
   {
     title: "Welcome to your HUD",
     content: "This is your performance center. Track your power, cadence, and heart rate as you ride.",
     position: "top-1/4 left-1/2 -translate-x-1/2",
+    audience: "fitness",
+  },
+  {
+    title: "Effort Score",
+    content: "Your Effort Score (bottom right) measures workout intensity. Aim for 700+ for a strong session!",
+    position: "top-20 right-10",
+    audience: "fitness",
   },
   {
     title: "Earn as you sweat",
-    content: "Your Effort Score (bottom right) determines your SPIN rewards. The harder you work, the more you earn!",
+    content: "Your Effort Score determines your SPIN token rewards. The harder you work, the more you earn!",
     position: "top-20 right-10",
+    audience: "web3",
   },
   {
     title: "Real-time Rewards",
     content: "Enable 'Live Mode' for instant rewards during your ride, or 'Standard Mode' for private, batched rewards.",
     position: "bottom-48 left-10",
+    audience: "web3",
   },
   {
     title: "Private & Secure",
     content: "Your health data is private. We only verify your effort on the blockchain without ever seeing your raw biometrics.",
     position: "bottom-40 right-10",
+    audience: "web3",
   },
   {
     title: "Ready to Start?",
     content: "Link your bike or use the simulator to begin your journey.",
     position: "bottom-32 left-1/2 -translate-x-1/2",
+    audience: "fitness",
   },
 ];
 
 const STORAGE_KEY = "spinchain:onboarding:ride-tutorial";
 export type TutorialStep = number;
 
-export function useRideTutorial() {
+export function useRideTutorial(opts?: { isPracticeMode?: boolean; walletConnected?: boolean }) {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
+
+  const audience: TutorialAudience =
+    opts?.isPracticeMode || !opts?.walletConnected ? "fitness" : "web3";
+
+  const steps = useMemo(
+    () => ALL_STEPS.filter((s) => s.audience === "fitness" || audience === "web3"),
+    [audience],
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -50,32 +78,34 @@ export function useRideTutorial() {
   }, []);
 
   const nextStep = useCallback(() => {
-    if (tutorialStep < TUTORIAL_STEPS.length - 1) {
+    if (tutorialStep < steps.length - 1) {
       setTutorialStep(s => s + 1);
     } else {
       setShowTutorial(false);
       localStorage.setItem(STORAGE_KEY, "true");
     }
-  }, [tutorialStep]);
+  }, [tutorialStep, steps.length]);
 
   const dismiss = useCallback(() => {
     setShowTutorial(false);
     localStorage.setItem(STORAGE_KEY, "true");
   }, []);
 
-  return { showTutorial, tutorialStep, nextStep, dismiss };
+  return { showTutorial, tutorialStep, nextStep, dismiss, steps };
 }
 
 export function RideTutorialOverlay({
   step,
+  steps,
   onNext,
   onDismiss,
 }: {
   step: number;
+  steps: TutorialStepDef[];
   onNext: () => void;
   onDismiss: () => void;
 }) {
-  const currentStep = TUTORIAL_STEPS[step];
+  const currentStep = steps[step];
   if (!currentStep) return null;
 
   return (
@@ -84,7 +114,7 @@ export function RideTutorialOverlay({
         <div className="rounded-3xl border border-white/20 bg-indigo-600/90 p-8 shadow-[0_20px_50px_rgba(79,70,229,0.3)] backdrop-blur-xl">
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-bold uppercase tracking-widest text-indigo-200">
-              Step {step + 1} of {TUTORIAL_STEPS.length}
+              Step {step + 1} of {steps.length}
             </span>
             <button
               onClick={onDismiss}
@@ -112,7 +142,7 @@ export function RideTutorialOverlay({
               onClick={onNext}
               className="flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-indigo-600 shadow-xl shadow-white/10 hover:bg-indigo-50 active:scale-95 transition-all"
             >
-              <span>{step === TUTORIAL_STEPS.length - 1 ? "Got it!" : "Next"}</span>
+              <span>{step === steps.length - 1 ? "Got it!" : "Next"}</span>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>

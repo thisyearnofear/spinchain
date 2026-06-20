@@ -297,7 +297,7 @@ export default function LiveRidePage() {
   }, []);
 
   // ─── Tutorial ──────────────────────────────────────────────────
-  const { showTutorial, tutorialStep, nextStep: nextTutorial, dismiss: dismissTutorial } = useRideTutorial();
+  const { showTutorial, tutorialStep, nextStep: nextTutorial, dismiss: dismissTutorial, steps: tutorialSteps } = useRideTutorial({ isPracticeMode, walletConnected });
 
   // ─── Loading / Not Found Gates ─────────────────────────────────
   if (isLoading && !isPracticeMode) {
@@ -422,6 +422,7 @@ export default function LiveRidePage() {
         demoStats={lifecycle.demoStats}
         showTutorial={showTutorial}
         tutorialStep={tutorialStep}
+        tutorialSteps={tutorialSteps}
         agentName={agentName}
         aiPersonality={aiPersonality || "data"}
         _rewardMode={rewardMode}
