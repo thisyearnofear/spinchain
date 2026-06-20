@@ -89,6 +89,30 @@ export default function InstructorLivePage() {
     null,
   );
   const [styleAnchors, setStyleAnchors] = useState<any[]>([]);
+  const [leaderboardEntries, setLeaderboardEntries] = useState<
+    Array<{ rank: number; riderId: string; effortScore?: number; durationSec?: number }>
+  >([]);
+
+  // Fetch leaderboard data
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const classId = rideSession?.classId || "default";
+        const res = await fetch(`/api/rides/leaderboard?classId=${encodeURIComponent(classId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.entries && data.entries.length > 0) {
+            setLeaderboardEntries(data.entries.slice(0, 5));
+          }
+        }
+      } catch {
+        // silent fail — fallback to demo data
+      }
+    };
+    fetchLeaderboard();
+    const id = setInterval(fetchLeaderboard, 15_000);
+    return () => clearInterval(id);
+  }, [rideSession?.classId]);
 
   // Load anchors from localStorage
   useEffect(() => {
@@ -584,30 +608,51 @@ export default function InstructorLivePage() {
                   <Users className="w-4 h-4 text-white/20" />
                 </div>
                 <div className="space-y-4">
-                  {/* Demo placeholder data — replace with live leaderboard when real data lands */}
-                  {DEMO_DEFAULTS.leaderboard.map((rider, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-black text-white/20 w-4">
-                          {i + 1}
-                        </span>
-                        <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">
-                          {rider.name}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-indigo-400">
-                          {rider.score}
-                        </span>
-                        <TrendingUp
-                          className={`w-3 h-3 ${rider.trend === "up" ? "text-emerald-400" : "text-rose-400 rotate-180"}`}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                  {leaderboardEntries.length > 0
+                    ? leaderboardEntries.map((entry, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-black text-white/20 w-4">
+                              {entry.rank}
+                            </span>
+                            <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">
+                              {entry.riderId}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-indigo-400">
+                              {entry.effortScore?.toFixed(0) ?? "—"}
+                            </span>
+                            <TrendingUp className="w-3 h-3 text-emerald-400" />
+                          </div>
+                        </div>
+                      ))
+                    : DEMO_DEFAULTS.leaderboard.map((rider, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between group opacity-40"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-black text-white/20 w-4">
+                              {i + 1}
+                            </span>
+                            <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">
+                              {rider.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-indigo-400">
+                              {rider.score}
+                            </span>
+                            <TrendingUp
+                              className={`w-3 h-3 ${rider.trend === "up" ? "text-emerald-400" : "text-rose-400 rotate-180"}`}
+                            />
+                          </div>
+                        </div>
+                      ))}
                 </div>
                 <div className="mt-6 pt-6 border-t border-white/5 flex flex-col items-center justify-center text-center">
                   <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-2">

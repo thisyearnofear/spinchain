@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import {
   GlassCard,
@@ -11,42 +11,42 @@ import {
 import { HookVisualizer } from "@/app/agent/hook-visualizer";
 import { CoachProfile } from "@/app/agent/coach-profile";
 import { TrainingStudio } from "@/app/components/features/coach";
+import { useCoachingStore, selectAiLogs, selectLastCoachMessage, selectLastDecision } from "@/app/stores/coaching-store";
+import { useTelemetryStore, selectTelemetrySnapshot, selectTelemetryAverages } from "@/app/stores/telemetry-store";
+import { useRideStore } from "@/app/stores/ride-store";
+import type { AgentDecision } from "@/app/lib/ai-types";
 
-function useAiInstructor(isActive: boolean) {
-  const [logs, setLogs] = useState<
-    Array<{
-      timestamp: number;
-      message: string;
-      type: "info" | "action" | "alert";
-    }>
-  >([]);
-
-  const addLog = (
-    message: string,
-    type: "info" | "action" | "alert" = "info",
-  ) => {
-    setLogs((prev) => [...prev, { timestamp: Date.now(), message, type }]);
+interface AiHealthStatus {
+  status: string;
+  preferredProvider: string;
+  providers: {
+    venice: { available: boolean; model: string };
+    gemini: { available: boolean; model: string };
   };
+}
+
+function useAiHealth() {
+  const [health, setHealth] = useState<AiHealthStatus | null>(null);
 
   useEffect(() => {
-    if (!isActive) return;
+    let cancelled = false;
+    const fetchHealth = async () => {
+      try {
+        const res = await fetch("/api/ai/health");
+        if (res.ok) {
+          const data = await res.json() as AiHealthStatus;
+          if (!cancelled) setHealth(data);
+        }
+      } catch {
+        // silent fail
+      }
+    };
+    fetchHealth();
+    const id = setInterval(fetchHealth, 30_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
 
-    const interval = setInterval(() => {
-      const actions = [
-        "Scanning mempool for arbitrage...",
-        "Rider fatigue detected: lowering difficulty.",
-        "Adjusting Uniswap v4 Hook fee -> 0.05%",
-        "Sui Move Object sync: 480ms latency",
-        "Distributing SPIN rewards to top performers",
-      ];
-      const randomAction = actions[Math.floor(Math.random() * actions.length)];
-      addLog(randomAction, Math.random() > 0.7 ? "action" : "info");
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, [isActive]);
-
-  return { logs, addLog };
+  return health;
 }
 
 export default function AiInstructorPage() {
@@ -60,7 +60,33 @@ export default function AiInstructorPage() {
   const [suiEnabled, setSuiEnabled] = useState(true);
   const [isActive, setIsActive] = useState(false);
 
-  const { logs, addLog } = useAiInstructor(isActive);
+  // Real data from stores
+  const aiLogs = useCoachingStore(selectAiLogs);
+  const lastCoachMessage = useCoachingStore(selectLastCoachMessage);
+  const lastDecision = useCoachingStore((s) => s.lastDecision) as AgentDecision | null;
+  const rideActive = useRideStore((s) => s.isActive);
+  const rideSnapshot = useTelemetryStore(selectTelemetrySnapshot);
+  const rideAverages = useTelemetryStore(selectTelemetryAverages);
+  const aiHealth = useAiHealth();
+
+  // Map coaching store logs to the activity log format
+  const logs = useMemo(() => {
+    return aiLogs.slice(-20).reverse().map((log) => ({
+      timestamp: log.timestamp,
+      message: log.message,
+      type: log.type === "action" ? "action" as const : log.type === "correction" ? "alert" as const : "info" as const,
+    }));
+  }, [aiLogs]);
+
+  // Derive real insights from store data
+  const insights = useMemo(() => {
+    const provider = aiHealth?.preferredProvider ?? "—";
+    const providerStatus = aiHealth?.status ?? "unknown";
+    const avgPower = rideActive ? Math.round(rideAverages.avgPower || rideSnapshot.power || 0) : null;
+    const avgHr = rideActive ? Math.round(rideAverages.avgHr || rideSnapshot.heartRate || 0) : null;
+    const decisionCount = lastDecision ? 1 : 0;
+    return { provider, providerStatus, avgPower, avgHr, decisionCount };
+  }, [aiHealth, rideActive, rideAverages, rideSnapshot, lastDecision]);
 
   return (
     <div className="min-h-screen bg-background selection:bg-indigo-500/30">
@@ -271,6 +297,11 @@ export default function AiInstructorPage() {
                 >
                   {isActive ? "Terminate Session" : "Deploy Agent"}
                 </button>
+                {isActive && !rideActive && (
+                  <p className="text-[10px] text-center text-amber-400/60 font-bold">
+                    No active ride — start a class to see live agent activity
+                  </p>
+                )}
                 {isActive && (
                   <a
                     href="/instructor/live"
@@ -302,7 +333,7 @@ export default function AiInstructorPage() {
                   <div className="mt-6 flex flex-col gap-3 font-mono text-[9px] max-h-[400px] overflow-y-auto">
                     {logs.length === 0 && (
                       <p className="text-(--muted) italic">
-                        Waiting for telemetry signals...
+                        {rideActive ? "Waiting for telemetry signals..." : "No active ride. Deploy and start a class to see live agent decisions."}
                       </p>
                     )}
                     {logs.map((log, i) => (
@@ -332,23 +363,39 @@ export default function AiInstructorPage() {
 
               <div className="mt-6 p-6 rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm">
                 <h4 className="text-xs font-black text-white/40 uppercase tracking-widest mb-4">
-                  Quick Insights
+                  Live Insights
                 </h4>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/60">Success Rate</span>
-                    <span className="text-xs font-bold text-emerald-400">
-                      99.8%
+                    <span className="text-xs text-white/60">AI Provider</span>
+                    <span className={`text-xs font-bold ${insights.providerStatus === "ready" ? "text-emerald-400" : "text-amber-400"}`}>
+                      {insights.provider} {insights.providerStatus === "ready" ? "✓" : "⚠"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/60">
-                      Latentency (Sui)
-                    </span>
+                    <span className="text-xs text-white/60">Avg Power</span>
                     <span className="text-xs font-bold text-cyan-400">
-                      420ms
+                      {insights.avgPower !== null ? `${insights.avgPower}W` : "—"}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-white/60">Avg HR</span>
+                    <span className="text-xs font-bold text-rose-400">
+                      {insights.avgHr !== null ? `${insights.avgHr} bpm` : "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-white/60">Ride Status</span>
+                    <span className={`text-xs font-bold ${rideActive ? "text-emerald-400" : "text-white/30"}`}>
+                      {rideActive ? "Active" : "Idle"}
+                    </span>
+                  </div>
+                  {lastCoachMessage && (
+                    <div className="pt-3 border-t border-white/5">
+                      <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Last Coach Message</span>
+                      <p className="text-[11px] text-white/70 italic">&ldquo;{lastCoachMessage}&rdquo;</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

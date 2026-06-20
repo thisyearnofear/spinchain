@@ -32,6 +32,8 @@ import { useCoachVoice, useWorkoutAudio } from "../hooks/ai/elevenlabs";
 import { CoachAvatar } from "../components/features/coach/avatar";
 import { VoiceToggle } from "../components/ui/voice-toggle";
 import { AudioWaveform, AudioIndicator } from "../components/ui/audio-waveform";
+import { useTelemetryStore, selectTelemetrySnapshot } from "../stores/telemetry-store";
+import { useRideStore } from "../stores/ride-store";
 
 interface CoachProfileProps {
   name?: string;
@@ -60,6 +62,10 @@ export function CoachProfile({
   const client = useSuiClient();
   const account = useCurrentAccount();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+
+  // Real telemetry from Zustand stores
+  const rideSnapshot = useTelemetryStore(selectTelemetrySnapshot);
+  const rideActive = useRideStore((s) => s.isActive);
 
   // Resolve instructor profile (ENS, etc.)
   const { profile: instructorProfile } = useProfile(instructorAddress);
@@ -132,17 +138,17 @@ export function CoachProfile({
         });
         setCoachData(obj.data?.content as unknown as SuiCoachData);
 
-        // Trigger AI Reasoning on new data fetch
+        // Trigger AI Reasoning with real telemetry data
         reason({
           telemetry: {
-            avgBpm: 145, // Mock data for now
-            resistance: 65,
-            duration: 25,
+            avgBpm: rideActive ? Math.round(rideSnapshot.heartRate) : 0,
+            resistance: rideActive ? Math.round(rideSnapshot.resistance) : 0,
+            duration: rideActive ? Math.round(rideSnapshot.distance) : 0,
           },
           market: {
-            ticketsSold: 85,
-            revenue: 2.4,
-            capacity: 100,
+            ticketsSold: 0,
+            revenue: 0,
+            capacity: 0,
           },
           recentDecisions: [],
         });
@@ -154,7 +160,7 @@ export function CoachProfile({
     fetchCoach();
     const interval = setInterval(fetchCoach, 5000);
     return () => clearInterval(interval);
-  }, [coachId, client, reason]);
+  }, [coachId, client, reason, rideActive, rideSnapshot.heartRate, rideSnapshot.resistance, rideSnapshot.distance]);
 
   // Preload workout sounds when coach is deployed
   useEffect(() => {

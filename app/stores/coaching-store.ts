@@ -78,4 +78,5 @@ export const selectIntervalRemaining = (s: CoachingState) => s.intervalRemaining
 export const selectLastCoachMessage = (s: CoachingState) => s.lastCoachMessage;
 export const selectIsSpeaking = (s: CoachingState) => s.isSpeaking;
 export const selectAiLogs = (s: CoachingState) => s.aiLogs;
+export const selectLastDecision = (s: CoachingState) => s.lastDecision;
 export const selectRouteTheme = (s: CoachingState) => s.routeTheme;
