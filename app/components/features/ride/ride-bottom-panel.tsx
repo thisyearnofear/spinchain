@@ -76,7 +76,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   const lastDecision = useCoachingStore((s) => s.lastDecision);
   const thoughtLog = useCoachingStore((s) => s.thoughtLog);
 
-  const aiActive = isRiding && (isPracticeMode || true);
+  const aiActive = isRiding;
 
   const isWidgetsMinimized = widgetsMode === "minimized";
   const isWidgetsCollapsed = widgetsMode === "collapsed";
@@ -242,14 +242,8 @@ export const RideBottomPanel = memo(function RideBottomPanel({
 
             <div className="flex items-center justify-between text-white">
               <div className="text-left">
-                <p className="text-[10px] sm:text-sm text-white/50">Progress</p>
-                <p className="text-xl sm:text-2xl font-bold">
-                  {rideProgress.toFixed(0)}%
-                </p>
-              </div>
-              <div className="text-center">
                 <p className="text-[10px] sm:text-sm text-white/50">Time</p>
-                <div className="flex items-center gap-2 justify-center">
+                <div className="flex items-center gap-2">
                   <p className="text-xl sm:text-2xl font-bold">
                     {formatTime(elapsedTime)}
                   </p>

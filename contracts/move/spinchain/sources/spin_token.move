@@ -144,6 +144,7 @@ module spinchain::spin_token {
         buyback_coins: Coin<SPIN_TOKEN>,
         ctx: &mut TxContext
     ) {
+        let mut buyback_coins = buyback_coins;
         let buyback_amount = coin::value(&buyback_coins);
         assert!(buyback_amount > 0, EInvalidAmount);
         assert!(tx_context::sender(ctx) == manager.admin, ENotAuthorized);

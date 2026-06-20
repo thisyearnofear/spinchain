@@ -11,6 +11,7 @@ import type { HapticType } from "@/app/hooks/use-haptic";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
 import { useUIStore } from "@/app/stores/ui-store";
+import { selectHudMode } from "@/app/stores/ui-store";
 
 interface RideHUDOverlayProps {
   classData: { name: string; instructor: string };
@@ -45,6 +46,7 @@ export const RideHUDOverlay = memo(function RideHUDOverlay(props: RideHUDOverlay
   const deviceType = useUIStore((s) => s.deviceType);
   const widgetsMode = useUIStore((s) => s.widgetsMode);
   const viewMode = useUIStore((s) => s.viewMode);
+  const hudMode = useUIStore(selectHudMode);
 
   const cycleWidgetsMode = useUIStore((s) => s.cycleWidgetsMode);
 
@@ -64,11 +66,11 @@ export const RideHUDOverlay = memo(function RideHUDOverlay(props: RideHUDOverlay
         isAllCollapsed={props.isAllCollapsed}
       />
 
-      {(!isRiding || deviceType !== "mobile" || true) && (
+      {hudMode !== "minimal" && (
         <RideHUD />
       )}
 
-      {isRiding && viewMode === "immersive" && (
+      {isRiding && viewMode === "immersive" && hudMode !== "minimal" && (
         <button
           onClick={() => {
             props.onHaptic("light");
@@ -99,22 +101,24 @@ export const RideHUDOverlay = memo(function RideHUDOverlay(props: RideHUDOverlay
         </button>
       )}
 
-      <RideBottomPanel
-        walletConnected={props.walletConnected}
-        workoutPlan={props.workoutPlan}
-        connectionHint={props.connectionHint}
-        panelState={props.panelState}
-        onTogglePanel={props.onTogglePanel}
-        onSetWidgetsMode={props.onSetWidgetsMode}
-        onStartRide={props.onStartRide}
-        onPauseRide={props.onPauseRide}
-        onSetWorkoutPlan={props.onSetWorkoutPlan}
-        onSetUseSimulator={props.onSetUseSimulator}
-        onBleMetrics={props.onBleMetrics}
-        onSimulatorMetrics={props.onSimulatorMetrics}
-        onHaptic={props.onHaptic}
-        formatTime={props.formatTime}
-      />
+      {hudMode !== "minimal" && (
+        <RideBottomPanel
+          walletConnected={props.walletConnected}
+          workoutPlan={props.workoutPlan}
+          connectionHint={props.connectionHint}
+          panelState={props.panelState}
+          onTogglePanel={props.onTogglePanel}
+          onSetWidgetsMode={props.onSetWidgetsMode}
+          onStartRide={props.onStartRide}
+          onPauseRide={props.onPauseRide}
+          onSetWorkoutPlan={props.onSetWorkoutPlan}
+          onSetUseSimulator={props.onSetUseSimulator}
+          onBleMetrics={props.onBleMetrics}
+          onSimulatorMetrics={props.onSimulatorMetrics}
+          onHaptic={props.onHaptic}
+          formatTime={props.formatTime}
+        />
+      )}
     </div>
   );
 });

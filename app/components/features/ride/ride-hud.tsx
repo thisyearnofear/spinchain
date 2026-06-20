@@ -218,6 +218,8 @@ export function RideHUD() {
   const rewardsMode = useRewardsStore((s) => s.mode);
   const intervalPhase = useCoachingStore((s) => s.currentInterval?.phase ?? null);
   const targetRpm = useCoachingStore((s) => s.currentInterval?.targetRpm);
+  const lastCoachMessage = useCoachingStore((s) => s.lastCoachMessage);
+  const lastDecision = useCoachingStore((s) => s.lastDecision);
 
   const telemetry: TelemetryData = useMemo(() => ({
     heartRate, power, cadence, speed, effort, currentGear, gearRatio,
@@ -241,7 +243,9 @@ export function RideHUD() {
     ? intervalPhase.charAt(0).toUpperCase() + intervalPhase.slice(1)
     : "Cruise";
 
-  const agentInsight = (
+  const coachMessage = lastCoachMessage || lastDecision?.thoughtProcess || null;
+
+  const agentInsight = coachMessage ? (
     <div className="mt-4 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
       <div className="flex items-center gap-2 mb-2 mt-4">
         <div className="relative">
@@ -257,7 +261,7 @@ export function RideHUD() {
         <div className="relative rounded-xl bg-black/60 border border-white/10 px-4 py-3 backdrop-blur shadow-2xl">
           <p className="text-[13px] text-white/90 leading-relaxed font-medium tracking-tight">
             <span className="text-indigo-400 mr-2">●</span>
-            Keep your breathing steady. You&apos;re crushing this climb!
+            {coachMessage}
           </p>
 
           {rewardsMode === "yellow-stream" && (
@@ -271,7 +275,7 @@ export function RideHUD() {
         </div>
       </div>
     </div>
-  );
+  ) : null;
 
   const flowStateVisualizer = (
     <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10 opacity-40">

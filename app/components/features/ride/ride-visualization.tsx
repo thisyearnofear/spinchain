@@ -72,7 +72,6 @@ export function RideVisualization({
 
   const isRiding = useRideStore((s) => s.isActive);
   const rideProgress = useRideStore((s) => s.rideProgress);
-  const elapsedTime = useRideStore((s) => s.elapsedTime);
 
   const heartRate = useTelemetryStore((s) => s.snapshot.heartRate);
   const power = useTelemetryStore((s) => s.snapshot.power);
@@ -120,12 +119,6 @@ export function RideVisualization({
   const visualizerMode: "preview" | "ride" | "finished" =
     rideProgress >= 100 ? "finished" : isRiding || rideProgress > 0 ? "ride" : "preview";
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
   return (
     <div className="absolute inset-0">
       {effectiveMode === "focus-2d" ? (
@@ -172,36 +165,6 @@ export function RideVisualization({
           className="h-full w-full"
           userDisplayName={undefined}
         />
-      )}
-
-      {isRiding && deviceType === "mobile" && (
-        <div
-          className="absolute bottom-3 left-3 right-3 flex items-center justify-between rounded-xl border border-white/10 bg-black/80 backdrop-blur-xl px-4 py-2 pointer-events-none"
-          style={{ zIndex: Z_LAYERS.widgets + 10 }}
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Time</span>
-              <span className="text-sm font-bold text-white">{formatTime(elapsedTime)}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Progress</span>
-              <span className="text-sm font-bold text-white">{Math.round(rideProgress)}%</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            {heartRate > 0 && (
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-white/40">HR</span>
-                <span className="text-sm font-bold text-rose-400">{heartRate}</span>
-              </div>
-            )}
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Watts</span>
-              <span className="text-sm font-bold text-yellow-400">{power}</span>
-            </div>
-          </div>
-        </div>
       )}
 
       {(isRiding || rideProgress > 0) && (

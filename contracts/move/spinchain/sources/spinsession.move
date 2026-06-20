@@ -3,10 +3,7 @@ module spinchain::spinsession {
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
     use sui::event;
-    use sui::coin::{Coin};
     use std::string::{String};
-    use deepbook::balance_manager::{BalanceManager};
-    use deepbook::pool::{Pool};
 
     // --- Errors ---
     const ENotOwner: u64 = 0;
@@ -18,7 +15,7 @@ module spinchain::spinsession {
     // --- Core Objects ---
 
     /// Represents a live fitness session on Sui.
-    struct Session has key, store {
+    public struct Session has key, store {
         id: UID,
         class_id: ID, // Reference to the Base class ID (e.g. on EVM or another Sui object)
         instructor: address,
@@ -28,7 +25,7 @@ module spinchain::spinsession {
 
     /// The AI Coach Agent living on Sui.
     /// Enhanced with Strategy, Boundary, and Cognitive configurations to define its autonomous behavior.
-    struct Coach has key, store {
+    public struct Coach has key, store {
         id: UID,
         owner: address,
         name: String,
@@ -58,7 +55,7 @@ module spinchain::spinsession {
     }
 
     /// High-frequency telemetry for a rider.
-    struct RiderStats has key, store {
+    public struct RiderStats has key, store {
         id: UID,
         session_id: ID,
         rider: address,
@@ -71,7 +68,7 @@ module spinchain::spinsession {
     /// Durable on-chain pointer to a rider's telemetry blob stored on Walrus.
     /// "Walrus-as-memory": the ride's full time-series lives off-chain on Walrus,
     /// while this owned object anchors the blob ID + storage epoch on Sui.
-    struct TelemetryAnchor has key, store {
+    public struct TelemetryAnchor has key, store {
         id: UID,
         rider: address,
         class_id: String,
@@ -84,7 +81,7 @@ module spinchain::spinsession {
     // --- Events ---
 
     /// Event emitted when a telemetry update happens.
-    struct TelemetryPoint has copy, drop {
+    public struct TelemetryPoint has copy, drop {
         rider: address,
         hr: u32,
         power: u32,
@@ -93,14 +90,14 @@ module spinchain::spinsession {
     }
 
     /// Event emitted when an AI instructor triggers a story beat.
-    struct StoryBeatTriggered has copy, drop {
+    public struct StoryBeatTriggered has copy, drop {
         label: String,
         beat_type: String,
         intensity: u8,
     }
 
     /// Event emitted when the Coach adjusts the environment.
-    struct EnvironmentChanged has copy, drop {
+    public struct EnvironmentChanged has copy, drop {
         coach_id: ID,
         tempo: u64,
         resistance: u8,
@@ -108,7 +105,7 @@ module spinchain::spinsession {
     }
 
     /// Event emitted when coach strategy is updated.
-    struct StrategyUpdated has copy, drop {
+    public struct StrategyUpdated has copy, drop {
         coach_id: ID,
         strategy_type: u8,
         min_bpm: u64,
@@ -116,7 +113,7 @@ module spinchain::spinsession {
     }
 
     /// Event emitted when a new session is created.
-    struct SessionCreated has copy, drop {
+    public struct SessionCreated has copy, drop {
         session_id: ID,
         class_id: ID,
         instructor: address,
@@ -124,14 +121,14 @@ module spinchain::spinsession {
     }
 
     /// Event emitted when a rider joins a session.
-    struct RiderJoined has copy, drop {
+    public struct RiderJoined has copy, drop {
         session_id: ID,
         rider: address,
         stats_id: ID,
     }
 
     /// Event emitted when a rider anchors a Walrus telemetry blob on-chain.
-    struct TelemetryBlobAttached has copy, drop {
+    public struct TelemetryBlobAttached has copy, drop {
         anchor_id: ID,
         rider: address,
         class_id: String,
@@ -377,58 +374,13 @@ module spinchain::spinsession {
     }
 
     // --- DeepBook Liquidity Management ---
-
-    /// Registers a BalanceManager for the coach to enable DeepBook interactions.
-    public entry fun register_balance_manager(
-        coach: &mut Coach,
-        manager: &BalanceManager,
-        ctx: &mut TxContext
-    ) {
-        assert!(tx_context::sender(ctx) == coach.owner, ENotOwner);
-        coach.balance_manager_id = std::option::some(object::id(manager));
-    }
-
-    /// Places a limit order on DeepBook.
-    /// AI Agent can use this to manage liquidity for the SPIN token or execute trades.
-    public entry fun place_limit_order<AssetBase, AssetQuote>(
-        coach: &mut Coach,
-        pool: &mut Pool<AssetBase, AssetQuote>,
-        manager: &mut BalanceManager,
-        price: u64,
-        quantity: u64,
-        is_bid: bool,
-        expire_timestamp: u64,
-        restriction: u8,
-        ctx: &mut TxContext
-    ) {
-        assert!(tx_context::sender(ctx) == coach.owner, ENotOwner);
-        assert!(std::option::is_some(&coach.balance_manager_id), EInvalidBoundaries);
-        assert!(*std::option::borrow(&coach.balance_manager_id) == object::id(manager), ENotOwner);
-
-        pool.place_limit_order(
-            manager,
-            price,
-            quantity,
-            is_bid,
-            expire_timestamp,
-            restriction,
-            ctx
-        );
-    }
-
-    /// Deposits assets into the coach's BalanceManager.
-    public entry fun deposit_assets<T>(
-        coach: &mut Coach,
-        manager: &mut BalanceManager,
-        coin: Coin<T>,
-        ctx: &mut TxContext
-    ) {
-        assert!(tx_context::sender(ctx) == coach.owner, ENotOwner);
-        assert!(std::option::is_some(&coach.balance_manager_id), EInvalidBoundaries);
-        assert!(*std::option::borrow(&coach.balance_manager_id) == object::id(manager), ENotOwner);
-
-        manager.deposit(coin, ctx);
-    }
+    //
+    // Deferred: the `framework/testnet` revision of DeepBook has been
+    // restructured (modules are now `clob_v2` / `custodian_v2` / etc.) and
+    // there is no top-level `balance_manager` or `pool` module. Re-introducing
+    // a real DeepBook integration is post-hackathon work. The `Coach` struct
+    // keeps the `balance_manager_id: Option<ID>` field so a future upgrade
+    // can populate it without a struct-layout migration.
 
     // --- View Functions ---
 

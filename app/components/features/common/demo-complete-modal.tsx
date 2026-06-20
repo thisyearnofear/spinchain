@@ -273,7 +273,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                     className="flex items-center justify-center gap-2 w-full py-2.5 px-6 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] text-[color:var(--foreground)] font-semibold hover:bg-[color:var(--surface-elevated)] transition-colors text-sm"
                   >
                     <span>💼</span>
-                    Connect Wallet to Earn
+                    Connect Wallet to Save Rides
                   </Link>
 
                   <button

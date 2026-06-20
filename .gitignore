@@ -55,9 +55,10 @@ debug.log
 next-env.d.ts
 
 # Move build artifacts
-move/**/build/
-move/**/Move.lock
-move/**/Published.toml
+contracts/move/**/build/
+contracts/move/**/Move.lock
+contracts/move/**/Published.toml
+contracts/move/**/deployment.log
 
 # IDE and editor files
 .vscode/
@@ -80,6 +81,7 @@ circuits/*/target/
 .junie
 .blackboxcli/
 .letta/
+.commandcode/
 
 # External repos
 /remix-glassmorphism-analytics-/

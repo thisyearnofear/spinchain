@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from "react";
 import { formatTime } from "@/app/lib/formatters";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
-import { Star, Cloud, Share2, CheckCircle2 } from "lucide-react";
+import { Star, Cloud, Share2, CheckCircle2, ExternalLink } from "lucide-react";
 import { LoadingButton } from "../../ui/loading-button";
 import { WalrusClient } from "@/app/lib/walrus/client";
 
@@ -52,6 +52,7 @@ interface RideCompletionProps {
   agentPersonality?: "zen" | "drill-sergeant" | "data";
   syncStatus?: "local_only" | "queued" | "relayed" | "anchored" | "failed";
   primaryAction?: "view_history" | "ride_again";
+  walrusAnchorInfo?: { blobId: string; txDigest?: string } | null;
 }
 
 export function RideCompletion({
@@ -74,6 +75,7 @@ export function RideCompletion({
   agentPersonality = "data",
   syncStatus = "local_only",
   primaryAction = "view_history",
+  walrusAnchorInfo = null,
 }: RideCompletionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [rating, setRating] = useState(0);
@@ -459,8 +461,44 @@ export function RideCompletion({
             </div>
             <Cloud className="w-4 h-4 text-indigo-400" />
           </div>
-          
-          {!walrusId ? (
+
+          {/* Auto-anchored from ride exit */}
+          {walrusAnchorInfo && (
+            <div className="space-y-3 mb-4">
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Anchored to Walrus</span>
+              </div>
+              <div className="p-3 rounded-xl bg-black/40 border border-white/5 overflow-hidden">
+                <p className="text-[8px] font-mono text-white/30 truncate uppercase">Blob ID: {walrusAnchorInfo.blobId}</p>
+                {walrusAnchorInfo.txDigest && (
+                  <p className="text-[8px] font-mono text-white/30 truncate mt-1">Sui TX: {walrusAnchorInfo.txDigest}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <a
+                  href={`https://aggregator.walrus-testnet.walrus.space/v1/${walrusAnchorInfo.blobId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] text-indigo-300 hover:text-indigo-200 transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" /> View on Walrus
+                </a>
+                {walrusAnchorInfo.txDigest && (
+                  <a
+                    href={`https://suiscan.xyz/testnet/tx/${walrusAnchorInfo.txDigest}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[10px] text-indigo-300 hover:text-indigo-200 transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" /> View on SuiScan
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!walrusId && !walrusAnchorInfo ? (
             <LoadingButton
               variant="secondary"
               className="w-full h-12 rounded-2xl gap-2 font-black uppercase tracking-widest text-[10px]"
@@ -481,6 +519,28 @@ export function RideCompletion({
                 <p className="text-[8px] font-mono text-white/30 truncate uppercase">Blob ID: {walrusId}</p>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Next Ride Recommendation */}
+        <div className="mb-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-left text-xs text-white/80">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-semibold text-white flex items-center gap-1.5">
+              🎯 Next Ride Recommendation
+            </span>
+          </div>
+          {avgEffort >= 800 ? (
+            <p className="text-white/70">
+              You crushed it! Ready for a bigger challenge? Try a higher-intensity class to push your threshold even further.
+            </p>
+          ) : avgEffort >= 500 ? (
+            <p className="text-white/70">
+              Solid effort. Next time, aim to push above 700 effort score to unlock higher SPIN rewards. An interval-focused class will help you get there.
+            </p>
+          ) : (
+            <p className="text-white/70">
+              Great start on your fitness journey! A steady endurance class will help you build your base and increase your effort score over time.
+            </p>
           )}
         </div>
 

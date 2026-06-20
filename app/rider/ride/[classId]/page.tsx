@@ -24,7 +24,6 @@ import {
   useActualViewportHeight,
   usePerformanceTier,
 } from "../../../lib/responsive";
-import { RiderSocialFeed } from "../../../components/features/ride/social-feed";
 import { CoachMessageOverlay } from "../../../components/features/ride/coach-message-overlay";
 import { FlowBackground } from "../../../components/features/ride/flow-background";
 import { PerformanceGraph } from "../../../components/features/ride/performance-graph";
@@ -56,12 +55,6 @@ import {
 import { persistRideSummaryToWalrus } from "../../../lib/walrus/ride-persistence";
 import { SectionErrorBoundary } from "../../../components/layout/error-boundary";
 
-type SocialEvent = { id: string; type: "shoutout" | "recommendation" | "nudge" | "highfive"; message: string; timestamp: number; from?: string };
-
-// Stable empty reference — social events are driven via the CoachingEngine/EventBus,
-// not local state. Hoisting this out of render keeps the prop identity stable so
-// RiderSocialFeed doesn't re-render on every parent render.
-const EMPTY_SOCIAL_EVENTS: SocialEvent[] = [];
 
 export default function LiveRidePage() {
   const params = useParams();
@@ -138,6 +131,9 @@ export default function LiveRidePage() {
   // ─── Panel State ───────────────────────────────────────────────
   const panelState = usePanelState(deviceType);
   const viewMode = useUIStore((s) => s.viewMode);
+  const hudMode = useUIStore((s) => s.hudMode);
+  const cycleHudMode = useUIStore((s) => s.cycleHudMode);
+  const toggleViewMode = useUIStore((s) => s.toggleViewMode);
 
   useEffect(() => {
     if (isRiding) panelState.startRideLayout();
@@ -314,16 +310,22 @@ export default function LiveRidePage() {
   // ─── Keyboard Shortcuts ────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === "c" || e.key === "C") {
-        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
         e.preventDefault();
         if (panelState.isAllCollapsed) panelState.expandAll();
         else panelState.collapseAll();
+      } else if (e.key === "h" || e.key === "H") {
+        e.preventDefault();
+        cycleHudMode();
+      } else if (e.key === "v" || e.key === "V") {
+        e.preventDefault();
+        toggleViewMode();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [panelState]);
+  }, [panelState, cycleHudMode, toggleViewMode]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !isRiding) return;
@@ -342,6 +344,19 @@ export default function LiveRidePage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isRiding, playSound, coordinator]);
+
+  // ─── Visibility Pause (save CPU when tab hidden) ──────────────
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleVisibility = () => {
+      if (document.hidden && isRidingRef.current) {
+        isRidingRef.current = false;
+        useRideStore.setState({ isActive: false });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
 
   // ─── Analytics Tracking ────────────────────────────────────────
   const trackedEntryViewRef = useRef(false);
@@ -512,23 +527,28 @@ export default function LiveRidePage() {
     // re-saved (idempotent on id) with the anchoring result.
     void (async () => {
       const blobId = await persistRideSummaryToWalrus(canonicalSummary);
-      if (!blobId || !suiAccount) return;
-      const pointCount = useTelemetryStore.getState().ridePoints.length;
-      const anchorResult = await coordinatorRef.current?.anchorSuiTelemetry({
-        classId,
-        blobId,
-        epoch: 90,
-        pointCount,
-      });
-      saveRideSummary({
-        ...canonicalSummary,
-        anchoring: {
-          attempted: true,
-          txHash: anchorResult?.digest as `0x${string}` | undefined,
-          status: anchorResult ? "confirmed" : "failed",
-          commitmentEpoch: 90,
-        },
-      });
+      if (!blobId) return;
+      if (suiAccount) {
+        const pointCount = useTelemetryStore.getState().ridePoints.length;
+        const anchorResult = await coordinatorRef.current?.anchorSuiTelemetry({
+          classId,
+          blobId,
+          epoch: 90,
+          pointCount,
+        });
+        saveRideSummary({
+          ...canonicalSummary,
+          anchoring: {
+            attempted: true,
+            txHash: anchorResult?.digest as `0x${string}` | undefined,
+            status: anchorResult ? "confirmed" : "failed",
+            commitmentEpoch: 90,
+          },
+        });
+        setWalrusAnchorInfo({ blobId, txDigest: anchorResult?.digest });
+      } else {
+        setWalrusAnchorInfo({ blobId });
+      }
     })();
     const latest = saved.find((ride) => ride.id === canonicalSummary.id) ?? canonicalSummary;
     const queued = enqueueRideSync(latest);
@@ -597,9 +617,8 @@ export default function LiveRidePage() {
     reset: resetSimulatedSpin,
   }), [simulatedSpin, shouldSimulate, resetSimulatedSpin]);
 
-  // ─── Social Events (placeholder — CoachingEngine handles via EventBus) ──
-  const socialEvents = EMPTY_SOCIAL_EVENTS;
-  const handleHighFive = useCallback(() => {}, []);
+  // ─── Walrus Anchor State ──────────────────────────────────────
+  const [walrusAnchorInfo, setWalrusAnchorInfo] = useState<{ blobId: string; txDigest?: string } | null>(null);
 
   // ─── Milestone Logic ───────────────────────────────────────────
   const [showMilestone, setShowMilestone] = useState<{ title: string; subtitle: string } | null>(null);
@@ -658,42 +677,42 @@ export default function LiveRidePage() {
         />
       </SectionErrorBoundary>
 
-      <RideHUDOverlay
-        classData={classData}
-        routeIsGenerated={classData?.routeIsGenerated}
-        walletConnected={walletConnected}
-        workoutPlan={workoutPlan}
-        connectionHint={connectionHint}
-        simulatedReward={simulatedRewards}
-        panelState={panelState.state}
-        rewardMode={rewardMode}
-        onSetUseSimulator={setUseSimulator}
-        onSetRewardMode={setRewardMode}
-        onExitRide={exitRide}
-        onResetPrefs={handleResetPrefs}
-        onCollapseToggle={handleCollapseToggle}
-        isAllCollapsed={panelState.isAllCollapsed}
-        onTogglePanel={handleTogglePanel}
-        onSetWidgetsMode={panelState.setMobileRideWidgetsMode}
-        onStartRide={startRide}
-        onPauseRide={pauseRide}
-        onSetWorkoutPlan={setWorkoutPlan}
-        onBleMetrics={handleBleMetrics}
-        onSimulatorMetrics={handleSimulatorMetrics}
-        onHaptic={haptic.trigger}
-        formatTime={formatTime}
-      />
+      <SectionErrorBoundary title="ride HUD">
+        <RideHUDOverlay
+          classData={classData}
+          routeIsGenerated={classData?.routeIsGenerated}
+          walletConnected={walletConnected}
+          workoutPlan={workoutPlan}
+          connectionHint={connectionHint}
+          simulatedReward={simulatedRewards}
+          panelState={panelState.state}
+          rewardMode={rewardMode}
+          onSetUseSimulator={setUseSimulator}
+          onSetRewardMode={setRewardMode}
+          onExitRide={exitRide}
+          onResetPrefs={handleResetPrefs}
+          onCollapseToggle={handleCollapseToggle}
+          isAllCollapsed={panelState.isAllCollapsed}
+          onTogglePanel={handleTogglePanel}
+          onSetWidgetsMode={panelState.setMobileRideWidgetsMode}
+          onStartRide={startRide}
+          onPauseRide={pauseRide}
+          onSetWorkoutPlan={setWorkoutPlan}
+          onBleMetrics={handleBleMetrics}
+          onSimulatorMetrics={handleSimulatorMetrics}
+          onHaptic={haptic.trigger}
+          formatTime={formatTime}
+        />
+      </SectionErrorBoundary>
 
-      <RiderSocialFeed events={socialEvents} onHighFive={handleHighFive} />
-
-      {isRiding && viewMode === "immersive" && (
+      {isRiding && viewMode === "immersive" && hudMode !== "minimal" && (
         <div className="fixed top-32 right-6 z-40 flex flex-col gap-4">
           <PerformanceGraph data={telemetryHistory.power} color="text-yellow-400" label="Power" max={400} />
           <PerformanceGraph data={telemetryHistory.cadence} color="text-blue-400" label="Cadence" max={140} />
         </div>
       )}
 
-      {isRiding && viewMode === "immersive" && multiGhostState.length > 0 && (
+      {isRiding && viewMode === "immersive" && hudMode !== "minimal" && multiGhostState.length > 0 && (
         <div className="fixed top-32 left-6 z-40 flex flex-col gap-3">
           {multiGhostState.map((rider) => (
             <div key={rider.id} className="flex items-center gap-3 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full pl-1.5 pr-4 py-1.5 animate-in fade-in slide-in-from-left-5 duration-500">
@@ -714,8 +733,8 @@ export default function LiveRidePage() {
         </div>
       )}
 
-      <FlowBackground />
-      <SettlementStream />
+      {hudMode !== "minimal" && <FlowBackground />}
+      {hudMode !== "minimal" && <SettlementStream />}
       <CoachMessageOverlay />
 
       {isRiding && currentInterval?.phase === "sprint" && (
@@ -744,6 +763,7 @@ export default function LiveRidePage() {
         _walletConnected={walletConnected}
         ridePointsRef={emptyRidePointsRef}
         router={router}
+        walrusAnchorInfo={walrusAnchorInfo}
         onExitRide={exitRide}
         onEnableSimulatorFromModal={handleEnableSimulatorFromModal}
         onDismissNoBike={handleDismissNoBike}

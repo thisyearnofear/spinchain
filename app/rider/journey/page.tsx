@@ -22,10 +22,11 @@ import {
   ShieldCheck,
   Wallet,
   Coins,
-  ArrowRight,
+  Bike,
 } from "lucide-react";
 import { getWalrusFeed, retrieveRideSummaryFromWalrus, type WalrusFeedEntry } from "../../lib/walrus/ride-persistence";
 import { useAccount } from "wagmi";
+import Link from "next/link";
 
 function JourneyContent() {
   const searchParams = useSearchParams();
@@ -90,10 +91,21 @@ function JourneyContent() {
 
         {isCompletedLanding && (
           <div className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-6 py-4 text-emerald-100">
-            <p className="text-sm font-semibold">Ride complete 🎉</p>
-            <p className="mt-1 text-sm text-emerald-100/80">
-              Your latest ride has been added to your journey history.
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold">Ride complete 🎉</p>
+                <p className="mt-1 text-sm text-emerald-100/80">
+                  Your latest ride has been added to your journey history.
+                </p>
+              </div>
+              <Link
+                href="/rider"
+                className="flex items-center gap-2 rounded-xl bg-emerald-500/20 border border-emerald-400/30 px-4 py-2.5 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/30 transition-all whitespace-nowrap"
+              >
+                <Bike className="w-4 h-4" />
+                Ride Again
+              </Link>
+            </div>
           </div>
         )}
 
@@ -134,19 +146,19 @@ function JourneyContent() {
             <div className="grid gap-4 md:grid-cols-3">
               <div className="p-5 rounded-3xl bg-black/40 border border-white/5">
                 <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] block mb-2">
-                  Claimable SPIN
+                  Total SPIN Earned
                 </span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black text-white tracking-tighter">
-                    420.69
+                    {rides.reduce((sum, r) => sum + r.spinEarned, 0).toFixed(1)}
                   </span>
                   <span className="text-xs font-bold text-yellow-500 uppercase">
                     SPIN
                   </span>
                 </div>
-                <button className="mt-4 w-full py-2.5 rounded-xl bg-yellow-500 text-black text-[10px] font-black uppercase tracking-[0.2em] hover:bg-yellow-400 transition-all flex items-center justify-center gap-2">
-                  Claim to Wallet <ArrowRight className="w-3 h-3" />
-                </button>
+                <p className="mt-4 text-[10px] text-white/40 font-medium">
+                  Rewards are claimed automatically after each ride. No separate claim action needed.
+                </p>
               </div>
 
               <div className="p-5 rounded-3xl bg-black/40 border border-white/5">

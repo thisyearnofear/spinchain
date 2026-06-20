@@ -17,6 +17,7 @@ import type { EnhancedClassMetadata } from "@/app/lib/contracts";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useUIStore } from "@/app/stores/ui-store";
+import { useCoachingStore } from "@/app/stores/coaching-store";
 
 interface RideModalsProps {
   classId: string;
@@ -38,6 +39,7 @@ interface RideModalsProps {
   aiPersonality: "zen" | "drill-sergeant" | "data";
   _rewardMode: string;
   _walletConnected: boolean;
+  walrusAnchorInfo?: { blobId: string; txDigest?: string } | null;
   ridePointsRef: React.MutableRefObject<RideRecordPoint[]>;
   router: AppRouterInstance;
   onExitRide: () => void;
@@ -78,6 +80,7 @@ export const RideModals = memo(function RideModals({
   aiPersonality,
   _rewardMode,
   _walletConnected,
+  walrusAnchorInfo,
   ridePointsRef,
   router,
   onExitRide,
@@ -99,6 +102,7 @@ export const RideModals = memo(function RideModals({
   const useSimulator = useUIStore((s) => s.useSimulator);
 
   const telemetryAverages = useTelemetryStore((s) => s.averages);
+  const currentInterval = useCoachingStore((s) => s.currentInterval);
 
   return (
     <>
@@ -167,6 +171,7 @@ export const RideModals = memo(function RideModals({
           agentPersonality={aiPersonality || "data"}
           syncStatus={completionSyncStatus}
           primaryAction={completionPrimaryAction}
+          walrusAnchorInfo={walrusAnchorInfo}
           onExportTCX={() => {
             downloadTCX(
               {
