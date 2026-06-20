@@ -86,14 +86,18 @@ export function useRideRewards({
     if (isPracticeMode || !address) return;
     const threshold = classData?.metadata?.rewards?.threshold ?? 150;
     const durationSeconds = Math.max(1, Math.floor(elapsedTime));
-    if (useChainlinkRewards) {
-      await finalizeChainlinkRewards({ classId: classId as `0x${string}`, threshold, duration: durationSeconds });
-      return;
+    try {
+      if (useChainlinkRewards) {
+        await finalizeChainlinkRewards({ classId: classId as `0x${string}`, threshold, duration: durationSeconds });
+        return;
+      }
+      await claimWithZK(
+        { spinClass: classId as `0x${string}`, rider: address as `0x${string}`, rewardAmount: String(classData?.metadata?.rewards?.amount ?? 0), classId: classId as `0x${string}` },
+        { heartRate: telemetryAverages.avgHr || telemetryHeartRate, threshold, durationSeconds, heartRateSamples: [], avgPower: telemetryAverages.avgPower },
+      );
+    } catch (err) {
+      console.error("[Rewards] Claim failed:", err);
     }
-    await claimWithZK(
-      { spinClass: classId as `0x${string}`, rider: address as `0x${string}`, rewardAmount: String(classData?.metadata?.rewards?.amount ?? 0), classId: classId as `0x${string}` },
-      { heartRate: telemetryAverages.avgHr || telemetryHeartRate, threshold, durationSeconds, heartRateSamples: [], avgPower: telemetryAverages.avgPower },
-    );
   };
 
   return {

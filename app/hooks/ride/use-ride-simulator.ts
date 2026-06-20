@@ -63,15 +63,14 @@ export function useRideSimulator({
       const timeScale = realDuration / SIMULATOR_DURATION_SECONDS;
       const scaledTick = tickSeconds * timeScale;
 
-      useRideStore.setState((s) => {
-        const newTime = s.elapsedTime + scaledTick;
-        const newProgress = Math.min((newTime / realDuration) * 100, 100);
-        if (newProgress >= 100) {
-          isRidingRef.current = false;
-          useRideStore.setState({ isActive: false, rideProgress: 100 });
-        }
-        return { elapsedTime: newTime, rideProgress: newProgress };
-      });
+      const newTime = useRideStore.getState().elapsedTime + scaledTick;
+      const newProgress = Math.min((newTime / realDuration) * 100, 100);
+      if (newProgress >= 100) {
+        isRidingRef.current = false;
+        useRideStore.setState({ isActive: false, rideProgress: 100, elapsedTime: newTime });
+      } else {
+        useRideStore.setState({ elapsedTime: newTime, rideProgress: newProgress });
+      }
     }
   }, [coordinator, classDataRef]);
 

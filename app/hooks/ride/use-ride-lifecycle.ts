@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
@@ -126,8 +126,19 @@ export function useRideLifecycle({
   }, [suiExecuteTransaction, suiClient, coordinatorRef]);
 
   const { persistRide } = useRidePersistence();
+  const startTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup pending start timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
+    };
+  }, []);
 
   const startRide = useCallback(async () => {
+    // Guard against double-start
+    if (useRideStore.getState().isStarting || isRidingRef.current) return;
+
     const telemetryReady = bleConnected || useSimulator;
     if (!telemetryReady) {
       modalStore.getState().setShowNoBikeModal(true);
@@ -165,7 +176,8 @@ export function useRideLifecycle({
       ghostBlobId: classData?.metadata?.route?.walrusBlobId,
     }).catch((err: unknown) => console.warn("[Ride] Coordinator start failed:", err));
 
-    setTimeout(() => {
+    if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
+    startTimeoutRef.current = setTimeout(() => {
       isRidingRef.current = true;
       useRideStore.setState({ isActive: true, isStarting: false, rideProgress: 0, elapsedTime: 0 });
       useTelemetryStore.getState().reset();
@@ -181,49 +193,60 @@ export function useRideLifecycle({
   }, [playSound, isRidingRef]);
 
   const exitRide = useCallback(async () => {
+    if (useRideStore.getState().isExiting) return; // Guard against double-exit
     useRideStore.setState({ isExiting: true });
     stopAudio();
 
-    const averages = telemetryAverages;
-    const samples = useTelemetryStore.getState().snapshot;
+    try {
+      const averages = telemetryAverages;
+      const samples = useTelemetryStore.getState().snapshot;
 
-    const result = await persistRide({
-      classId,
-      classData,
-      practiceConfig,
-      agentName,
-      address,
-      elapsedTime,
-      averages,
-      samples,
-      bleConnected,
-      isPracticeMode,
-      useSimulator,
-      rewardMode,
-      rewardClaimStatus,
-      useChainlinkRewards,
-      chainlinkSuccess,
-      zkSuccess,
-      privacyScore,
-      privacyLevel: (privacyLevel || "low") as "high" | "medium" | "low",
-      walletConnected,
-      rewardsIsActive: rewards.isActive,
-      rewardsFinalize: rewards.finalizeRewards,
-      coordinatorRef,
-    });
+      const result = await persistRide({
+        classId,
+        classData,
+        practiceConfig,
+        agentName,
+        address,
+        elapsedTime,
+        averages,
+        samples,
+        bleConnected,
+        isPracticeMode,
+        useSimulator,
+        rewardMode,
+        rewardClaimStatus,
+        useChainlinkRewards,
+        chainlinkSuccess,
+        zkSuccess,
+        privacyScore,
+        privacyLevel: (privacyLevel || "low") as "high" | "medium" | "low",
+        walletConnected,
+        rewardsIsActive: rewards.isActive,
+        rewardsFinalize: rewards.finalizeRewards,
+        coordinatorRef,
+      });
 
-    modalStore.getState().setWalrusAnchorInfo(result.walrusAnchorInfo);
-    modalStore.getState().setCompletedRideId(result.canonicalSummary.id);
-    modalStore.getState().setCompletionSyncStatus(result.syncStatus);
-    modalStore.getState().setCompletionPrimaryAction(result.primaryAction);
-    void processRideSyncQueue();
+      modalStore.getState().setWalrusAnchorInfo(result.walrusAnchorInfo);
+      modalStore.getState().setCompletedRideId(result.canonicalSummary.id);
+      modalStore.getState().setCompletionSyncStatus(result.syncStatus);
+      modalStore.getState().setCompletionPrimaryAction(result.primaryAction);
+      void processRideSyncQueue();
 
-    if (isPracticeMode) {
-      modalStore.getState().setDemoStats({ duration: elapsedTime, avgHeartRate: result.avgHR, maxHeartRate: result.avgHR, effortScore: result.effortScore, spinEarned: result.spinEarned, rewardsWereActive: true });
-      useRideStore.setState({ isExiting: false });
-      modalStore.getState().setShowDemoModal(true);
-    } else {
-      router.push("/rider/journey?completed=true");
+      if (isPracticeMode) {
+        modalStore.getState().setDemoStats({ duration: elapsedTime, avgHeartRate: result.avgHR, maxHeartRate: result.avgHR, effortScore: result.effortScore, spinEarned: result.spinEarned, rewardsWereActive: true });
+        useRideStore.setState({ isExiting: false });
+        modalStore.getState().setShowDemoModal(true);
+      } else {
+        router.push("/rider/journey?completed=true");
+      }
+    } catch (err) {
+      console.error("[Ride] exitRide failed:", err);
+      useRideStore.setState({ isExiting: false, isActive: false });
+      if (isPracticeMode) {
+        modalStore.getState().setShowDemoModal(true);
+      } else {
+        router.push("/rider/journey?completed=true");
+      }
     }
   }, [stopAudio, telemetryAverages, persistRide, classId, classData, practiceConfig, agentName, address, elapsedTime, bleConnected, isPracticeMode, useSimulator, rewardMode, rewardClaimStatus, useChainlinkRewards, chainlinkSuccess, zkSuccess, privacyScore, privacyLevel, walletConnected, rewards, coordinatorRef, router]);
 

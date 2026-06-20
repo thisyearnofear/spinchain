@@ -65,8 +65,8 @@ export function useRidePersistence() {
       rewardsIsActive, rewardsFinalize, coordinatorRef,
     } = params;
 
-    const avgHR = averages.avgHr || samples.heartRate;
-    const effortScore = Math.min(1000, Math.round((avgHR / 200) * 1000));
+    const avgHR = averages.avgHr || samples.heartRate || 0;
+    const effortScore = Math.min(1000, Math.round((Math.max(avgHR, 1) / 200) * 1000));
     const potentialReward = 10 + (effortScore * 90) / 1000;
 
     let spinEarned = "0";
@@ -112,31 +112,34 @@ export function useRidePersistence() {
     const saved = saveRideSummary(canonicalSummary);
 
     let walrusAnchorInfo: { blobId: string; txDigest?: string } | null = null;
-    void (async () => {
+    try {
       const blobId = await persistRideSummaryToWalrus(canonicalSummary);
-      if (!blobId) return;
-      if (suiAccount) {
-        const pointCount = useTelemetryStore.getState().ridePoints.length;
-        const anchorResult = await coordinatorRef.current?.anchorSuiTelemetry({
-          classId,
-          blobId,
-          epoch: 90,
-          pointCount,
-        });
-        saveRideSummary({
-          ...canonicalSummary,
-          anchoring: {
-            attempted: true,
-            txHash: anchorResult?.digest as `0x${string}` | undefined,
-            status: anchorResult ? "confirmed" : "failed",
-            commitmentEpoch: 90,
-          },
-        });
-        walrusAnchorInfo = { blobId, txDigest: anchorResult?.digest };
-      } else {
-        walrusAnchorInfo = { blobId };
+      if (blobId) {
+        if (suiAccount) {
+          const pointCount = useTelemetryStore.getState().ridePoints.length;
+          const anchorResult = await coordinatorRef.current?.anchorSuiTelemetry({
+            classId,
+            blobId,
+            epoch: 90,
+            pointCount,
+          });
+          saveRideSummary({
+            ...canonicalSummary,
+            anchoring: {
+              attempted: true,
+              txHash: anchorResult?.digest as `0x${string}` | undefined,
+              status: anchorResult ? "confirmed" : "failed",
+              commitmentEpoch: 90,
+            },
+          });
+          walrusAnchorInfo = { blobId, txDigest: anchorResult?.digest };
+        } else {
+          walrusAnchorInfo = { blobId };
+        }
       }
-    })();
+    } catch (err) {
+      console.warn("[Ride] Walrus anchoring failed:", err);
+    }
 
     const latest = saved.find((ride) => ride.id === canonicalSummary.id) ?? canonicalSummary;
     const queued = enqueueRideSync(latest);

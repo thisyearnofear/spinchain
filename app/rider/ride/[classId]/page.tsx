@@ -408,6 +408,7 @@ export default function LiveRidePage() {
         <div className="absolute inset-0 pointer-events-none rounded-none border-4 border-red-500/60 animate-pulse" />
       )}
 
+      <SectionErrorBoundary title="ride modals">
       <RideModals
         classId={classId}
         classData={classData}
@@ -427,6 +428,7 @@ export default function LiveRidePage() {
         onDismissTutorial={dismissTutorial}
         onSimulatorMetrics={simulatorHook.handleSimulatorMetrics}
       />
+      </SectionErrorBoundary>
     </div>
   );
 }
