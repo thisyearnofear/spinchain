@@ -9,14 +9,12 @@ import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useUIStore } from "@/app/stores/ui-store";
 import { useAccount } from "wagmi";
-import { useSuiClient, useCurrentAccount, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { usePanelState } from "../../../hooks/ui/use-panel-state";
 import { useRideTutorial } from "../../../components/features/ride/ride-tutorial";
 import { RideLoading, RideNotFound } from "../../../components/features/ride/ride-loading";
 import { RideVisualization } from "../../../components/features/ride/ride-visualization";
 import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overlay";
 import { RideModals } from "../../../components/features/ride/ride-modals";
-import type { RewardClaimStatus } from "../../../components/features/ride/ride-completion";
 import type { RideRecordPoint } from "../../../lib/analytics/ride-recorder";
 import {
   useDeviceType,
@@ -28,11 +26,7 @@ import { CoachMessageOverlay } from "../../../components/features/ride/coach-mes
 import { FlowBackground } from "../../../components/features/ride/flow-background";
 import { PerformanceGraph } from "../../../components/features/ride/performance-graph";
 import { SettlementStream } from "../../../components/features/ride/settlement-stream";
-import { useRewards, type RewardMode } from "../../../hooks/rewards/use-rewards";
-import { useChainlinkVerification } from "../../../hooks/evm/use-chainlink-verification";
-import { useZKClaim } from "../../../hooks/evm/use-zk-claim";
-import { REWARD_VERIFICATION } from "../../../config";
-import { ANALYTICS_EVENTS, trackEvent } from "../../../lib/analytics/events";
+import type { RewardMode } from "../../../hooks/rewards/use-rewards";
 import { useWakeLock } from "../../../hooks/use-wake-lock";
 import { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 import { NetworkStatusBanner } from "../../../components/features/common/yellow-status-indicator";
@@ -42,24 +36,17 @@ import {
   PHASE_TO_THEME,
   PRESET_WORKOUTS,
 } from "../../../lib/workout-plan";
-import { DEFAULT_ROAD_GEARS } from "../../../lib/analytics/physiological-models";
-import {
-  createCanonicalRideSummary,
-  enqueueRideSync,
-  getRetentionSignals,
-  processRideSyncQueue,
-  saveRideSummary,
-  updateRideRewardState,
-  type RideSyncStatus,
-} from "../../../lib/analytics/ride-history";
-import { persistRideSummaryToWalrus } from "../../../lib/walrus/ride-persistence";
 import { SectionErrorBoundary } from "../../../components/layout/error-boundary";
-
+import { useRideKeyboard } from "@/app/hooks/ride/use-ride-keyboard";
+import { useRideAnalytics } from "@/app/hooks/ride/use-ride-analytics";
+import { useRideRewards } from "@/app/hooks/ride/use-ride-rewards";
+import { useRideSimulator } from "@/app/hooks/ride/use-ride-simulator";
+import { useRideLifecycle } from "@/app/hooks/ride/use-ride-lifecycle";
 
 export default function LiveRidePage() {
   const params = useParams();
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const classId = params.classId as string;
 
   // ─── Data Loading ──────────────────────────────────────────────
@@ -76,7 +63,7 @@ export default function LiveRidePage() {
   const viewportHeight = useActualViewportHeight();
   const performanceTier = usePerformanceTier();
 
-  // ─── Store Reads (replaces 20+ useState hooks) ─────────────────
+  // ─── Store Reads ───────────────────────────────────────────────
   const isRiding = useRideStore((s) => s.isActive);
   const rideProgress = useRideStore((s) => s.rideProgress);
   const elapsedTime = useRideStore((s) => s.elapsedTime);
@@ -93,47 +80,12 @@ export default function LiveRidePage() {
   const coordinator = useRideCoordinator();
   const coordinatorRef = useRef(coordinator);
   coordinatorRef.current = coordinator;
-  const isRidingRef = useRef(false);
   const emptyRidePointsRef = useRef<RideRecordPoint[]>([]);
-
-  // ─── Sui Wallet (for Walrus-as-memory anchoring at ride end) ───
-  // Hooks declared unconditionally at top level (Rules of Hooks).
-  const suiClient = useSuiClient();
-  const suiAccount = useCurrentAccount();
-  const { mutateAsync: signAndExecuteSui } = useSignAndExecuteTransaction();
-
-  const suiExecuteTransaction = useCallback(
-    async (tx: unknown): Promise<{ digest: string } | null> => {
-      try {
-        const result = await signAndExecuteSui({
-          transaction: tx as Parameters<typeof signAndExecuteSui>[0]["transaction"],
-        });
-        return result?.digest ? { digest: result.digest } : null;
-      } catch (err) {
-        console.error("[Ride] Sui transaction failed:", err);
-        return null;
-      }
-    },
-    [signAndExecuteSui],
-  );
-
-  // Inject the wallet signer into the SuiEngine once it (or the signer) changes.
-  useEffect(() => {
-    coordinatorRef.current?.updateSuiConfig({
-      executeTransaction: suiExecuteTransaction,
-      suiClient: suiClient as unknown as Parameters<
-        typeof coordinatorRef.current.updateSuiConfig
-      >[0]["suiClient"],
-    });
-  }, [suiExecuteTransaction, suiClient]);
-
 
   // ─── Panel State ───────────────────────────────────────────────
   const panelState = usePanelState(deviceType);
   const viewMode = useUIStore((s) => s.viewMode);
   const hudMode = useUIStore((s) => s.hudMode);
-  const cycleHudMode = useUIStore((s) => s.cycleHudMode);
-  const toggleViewMode = useUIStore((s) => s.toggleViewMode);
 
   useEffect(() => {
     if (isRiding) panelState.startRideLayout();
@@ -172,9 +124,6 @@ export default function LiveRidePage() {
     else panelState.collapseAll();
   }, [panelState]);
 
-  const handleDismissNoBike = useCallback(() => setShowNoBikeModal(false), []);
-  const handleDismissKeyboardHints = useCallback(() => setShowKeyboardHints(false), []);
-
   // ─── BLE / Simulator State ─────────────────────────────────────
   const [bleConnected, setBleConnected] = useState(false);
   const [useSimulator, setUseSimulator] = useState(() => {
@@ -182,11 +131,7 @@ export default function LiveRidePage() {
     const urlParams = new URLSearchParams(window.location.search);
     return isPracticeMode || urlParams.get("demo") === "true" || urlParams.get("sim") === "true";
   });
-  const [connectionHint, setConnectionHint] = useState<string | null>(null);
-  const [showNoBikeModal, setShowNoBikeModal] = useState(false);
-  const [showKeyboardHints, setShowKeyboardHints] = useState(false);
 
-  // Sync local state → ui-store so child components can read directly
   useEffect(() => {
     useUIStore.setState({ deviceType, orientation, bleConnected, useSimulator, isPracticeMode });
   }, [deviceType, orientation, bleConnected, useSimulator, isPracticeMode]);
@@ -232,66 +177,6 @@ export default function LiveRidePage() {
     useUIStore.setState({ isGuestMode, isTrainingMode });
   }, [isGuestMode, isTrainingMode]);
 
-  // ─── Rewards (wagmi integration — kept until RewardsEngine has full on-chain support) ──
-  const rewards = useRewards({
-    mode: rewardMode,
-    classId: classId as string,
-    instructor: (classData?.instructor as `0x${string}`) || "0x0",
-    depositAmount: classData?.currentPrice ? BigInt(Math.floor(parseFloat(classData.currentPrice) * 1e18)) : BigInt(0),
-  });
-
-  // ─── ZK / Chainlink Verification ──────────────────────────────
-  const { claimWithZK, isGeneratingProof, isSuccess: zkSuccess, privacyScore, privacyLevel, error: zkError } = useZKClaim();
-  const {
-    finalizeRewards: finalizeChainlinkRewards,
-    isVerifying: isChainlinkVerifying,
-    isRequestSuccess: isChainlinkRequestSuccess,
-    isClaiming: isChainlinkClaiming,
-    isVerified: isChainlinkVerified,
-    verifiedScore: chainlinkVerifiedScore,
-    isSuccess: chainlinkSuccess,
-    error: chainlinkError,
-  } = useChainlinkVerification();
-  const useChainlinkRewards = REWARD_VERIFICATION.mode === "chainlink";
-  const [completedRideId, setCompletedRideId] = useState<string | null>(null);
-
-  const rewardClaimStatus: RewardClaimStatus | undefined = useMemo(() => {
-    if (isPracticeMode || isTrainingMode) return undefined;
-    if (useChainlinkRewards) {
-      return {
-        mode: "chainlink",
-        phase: (isChainlinkClaiming ? "claiming" : isChainlinkVerifying ? "requesting" : chainlinkSuccess ? "claimed" : isChainlinkVerified ? "ready" : chainlinkError ? "error" : isChainlinkRequestSuccess ? "requested" : "idle") as RewardClaimStatus["phase"],
-        privacyScore: 0, privacyLevel: "low", verifiedScore: chainlinkVerifiedScore, error: chainlinkError,
-      };
-    }
-    return {
-      mode: "zk",
-      phase: (isGeneratingProof ? "claiming" : zkSuccess ? "claimed" : zkError ? "error" : "idle") as RewardClaimStatus["phase"],
-      privacyScore, privacyLevel, error: zkError,
-    };
-  }, [isPracticeMode, isTrainingMode, useChainlinkRewards, isChainlinkClaiming, isChainlinkVerifying, chainlinkSuccess, isChainlinkVerified, chainlinkError, isChainlinkRequestSuccess, chainlinkVerifiedScore, isGeneratingProof, zkSuccess, zkError, privacyScore, privacyLevel]);
-
-  useEffect(() => {
-    if (!completedRideId || !rewardClaimStatus) return;
-    updateRideRewardState(completedRideId, {
-      status: rewardClaimStatus.phase === "claimed" ? "claimed" : rewardClaimStatus.phase === "ready" ? "ready" : rewardClaimStatus.phase === "requested" ? "requested" : rewardClaimStatus.phase === "error" ? "failed" : "idle",
-      isVerified: rewardClaimStatus.phase === "ready" || rewardClaimStatus.phase === "claimed",
-      privacyScore: rewardClaimStatus.privacyScore, privacyLevel: rewardClaimStatus.privacyLevel, verifiedScore: rewardClaimStatus.verifiedScore,
-    }, {
-      attempted: rewardClaimStatus.phase !== "idle",
-      status: rewardClaimStatus.phase === "claimed" ? "confirmed" : rewardClaimStatus.phase === "error" ? "failed" : rewardClaimStatus.phase === "idle" ? "skipped" : "pending",
-    });
-  }, [completedRideId, rewardClaimStatus]);
-
-  // ─── Demo/Completion State ─────────────────────────────────────
-  const [showDemoModal, setShowDemoModal] = useState(false);
-  const [completionSyncStatus, setCompletionSyncStatus] = useState<RideSyncStatus>("local_only");
-  const [completionPrimaryAction, setCompletionPrimaryAction] = useState<"view_history" | "ride_again">("view_history");
-  const [demoStats, setDemoStats] = useState({ duration: 0, avgHeartRate: 0, maxHeartRate: 0, effortScore: 0, spinEarned: "0", rewardsWereActive: false });
-
-  // ─── Tutorial ──────────────────────────────────────────────────
-  const { showTutorial, tutorialStep, nextStep: nextTutorial, dismiss: dismissTutorial } = useRideTutorial();
-
   // ─── Mobile Hooks ──────────────────────────────────────────────
   const { request: requestWakeLock, release: releaseWakeLock, isActive: wakeLockActive } = useWakeLock();
   const haptic = useHaptic();
@@ -307,290 +192,103 @@ export default function LiveRidePage() {
   const stopAudio = useCallback(() => coordinatorRef.current.stopAudio?.(), []);
   const speak = useCallback((text: string, emotion?: unknown) => coordinatorRef.current.speak?.(text, emotion as never)?.catch?.(() => {}), []);
 
-  // ─── Keyboard Shortcuts ────────────────────────────────────────
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === "c" || e.key === "C") {
-        e.preventDefault();
-        if (panelState.isAllCollapsed) panelState.expandAll();
-        else panelState.collapseAll();
-      } else if (e.key === "h" || e.key === "H") {
-        e.preventDefault();
-        cycleHudMode();
-      } else if (e.key === "v" || e.key === "V") {
-        e.preventDefault();
-        toggleViewMode();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [panelState, cycleHudMode, toggleViewMode]);
+  // ─── Extracted Hooks ───────────────────────────────────────────
+  const rewardsHook = useRideRewards({
+    rewardMode,
+    classId,
+    classData,
+    isPracticeMode,
+    isTrainingMode,
+    address,
+    elapsedTime,
+    telemetryAverages,
+    telemetryHeartRate,
+  });
 
+  const simulatorHook = useRideSimulator({
+    isRiding,
+    isTrainingMode,
+    isGuestMode,
+    isPracticeMode,
+    telemetryEffort,
+    coordinator,
+    classDataRef,
+  });
+
+  const analyticsHook = useRideAnalytics({
+    classId,
+    isPracticeMode,
+    isRiding,
+    rideProgress,
+    bleConnected,
+    useSimulator,
+    telemetryEffort,
+    playSound,
+  });
+
+  useRideKeyboard({
+    isRiding,
+    panelState,
+    coordinator,
+    playSound,
+  });
+
+  const lifecycle = useRideLifecycle({
+    classId,
+    classData,
+    practiceConfig,
+    isPracticeMode,
+    isTrainingMode,
+    bleConnected,
+    useSimulator,
+    walletConnected,
+    address,
+    rewardMode,
+    agentName,
+    workoutPlan,
+    deviceType,
+    performanceTier,
+    telemetryAverages,
+    elapsedTime,
+    rewardClaimStatus: rewardsHook.rewardClaimStatus,
+    useChainlinkRewards: rewardsHook.useChainlinkRewards,
+    chainlinkSuccess: rewardsHook.chainlinkSuccess,
+    zkSuccess: rewardsHook.zkSuccess,
+    privacyScore: rewardsHook.privacyScore,
+    privacyLevel: rewardsHook.privacyLevel,
+    rewards: rewardsHook.rewards,
+    coordinator,
+    coordinatorRef,
+    isRidingRef: simulatorHook.isRidingRef,
+    trackedCompletionRef: analyticsHook.trackedCompletionRef,
+    playCountdown,
+    playSound,
+    stopAudio,
+    speak,
+    setUseSimulator,
+    setBleConnected,
+    trackLiveTelemetry: analyticsHook.trackLiveTelemetry,
+  });
+
+  // Sync completedRideId back to rewards hook
   useEffect(() => {
-    if (typeof window === "undefined" || !isRiding) return;
-    const totalGears = DEFAULT_ROAD_GEARS.front.length * DEFAULT_ROAD_GEARS.rear.length;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowUp") {
-        useTelemetryStore.setState((s) => ({ currentGear: Math.min(totalGears, s.currentGear + 1) }));
-        playSound?.("resistanceUp");
-        coordinator.setCurrentGear(useTelemetryStore.getState().currentGear);
-      } else if (e.key === "ArrowDown") {
-        useTelemetryStore.setState((s) => ({ currentGear: Math.max(1, s.currentGear - 1) }));
-        playSound?.("resistanceDown");
-        coordinator.setCurrentGear(useTelemetryStore.getState().currentGear);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isRiding, playSound, coordinator]);
+    if (lifecycle.completedRideId) {
+      rewardsHook.setCompletedRideId(lifecycle.completedRideId);
+    }
+  }, [lifecycle.completedRideId, rewardsHook.setCompletedRideId]);
 
   // ─── Visibility Pause (save CPU when tab hidden) ──────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handleVisibility = () => {
-      if (document.hidden && isRidingRef.current) {
-        isRidingRef.current = false;
+      if (document.hidden && simulatorHook.isRidingRef.current) {
+        simulatorHook.isRidingRef.current = false;
         useRideStore.setState({ isActive: false });
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, []);
-
-  // ─── Analytics Tracking ────────────────────────────────────────
-  const trackedEntryViewRef = useRef(false);
-  const trackedCompletionRef = useRef(false);
-
-  useEffect(() => {
-    if (isRiding || rideProgress > 0 || trackedEntryViewRef.current) return;
-    trackedEntryViewRef.current = true;
-    trackEvent(ANALYTICS_EVENTS.RIDE_ENTRY_VIEWED, { classId, practiceMode: isPracticeMode });
-  }, [classId, isPracticeMode, isRiding, rideProgress]);
-
-  useEffect(() => {
-    if (rideProgress < 100 || trackedCompletionRef.current) return;
-    trackedCompletionRef.current = true;
-    trackEvent(ANALYTICS_EVENTS.RIDE_COMPLETED, {
-      classId,
-      source: bleConnected ? "live-bike" : isPracticeMode && useSimulator ? "simulator" : "estimated",
-      practiceMode: isPracticeMode,
-    });
-  }, [bleConnected, classId, isPracticeMode, rideProgress, useSimulator]);
-
-  // ─── BLE Metrics Handler (delegates to coordinator) ────────────
-  const trackedLiveTelemetryRef = useRef(false);
-
-  const handleBleMetrics = useCallback((metrics: { heartRate?: number; power?: number; cadence?: number; speed?: number; effort?: number; distance?: number; timestamp?: number }) => {
-    coordinator.ingestBleMetrics(metrics);
-    if (metrics.heartRate || metrics.power) {
-      setBleConnected(true);
-      if (!trackedLiveTelemetryRef.current) {
-        trackedLiveTelemetryRef.current = true;
-        trackEvent(ANALYTICS_EVENTS.TELEMETRY_LIVE_READY, { classId, practiceMode: isPracticeMode });
-      }
-    }
-  }, [coordinator, classId, isPracticeMode]);
-
-  // ─── Simulator Metrics Handler (delegates to coordinator + progress) ──
-  const handleSimulatorMetrics = useCallback((metrics: { heartRate: number; power: number; cadence: number; speed: number; effort: number; distance?: number; timestamp?: number }) => {
-    coordinator.ingestSimulatorMetrics(metrics);
-
-    const currentClassData = classDataRef.current;
-    if (isRidingRef.current && currentClassData && metrics.cadence > 0) {
-      const TARGET_CADENCE = 80;
-      const cadenceRatio = Math.min(metrics.cadence / TARGET_CADENCE, 1.5);
-      const tickSeconds = 0.5 * cadenceRatio;
-      const SIMULATOR_DURATION_SECONDS = 3 * 60;
-      const realDuration = (currentClassData.metadata?.duration || 45) * 60;
-      const timeScale = realDuration / SIMULATOR_DURATION_SECONDS;
-      const scaledTick = tickSeconds * timeScale;
-
-      useRideStore.setState((s) => {
-        const newTime = s.elapsedTime + scaledTick;
-        const newProgress = Math.min((newTime / realDuration) * 100, 100);
-        if (newProgress >= 100) {
-          isRidingRef.current = false;
-          useRideStore.setState({ isActive: false, rideProgress: 100 });
-        }
-        return { elapsedTime: newTime, rideProgress: newProgress };
-      });
-    }
-  }, [coordinator]);
-
-  // ─── Start Ride ────────────────────────────────────────────────
-  const startRide = useCallback(async () => {
-    const telemetryReady = bleConnected || useSimulator;
-    if (!telemetryReady) {
-      setShowNoBikeModal(true);
-      trackEvent(ANALYTICS_EVENTS.RIDE_START_BLOCKED_NO_TELEMETRY, { classId, practiceMode: isPracticeMode });
-      return;
-    }
-    trackEvent(ANALYTICS_EVENTS.RIDE_STARTED, { classId, source: bleConnected ? "live-bike" : "simulator", practiceMode: isPracticeMode });
-    useRideStore.setState({ isStarting: true });
-    playCountdown(3);
-
-    if (!isTrainingMode) {
-      try { await rewards.startEarning(); } catch { /* non-blocking */ }
-    }
-
-    coordinator.startRide({
-      classId,
-      classData: classData as never,
-      deviceType,
-      performanceTier,
-      isPracticeMode,
-      walletConnected: !!walletConnected,
-      address: address as string | undefined,
-      rewardMode,
-      coachingConfig: {
-        agentName,
-        personality: (classData?.metadata?.ai?.personality as "zen" | "drill-sergeant" | "data") || "data",
-        workoutPlan,
-        instructorProfile: null,
-        marketStats: { ticketsSold: 0, revenue: 0, capacity: 50 },
-        aiActive: isRiding || isPracticeMode || Boolean(classData?.metadata?.ai?.enabled),
-      },
-      ghostBlobId: classData?.metadata?.route?.walrusBlobId as string | undefined,
-    }).catch((err: unknown) => console.warn("[Ride] Coordinator start failed:", err));
-
-    setTimeout(() => {
-      isRidingRef.current = true;
-      useRideStore.setState({ isActive: true, isStarting: false, rideProgress: 0, elapsedTime: 0 });
-      useTelemetryStore.getState().reset();
-      trackedCompletionRef.current = false;
-      speak("Let's go!", "intense");
-    }, 3000);
-  }, [bleConnected, useSimulator, classId, isPracticeMode, isTrainingMode, rewards, coordinator, classData, deviceType, performanceTier, walletConnected, address, rewardMode, agentName, workoutPlan, playCountdown, speak, isRiding]);
-
-  // ─── Pause / Exit Ride ─────────────────────────────────────────
-  const pauseRide = useCallback(() => {
-    isRidingRef.current = false;
-    useRideStore.setState({ isActive: false });
-    playSound("recover");
-  }, [playSound]);
-
-  const exitRide = useCallback(async () => {
-    useRideStore.setState({ isExiting: true });
-    stopAudio();
-
-    const averages = telemetryAverages;
-    const samples = useTelemetryStore.getState().snapshot;
-    const avgHR = averages.avgHr || samples.heartRate;
-    const maxHR = avgHR;
-    const effortScore = Math.min(1000, Math.round((avgHR / 200) * 1000));
-    const potentialReward = 10 + (effortScore * 90) / 1000;
-
-    let spinEarned = "0";
-    if (rewards.isActive) {
-      try {
-        const result = await rewards.finalizeRewards();
-        spinEarned = result.amount ? (Number(result.amount) / 1e18).toFixed(1) : "0";
-      } catch { /* non-blocking */ }
-    }
-    const displaySpin = spinEarned !== "0" ? spinEarned : potentialReward.toFixed(1);
-
-    const telemetrySource = bleConnected ? "live-bike" as const : isPracticeMode && useSimulator ? "simulator" as const : "estimated" as const;
-    const _threshold = classData?.metadata?.rewards?.threshold ?? 180;
-    const summaryId = `${classId}-${Date.now()}`;
-
-    const canonicalSummary = createCanonicalRideSummary({
-      id: summaryId,
-      riderId: address ?? "guest",
-      classId,
-      className: classData?.name || practiceConfig?.name || "SpinChain Ride",
-      instructor: classData?.instructor || practiceConfig?.instructor || agentName,
-      completedAt: Date.now(),
-      durationSec: elapsedTime,
-      avgHeartRate: avgHR,
-      avgPower: averages.avgPower,
-      avgEffort: averages.avgEffort,
-      spinEarned: Number(displaySpin),
-      telemetrySource,
-      effortTier: averages.avgEffort >= 800 ? "platinum" : averages.avgEffort >= 650 ? "gold" : averages.avgEffort >= 500 ? "silver" : "bronze",
-      zones: { recovery: 25, endurance: 35, threshold: 25, sprint: 15 },
-      proof: {
-        mode: rewardMode === "sui-native" ? "none" : rewardMode,
-        status: rewardClaimStatus?.phase === "claimed" ? "claimed" : rewardClaimStatus?.phase === "ready" ? "ready" : rewardClaimStatus?.phase === "error" ? "failed" : "idle",
-        isVerified: useChainlinkRewards ? chainlinkSuccess : zkSuccess,
-        privacyScore, privacyLevel,
-        verifiedScore: rewardClaimStatus?.verifiedScore,
-      },
-      settlement: {
-        attempted: walletConnected,
-        status: walletConnected ? (useChainlinkRewards ? (chainlinkSuccess ? "confirmed" : "pending") : (zkSuccess ? "confirmed" : "pending")) : "skipped",
-      },
-    });
-    const saved = saveRideSummary(canonicalSummary);
-    // Walrus-as-memory: upload the ride to Walrus, then anchor the blob ID on
-    // Sui. Detached so it never blocks completion/navigation; the summary is
-    // re-saved (idempotent on id) with the anchoring result.
-    void (async () => {
-      const blobId = await persistRideSummaryToWalrus(canonicalSummary);
-      if (!blobId) return;
-      if (suiAccount) {
-        const pointCount = useTelemetryStore.getState().ridePoints.length;
-        const anchorResult = await coordinatorRef.current?.anchorSuiTelemetry({
-          classId,
-          blobId,
-          epoch: 90,
-          pointCount,
-        });
-        saveRideSummary({
-          ...canonicalSummary,
-          anchoring: {
-            attempted: true,
-            txHash: anchorResult?.digest as `0x${string}` | undefined,
-            status: anchorResult ? "confirmed" : "failed",
-            commitmentEpoch: 90,
-          },
-        });
-        setWalrusAnchorInfo({ blobId, txDigest: anchorResult?.digest });
-      } else {
-        setWalrusAnchorInfo({ blobId });
-      }
-    })();
-    const latest = saved.find((ride) => ride.id === canonicalSummary.id) ?? canonicalSummary;
-    const queued = enqueueRideSync(latest);
-    setCompletedRideId(summaryId);
-    setCompletionSyncStatus(queued.sync.status);
-    setCompletionPrimaryAction(getRetentionSignals(saved).ctaPrimary);
-    void processRideSyncQueue();
-
-    if (isPracticeMode) {
-      setDemoStats({ duration: elapsedTime, avgHeartRate: avgHR, maxHeartRate: maxHR, effortScore, spinEarned: displaySpin, rewardsWereActive: true });
-      useRideStore.setState({ isExiting: false });
-      setShowDemoModal(true);
-    } else {
-      router.push("/rider/journey?completed=true");
-    }
-  }, [stopAudio, telemetryAverages, rewards, bleConnected, isPracticeMode, useSimulator, classData, practiceConfig, classId, agentName, address, elapsedTime, rewardMode, rewardClaimStatus, useChainlinkRewards, chainlinkSuccess, zkSuccess, privacyScore, privacyLevel, walletConnected, router, suiAccount]);
-
-  const handleClaimRewards = useCallback(async () => {
-    if (isPracticeMode || !address) return;
-    const threshold = classData?.metadata?.rewards?.threshold ?? 150;
-    const durationSeconds = Math.max(1, Math.floor(elapsedTime));
-    if (useChainlinkRewards) {
-      await finalizeChainlinkRewards({ classId: classId as `0x${string}`, threshold, duration: durationSeconds });
-      return;
-    }
-    await claimWithZK(
-      { spinClass: classId as `0x${string}`, rider: address, rewardAmount: String(classData?.metadata?.rewards?.amount ?? 0), classId: classId as `0x${string}` },
-      { heartRate: telemetryAverages.avgHr || telemetryHeartRate, threshold, durationSeconds, heartRateSamples: [], avgPower: telemetryAverages.avgPower },
-    );
-  }, [isPracticeMode, address, classData, elapsedTime, useChainlinkRewards, finalizeChainlinkRewards, classId, claimWithZK, telemetryAverages, telemetryHeartRate]);
-
-  const handleEnableSimulatorFromModal = useCallback(() => {
-    setShowNoBikeModal(false);
-    setUseSimulator(true);
-    setShowKeyboardHints(true);
-    setConnectionHint(null);
-  }, []);
-
-  const handleDemoModalClose = useCallback(() => {
-    setShowDemoModal(false);
-    router.push("/rider");
-  }, [router]);
+  }, [simulatorHook.isRidingRef]);
 
   const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -598,41 +296,8 @@ export default function LiveRidePage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }, []);
 
-  // ─── Simulated Rewards (for training/guest mode display) ───────
-  const [simulatedSpin, setSimulatedSpin] = useState(0);
-  const shouldSimulate = isRiding && (isTrainingMode || isGuestMode);
-  useEffect(() => {
-    if (!shouldSimulate) { if (!isRiding) setSimulatedSpin(0); return; }
-    const id = setInterval(() => {
-      setSimulatedSpin((prev) => prev + (10 + (Math.min(1000, telemetryEffort) * 90) / 1000) / (45 * 60));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [shouldSimulate, isRiding, telemetryEffort]);
-
-  const resetSimulatedSpin = useCallback(() => setSimulatedSpin(0), []);
-  const simulatedRewards = useMemo(() => ({
-    simulatedReward: simulatedSpin,
-    isSimulating: shouldSimulate,
-    formattedReward: simulatedSpin.toFixed(1),
-    reset: resetSimulatedSpin,
-  }), [simulatedSpin, shouldSimulate, resetSimulatedSpin]);
-
-  // ─── Walrus Anchor State ──────────────────────────────────────
-  const [walrusAnchorInfo, setWalrusAnchorInfo] = useState<{ blobId: string; txDigest?: string } | null>(null);
-
-  // ─── Milestone Logic ───────────────────────────────────────────
-  const [showMilestone, setShowMilestone] = useState<{ title: string; subtitle: string } | null>(null);
-  const trackedMilestoneRef = useRef(false);
-  useEffect(() => {
-    if (!isRiding || trackedMilestoneRef.current) return;
-    if (telemetryEffort > 900) {
-      trackedMilestoneRef.current = true;
-      setShowMilestone({ title: "ELITE EFFORT", subtitle: "You just crossed 900 effort points!" });
-      haptic.success();
-      playSound("achievement");
-      setTimeout(() => setShowMilestone(null), 5000);
-    }
-  }, [telemetryEffort, isRiding, haptic, playSound]);
+  // ─── Tutorial ──────────────────────────────────────────────────
+  const { showTutorial, tutorialStep, nextStep: nextTutorial, dismiss: dismissTutorial } = useRideTutorial();
 
   // ─── Loading / Not Found Gates ─────────────────────────────────
   if (isLoading && !isPracticeMode) {
@@ -648,7 +313,7 @@ export default function LiveRidePage() {
       />
     );
   }
-  if (!classData || !classData.route) return <RideNotFound onExit={exitRide} />;
+  if (!classData || !classData.route) return <RideNotFound onExit={lifecycle.exitRide} />;
 
   // ─── Render ────────────────────────────────────────────────────
   return (
@@ -683,23 +348,23 @@ export default function LiveRidePage() {
           routeIsGenerated={classData?.routeIsGenerated}
           walletConnected={walletConnected}
           workoutPlan={workoutPlan}
-          connectionHint={connectionHint}
-          simulatedReward={simulatedRewards}
+          connectionHint={lifecycle.connectionHint}
+          simulatedReward={simulatorHook.simulatedRewards}
           panelState={panelState.state}
           rewardMode={rewardMode}
           onSetUseSimulator={setUseSimulator}
           onSetRewardMode={setRewardMode}
-          onExitRide={exitRide}
+          onExitRide={lifecycle.exitRide}
           onResetPrefs={handleResetPrefs}
           onCollapseToggle={handleCollapseToggle}
           isAllCollapsed={panelState.isAllCollapsed}
           onTogglePanel={handleTogglePanel}
           onSetWidgetsMode={panelState.setMobileRideWidgetsMode}
-          onStartRide={startRide}
-          onPauseRide={pauseRide}
+          onStartRide={lifecycle.startRide}
+          onPauseRide={lifecycle.pauseRide}
           onSetWorkoutPlan={setWorkoutPlan}
-          onBleMetrics={handleBleMetrics}
-          onSimulatorMetrics={handleSimulatorMetrics}
+          onBleMetrics={lifecycle.handleBleMetrics}
+          onSimulatorMetrics={simulatorHook.handleSimulatorMetrics}
           onHaptic={haptic.trigger}
           formatTime={formatTime}
         />
@@ -745,16 +410,16 @@ export default function LiveRidePage() {
         classId={classId}
         classData={classData}
         practiceConfig={practiceConfig}
-        rewardsFormattedReward={rewards.formattedReward}
-        handleClaimRewards={handleClaimRewards}
-        rewardClaimStatus={rewardClaimStatus}
-        completionSyncStatus={completionSyncStatus}
-        completionPrimaryAction={completionPrimaryAction}
-        showMilestone={showMilestone}
-        showNoBikeModal={showNoBikeModal}
-        showKeyboardHints={showKeyboardHints}
-        showDemoModal={showDemoModal}
-        demoStats={demoStats}
+        rewardsFormattedReward={rewardsHook.rewards.formattedReward}
+        handleClaimRewards={rewardsHook.handleClaimRewards}
+        rewardClaimStatus={rewardsHook.rewardClaimStatus}
+        completionSyncStatus={lifecycle.completionSyncStatus}
+        completionPrimaryAction={lifecycle.completionPrimaryAction}
+        showMilestone={analyticsHook.showMilestone}
+        showNoBikeModal={lifecycle.showNoBikeModal}
+        showKeyboardHints={lifecycle.showKeyboardHints}
+        showDemoModal={lifecycle.showDemoModal}
+        demoStats={lifecycle.demoStats}
         showTutorial={showTutorial}
         tutorialStep={tutorialStep}
         agentName={agentName}
@@ -763,15 +428,15 @@ export default function LiveRidePage() {
         _walletConnected={walletConnected}
         ridePointsRef={emptyRidePointsRef}
         router={router}
-        walrusAnchorInfo={walrusAnchorInfo}
-        onExitRide={exitRide}
-        onEnableSimulatorFromModal={handleEnableSimulatorFromModal}
-        onDismissNoBike={handleDismissNoBike}
-        onDismissKeyboardHints={handleDismissKeyboardHints}
-        onDemoModalClose={handleDemoModalClose}
+        walrusAnchorInfo={lifecycle.walrusAnchorInfo}
+        onExitRide={lifecycle.exitRide}
+        onEnableSimulatorFromModal={lifecycle.handleEnableSimulatorFromModal}
+        onDismissNoBike={lifecycle.handleDismissNoBike}
+        onDismissKeyboardHints={lifecycle.handleDismissKeyboardHints}
+        onDemoModalClose={lifecycle.handleDemoModalClose}
         onNextTutorial={nextTutorial}
         onDismissTutorial={dismissTutorial}
-        onSimulatorMetrics={handleSimulatorMetrics}
+        onSimulatorMetrics={simulatorHook.handleSimulatorMetrics}
       />
     </div>
   );

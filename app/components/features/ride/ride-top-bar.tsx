@@ -109,71 +109,85 @@ export const RideTopBar = memo(function RideTopBar({
             </button>
           )}
 
-          {/* Reward Mode Selector (pre-ride) / Active Badge (during ride) */}
+          {/* Reward Mode Selector (pre-ride, wallet-connected only) / Active Badge (during ride) */}
           {!isRiding ? (
-            <div className="flex items-center gap-1" title={isGuestMode ? "Connect wallet to earn rewards" : undefined}>
-              {(["zk-batch", "yellow-stream"] as RewardMode[]).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => {
-                    if (isGuestMode) return;
-                    if (m === "yellow-stream" && !walletConnected) return;
-                    if (isTrainingMode && m === "yellow-stream") return;
-                    onSetRewardMode(m);
-                  }}
-                  disabled={isGuestMode || (m === "yellow-stream" && !walletConnected) || (isTrainingMode && m === "yellow-stream")}
-                  className={`rounded-lg px-2 py-1.5 text-[10px] sm:text-xs font-medium transition-all min-h-[36px] ${
-                    rewardMode === m
-                      ? "bg-white/20 text-white border border-white/30"
-                      : "bg-white/5 text-white/40 border border-transparent hover:bg-white/10 hover:text-white/60"
-                  } disabled:opacity-30 disabled:cursor-not-allowed`}
+            isGuestMode || isPracticeMode ? (
+              !isPracticeMode && (
+                <div
+                  className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[10px] text-white/40"
+                  title="Connect wallet to earn SPIN tokens"
                 >
-                  {m === "zk-batch" ? "Verified" : "Live Stream"}
-                  {m === "yellow-stream" && (
-                    <>
-                      <span className="ml-1 text-[8px] text-yellow-400">β</span>
-                      {rewardMode === "yellow-stream" && (
-                        <span
-                          className={`ml-1 inline-block h-1.5 w-1.5 rounded-full ${
-                            rewardsClearNodeConnected ? "bg-emerald-400" : "bg-zinc-500"
-                          }`}
-                        />
-                      )}
-                    </>
-                  )}
-                </button>
-              ))}
-            </div>
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
+                  <span>Connect to earn</span>
+                </div>
+              )
+            ) : (
+              <div className="flex items-center gap-1" title={isGuestMode ? "Connect wallet to earn rewards" : undefined}>
+                {(["zk-batch", "yellow-stream"] as RewardMode[]).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      if (isGuestMode) return;
+                      if (m === "yellow-stream" && !walletConnected) return;
+                      if (isTrainingMode && m === "yellow-stream") return;
+                      onSetRewardMode(m);
+                    }}
+                    disabled={isGuestMode || (m === "yellow-stream" && !walletConnected) || (isTrainingMode && m === "yellow-stream")}
+                    className={`rounded-lg px-2 py-1.5 text-[10px] sm:text-xs font-medium transition-all min-h-[36px] ${
+                      rewardMode === m
+                        ? "bg-white/20 text-white border border-white/30"
+                        : "bg-white/5 text-white/40 border border-transparent hover:bg-white/10 hover:text-white/60"
+                    } disabled:opacity-30 disabled:cursor-not-allowed`}
+                  >
+                    {m === "zk-batch" ? "Verified" : "Live Stream"}
+                    {m === "yellow-stream" && (
+                      <>
+                        <span className="ml-1 text-[8px] text-yellow-400">β</span>
+                        {rewardMode === "yellow-stream" && (
+                          <span
+                            className={`ml-1 inline-block h-1.5 w-1.5 rounded-full ${
+                              rewardsClearNodeConnected ? "bg-emerald-400" : "bg-zinc-500"
+                            }`}
+                          />
+                        )}
+                      </>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )
           ) : (
-            <div className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-[10px] font-medium text-white/80">
-              {simulatedReward?.isSimulating ? (
-                <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  <span className="text-amber-300">~{simulatedReward.formattedReward} SPIN</span>
-                  <span className="text-amber-400/50 text-[8px]">simulated</span>
-                </>
-              ) : rewardMode === "yellow-stream" ? (
-                <>
-                  <span className={`h-1.5 w-1.5 rounded-full ${
-                    rewardsClearNodeConnected ? "bg-yellow-400 animate-pulse" : "bg-zinc-500"
-                  }`} />
-                  <span className="text-yellow-300">Live</span>
-                  {rewardsFormattedReward !== "0" && (
-                    <span className="text-yellow-400 font-bold">{rewardsFormattedReward} SPIN</span>
-                  )}
-                </>
-              ) : (
-                <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                  <span className="text-indigo-300">Verified</span>
-                  {rewardsFormattedReward !== "0" ? (
-                    <span className="text-indigo-200 font-bold">{rewardsFormattedReward} SPIN</span>
-                  ) : rewardsIsActive ? (
-                    <span className="text-indigo-300/60 italic">Processing…</span>
-                  ) : null}
-                </>
-              )}
-            </div>
+            !isPracticeMode && !isTrainingMode && !isGuestMode && (
+              <div className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-[10px] font-medium text-white/80">
+                {simulatedReward?.isSimulating ? (
+                  <>
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    <span className="text-amber-300">~{simulatedReward.formattedReward} SPIN</span>
+                    <span className="text-amber-400/50 text-[8px]">simulated</span>
+                  </>
+                ) : rewardMode === "yellow-stream" ? (
+                  <>
+                    <span className={`h-1.5 w-1.5 rounded-full ${
+                      rewardsClearNodeConnected ? "bg-yellow-400 animate-pulse" : "bg-zinc-500"
+                    }`} />
+                    <span className="text-yellow-300">Live</span>
+                    {rewardsFormattedReward !== "0" && (
+                      <span className="text-yellow-400 font-bold">{rewardsFormattedReward} SPIN</span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                    <span className="text-indigo-300">Verified</span>
+                    {rewardsFormattedReward !== "0" ? (
+                      <span className="text-indigo-200 font-bold">{rewardsFormattedReward} SPIN</span>
+                    ) : rewardsIsActive ? (
+                      <span className="text-indigo-300/60 italic">Processing…</span>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            )
           )}
 
           {/* Collapse/Expand (desktop only) */}

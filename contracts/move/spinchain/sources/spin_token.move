@@ -107,7 +107,6 @@ module spinchain::spin_token {
     /// Mint reward tokens (treasury only)
     public entry fun mint_reward(
         treasury: &mut TreasuryCap<SPIN_TOKEN>,
-        manager: &mut TreasuryManager,
         amount: u64,
         recipient: address,
         reason: String,
@@ -115,24 +114,36 @@ module spinchain::spin_token {
         ctx: &mut TxContext
     ) {
         assert!(amount > 0, EInvalidAmount);
-        assert!(manager.total_minted + amount <= MAX_SUPPLY, EMaxSupplyExceeded);
-        
+
         let coins = coin::mint(treasury, amount, ctx);
         transfer::public_transfer(coins, recipient);
-        
-        manager.total_minted = manager.total_minted + amount;
-        
+
         event::emit(RewardMinted {
             recipient,
             amount,
             reason,
             session_id,
         });
+    }
 
-        event::emit(SupplyUpdated {
-            total_minted: manager.total_minted,
-            total_burned: manager.total_burned,
-            circulating_supply: manager.total_minted - manager.total_burned,
+    /// Claim reward tokens bridged to EVM (burns on Sui to maintain supply parity)
+    /// Matches the deployed v1 interface for upgrade compatibility.
+    public entry fun claim_for_bridge(
+        treasury: &mut TreasuryCap<SPIN_TOKEN>,
+        coins: Coin<SPIN_TOKEN>,
+        evm_recipient: String,
+        ctx: &mut TxContext
+    ) {
+        let amount = coin::value(&coins);
+        assert!(amount > 0, EInsufficientBalance);
+
+        let recipient = tx_context::sender(ctx);
+        coin::burn(treasury, coins);
+
+        event::emit(RewardClaimed {
+            recipient,
+            amount,
+            evm_recipient,
         });
     }
 

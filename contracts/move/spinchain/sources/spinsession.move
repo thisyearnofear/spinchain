@@ -49,9 +49,6 @@ module spinchain::spinsession {
         inference_model: String, // e.g. "venice::llama-3-70b" or "gemini::flash"
         system_prompt_cid: String, // IPFS/Walrus link to the agent's behavioral logic
         last_thought_epoch: u64, // Tracking when the agent last processed biometric state
-
-        // DeepBook Liquidity Layer
-        balance_manager_id: Option<ID>,
     }
 
     /// High-frequency telemetry for a rider.
@@ -168,7 +165,6 @@ module spinchain::spinsession {
             inference_model,
             system_prompt_cid,
             last_thought_epoch: 0,
-            balance_manager_id: std::option::none(),
         };
         transfer::share_object(coach);
     }

@@ -43,10 +43,7 @@ export function RideLoading({
       label: "Mode",
       value: isPracticeMode ? "Practice" : "Live Class",
     },
-    {
-      label: "Rewards",
-      value: rewardModeLabel,
-    },
+    ...(!isPracticeMode ? [{ label: "Rewards" as const, value: rewardModeLabel }] : []),
   ];
 
   return (
@@ -56,7 +53,7 @@ export function RideLoading({
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-cyan-300" />
           <div>
             <p className="text-base font-semibold text-white">Preparing your ride experience</p>
-            <p className="text-xs text-white/60">Loading route, coach profile, and reward pipeline…</p>
+            <p className="text-xs text-white/60">{isPracticeMode ? "Loading route and coach profile…" : "Loading route, coach profile, and reward pipeline…"}</p>
           </div>
         </div>
 

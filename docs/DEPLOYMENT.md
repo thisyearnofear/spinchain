@@ -89,7 +89,7 @@ sui client publish --gas-budget 100000000
 ### Current Deployment
 | Field | Value |
 |-------|-------|
-| **Package ID** | `0xc42b32ab25566a6f43db001e6f2c2fd6b2ccc7232e2af3cfca0b9beca824d7dc` |
+| **Package ID** | `0x51542d1d4b43763d58e6f91f845f63157d5fc59bd95ead54dc370b0898d1185c` |
 | **Deployer** | `0x9018a50508af247c8ef949a6fd6522fc0b7f6652a9d07a2b108d748728f7b73f` |
 
 ---
@@ -205,7 +205,7 @@ Minimum release expectation:
 # See https://testnet.snowtrace.io for verification status
 
 # Sui
-sui client object 0xc42b32ab25566a6f43db001e6f2c2fd6b2ccc7232e2af3cfca0b9beca824d7dc
+sui client object 0x51542d1d4b43763d58e6f91f845f63157d5fc59bd95ead54dc370b0898d1185c
 ```
 
 ### Test ZK Flow

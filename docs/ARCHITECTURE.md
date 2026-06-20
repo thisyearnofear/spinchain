@@ -161,7 +161,7 @@ For testing without BLE hardware:
 - **Settlement**: Avalanche C-Chain (EVM) with ZK Verifiers
 - **Agent Autonomy**: Kite AI Testnet (EVM)
 - **Execution**: Sui Testnet (Move)
-- **Package ID**: `0xc42b32ab25566a6f43db001e6f2c2fd6b2ccc7232e2af3cfca0b9beca824d7dc`
+- **Package ID**: `0x51542d1d4b43763d58e6f91f845f63157d5fc59bd95ead54dc370b0898d1185c`
 - **Identity/Wallet**: RainbowKit (EVM) + Sui dApp Kit
 - **ZK Proofs**: Noir (Aztec) with UltraPlonk backend
 
