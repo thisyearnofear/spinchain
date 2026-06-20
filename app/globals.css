@@ -93,7 +93,8 @@ html.no-transitions *::after {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans, system-ui, -apple-system, "Segoe UI", sans-serif);
+  font-family: var(--font-geist-sans, "Space Grotesk", system-ui, -apple-system, sans-serif);
+  letter-spacing: -0.011em;
 }
 
 /* Custom easing */

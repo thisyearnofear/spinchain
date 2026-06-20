@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 import { isClearNodeConnected } from "@/app/lib/rewards/yellow/clearnode";
 import { useNetworkStatus } from "@/app/hooks/use-network-status";
+import { useRideStore } from "@/app/stores/ride-store";
 
 interface YellowStatusIndicatorProps {
   compact?: boolean;
@@ -185,6 +186,28 @@ export function NetworkStatusBanner() {
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Compact pill variant for the ride page.
+ * Shows a tiny amber dot + "Preview" label that doesn't block content.
+ * Auto-hides entirely once the ride starts.
+ */
+export function RidePreviewBadge() {
+  const status = useNetworkStatus();
+  const isRiding = useRideStore((s) => s.isActive);
+  const rideProgress = useRideStore((s) => s.rideProgress);
+
+  if (status.ready || isRiding || rideProgress > 0) return null;
+
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 backdrop-blur-sm pointer-events-auto">
+      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+      <span className="text-[9px] font-bold uppercase tracking-widest text-amber-300/80">
+        Preview
+      </span>
     </div>
   );
 }

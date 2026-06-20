@@ -152,7 +152,7 @@ function GhostLeadLag({
 
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-white/20 bg-black/40 px-3 py-1.5 backdrop-blur transition-all">
-      <span className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-0.5">
+      <span className="text-[8px] font-black text-white/50 uppercase tracking-widest mb-0.5">
         Ghost Pacer
       </span>
       <div className="flex items-baseline gap-1.5">
@@ -164,7 +164,7 @@ function GhostLeadLag({
           {label}
         </span>
       </div>
-      <div className="text-[9px] font-mono text-white/30">
+      <div className="text-[9px] font-mono text-white/50">
         {Math.abs(distanceGap).toFixed(0)}m {isLeading ? "ahead" : "behind"}
       </div>
     </div>
@@ -258,7 +258,7 @@ export function RideHUD() {
       </div>
 
       <div className="relative group max-w-[280px]">
-        <div className="relative rounded-xl bg-black/60 border border-white/10 px-4 py-3 backdrop-blur shadow-2xl">
+        <div className="relative rounded-xl bg-black/70 border border-white/10 px-4 py-3 backdrop-blur shadow-2xl">
           <p className="text-[13px] text-white/90 leading-relaxed font-medium tracking-tight">
             <span className="text-indigo-400 mr-2">●</span>
             {coachMessage}
@@ -361,7 +361,7 @@ export function RideHUD() {
   }
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6 pt-24 pb-24">
       {flowStateVisualizer}
       <div className="flex flex-col gap-6">
         {rewardsActive && rewardsStreamState && (
@@ -464,13 +464,13 @@ const MetricCard = memo(function MetricCard({
     <div
       className={`
       relative rounded-[2rem] overflow-hidden
-      bg-black/40 backdrop-blur-2xl border
+      bg-black/70 backdrop-blur-2xl border
       p-5 sm:p-8 min-w-[170px] sm:min-w-[210px]
       transition-all duration-500
       ${
         emphasized
           ? "border-white/20 shadow-[0_0_60px_rgba(255,255,255,0.08)] ring-1 ring-white/5"
-          : "border-white/5 hover:border-white/10"
+          : "border-white/10 hover:border-white/15"
       }
     `}
     >
@@ -487,7 +487,7 @@ const MetricCard = memo(function MetricCard({
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
       <div className="flex items-center justify-between mb-3 relative z-10">
-        <p className="text-[10px] sm:text-[11px] uppercase font-black tracking-[0.3em] text-white/40">
+        <p className="text-[10px] sm:text-[11px] uppercase font-black tracking-[0.3em] text-white/50">
           {label}
         </p>
         <div className="flex gap-1.5">
@@ -507,7 +507,7 @@ const MetricCard = memo(function MetricCard({
           className={`text-5xl sm:text-7xl font-black tracking-tighter ${color} transition-all duration-300`}
         >
           {value}
-          <span className="text-sm sm:text-lg font-bold text-white/20 ml-2 tracking-normal uppercase">
+          <span className="text-sm sm:text-lg font-bold text-white/40 ml-2 tracking-normal uppercase">
             {unit}
           </span>
         </p>
@@ -681,7 +681,7 @@ function MobileCompactHUD({
         onClick={handleTap}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className={`pointer-events-auto relative rounded-[2.5rem] border bg-black/80 backdrop-blur-2xl transition-all duration-500 shadow-2xl overflow-hidden ${
+        className={`pointer-events-auto relative rounded-[2.5rem] border bg-black/85 backdrop-blur-2xl transition-all duration-500 shadow-2xl overflow-hidden ${
           expanded ? "w-full max-w-sm p-8" : "px-6 py-4"
         } ${phaseAccent.border}`}
       >

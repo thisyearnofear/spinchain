@@ -30,7 +30,7 @@ import { SettlementStream } from "../../../components/features/ride/settlement-s
 import type { RewardMode } from "../../../hooks/rewards/use-rewards";
 import { useWakeLock } from "../../../hooks/use-wake-lock";
 import { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
-import { NetworkStatusBanner } from "../../../components/features/common/yellow-status-indicator";
+import { RidePreviewBadge } from "../../../components/features/common/yellow-status-indicator";
 import { useHaptic } from "../../../hooks/use-haptic";
 import {
   type WorkoutPlan,
@@ -320,8 +320,8 @@ export default function LiveRidePage() {
   // ─── Render ────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-black" style={{ height: deviceType === "mobile" ? `${viewportHeight}px` : "100vh" }}>
-      <div className="absolute top-2 left-2 right-2 z-50">
-        <NetworkStatusBanner />
+      <div className="absolute top-2 left-2 z-50">
+        <RidePreviewBadge />
       </div>
 
       <SectionErrorBoundary title="ride visualization">
@@ -373,16 +373,16 @@ export default function LiveRidePage() {
       </SectionErrorBoundary>
 
       {isRiding && viewMode === "immersive" && hudMode !== "minimal" && (
-        <div className="fixed top-32 right-6 z-40 flex flex-col gap-4">
+        <div className="fixed top-40 right-6 z-40 flex flex-col gap-4">
           <PerformanceGraph data={telemetryHistory.power} color="text-yellow-400" label="Power" max={400} />
           <PerformanceGraph data={telemetryHistory.cadence} color="text-blue-400" label="Cadence" max={140} />
         </div>
       )}
 
       {isRiding && viewMode === "immersive" && hudMode !== "minimal" && multiGhostState.length > 0 && (
-        <div className="fixed top-32 left-6 z-40 flex flex-col gap-3">
+        <div className="fixed top-40 left-6 z-40 flex flex-col gap-3">
           {multiGhostState.map((rider) => (
-            <div key={rider.id} className="flex items-center gap-3 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full pl-1.5 pr-4 py-1.5 animate-in fade-in slide-in-from-left-5 duration-500">
+            <div key={rider.id} className="flex items-center gap-3 bg-black/70 backdrop-blur-xl border border-white/10 rounded-full pl-1.5 pr-4 py-1.5 animate-in fade-in slide-in-from-left-5 duration-500">
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-black text-indigo-300">
                   {rider.name.substring(0, 2).toUpperCase()}
@@ -391,7 +391,7 @@ export default function LiveRidePage() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-black text-white/80 leading-none">{rider.name}</span>
-                <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-0.5">
+                <span className="text-[8px] font-bold text-white/50 uppercase tracking-widest mt-0.5">
                   {rider.power}W | {rider.leadLagTime > 0 ? "+" : ""}{rider.leadLagTime.toFixed(1)}s
                 </span>
               </div>

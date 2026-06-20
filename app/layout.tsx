@@ -1,9 +1,24 @@
 import type { Metadata, Viewport } from "next";
+import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "@rainbow-me/rainbowkit/styles.css";
 import { Providers } from "./providers";
 import { SmoothScrollProvider } from "@/app/components/ui/smooth-scroll";
 import { ErrorBoundary } from "@/app/components/layout/error-boundary";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+  display: "swap",
+  weight: ["400", "500", "700"],
+});
 
 export const metadata: Metadata = {
   title: "SpinChain — Your Workout, Rewarded",
@@ -60,7 +75,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="antialiased">
+      <body className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} antialiased`}>
         <ErrorBoundary>
           <Providers>
             <SmoothScrollProvider>{children}</SmoothScrollProvider>

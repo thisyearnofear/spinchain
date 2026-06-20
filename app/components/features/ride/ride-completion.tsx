@@ -184,17 +184,24 @@ export function RideCompletion({
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 bg-black/95 backdrop-blur-sm flex items-center justify-center pointer-events-auto p-4"
+      className="absolute inset-0 flex items-center justify-center pointer-events-auto p-4 overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="completion-title"
       tabIndex={-1}
+      style={{
+        background: "radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.15) 0%, rgba(7,9,15,0.98) 60%), #07090f",
+      }}
     >
-      <div className="rounded-3xl bg-gradient-to-br from-indigo-900/90 to-purple-900/90 border border-white/20 p-4 sm:p-6 text-center max-w-lg w-full backdrop-blur-xl flex flex-col max-h-[90vh]">
+      {/* Atmospheric glow layers */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[300px] bg-purple-600/8 blur-[100px] rounded-full pointer-events-none" />
+
+      <div className="relative w-full max-w-lg flex flex-col max-h-[90vh] text-center">
         {/* Header */}
-        <div className="mb-3 shrink-0">
+        <div className="mb-4 shrink-0">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl sm:text-2xl">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-indigo-500/30">
               🧠
             </div>
           </div>
@@ -203,7 +210,7 @@ export function RideCompletion({
           </p>
           <h2
             id="completion-title"
-            className="text-xl sm:text-2xl font-bold text-white mb-1"
+            className="text-xl sm:text-2xl font-bold text-white mb-1 tracking-tight"
           >
             Message from {agentName}
           </h2>
@@ -212,9 +219,9 @@ export function RideCompletion({
           </p>
         </div>
 
-        {/* Tab Bar */}
+        {/* Tab Bar — borderless, underline-style */}
         <div
-          className="flex gap-1 mb-3 shrink-0 rounded-xl bg-black/30 p-1"
+          className="flex gap-6 mb-4 shrink-0 border-b border-white/10"
           role="tablist"
           aria-label="Ride completion sections"
         >
@@ -249,10 +256,10 @@ export function RideCompletion({
                   document.getElementById(`tab-${last.id}`)?.focus();
                 }
               }}
-              className={`flex-1 rounded-lg py-2 text-xs sm:text-sm font-semibold transition-all ${
+              className={`flex-1 pb-2 text-xs sm:text-sm font-semibold transition-all border-b-2 -mb-px ${
                 activeTab === tab.id
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30"
-                  : "text-white/50 hover:text-white/80 hover:bg-white/5"
+                  ? "border-indigo-400 text-white"
+                  : "border-transparent text-white/50 hover:text-white/80"
               }`}
             >
               {tab.label}
@@ -409,17 +416,17 @@ function SummaryTab({
   getAgentDebrief: () => string;
 }) {
   return (
-    <div className="space-y-3">
-      {/* Agent Narrative */}
-      <div className="rounded-xl border border-indigo-400/20 bg-indigo-500/10 p-3 sm:p-4">
-        <p className="text-xs sm:text-sm leading-relaxed text-white/80 italic">
+    <div className="space-y-4">
+      {/* Agent Narrative — no card, just typography */}
+      <div className="relative pl-4 border-l-2 border-indigo-400/40">
+        <p className="text-xs sm:text-sm leading-relaxed text-white/70 italic">
           &ldquo;{getAgentDebrief()}&rdquo;
         </p>
       </div>
 
-      {/* Telemetry Source */}
+      {/* Telemetry Source — minimal pill */}
       <div className="flex justify-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80">
+        <div className="inline-flex items-center gap-2 text-xs text-white/60">
           <span
             className={`h-2 w-2 rounded-full ${
               telemetrySource === "live-bike"
@@ -430,37 +437,35 @@ function SummaryTab({
             }`}
           />
           {telemetrySource === "live-bike"
-            ? "Telemetry source: Live bike"
+            ? "Live bike telemetry"
             : telemetrySource === "simulator"
-              ? "Telemetry source: Simulator"
-              : "Telemetry source: Estimated"}
+              ? "Simulator telemetry"
+              : "Estimated telemetry"}
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      {/* Stats — no card containers, pure typography */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 py-2">
         <Stat label="Avg HR" value={avgHeartRate} />
         <Stat label="Avg Power" value={`${avgPower}W`} />
         <Stat label="Effort" value={avgEffort} highlight />
       </div>
 
-      {/* Next Ride Recommendation */}
-      <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-xs text-white/80">
-        <div className="flex items-center justify-between mb-2">
-          <span className="font-semibold text-white flex items-center gap-1.5">
-            🎯 Next Ride Recommendation
-          </span>
-        </div>
+      {/* Next Ride Recommendation — no card, just accent text */}
+      <div className="pt-2">
+        <p className="text-[10px] uppercase tracking-widest text-cyan-400/70 font-bold mb-1.5">
+          Next Ride
+        </p>
         {avgEffort >= 800 ? (
-          <p className="text-white/70">
+          <p className="text-xs text-white/60 leading-relaxed">
             You crushed it! Ready for a bigger challenge? Try a higher-intensity class to push your threshold even further.
           </p>
         ) : avgEffort >= 500 ? (
-          <p className="text-white/70">
+          <p className="text-xs text-white/60 leading-relaxed">
             Solid effort. Next time, aim to push above 700 effort score to unlock higher SPIN rewards. An interval-focused class will help you get there.
           </p>
         ) : (
-          <p className="text-white/70">
+          <p className="text-xs text-white/60 leading-relaxed">
             Great start on your fitness journey! A steady endurance class will help you build your base and increase your effort score over time.
           </p>
         )}
@@ -493,95 +498,68 @@ function RewardsTab({
   onUpgrade?: () => void;
 }) {
   return (
-    <div className="space-y-3">
-      {/* SPIN Token Explanation */}
-      <div className="rounded-xl border border-white/15 bg-black/20 p-3 text-xs text-white/80">
-        <div className="flex items-center justify-between mb-1">
-          <span className="font-semibold text-white">🎉 SPIN Token Earnings</span>
-          <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-500/30 text-amber-300">How It Works</span>
+    <div className="space-y-5">
+      {/* SPIN Token Earnings — no card, accent label + content */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] uppercase tracking-widest text-amber-400/70 font-bold">SPIN Token Earnings</p>
+          <span className="text-[10px] font-bold text-amber-300/60">{spinEarned} SPIN</span>
         </div>
-        <p className="text-white/60 mb-2">Earn SPIN tokens based on your performance:</p>
-        <ul className="text-white/60 space-y-1 pl-4">
+        <p className="text-xs text-white/50 mb-2">Earn SPIN tokens based on your performance:</p>
+        <ul className="text-xs text-white/50 space-y-1.5">
           <li className="flex items-start gap-2">
-            <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
+            <span className="text-amber-400 mt-0.5">↗</span>
             <span>Effort Score ({avgEffort}/1000): Higher effort = more tokens</span>
           </li>
           <li className="flex items-start gap-2">
-            <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
+            <span className="text-amber-400 mt-0.5">↗</span>
             <span>Duration ({formatTime(elapsedTime)}): Longer workouts = higher rewards</span>
           </li>
           <li className="flex items-start gap-2">
-            <svg className="h-4 w-4 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
+            <span className="text-amber-400 mt-0.5">↗</span>
             <span>Consistency: Steady effort throughout = bonus tokens</span>
           </li>
         </ul>
-        <p className="text-white/60 mt-2">Your {avgEffort} effort score earned you {spinEarned} SPIN tokens.</p>
+        <p className="text-xs text-white/50 mt-2">Your {avgEffort} effort score earned you <span className="text-amber-400 font-bold">{spinEarned}</span> SPIN tokens.</p>
       </div>
 
-      {/* Improvement Tips */}
-      <div className="rounded-xl border border-white/15 bg-black/20 p-3 text-xs text-white/80">
-        <div className="flex items-center justify-between mb-1">
-          <span className="font-semibold text-white">🚀 Boost Your Earnings</span>
-          <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-green-500/30 text-green-300">Next Time</span>
-        </div>
-        <p className="text-white/60 mb-2">Improve your SPIN earnings with these tips:</p>
-        <ul className="text-white/60 space-y-1 pl-4">
+      {/* Improvement Tips — no card, accent label + content */}
+      <div className="pt-1 border-t border-white/5">
+        <p className="text-[10px] uppercase tracking-widest text-emerald-400/70 font-bold mb-2 mt-3">Boost Your Earnings</p>
+        <ul className="text-xs text-white/50 space-y-1.5">
           <li className="flex items-start gap-2">
-            <svg className="h-4 w-4 text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
+            <span className="text-emerald-400 mt-0.5">↗</span>
             <span>Increase effort score: Push harder during intervals</span>
           </li>
           <li className="flex items-start gap-2">
-            <svg className="h-4 w-4 text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
+            <span className="text-emerald-400 mt-0.5">↗</span>
             <span>Extend duration: Add 5-10 minutes to your workout</span>
           </li>
           <li className="flex items-start gap-2">
-            <svg className="h-4 w-4 text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
+            <span className="text-emerald-400 mt-0.5">↗</span>
             <span>Maintain consistency: Keep effort above 700 throughout</span>
           </li>
           <li className="flex items-start gap-2">
-            <svg className="h-4 w-4 text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
+            <span className="text-emerald-400 mt-0.5">↗</span>
             <span>Complete more classes: Regular workouts = bonus rewards</span>
           </li>
         </ul>
       </div>
 
-      {/* Performance Context */}
-      <div className="rounded-xl border border-white/15 bg-black/20 p-3 text-xs text-white/80">
-        <div className="flex items-center justify-between mb-1">
-          <span className="font-semibold text-white">📊 Your Performance</span>
-          <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-blue-500/30 text-blue-300">Context</span>
-        </div>
-        <p className="text-white/60 mb-2">Here&apos;s how you performed:</p>
-        <div className="grid grid-cols-2 gap-2 text-white/60">
+      {/* Performance Context — no card, stat row */}
+      <div className="pt-1 border-t border-white/5">
+        <p className="text-[10px] uppercase tracking-widest text-blue-400/70 font-bold mb-2 mt-3">Your Performance</p>
+        <div className="grid grid-cols-2 gap-3 mb-2">
           <div>
-            <p className="font-semibold text-white">Effort Score</p>
-            <p className="text-sm">{avgEffort}/1000</p>
+            <p className="text-[10px] text-white/40 uppercase tracking-wider">Effort</p>
+            <p className="text-lg font-black text-white tracking-tighter">{avgEffort}<span className="text-xs text-white/30">/1000</span></p>
           </div>
           <div>
-            <p className="font-semibold text-white">Duration</p>
-            <p className="text-sm">{formatTime(elapsedTime)}</p>
+            <p className="text-[10px] text-white/40 uppercase tracking-wider">Duration</p>
+            <p className="text-lg font-black text-white tracking-tighter">{formatTime(elapsedTime)}</p>
           </div>
         </div>
-        <p className="text-white/60 mt-2">Aim for 900+ effort score to earn 50+ SPIN tokens!</p>
-        <div className="mt-3 flex items-center justify-between text-white/60">
-          <span>Current SPIN Earned:</span>
-          <span className="font-bold text-amber-400">{spinEarned} SPIN</span>
-        </div>
-        <p className="text-white/40 text-[10px] mt-1">Claim rewards after your ride to receive SPIN tokens.</p>
+        <p className="text-xs text-white/40">Aim for 900+ effort score to earn 50+ SPIN tokens!</p>
       </div>
 
       {/* Reward Verification Status */}
@@ -593,22 +571,26 @@ function RewardsTab({
         />
       )}
 
-      {/* Premium Upsell */}
+      {/* Premium Upsell — no card, borderless */}
       {!isPracticeMode && (
-        <div className="rounded-xl border border-white/15 bg-black/20 p-3 text-xs text-white/80">
-          <p className="font-semibold text-white">Free included</p>
-          <p>Live telemetry + ride summary</p>
-          <p className="mt-2 font-semibold text-white">Premium unlock</p>
-          <p>Historical trends, zone breakdowns, and AI coaching insights</p>
+        <div className="pt-1 border-t border-white/5">
+          <div className="mt-3 mb-2">
+            <p className="text-[10px] uppercase tracking-widest text-white/30 font-bold">Free</p>
+            <p className="text-xs text-white/50">Live telemetry + ride summary</p>
+          </div>
+          <div className="mb-2">
+            <p className="text-[10px] uppercase tracking-widest text-indigo-400/70 font-bold">Premium</p>
+            <p className="text-xs text-white/50">Historical trends, zone breakdowns, and AI coaching insights</p>
+          </div>
           {onUpgrade && (
             <button
               onClick={() => {
                 trackEvent(ANALYTICS_EVENTS.PREMIUM_UPSELL_CLICKED, { source: "ride-completion" });
                 onUpgrade();
               }}
-              className="mt-3 w-full rounded-lg border border-indigo-300/40 bg-indigo-500/20 px-3 py-2 text-xs font-semibold text-indigo-100 transition hover:bg-indigo-500/30"
+              className="text-xs font-semibold text-indigo-300 transition hover:text-indigo-200 underline underline-offset-4 decoration-indigo-400/30"
             >
-              Unlock Advanced Analytics
+              Unlock Advanced Analytics →
             </button>
           )}
         </div>
@@ -629,21 +611,21 @@ function RewardVerificationStatus({
   rewardClaimStatus: RewardClaimStatus;
 }) {
   return (
-    <div className="rounded-xl border border-indigo-500/20 bg-black/30 p-3 text-xs">
-      <div className="flex items-center justify-between mb-2">
+    <div className="pt-1 border-t border-white/5 text-xs">
+      <div className="flex items-center justify-between mb-2 mt-3">
         <span className="font-semibold text-white flex items-center gap-1.5">
           <span className="text-sm">🧠</span>
           {rewardClaimStatus.mode === "chainlink" ? "Reward Verification" : "ZK Claim Validation"}
         </span>
         <span
-          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+          className={`text-[10px] font-bold ${
             rewardClaimStatus.mode === "chainlink"
-              ? "bg-cyan-500/30 text-cyan-300"
+              ? "text-cyan-400"
               : rewardClaimStatus.privacyLevel === "high"
-              ? "bg-emerald-500/30 text-emerald-300"
+              ? "text-emerald-400"
               : rewardClaimStatus.privacyLevel === "medium"
-                ? "bg-amber-500/30 text-amber-300"
-                : "bg-zinc-500/30 text-zinc-300"
+                ? "text-amber-400"
+                : "text-zinc-400"
           }`}
         >
           {rewardClaimStatus.mode === "chainlink"
@@ -780,12 +762,12 @@ function StorageTab({
   onPersistToWalrus: () => void;
 }) {
   return (
-    <div className="space-y-3">
-      {/* Walrus Decentralized Journey */}
-      <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+    <div className="space-y-5">
+      {/* Walrus Decentralized Journey — no card */}
+      <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex flex-col text-left">
-            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Decentralized Journey</span>
+            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Decentralized Journey</span>
             <h4 className="text-sm font-bold text-white italic">Store Session on Walrus</h4>
           </div>
           <Cloud className="w-4 h-4 text-indigo-400" />
@@ -793,14 +775,14 @@ function StorageTab({
 
         {walrusAnchorInfo && (
           <div className="space-y-3 mb-3">
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+            <div className="flex items-center gap-2 text-emerald-400">
               <CheckCircle2 className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Anchored to Walrus</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">Anchored to Walrus</span>
             </div>
-            <div className="p-3 rounded-xl bg-black/40 border border-white/5 overflow-hidden">
-              <p className="text-[8px] font-mono text-white/30 truncate uppercase">Blob ID: {walrusAnchorInfo.blobId}</p>
+            <div className="overflow-hidden">
+              <p className="text-[8px] font-mono text-white/40 truncate uppercase">Blob ID: {walrusAnchorInfo.blobId}</p>
               {walrusAnchorInfo.txDigest && (
-                <p className="text-[8px] font-mono text-white/30 truncate mt-1">Sui TX: {walrusAnchorInfo.txDigest}</p>
+                <p className="text-[8px] font-mono text-white/40 truncate mt-1">Sui TX: {walrusAnchorInfo.txDigest}</p>
               )}
             </div>
             <div className="flex items-center gap-3">
@@ -829,7 +811,7 @@ function StorageTab({
         {!walrusId && !walrusAnchorInfo ? (
           <LoadingButton
             variant="secondary"
-            className="w-full h-12 rounded-2xl gap-2 font-black uppercase tracking-widest text-[10px]"
+            className="w-full h-12 rounded-xl gap-2 font-bold uppercase tracking-widest text-[10px]"
             onClick={onPersistToWalrus}
             isLoading={isPersisting}
             loadingText="Uploading to Walrus..."
@@ -838,32 +820,33 @@ function StorageTab({
             Persist Forever
           </LoadingButton>
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-emerald-400">
               <CheckCircle2 className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Anchored to Walrus</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">Anchored to Walrus</span>
             </div>
-            <div className="p-3 rounded-xl bg-black/40 border border-white/5 overflow-hidden">
-              <p className="text-[8px] font-mono text-white/30 truncate uppercase">Blob ID: {walrusId}</p>
-            </div>
+            <p className="text-[8px] font-mono text-white/40 truncate uppercase">Blob ID: {walrusId}</p>
           </div>
         )}
       </div>
 
-      {/* Sync Status */}
-      <div className="rounded-xl border border-white/10 bg-black/30 p-3 text-xs text-white/70">
-        Sync status: {syncStatus.replace("_", " ")}
-        {syncStatus === "queued" ? " • queued for relay" : ""}
-        {syncStatus === "relayed" ? " • relay acknowledged" : ""}
-        {syncStatus === "anchored" ? " • on-chain commitment anchored" : ""}
-        {syncStatus === "failed" ? " • retry from Journey when online" : ""}
+      {/* Sync Status — no card, just text */}
+      <div className="pt-1 border-t border-white/5">
+        <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1 mt-3">Sync Status</p>
+        <p className="text-xs text-white/50">
+          {syncStatus.replace("_", " ")}
+          {syncStatus === "queued" ? " • queued for relay" : ""}
+          {syncStatus === "relayed" ? " • relay acknowledged" : ""}
+          {syncStatus === "anchored" ? " • on-chain commitment anchored" : ""}
+          {syncStatus === "failed" ? " • retry from Journey when online" : ""}
+        </p>
       </div>
 
-      {/* Coach Rating */}
-      <div className="rounded-2xl bg-indigo-500/5 border border-indigo-500/10 p-4">
-        <div className="flex items-center justify-between mb-3">
+      {/* Coach Rating — no card */}
+      <div className="pt-1 border-t border-white/5">
+        <div className="flex items-center justify-between mb-3 mt-3">
           <div className="flex flex-col text-left">
-            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Protocol Governance</span>
+            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Protocol Governance</span>
             <h4 className="text-sm font-bold text-white">Rate {agentName}&apos;s Coaching</h4>
           </div>
           <Star className="w-4 h-4 text-indigo-400" />
@@ -874,10 +857,10 @@ function StorageTab({
             <button
               key={star}
               onClick={() => onSetRating(star)}
-              className={`flex-1 py-3 rounded-xl border transition-all ${
+              className={`flex-1 py-3 rounded-lg border transition-all ${
                 rating >= star
                   ? "bg-indigo-600/20 border-indigo-500 text-indigo-400"
-                  : "bg-white/5 border-white/5 text-white/20 hover:border-white/10"
+                  : "bg-transparent border-white/5 text-white/20 hover:border-white/10"
               }`}
             >
               <Star className={`w-5 h-5 mx-auto ${rating >= star ? "fill-current" : ""}`} />
@@ -892,7 +875,7 @@ function StorageTab({
             </p>
             <LoadingButton
               variant="secondary"
-              className="w-full mt-3 h-10 text-[10px] uppercase font-black tracking-widest rounded-xl"
+              className="w-full mt-3 h-10 text-[10px] uppercase font-bold tracking-widest rounded-lg"
               onClick={onSubmitRating}
               isLoading={isSubmitted}
               loadingText="Voting on Protocol..."
@@ -916,10 +899,10 @@ function Stat({
   highlight?: boolean;
 }) {
   return (
-    <div className="rounded-xl bg-white/10 p-3 sm:p-4">
-      <p className="text-xs sm:text-sm text-white/50">{label}</p>
+    <div className="text-center">
+      <p className="text-[10px] sm:text-xs text-white/40 uppercase tracking-widest mb-1">{label}</p>
       <p
-        className={`text-xl sm:text-2xl font-bold ${highlight ? "text-purple-400" : "text-white"}`}
+        className={`text-2xl sm:text-4xl font-black tracking-tighter ${highlight ? "text-purple-400" : "text-white"}`}
       >
         {value}
       </p>
