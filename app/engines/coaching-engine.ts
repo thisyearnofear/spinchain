@@ -58,6 +58,9 @@ export class CoachingEngine {
   /** Current cadence (set externally from telemetry) */
   private currentCadence = 0;
 
+  /** Active style anchor (set via style override event) */
+  private activeStyleAnchor: { anchorId: string; name: string; type: string } | null = null;
+
   /** Disposed flag */
   private disposed = false;
 
@@ -82,6 +85,20 @@ export class CoachingEngine {
     this.cadenceDriftMs = 0;
     this.lastCadenceCheckMs = 0;
     this.lastDriftNudgeKey = null;
+
+    // Subscribe to style override events
+    this.unsubs.push(
+      this.bus.on("coaching:style-override", (data) => {
+        this.activeStyleAnchor = { anchorId: data.anchorId, name: data.name, type: data.type };
+        console.log(`[CoachingEngine] Style override applied:`, data.name);
+
+        // Emit a coaching message about the style change
+        this.bus.emit("coaching:message", {
+          text: `Style shift: ${data.name}`,
+          source: "style-override",
+        });
+      }),
+    );
   }
 
   stop(): void {
@@ -261,5 +278,9 @@ export class CoachingEngine {
 
   get coachingConfig(): Readonly<CoachingConfig> {
     return this.config;
+  }
+
+  get styleAnchor(): { anchorId: string; name: string; type: string } | null {
+    return this.activeStyleAnchor;
   }
 }

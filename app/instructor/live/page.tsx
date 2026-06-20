@@ -31,9 +31,13 @@ import {
   fetchGhostWithFallback,
   GhostPerformance,
 } from "@/app/lib/analytics/ghost-service";
-import { NetworkStatusBanner } from "@/app/components/features/common/yellow-status-indicator";
+import { RidePreviewBadge } from "@/app/components/features/common/yellow-status-indicator";
 
 import { useNetworkStatus } from "@/app/hooks/use-network-status";
+import { useTelemetryStore, selectTelemetrySnapshot, selectTelemetryAverages } from "@/app/stores/telemetry-store";
+import { useRideStore } from "@/app/stores/ride-store";
+import { useCoachingStore, selectAiLogs, selectLastCoachMessage, selectCurrentInterval } from "@/app/stores/coaching-store";
+import type { AgentDecision } from "@/app/lib/ai-types";
 
 const DEMO_DEFAULTS = {
   riderCount: 42,
@@ -61,8 +65,25 @@ export default function InstructorLivePage() {
   const [benchmark, setBenchmark] = useState<GhostPerformance | null>(null);
   const [marketStats, setMarketStats] = useState(DEMO_DEFAULTS.marketStats);
 
-  // Mock Live Telemetry
-  const [telemetry, setTelemetry] = useState(DEMO_DEFAULTS.telemetry);
+  // Real telemetry from Zustand stores
+  const rideSnapshot = useTelemetryStore(selectTelemetrySnapshot);
+  const rideAverages = useTelemetryStore(selectTelemetryAverages);
+  const rideActive = useRideStore((s) => s.isActive);
+  const rideProgress = useRideStore((s) => s.rideProgress);
+  const rideSession = useRideStore((s) => s.session);
+  const aiLogs = useCoachingStore(selectAiLogs);
+  const lastCoachMessage = useCoachingStore(selectLastCoachMessage);
+  const lastDecision = useCoachingStore((s) => s.lastDecision) as AgentDecision | null;
+  const currentInterval = useCoachingStore(selectCurrentInterval);
+
+  // Use real telemetry when ride is active, fall back to demo data
+  const telemetry = rideActive
+    ? {
+        avgPower: Math.round(rideAverages.avgPower || rideSnapshot.power || 0),
+        avgHr: Math.round(rideAverages.avgHr || rideSnapshot.heartRate || 0),
+        intensity: Math.round(rideSnapshot.effort * 100 || 0),
+      }
+    : DEMO_DEFAULTS.telemetry;
 
   const [activeStyleAnchor, setActiveStyleAnchor] = useState<string | null>(
     null,
@@ -83,8 +104,14 @@ export default function InstructorLivePage() {
 
   const handleStyleOverride = (anchorId: string) => {
     setActiveStyleAnchor(anchorId);
-    // In a real app, this would emit an event to the Agent reasoning loop
-    console.log("Instructor Override: Pushing style anchor", anchorId);
+    // Emit via EventBus for the coaching engine to pick up
+    const anchor = styleAnchors.find((a) => a.id === anchorId);
+    if (anchor) {
+      window.dispatchEvent(new CustomEvent("spinchain:style-override", {
+        detail: { anchorId, name: anchor.name, type: anchor.type },
+      }));
+      console.log("[Live] Style override dispatched:", anchor.name);
+    }
   };
 
   // Load benchmark data on mount
@@ -122,7 +149,7 @@ export default function InstructorLivePage() {
           <PrimaryNav />
         </div>
 
-        <NetworkStatusBanner />
+        <RidePreviewBadge />
 
         {/* Header with Live Status */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -131,11 +158,11 @@ export default function InstructorLivePage() {
               <div className="flex items-center gap-1.5 bg-red-500/20 border border-red-500/30 px-3 py-1 rounded-full">
                 <span className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
                 <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">
-                  {networkStatus.ready ? "Live Session" : "Demo Session"}
+                  {rideActive ? "Live Session" : networkStatus.ready ? "Live Session" : "Demo Session"}
                 </span>
               </div>
               <Tag className="bg-indigo-500/10 border-indigo-500/20 text-indigo-400">
-                HIIT 45: Neon Peak
+                {rideActive && rideSession ? rideSession.className : "HIIT 45: Neon Peak"}
               </Tag>
             </div>
             <h1 className="text-3xl font-black tracking-tighter mt-2">
@@ -458,49 +485,92 @@ export default function InstructorLivePage() {
                       Active Reasoning
                     </span>
                     <div className="flex gap-1">
-                      <div className="h-1 w-4 bg-indigo-500 rounded-full" />
-                      <div className="h-1 w-2 bg-indigo-500/30 rounded-full" />
+                      <div className={`h-1 w-4 rounded-full ${rideActive ? "bg-indigo-500" : "bg-white/10"}`} />
+                      <div className={`h-1 w-2 rounded-full ${rideActive ? "bg-indigo-500/50" : "bg-white/10"}`} />
                     </div>
                   </div>
-                  <p className="text-[11px] text-white/60 leading-relaxed italic">
-                    &ldquo;Detecting slight power drop in Group B. Preparing
-                    motivational cue for the next climb.&rdquo;
-                  </p>
+                  {rideActive ? (
+                    <>
+                      {currentInterval && (
+                        <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-indigo-400">
+                          {currentInterval.phase} · {Math.round((useCoachingStore.getState().intervalProgress || 0) * 100)}%
+                        </div>
+                      )}
+                      <p className="text-[11px] text-white/80 leading-relaxed italic">
+                        {lastCoachMessage
+                          ? `\u201C${lastCoachMessage}\u201D`
+                          : lastDecision?.thoughtProcess
+                            ? `\u201C${lastDecision.thoughtProcess}\u201D`
+                            : "Monitoring rider telemetry\u2026"}
+                      </p>
+                      {lastDecision && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                            Decision
+                          </span>
+                          <span className="text-[9px] font-bold text-indigo-400">
+                            {lastDecision.action}
+                          </span>
+                          <span className="text-[9px] text-white/40">
+                            {Math.round((lastDecision.confidence || 0) * 100)}% confidence
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-white/40 leading-relaxed italic">
+                      No active ride. Start a class from the rider page to see real-time agent reasoning.
+                    </p>
+                  )}
                 </div>
 
-                {/* Live Social Actions Feed */}
+                {/* Live Coaching Feed — real AI logs from coaching store */}
                 <div className="mt-6 pt-6 border-t border-white/5">
                   <span className="text-[10px] font-black text-white/30 uppercase tracking-widest block mb-4">
-                    Social Agency Feed
+                    Coaching Activity
                   </span>
-                  <div className="space-y-3">
-                    <div className="flex gap-3 items-start p-3 rounded-xl bg-white/5 border border-white/5">
-                      <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 mt-0.5">
-                        <Users className="w-3 h-3" />
+                  <div className="space-y-3 max-h-[200px] overflow-y-auto">
+                    {rideActive && aiLogs.length > 0 ? (
+                      aiLogs.slice(-5).reverse().map((log, i) => (
+                        <div
+                          key={i}
+                          className={`flex gap-3 items-start p-3 rounded-xl bg-white/5 border border-white/5 ${i > 0 ? "opacity-60" : ""}`}
+                        >
+                          <div className={`p-1.5 rounded-lg mt-0.5 ${
+                            log.type === "action" ? "bg-indigo-500/20 text-indigo-400" :
+                            log.type === "correction" ? "bg-amber-500/20 text-amber-400" :
+                            log.type === "encouragement" ? "bg-emerald-500/20 text-emerald-400" :
+                            "bg-white/10 text-white/50"
+                          }`}>
+                            {log.type === "action" ? <Zap className="w-3 h-3" /> :
+                             log.type === "correction" ? <AlertTriangle className="w-3 h-3" /> :
+                             <Activity className="w-3 h-3" />}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-white/80 leading-none mb-1">
+                              {log.type.charAt(0).toUpperCase() + log.type.slice(1)}
+                            </span>
+                            <span className="text-[9px] text-white/40 leading-tight">
+                              {log.message}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex gap-3 items-start p-3 rounded-xl bg-white/5 border border-white/5 opacity-50">
+                        <div className="p-1.5 rounded-lg bg-white/10 text-white/50 mt-0.5">
+                          <Activity className="w-3 h-3" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-white/80 leading-none mb-1">
+                            No active coaching
+                          </span>
+                          <span className="text-[9px] text-white/40 leading-tight">
+                            {rideActive ? "Waiting for telemetry signals\u2026" : "Start a ride to see live coaching activity."}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-white/80 leading-none mb-1">
-                          Outreach Triggered
-                        </span>
-                        <span className="text-[9px] text-white/40 leading-tight">
-                          Recommending "Elite Recovery" to top 5% performers.
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 items-start p-3 rounded-xl bg-white/5 border border-white/5 opacity-50">
-                      <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 mt-0.5">
-                        <Zap className="w-3 h-3" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-white/80 leading-none mb-1">
-                          Nudge Sent
-                        </span>
-                        <span className="text-[9px] text-white/40 leading-tight">
-                          Sending "Keep it up" nudge to struggling rider in Zone
-                          2.
-                        </span>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </GlassCard>

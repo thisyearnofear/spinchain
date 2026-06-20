@@ -203,6 +203,7 @@ export function PrimaryNav() {
             {isInstructorMode ? (
               <>
                 <NavLink href="/instructor/builder">Create Class</NavLink>
+                <NavLink href="/instructor/templates">Templates</NavLink>
                 <NavLink href="/instructor/analytics">Analytics</NavLink>
                 <NavLink href="/instructor/ai">AI Coach</NavLink>
               </>
@@ -250,6 +251,7 @@ export function PrimaryNav() {
                 {isInstructorMode ? (
                   <>
                     <NavLink href="/instructor/builder" onClick={closeMobileMenu}>Create</NavLink>
+                    <NavLink href="/instructor/templates" onClick={closeMobileMenu}>Templates</NavLink>
                     <NavLink href="/instructor/analytics" onClick={closeMobileMenu}>Analytics</NavLink>
                     <NavLink href="/instructor/ai" onClick={closeMobileMenu}>AI Coach</NavLink>
                     <SettingsDropdown />

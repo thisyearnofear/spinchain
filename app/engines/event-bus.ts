@@ -35,6 +35,7 @@ export interface RideEvents {
 
   "coaching:message": { text: string; source: string };
   "coaching:sound": { type: string };
+  "coaching:style-override": { anchorId: string; name: string; type: string };
 
   "rewards:started": Record<string, never>;
   "rewards:tick": { accumulated: bigint };

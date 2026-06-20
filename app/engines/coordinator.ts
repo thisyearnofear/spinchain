@@ -49,6 +49,7 @@ export class RideCoordinator {
   private eventUnsubs: Array<() => void> = [];
   private rafRunning = false;
   private sampleTimerId: ReturnType<typeof setInterval> | null = null;
+  private styleOverrideHandler: EventListener | null = null;
 
   constructor() {
     this.bus = new EventBus();
@@ -152,6 +153,13 @@ export class RideCoordinator {
     // Load multi-ghost data (social riders UI)
     this.telemetry.loadMultiGhost(config.classId);
 
+    // Bridge window CustomEvent → EventBus for style overrides
+    this.styleOverrideHandler = ((e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      this.bus.emit("coaching:style-override", detail);
+    }) as EventListener;
+    window.addEventListener("spinchain:style-override", this.styleOverrideHandler);
+
     // Wire EventBus → domain stores for UI consumption
     this.wireStoresToEventBus();
 
@@ -223,6 +231,10 @@ export class RideCoordinator {
     }
     this.eventUnsubs.forEach((fn) => fn());
     this.eventUnsubs = [];
+    if (this.styleOverrideHandler) {
+      window.removeEventListener("spinchain:style-override", this.styleOverrideHandler);
+      this.styleOverrideHandler = null;
+    }
     this.bus.dispose();
     document.body.classList.remove("ride-active");
   }
