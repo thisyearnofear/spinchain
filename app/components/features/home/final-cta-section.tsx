@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { FadeIn } from "@/app/components/ui/scroll-animations";
 import { MagneticButton } from "@/app/components/ui/animated-card";
 
@@ -30,20 +31,25 @@ export function FinalCTASection() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
             <MagneticButton className="w-full sm:w-auto">
-              <a
-                href="/rider"
-                className="inline-block w-full px-6 md:px-8 py-2.5 md:py-3 rounded-full bg-[color:var(--accent)] text-white font-semibold hover:opacity-90 transition-opacity"
+              <Link
+                href="/rider/ride/demo?mode=practice&demo=true&auto=true&name=Accelerator+Pitch"
+                className="inline-flex items-center justify-center gap-2 w-full px-6 md:px-8 py-2.5 md:py-3 rounded-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] text-white font-bold shadow-lg shadow-[color:var(--accent)]/30 hover:shadow-xl hover:shadow-[color:var(--accent)]/40 transition-[box-shadow] duration-150 active:scale-95"
               >
-                Try the rider demo
-              </a>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
+                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </span>
+                Watch Demo Ride
+              </Link>
             </MagneticButton>
             <MagneticButton className="w-full sm:w-auto">
-              <a
+              <Link
                 href="/instructor"
                 className="inline-block w-full px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-[color:var(--border)] text-[color:var(--foreground)] font-medium hover:border-[color:var(--accent)]/50 transition-colors"
               >
                 Preview instructor flow
-              </a>
+              </Link>
             </MagneticButton>
           </div>
         </div>

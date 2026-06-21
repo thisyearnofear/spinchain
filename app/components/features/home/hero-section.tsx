@@ -37,10 +37,22 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
 
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
-            href="/rider"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--accent)] px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            href="/rider/ride/demo?mode=practice&demo=true&auto=true&name=Accelerator+Pitch"
+            className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-[color:var(--accent)]/30 transition-[transform,box-shadow] duration-150 hover:shadow-xl hover:shadow-[color:var(--accent)]/40 active:scale-95"
           >
-            Try the rider demo
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
+              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </span>
+            Watch Demo Ride
+          </Link>
+
+          <Link
+            href="/rider"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[color:var(--border)] px-6 py-3 text-sm font-semibold text-[color:var(--foreground)] transition-colors hover:border-[color:var(--accent)]/50"
+          >
+            Browse classes
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
@@ -97,7 +109,7 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
       <div className="mt-2 grid w-full gap-4 md:gap-6 lg:grid-cols-2">
         <AnimatedCard glowColor="var(--accent)">
           <Link
-            href="/rider"
+            href="/rider/ride/demo?mode=practice&demo=true&auto=true&name=Accelerator+Pitch"
             className="group relative block h-full overflow-hidden p-6 md:p-8"
             aria-label="Start riding with a demo or class preview"
           >
