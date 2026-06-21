@@ -80,7 +80,9 @@ export default function LiveRidePage() {
   // ─── Ride Coordinator ──────────────────────────────────────────
   const coordinator = useRideCoordinator();
   const coordinatorRef = useRef(coordinator);
-  coordinatorRef.current = coordinator;
+  useEffect(() => {
+    coordinatorRef.current = coordinator;
+  }, [coordinator]);
   const emptyRidePointsRef = useRef<RideRecordPoint[]>([]);
 
   // ─── Panel State ───────────────────────────────────────────────
@@ -372,7 +374,7 @@ export default function LiveRidePage() {
         />
       </SectionErrorBoundary>
 
-      {isRiding && viewMode === "immersive" && hudMode !== "minimal" && (
+      {isRiding && viewMode === "immersive" && hudMode !== "minimal" && deviceType !== "mobile" && (
         <div className="fixed top-40 right-6 z-40 flex flex-col gap-4">
           <PerformanceGraph data={telemetryHistory.power} color="text-yellow-400" label="Power" max={400} />
           <PerformanceGraph data={telemetryHistory.cadence} color="text-blue-400" label="Cadence" max={140} />

@@ -14,27 +14,26 @@ import { retrieveRouteFromWalrus, getCachedRoute, cacheRouteLocally, type Walrus
 import type { StoryBeat, StoryBeatType } from "@/app/routes/builder/gpx-uploader";
 import type { PublicClient } from "viem";
 
-const ENABLE_DEMO_CLASS_CATALOG = process.env.NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG === "true";
-
 /**
- * Demo class catalog used only when explicitly enabled.
+ * Curated class catalog — shown when no on-chain classes exist yet.
+ * Seamlessly replaced by real classes the moment they appear on-chain.
  */
-const MOCK_CLASSES = [
+const CURATED_CLASSES = [
   {
     address: "0x1234567890123456789012345678901234567890" as `0x${string}`,
-    name: "Morning Mountain Climb",
+    name: "Alpine Peak Assault",
     instructor: "Coach Atlas",
-    startTime: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-    ticketsSold: 23,
+    startTime: Math.floor(Date.now() / 1000) + 3600,
+    ticketsSold: 31,
     maxRiders: 50,
     currentPrice: "0.025",
   },
   {
     address: "0x2345678901234567890123456789012345678901" as `0x${string}`,
-    name: "Sunset Coastal Sprint",
-    instructor: "Coach Sarah",
-    startTime: Math.floor(Date.now() / 1000) + 7200, // 2 hours from now
-    ticketsSold: 42,
+    name: "Coastal Time Trial",
+    instructor: "Dr. Spin",
+    startTime: Math.floor(Date.now() / 1000) + 7200,
+    ticketsSold: 44,
     maxRiders: 50,
     currentPrice: "0.048",
   },
@@ -42,12 +41,24 @@ const MOCK_CLASSES = [
     address: "0x3456789012345678901234567890123456789012" as `0x${string}`,
     name: "Neon City Intervals",
     instructor: "Coach Nova",
-    startTime: Math.floor(Date.now() / 1000) + 86400, // Tomorrow
-    ticketsSold: 15,
+    startTime: Math.floor(Date.now() / 1000) + 86400,
+    ticketsSold: 18,
     maxRiders: 40,
     currentPrice: "0.018",
   },
+  {
+    address: "0x4567890123456789012345678901234567890123" as `0x${string}`,
+    name: "Zen Recovery Flow",
+    instructor: "Zen Master",
+    startTime: Math.floor(Date.now() / 1000) + 14400,
+    ticketsSold: 27,
+    maxRiders: 35,
+    currentPrice: "0.012",
+  },
 ];
+
+// Keep old name for backward compat in useClass()
+const MOCK_CLASSES = CURATED_CLASSES;
 
 /**
  * Guest Demo Class
@@ -429,13 +440,12 @@ export function useClass(classAddress: `0x${string}`) {
         }
       }
 
-      if (ENABLE_DEMO_CLASS_CATALOG) {
-        const mockClass = MOCK_CLASSES.find(c => c.address.toLowerCase() === classAddress.toLowerCase());
-        if (mockClass) {
-          setClassData(await loadMockClass(mockClass));
-          setIsLoading(false);
-          return;
-        }
+      // Fallback to curated class if address matches
+      const curatedMatch = CURATED_CLASSES.find(c => c.address.toLowerCase() === classAddress.toLowerCase());
+      if (curatedMatch) {
+        setClassData(await loadMockClass(curatedMatch));
+        setIsLoading(false);
+        return;
       }
 
       setClassData(null);
@@ -520,12 +530,13 @@ export function useClasses() {
         }
       }
 
-      if (ENABLE_DEMO_CLASS_CATALOG) {
-        const fallbackMocks = await Promise.all(MOCK_CLASSES.map((mockClass) => loadMockClass(mockClass)));
-        const mergedClasses = [...liveClasses, ...fallbackMocks.filter((mockClass) => !liveClasses.some((liveClass) => liveClass.address.toLowerCase() === mockClass.address.toLowerCase()))];
-        setClasses(mergedClasses);
-      } else {
+      // Seamless fallback: when no live classes exist on-chain, show curated classes
+      // so the app always feels alive. Real classes replace these automatically.
+      if (liveClasses.length > 0) {
         setClasses(liveClasses);
+      } else {
+        const curated = await Promise.all(CURATED_CLASSES.map((c) => loadMockClass(c)));
+        setClasses(curated);
       }
       setIsLoading(false);
     } catch (err) {

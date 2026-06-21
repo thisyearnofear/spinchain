@@ -23,6 +23,7 @@ import {
   Wallet,
   Coins,
   Bike,
+  Route,
 } from "lucide-react";
 import { getWalrusFeed, retrieveRideSummaryFromWalrus, type WalrusFeedEntry } from "../../lib/walrus/ride-persistence";
 import { useAccount } from "wagmi";
@@ -355,10 +356,25 @@ function JourneyContent() {
           )}
           <div className="mt-4 space-y-3">
             {rides.length === 0 ? (
-              <p className="text-sm text-white/60">
-                No rides yet. Complete your first class to start your journey
-                history.
-              </p>
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 blur-2xl opacity-20 bg-indigo-500 rounded-full" />
+                  <div className="relative w-14 h-14 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
+                    <Route className="w-6 h-6 text-indigo-400" strokeWidth={1.5} />
+                  </div>
+                </div>
+                <p className="text-sm font-bold text-white/80">No rides yet</p>
+                <p className="text-xs text-white/40 mt-1 max-w-xs">
+                  Complete your first class to start building your journey history with telemetry, badges, and rewards.
+                </p>
+                <Link
+                  href="/rider"
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold transition-[transform,background-color] duration-150 active:scale-95 hover:bg-indigo-500/30"
+                >
+                  <Bike className="w-3.5 h-3.5" />
+                  Browse Classes
+                </Link>
+              </div>
             ) : (
               rides.map((ride) => (
                 <div

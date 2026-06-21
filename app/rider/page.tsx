@@ -16,7 +16,11 @@ import { RoutePreviewCard } from "../components/features/route/route-preview-car
 import { ConnectWallet } from "../components/features/wallet/connect-wallet";
 import { AnimatedClassCard } from "../components/features/class/animated-class-card";
 import { OnboardingChecklist } from "../components/features/common/onboarding-checklist";
+import { EmptyState } from "../components/features/common/empty-state";
+import { RiderHero } from "../components/features/rider/rider-hero";
+import { useToast } from "../components/ui/toast";
 import { NetworkStatusBanner } from "../components/features/common/yellow-status-indicator";
+import { Bike, Compass, CalendarClock } from "lucide-react";
 import type { SavedRoute } from "../lib/route-library";
 
 export default function RiderPage() {
@@ -27,6 +31,11 @@ export default function RiderPage() {
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
   const [filterUpcoming, setFilterUpcoming] = useState(true);
   const [showGuestBanner, setShowGuestBanner] = useState(true);
+  const toast = useToast();
+
+  useEffect(() => {
+    if (error) toast.error("Couldn't load classes", error);
+  }, [error, toast]);
 
   // Filter classes by time
   const [filteredClasses, setFilteredClasses] =
@@ -132,6 +141,9 @@ export default function RiderPage() {
         </div>
 
         <NetworkStatusBanner />
+
+        {/* Hero */}
+        <RiderHero />
 
         {/* Coach profiles */}
         <section className="space-y-6">
@@ -361,7 +373,7 @@ export default function RiderPage() {
         <OnboardingChecklist />
 
         {/* Header with Filters */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div id="classes" className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 scroll-mt-8">
           <div>
             <h1 className="text-3xl font-bold text-[color:var(--foreground)]">
               Available Classes
@@ -408,8 +420,13 @@ export default function RiderPage() {
 
         {/* Error State */}
         {error && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-center">
-            <p className="text-red-600 dark:text-red-400">{error}</p>
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center">
+            <p className="text-sm font-medium text-red-600 dark:text-red-400">
+              {error}
+            </p>
+            <p className="mt-1 text-xs text-[color:var(--muted)]">
+              Showing curated classes instead. Try refreshing in a moment.
+            </p>
           </div>
         )}
 
@@ -444,19 +461,18 @@ export default function RiderPage() {
 
         {/* Empty State */}
         {!isLoading && !error && filteredClasses.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-[color:var(--border)] p-12 text-center">
-            <p className="text-[color:var(--muted)]">
-              No live {filterUpcoming ? "upcoming" : "past"} classes found on the current network.
-            </p>
-            {!isConnected && (
-              <Link
-                href={getDemoRideUrl()}
-                className="mt-4 inline-flex items-center rounded-xl bg-[color:var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
-              >
-                Try the demo ride instead
-              </Link>
-            )}
-          </div>
+          <EmptyState
+            icon={filterUpcoming ? CalendarClock : Bike}
+            title={filterUpcoming ? "No upcoming classes yet" : "No past classes yet"}
+            description={filterUpcoming
+              ? "New classes are added every day. Be the first to host one on-chain, or try a demo ride in the meantime."
+              : "Your completed classes will appear here with full telemetry and reward history."
+            }
+            action={!isConnected ? {
+              label: "Try Demo Ride",
+              href: getDemoRideUrl(),
+            } : undefined}
+          />
         )}
 
         {/* Route Preview Modal */}

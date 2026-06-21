@@ -1011,6 +1011,10 @@ function Scene({
   const smoothedShakeRef = useRef(new Vector3());
   const _shakeTargetVec = useRef(new Vector3());
 
+  // Mouse parallax — subtle camera offset based on pointer position
+  const mouseParallaxRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
+  const driftTimeRef = useRef(0);
+
   // Get performance tier for adaptive quality - use quality.fps as proxy if available
   const performanceTier = quality?.fps === 30 ? "low" : quality?.fps === 45 ? "medium" : "high";
 
@@ -1113,6 +1117,23 @@ function Scene({
       }
       state.camera.position.x += smoothedShakeRef.current.x;
       state.camera.position.y += smoothedShakeRef.current.y;
+
+      // Subtle mouse parallax — offsets camera based on pointer for depth perception
+      mouseParallaxRef.current.targetX = state.pointer.x * 1.5;
+      mouseParallaxRef.current.targetY = state.pointer.y * 0.8;
+      mouseParallaxRef.current.x += (mouseParallaxRef.current.targetX - mouseParallaxRef.current.x) * 0.04;
+      mouseParallaxRef.current.y += (mouseParallaxRef.current.targetY - mouseParallaxRef.current.y) * 0.04;
+      state.camera.position.x += mouseParallaxRef.current.x;
+      state.camera.position.y += mouseParallaxRef.current.y;
+    }
+
+    // --- 5. Gentle drift for preview mode (sine-wave camera offset) ---
+    if (mode === "preview") {
+      driftTimeRef.current += delta;
+      const driftX = Math.sin(driftTimeRef.current * 0.3) * 0.6;
+      const driftY = Math.cos(driftTimeRef.current * 0.2) * 0.3;
+      state.camera.position.x += driftX;
+      state.camera.position.y += driftY;
     }
   });
 

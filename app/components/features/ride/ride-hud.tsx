@@ -466,7 +466,7 @@ const MetricCard = memo(function MetricCard({
       relative rounded-[2rem] overflow-hidden
       bg-black/70 backdrop-blur-2xl border
       p-5 sm:p-8 min-w-[170px] sm:min-w-[210px]
-      transition-all duration-500
+      transition-[border-color,box-shadow] duration-300
       ${
         emphasized
           ? "border-white/20 shadow-[0_0_60px_rgba(255,255,255,0.08)] ring-1 ring-white/5"
@@ -515,8 +515,8 @@ const MetricCard = memo(function MetricCard({
 
       <div className="absolute bottom-2 left-8 right-8 h-0.5 bg-white/5 rounded-full overflow-hidden">
         <div
-          className={`h-full ${color.replace("text-", "bg-")} transition-all duration-300`}
-          style={{ width: `${Math.min(100, intensity * 100)}%` }}
+          className={`h-full origin-left ${color.replace("text-", "bg-")} transition-transform duration-300`}
+          style={{ transform: `scaleX(${Math.min(1, intensity)})` }}
         />
       </div>
     </div>
@@ -681,7 +681,7 @@ function MobileCompactHUD({
         onClick={handleTap}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className={`pointer-events-auto relative rounded-[2.5rem] border bg-black/85 backdrop-blur-2xl transition-all duration-500 shadow-2xl overflow-hidden ${
+        className={`pointer-events-auto relative rounded-[2.5rem] border bg-black/85 backdrop-blur-2xl transition-[width,padding,box-shadow] duration-300 shadow-2xl overflow-hidden ${
           expanded ? "w-full max-w-sm p-8" : "px-6 py-4"
         } ${phaseAccent.border}`}
       >

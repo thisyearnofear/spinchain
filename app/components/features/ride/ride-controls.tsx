@@ -5,6 +5,7 @@ import { DeviceSelector } from "@/app/components/features/ble/device-selector";
 import { CollapseToggle } from "@/app/components/features/common/collapse-toggle";
 import { PRESET_WORKOUTS, type WorkoutPlan } from "@/app/lib/workout-plan";
 import type { PanelState, PanelKey } from "@/app/hooks/ui/use-panel-state";
+import { useUIClickSound } from "@/app/hooks/use-ui-click-sound";
 
 const SIMULATOR_ONBOARDING_DISMISSED_KEY = "spinchain:ride:simOnboardingDismissed";
 
@@ -84,6 +85,7 @@ export function RideControls({
   const disabledStartReason = !canStartRide
     ? (startHint ?? "Connect a bike or enable 🎮 Try Without Bike to start your ride.")
     : null;
+  const clickSound = useUIClickSound();
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -124,12 +126,13 @@ export function RideControls({
         <div className="flex items-center justify-center gap-3 sm:sticky sm:bottom-0 sm:pt-3 sm:pb-1 sm:bg-gradient-to-t sm:from-black/80 sm:to-transparent">
           <button
             onClick={() => {
+              clickSound("success");
               onHaptic?.("medium");
               onStartRide();
             }}
             disabled={isStartDisabled}
             title={disabledStartReason ?? undefined}
-            className={`relative rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white transition-all active:scale-95 touch-manipulation min-h-[56px] ${
+            className={`relative rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white transition-[transform,background-color,box-shadow] duration-150 active:scale-95 touch-manipulation min-h-[56px] ${
               isStartDisabled
                 ? "bg-white/15 border border-white/20 shadow-none cursor-not-allowed"
                 : "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/50"
@@ -233,7 +236,7 @@ function WorkoutSelector({
           <button
             key={preset.id}
             onClick={() => onSelect(preset)}
-            className={`flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-all active:scale-95 touch-manipulation ${
+            className={`flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-[background-color,color] duration-150 active:scale-95 touch-manipulation ${
               workoutPlan?.id === preset.id
                 ? "bg-indigo-500 text-white"
                 : "bg-white/10 text-white/60 hover:bg-white/20"
@@ -371,7 +374,7 @@ function InputModeSelector({
       <div className="flex gap-2">
         <button
           onClick={() => onSelect(false)}
-          className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-all active:scale-95 touch-manipulation ${
+          className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-[background-color,color] duration-150 active:scale-95 touch-manipulation ${
             !useSimulator ? "bg-indigo-500 text-white" : "bg-white/10 text-white/60 hover:bg-white/20"
           }`}
           aria-pressed={!useSimulator}
@@ -383,7 +386,7 @@ function InputModeSelector({
             onSelect(true);
             if (showOnboardingHint) dismissOnboardingHint();
           }}
-          className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-all active:scale-95 touch-manipulation ${
+          className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-[background-color,color] duration-150 active:scale-95 touch-manipulation ${
             useSimulator ? "bg-indigo-500 text-white" : "bg-white/10 text-white/60 hover:bg-white/20"
           }`}
           aria-pressed={useSimulator}

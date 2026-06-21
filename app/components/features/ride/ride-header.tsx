@@ -79,7 +79,7 @@ export function RideHeader({
           {deviceType === "mobile" && (
             <button
               onClick={onHudModeChange}
-              className="rounded-lg bg-white/10 p-2 sm:p-2.5 text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="rounded-lg bg-white/10 p-2 sm:p-2.5 text-white/70 hover:bg-white/20 backdrop-blur active:scale-95 transition-[transform,background-color] duration-150 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Toggle HUD mode"
             >
               <EyeIcon />

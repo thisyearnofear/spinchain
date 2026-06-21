@@ -4,6 +4,7 @@
 // CLEAN: Context + Hook pattern, clear separation of concerns
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, AlertCircle, Info, X, Loader2 } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info' | 'loading';
@@ -89,10 +90,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       
       {/* Toast Container */}
-      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3">
-        {toasts.map(toast => (
-          <ToastItem key={toast.id} toast={toast} onDismiss={() => dismiss(toast.id)} />
-        ))}
+      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none">
+        <AnimatePresence>
+          {toasts.map(toast => (
+            <ToastItem key={toast.id} toast={toast} onDismiss={() => dismiss(toast.id)} />
+          ))}
+        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   );
@@ -101,11 +104,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 // Individual toast item
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
   return (
-    <div className={`
-      flex items-start gap-3 p-4 rounded-xl border backdrop-blur-md shadow-lg
-      min-w-[320px] max-w-[420px] animate-in slide-in-from-right
-      ${styles[toast.type]}
-    `}>
+    <motion.div
+      initial={{ opacity: 0, x: 40, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 40, scale: 0.95 }}
+      transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+      className={`
+        flex items-start gap-3 p-4 rounded-xl border backdrop-blur-md shadow-lg
+        min-w-[320px] max-w-[420px] pointer-events-auto
+        ${styles[toast.type]}
+      `}
+    >
       <div className="flex-shrink-0 mt-0.5">{icons[toast.type]}</div>
       
       <div className="flex-1 min-w-0">
@@ -125,11 +134,11 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
 
       <button
         onClick={onDismiss}
-        className="flex-shrink-0 p-2 rounded-lg text-[color:var(--muted)] hover:text-[color:var(--foreground)] hover:bg-[color:var(--surface-strong)] min-w-[44px] min-h-[44px] flex items-center justify-center"
+        className="flex-shrink-0 p-2 rounded-lg text-[color:var(--muted)] hover:text-[color:var(--foreground)] hover:bg-[color:var(--surface-strong)] min-w-[44px] min-h-[44px] flex items-center justify-center transition-[background-color,color] duration-150 active:scale-95"
       >
         <X className="w-4 h-4" />
       </button>
-    </div>
+    </motion.div>
   );
 }
 

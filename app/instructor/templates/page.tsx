@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import { GlassCard } from "@/app/components/ui/ui";
+import { EmptyState } from "@/app/components/features/common/empty-state";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -396,11 +397,11 @@ export default function TemplateMarketplacePage() {
         </div>
 
         {filtered.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Search className="w-12 h-12 text-white/10 mb-4" />
-            <p className="text-white/40 font-bold">No templates match your filters</p>
-            <p className="text-white/20 text-sm mt-1">Try adjusting your search or filters</p>
-          </div>
+          <EmptyState
+            icon={Search}
+            title="No templates match your filters"
+            description="Try adjusting your search terms or difficulty filters to discover more workout plans."
+          />
         )}
 
         {/* CTA: Create your own */}
