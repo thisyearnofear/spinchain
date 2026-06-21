@@ -126,7 +126,6 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
         createdAt: Date.now(),
       });
       localStorage.setItem(RIDER_QUIZ_KEY, "true");
-      onComplete?.();
     } else {
       setTimeout(() => setCurrentStep(currentStep + 1), 300);
     }

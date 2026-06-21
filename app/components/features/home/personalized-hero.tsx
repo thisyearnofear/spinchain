@@ -13,7 +13,7 @@ import {
 import { getRideHistory, getStreakStats, getPRs } from "@/app/lib/analytics/ride-history";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 import { useAccount } from "wagmi";
-import { useProfile, getDisplayName } from "@/app/hooks/common/use-profile";
+import { useProfile, getDisplayName, formatAddress } from "@/app/hooks/common/use-profile";
 import Link from "next/link";
 import { useMemo } from "react";
 import { Flame, Trophy, Bike, Zap } from "lucide-react";
@@ -25,7 +25,7 @@ export function PersonalizedHero() {
 
   const riderName = useMemo(() => {
     if (ensProfile) return getDisplayName(ensProfile, address ?? "");
-    if (address) return `${address.slice(0, 6)}…${address.slice(-4)}`;
+    if (address) return formatAddress(address);
     return "Rider";
   }, [ensProfile, address]);
 

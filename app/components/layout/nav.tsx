@@ -9,7 +9,7 @@ import { ConnectWallet } from "../features/wallet/connect-wallet";
 import { SuiWalletButton } from "../features/wallet/sui-wallet-button";
 import { AIProviderSettings } from "../features/ai/ai-provider-settings";
 import { useUIClickSound } from "@/app/hooks/use-ui-click-sound";
-import { useProfile, getDisplayName } from "@/app/hooks/common/use-profile";
+import { useProfile, getDisplayName, formatAddress } from "@/app/hooks/common/use-profile";
 import { getRideHistory, getStreakStats } from "@/app/lib/analytics/ride-history";
 import { useRiderProfile } from "@/app/stores/rider-profile-store";
 import { motion, AnimatePresence } from "framer-motion";
@@ -168,7 +168,7 @@ function RiderIdentityChip() {
 
   const riderName = useMemo(() => {
     if (profile) return getDisplayName(profile, address ?? "");
-    if (address) return `${address.slice(0, 6)}…${address.slice(-4)}`;
+    if (address) return formatAddress(address);
     return null;
   }, [profile, address]);
 

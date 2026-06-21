@@ -9,6 +9,7 @@ import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import { processRideSyncQueue, getRideHistory, getStreakStats } from "@/app/lib/analytics/ride-history";
 import { useRidePersistence } from "./use-ride-persistence";
 import { useRiderProfile, mapCoachPersonalityToEngine } from "@/app/stores/rider-profile-store";
+import { formatAddress } from "@/app/lib/profile-service";
 import { useRideModalStore } from "@/app/stores/ride-modal-store";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 import type { RewardClaimStatus } from "@/app/components/features/ride/ride-completion";
@@ -190,7 +191,7 @@ export function useRideLifecycle({
       const streakStats = getStreakStats(rides);
       const rideCount = rides.length;
       const greetingName = address
-        ? `${address.slice(0, 6)}…${address.slice(-4)}`
+        ? formatAddress(address)
         : "Rider";
 
       let greeting: string;
