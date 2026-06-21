@@ -96,6 +96,14 @@ interface RiderQuizProps {
   onSkip?: () => void;
 }
 
+const stepThemes: Record<string, { glow: string; accent: string; gradient: string }> = {
+  goal:         { glow: "rgba(109,124,255,0.15)",  accent: "#6d7cff", gradient: "from-[#6d7cff]/20 to-transparent" },
+  experience:   { glow: "rgba(139,92,246,0.15)",  accent: "#8b5cf6", gradient: "from-[#8b5cf6]/20 to-transparent" },
+  frequency:    { glow: "rgba(6,182,212,0.15)",   accent: "#22d3ee", gradient: "from-[#22d3ee]/20 to-transparent" },
+  motivation:   { glow: "rgba(245,158,11,0.15)",  accent: "#fbbf24", gradient: "from-[#fbbf24]/20 to-transparent" },
+  coach:        { glow: "rgba(16,185,129,0.15)",  accent: "#34d399", gradient: "from-[#34d399]/20 to-transparent" },
+};
+
 export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
   const router = useRouter();
   const { address } = useAccount();
@@ -103,6 +111,7 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [direction, setDirection] = useState(1);
   const setProfile = useRiderProfile((s) => s.setProfile);
 
   useEffect(() => {
@@ -114,7 +123,7 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
 
   const step = quizSteps[currentStep];
   const isLastStep = currentStep === quizSteps.length - 1;
-  const progress = ((currentStep + 1) / quizSteps.length) * 100;
+  const theme = stepThemes[step.id] ?? stepThemes.goal;
 
   const handleAnswer = (value: string) => {
     const newAnswers = { ...answers, [step.id]: value };
@@ -138,7 +147,8 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
       });
       localStorage.setItem(RIDER_QUIZ_KEY, "true");
     } else {
-      setTimeout(() => setCurrentStep(currentStep + 1), 300);
+      setDirection(1);
+      setTimeout(() => setCurrentStep(currentStep + 1), 280);
     }
   };
 
@@ -172,139 +182,175 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
     };
 
     return (
-      <QuizShell onSkip={handleSkip} progress={100}>
-        <div className="text-center">
-          <CoachyMascot mood="celebrating" size={100} className="mx-auto mb-4" />
-          <h2 className="text-2xl font-black text-white mb-2">
-            Your ride plan is ready! 🎉
+      <QuizShell onSkip={handleSkip} stepId={step.id} theme={theme}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+          className="flex flex-col items-center text-center"
+        >
+          <CoachyMascot mood="celebrating" size={88} className="mb-3" />
+
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[color:var(--muted)] mb-2">
+            Your ride plan
+          </p>
+          <h2 className="text-3xl font-black leading-tight text-[color:var(--foreground)] mb-1">
+            Let&apos;s ride
           </h2>
-          <p className="text-sm text-white/60 mb-6">
-            Based on your answers, here&apos;s what we recommend:
+          <p className="text-sm text-[color:var(--muted)] mb-8">
+            Based on your answers, here&apos;s what we recommend
           </p>
 
-          <div className="grid grid-cols-2 gap-3 mb-6 text-left">
-            <SummaryCard label="Difficulty" value={difficulty} emoji="⛰️" />
-            <SummaryCard label="Duration" value={`${duration} min`} emoji="⏱️" />
-            <SummaryCard label="Coach style" value={COACH_LABELS[profile.coachPersonality!]} emoji="🎙️" />
-            <SummaryCard label="Focus" value={GOAL_LABELS[profile.goal!]} emoji="🎯" />
+          <div className="flex flex-col gap-1.5 w-full mb-6">
+            <SummaryRow label="Difficulty" value={difficulty} emoji="⛰️" accent={theme.accent} />
+            <SummaryRow label="Duration" value={`${duration} min`} emoji="⏱️" accent={theme.accent} />
+            <SummaryRow label="Coach style" value={COACH_LABELS[profile.coachPersonality!]} emoji="🎙️" accent={theme.accent} />
+            <SummaryRow label="Focus" value={GOAL_LABELS[profile.goal!]} emoji="🎯" accent={theme.accent} />
           </div>
 
           {rides.length > 0 && (
-            <div className="rounded-2xl border border-orange-400/30 bg-orange-500/10 px-4 py-3 mb-4">
-              <p className="text-sm text-orange-200">
-                🔥 {streak.daily}-day streak • {rides.length} rides completed
-              </p>
+            <div className="mb-5 text-sm text-orange-300">
+              🔥 {streak.daily}-day streak • {rides.length} rides completed
             </div>
           )}
 
           <button
             onClick={handleStartRide}
-            className="w-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-transform active:scale-95 hover:shadow-xl"
+            className="w-full rounded-full px-6 py-4 text-base font-bold text-white transition-transform active:scale-95"
+            style={{
+              background: `linear-gradient(135deg, ${theme.accent}, ${stepThemes.coach.accent})`,
+              boxShadow: `0 8px 32px ${theme.glow}`,
+            }}
           >
-            Let&apos;s ride! 🚴
+            Start your first ride →
           </button>
-        </div>
+        </motion.div>
       </QuizShell>
     );
   }
 
   return (
-    <QuizShell onSkip={handleSkip} progress={progress}>
-      <div className="text-center">
-        <CoachyMascot mood={step.coachyMood} size={90} className="mx-auto mb-4" />
+    <QuizShell onSkip={handleSkip} stepId={step.id} theme={theme}>
+      <AnimatePresence mode="wait" custom={direction}>
+        <motion.div
+          key={step.id}
+          custom={direction}
+          initial={{ opacity: 0, x: 60 * direction }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -60 * direction }}
+          transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+          className="flex flex-col items-center text-center"
+        >
+          <CoachyMascot mood={step.coachyMood} size={80} className="mb-3" />
 
-        <h2 className="text-xl font-black text-white mb-1">{step.question}</h2>
-        <p className="text-xs text-white/40 mb-5">Step {currentStep + 1} of {quizSteps.length}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] mb-3" style={{ color: theme.accent }}>
+            Step {currentStep + 1} of {quizSteps.length}
+          </p>
 
-        <div className="space-y-2.5">
-          {step.options.map((opt) => {
-            const isSelected = answers[step.id] === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => handleAnswer(opt.value)}
-                className={`w-full flex items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-all active:scale-[0.98] ${
-                  isSelected
-                    ? "border-indigo-400 bg-indigo-500/20"
-                    : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
-                }`}
-              >
-                <span className="text-2xl shrink-0">{opt.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white">{opt.label}</p>
-                  {opt.description && (
-                    <p className="text-xs text-white/50 mt-0.5">{opt.description}</p>
+          <h2 className="text-2xl font-black leading-tight text-[color:var(--foreground)] mb-6">
+            {step.question}
+          </h2>
+
+          <div className="flex flex-col gap-2 w-full">
+            {step.options.map((opt, i) => {
+              const isSelected = answers[step.id] === opt.value;
+              return (
+                <motion.button
+                  key={opt.value}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.08 + i * 0.04, duration: 0.3 }}
+                  onClick={() => handleAnswer(opt.value)}
+                  className="group w-full flex items-center gap-3 rounded-full px-5 py-3.5 text-left transition-all active:scale-[0.97]"
+                  style={{
+                    background: isSelected
+                      ? `linear-gradient(90deg, ${theme.accent}25, transparent)`
+                      : "transparent",
+                    border: `1px solid ${isSelected ? theme.accent + "60" : "var(--border)"}`,
+                  }}
+                >
+                  <span className="text-xl shrink-0 transition-transform group-hover:scale-110" style={{ filter: `drop-shadow(0 0 8px ${isSelected ? theme.accent + "80" : "transparent"})` }}>
+                    {opt.emoji}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-[color:var(--foreground)]">{opt.label}</p>
+                    {opt.description && (
+                      <p className="text-xs text-[color:var(--muted)] mt-0.5">{opt.description}</p>
+                    )}
+                  </div>
+                  {isSelected && (
+                    <motion.span
+                      initial={{ scale: 0, rotate: -90 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                      className="text-base shrink-0"
+                      style={{ color: theme.accent }}
+                    >
+                      ✓
+                    </motion.span>
                   )}
-                </div>
-                {isSelected && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="text-indigo-400 text-lg shrink-0"
-                  >
-                    ✓
-                  </motion.span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+                </motion.button>
+              );
+            })}
+          </div>
+        </motion.div>
+      </AnimatePresence>
     </QuizShell>
   );
 }
 
-function QuizShell({ children, onSkip, progress }: { children: React.ReactNode; onSkip: () => void; progress: number }) {
+interface QuizShellProps {
+  children: React.ReactNode;
+  onSkip: () => void;
+  stepId: string;
+  theme: { glow: string; accent: string; gradient: string };
+}
+
+function QuizShell({ children, onSkip, stepId, theme }: QuizShellProps) {
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
+      style={{
+        background: `radial-gradient(ellipse at 50% 30%, ${theme.glow} 0%, transparent 60%), var(--background)`,
+      }}
     >
-      <div className="relative w-full max-w-md rounded-3xl border border-white/15 bg-[color:var(--surface)] p-6 shadow-2xl md:p-8 max-h-[90vh] overflow-y-auto">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          key={stepId}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          className={`absolute -top-1/4 -right-1/4 w-[60vw] h-[60vw] rounded-full blur-[120px] bg-gradient-to-br ${theme.gradient}`}
+        />
+      </div>
+
+      <div className="relative w-full max-w-md px-2 py-8 md:py-12 max-h-[92vh] overflow-y-auto">
         <button
           onClick={onSkip}
-          className="absolute top-4 right-4 p-2 rounded-full text-white/40 hover:text-white/80 hover:bg-white/10 transition-all"
+          className="absolute top-0 right-2 text-xs font-medium text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
           aria-label="Skip quiz"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          Skip →
         </button>
 
-        <div className="h-1.5 rounded-full bg-white/10 mb-6 overflow-hidden">
-          <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-          />
-        </div>
-
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={Math.round(progress)}
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.25 }}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        {children}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-function SummaryCard({ label, value, emoji }: { label: string; value: string; emoji: string }) {
+function SummaryRow({ label, value, emoji, accent }: { label: string; value: string; emoji: string; accent: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
-      <p className="text-[10px] uppercase tracking-wider text-white/40 mb-0.5">{label}</p>
-      <p className="text-sm font-semibold text-white flex items-center gap-1.5">
-        <span>{emoji}</span>
-        <span className="capitalize">{value}</span>
-      </p>
+    <div className="flex items-center gap-3 py-2.5 border-b border-[color:var(--border)] last:border-0">
+      <span className="text-base shrink-0">{emoji}</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--muted)] flex-1 text-left">{label}</span>
+      <span className="text-sm font-bold capitalize" style={{ color: accent }}>{value}</span>
     </div>
   );
 }

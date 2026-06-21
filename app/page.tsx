@@ -26,8 +26,9 @@ function HomeContent() {
   const [showQuiz, setShowQuiz] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
   const profile = useRiderProfile();
+  const riderStats = useRiderStats();
   const hasProfile = profile.createdAt !== null;
-  const isReturningRider = hasProfile && useRiderStats().hasRides;
+  const isReturningRider = hasProfile && riderStats.hasRides;
 
   useEffect(() => {
     if (searchParams.get("reset") === "true") {
