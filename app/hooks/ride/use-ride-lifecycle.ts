@@ -6,7 +6,7 @@ import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
-import { processRideSyncQueue } from "@/app/lib/analytics/ride-history";
+import { processRideSyncQueue, getRideHistory, getStreakStats } from "@/app/lib/analytics/ride-history";
 import { useRidePersistence } from "./use-ride-persistence";
 import { useRideModalStore } from "@/app/stores/ride-modal-store";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
@@ -182,7 +182,24 @@ export function useRideLifecycle({
       useRideStore.setState({ isActive: true, isStarting: false, rideProgress: 0, elapsedTime: 0 });
       useTelemetryStore.getState().reset();
       trackedCompletionRef.current = false;
-      speak("Let's go!", "intense");
+
+      // Personalized coach greeting
+      const rides = getRideHistory();
+      const streakStats = getStreakStats(rides);
+      const rideCount = rides.length;
+      const greetingName = address
+        ? `${address.slice(0, 6)}…${address.slice(-4)}`
+        : "Rider";
+
+      let greeting: string;
+      if (rideCount === 0) {
+        greeting = `Welcome ${greetingName}, let's get started!`;
+      } else if (streakStats.daily > 0) {
+        greeting = `Welcome back ${greetingName}. Day ${streakStats.daily} of your streak — let's keep it alive!`;
+      } else {
+        greeting = `Welcome back ${greetingName}. Let's ride!`;
+      }
+      speak(greeting, "intense");
     }, 3000);
   }, [bleConnected, useSimulator, classId, isPracticeMode, isTrainingMode, rewards, coordinator, classData, deviceType, performanceTier, walletConnected, address, rewardMode, agentName, workoutPlan, playCountdown, speak, isRidingRef, trackedCompletionRef]);
 

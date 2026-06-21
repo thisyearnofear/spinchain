@@ -310,6 +310,52 @@ See `docs/HACKATHON_PLAN.md` for the file-level change list, phases, and risk re
 
 ---
 
+## Rider-as-Hero: Product Design Roadmap
+
+**Goal**: Make the rider feel like the protagonist of the experience. Today, all ride UI is class-centric. The rider is anonymous during the ride — no name, no avatar, no streak, no progression. This roadmap shifts the center of gravity from "class" to "rider."
+
+### Phase 1: Identity in the Ride (hackathon-feasible)
+
+| Item | Description | Status |
+|------|-------------|--------|
+| Rider identity in top bar | Show rider name, avatar, streak flame in the ride HUD top bar (uses existing `useProfile()` + `getStreakStats()`) | In progress |
+| Personalized coach greeting | Coach says "Welcome back, {name}. Day {N} streak — let's keep it alive." on ride start (uses existing `speak()` + `getStreakStats()`) | Planned |
+| PR pursuit callouts | Live "12W above your best power PR!" during ride (uses existing `getPRs()`) | Planned |
+
+### Phase 2: Progression & Celebration (post-hackathon)
+
+| Item | Description |
+|------|-------------|
+| XP / Level system | Derive level from total rides, effort, SPIN earned. Level-up celebration overlay. |
+| Streak mechanics | Visible streak counter in HUD. "Ride to extend" prompt pre-ride. Streak freeze items. |
+| Victory screen | Post-ride: confetti, animated badge unlocks, PR notifications, streak extended. |
+| Share card | Generated image with rider stats, route, badge — social-shareable. |
+
+### Phase 3: Route Ownership (post-hackathon)
+
+| Item | Description |
+|------|-------------|
+| GPX import | Rider uploads a GPX file → we parse elevation + coordinates → generate a class from their real route. |
+| Route library | "Your routes" section — saved, imported, curated. Rider owns their route collection. |
+| Pre-ride route preview | Elevation profile + difficulty rating before starting (inspired by bike-router pattern). |
+
+### Phase 4: Adaptive Personalization (post-hackathon)
+
+| Item | Description |
+|------|-------------|
+| Rider preferences | Difficulty, route type, coach personality, music — stored on Walrus as "rider memory." |
+| Adaptive coaching | AI coach references past rides: "Last time you hit 280W on this climb — try for 300 today." Uses Walrus-stored summaries. |
+| Walrus-as-rider-memory | Rider identity, preferences, and ride history as verifiable Walrus blobs anchored on Sui. Portable across devices. |
+
+### Inspiration References
+
+- **bike-game** (wcoolers): Simple canvas bike game — progression mechanics, minimal but engaging.
+- **streetmix**: Collaborative street design — excellent visual asset quality, drag-and-drop UX patterns.
+- **bike-router** (Hasan-aga): Route planning with elevation chart + difficulty visualization — we promise this on our homepage.
+- **RallyGPXMerger** (SebastianHanfland): GPX merging tool — relevant for multi-segment route composition and GPX parsing.
+
+---
+
 ## Appendix: File Reference
 
 ### Key Files to Modify

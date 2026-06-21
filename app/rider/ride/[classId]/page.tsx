@@ -43,6 +43,7 @@ import { useRideAnalytics } from "@/app/hooks/ride/use-ride-analytics";
 import { useRideRewards } from "@/app/hooks/ride/use-ride-rewards";
 import { useRideSimulator } from "@/app/hooks/ride/use-ride-simulator";
 import { useRideLifecycle } from "@/app/hooks/ride/use-ride-lifecycle";
+import { usePrPursuit } from "@/app/hooks/ride/use-pr-pursuit";
 
 export default function LiveRidePage() {
   const params = useParams();
@@ -275,6 +276,9 @@ export default function LiveRidePage() {
 
   // Sync completedRideId back to rewards hook
   const completedRideId = useRideModalStore((s) => s.completedRideId);
+
+  // PR pursuit callouts during ride
+  usePrPursuit(isRiding);
   useEffect(() => {
     if (completedRideId) {
       rewardsHook.setCompletedRideId(completedRideId);

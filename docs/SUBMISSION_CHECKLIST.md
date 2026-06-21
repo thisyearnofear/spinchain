@@ -17,6 +17,14 @@
 - [x] `.env.example` updated with `NEXT_PUBLIC_TATUM_API_KEY` docs
 - [x] Submission narrative drafted (`docs/SUBMISSION_WALRUS_TRACK.md`)
 - [x] End-to-end anchor flow verified on testnet via sui CLI call (tx `GBQRG544QKNTvqXmioTTaKEdQjr5spCSj1ryv6NSE8ML`, TelemetryBlobAttached event emitted, `TelemetryAnchor` object owned by deployer)
+- [x] Animation & motion audit complete (CSS transitions, GPU-friendly transforms, `prefers-reduced-motion` support)
+- [x] UI click sounds via Web Audio API (`use-ui-click-sound.ts`)
+- [x] Toast notifications with Framer Motion enter/exit
+- [x] Route visualizer: mouse parallax + gentle camera drift
+- [x] Fallback data for empty states (`CURATED_CLASSES`, `EmptyState` component)
+- [x] One-click "Watch Demo Ride" CTA on landing page + final CTA (auto-starting demo route)
+- [x] Ride HUD polish: compact top bar, keyboard hints on simulator start, compact widget drag bar, always-visible progress bar
+- [ ] Rider identity in ride HUD (name, avatar, streak) — in progress
 - [ ] Demo video recorded
 - [ ] Submitted to overflow.sui.io
 

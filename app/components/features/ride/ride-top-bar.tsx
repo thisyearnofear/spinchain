@@ -1,10 +1,13 @@
 "use client";
 
-import { memo, useState, useRef, useEffect } from "react";
+import { memo, useState, useRef, useEffect, useMemo } from "react";
+import { useAccount } from "wagmi";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
 import { useUIStore } from "@/app/stores/ui-store";
+import { useProfile, getDisplayName } from "@/app/hooks/common/use-profile";
+import { getRideHistory, getStreakStats } from "@/app/lib/analytics/ride-history";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 
 interface RideTopBarProps {
@@ -57,6 +60,21 @@ export const RideTopBar = memo(function RideTopBar({
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
+  // Rider identity
+  const { address } = useAccount();
+  const { profile } = useProfile(address);
+  const riderName = useMemo(() => {
+    if (profile) return getDisplayName(profile, address ?? "");
+    if (isPracticeMode) return "Rider";
+    if (address) return `${address.slice(0, 6)}…${address.slice(-4)}`;
+    return "Guest Rider";
+  }, [profile, address, isPracticeMode]);
+
+  const streak = useMemo(() => {
+    const rides = getRideHistory();
+    return getStreakStats(rides);
+  }, []);
+
   useEffect(() => {
     if (!showMoreMenu) return;
     const handleClick = (e: MouseEvent) => {
@@ -71,8 +89,31 @@ export const RideTopBar = memo(function RideTopBar({
   return (
     <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-top" style={{ zIndex: Z_LAYERS.widgets + 15 }}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Left: Class info — compact single-line metadata */}
+        {/* Left: Rider identity + Class info */}
         <div className="flex-1 min-w-0 z-50 relative">
+          {/* Rider chip — avatar + name + streak */}
+          <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-1.5 rounded-full bg-white/8 border border-white/10 pl-1 pr-2.5 py-0.5">
+              {/* Avatar */}
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-[9px] font-bold text-white shrink-0 overflow-hidden">
+                {profile?.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  riderName.charAt(0).toUpperCase()
+                )}
+              </div>
+              <span className="text-[11px] font-semibold text-white/90 truncate max-w-[100px]">
+                {riderName}
+              </span>
+              {streak.daily > 0 && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-orange-400 shrink-0" title={`${streak.daily}-day streak`}>
+                  🔥{streak.daily}
+                </span>
+              )}
+            </div>
+          </div>
+          {/* Class info — compact single-line metadata */}
           <div className="flex items-center gap-2">
             <h1 className="text-base sm:text-xl font-bold text-white truncate">
               {className}
