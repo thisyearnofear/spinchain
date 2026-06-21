@@ -96,10 +96,10 @@ Goal: every Sui read/write transparently routes through Tatum's gateway when `NE
 
 Goal: make the Walrus ↔ Move linkage concrete. Every Walrus blob stored by the app can be referenced from a Move object, and every AI Coach can persist its decision history to Walrus.
 
-**Status (2026-06-17): IMPLEMENTED in code, NOT yet deployed.** End-of-ride telemetry is
-uploaded to Walrus and a `TelemetryAnchor` object is minted on-chain with the blob ID. The Move
-upgrade still needs to be published to testnet and `NEXT_PUBLIC_SUI_PACKAGE_ID` re-pointed at the
-new package ID before the path goes live.
+**Status (2026-06-21): DEPLOYED on testnet.** Package `0x51542d1d4b43763d58e6f91f845f63157d5fc59bd95ead54dc370b0898d1185c`
+is at version 2 on Sui testnet and contains the `TelemetryAnchor` struct, `TelemetryBlobAttached` event,
+and `anchor_telemetry_blob` entry function. `NEXT_PUBLIC_SUI_PACKAGE_ID` is already pointed at this package.
+End-of-ride telemetry is uploaded to Walrus and a `TelemetryAnchor` object is minted on-chain with the blob ID.
 
 **Why a new object instead of extending `RiderStats`:** the package is already published (v1) with
 an upgrade cap, and Sui forbids changing an existing struct's layout on upgrade. We therefore anchor

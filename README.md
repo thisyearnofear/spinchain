@@ -80,7 +80,7 @@ git commit --no-verify
 - **Frontend**: Next.js 16, React Three Fiber, Tailwind CSS
 - **Mobile**: Capacitor 5.7, BLE plugin
 - **ZK**: Noir circuits, UltraPlonk verifier
-- **AI**: Venice AI and Gemini integrations
+- **AI**: Venice AI, NVIDIA NIM (MiniMax-M3), and Gemini integrations with multi-provider fallback
 
 ---
 
