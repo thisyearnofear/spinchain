@@ -84,10 +84,21 @@ export const GUEST_DEMO_CLASS = {
  * Generates practice mode URL for demo ride
  * Single source of truth for demo ride links (DRY principle)
  */
-export function getDemoRideUrl(): string {
+export interface DemoRideOptions {
+  name?: string;
+  duration?: number;
+  difficulty?: "easy" | "moderate" | "hard";
+  coachPersonality?: "zen" | "drill-sergeant" | "data";
+}
+
+export function getDemoRideUrl(opts?: DemoRideOptions): string {
+  const name = opts?.name ?? GUEST_DEMO_CLASS.name;
+  const duration = opts?.duration ?? GUEST_DEMO_CLASS.duration;
+  const personality = opts?.coachPersonality ?? "zen";
+
   const params = new URLSearchParams({
     mode: "practice",
-    name: GUEST_DEMO_CLASS.name,
+    name,
     date: new Date().toISOString(),
     instructor: GUEST_DEMO_CLASS.instructor,
     capacity: "20",
@@ -97,10 +108,10 @@ export function getDemoRideUrl(): string {
     rewardThreshold: "150",
     rewardAmount: "10",
     aiEnabled: "true",
-    aiPersonality: "zen",
-    routeName: GUEST_DEMO_CLASS.name,
+    aiPersonality: personality,
+    routeName: name,
     routeDistance: "15",
-    routeDuration: GUEST_DEMO_CLASS.duration.toString(),
+    routeDuration: duration.toString(),
     routeElevation: GUEST_DEMO_CLASS.elevationGain.toString(),
   });
   return `/rider/ride/demo?${params.toString()}`;

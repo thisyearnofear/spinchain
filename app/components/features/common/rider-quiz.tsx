@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { CoachyMascot, type CoachyMood } from "@/app/components/ui/coachy-mascot";
 import {
@@ -17,8 +18,11 @@ import {
   COACH_LABELS,
   getRecommendedDifficulty,
   getRecommendedDuration,
+  mapCoachPersonalityToEngine,
+  getRecommendedRideName,
 } from "@/app/stores/rider-profile-store";
 import { getRideHistory, getStreakStats } from "@/app/lib/analytics/ride-history";
+import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 
 export const RIDER_QUIZ_KEY = "spinchain-rider-quiz-completed";
 
@@ -91,6 +95,7 @@ interface RiderQuizProps {
 }
 
 export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -144,6 +149,17 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
     const duration = getRecommendedDuration(profile);
     const rides = getRideHistory();
     const streak = getStreakStats(rides);
+    const rideName = getRecommendedRideName(difficulty);
+    const coachEngine = mapCoachPersonalityToEngine(profile.coachPersonality ?? null);
+
+    const handleStartRide = () => {
+      onComplete?.();
+      router.push(getDemoRideUrl({
+        name: rideName,
+        duration,
+        coachPersonality: coachEngine,
+      }));
+    };
 
     return (
       <QuizShell onSkip={handleSkip} progress={100}>
@@ -172,7 +188,7 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
           )}
 
           <button
-            onClick={onComplete}
+            onClick={handleStartRide}
             className="w-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-transform active:scale-95 hover:shadow-xl"
           >
             Let&apos;s ride! 🚴

@@ -8,6 +8,7 @@ import { useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import { processRideSyncQueue, getRideHistory, getStreakStats } from "@/app/lib/analytics/ride-history";
 import { useRidePersistence } from "./use-ride-persistence";
+import { useRiderProfile, mapCoachPersonalityToEngine } from "@/app/stores/rider-profile-store";
 import { useRideModalStore } from "@/app/stores/ride-modal-store";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 import type { RewardClaimStatus } from "@/app/components/features/ride/ride-completion";
@@ -167,7 +168,8 @@ export function useRideLifecycle({
       rewardMode,
       coachingConfig: {
         agentName,
-        personality: (classData?.metadata?.ai?.personality as "zen" | "drill-sergeant" | "data") || "data",
+        personality: (classData?.metadata?.ai?.personality as "zen" | "drill-sergeant" | "data")
+          || mapCoachPersonalityToEngine(useRiderProfile.getState().coachPersonality),
         workoutPlan,
         instructorProfile: null,
         marketStats: { ticketsSold: 0, revenue: 0, capacity: 50 },

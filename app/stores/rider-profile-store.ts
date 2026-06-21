@@ -99,3 +99,15 @@ export function getRecommendedDuration(profile: Partial<RiderProfile>): number {
   if (profile.frequency === "3-4-week") return 30;
   return 45;
 }
+
+export function mapCoachPersonalityToEngine(p: CoachPersonality | null): "zen" | "drill-sergeant" | "data" {
+  if (p === "zen-master") return "zen";
+  if (p === "data-analyst") return "data";
+  return "drill-sergeant";
+}
+
+export function getRecommendedRideName(difficulty: "easy" | "moderate" | "hard"): string {
+  if (difficulty === "easy") return "Gentle Start";
+  if (difficulty === "hard") return "Alpine Challenge";
+  return "Accelerator Pitch";
+}

@@ -8,6 +8,7 @@ import {
   RIDER_QUIZ_KEY,
 } from "@/app/components/features/common/rider-quiz";
 import { useRiderProfile } from "@/app/stores/rider-profile-store";
+import { getRideHistory } from "@/app/lib/analytics/ride-history";
 import { InstructorModeSelector } from "@/app/components/features/class/instructor-mode-selector";
 import { FadeIn } from "@/app/components/ui/scroll-animations";
 import { Tag } from "@/app/components/ui/ui";
@@ -26,6 +27,7 @@ function HomeContent() {
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
   const profile = useRiderProfile();
   const hasProfile = profile.createdAt !== null;
+  const isReturningRider = hasProfile && getRideHistory().length > 0;
 
   useEffect(() => {
     if (searchParams.get("reset") === "true") {
@@ -106,11 +108,11 @@ function HomeContent() {
         </section>
 
         <HowItWorksSection />
-        <LivePreviewSection />
+        {!isReturningRider && <LivePreviewSection />}
         <RouteShowcase />
-        <FeaturesGridSection />
-        <SocialProofSection />
-        <FinalCTASection />
+        {!isReturningRider && <FeaturesGridSection />}
+        {!isReturningRider && <SocialProofSection />}
+        {!isReturningRider && <FinalCTASection />}
       </main>
     </div>
   );
