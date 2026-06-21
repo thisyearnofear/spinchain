@@ -71,35 +71,39 @@ export const RideTopBar = memo(function RideTopBar({
   return (
     <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-3 sm:p-6 pointer-events-auto safe-top" style={{ zIndex: Z_LAYERS.widgets + 15 }}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Left: Class info */}
+        {/* Left: Class info — compact single-line metadata */}
         <div className="flex-1 min-w-0 z-50 relative">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h1 className="text-lg sm:text-2xl font-bold text-white truncate">
+          <div className="flex items-center gap-2">
+            <h1 className="text-base sm:text-xl font-bold text-white truncate">
               {className}
             </h1>
             {isPracticeMode && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium shrink-0">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-medium shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                 Practice
               </span>
             )}
             {routeIsGenerated && !isPracticeMode && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-500/20 text-zinc-400 text-xs font-medium shrink-0" title="Route loaded from approximation — live data unavailable">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-zinc-500/20 text-zinc-400 text-[10px] font-medium shrink-0" title="Route loaded from approximation — live data unavailable">
                 <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
-                Approx. route
+                Approx.
+              </span>
+            )}
+            {/* Telemetry status — inline, compact */}
+            {(isRiding || rideProgress > 0) && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[10px] text-white/70 shrink-0">
+                <span className={`h-1.5 w-1.5 rounded-full ${
+                  bleConnected ? "bg-emerald-400" : useSimulator ? "bg-amber-400" : "bg-zinc-400"
+                }`} />
+                {bleConnected ? "Live" : useSimulator ? (isTrainingMode ? "Training" : "Simulator") : "No signal"}
               </span>
             )}
           </div>
-          <p className="text-xs sm:text-sm text-white/60 truncate">
-            {instructor}
-          </p>
-          {(isRiding || rideProgress > 0) && (
-            <div className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 px-2 py-0.5 text-[11px] text-white/80">
-              <span className={`h-1.5 w-1.5 rounded-full ${
-                bleConnected ? "bg-emerald-400" : useSimulator ? "bg-amber-400" : "bg-zinc-400"
-              }`} />
-              {bleConnected ? "Live telemetry" : useSimulator ? (isTrainingMode ? "Training Mode" : "Simulator telemetry") : "No telemetry"}
-            </div>
+          {/* Instructor — hidden in practice mode (redundant with "Practice" badge) */}
+          {!isPracticeMode && (
+            <p className="text-xs text-white/50 truncate mt-0.5">
+              {instructor}
+            </p>
           )}
         </div>
 

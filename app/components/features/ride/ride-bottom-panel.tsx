@@ -112,11 +112,12 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   const handleDragMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (!dragRef.current) return;
-      const deltaX = event.clientX - dragRef.current.pointerX;
       const deltaY = event.clientY - dragRef.current.pointerY;
+      // Constrain to vertical-only, max 200px up
+      const newY = Math.min(0, Math.max(-200, dragRef.current.startY + deltaY));
       setDesktopOffset({
-        x: dragRef.current.startX + deltaX,
-        y: Math.min(0, dragRef.current.startY + deltaY),
+        x: 0,
+        y: newY,
       });
     },
     [],
@@ -189,29 +190,29 @@ export const RideBottomPanel = memo(function RideBottomPanel({
         className={`max-w-7xl mx-auto ${!isRiding && deviceType === "desktop" ? "overflow-y-auto flex-1 min-h-0" : ""}`}
       >
         {isRiding && (
-          <div
-            className="mb-2 flex items-center justify-between rounded-lg bg-black/40 px-3 py-1.5 text-[11px] text-white/70"
-            onPointerDown={handleDragStart}
-            onPointerMove={handleDragMove}
-            onPointerUp={handleDragEnd}
-          >
-            <span>
-              {deviceType === "mobile" ? "Widget controls" : "Drag widgets bar"}
-            </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => onSetWidgetsMode("collapsed")}
-                className="rounded bg-white/10 px-2 py-1 text-white/80 hover:bg-white/20"
-              >
-                Collapse
-              </button>
-              <button
-                onClick={() => onSetWidgetsMode("minimized")}
-                className="rounded bg-white/10 px-2 py-1 text-white/80 hover:bg-white/20"
-              >
-                Minimize
-              </button>
+          <div className="mb-1 flex items-center justify-center gap-2">
+            <div
+              className="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1 text-[10px] text-white/50 cursor-grab active:cursor-grabbing touch-none"
+              onPointerDown={handleDragStart}
+              onPointerMove={handleDragMove}
+              onPointerUp={handleDragEnd}
+              title="Drag up to reveal more, drag down to hide"
+            >
+              <span className="text-white/30 select-none" aria-hidden="true">⠿</span>
+              <span className="hidden sm:inline">Drag to reposition</span>
             </div>
+            <button
+              onClick={() => onSetWidgetsMode("collapsed")}
+              className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-white/60 hover:bg-white/20 transition-colors"
+            >
+              Collapse
+            </button>
+            <button
+              onClick={() => onSetWidgetsMode("minimized")}
+              className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-white/60 hover:bg-white/20 transition-colors"
+            >
+              Minimize
+            </button>
           </div>
         )}
 

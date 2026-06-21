@@ -303,6 +303,13 @@ export default function LiveRidePage() {
   // ─── Tutorial ──────────────────────────────────────────────────
   const { nextStep: nextTutorial, dismiss: dismissTutorial } = useRideTutorial({ isPracticeMode, walletConnected });
 
+  // Show keyboard controls hint when a simulator/practice ride starts
+  useEffect(() => {
+    if (isRiding && useSimulator) {
+      useRideModalStore.getState().setShowKeyboardHints(true);
+    }
+  }, [isRiding, useSimulator]);
+
   // ─── Loading / Not Found Gates ─────────────────────────────────
   if (isLoading && !isPracticeMode) {
     return (
