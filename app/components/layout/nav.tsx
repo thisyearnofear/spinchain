@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAccount } from "wagmi";
 import { ThemeToggleCompact } from "./theme-toggle";
 import { ConnectWallet } from "../features/wallet/connect-wallet";
 import { SuiWalletButton } from "../features/wallet/sui-wallet-button";
 import { AIProviderSettings } from "../features/ai/ai-provider-settings";
 import { useUIClickSound } from "@/app/hooks/use-ui-click-sound";
+import { useProfile, getDisplayName } from "@/app/hooks/common/use-profile";
+import { getRideHistory, getStreakStats } from "@/app/lib/analytics/ride-history";
+import { useRiderProfile } from "@/app/stores/rider-profile-store";
 import { motion, AnimatePresence } from "framer-motion";
 
 function useSuiWalletVisible(): boolean {
@@ -151,6 +155,53 @@ function ModeToggle({ isInstructor, onToggle }: { isInstructor: boolean; onToggl
   );
 }
 
+function RiderIdentityChip() {
+  const { address } = useAccount();
+  const { profile } = useProfile(address);
+  const riderProfile = useRiderProfile();
+  const hasProfile = riderProfile.createdAt !== null;
+
+  const streak = useMemo(() => {
+    const rides = getRideHistory();
+    return getStreakStats(rides);
+  }, []);
+
+  const riderName = useMemo(() => {
+    if (profile) return getDisplayName(profile, address ?? "");
+    if (address) return `${address.slice(0, 6)}…${address.slice(-4)}`;
+    return null;
+  }, [profile, address]);
+
+  if (!riderName && !hasProfile) return null;
+
+  const displayName = riderName || "Rider";
+
+  return (
+    <Link
+      href="/rider/journey"
+      className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 pl-1 pr-3 py-1 hover:border-white/20 hover:bg-white/10 transition-colors"
+      title="View your journey"
+    >
+      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-[10px] font-bold text-white shrink-0 overflow-hidden">
+        {profile?.avatar ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
+        ) : (
+          displayName.charAt(0).toUpperCase()
+        )}
+      </div>
+      <span className="text-xs font-semibold text-white/80 hidden sm:inline max-w-[80px] truncate">
+        {displayName}
+      </span>
+      {streak.daily > 0 && (
+        <span className="text-[10px] font-bold text-orange-400 shrink-0" title={`${streak.daily}-day streak`}>
+          🔥{streak.daily}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 export function PrimaryNav() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -194,6 +245,7 @@ export function PrimaryNav() {
       {/* Desktop Navigation */}
       <div className="hidden lg:flex lg:items-center gap-6 overflow-visible">
         <div className="flex items-center gap-4">
+          <RiderIdentityChip />
           <div className="flex items-center gap-2">
             <ConnectWallet />
             {showSuiWallet && <SuiWalletButton />}
@@ -245,6 +297,7 @@ export function PrimaryNav() {
           >
             <div className="flex flex-col gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
               <div className="flex items-center justify-between mb-2">
+                <RiderIdentityChip />
                 <span className="text-xs font-bold text-white/40 uppercase">Account</span>
                 <ConnectWallet />
               </div>

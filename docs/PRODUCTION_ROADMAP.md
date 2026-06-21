@@ -356,6 +356,41 @@ See `docs/HACKATHON_PLAN.md` for the file-level change list, phases, and risk re
 
 ---
 
+## Personalization & Onboarding Overhaul
+
+**Problem**: The homepage was identical for first-time visitors and returning riders with 20+ rides. The welcome modal was a passive 3-slide feature explainer that collected zero user data. The nav bar showed no rider identity. The app felt impersonal — the user was never the hero.
+
+**Solution**: Interactive onboarding quiz, Coachy mascot, personalized homepage, and rider identity in the nav bar.
+
+### What was built
+
+| Component | File | Description |
+|-----------|------|-------------|
+| Rider profile store | `app/stores/rider-profile-store.ts` | localStorage-backed store for goal, experience, frequency, motivation, coach personality |
+| Coachy mascot | `app/components/ui/coachy-mascot.tsx` | SVG character with 6 moods (welcoming, cheering, coaching, celebrating, thinking, resting), animated with Framer Motion |
+| Rider quiz | `app/components/features/common/rider-quiz.tsx` | 5-step interactive questionnaire replacing the welcome modal — collects goal, experience, frequency, motivation, coach personality. Shows personalized ride plan summary on completion. |
+| Personalized hero | `app/components/features/home/personalized-hero.tsx` | Replaces the generic hero for returning riders — shows "Welcome back {name}", streak, total rides, best power/effort, and recommended ride based on profile |
+| Nav identity chip | `app/components/layout/nav.tsx` | Avatar (ENS or initials), display name, streak flame in the global nav bar — visible on every page |
+
+### Onboarding flow (new)
+
+1. First visit → Rider quiz appears (Coachy mascot greets user)
+2. 5 questions: goal, experience, frequency, motivation, coach personality
+3. Summary screen: "Your ride plan is ready!" with recommended difficulty, duration, coach style
+4. One click → demo ride matching their profile
+5. Returning visit → Personalized hero with stats, streak, and recommended ride
+
+### Lessons from competitor analysis
+
+Patterns stolen from high-converting apps (Duolingo, study apps, dog training apps):
+- **Mascot**: Coachy creates emotional connection and brand memorability
+- **Interactive questionnaire**: Collects real user data, builds personalization, gets emotional investment before commitment
+- **Personalized plan from answers**: "Based on your answers..." — makes user feel the app was made for them
+- **Homepage that recognizes you**: Returning users see their stats, not generic marketing copy
+- **Identity everywhere**: Nav bar shows rider identity on every page, not just in the ride
+
+---
+
 ## Appendix: File Reference
 
 ### Key Files to Modify

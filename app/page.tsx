@@ -3,16 +3,17 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  WelcomeModal,
-  resetOnboarding,
-  ONBOARDING_KEY,
-  GUEST_MODE_KEY,
-} from "@/app/components/features/common/welcome-modal";
+  RiderQuiz,
+  resetQuiz,
+  RIDER_QUIZ_KEY,
+} from "@/app/components/features/common/rider-quiz";
+import { useRiderProfile } from "@/app/stores/rider-profile-store";
 import { InstructorModeSelector } from "@/app/components/features/class/instructor-mode-selector";
 import { FadeIn } from "@/app/components/ui/scroll-animations";
 import { Tag } from "@/app/components/ui/ui";
 import { RouteShowcase } from "@/app/components/features/route/route-showcase";
 import { HeroSection } from "@/app/components/features/home/hero-section";
+import { PersonalizedHero } from "@/app/components/features/home/personalized-hero";
 import { HowItWorksSection } from "@/app/components/features/home/how-it-works-section";
 import { LivePreviewSection } from "@/app/components/features/home/live-preview-section";
 import { FeaturesGridSection } from "@/app/components/features/home/features-grid-section";
@@ -21,19 +22,32 @@ import { FinalCTASection } from "@/app/components/features/home/final-cta-sectio
 
 function HomeContent() {
   const searchParams = useSearchParams();
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
+  const profile = useRiderProfile();
+  const hasProfile = profile.createdAt !== null;
 
   useEffect(() => {
     if (searchParams.get("reset") === "true") {
-      resetOnboarding();
+      resetQuiz();
     }
 
     if (searchParams.get("welcome") === "true" || searchParams.get("reset") === "true") {
       const frame = window.requestAnimationFrame(() => {
-        setShowWelcome(true);
+        setShowQuiz(true);
       });
       return () => window.cancelAnimationFrame(frame);
+    }
+
+    // Show quiz for first-time visitors
+    if (!hasProfile) {
+      const completed = localStorage.getItem(RIDER_QUIZ_KEY);
+      if (!completed) {
+        const frame = window.requestAnimationFrame(() => {
+          setShowQuiz(true);
+        });
+        return () => window.cancelAnimationFrame(frame);
+      }
     }
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -45,25 +59,18 @@ function HomeContent() {
 
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [searchParams]);
+  }, [searchParams, hasProfile]);
 
-  const handleWelcomeComplete = () => {
-    localStorage.setItem(ONBOARDING_KEY, "true");
-    setShowWelcome(false);
-  };
-
-  const handleExploreAsGuest = () => {
-    localStorage.setItem(ONBOARDING_KEY, "true");
-    localStorage.setItem(GUEST_MODE_KEY, "true");
-    setShowWelcome(false);
+  const handleQuizComplete = () => {
+    setShowQuiz(false);
   };
 
   return (
     <div className="min-h-screen bg-[color:var(--background)] overflow-x-hidden">
-      {showWelcome && (
-        <WelcomeModal
-          onComplete={handleWelcomeComplete}
-          onExploreAsGuest={handleExploreAsGuest}
+      {showQuiz && (
+        <RiderQuiz
+          onComplete={handleQuizComplete}
+          onSkip={handleQuizComplete}
         />
       )}
 
@@ -78,7 +85,7 @@ function HomeContent() {
 
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-16 md:gap-20 px-6 pb-20 pt-10 lg:px-12">
         <FadeIn>
-          <HeroSection onOpenGuide={() => setShowWelcome(true)} />
+          {hasProfile ? <PersonalizedHero /> : <HeroSection onOpenGuide={() => setShowQuiz(true)} />}
         </FadeIn>
 
         {/* Instructor Mode Selector */}
