@@ -6,8 +6,8 @@ import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
 import { useUIStore } from "@/app/stores/ui-store";
-import { useProfile, getDisplayName } from "@/app/hooks/common/use-profile";
-import { getRideHistory, getStreakStats } from "@/app/lib/analytics/ride-history";
+import { useProfile, getDisplayName, formatAddress } from "@/app/hooks/common/use-profile";
+import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 
 interface RideTopBarProps {
@@ -66,14 +66,11 @@ export const RideTopBar = memo(function RideTopBar({
   const riderName = useMemo(() => {
     if (profile) return getDisplayName(profile, address ?? "");
     if (isPracticeMode) return "Rider";
-    if (address) return `${address.slice(0, 6)}…${address.slice(-4)}`;
+    if (address) return formatAddress(address);
     return "Guest Rider";
   }, [profile, address, isPracticeMode]);
 
-  const streak = useMemo(() => {
-    const rides = getRideHistory();
-    return getStreakStats(rides);
-  }, []);
+  const streak = useRiderStats().streak;
 
   useEffect(() => {
     if (!showMoreMenu) return;

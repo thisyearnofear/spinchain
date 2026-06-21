@@ -10,7 +10,7 @@ import { SuiWalletButton } from "../features/wallet/sui-wallet-button";
 import { AIProviderSettings } from "../features/ai/ai-provider-settings";
 import { useUIClickSound } from "@/app/hooks/use-ui-click-sound";
 import { useProfile, getDisplayName, formatAddress } from "@/app/hooks/common/use-profile";
-import { getRideHistory, getStreakStats } from "@/app/lib/analytics/ride-history";
+import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import { useRiderProfile } from "@/app/stores/rider-profile-store";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -161,10 +161,7 @@ function RiderIdentityChip() {
   const riderProfile = useRiderProfile();
   const hasProfile = riderProfile.createdAt !== null;
 
-  const streak = useMemo(() => {
-    const rides = getRideHistory();
-    return getStreakStats(rides);
-  }, []);
+  const streak = useRiderStats().streak;
 
   const riderName = useMemo(() => {
     if (profile) return getDisplayName(profile, address ?? "");

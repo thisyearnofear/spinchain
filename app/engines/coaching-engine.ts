@@ -263,8 +263,16 @@ export class CoachingEngine {
       this.lastDriftNudgeKey = driftKey;
       this.cadenceDriftMs = 0;
 
+      const nudge = this.config.personality === "drill-sergeant"
+        ? "Pick up the pace! No excuses!"
+        : this.config.personality === "zen"
+          ? "Gently bring your cadence up — find your rhythm"
+          : this.config.personality === "data"
+            ? `Cadence at ${cadence} RPM — target is ${minRpm}. Let's close that gap.`
+            : "Pick up the pace!";
+
       this.bus.emit("coaching:message", {
-        text: "Pick up the pace!",
+        text: nudge,
         source: "cadence:intense",
       });
     }

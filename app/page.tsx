@@ -8,7 +8,7 @@ import {
   RIDER_QUIZ_KEY,
 } from "@/app/components/features/common/rider-quiz";
 import { useRiderProfile } from "@/app/stores/rider-profile-store";
-import { getRideHistory } from "@/app/lib/analytics/ride-history";
+import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import { InstructorModeSelector } from "@/app/components/features/class/instructor-mode-selector";
 import { FadeIn } from "@/app/components/ui/scroll-animations";
 import { Tag } from "@/app/components/ui/ui";
@@ -27,7 +27,7 @@ function HomeContent() {
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
   const profile = useRiderProfile();
   const hasProfile = profile.createdAt !== null;
-  const isReturningRider = hasProfile && getRideHistory().length > 0;
+  const isReturningRider = hasProfile && useRiderStats().hasRides;
 
   useEffect(() => {
     if (searchParams.get("reset") === "true") {

@@ -74,6 +74,7 @@ export interface CoachingContext {
   routeStoryBeat?: string;
   recentPerformance: "below" | "on" | "above" | "crushing";
   fatigueLevel: "low" | "moderate" | "high";
+  personality?: "zen" | "drill-sergeant" | "data";
 }
 
 export interface CoachingResponse {

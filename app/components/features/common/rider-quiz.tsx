@@ -23,6 +23,8 @@ import {
 } from "@/app/stores/rider-profile-store";
 import { getRideHistory, getStreakStats } from "@/app/lib/analytics/ride-history";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
+import { useAccount } from "wagmi";
+import { useProfile, getDisplayName, formatAddress } from "@/app/hooks/common/use-profile";
 
 export const RIDER_QUIZ_KEY = "spinchain-rider-quiz-completed";
 
@@ -96,6 +98,8 @@ interface RiderQuizProps {
 
 export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
   const router = useRouter();
+  const { address } = useAccount();
+  const { profile: ensProfile } = useProfile(address);
   const [currentStep, setCurrentStep] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -117,12 +121,19 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
     setAnswers(newAnswers);
 
     if (isLastStep) {
+      const displayName = ensProfile
+        ? getDisplayName(ensProfile, address ?? "")
+        : address
+          ? formatAddress(address)
+          : null;
+
       setProfile({
         goal: newAnswers.goal as FitnessGoal,
         experience: newAnswers.experience as ExperienceLevel,
         frequency: newAnswers.frequency as RideFrequency,
         motivation: newAnswers.motivation as Motivation,
         coachPersonality: newAnswers.coach as CoachPersonality,
+        displayName,
         createdAt: Date.now(),
       });
       localStorage.setItem(RIDER_QUIZ_KEY, "true");

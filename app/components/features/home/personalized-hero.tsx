@@ -10,10 +10,10 @@ import {
   mapCoachPersonalityToEngine,
   getRecommendedRideName,
 } from "@/app/stores/rider-profile-store";
-import { getRideHistory, getStreakStats, getPRs } from "@/app/lib/analytics/ride-history";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 import { useAccount } from "wagmi";
 import { useProfile, getDisplayName, formatAddress } from "@/app/hooks/common/use-profile";
+import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import Link from "next/link";
 import { useMemo } from "react";
 import { Flame, Trophy, Bike, Zap } from "lucide-react";
@@ -29,16 +29,7 @@ export function PersonalizedHero() {
     return "Rider";
   }, [ensProfile, address]);
 
-  const { totalRides, streak, prs } = useMemo(() => {
-    const rides = getRideHistory();
-    return {
-      totalRides: rides.length,
-      streak: getStreakStats(rides),
-      prs: getPRs(rides),
-    };
-  }, []);
-
-  const isFirstTime = totalRides === 0;
+  const { totalRides, streak, prs, isFirstTime } = useRiderStats();
   const difficulty = getRecommendedDifficulty(profile);
   const duration = getRecommendedDuration(profile);
   const rideName = getRecommendedRideName(difficulty);
@@ -106,7 +97,7 @@ export function PersonalizedHero() {
                 href={demoUrl}
                 className="shrink-0 rounded-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] px-4 py-2 text-xs font-bold text-white transition-transform active:scale-95"
               >
-                Ride →
+                {isFirstTime ? "Start →" : "Quick ride →"}
               </Link>
             </div>
           </div>
@@ -116,7 +107,7 @@ export function PersonalizedHero() {
               href="/rider"
               className="inline-flex items-center justify-center gap-2 rounded-full border border-[color:var(--border)] px-6 py-3 text-sm font-semibold text-[color:var(--foreground)] transition-colors hover:border-[color:var(--accent)]/50"
             >
-              Browse classes
+              {isFirstTime ? "Browse classes" : "Find your next class"}
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>

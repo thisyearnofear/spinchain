@@ -229,7 +229,15 @@ export async function getCoachingWithVenice(
       ).join("\n")
     : "";
 
-  const prompt = `You are a cycling coach. Current rider state:
+  const personalityStyle = context.personality === "drill-sergeant"
+    ? " You are a DRILL SERGEANT: no excuses, direct, commanding, intense. Push them beyond comfort."
+    : context.personality === "zen"
+      ? " You are a ZEN MASTER: calm, mindful, present. Focus on breath, form, and the journey."
+      : context.personality === "data"
+        ? " You are a DATA ANALYST: metrics-driven, precise, analytical. Reference numbers and zones."
+        : "";
+
+  const prompt = `You are a cycling coach.${personalityStyle} Current rider state:
 - Heart Rate: ${context.riderHeartRate} BPM (target: ${context.targetHeartRate})
 - Resistance: ${context.currentResistance}%
 - Cadence: ${context.currentCadence} RPM
