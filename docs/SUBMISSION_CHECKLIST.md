@@ -24,7 +24,8 @@
 - [x] Fallback data for empty states (`CURATED_CLASSES`, `EmptyState` component)
 - [x] One-click "Watch Demo Ride" CTA on landing page + final CTA (auto-starting demo route)
 - [x] Ride HUD polish: compact top bar, keyboard hints on simulator start, compact widget drag bar, always-visible progress bar
-- [ ] Rider identity in ride HUD (name, avatar, streak) — in progress
+- [x] Rider identity system (quiz, personalized hero, nav chip, coach personality)
+- [x] NVIDIA NIM (MiniMax-M3) added as middle fallback provider (Venice → NVIDIA → Gemini)
 - [ ] Demo video recorded
 - [ ] Submitted to overflow.sui.io
 
@@ -115,8 +116,8 @@ All build gates green. All Walrus Track integration points live on testnet:
    - Project name: `SpinChain`
    - One-liner: from `SUBMISSION_WALRUS_TRACK.md` §"One-Line Description"
    - Description: paste the §"Submission narrative (paste-ready, ≤ 1000 chars)" block
-   - GitHub URL
+   - GitHub URL: https://github.com/thisyearnofear/spinchain
    - Demo video URL
-   - Live demo URL (optional)
+   - Live demo URL: https://spinchain.vercel.app/
 3. **Press submit before June 21, 2026** end-of-day.
 4. **Optional but unlocks 100% prize payout**: deploy Move package to Sui mainnet before Aug 27 (per Overflow handbook §prize terms).

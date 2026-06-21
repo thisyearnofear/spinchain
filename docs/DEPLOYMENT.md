@@ -90,7 +90,10 @@ sui client publish --gas-budget 100000000
 | Field | Value |
 |-------|-------|
 | **Package ID** | `0x51542d1d4b43763d58e6f91f845f63157d5fc59bd95ead54dc370b0898d1185c` |
+| **Version** | 2 (upgraded — includes `TelemetryAnchor`, `anchor_telemetry_blob`, `spin_token` module) |
 | **Deployer** | `0x9018a50508af247c8ef949a6fd6522fc0b7f6652a9d07a2b108d748728f7b73f` |
+| **Upgrade Tx** | `350668558` |
+| **Upgrade Cap** | `0x146219a29eb67a17fbcc52d580857a399aa20a06eee235570a3beace14752f75` |
 
 ---
 
@@ -145,16 +148,17 @@ vercel --prod
 
 ### Environment Variables
 ```env
-# Required
+# Required (at least one AI provider)
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=...
 VENICE_API_KEY=...
 
-# Optional
+# Optional AI providers (fallback chain: Venice → NVIDIA → Gemini)
+NVIDIA_API_KEY=...
 GEMINI_API_KEY=...
 ELEVENLABS_API_KEY=...
 
-# Contracts (after deployment)
-NEXT_PUBLIC_SUI_PACKAGE_ID=0x...
+# Sui (already deployed on testnet — package v2)
+NEXT_PUBLIC_SUI_PACKAGE_ID=0x51542d1d4b43763d58e6f91f845f63157d5fc59bd95ead54dc370b0898d1185c
 NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=0x...
 NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x...
 NEXT_PUBLIC_SPIN_TOKEN_ADDRESS=0x...

@@ -136,9 +136,12 @@ Walrus client uses **aggregator failover** (`aggregator.walrus-testnet.walrus.sp
 "SpinChain uses Walrus as the memory layer and Sui as the settlement layer. During a ride, telemetry streams to Sui Move objects. At ride end, the full dataset is uploaded to Walrus and anchored on-chain."
 
 ### Beat 3: Live Demo — Start a Ride (30 sec)
-- Open the app, connect Sui wallet
-- Start a practice ride (simulator mode)
+- Open the app at https://spinchain.vercel.app/
+- Complete the rider personality quiz (3 quick questions — goal, experience, coach personality)
+- See personalized hero with Coachy mascot and recommended ride
+- Connect Sui wallet, start a practice ride (simulator mode)
 - Show telemetry flowing: HR, power, cadence updating in the UI
+- AI coaching messages appear with personality-aware prompts (drill-sergeant / zen / data)
 - Mention: data is being batched into Sui PTB transactions (50 points per tx)
 
 ### Beat 4: Live Demo — Ride Complete + Walrus Upload (40 sec)
@@ -157,6 +160,7 @@ Walrus client uses **aggregator failover** (`aggregator.walrus-testnet.walrus.sp
 - Show the Coach Move struct with `system_prompt_cid` field
 - Explain: the AI coach's behavioral logic lives on Walrus, anchored on Sui
 - This means coach memory is verifiable, composable, and survives wallet migration
+- Note: AI coaching runs on a 3-provider fallback chain (Venice → NVIDIA NIM → Gemini) for reliability
 
 ### Beat 7: Why This Matters (15 sec)
 "Walrus-as-Memory is a general pattern: small on-chain anchors, large off-chain verifiable data. We apply it to fitness, but it works for any high-frequency, data-heavy on-chain application."
@@ -185,12 +189,12 @@ Walrus client uses **aggregator failover** (`aggregator.walrus-testnet.walrus.sp
 
 ## GitHub
 
-https://github.com/[org]/spinchain
+https://github.com/thisyearnofear/spinchain
 
 ## Links (to fill in at submission)
 
-- Live demo: [deploy URL]
-- Demo video: [video URL]
+- Live demo: https://spinchain.vercel.app/
+- Demo video: [video URL — record and paste]
 - Sui testnet package: https://suiscan.xyz/testnet/object/0x51542d1d4b43763d58e6f91f845f63157d5fc59bd95ead54dc370b0898d1185c
 - Walrus aggregator (testnet): https://aggregator.walrus-testnet.walrus.space
 - Walrus event tx (anchor smoke test): https://suiscan.xyz/testnet/tx/GBQRG544QKNTvqXmioTTaKEdQjr5spCSj1ryv6NSE8ML

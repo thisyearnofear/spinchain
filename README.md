@@ -2,7 +2,7 @@
 
 SpinChain is a Next.js + Capacitor prototype for AI-assisted spin classes, dual-chain reward settlement experiments, and privacy-preserving fitness telemetry.
 
-Current state: testnet/demo stage. The app is not ready for general users yet.
+Current state: testnet/demo stage, live on Vercel at https://spinchain.vercel.app/. The app is not ready for general users yet.
 
 ---
 
@@ -80,7 +80,8 @@ git commit --no-verify
 - **Frontend**: Next.js 16, React Three Fiber, Tailwind CSS
 - **Mobile**: Capacitor 5.7, BLE plugin
 - **ZK**: Noir circuits, UltraPlonk verifier
-- **AI**: Venice AI, NVIDIA NIM (MiniMax-M3), and Gemini integrations with multi-provider fallback
+- **AI**: Venice AI, NVIDIA NIM (MiniMax-M3), and Gemini 3.0 Flash with multi-provider fallback (Venice → NVIDIA → Gemini)
+- **Storage**: Walrus (verifiable data layer for ride telemetry, route GPX, AI coach memory)
 
 ---
 

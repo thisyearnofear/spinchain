@@ -24,11 +24,15 @@ This file distinguishes between what is implemented in the current app, what is 
 
 ## AI Integration
 
-### Default AI: Venice AI (Privacy-First)
-- Privacy-first (data not used for training)
-- No setup required
+### Multi-Provider AI with Fallback Chain
 
-**Fallback**: Gemini 3.0 Flash via BYOK
+**Venice AI** (primary, privacy-first) → **NVIDIA NIM / MiniMax-M3** (middle fallback) → **Gemini 3.0 Flash** (last resort, BYOK)
+
+- Venice AI: Privacy-first inference, no setup required (server-side key)
+- NVIDIA NIM: MiniMax-M3 via NVIDIA's API, middle fallback when Venice fails or runs out of credits
+- Gemini 3.0 Flash: Last resort fallback, supports BYOK (bring your own key)
+- All providers handle: route generation, narrative creation, chat, coaching, and agent reasoning
+- Personality-aware coaching prompts (drill-sergeant, zen, data) across all providers
 
 ---
 
@@ -36,11 +40,12 @@ This file distinguishes between what is implemented in the current app, what is 
 
 #### 1. Natural Language Route Generation
 ```typescript
-const route = await generateRouteWithGemini({
+const route = await aiService.generateRoute({
   prompt: "45-minute coastal climb with ocean views",
   duration: 45,
   difficulty: "moderate"
 });
+// Automatically uses Venice → NVIDIA → Gemini fallback
 ```
 Returns: GPX coordinates, elevation, story beats, 3D preview
 

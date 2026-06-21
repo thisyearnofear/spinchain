@@ -160,11 +160,11 @@ sui client upgrade --upgrade-capability <SUI_UPGRADE_CAP_ID>
 
 ### Phase 3 — Submission packaging
 
-- [ ] Record a 2–3 minute demo video (Tatum × Walrus requirement)
-- [ ] Write the Walrus Track submission narrative (problem statement, solution, architecture, what is verifiable, what's on mainnet-ready testnet, what's still in testnet)
-- [ ] Submit to Tatum × Walrus first (deadline Jun 6)
+- [ ] Record a 2–3 minute demo video (script in `docs/SUBMISSION_WALRUS_TRACK.md`)
+- [x] Write the Walrus Track submission narrative (problem statement, solution, architecture, what is verifiable, what's on testnet)
+- [x] Tatum × Walrus submission (deadline Jun 6 — passed, same codebase)
 - [ ] Submit to Sui Overflow 2026 (deadline Jun 21)
-- [ ] Publish the demo video link in both submission forms
+- [ ] Publish the demo video link in the submission form
 
 ### Phase 4 — Mainnet preparation (post-hackathon, optional but unlocks 100% prize)
 
