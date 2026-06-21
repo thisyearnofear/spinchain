@@ -25,6 +25,7 @@ import {
   type RouteTheme,
 } from "@/app/lib/gemini-client";
 import { generateRouteWithVenice } from "@/app/lib/venice-client";
+import { generateRouteWithNvidia } from "@/app/lib/nvidia-client";
 
 export const runtime = "edge";
 export const maxDuration = 30;
@@ -37,7 +38,7 @@ type RouteGenerationRequest = {
   theme?: string;
   fitnessLevel?: "beginner" | "intermediate" | "advanced" | "elite";
   stream?: boolean;
-  provider?: "venice" | "gemini";
+  provider?: "venice" | "nvidia" | "gemini";
   apiKey?: string; // BYOK for Gemini
 };
 
@@ -93,8 +94,8 @@ function validateRouteRequest(body: unknown): { valid: true; data: RouteGenerati
   }
 
   // Provider validation
-  if (req.provider !== undefined && !["venice", "gemini"].includes(req.provider as string)) {
-    return { valid: false, error: "Provider must be 'venice' or 'gemini'", code: "INVALID_PROVIDER" };
+  if (req.provider !== undefined && !["venice", "nvidia", "gemini"].includes(req.provider as string)) {
+    return { valid: false, error: "Provider must be 'venice', 'nvidia', or 'gemini'", code: "INVALID_PROVIDER" };
   }
 
   return {
@@ -107,7 +108,7 @@ function validateRouteRequest(body: unknown): { valid: true; data: RouteGenerati
       theme: typeof req.theme === "string" ? req.theme : undefined,
       fitnessLevel: req.fitnessLevel as RouteGenerationRequest["fitnessLevel"],
       stream: Boolean(req.stream),
-      provider: (req.provider as "venice" | "gemini") || "venice",
+      provider: (req.provider as "venice" | "nvidia" | "gemini") || "venice",
       apiKey: typeof req.apiKey === "string" ? req.apiKey : undefined,
     },
   };
@@ -155,6 +156,8 @@ export async function POST(req: NextRequest) {
     // Route to appropriate provider
     if (provider === "gemini") {
       return await handleGeminiRequest(routeRequest, stream, apiKey);
+    } else if (provider === "nvidia") {
+      return await handleNvidiaRequest(routeRequest);
     } else {
       return await handleVeniceRequest(routeRequest);
     }
@@ -259,26 +262,77 @@ async function handleVeniceRequest(request: RouteRequest) {
   const hasVeniceKey = !!process.env.VENICE_API_KEY;
   
   if (!hasVeniceKey) {
-    // Try Gemini as fallback
+    // Try NVIDIA, then Gemini
+    const hasNvidiaKey = !!process.env.NVIDIA_API_KEY;
+    if (hasNvidiaKey) {
+      console.log("[AI Route] Venice not configured, falling back to NVIDIA...");
+      return await handleNvidiaRequest(request);
+    }
     const hasGeminiKey = !!process.env.GEMINI_API_KEY;
     if (hasGeminiKey) {
       console.log("[AI Route] Venice not configured, falling back to Gemini...");
       return await handleGeminiRequest(request, false, undefined);
     }
     
-    return apiError("Please configure VENICE_API_KEY or GEMINI_API_KEY", "NOT_CONFIGURED", 503);
+    return apiError("Please configure VENICE_API_KEY, NVIDIA_API_KEY, or GEMINI_API_KEY", "NOT_CONFIGURED", 503);
   }
 
   const startTime = Date.now();
-  const route = await generateRouteWithVenice(request);
+  try {
+    const route = await generateRouteWithVenice(request);
+    
+    return NextResponse.json({
+      ...route,
+      _meta: {
+        generatedAt: new Date().toISOString(),
+        duration: Date.now() - startTime,
+        provider: "venice",
+        model: "llama-3.3-70b",
+      },
+    });
+  } catch (veniceErr) {
+    console.warn("[AI Route] Venice failed, trying NVIDIA:", veniceErr);
+    const hasNvidiaKey = !!process.env.NVIDIA_API_KEY;
+    if (hasNvidiaKey) {
+      try {
+        return await handleNvidiaRequest(request);
+      } catch (nvidiaErr) {
+        console.warn("[AI Route] NVIDIA failed, falling back to Gemini:", nvidiaErr);
+      }
+    }
+    const hasGeminiKey = !!process.env.GEMINI_API_KEY;
+    if (hasGeminiKey) {
+      return await handleGeminiRequest(request, false, undefined);
+    }
+    throw veniceErr;
+  }
+}
+
+/**
+ * Handle NVIDIA NIM request
+ */
+async function handleNvidiaRequest(request: RouteRequest) {
+  const hasNvidiaKey = !!process.env.NVIDIA_API_KEY;
+  
+  if (!hasNvidiaKey) {
+    const hasGeminiKey = !!process.env.GEMINI_API_KEY;
+    if (hasGeminiKey) {
+      console.log("[AI Route] NVIDIA not configured, falling back to Gemini...");
+      return await handleGeminiRequest(request, false, undefined);
+    }
+    return apiError("Please configure NVIDIA_API_KEY or GEMINI_API_KEY", "NOT_CONFIGURED", 503);
+  }
+
+  const startTime = Date.now();
+  const route = await generateRouteWithNvidia(request);
   
   return NextResponse.json({
     ...route,
     _meta: {
       generatedAt: new Date().toISOString(),
       duration: Date.now() - startTime,
-      provider: "venice",
-      model: "llama-3.3-70b",
+      provider: "nvidia",
+      model: "minimax-m3",
     },
   });
 }
@@ -289,15 +343,20 @@ async function handleVeniceRequest(request: RouteRequest) {
  */
 export async function GET() {
   const veniceAvailable = !!process.env.VENICE_API_KEY;
+  const nvidiaAvailable = !!process.env.NVIDIA_API_KEY;
   const geminiAvailable = !!process.env.GEMINI_API_KEY;
   
   return NextResponse.json({
-    status: veniceAvailable || geminiAvailable ? "ready" : "not_configured",
+    status: veniceAvailable || nvidiaAvailable || geminiAvailable ? "ready" : "not_configured",
     providers: {
       venice: {
         available: veniceAvailable,
         default: true,
         model: "llama-3.3-70b",
+      },
+      nvidia: {
+        available: nvidiaAvailable,
+        model: "minimax-m3",
       },
       gemini: {
         available: geminiAvailable,

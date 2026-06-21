@@ -9,6 +9,7 @@ import { TtlCache } from "@/app/lib/api/cache";
 import { checkRateLimit } from "@/app/lib/api/rate-limiter";
 import { agentReasoningWithGemini, AgentDecision } from "@/app/lib/gemini-client";
 import { agentReasoningWithVenice } from "@/app/lib/venice-client";
+import { agentReasoningWithNvidia } from "@/app/lib/nvidia-client";
 
 const decisionCache = new TtlCache<AgentDecision & { _provider: string }>(30_000);
 
@@ -54,9 +55,10 @@ export async function POST(req: NextRequest) {
     }
 
     const VENICE_API_KEY = process.env.VENICE_API_KEY;
+    const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    if (!VENICE_API_KEY && !GEMINI_API_KEY) {
-      return apiError("No AI provider configured. Set VENICE_API_KEY or GEMINI_API_KEY.", "NOT_CONFIGURED", 503);
+    if (!VENICE_API_KEY && !NVIDIA_API_KEY && !GEMINI_API_KEY) {
+      return apiError("No AI provider configured. Set VENICE_API_KEY, NVIDIA_API_KEY, or GEMINI_API_KEY.", "NOT_CONFIGURED", 503);
     }
 
     const cacheKey = `${agentName}:${personality}:${JSON.stringify(context)}`;
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
     if (cached) {
       return NextResponse.json({
         ...cached,
-        _meta: { generatedAt: new Date().toISOString(), duration: 0, model: cached._provider === "venice" ? "llama-3.3-70b" : "gemini-3.0-flash-preview", provider: cached._provider, agent: agentName, personality, cached: true },
+        _meta: { generatedAt: new Date().toISOString(), duration: 0, model: cached._provider === "venice" ? "llama-3.3-70b" : cached._provider === "nvidia" ? "minimax-m3" : "gemini-3.0-flash-preview", provider: cached._provider, agent: agentName, personality, cached: true },
       });
     }
 
@@ -73,14 +75,38 @@ export async function POST(req: NextRequest) {
     let providerUsed = "venice";
 
     // Primary: Venice AI (Privacy-focused, default)
-    // Fallback: Gemini 3
+    // Fallback: NVIDIA NIM → Gemini 3
     if (VENICE_API_KEY) {
       console.log(`[Venice] Agent reasoning: ${agentName} (${personality})`);
       try {
         decision = await agentReasoningWithVenice(agentName, personality, context);
       } catch (veniceErr) {
-        console.warn("[Venice] Agent reasoning failed, falling back to Gemini:", veniceErr);
-        if (!GEMINI_API_KEY) throw veniceErr;
+        console.warn("[Venice] Agent reasoning failed, trying NVIDIA:", veniceErr);
+        if (NVIDIA_API_KEY) {
+          try {
+            decision = await agentReasoningWithNvidia(agentName, personality, context);
+            providerUsed = "nvidia";
+          } catch (nvidiaErr) {
+            console.warn("[NVIDIA] Agent reasoning failed, falling back to Gemini:", nvidiaErr);
+            if (!GEMINI_API_KEY) throw nvidiaErr;
+            decision = await agentReasoningWithGemini(agentName, personality, context);
+            providerUsed = "gemini";
+          }
+        } else if (GEMINI_API_KEY) {
+          decision = await agentReasoningWithGemini(agentName, personality, context);
+          providerUsed = "gemini";
+        } else {
+          throw veniceErr;
+        }
+      }
+    } else if (NVIDIA_API_KEY) {
+      console.log(`[NVIDIA] Agent reasoning: ${agentName} (${personality})`);
+      try {
+        decision = await agentReasoningWithNvidia(agentName, personality, context);
+        providerUsed = "nvidia";
+      } catch (nvidiaErr) {
+        console.warn("[NVIDIA] Agent reasoning failed, falling back to Gemini:", nvidiaErr);
+        if (!GEMINI_API_KEY) throw nvidiaErr;
         decision = await agentReasoningWithGemini(agentName, personality, context);
         providerUsed = "gemini";
       }
@@ -102,7 +128,7 @@ export async function POST(req: NextRequest) {
       _meta: {
         generatedAt: new Date().toISOString(),
         duration: duration_ms,
-        model: providerUsed === "venice" ? "llama-3.3-70b" : "gemini-3.0-flash-preview",
+        model: providerUsed === "venice" ? "llama-3.3-70b" : providerUsed === "nvidia" ? "minimax-m3" : "gemini-3.0-flash-preview",
         provider: providerUsed,
         agent: agentName,
         personality,
@@ -123,12 +149,12 @@ export async function POST(req: NextRequest) {
  * Health check and capabilities
  */
 export async function GET() {
-  const hasApiKey = !!process.env.VENICE_API_KEY || !!process.env.GEMINI_API_KEY;
+  const hasApiKey = !!process.env.VENICE_API_KEY || !!process.env.NVIDIA_API_KEY || !!process.env.GEMINI_API_KEY;
   
   return NextResponse.json({
     status: hasApiKey ? "ready" : "not_configured",
-    provider: process.env.VENICE_API_KEY ? "venice" : "gemini",
-    model: process.env.VENICE_API_KEY ? "llama-3.3-70b" : "gemini-3.0-flash-preview",
+    provider: process.env.VENICE_API_KEY ? "venice" : process.env.NVIDIA_API_KEY ? "nvidia" : "gemini",
+    model: process.env.VENICE_API_KEY ? "llama-3.3-70b" : process.env.NVIDIA_API_KEY ? "minimax-m3" : "gemini-3.0-flash-preview",
     features: [
       "structured_reasoning",
       "confidence_scoring",

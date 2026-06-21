@@ -9,6 +9,7 @@ import { TtlCache } from "@/app/lib/api/cache";
 import { checkRateLimit } from "@/app/lib/api/rate-limiter";
 import { generateNarrativeWithGemini } from "@/app/lib/gemini-client";
 import { generateNarrativeWithVenice } from "@/app/lib/venice-client";
+import { generateNarrativeWithNvidia } from "@/app/lib/nvidia-client";
 
 const narrativeCache = new TtlCache<{ narrative: string; atmosphere: string; intensity: string; _provider: string }>(300_000);
 
@@ -47,9 +48,10 @@ export async function POST(req: NextRequest) {
     }
 
     const VENICE_API_KEY = process.env.VENICE_API_KEY;
+    const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    if (!VENICE_API_KEY && !GEMINI_API_KEY) {
-      return apiError("No AI provider configured. Set VENICE_API_KEY or GEMINI_API_KEY.", "NOT_CONFIGURED", 503);
+    if (!VENICE_API_KEY && !NVIDIA_API_KEY && !GEMINI_API_KEY) {
+      return apiError("No AI provider configured. Set VENICE_API_KEY, NVIDIA_API_KEY, or GEMINI_API_KEY.", "NOT_CONFIGURED", 503);
     }
 
     const cacheKey = `${theme}:${duration}:${routeName ?? ""}:${elevationProfile.join(",")}`;
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
     if (cached) {
       return NextResponse.json({
         ...cached,
-        _meta: { generatedAt: new Date().toISOString(), duration: 0, model: cached._provider === "venice" ? "llama-3.3-70b" : "gemini-3.0-flash-preview", provider: cached._provider, inputStats: { elevationPoints: elevationProfile.length, elevationGain: Math.max(...elevationProfile) - Math.min(...elevationProfile), theme, duration }, cached: true },
+        _meta: { generatedAt: new Date().toISOString(), duration: 0, model: cached._provider === "venice" ? "llama-3.3-70b" : cached._provider === "nvidia" ? "minimax-m3" : "gemini-3.0-flash-preview", provider: cached._provider, inputStats: { elevationPoints: elevationProfile.length, elevationGain: Math.max(...elevationProfile) - Math.min(...elevationProfile), theme, duration }, cached: true },
       });
     }
 
@@ -70,8 +72,32 @@ export async function POST(req: NextRequest) {
       try {
         result = await generateNarrativeWithVenice(elevationProfile, theme, duration, routeName);
       } catch (veniceErr) {
-        console.warn("[Venice] Narrative failed, falling back to Gemini:", veniceErr);
-        if (!GEMINI_API_KEY) throw veniceErr;
+        console.warn("[Venice] Narrative failed, trying NVIDIA:", veniceErr);
+        if (NVIDIA_API_KEY) {
+          try {
+            result = await generateNarrativeWithNvidia(elevationProfile, theme, duration, routeName);
+            providerUsed = "nvidia";
+          } catch (nvidiaErr) {
+            console.warn("[NVIDIA] Narrative failed, falling back to Gemini:", nvidiaErr);
+            if (!GEMINI_API_KEY) throw nvidiaErr;
+            result = await generateNarrativeWithGemini(elevationProfile, theme, duration, routeName);
+            providerUsed = "gemini";
+          }
+        } else if (GEMINI_API_KEY) {
+          result = await generateNarrativeWithGemini(elevationProfile, theme, duration, routeName);
+          providerUsed = "gemini";
+        } else {
+          throw veniceErr;
+        }
+      }
+    } else if (NVIDIA_API_KEY) {
+      console.log(`[NVIDIA] Generating narrative for "${theme}" theme, ${duration}min route`);
+      try {
+        result = await generateNarrativeWithNvidia(elevationProfile, theme, duration, routeName);
+        providerUsed = "nvidia";
+      } catch (nvidiaErr) {
+        console.warn("[NVIDIA] Narrative failed, falling back to Gemini:", nvidiaErr);
+        if (!GEMINI_API_KEY) throw nvidiaErr;
         result = await generateNarrativeWithGemini(elevationProfile, theme, duration, routeName);
         providerUsed = "gemini";
       }
@@ -91,7 +117,7 @@ export async function POST(req: NextRequest) {
       _meta: {
         generatedAt: new Date().toISOString(),
         duration: duration_ms,
-        model: providerUsed === "venice" ? "llama-3.3-70b" : "gemini-3.0-flash-preview",
+        model: providerUsed === "venice" ? "llama-3.3-70b" : providerUsed === "nvidia" ? "minimax-m3" : "gemini-3.0-flash-preview",
         provider: providerUsed,
         inputStats: {
           elevationPoints: elevationProfile.length,
@@ -116,12 +142,12 @@ export async function POST(req: NextRequest) {
  * Health check
  */
 export async function GET() {
-  const hasApiKey = !!process.env.VENICE_API_KEY || !!process.env.GEMINI_API_KEY;
+  const hasApiKey = !!process.env.VENICE_API_KEY || !!process.env.NVIDIA_API_KEY || !!process.env.GEMINI_API_KEY;
   
   return NextResponse.json({
     status: hasApiKey ? "ready" : "not_configured",
-    provider: process.env.VENICE_API_KEY ? "venice" : "gemini",
-    model: process.env.VENICE_API_KEY ? "llama-3.3-70b" : "gemini-3.0-flash-preview",
+    provider: process.env.VENICE_API_KEY ? "venice" : process.env.NVIDIA_API_KEY ? "nvidia" : "gemini",
+    model: process.env.VENICE_API_KEY ? "llama-3.3-70b" : process.env.NVIDIA_API_KEY ? "minimax-m3" : "gemini-3.0-flash-preview",
     features: [
       "multidimensional_narrative",
       "context_aware_descriptions",

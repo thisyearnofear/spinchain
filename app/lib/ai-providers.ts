@@ -8,7 +8,7 @@
  */
 
 // Provider Types
-export type AIProvider = "venice" | "gemini" | "auto";
+export type AIProvider = "venice" | "nvidia" | "gemini" | "auto";
 
 export interface ProviderConfig {
   id: AIProvider;
@@ -36,6 +36,21 @@ export const PROVIDERS: Record<AIProvider, ProviderConfig> = {
       "agent_reasoning",
     ],
     isDefault: true,
+    highlighted: false,
+  },
+  nvidia: {
+    id: "nvidia",
+    name: "NVIDIA NIM",
+    description: "MiniMax-M3 via NVIDIA NIM API",
+    requiresApiKey: true,
+    apiKeyEnvVar: "NVIDIA_API_KEY",
+    capabilities: [
+      "route_generation",
+      "narrative_creation",
+      "chat",
+      "agent_reasoning",
+    ],
+    isDefault: false,
     highlighted: false,
   },
   gemini: {
@@ -118,7 +133,7 @@ export function clearUserAIPreferences(): void {
 // Determine which provider to use based on preferences and availability
 export function resolveProvider(
   requestedProvider: AIProvider,
-  serverEnv: { veniceAvailable: boolean; geminiAvailable: boolean }
+  serverEnv: { veniceAvailable: boolean; nvidiaAvailable: boolean; geminiAvailable: boolean }
 ): { provider: Exclude<AIProvider, "auto">; source: "user" | "server" | "fallback" } {
   // If user specifically requested a provider, try to use it
   if (requestedProvider !== "auto") {
@@ -129,6 +144,10 @@ export function resolveProvider(
       return { provider: "venice", source: "user" };
     }
     
+    if (requestedProvider === "nvidia" && serverEnv.nvidiaAvailable) {
+      return { provider: "nvidia", source: "user" };
+    }
+    
     if (requestedProvider === "gemini" && serverEnv.geminiAvailable) {
       return { provider: "gemini", source: "user" };
     }
@@ -136,17 +155,21 @@ export function resolveProvider(
     // Requested provider not available, fall through to auto-selection
   }
   
-  // Auto-select: prefer Venice (default), fall back to Gemini if available
+  // Auto-select: prefer Venice (default), fall back to NVIDIA, then Gemini
   if (serverEnv.veniceAvailable) {
     return { provider: "venice", source: "fallback" };
   }
-  
+
+  if (serverEnv.nvidiaAvailable) {
+    return { provider: "nvidia", source: "fallback" };
+  }
+
   if (serverEnv.geminiAvailable) {
     return { provider: "gemini", source: "fallback" };
   }
   
   // No providers available
-  throw new Error("No AI providers available. Please configure VENICE_API_KEY or GEMINI_API_KEY.");
+  throw new Error("No AI providers available. Please configure VENICE_API_KEY, NVIDIA_API_KEY, or GEMINI_API_KEY.");
 }
 
 // Feature availability check
@@ -172,6 +195,13 @@ export function getProviderBadge(provider: AIProvider): {
         color: "bg-blue-500",
         icon: "✨",
         description: "Enhanced reasoning & structured outputs",
+      };
+    case "nvidia":
+      return {
+        label: "NVIDIA NIM",
+        color: "bg-green-500",
+        icon: "🟢",
+        description: "MiniMax-M3 via NVIDIA NIM",
       };
     case "venice":
       return {

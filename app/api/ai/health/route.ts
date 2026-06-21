@@ -14,6 +14,7 @@ export const runtime = "edge";
 export async function GET() {
   // Check environment variables
   const veniceAvailable = !!process.env.VENICE_API_KEY;
+  const nvidiaAvailable = !!process.env.NVIDIA_API_KEY;
   const geminiEnvAvailable = !!process.env.GEMINI_API_KEY;
   
   // Get user preferences (for BYOK status)
@@ -26,16 +27,16 @@ export async function GET() {
   }
 
   // Determine preferred provider
-  let preferredProvider: "venice" | "gemini" = "venice";
+  let preferredProvider: "venice" | "nvidia" | "gemini" = "venice";
   try {
     const prefs = getUserAIPreferences();
-    preferredProvider = prefs.preferredProvider === "gemini" ? "gemini" : "venice";
+    preferredProvider = prefs.preferredProvider === "gemini" ? "gemini" : prefs.preferredProvider === "nvidia" ? "nvidia" : "venice";
   } catch {
     // Use default
   }
 
   return NextResponse.json({
-    status: veniceAvailable || geminiEnvAvailable || userGeminiKey ? "ready" : "not_configured",
+    status: veniceAvailable || nvidiaAvailable || geminiEnvAvailable || userGeminiKey ? "ready" : "not_configured",
     timestamp: new Date().toISOString(),
     providers: {
       venice: {
@@ -43,6 +44,13 @@ export async function GET() {
         configured: veniceAvailable,
         isDefault: true,
         model: "llama-3.3-70b",
+        features: ["route_generation", "narrative", "chat", "coaching", "agent_reasoning"],
+      },
+      nvidia: {
+        available: nvidiaAvailable,
+        configured: nvidiaAvailable,
+        isDefault: false,
+        model: "minimax-m3",
         features: ["route_generation", "narrative", "chat", "coaching", "agent_reasoning"],
       },
       gemini: {

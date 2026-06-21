@@ -45,6 +45,14 @@ import {
 } from "./venice-client";
 
 import {
+  generateRouteWithNvidia,
+  generateNarrativeWithNvidia,
+  chatWithNvidia,
+  getCoachingWithNvidia,
+  agentReasoningWithNvidia,
+} from "./nvidia-client";
+
+import {
   AIProvider,
   getUserAIPreferences,
   setUserAIPreferences,
@@ -397,6 +405,7 @@ export function getAIService(config?: AIServiceConfig): AIService {
 // Utility to check provider availability on server
 export async function checkProviderAvailability(): Promise<{
   venice: boolean;
+  nvidia: boolean;
   gemini: boolean;
   preferred: AIProvider;
 }> {
@@ -405,10 +414,11 @@ export async function checkProviderAvailability(): Promise<{
     const data = await response.json();
     return {
       venice: data.providers.venice,
+      nvidia: data.providers.nvidia,
       gemini: data.providers.gemini,
       preferred: data.preferredProvider,
     };
   } catch {
-    return { venice: false, gemini: false, preferred: "venice" };
+    return { venice: false, nvidia: false, gemini: false, preferred: "venice" };
   }
 }

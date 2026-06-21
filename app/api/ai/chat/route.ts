@@ -13,12 +13,14 @@ import {
   CoachingResponse 
 } from "@/app/lib/gemini-client";
 import { getCoachingWithVenice, chatWithVenice } from "@/app/lib/venice-client";
+import { getCoachingWithNvidia, chatWithNvidia } from "@/app/lib/nvidia-client";
 import { TtlCache } from "@/app/lib/api/cache";
 import { checkRateLimit } from "@/app/lib/api/rate-limiter";
 
 export const runtime = "edge";
 
 const VENICE_API_KEY = process.env.VENICE_API_KEY;
+const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 type CachedResponse = (CoachingResponse | { response: string }) & { _provider?: string };
@@ -56,8 +58,8 @@ export async function POST(req: NextRequest) {
       conversationHistory = []
     } = body;
 
-    if (!VENICE_API_KEY && !GEMINI_API_KEY) {
-      return apiError("No AI provider configured. Set VENICE_API_KEY or GEMINI_API_KEY.", "NOT_CONFIGURED", 503);
+    if (!VENICE_API_KEY && !NVIDIA_API_KEY && !GEMINI_API_KEY) {
+      return apiError("No AI provider configured. Set VENICE_API_KEY, NVIDIA_API_KEY, or GEMINI_API_KEY.", "NOT_CONFIGURED", 503);
     }
 
     const startTime = Date.now();
@@ -79,8 +81,32 @@ export async function POST(req: NextRequest) {
         try {
           response = await getCoachingWithVenice(context, conversationHistory);
         } catch (veniceErr) {
-          console.warn("[Venice] Coaching failed, falling back to Gemini:", veniceErr);
-          if (!GEMINI_API_KEY) throw veniceErr;
+          console.warn("[Venice] Coaching failed, trying NVIDIA:", veniceErr);
+          if (NVIDIA_API_KEY) {
+            try {
+              response = await getCoachingWithNvidia(context, conversationHistory);
+              providerUsed = "nvidia";
+            } catch (nvidiaErr) {
+              console.warn("[NVIDIA] Coaching failed, falling back to Gemini:", nvidiaErr);
+              if (!GEMINI_API_KEY) throw nvidiaErr;
+              response = await getCoachingWithGemini(context, conversationHistory);
+              providerUsed = "gemini";
+            }
+          } else if (GEMINI_API_KEY) {
+            response = await getCoachingWithGemini(context, conversationHistory);
+            providerUsed = "gemini";
+          } else {
+            throw veniceErr;
+          }
+        }
+      } else if (NVIDIA_API_KEY) {
+        console.log(`[NVIDIA] Coaching: HR ${context.riderHeartRate} BPM, progress ${Math.round(context.workoutProgress * 100)}%`);
+        try {
+          response = await getCoachingWithNvidia(context, conversationHistory);
+          providerUsed = "nvidia";
+        } catch (nvidiaErr) {
+          console.warn("[NVIDIA] Coaching failed, falling back to Gemini:", nvidiaErr);
+          if (!GEMINI_API_KEY) throw nvidiaErr;
           response = await getCoachingWithGemini(context, conversationHistory);
           providerUsed = "gemini";
         }
@@ -101,8 +127,36 @@ export async function POST(req: NextRequest) {
           const chatResponse = await chatWithVenice(messages);
           response = { response: chatResponse };
         } catch (veniceErr) {
-          console.warn("[Venice] Chat failed, falling back to Gemini:", veniceErr);
-          if (!GEMINI_API_KEY) throw veniceErr;
+          console.warn("[Venice] Chat failed, trying NVIDIA:", veniceErr);
+          if (NVIDIA_API_KEY) {
+            try {
+              const chatResponse = await chatWithNvidia(messages);
+              response = { response: chatResponse };
+              providerUsed = "nvidia";
+            } catch (nvidiaErr) {
+              console.warn("[NVIDIA] Chat failed, falling back to Gemini:", nvidiaErr);
+              if (!GEMINI_API_KEY) throw nvidiaErr;
+              const chatResponse = await chatWithGemini(messages);
+              response = { response: chatResponse };
+              providerUsed = "gemini";
+            }
+          } else if (GEMINI_API_KEY) {
+            const chatResponse = await chatWithGemini(messages);
+            response = { response: chatResponse };
+            providerUsed = "gemini";
+          } else {
+            throw veniceErr;
+          }
+        }
+      } else if (NVIDIA_API_KEY) {
+        console.log(`[NVIDIA] Chat: "${lastMessage.content.substring(0, 50)}..."`);
+        try {
+          const chatResponse = await chatWithNvidia(messages);
+          response = { response: chatResponse };
+          providerUsed = "nvidia";
+        } catch (nvidiaErr) {
+          console.warn("[NVIDIA] Chat failed, falling back to Gemini:", nvidiaErr);
+          if (!GEMINI_API_KEY) throw nvidiaErr;
           const chatResponse = await chatWithGemini(messages);
           response = { response: chatResponse };
           providerUsed = "gemini";
@@ -125,7 +179,7 @@ export async function POST(req: NextRequest) {
       _meta: {
         generatedAt: new Date().toISOString(),
         duration: duration_ms,
-        model: providerUsed === "venice" ? "llama-3.3-70b" : "gemini-3.0-flash-preview",
+        model: providerUsed === "venice" ? "llama-3.3-70b" : providerUsed === "nvidia" ? "minimax-m3" : "gemini-3.0-flash-preview",
         provider: providerUsed,
         mode,
       },
