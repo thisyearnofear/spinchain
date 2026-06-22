@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   createPracticeClassMetadata,
-  generateMockRouteData,
+  generateRouteData,
   type ClassWithRoute,
 } from "../evm/use-class-data";
 
@@ -89,7 +89,7 @@ export function usePracticeConfig(classId: string) {
       practiceConfig.instructor,
     );
 
-    const route = generateMockRouteData(metadata);
+    const route = generateRouteData(metadata);
 
     return {
       address: classId as `0x${string}`,

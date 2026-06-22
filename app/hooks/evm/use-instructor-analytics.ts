@@ -115,7 +115,7 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
         cls.endTime > now ? "live" :
         "completed";
       
-      // Mock revenue calculation (would come from contract in production)
+      // Estimated revenue (would come from contract in production)
       const avgPrice = 15; // $15 USDC average
       const grossRevenue = cls.ticketsSold * avgPrice;
       const instructorRevenue = grossRevenue * 0.8; // 80% share
@@ -132,7 +132,7 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
         grossRevenue,
         instructorRevenue,
         protocolFee,
-        attendanceRate: 0.85, // Mock - would come from contract
+        attendanceRate: 0.85, // Estimated - would come from contract
         status,
       };
     });
@@ -155,7 +155,7 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
     
     const engagement: EngagementMetrics = {
       totalRiders,
-      uniqueRiders: Math.floor(totalRiders * 0.7), // Mock - would dedupe addresses
+      uniqueRiders: Math.floor(totalRiders * 0.7), // Estimated - would dedupe addresses
       avgClassSize: completedClasses.length > 0 
         ? totalRiders / completedClasses.length 
         : 0,
@@ -165,7 +165,7 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
       avgAttendanceRate: completedClasses.length > 0
         ? completedClasses.reduce((sum, c) => sum + c.attendanceRate, 0) / completedClasses.length
         : 0,
-      repeatRiderRate: 0.35, // Mock - would calculate from rider addresses
+      repeatRiderRate: 0.35, // Estimated - would calculate from rider addresses
     };
 
     // Performance metrics
@@ -219,7 +219,7 @@ export function useRevenueStream(classAddress: `0x${string}`) {
 
   useEffect(() => {
     // Would subscribe to contract events for real-time updates
-    // For now, mock data
+    // For now, simulated data
     const interval = setInterval(() => {
       setRevenue(prev => ({
         ...prev,

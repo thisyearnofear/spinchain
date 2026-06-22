@@ -45,7 +45,7 @@ const modes: InstructorMode[] = [
     icon: "🤖",
     title: "AI Coach",
     subtitle: "AI-Led Class Design",
-    description: "Prototype an AI-led coaching experience, tune the tone of the session, and explore how an autonomous class could extend your reach.",
+    description: "Design an AI-led coaching experience, tune the tone of the session, and explore how an autonomous class could extend your reach.",
     features: [
       "Preview autonomous class behavior",
       "Select the coaching personality",

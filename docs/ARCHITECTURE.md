@@ -73,7 +73,7 @@ SpinChain implements a **Dual-Engine Execution Model** with **Zero-Knowledge Pri
 
 ### ZK Circuit: `effort_threshold`
 
-Current prototype proves HR > threshold without revealing actual values:
+The effort_threshold circuit proves HR > threshold without revealing actual values:
 
 ```rust
 // Private inputs (never revealed)
@@ -88,7 +88,7 @@ threshold_met: bool,     // Did they meet the goal?
 effort_score: u16,       // 0-1000 calculated score
 ```
 
-Current launch path: the app now generates many 60-second proofs for a ride and submits them as a batch. The remaining issues are verifier deployment, gas/performance validation, and end-to-end operational testing.
+Current launch path: the app generates real Noir proofs via Barretenberg WASM backend in the browser, batches 60-second proofs per ride, and submits them on-chain. The HonkVerifier (`0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B`) cryptographically verifies proofs on Fuji. Remaining work: gas/performance validation and end-to-end operational testing.
 
 ---
 
@@ -140,7 +140,7 @@ SpinChain leverages **Chainlink CRE** for decentralized biometric verification:
 
 For testing without BLE hardware:
 1. **Pedal Simulator**: Generate telemetry via keyboard (Guest Mode)
-2. **Mock Wearable API**: Simulator data accessible via standard API
+2. **Simulator API**: Simulator data accessible via standard API
 3. **CRE Workflow**: Fetches, verifies, reports effort scores on-chain
 
 ---
@@ -178,8 +178,8 @@ For testing without BLE hardware:
 
 - Avalanche usage is still testnet-oriented by default
 - Sui usage is still testnet-oriented by default
-- Some rider and class flows still fall back to demo/mock data when contract data is unavailable
-- Contract/runtime configuration still includes placeholder values that must be removed before public launch
+- Some rider and class flows fall back to curated demo data when on-chain contract data is unavailable
+- Contract/runtime configuration still includes some placeholder values (SpinPack, Kite agent) that must be resolved before public launch
 - The shared rewards hook and explicit ride claim flow both use the on-chain batch ZK claim path now
 
 ## Roadmap

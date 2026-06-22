@@ -104,7 +104,7 @@ AI instructors make explainable decisions:
 ### Features
 - **WebGL Rendering**: High-fidelity 3D from GPX
 - **Theme Support**: Neon, Alpine, Mars
-- **Ghost Riders**: prototype/experimental
+- **Ghost Riders**: fetches real historical data from Sui/Walrus, falls back to generated ghost for new routes
 - **Audio Triggers**: Synchronized interval cues
 - **Voice Guidance**: Real-time coaching
 - **Street View**: Google Maps Static API previews

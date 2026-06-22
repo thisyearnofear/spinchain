@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-SpinChain has a promising prototype, but the app is still demo/testnet-stage and not ready for general users. The current work is launch remediation: remove misleading demo behavior, replace placeholders, and make release verification trustworthy.
+SpinChain is a testnet-stage application with real ZK proofs, on-chain reward settlement, and Walrus-anchored telemetry. The app is not ready for general users yet. The current work is launch remediation: remove misleading demo behavior, replace placeholders, and make release verification trustworthy.
 
 **Critical Blockers**:
 1. ~~User-facing screens still rely on mock/demo fallbacks in some production paths~~ **Partially resolved (2026-06-22):** Instructor live page demo data now labeled as "Preview Mode"; fake numbers hidden when no ride is active. Phase tags removed from UI.

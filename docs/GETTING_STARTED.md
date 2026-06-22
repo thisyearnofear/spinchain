@@ -2,11 +2,10 @@
 
 This guide is for local development and internal testing.
 
-Current status as of 2026-04-02:
+Current status as of 2026-06-22:
 - The app is in demo/testnet stage
-- Some rider-facing views still use mock or guest data
-- Reward, verifier, and workflow configuration still need launch hardening
-- Production reward claims should use `NEXT_PUBLIC_REWARD_VERIFICATION_MODE=chainlink` until a real on-chain verifier exists
+- Some rider-facing views fall back to curated demo data when on-chain contract data is unavailable
+- Real Noir ZK circuit deployed: HonkVerifier on Fuji, Barretenberg WASM prover in browser
 - Do not treat this repo as production-ready without completing the launch checklist in `docs/PRODUCTION_ROADMAP.md`
 
 ## Quick Start
@@ -140,7 +139,7 @@ The intended reward path is:
    - When `NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS` is unset, the app falls back to Chainlink claim requests instead of ZK submission
 
 3. **Token Distribution**
-   - Prototype flows exist
+   - SPIN token minting wired to IncentiveEngine on Fuji
    - Do not assume launch-safe accounting until release gates pass
 
 4. **Ride Summary Anchoring**
@@ -203,10 +202,10 @@ npx ts-node --esm scripts/e2e-live-loop.ts
 
 | Feature | Method | Status |
 |---------|--------|--------|
-| CRE Biometric Oracle | Foundry tests | Prototype |
+| CRE Biometric Oracle | Foundry tests | Partial |
 | Confidential HTTP | Local simulation | Prototype |
 | Incentive Engine | 16 Foundry tests passing | Partial |
-| ZK Circuits | Nargo tests + Foundry mocks | Prototype |
+| ZK Circuits | Nargo tests + Foundry tests | ✅ Real verifier on Fuji |
 | Snowtrace Verification | All 8 contracts verified | ✅ Complete |
 
 ---

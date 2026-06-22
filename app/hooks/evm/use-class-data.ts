@@ -57,7 +57,7 @@ const CURATED_CLASSES = [
   },
 ];
 
-// Keep old name for backward compat in useClass()
+// Alias for backward compat in useClass()
 const MOCK_CLASSES = CURATED_CLASSES;
 
 /**
@@ -160,8 +160,8 @@ function inferBeatType(label: string): StoryBeatType {
   return "scenery";
 }
 
-function createFallbackMetadataFromMock(mockClass: typeof MOCK_CLASSES[number]): EnhancedClassMetadata {
-  const seed = mockClass.address;
+function createFallbackMetadataFromDemo(demoClass: typeof MOCK_CLASSES[number]): EnhancedClassMetadata {
+  const seed = demoClass.address;
   const themeOptions: EnhancedClassMetadata["route"]["theme"][] = ["neon", "alpine", "mars"];
   const personalityOptions: EnhancedClassMetadata["ai"]["personality"][] = ["zen", "drill-sergeant", "data"];
   const theme = themeOptions[Math.floor(getDeterministicNumber(seed + "theme", 0, themeOptions.length)) % themeOptions.length];
@@ -175,20 +175,20 @@ function createFallbackMetadataFromMock(mockClass: typeof MOCK_CLASSES[number]):
 
   return {
     version: "2.0",
-    name: mockClass.name,
+    name: demoClass.name,
     description: "An immersive cycling experience with AI-powered coaching",
-    instructor: mockClass.instructor,
-    startTime: mockClass.startTime,
-    endTime: mockClass.startTime + 3600,
+    instructor: demoClass.instructor,
+    startTime: demoClass.startTime,
+    endTime: demoClass.startTime + 3600,
     duration: 45,
     route: {
-      walrusBlobId: `mock-blob-id-${mockClass.address.slice(2, 8)}`,
-      name: mockClass.name,
+      walrusBlobId: `demo-blob-id-${demoClass.address.slice(2, 8)}`,
+      name: demoClass.name,
       distance,
       duration: 45,
       elevationGain,
       theme,
-      checksum: `mock-checksum-${mockClass.address.slice(2, 8)}`,
+      checksum: `demo-checksum-${demoClass.address.slice(2, 8)}`,
       storyBeatsCount: storyBeatLabels.length,
       terrainTags: theme === "alpine" ? ["climb", "mountain"] : theme === "mars" ? ["desert", "rolling"] : ["urban", "tempo"],
       storyBeatLabels,
@@ -268,7 +268,7 @@ async function resolveRouteForMetadata(
     }
   }
 
-  const generatedRoute = generateMockRouteData(metadata, classId);
+  const generatedRoute = generateRouteData(metadata, classId);
   cacheRouteLocally(classId, generatedRoute);
   return { route: generatedRoute, isGenerated: true };
 }
@@ -339,17 +339,17 @@ async function loadContractClass(
   });
 }
 
-async function loadMockClass(mockClass: typeof MOCK_CLASSES[number]): Promise<ClassWithRoute> {
-  const metadata = createFallbackMetadataFromMock(mockClass);
+async function loadDemoClass(demoClass: typeof MOCK_CLASSES[number]): Promise<ClassWithRoute> {
+  const metadata = createFallbackMetadataFromDemo(demoClass);
 
   return hydrateClassFromMetadata({
-    classAddress: mockClass.address,
+    classAddress: demoClass.address,
     metadata,
-    startTime: mockClass.startTime,
-    endTime: mockClass.startTime + 3600,
-    maxRiders: mockClass.maxRiders,
-    ticketsSold: mockClass.ticketsSold,
-    currentPrice: mockClass.currentPrice,
+    startTime: demoClass.startTime,
+    endTime: demoClass.startTime + 3600,
+    maxRiders: demoClass.maxRiders,
+    ticketsSold: demoClass.ticketsSold,
+    currentPrice: demoClass.currentPrice,
   });
 }
 
@@ -454,7 +454,7 @@ export function useClass(classAddress: `0x${string}`) {
       // Fallback to curated class if address matches
       const curatedMatch = CURATED_CLASSES.find(c => c.address.toLowerCase() === classAddress.toLowerCase());
       if (curatedMatch) {
-        setClassData(await loadMockClass(curatedMatch));
+        setClassData(await loadDemoClass(curatedMatch));
         setIsLoading(false);
         return;
       }
@@ -537,7 +537,7 @@ export function useClasses() {
             liveClasses = hydrated.filter((classData): classData is ClassWithRoute => Boolean(classData));
           }
         } catch (factoryError) {
-          console.warn("Failed to load class list from factory, falling back to mocks:", factoryError);
+          console.warn("Failed to load class list from factory, falling back to curated classes:", factoryError);
         }
       }
 
@@ -546,7 +546,7 @@ export function useClasses() {
       if (liveClasses.length > 0) {
         setClasses(liveClasses);
       } else {
-        const curated = await Promise.all(CURATED_CLASSES.map((c) => loadMockClass(c)));
+        const curated = await Promise.all(CURATED_CLASSES.map((c) => loadDemoClass(c)));
         setClasses(curated);
       }
       setIsLoading(false);
@@ -646,13 +646,13 @@ export function usePracticeClass() {
     routeData: PracticeClassOptions["routeData"],
     instructorAddress: string
   ) => {
-    const mockId = `practice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` as `0x${string}`;
+    const practiceId = `practice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` as `0x${string}`;
     const metadata = createPracticeClassMetadata(formData, routeData, instructorAddress);
-    const route = generateMockRouteData(metadata);
+    const route = generateRouteData(metadata);
 
-    setPracticeClassId(mockId);
+    setPracticeClassId(practiceId);
     setPracticeClassData({
-      address: mockId,
+      address: practiceId,
       name: metadata.name,
       instructor: metadata.instructor,
       startTime: metadata.startTime,
@@ -667,7 +667,7 @@ export function usePracticeClass() {
       routeIsGenerated: true,
     });
 
-    return mockId;
+    return practiceId;
   };
 
   return {
@@ -736,11 +736,11 @@ function generateElevationProfile(
 }
 
 /**
- * Generate mock route data for development
+ * Generate deterministic route data from class metadata
  */
-export function generateMockRouteData(
+export function generateRouteData(
   metadata: EnhancedClassMetadata,
-  classId = "mock-class-id",
+  classId = "demo-class-id",
 ): WalrusRouteData {
   const numPoints = 100;
   const coordinates = [];

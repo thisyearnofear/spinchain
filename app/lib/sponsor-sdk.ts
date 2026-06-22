@@ -77,7 +77,7 @@ export class SponsorSDK {
 
     for (const pool of pools) {
       if (effortScore >= pool.rewardCriteria.minEffortScore) {
-        // Logic to calculate boost - simplified for prototype
+        // Simplified reward calculation — fixed 10 SPIN bonus per qualifying pool
         totalBoost += BigInt(10); // 10 SPIN bonus
       }
     }

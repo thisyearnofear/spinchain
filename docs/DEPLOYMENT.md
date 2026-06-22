@@ -5,7 +5,7 @@ This document describes the current deployment shape of the repo.
 Important:
 - This project is still in testnet/pre-launch state
 - The default runtime targets Avalanche Fuji and Sui testnet
-- Some deployment paths still reference mock or placeholder components
+- Some deployment paths still reference placeholder components (SpinPack, Kite agent)
 - Do not use this file as proof that the app is ready for public launch
 
 ## Smart Contracts (Avalanche)
