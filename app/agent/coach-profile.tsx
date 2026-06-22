@@ -8,6 +8,7 @@ import {
 import { Transaction } from "@mysten/sui/transactions";
 import { useState, useEffect } from "react";
 import { SUI_CONFIG } from "../config";
+import { getWalrusClient } from "../lib/walrus/client";
 import {
   Loader2,
   Zap,
@@ -185,8 +186,6 @@ export function CoachProfile({
     setIsLoading(true);
 
     try {
-      const tx = new Transaction();
-
       // Map personality to numeric value
       const personalityValue =
         config.personality === "zen"
@@ -195,11 +194,38 @@ export function CoachProfile({
             ? 2
             : 1;
 
-      // Default inference model and prompt CID (can be customized in future)
       const inferenceModel = "gemini::flash";
-      const systemPromptCid = "ipfs://QmDefaultCoachPrompt"; // Placeholder - should be actual CID
 
-      // target: package::module::function
+      // Build coach system prompt based on personality and config
+      const systemPrompt = {
+        agentName: config.name,
+        personality: config.personality,
+        strategyType: config.strategyType,
+        minBpm: config.minBpm,
+        maxBpm: config.maxBpm,
+        maxResistance: config.maxResistance,
+        behavioralRules: config.personality === "drill-sergeant"
+          ? "Push rider to exceed targets. Increase resistance when W'bal > 80%. Use aggressive, motivational language."
+          : config.personality === "zen"
+            ? "Prioritize recovery and flow. Lower resistance when HR > 175 or W'bal < 20%. Use calm, mindful language."
+            : "Optimize power efficiency. Adjust resistance to keep power within target zones. Use technical, data-driven language.",
+        createdAt: Date.now(),
+      };
+
+      // Upload system prompt to Walrus as verifiable coach memory
+      let systemPromptCid = "walrus://pending";
+      try {
+        const walrus = getWalrusClient();
+        const walrusResult = await walrus.storeJSON(systemPrompt, 30);
+        if (walrusResult.success && walrusResult.blobId) {
+          systemPromptCid = `walrus://${walrusResult.blobId}`;
+          console.log("[Coach] System prompt uploaded to Walrus:", systemPromptCid);
+        }
+      } catch (err) {
+        console.warn("[Coach] Walrus upload failed, using fallback CID:", err);
+      }
+
+      const tx = new Transaction();
       tx.moveCall({
         target: `${SUI_CONFIG.packageId}::spinsession::create_coach`,
         arguments: [

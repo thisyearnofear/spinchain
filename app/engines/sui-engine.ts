@@ -33,7 +33,7 @@ export interface SuiEngineConfig {
   packageId?: string;
   network?: "testnet" | "mainnet";
   /** Callback that signs and executes a Transaction. Provided by the page's wallet hooks. */
-  executeTransaction?: (tx: unknown) => Promise<{ digest: string } | null>;
+  executeTransaction?: (tx: unknown) => Promise<{ digest: string; effects?: unknown } | null>;
   /** Optional SuiClient for read-only operations */
   suiClient?: {
     getCoins: (params: {
@@ -141,8 +141,12 @@ export class SuiEngine {
       const result = await this.config.executeTransaction(tx);
       if (!result) return null;
 
+      // Extract real session object ID from tx effects
+      const createdObjects = (result.effects as { created?: Array<{ reference?: { objectId?: string } }> })?.created;
+      const sessionId = createdObjects?.[0]?.reference?.objectId ?? `pending-${Date.now()}`;
+
       this.session = {
-        sessionId: `pending-${Date.now()}`, // Real ID would come from tx effects + indexer
+        sessionId,
         statsObjectId: null,
         classId,
         isActive: true,
@@ -181,7 +185,9 @@ export class SuiEngine {
       const result = await this.config.executeTransaction(tx);
       if (!result) return null;
 
-      const statsObjectId = `stats-${Date.now()}`; // Real ID from tx effects
+      // Extract real RiderStats object ID from tx effects
+      const createdObjects = (result.effects as { created?: Array<{ reference?: { objectId?: string } }> })?.created;
+      const statsObjectId = createdObjects?.[0]?.reference?.objectId ?? `stats-${Date.now()}`;
       this.session = {
         sessionId,
         statsObjectId,

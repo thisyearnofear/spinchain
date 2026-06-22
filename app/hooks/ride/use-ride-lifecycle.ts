@@ -104,12 +104,15 @@ export function useRideLifecycle({
   const modalStore = useRideModalStore;
 
   const suiExecuteTransaction = useCallback(
-    async (tx: unknown): Promise<{ digest: string } | null> => {
+    async (tx: unknown): Promise<{ digest: string; effects?: unknown } | null> => {
       try {
         const result = await signAndExecuteSui({
           transaction: tx as Parameters<typeof signAndExecuteSui>[0]["transaction"],
         });
-        return result?.digest ? { digest: result.digest } : null;
+        if (result?.digest) {
+          return { digest: result.digest, effects: result.effects };
+        }
+        return null;
       } catch (err) {
         console.error("[Ride] Sui transaction failed:", err);
         return null;

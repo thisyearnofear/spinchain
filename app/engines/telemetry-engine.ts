@@ -278,15 +278,15 @@ export class TelemetryEngine {
         this.performanceTier === "low"
           ? 1
           : this.performanceTier === "medium"
-            ? 1.5
-            : 2;
+            ? 2
+            : 4;
     } else {
       hz =
         this.performanceTier === "low"
           ? 2
           : this.performanceTier === "medium"
-            ? 3
-            : 4;
+            ? 5
+            : 10;
     }
     return Math.floor(1000 / hz);
   }

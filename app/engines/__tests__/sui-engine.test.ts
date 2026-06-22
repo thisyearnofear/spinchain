@@ -60,7 +60,7 @@ vi.mock("@/app/config", () => ({
 
 // ─── Helpers ────────────────────────────────────────────────────
 
-const mockExecuteTransaction = vi.fn().mockResolvedValue({ digest: "0xdigest" });
+const mockExecuteTransaction = vi.fn().mockResolvedValue({ digest: "0xdigest", effects: { created: [{ reference: { objectId: "0xsession123" } }] } });
 
 function createEngine(
   overrides: Partial<SuiEngineConfig> = {},
@@ -105,7 +105,7 @@ describe("SuiEngine", () => {
     mockPure.vector.mockClear();
     mockObject.mockClear();
     mockExecuteTransaction.mockClear();
-    mockExecuteTransaction.mockResolvedValue({ digest: "0xdigest" });
+    mockExecuteTransaction.mockResolvedValue({ digest: "0xdigest", effects: { created: [{ reference: { objectId: "0xsession123" } }] } });
   });
 
   afterEach(() => {
@@ -347,7 +347,7 @@ describe("SuiEngine", () => {
         pointCount: 1200,
       });
 
-      expect(result).toEqual({ digest: "0xdigest" });
+      expect(result).toEqual({ digest: "0xdigest", effects: { created: [{ reference: { objectId: "0xsession123" } }] } });
       expect(mockMoveCall).toHaveBeenCalledWith(
         expect.objectContaining({
           target: expect.stringContaining("anchor_telemetry_blob"),
@@ -371,7 +371,7 @@ describe("SuiEngine", () => {
         pointCount: 0,
       });
 
-      expect(result).toEqual({ digest: "0xdigest" });
+      expect(result).toEqual({ digest: "0xdigest", effects: { created: [{ reference: { objectId: "0xsession123" } }] } });
     });
 
     it("should return null without executeTransaction", async () => {

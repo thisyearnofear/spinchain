@@ -8,7 +8,7 @@
  */
 
 import type { RideRecordPoint } from "./ride-recorder";
-import { SUI_CONFIG } from "@/app/config";
+import { getWalrusFeed, retrieveRideSummaryFromWalrus } from "../walrus/ride-persistence";
 
 export interface GhostPerformance {
   id: string;
@@ -81,13 +81,7 @@ export async function fetchRealGhost(
   const { classId, riderAddress, routeBlobId, ghostType = "personal_best" } = options;
 
   try {
-    // Query Sui for historical sessions on this route
-    // In production, this would use the Sui SDK:
-    // const sessions = await suiClient.queryTransactionBlocks({
-    //   filter: { MoveFunction: { package: SUI_CONFIG.packageId, module: "spinsession", function: "complete_session" } },
-    // });
-    
-    // For now, attempt to fetch from Walrus if blob ID is provided
+    // 1. Try direct blob ID if provided
     if (routeBlobId && riderAddress) {
       const walrusUrl = `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${routeBlobId}`;
       
@@ -99,7 +93,6 @@ export async function fetchRealGhost(
       if (response.ok) {
         const telemetryData = await response.json();
         
-        // Validate and transform telemetry data
         if (Array.isArray(telemetryData.points) && telemetryData.points.length > 0) {
           const points: RideRecordPoint[] = telemetryData.points.map((p: Record<string, unknown>) => ({
             timestamp: p.timestamp as number,
@@ -117,10 +110,46 @@ export async function fetchRealGhost(
             id: `${classId}-${ghostType}`,
             riderName: ghostType === "personal_best" ? "Your Best" : "Leader",
             points,
-            totalTime: telemetryData.totalTime ?? points[points.length - 1]?.distance * 1000 / 7, // fallback calc
+            totalTime: telemetryData.totalTime ?? points[points.length - 1]?.distance * 1000 / 7,
             source: ghostType,
           };
         }
+      }
+    }
+
+    // 2. Search Walrus ride blob index for past rides on this class
+    const feed = await getWalrusFeed(riderAddress);
+    const classRides = feed.filter(
+      (entry) => entry.className && entry.className.includes(classId.slice(0, 10)),
+    );
+
+    if (classRides.length > 0) {
+      // Pick the most recent ride for personal_best, or the first for leaderboard
+      const rideEntry = ghostType === "personal_best"
+        ? classRides[0] // most recent (feed is sorted desc)
+        : classRides[classRides.length - 1]; // oldest as baseline
+
+      const summary = await retrieveRideSummaryFromWalrus(rideEntry.rideId);
+      if (summary && summary.durationSec > 0) {
+        // Reconstruct ghost points from ride summary averages
+        const numPoints = Math.min(180, Math.floor(summary.durationSec));
+        const startTime = Date.now() - summary.durationSec * 1000;
+        const points: RideRecordPoint[] = Array.from({ length: numPoints }, (_, i) => ({
+          timestamp: startTime + (i * summary.durationSec * 1000) / numPoints,
+          heartRate: summary.avgHeartRate,
+          power: summary.avgPower,
+          cadence: 85,
+          speed: 25,
+          distance: (i * 25 * summary.durationSec) / (numPoints * 3600),
+        }));
+
+        return {
+          id: `${classId}-${ghostType}-walrus`,
+          riderName: ghostType === "personal_best" ? "Your Best" : "Peloton Avg",
+          points,
+          totalTime: summary.durationSec,
+          source: ghostType,
+        };
       }
     }
 

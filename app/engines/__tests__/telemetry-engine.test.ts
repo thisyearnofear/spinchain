@@ -165,8 +165,8 @@ describe("TelemetryEngine", () => {
 
   describe("shouldCommit / getCommitIntervalMs", () => {
     it("returns adaptive interval based on device type", () => {
-      // Desktop high tier: 4Hz → 250ms
-      expect(engine.getCommitIntervalMs()).toBe(250);
+      // Desktop high tier: 10Hz → 100ms
+      expect(engine.getCommitIntervalMs()).toBe(100);
     });
 
     it("shouldCommit returns true when enough time has passed", () => {
