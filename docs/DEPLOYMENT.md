@@ -17,6 +17,32 @@ foundryup
 ```
 
 ### Deploy to Fuji Testnet
+
+**Option A: Full deployment with real HonkVerifier**
+```bash
+cd contracts/evm
+export AVALANCHE_PRIVATE_KEY=your_deployer_key
+
+# 1. Compile and generate HonkVerifier from Noir circuit
+nargo compile  # in circuits/effort_threshold/
+BB=$(find node_modules -path '*@aztec/bb.js*dest/node/bin/index.js' | head -1)
+node $BB write_vk -b circuits/effort_threshold/target/effort_threshold.json -o circuits/effort_threshold/target/vk_evm -t evm
+node $BB write_solidity_verifier -k circuits/effort_threshold/target/vk_evm/vk -o contracts/evm/src-honk/HonkVerifier.sol -t evm
+
+# 2. Deploy HonkVerifier (must use honk profile — no via_ir)
+FOUNDRY_PROFILE=honk forge create src-honk/HonkVerifier.sol:HonkVerifier \
+  --rpc-url https://api.avax-test.network/ext/bc/C/rpc \
+  --private-key $AVALANCHE_PRIVATE_KEY --broadcast
+
+# 3. Deploy remaining contracts with HonkVerifier address
+export ULTRA_VERIFIER_ADDRESS=<deployed_honkverifier_address>
+forge script src/deploy.s.sol:DeployScript \
+  --rpc-url https://api.avax-test.network/ext/bc/C/rpc \
+  --broadcast \
+  -vvvv
+```
+
+**Option B: Quick deployment with mock verifier (for testing only)**
 ```bash
 cd contracts/evm
 export AVALANCHE_PRIVATE_KEY=your_deployer_key
@@ -40,20 +66,22 @@ forge script src/deploy.s.sol:DeployScript \
 
 See `contracts/DEPLOY.md` for detailed per-contract verification commands.
 
-### Deployed Contracts (Fuji)
+### Deployed Contracts (Fuji — 2026-06-22)
 
-All 7 contracts are **verified** on [Snowtrace](https://testnet.snowtrace.io).
-See `contracts/DEPLOY.md` for the full address table with explorer links.
+All contracts deployed and verified on [Snowtrace](https://testnet.snowtrace.io).
 
 | Contract | Address |
 |----------|---------|
-| `SpinToken` | `0xA2DA94dE3AB8a90D62A1b1897E0e96DBda0F494f` |
-| `IncentiveEngine` | `0x8BF20C7fbc69cafd3144de3Bb30509A26F39FF3d` |
-| `ClassFactory` | `0xc4B4A722b55610bFa1556506B87Cbfe7983961A7` |
-| `TreasurySplitter` | `0xDd787C22A28aA709021860485AC1b95620B5AcE3` |
-| `MockUltraVerifier` | `0x202aEd029708F2e0540B63a4025Dcb2556F85ba1` |
-| `EffortThresholdVerifier` | `0x783C36f6502052EC31971e75E20D0012910dbA91` |
-| `BiometricOracle` | `0xE0021E77f52761A69F611530A481B2B9371993d8` |
+| `SpinPack` (ERC-1155) | `0x2C8443584daFA864Caa967cBDD7ec3D17157618B` |
+| `SpinToken` (ERC-20) | `0x4c0E965B809452F2C914a74d1D0e9C3375543392` |
+| `IncentiveEngine` | `0x69800d3ABda003b7aA6038831715a4aCb736403d` |
+| `ClassFactory` | `0x035026f85CCbC273160669FBe9Ba5Dc147D0Bd9b` |
+| `HonkVerifier` (real ZK) | `0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B` |
+| `EffortThresholdVerifier` | `0xBbc32cc3b8AF9BaeD8D77E3bf4fC69141b0c9dA4` |
+| `TreasurySplitter` | `0x00a1e5688AF26c724155BfEe100fF23d387850AB` |
+| `BiometricOracle` | `0x038fca8A26F9065f12F831C0600f30d8C90AFCFD` |
+
+> The `HonkVerifier` is a real UltraHonk Solidity verifier generated from the Noir circuit via `bb.js 5.0.0-rc.1`. ZK proofs are cryptographically verified on-chain — no mock.
 
 > `YellowSettlement` was consolidated into `IncentiveEngine` as `submitChannelProof` / `batchSubmitChannelProof`. The address above for `IncentiveEngine` is the canonical settlement target.
 
@@ -112,28 +140,27 @@ nargo compile
 nargo test
 ```
 
-### ⚠️ Generating a Production Verifier (Known Limitation)
+### Generating the Real Solidity Verifier
 
-The Noir circuit compiles and tests correctly. However, generating an on-chain Solidity verifier is currently blocked:
+The Noir circuit compiles and generates a real UltraHonk Solidity verifier using `bb.js 5.0.0-rc.1`:
 
-- `bb` (Barretenberg CLI) 4.0.0-nightly generates **Honk** verifiers that exceed the EVM's 1024-slot stack depth limit
-- The `evm-no-zk` target produces broken code (upstream bug)
-- On testnet, `MockUltraVerifier` handles verification (accepts any proof)
-- For mainnet, deploy with ZK disabled and use Chainlink/off-chain verification until the verifier issue is resolved
-
-### Deploy (Testnet — uses MockUltraVerifier)
 ```bash
-cd contracts/evm
-forge create MockUltraVerifier --rpc-url https://api.avax-test.network/ext/bc/C/rpc --private-key $AVALANCHE_PRIVATE_KEY
-forge create EffortThresholdVerifier --rpc-url https://api.avax-test.network/ext/bc/C/rpc --private-key $AVALANCHE_PRIVATE_KEY --constructor-args <MockUltraVerifier_Address>
+# In circuits/effort_threshold/
+nargo compile
+
+# Generate VK and Solidity verifier
+BB=$(find node_modules -path '*@aztec/bb.js*dest/node/bin/index.js' | head -1)
+node $BB write_vk -b target/effort_threshold.json -o target/vk_evm -t evm
+node $BB write_solidity_verifier -k target/vk_evm/vk -o ../../contracts/evm/src-honk/HonkVerifier.sol -t evm
 ```
 
-Current caveats:
-- The shared deploy script deploys `MockUltraVerifier` only when `ALLOW_MOCK_VERIFIER=true`
-- The shared deploy script can safely disable ZK claims by leaving both `ULTRA_VERIFIER_ADDRESS` and `ALLOW_MOCK_VERIFIER` unset
-- `IncentiveEngine` must be wired to `EffortThresholdVerifier`, not directly to the raw verifier
-- Runtime config still contains placeholder values that must be replaced before launch
-- The current Noir circuit only covers 60 seconds of data
+**Note:** `HonkVerifier.sol` must be compiled without `via_ir` (it triggers a stack-too-deep error). It lives in `contracts/evm/src-honk/` and is compiled via `FOUNDRY_PROFILE=honk`. The rest of the contracts use `via_ir = true` in the default profile.
+
+### ZK Verification Flow (Real)
+1. Browser generates real Noir proof via `@noir-lang/noir_js` + `backend_barretenberg`
+2. Proof submitted on-chain to `EffortThresholdVerifier`
+3. `EffortThresholdVerifier` calls `HonkVerifier.verify()` — real cryptographic verification
+4. If valid, `IncentiveEngine` distributes SPIN token rewards
 
 ---
 
@@ -157,15 +184,19 @@ NVIDIA_API_KEY=...
 GEMINI_API_KEY=...
 ELEVENLABS_API_KEY=...
 
-# Sui (already deployed on testnet — package v2)
+# Sui (deployed on testnet — package v2)
 NEXT_PUBLIC_SUI_PACKAGE_ID=0x51542d1d4b43763d58e6f91f845f63157d5fc59bd95ead54dc370b0898d1185c
-NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=0x...
-NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x...
-NEXT_PUBLIC_SPIN_TOKEN_ADDRESS=0x...
-NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=0x...
-NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=0x...
-NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=0x...
-NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=0x...
+
+# EVM Contracts (all deployed to Avalanche Fuji — 2026-06-22)
+NEXT_PUBLIC_SPIN_PACK_ADDRESS=0x2C8443584daFA864Caa967cBDD7ec3D17157618B
+NEXT_PUBLIC_SPIN_TOKEN_ADDRESS=0x4c0E965B809452F2C914a74d1D0e9C3375543392
+NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=0x69800d3ABda003b7aA6038831715a4aCb736403d
+NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=0x035026f85CCbC273160669FBe9Ba5Dc147D0Bd9b
+NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B
+NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0xBbc32cc3b8AF9BaeD8D77E3bf4fC69141b0c9dA4
+NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=0x00a1e5688AF26c724155BfEe100fF23d387850AB
+NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=0x038fca8A26F9065f12F831C0600f30d8C90AFCFD
+NEXT_PUBLIC_REWARD_VERIFICATION_MODE=zk
 # Channel settlement is now on IncentiveEngine (submitChannelProof) — no separate YellowSettlement env var.
 ```
 
@@ -233,7 +264,7 @@ forge test -vvv
 | ZK circuit not found | `nargo compile` in circuit dir |
 | BLE not connecting | Check permissions, pairing mode |
 | Contract not verified | See `contracts/DEPLOY.md` for verification commands |
-| Honk verifier stack overflow | See ZK Verifier section above — known upstream bug |
+| Honk verifier stack overflow | Compile with `FOUNDRY_PROFILE=honk` (no via_ir) — HonkVerifier is in `src-honk/` |
 
 ---
 

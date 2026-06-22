@@ -26,6 +26,12 @@
 - [x] Ride HUD polish: compact top bar, keyboard hints on simulator start, compact widget drag bar, always-visible progress bar
 - [x] Rider identity system (quiz, personalized hero, nav chip, coach personality)
 - [x] NVIDIA NIM (MiniMax-M3) added as middle fallback provider (Venice → NVIDIA → Gemini)
+- [x] SpinPack ERC-1155 deployed to Fuji (`0x2C8443584daFA864Caa967cBDD7ec3D17157618B`)
+- [x] All EVM contracts redeployed to Fuji (SpinToken, IncentiveEngine, ClassFactory, TreasurySplitter, BiometricOracle)
+- [x] Real Noir HonkVerifier deployed to Fuji (`0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B`) — replaces MockUltraVerifier
+- [x] Noir circuit compiled with nargo 1.0.0-beta.22, artifacts copied to `public/circuits/`
+- [x] Sui session object ID wired to `useAiInstructor` for real on-chain coaching sessions
+- [x] `systemPromptCid` wired from class metadata to `useLLMCoaching` for Walrus coach prompts
 - [ ] Demo video recorded
 - [ ] Submitted to overflow.sui.io
 
@@ -103,6 +109,13 @@ All build gates green. All Walrus Track integration points live on testnet:
 | `TelemetryAnchor` object | Mintable | smoke-test tx `GBQRG544QKNTvqXmioTT…` minted one owned by deployer |
 | `TelemetryBlobAttached` event | Emitted | `suix_queryEvents` returns 1 event with expected shape |
 | Tatum RPC swap | Implemented | `app/sui-provider.tsx` single-file fallback, `NEXT_PUBLIC_TATUM_API_KEY` documented in `.env.example` |
+| SpinPack ERC-1155 | Deployed on Fuji | `0x2C8443584daFA864Caa967cBDD7ec3D17157618B` |
+| HonkVerifier (real ZK) | Deployed on Fuji | `0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B` — real UltraHonk Solidity verifier |
+| EffortThresholdVerifier | Deployed on Fuji | `0xBbc32cc3b8AF9BaeD8D77E3bf4fC69141b0c9dA4` — wired to real HonkVerifier |
+| All EVM contracts | Deployed on Fuji | SpinToken, IncentiveEngine, ClassFactory, TreasurySplitter, BiometricOracle |
+| Noir ZK circuit | Compiled | nargo 1.0.0-beta.22, artifacts in `public/circuits/` |
+| Sui session → AI instructor | Wired | `useAiInstructor` receives real session object ID from coordinator |
+| `systemPromptCid` → LLM coaching | Wired | `useLLMCoaching` receives CID from class metadata for Walrus coach prompts |
 | Next.js app | Builds | `pnpm build` exit 0, 16/16 static pages |
 | TypeScript | Clean | `pnpm typecheck` exit 0, 0 errors |
 | Unit tests | Green | `pnpm test` 132 / 132 passing |

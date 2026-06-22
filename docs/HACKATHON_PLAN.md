@@ -198,7 +198,7 @@ This phase is staged separately so the hackathon submission is not blocked on it
 | Tatum Sui RPC has a method we use that the gateway does not implement | Smoke-test the full telemetry flush flow on Tatum testnet before submission; fall back to Mysten defaults by unsetting the env var |
 | Walrus mainnet aggregator URL not yet stable | Phase 4 is opt-in; testnet submission is the goal. We do not require mainnet Walrus for the Walrus Track story |
 | Move struct extension breaks existing Sui objects | The new fields are `Option<...>` and additive only. Existing on-chain `RiderStats` objects migrate automatically because the struct change is forward-compatible |
-| `submitZKProofBatch` on Avalanche still uses `MockUltraVerifier` on testnet | The Walrus Track story does not depend on the EVM verifier. The plan keeps the existing `MockUltraVerifier` posture (documented in `DEPLOYMENT.md`) and stays on testnet |
+| ~~`submitZKProofBatch` on Avalanche still uses `MockUltraVerifier` on testnet~~ | **Resolved (2026-06-22):** Real `HonkVerifier` deployed to Fuji (`0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B`). ZK proofs are cryptographically verified on-chain. `EffortThresholdVerifier` updated to point to real verifier. |
 
 ## References
 
