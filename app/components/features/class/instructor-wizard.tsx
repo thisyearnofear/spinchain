@@ -439,7 +439,7 @@ export function InstructorWizard() {
                 <div>
                   <h3 className="font-semibold text-[color:var(--foreground)]">Route preview</h3>
                   <p className="mt-2 text-sm text-[color:var(--muted)]">
-                    This simplified wizard keeps route selection lightweight. The advanced builder will let you choose or create the exact world, elevation profile, and story beats.
+                    This is a placeholder route for preview purposes. When you publish, you'll choose from real 3D routes with elevation profiles, scenery, and story beats in the publisher.
                   </p>
                 </div>
               </div>
@@ -447,11 +447,18 @@ export function InstructorWizard() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <SurfaceCard className="p-5">
-                <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">Current route concept</p>
-                <h4 className="mt-3 text-lg font-semibold text-[color:var(--foreground)]">Virtual Alpine Loop</h4>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">Preview route</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">Placeholder</span>
+                </div>
+                <h4 className="mt-1 text-lg font-semibold text-[color:var(--foreground)]">Virtual Alpine Loop</h4>
                 <p className="mt-2 text-sm text-[color:var(--muted)]">
-                  Best for endurance-focused sessions with one major climb and a strong closing push.
+                  A scenic mountain route with one major climb and a strong closing push. Perfect for endurance-focused sessions.
                 </p>
+                <div className="mt-4 flex gap-2">
+                  <span className="text-[10px] font-medium text-[color:var(--muted)] bg-[color:var(--surface-strong)] px-2 py-1 rounded">🏔️ Alpine theme</span>
+                  <span className="text-[10px] font-medium text-[color:var(--muted)] bg-[color:var(--surface-strong)] px-2 py-1 rounded">~12 km</span>
+                </div>
               </SurfaceCard>
 
               <SurfaceCard className="p-5">
@@ -461,6 +468,9 @@ export function InstructorWizard() {
                   <li>Teaching mode and coaching style</li>
                   <li>Base pricing and dynamic pricing choice</li>
                 </ul>
+                <p className="mt-4 text-xs text-[color:var(--accent)]">
+                  You'll pick the actual route in the publisher step.
+                </p>
               </SurfaceCard>
             </div>
           </div>
@@ -480,9 +490,14 @@ export function InstructorWizard() {
                 onChange={(e) => updateForm({ basePrice: e.target.value })}
                 className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 text-[color:var(--foreground)] focus:border-[color:var(--accent)] focus:outline-none"
               />
-              <p className="mt-2 text-xs text-[color:var(--muted)]">
-                Use a realistic preview price now; you can refine the full pricing curve during publish.
-              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <p className="text-xs text-[color:var(--muted)]">
+                  Set a preview price now — you can refine the full pricing curve during publish.
+                </p>
+              </div>
+              <div className="mt-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-2.5 text-xs text-blue-300">
+                <strong>Testnet funds:</strong> No real money is spent. Prices are in ETH on the Avalanche test network — you can get free testnet ETH from a faucet.
+              </div>
             </div>
 
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)]/50 p-4">

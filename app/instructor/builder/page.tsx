@@ -680,6 +680,9 @@ export default function InstructorBuilderPage() {
                       />
                     </div>
                   </div>
+                  <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-300">
+                    <strong>Testnet funds:</strong> No real money is spent. Prices are in ETH on the Avalanche test network — get free testnet ETH from a faucet.
+                  </div>
                   <div className="space-y-2">
                     <label className="text-xs font-black uppercase tracking-widest text-white/40">
                       Curve Logic
