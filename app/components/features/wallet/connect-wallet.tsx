@@ -2,6 +2,7 @@
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Wallet } from 'lucide-react';
+import { WalletInfoTooltip } from './wallet-info-tooltip';
 
 export function ConnectWallet() {
   return (
@@ -31,14 +32,17 @@ export function ConnectWallet() {
             {(() => {
               if (!connected) {
                 return (
-                  <button
-                    onClick={openConnectModal}
-                    type="button"
-                    className="flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-transparent px-4 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
-                  >
-                    <Wallet className="w-4 h-4" />
-                    Connect Wallet
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={openConnectModal}
+                      type="button"
+                      className="flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-transparent px-4 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      Connect Wallet
+                    </button>
+                    <WalletInfoTooltip variant="evm" />
+                  </div>
                 );
               }
 
