@@ -8,6 +8,9 @@ import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useUIStore } from "@/app/stores/ui-store";
+import { useIntervalAudioCues } from "@/app/hooks/ride/use-interval-audio";
+import { PrPacingIndicator } from "@/app/components/features/ride/pr-pacing-indicator";
+import { SegmentTracker } from "@/app/components/features/ride/segment-tracker";
 import type { IntervalPhase } from "@/app/lib/workout-plan";
 import type { GhostState } from "@/app/lib/analytics/ghost-service";
 import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
@@ -213,6 +216,7 @@ export function RideHUD() {
   const hudMode = useUIStore((s) => s.hudMode);
   const isRiding = useRideStore((s) => s.isActive);
   const rideProgress = useRideStore((s) => s.rideProgress);
+  const elapsedTime = useRideStore((s) => s.elapsedTime);
   const rewardsActive = useRewardsStore((s) => s.isActive);
   const rewardsStreamState = useRewardsStore((s) => s.streamState);
   const rewardsMode = useRewardsStore((s) => s.mode);
@@ -220,6 +224,10 @@ export function RideHUD() {
   const targetRpm = useCoachingStore((s) => s.currentInterval?.targetRpm);
   const lastCoachMessage = useCoachingStore((s) => s.lastCoachMessage);
   const lastDecision = useCoachingStore((s) => s.lastDecision);
+  const routeTheme = useCoachingStore((s) => s.routeTheme);
+
+  // Interval audio cues
+  useIntervalAudioCues(intervalPhase, isRiding);
 
   const telemetry: TelemetryData = useMemo(() => ({
     heartRate, power, cadence, speed, effort, currentGear, gearRatio,
@@ -306,6 +314,8 @@ export function RideHUD() {
           rewardsMode={rewardsMode}
           ghostState={ghostState}
           agentInsight={agentInsight}
+          currentEffort={effort}
+          currentPower={power}
         />
       </>
     );
@@ -380,6 +390,11 @@ export function RideHUD() {
           >
             {phaseLabel}
           </div>
+          <PrPacingIndicator
+            currentEffort={effort}
+            currentPower={power}
+            isActive={isRiding}
+          />
           <GearBadge gear={telemetry.currentGear} ratio={telemetry.gearRatio} />
           {ghostState && (
             <GhostLeadLag
@@ -451,6 +466,18 @@ export function RideHUD() {
 
         {isRiding && (
           <div className="flex justify-center mt-4">{agentInsight}</div>
+        )}
+
+        {/* Segment tracker — only show if we have story beats */}
+        {isRiding && (
+          <div className="flex justify-center mt-2">
+            <SegmentTracker
+              storyBeats={[]}
+              rideProgress={rideProgress}
+              elapsedTime={elapsedTime}
+              isActive={isRiding}
+            />
+          </div>
         )}
       </div>
     </div>
@@ -546,6 +573,8 @@ function MobileCompactHUD({
   rewardsMode,
   ghostState,
   agentInsight,
+  currentEffort,
+  currentPower,
 }: {
   telemetry: TelemetryData;
   phaseMetrics: {
@@ -560,6 +589,8 @@ function MobileCompactHUD({
   rewardsMode?: "yellow-stream" | "zk-batch" | "sui-native";
   ghostState?: GhostState;
   agentInsight?: React.ReactNode;
+  currentEffort: number;
+  currentPower: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [visibleWidget, setVisibleWidget] = useState<
@@ -722,6 +753,11 @@ function MobileCompactHUD({
             >
               {phaseLabel}
             </div>
+            <PrPacingIndicator
+              currentEffort={currentEffort}
+              currentPower={currentPower}
+              isActive={isRiding}
+            />
           </div>
         ) : (
           <div className="flex flex-col gap-6">
