@@ -32,7 +32,7 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
         </h1>
 
         <p className="mx-auto max-w-2xl px-4 text-base font-medium leading-relaxed text-[color:var(--muted)] md:text-lg lg:text-xl">
-          Riders can jump into immersive classes and try a free demo. Instructors can preview the class-building flow before committing to a wallet-first setup.
+          Jump into immersive cycling classes with 3D routes and live AI coaching. Try a free demo — no wallet or signup needed.
         </p>
 
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -45,7 +45,7 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
                 <path d="M8 5v14l11-7z" />
               </svg>
             </span>
-            Watch Demo Ride
+            Try a Demo Ride
           </Link>
 
           <Link
@@ -58,19 +58,12 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
             </svg>
           </Link>
 
-          <Link
-            href="/instructor"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-[color:var(--border)] px-6 py-3 text-sm font-semibold text-[color:var(--foreground)] transition-colors hover:border-[color:var(--accent)]/50"
-          >
-            Preview instructor tools
-          </Link>
-
           {onOpenGuide && (
             <button
               onClick={onOpenGuide}
               className="text-sm font-medium text-[color:var(--muted)] transition-colors hover:text-[color:var(--foreground)]"
             >
-              See the quick tour
+              Take the quick tour
             </button>
           )}
         </div>
@@ -146,7 +139,7 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
               Teach on SpinChain
             </h2>
             <p className="mb-5 text-sm text-[color:var(--muted)] md:mb-6 md:text-base">
-              Preview the builder, compare human and AI-led formats, and decide how you want to launch.
+              Build classes with AI-assisted coaching, immersive routes, and on-chain ticket sales. Start drafting without a wallet.
             </p>
             <MagneticButton className="inline-flex items-center gap-2 font-medium text-[color:var(--accent)] transition-colors group-hover:text-[color:var(--accent-strong)]">
               Preview teaching paths

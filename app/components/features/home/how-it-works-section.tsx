@@ -7,18 +7,18 @@ import { FadeIn, StaggerContainer } from "@/app/components/ui/scroll-animations"
 const howItWorks = [
   {
     step: "1",
-    title: "Book a Class",
-    description: "Choose from live or on-demand cycling classes",
+    title: "Pick a Class",
+    description: "Choose from live or on-demand cycling classes with immersive 3D routes",
   },
   {
     step: "2",
-    title: "Ride & Connect",
-    description: "Join via your bike, heart rate monitor, or app",
+    title: "Ride & Compete",
+    description: "Use your bike, heart rate monitor, or keyboard simulator to ride in real-time",
   },
   {
     step: "3",
-    title: "Earn Instantly",
-    description: "Get rewarded automatically based on your effort",
+    title: "Earn Rewards",
+    description: "Your effort is verified with zero-knowledge proofs and rewarded automatically",
   },
 ];
 
