@@ -75,14 +75,14 @@ export function OnboardingChecklist() {
     {
       id: "wallet",
       title: "Connect Wallet",
-      description: "Optional for demo rides, required when you want rewards and payouts",
+      description: "Optional — needed only to earn rewards. Demo rides work without it.",
       icon: Wallet,
       isDone: isConnected || completedSteps.includes("wallet"),
     },
     {
       id: "device",
-      title: "Link Device",
-      description: "Pair a heart rate monitor or power meter for live effort tracking",
+      title: "Pair a Device",
+      description: "Optional — connect a heart rate monitor for live effort tracking, or use the keyboard simulator.",
       icon: Bluetooth,
       isDone: completedSteps.includes("device"),
       action: getDemoRideUrl() + "&setup=true",
@@ -90,12 +90,12 @@ export function OnboardingChecklist() {
     },
     {
       id: "ride",
-      title: "Complete Demo Ride",
-      description: "Finish the 5-minute practice session to unlock the full flow",
+      title: "Try a Demo Ride",
+      description: "A 5-minute practice session to experience the full ride flow.",
       icon: Timer,
       isDone: completedSteps.includes("ride"),
       action: getDemoRideUrl(),
-      actionLabel: "Ride demo",
+      actionLabel: "Start demo",
     },
   ];
 
@@ -109,9 +109,9 @@ export function OnboardingChecklist() {
     <div className="rounded-3xl border border-[color:var(--border)] bg-gradient-to-br from-purple-900/20 to-indigo-900/20 p-8 backdrop-blur-xl shadow-2xl">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-white mb-1">Unlock your full setup</h2>
+          <h2 className="text-3xl font-bold text-white mb-1">Get started in 3 steps</h2>
           <p className="text-sm text-white mt-1">
-            Demo rides work without a wallet. Complete these steps when you are ready to go deeper.
+            Everything is optional — you can start with just a demo ride.
           </p>
         </div>
         {allDone && (

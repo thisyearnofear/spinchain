@@ -16,6 +16,7 @@ import { RoutePreviewCard } from "../components/features/route/route-preview-car
 import { ConnectWallet } from "../components/features/wallet/connect-wallet";
 import { AnimatedClassCard } from "../components/features/class/animated-class-card";
 import { OnboardingChecklist } from "../components/features/common/onboarding-checklist";
+import { WelcomeBanner } from "../components/features/common/welcome-banner";
 import { EmptyState } from "../components/features/common/empty-state";
 import { RiderHero } from "../components/features/rider/rider-hero";
 import { useToast } from "../components/ui/toast";
@@ -145,229 +146,8 @@ export default function RiderPage() {
         {/* Hero */}
         <RiderHero />
 
-        {/* Coach profiles */}
-        <section className="space-y-6">
-          <div className="flex items-end justify-between">
-            <div>
-              <h2 className="text-2xl font-black text-[color:var(--foreground)] tracking-tighter">
-                Real AI & Human Instructors
-              </h2>
-              <p className="text-sm text-[color:var(--muted)] font-medium">
-                Choose a coach that matches your performance profile and goals.
-              </p>
-            </div>
-            <button
-              onClick={() => router.push("/instructor")}
-              className="text-xs font-bold uppercase tracking-widest text-[color:var(--accent)] hover:underline"
-            >
-              View all →
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {featuredInstructors.map((coach) => (
-              <a
-                key={coach.name}
-                href={coach.href}
-                className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 text-left transition-[background-color,border-color] duration-200 hover:bg-white/10 hover:border-white/20"
-              >
-                <div
-                  className={`absolute top-0 right-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br ${coach.color} opacity-20 blur-2xl transition-transform group-hover:scale-150`}
-                />
-
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-3xl">{coach.icon}</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                      Agentic
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-bold text-white">{coach.name}</h3>
-                  <p className="text-xs text-white/50 mb-2">{coach.role}</p>
-                  <p className="text-xs text-white/40 italic mb-3">
-                    {coach.specialty}
-                  </p>
-
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {coach.agenticPowers.slice(0, 2).map((power) => (
-                      <span
-                        key={power}
-                        className="text-[9px] font-medium text-white/30 bg-white/5 px-2 py-0.5 rounded"
-                      >
-                        {power}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1">
-                      <span className="text-yellow-400">★</span>
-                      <span className="text-[10px] font-bold text-white/80">
-                        {coach.rating}
-                      </span>
-                    </div>
-                    <div className="text-[10px] font-bold text-white/40 uppercase tracking-tighter">
-                      {coach.rides} Rides
-                    </div>
-                  </div>
-                </div>
-              </a>
-            ))}
-          </div>
-        </section>
-
-        {/* Guest Mode Banner */}
-        {!isConnected && showGuestBanner && (
-          <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 backdrop-blur">
-            <div className="flex items-center gap-3">
-              <span className="text-lg">👤</span>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="font-medium text-amber-700 dark:text-amber-300">
-                  Guest
-                </span>
-                <span className="text-amber-600/60 dark:text-amber-400/60">
-                  ·
-                </span>
-                <span className="text-amber-600/80 dark:text-amber-400/80 hidden sm:inline">
-                  Preview mode
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link
-                href={getDemoRideUrl()}
-                className="text-xs font-medium px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-500/30 transition"
-              >
-                Try Demo
-              </Link>
-              <ConnectWallet />
-              <button
-                onClick={() => setShowGuestBanner(false)}
-                className="p-1.5 rounded-lg text-amber-600/50 hover:text-amber-600 hover:bg-amber-500/10 transition-colors"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Connected wallet summary */}
-        {isConnected && (
-          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[color:var(--muted)]">
-                  Connected as {address?.slice(0, 6)}...{address?.slice(-4)}
-                </p>
-                <p className="text-xs text-[color:var(--muted)] mt-1">
-                  Browse classes below and purchase tickets to start earning
-                  SPIN
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold text-[color:var(--foreground)]">
-                  Testnet Connected
-                </p>
-                <p className="text-xs text-[color:var(--muted)]">
-                  Token balance not shown until live balance reads are wired
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Guest Demo Class */}
-        {!isConnected && (
-          <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 backdrop-blur">
-            <div className="flex flex-col lg:flex-row gap-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="px-2 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-semibold">
-                    FREE DEMO
-                  </span>
-                  <span className="text-2xl">🏔️</span>
-                </div>
-                <h2 className="text-2xl font-bold text-[color:var(--foreground)] mb-2">
-                  {GUEST_DEMO_CLASS.name}
-                </h2>
-                <p className="text-[color:var(--muted)] mb-4">
-                  {GUEST_DEMO_CLASS.description}
-                </p>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[color:var(--muted)]">Duration:</span>
-                    <span className="font-medium">
-                      {GUEST_DEMO_CLASS.duration} min
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[color:var(--muted)]">
-                      Elevation:
-                    </span>
-                    <span className="font-medium">
-                      +{GUEST_DEMO_CLASS.elevationGain}m
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[color:var(--muted)]">
-                      Difficulty:
-                    </span>
-                    <span className="font-medium capitalize">
-                      {GUEST_DEMO_CLASS.difficulty}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <Link
-                  href={getDemoRideUrl()}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition-colors"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Try Free Demo
-                </Link>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-green-400">
-                    {GUEST_DEMO_CLASS.ticketsSold}
-                  </p>
-                  <p className="text-xs text-[color:var(--muted)]">
-                    riders now
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* First-time visitor explainer */}
+        <WelcomeBanner />
 
         {/* Onboarding Checklist for new users */}
         <OnboardingChecklist />
@@ -465,7 +245,7 @@ export default function RiderPage() {
             icon={filterUpcoming ? CalendarClock : Bike}
             title={filterUpcoming ? "No upcoming classes yet" : "No past classes yet"}
             description={filterUpcoming
-              ? "New classes are added every day. Be the first to host one on-chain, or try a demo ride in the meantime."
+              ? "New classes are added every day. Be the first to host one, or try a demo ride in the meantime."
               : "Your completed classes will appear here with full telemetry and reward history."
             }
             action={!isConnected ? {
@@ -502,6 +282,219 @@ export default function RiderPage() {
             </div>
           </div>
         )}
+
+        {/* Coach profiles — below classes so the primary action comes first */}
+        <section className="space-y-6 pt-6">
+          <div className="flex items-end justify-between">
+            <div>
+              <h2 className="text-2xl font-black text-[color:var(--foreground)] tracking-tighter">
+                Meet your coaches
+              </h2>
+              <p className="text-sm text-[color:var(--muted)] font-medium">
+                AI-powered and human instructors to match your goals.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {featuredInstructors.map((coach) => (
+              <a
+                key={coach.name}
+                href={coach.href}
+                className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 text-left transition-[background-color,border-color] duration-200 hover:bg-white/10 hover:border-white/20"
+              >
+                <div
+                  className={`absolute top-0 right-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br ${coach.color} opacity-20 blur-2xl transition-transform group-hover:scale-150`}
+                />
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-3xl">{coach.icon}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                      AI-Powered
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-white">{coach.name}</h3>
+                  <p className="text-xs text-white/50 mb-2">{coach.role}</p>
+                  <p className="text-xs text-white/40 italic mb-3">
+                    {coach.specialty}
+                  </p>
+
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {coach.agenticPowers.slice(0, 2).map((power) => (
+                      <span
+                        key={power}
+                        className="text-[9px] font-medium text-white/30 bg-white/5 px-2 py-0.5 rounded"
+                      >
+                        {power}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
+                      <span className="text-yellow-400">★</span>
+                      <span className="text-[10px] font-bold text-white/80">
+                        {coach.rating}
+                      </span>
+                    </div>
+                    <div className="text-[10px] font-bold text-white/40 uppercase tracking-tighter">
+                      {coach.rides} Rides
+                    </div>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        {/* Guest Mode Banner */}
+        {!isConnected && showGuestBanner && (
+          <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 backdrop-blur">
+            <div className="flex items-center gap-3">
+              <span className="text-lg">👤</span>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-medium text-amber-700 dark:text-amber-300">
+                  Browsing as guest
+                </span>
+                <span className="text-amber-600/60 dark:text-amber-400/60">
+                  ·
+                </span>
+                <span className="text-amber-600/80 dark:text-amber-400/80 hidden sm:inline">
+                  Try a free demo ride — no wallet needed
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                href={getDemoRideUrl()}
+                className="text-xs font-medium px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-500/30 transition"
+              >
+                Try Demo
+              </Link>
+              <ConnectWallet />
+              <button
+                onClick={() => setShowGuestBanner(false)}
+                className="p-1.5 rounded-lg text-amber-600/50 hover:text-amber-600 hover:bg-amber-500/10 transition-colors"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Connected wallet summary */}
+        {isConnected && (
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 backdrop-blur">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-[color:var(--foreground)]">
+                  Wallet connected
+                </p>
+                <p className="text-xs text-[color:var(--muted)] mt-0.5">
+                  You can join classes and earn rewards
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Guest Demo Class */}
+        {!isConnected && (
+          <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 backdrop-blur">
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="px-2 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-semibold">
+                    FREE DEMO
+                  </span>
+                  <span className="text-2xl">🏔️</span>
+                </div>
+                <h2 className="text-2xl font-bold text-[color:var(--foreground)] mb-2">
+                  {GUEST_DEMO_CLASS.name}
+                </h2>
+                <p className="text-[color:var(--muted)] mb-4">
+                  {GUEST_DEMO_CLASS.description}
+                </p>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[color:var(--muted)]">Duration:</span>
+                    <span className="font-medium">
+                      {GUEST_DEMO_CLASS.duration} min
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[color:var(--muted)]">
+                      Elevation:
+                    </span>
+                    <span className="font-medium">
+                      +{GUEST_DEMO_CLASS.elevationGain}m
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[color:var(--muted)]">
+                      Difficulty:
+                    </span>
+                    <span className="font-medium capitalize">
+                      {GUEST_DEMO_CLASS.difficulty}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Link
+                  href={getDemoRideUrl()}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  Try Free Demo
+                </Link>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-green-400">
+                    {GUEST_DEMO_CLASS.ticketsSold}
+                  </p>
+                  <p className="text-xs text-[color:var(--muted)]">
+                    riders now
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );

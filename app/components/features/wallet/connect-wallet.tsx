@@ -37,7 +37,7 @@ export function ConnectWallet() {
                     className="flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-transparent px-4 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
                   >
                     <Wallet className="w-4 h-4" />
-                    Connect
+                    Connect Wallet
                   </button>
                 );
               }
