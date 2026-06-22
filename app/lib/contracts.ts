@@ -53,32 +53,32 @@ export function isZeroAddress(address?: string | null): boolean {
 export const CONTRACT_ADDRESSES = {
   /** ERC-20 SPIN reward token — verified Fuji: https://testnet.snowtrace.io/address/0xA2DA94dE3AB8a90D62A1b1897E0e96DBda0F494f */
   SPIN_TOKEN: (process.env.NEXT_PUBLIC_SPIN_TOKEN_ADDRESS ??
-    "0xA2DA94dE3AB8a90D62A1b1897E0e96DBda0F494f") as `0x${string}`,
+    "0x4c0E965B809452F2C914a74d1D0e9C3375543392") as `0x${string}`,
 
   /** Distributes SPIN rewards via ECDSA attestation or ZK proof — verified Fuji: https://testnet.snowtrace.io/address/0x8BF20C7fbc69cafd3144de3Bb30509A26F39FF3d */
   INCENTIVE_ENGINE: (process.env.NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS ??
-    "0x8BF20C7fbc69cafd3144de3Bb30509A26F39FF3d") as `0x${string}`,
+    "0x69800d3ABda003b7aA6038831715a4aCb736403d") as `0x${string}`,
 
   /** Factory that deploys per-class SpinClass contracts — verified Fuji: https://testnet.snowtrace.io/address/0xc4B4A722b55610bFa1556506B87Cbfe7983961A7 */
   CLASS_FACTORY: (process.env.NEXT_PUBLIC_CLASS_FACTORY_ADDRESS ??
-    "0xc4B4A722b55610bFa1556506B87Cbfe7983961A7") as `0x${string}`,
+    "0x035026f85CCbC273160669FBe9Ba5Dc147D0Bd9b") as `0x${string}`,
 
   /** MockUltraVerifier (testnet only — see docs/DEPLOYMENT.md for Honk verifier limitation) — verified Fuji: https://testnet.snowtrace.io/address/0x202aEd029708F2e0540B63a4025Dcb2556F85ba1 */
   ULTRA_VERIFIER: (process.env.NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS ??
     process.env.NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS ??
-    "0x202aEd029708F2e0540B63a4025Dcb2556F85ba1") as `0x${string}`,
+    "0xf63be2C9f838A5fb96B2A4A5d99941EA7CF1E713") as `0x${string}`,
 
   /** EffortThresholdVerifier — wraps UltraVerifier with replay protection — verified Fuji: https://testnet.snowtrace.io/address/0x783C36f6502052EC31971e75E20D0012910dbA91 */
   EFFORT_VERIFIER: (process.env.NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS ??
-    "0x783C36f6502052EC31971e75E20D0012910dbA91") as `0x${string}`,
+    "0xBbc32cc3b8AF9BaeD8D77E3bf4fC69141b0c9dA4") as `0x${string}`,
 
   /** Revenue splitter for instructor/platform split — verified Fuji: https://testnet.snowtrace.io/address/0xDd787C22A28aA709021860485AC1b95620B5AcE3 */
   TREASURY_SPLITTER: (process.env.NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS ??
-    "0xDd787C22A28aA709021860485AC1b95620B5AcE3") as `0x${string}`,
+    "0x00a1e5688AF26c724155BfEe100fF23d387850AB") as `0x${string}`,
 
   /** Chainlink Runtime Environment (CRE) Biometric Oracle — verified Fuji: https://testnet.snowtrace.io/address/0xE0021E77f52761A69F611530A481B2B9371993d8 */
   BIOMETRIC_ORACLE: (process.env.NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS ??
-    "0xE0021E77f52761A69F611530A481B2B9371993d8") as `0x${string}`,
+    "0x038fca8A26F9065f12F831C0600f30d8C90AFCFD") as `0x${string}`,
 
   /** Chainlink CRE Forwarder contract */
   CRE_FORWARDER: (process.env.NEXT_PUBLIC_CHAINLINK_FORWARDER ??
