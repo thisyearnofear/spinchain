@@ -63,9 +63,8 @@ export const CONTRACT_ADDRESSES = {
   CLASS_FACTORY: (process.env.NEXT_PUBLIC_CLASS_FACTORY_ADDRESS ??
     "0x035026f85CCbC273160669FBe9Ba5Dc147D0Bd9b") as `0x${string}`,
 
-  /** MockUltraVerifier (testnet only — see docs/DEPLOYMENT.md for Honk verifier limitation) — verified Fuji: https://testnet.snowtrace.io/address/0x202aEd029708F2e0540B63a4025Dcb2556F85ba1 */
+  /** HonkVerifier (real Noir-generated verifier on Fuji) — verified: https://testnet.snowtrace.io/address/0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B */
   ULTRA_VERIFIER: (process.env.NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS ??
-    process.env.NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS ??
     "0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B") as `0x${string}`,
 
   /** EffortThresholdVerifier — wraps UltraVerifier with replay protection — verified Fuji: https://testnet.snowtrace.io/address/0x783C36f6502052EC31971e75E20D0012910dbA91 */

@@ -306,7 +306,7 @@ The Sui Overflow 2026 (Walrus Track) and Tatum × Walrus hackathons are running 
 Key posture decisions that overlap with this roadmap:
 
 - **Testnet stays the submission target.** Mainnet is a separate phase in the hackathon plan that is staged *after* the build period to avoid blocking the submission deadline.
-- **`MockUltraVerifier` posture is unchanged.** The hackathon narrative does not depend on the EVM verifier path. **Update (2026-06-22):** Real HonkVerifier deployed to Fuji. Browser-side NoirProver uses real Barretenberg backend. Mock fallback only when WASM packages unavailable.
+- **~~`MockUltraVerifier` posture is unchanged.~~** **Updated (2026-06-22):** Real `HonkVerifier` deployed to Fuji (`0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B`). Browser-side `NoirProver` uses real `BarretenbergBackend`. `MockUltraVerifier` contract remains as a local dev/test fallback only.
 - **Reward settlement and ride-summary anchoring remain distinct.** The hackathon's "Walrus as agent memory" work adds a third concept (anchor `walrus_blob_id` on `RiderStats`) that is separate from both settlement and ride-summary sync.
 
 See `docs/HACKATHON_PLAN.md` for the file-level change list, phases, and risk register.

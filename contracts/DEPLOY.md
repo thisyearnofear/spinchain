@@ -179,7 +179,7 @@ The frontend reads all addresses from these env vars via `app/lib/contracts.ts` 
 
 ### Current State (Testnet)
 
-On Fuji, `MockUltraVerifier` accepts any proof (testnet-only). The `EffortThresholdVerifier` wraps it and provides replay protection + authorized-caller gating. All ZK claim tests pass against this stack. For production deployments, the shared deploy script now supports disabling ZK claims entirely by omitting both `ULTRA_VERIFIER_ADDRESS` and `ALLOW_MOCK_VERIFIER`.
+On Fuji, a real `HonkVerifier` (`0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B`) cryptographically verifies Noir proofs. The `EffortThresholdVerifier` wraps it with replay protection + authorized-caller gating. All ZK claim tests pass against this stack. The `MockUltraVerifier` contract is still available as a deploy fallback for local development but is no longer used on testnet.
 
 ### Generating a Real UltraVerifier
 
