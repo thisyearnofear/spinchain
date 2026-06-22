@@ -8,6 +8,7 @@ import {
   Tag,
 } from "@/app/components/ui/ui";
 import { RouteSelectionStep } from "@/app/components/features/route/route-selection-step";
+import { ConnectWallet } from "@/app/components/features/wallet/connect-wallet";
 import { useAccount } from "wagmi";
 import type { SavedRoute } from "@/app/lib/route-library";
 import type { GpxSummary } from "@/app/routes/builder/gpx-uploader";
@@ -395,11 +396,11 @@ export default function InstructorBuilderPage() {
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">Welcome, Instructor!</h2>
               <p className="text-white/60 mb-8 leading-relaxed">
-                You&apos;re about to build a programmable spin class. Follow the 6 steps to configure your route, identity, and economics.
+                Build your spin class step by step. Choose a route, set details, configure pricing, and publish — all in one place. No wallet needed until the final step.
               </p>
               
               <div className="space-y-4 mb-8">
-                {["Select Track", "Identity & Visuals", "Pricing & Launch"].map((item, i) => (
+                {["Choose a route", "Set details & visuals", "Pricing & rewards", "Review & publish"].map((item, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm text-white/80">
                     <div className="h-5 w-5 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px] font-bold text-indigo-400">
                       {i + 1}
@@ -430,9 +431,9 @@ export default function InstructorBuilderPage() {
         {/* Header */}
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div>
-            <h1 className="text-4xl font-black text-white tracking-tighter">Class Creator</h1>
+            <h1 className="text-4xl font-black text-white tracking-tighter">Class Builder</h1>
             <p className="mt-2 text-white/50 font-medium">
-              Design your immersive fitness experience.
+              Build and publish your spin class in one flow.
             </p>
           </div>
           <div className="flex gap-2 p-1.5 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl">
@@ -464,15 +465,12 @@ export default function InstructorBuilderPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <Tag color="green">Draft Restored</Tag>
-                  {draftHydration.draftStatus === "ready_to_publish" && (
-                    <Tag color="indigo">Ready Handoff</Tag>
-                  )}
                 </div>
                 <h2 className="mt-3 text-xl font-bold text-white">
-                  Your instructor draft was carried into the advanced builder.
+                  Welcome back — your class draft was saved.
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm text-emerald-100/80">
-                  We restored the class name, pricing intent, rider capacity, and coaching mode from the preview wizard. Choose a route, review the full configuration, and publish from here.
+                  We restored your class name, pricing, capacity, and coaching settings. Pick up where you left off.
                 </p>
                 <p className="mt-2 text-xs uppercase tracking-[0.2em] text-emerald-200/70">
                   Last saved {formatSavedAt(draftHydration.lastSavedAt)}
@@ -494,13 +492,13 @@ export default function InstructorBuilderPage() {
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <Tag color="blue">Draft Completed</Tag>
+                  <Tag color="blue">Class Published</Tag>
                 </div>
                 <h2 className="mt-3 text-xl font-bold text-white">
-                  The preview draft has been cleared after publish.
+                  Your class is live on-chain.
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm text-blue-100/80">
-                  This keeps the instructor funnel clean and prevents old drafts from appearing as pending after a successful deployment.
+                  Riders can now book and join your class. Check analytics to track signups and revenue.
                 </p>
               </div>
             </div>
@@ -782,10 +780,25 @@ export default function InstructorBuilderPage() {
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-400">Step 5</p>
-                      <h2 className="text-2xl font-black text-white tracking-tighter">Review & Deploy</h2>
+                      <h2 className="text-2xl font-black text-white tracking-tighter">Review & Publish</h2>
                     </div>
                   </div>
                   <p className="text-sm text-white/50 font-medium mb-6">{onboardingTips[5]}</p>
+                  
+                  {/* Wallet connection prompt */}
+                  {!userAddress && (
+                    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <h3 className="text-sm font-bold text-amber-300 mb-1">Connect your wallet to publish</h3>
+                          <p className="text-xs text-amber-200/80">
+                            You&apos;ve set up everything else. Connect a wallet to deploy your class on-chain.
+                          </p>
+                        </div>
+                        <ConnectWallet />
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Contract Spec Summary - Enhanced */}
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
@@ -837,8 +850,7 @@ export default function InstructorBuilderPage() {
                       <span className="text-sm font-bold text-blue-400">i</span>
                     </div>
                     <p className="text-sm text-blue-200">
-                      Deploying will create a new SpinClass contract and mint the
-                      ownership NFT to your wallet.
+                      Publishing creates your class on-chain. Riders can book immediately after.
                     </p>
                   </div>
                   
@@ -908,7 +920,7 @@ export default function InstructorBuilderPage() {
                   disabled={isPending || !userAddress || !selectedRoute}
                   className="group relative rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-10 py-3 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-500/30 transition hover:opacity-90 hover:scale-105 disabled:opacity-50 overflow-hidden"
                 >
-                  <span className="relative z-10">{isPending ? getDeploymentStepText(deploymentStep) : "Deploy Contract"}</span>
+                  <span className="relative z-10">{isPending ? getDeploymentStepText(deploymentStep) : "Publish Class"}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               )}
@@ -955,14 +967,9 @@ export default function InstructorBuilderPage() {
             <div className="sticky top-10 space-y-6">
               <SurfaceCard
                 eyebrow="Preview"
-                title="Contract Spec"
+                title="Class Summary"
                 className="bg-[color:var(--surface-strong)]"
               >
-                <div className="mt-4 space-y-3">
-                  <Tag>ERC-721 Tickets</Tag>
-                  <Tag>ERC-20 Rewards</Tag>
-                  <Tag>Pull Payments</Tag>
-                </div>
                 <div className="mt-6">
                   <p className="text-xs uppercase tracking-widest text-[color:var(--muted)]">
                     Est. Revenue
