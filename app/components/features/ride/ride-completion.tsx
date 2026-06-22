@@ -13,8 +13,9 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { formatTime } from "@/app/lib/formatters";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
-import { Star, Cloud, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
+import { Share2, Star, Cloud, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { LoadingButton } from "../../ui/loading-button";
+import { ShareCardButton } from "./share-card";
 
 export interface RewardClaimStatus {
   mode: "zk" | "chainlink";
@@ -311,6 +312,9 @@ export function RideCompletion({
               avgEffort={avgEffort}
               telemetrySource={telemetrySource}
               getAgentDebrief={getAgentDebrief}
+              spinEarned={spinEarned}
+              agentName={agentName}
+              walrusAnchorInfo={walrusAnchorInfo}
             />
           )}
           {activeTab === "rewards" && (
@@ -430,6 +434,9 @@ function SummaryTab({
   avgEffort,
   telemetrySource,
   getAgentDebrief,
+  spinEarned,
+  agentName,
+  walrusAnchorInfo,
 }: {
   agentPersonality: "zen" | "drill-sergeant" | "data";
   elapsedTime: number;
@@ -438,6 +445,9 @@ function SummaryTab({
   avgEffort: number;
   telemetrySource: "live-bike" | "simulator" | "estimated";
   getAgentDebrief: () => string;
+  spinEarned: string;
+  agentName: string;
+  walrusAnchorInfo: { blobId: string; txDigest?: string } | null;
 }) {
   return (
     <div className="space-y-4">
@@ -493,6 +503,18 @@ function SummaryTab({
             Great start on your fitness journey! A steady endurance class will help you build your base and increase your effort score over time.
           </p>
         )}
+      </div>
+      {/* Share card */}
+      <div className="flex justify-center pt-2">
+        <ShareCardButton
+          effortScore={avgEffort}
+          avgPower={avgPower}
+          avgHeartRate={avgHeartRate}
+          durationSec={elapsedTime}
+          spinEarned={spinEarned}
+          agentName={agentName}
+          walrusBlobId={walrusAnchorInfo?.blobId}
+        />
       </div>
     </div>
   );

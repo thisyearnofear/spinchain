@@ -28,6 +28,12 @@ import {
 import { getWalrusFeed, retrieveRideSummaryFromWalrus, type WalrusFeedEntry } from "../../lib/walrus/ride-persistence";
 import { useAccount } from "wagmi";
 import Link from "next/link";
+import {
+  EffortTrendChart,
+  CalendarHeatmap,
+  WeeklyVolumeChart,
+  ZoneDistributionChart,
+} from "../../components/features/rider/ride-charts";
 
 function JourneyContent() {
   const searchParams = useSearchParams();
@@ -43,6 +49,24 @@ function JourneyContent() {
   const prs = useMemo(() => getPRs(rides), [rides]);
   const badges = useMemo(() => getBadges(rides), [rides]);
   const latestClassId = rides[0]?.classId ?? "";
+
+  // Derive protocol tier from real effort data
+  const { tierLabel, tierColor, tierDescription } = useMemo(() => {
+    if (rides.length === 0) return { tierLabel: "—", tierColor: "#6b7280", tierDescription: "Complete rides to earn a tier." };
+    const avgEffort = rides.reduce((s, r) => s + r.avgEffort, 0) / rides.length;
+    if (avgEffort >= 800) return { tierLabel: "ELITE", tierColor: "#818cf8", tierDescription: `Avg effort ${Math.round(avgEffort)}/1000 across ${rides.length} rides.` };
+    if (avgEffort >= 500) return { tierLabel: "STRONG", tierColor: "#6366f1", tierDescription: `Avg effort ${Math.round(avgEffort)}/1000 across ${rides.length} rides.` };
+    return { tierLabel: "BUILDING", tierColor: "#4f46e5", tierDescription: `Avg effort ${Math.round(avgEffort)}/1000 across ${rides.length} rides.` };
+  }, [rides]);
+
+  // Derive active multiplier from real streak data
+  const multiplier = useMemo(() => {
+    const streak = retention.streaks.daily;
+    if (streak >= 7) return { label: "1.5x", description: `${streak}-day streak bonus active.` };
+    if (streak >= 3) return { label: "1.2x", description: `${streak}-day streak bonus active.` };
+    if (streak >= 1) return { label: "1.0x", description: "Ride 3+ days in a row to unlock a streak bonus." };
+    return { label: "—", description: "Start a streak by riding 3+ days in a row." };
+  }, [retention.streaks.daily]);
   useEffect(() => {
     void processRideSyncQueue().then(() => {
       setRides(getRideHistory());
@@ -167,12 +191,13 @@ function JourneyContent() {
                   Protocol Tier
                 </span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-indigo-400 tracking-tighter">
-                    ELITE
+                  <span className="text-3xl font-black tracking-tighter
+                    " style={{ color: tierColor }}>
+                    {tierLabel}
                   </span>
                 </div>
                 <p className="mt-2 text-[10px] text-white/40 font-medium">
-                  Top 5% of active protocol riders.
+                  {tierDescription}
                 </p>
               </div>
 
@@ -182,11 +207,11 @@ function JourneyContent() {
                 </span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black text-emerald-400 tracking-tighter">
-                    1.5x
+                    {multiplier.label}
                   </span>
                 </div>
                 <p className="mt-2 text-[10px] text-white/40 font-medium">
-                  Daily streak bonus active.
+                  {multiplier.description}
                 </p>
               </div>
             </div>
@@ -204,24 +229,40 @@ function JourneyContent() {
           </p>
         </div>
 
+        {/* Effort Trend Chart */}
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <h2 className="text-xl font-bold text-white">Trend Snapshot</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-4">
-            {recent.map((ride) => (
-              <div
-                key={ride.id}
-                className="rounded-xl border border-white/10 bg-black/20 p-3"
-              >
-                <p className="text-xs text-white/50">
-                  {new Date(ride.completedAt).toLocaleDateString()}
-                </p>
-                <p className="text-sm text-white/80">{ride.className}</p>
-                <p className="text-lg font-semibold text-indigo-300">
-                  {ride.avgEffort}
-                </p>
-                <p className="text-xs text-white/50">Effort</p>
-              </div>
-            ))}
+          <h2 className="text-xl font-bold text-white">Effort Trend</h2>
+          <p className="mt-1 text-xs text-white/40">Your effort score over recent rides</p>
+          <div className="mt-4">
+            <EffortTrendChart rides={rides} />
+          </div>
+        </div>
+
+        {/* Calendar Heatmap */}
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+          <h2 className="text-xl font-bold text-white">Ride Calendar</h2>
+          <p className="mt-1 text-xs text-white/40">Your consistency over the last 12 weeks</p>
+          <div className="mt-4">
+            <CalendarHeatmap rides={rides} />
+          </div>
+        </div>
+
+        {/* Weekly Volume + Zone Distribution */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+            <h2 className="text-lg font-bold text-white">Weekly Volume</h2>
+            <p className="mt-1 text-xs text-white/40">Rides per week, stacked by effort tier</p>
+            <div className="mt-4">
+              <WeeklyVolumeChart rides={rides} />
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+            <h2 className="text-lg font-bold text-white">Zone Distribution</h2>
+            <p className="mt-1 text-xs text-white/40">Time spent in each heart rate zone</p>
+            <div className="mt-4">
+              <ZoneDistributionChart rides={rides} />
+            </div>
           </div>
         </div>
 

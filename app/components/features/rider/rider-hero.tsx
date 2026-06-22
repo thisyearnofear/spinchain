@@ -2,8 +2,28 @@
 
 import { motion } from "framer-motion";
 import { Bike, Zap, TrendingUp, Users } from "lucide-react";
+import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
+import { useClasses } from "@/app/hooks/evm/use-class-data";
+import { useInstructors } from "@/app/hooks/evm/use-instructors";
 
 export function RiderHero() {
+  const { totalRides, prs } = useRiderStats();
+  const { classes } = useClasses();
+  const { instructors } = useInstructors();
+
+  const activeRoutes = classes.length;
+  const aiCoaches = instructors.length || 3;
+  const avgReward = totalRides > 0
+    ? `${prs.bestSpin.toFixed(0)} SPIN`
+    : "—";
+
+  const stats = [
+    { icon: Bike, label: "Active Routes", value: activeRoutes.toString() },
+    { icon: Users, label: "AI Coaches", value: aiCoaches.toString() },
+    { icon: Zap, label: "Best Effort", value: prs.bestEffort > 0 ? `${prs.bestEffort}` : "—" },
+    { icon: TrendingUp, label: "Top Reward", value: avgReward },
+  ];
+
   return (
     <section className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 backdrop-blur">
       {/* Animated gradient mesh */}
@@ -91,12 +111,7 @@ export function RiderHero() {
             transition={{ duration: 0.4, delay: 0.2, ease: [0.23, 1, 0.32, 1] }}
             className="grid grid-cols-2 gap-3 w-full lg:w-auto"
           >
-            {[
-              { icon: Bike, label: "Active Routes", value: "4" },
-              { icon: Users, label: "Riders", value: "120+" },
-              { icon: Zap, label: "AI Coaches", value: "3" },
-              { icon: TrendingUp, label: "Avg Reward", value: "20 SPIN" },
-            ].map((stat, i) => (
+            {stats.map((stat, i) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 10 }}
