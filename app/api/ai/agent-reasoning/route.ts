@@ -10,6 +10,7 @@ import { checkRateLimit } from "@/app/lib/api/rate-limiter";
 import { agentReasoningWithGemini, AgentDecision } from "@/app/lib/gemini-client";
 import { agentReasoningWithVenice } from "@/app/lib/venice-client";
 import { agentReasoningWithNvidia } from "@/app/lib/nvidia-client";
+import { fetchCoachPromptFromWalrus } from "@/app/lib/walrus/coach-prompt-fetch";
 
 const decisionCache = new TtlCache<AgentDecision & { _provider: string }>(30_000);
 
@@ -19,6 +20,7 @@ export const dynamic = 'force-dynamic';
 type AgentReasoningRequest = {
   agentName: string;
   personality: string;
+  systemPromptCid?: string;
   context: {
     telemetry: {
       avgBpm: number;
@@ -47,11 +49,20 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as AgentReasoningRequest;
-    const { agentName, personality, context } = body;
+    const { agentName, personality, systemPromptCid, context } = body;
 
     // Validate required fields
     if (!agentName || !personality) {
       return apiError("agentName and personality are required", "MISSING_FIELD", 400);
+    }
+
+    // Fetch real system prompt from Walrus if provided
+    let customSystemPrompt: string | undefined;
+    if (systemPromptCid) {
+      const walrusPrompt = await fetchCoachPromptFromWalrus(systemPromptCid);
+      if (walrusPrompt?.systemPrompt) {
+        customSystemPrompt = walrusPrompt.systemPrompt;
+      }
     }
 
     const VENICE_API_KEY = process.env.VENICE_API_KEY;
@@ -79,21 +90,21 @@ export async function POST(req: NextRequest) {
     if (VENICE_API_KEY) {
       console.log(`[Venice] Agent reasoning: ${agentName} (${personality})`);
       try {
-        decision = await agentReasoningWithVenice(agentName, personality, context);
+        decision = await agentReasoningWithVenice(agentName, personality, context, customSystemPrompt);
       } catch (veniceErr) {
         console.warn("[Venice] Agent reasoning failed, trying NVIDIA:", veniceErr);
         if (NVIDIA_API_KEY) {
           try {
-            decision = await agentReasoningWithNvidia(agentName, personality, context);
+            decision = await agentReasoningWithNvidia(agentName, personality, context, customSystemPrompt);
             providerUsed = "nvidia";
           } catch (nvidiaErr) {
             console.warn("[NVIDIA] Agent reasoning failed, falling back to Gemini:", nvidiaErr);
             if (!GEMINI_API_KEY) throw nvidiaErr;
-            decision = await agentReasoningWithGemini(agentName, personality, context);
+            decision = await agentReasoningWithGemini(agentName, personality, context, customSystemPrompt);
             providerUsed = "gemini";
           }
         } else if (GEMINI_API_KEY) {
-          decision = await agentReasoningWithGemini(agentName, personality, context);
+          decision = await agentReasoningWithGemini(agentName, personality, context, customSystemPrompt);
           providerUsed = "gemini";
         } else {
           throw veniceErr;
@@ -102,17 +113,17 @@ export async function POST(req: NextRequest) {
     } else if (NVIDIA_API_KEY) {
       console.log(`[NVIDIA] Agent reasoning: ${agentName} (${personality})`);
       try {
-        decision = await agentReasoningWithNvidia(agentName, personality, context);
+        decision = await agentReasoningWithNvidia(agentName, personality, context, customSystemPrompt);
         providerUsed = "nvidia";
       } catch (nvidiaErr) {
         console.warn("[NVIDIA] Agent reasoning failed, falling back to Gemini:", nvidiaErr);
         if (!GEMINI_API_KEY) throw nvidiaErr;
-        decision = await agentReasoningWithGemini(agentName, personality, context);
+        decision = await agentReasoningWithGemini(agentName, personality, context, customSystemPrompt);
         providerUsed = "gemini";
       }
     } else if (GEMINI_API_KEY) {
       console.log(`[Gemini] Agent reasoning: ${agentName} (${personality})`);
-      decision = await agentReasoningWithGemini(agentName, personality, context);
+      decision = await agentReasoningWithGemini(agentName, personality, context, customSystemPrompt);
       providerUsed = "gemini";
     } else {
       throw new Error("No AI providers available");

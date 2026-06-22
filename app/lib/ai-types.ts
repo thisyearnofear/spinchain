@@ -75,6 +75,8 @@ export interface CoachingContext {
   recentPerformance: "below" | "on" | "above" | "crushing";
   fatigueLevel: "low" | "moderate" | "high";
   personality?: "zen" | "drill-sergeant" | "data";
+  systemPromptCid?: string;
+  customSystemPrompt?: string;
 }
 
 export interface CoachingResponse {

@@ -399,7 +399,9 @@ export async function getCoachingWithGemini(
           ? "\n\n**PERSONALITY: Data Analyst** — Metrics-driven, precise, analytical. Reference numbers, zones, and percentages. 'You're at 78% of threshold power.' 'Cadence dropped 4 RPM — let's tighten that up.'"
           : "";
 
-    const systemPrompt = `You are Coachy, an elite AI cycling coach powered by Gemini 3.
+    const systemPrompt = context.customSystemPrompt
+      ? context.customSystemPrompt
+      : `You are Coachy, an elite AI cycling coach powered by Gemini 3.
 
 **Your Coaching Philosophy**:
 - Read the rider's physical and mental state
@@ -491,12 +493,15 @@ export async function agentReasoningWithGemini(
     telemetry: { avgBpm: number; resistance: number; duration: number };
     market: { ticketsSold: number; revenue: number; capacity: number };
     recentDecisions: string[];
-  }
+  },
+  customSystemPrompt?: string,
 ): Promise<AgentDecision> {
   return withRetry(async () => {
     const model = getOptimizedModel(true);
 
-    const systemPrompt = `You are ${agentName}, an autonomous AI spin instructor with a '${personality}' personality, powered by Gemini 3's reasoning capabilities.
+    const systemPrompt = customSystemPrompt
+      ? customSystemPrompt
+      : `You are ${agentName}, an autonomous AI spin instructor with a '${personality}' personality, powered by Gemini 3's reasoning capabilities.
 
 **Your Dual Objective**:
 1. Maximize rider performance and engagement

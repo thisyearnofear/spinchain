@@ -26,11 +26,13 @@ import {
   Sparkles,
   CheckCircle2,
   AlertTriangle,
+  Calendar,
 } from "lucide-react";
 import {
   fetchGhostWithFallback,
   GhostPerformance,
 } from "@/app/lib/analytics/ghost-service";
+import { useMindbodySync } from "@/app/hooks/integrations/use-mindbody-sync";
 import { RidePreviewBadge } from "@/app/components/features/common/yellow-status-indicator";
 
 import { useNetworkStatus } from "@/app/hooks/use-network-status";
@@ -75,6 +77,7 @@ export default function InstructorLivePage() {
   const lastCoachMessage = useCoachingStore(selectLastCoachMessage);
   const lastDecision = useCoachingStore((s) => s.lastDecision) as AgentDecision | null;
   const currentInterval = useCoachingStore(selectCurrentInterval);
+  const mindbodySync = useMindbodySync();
 
   // Use real telemetry when ride is active, fall back to demo data
   const telemetry = rideActive
@@ -666,6 +669,79 @@ export default function InstructorLivePage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Mindbody/ClassPass Bridge */}
+          <div className="mt-8">
+            <GlassCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <SectionHeader
+                  eyebrow="Integration"
+                  title="Mindbody / ClassPass Bridge"
+                  description="Sync bookings and generate wallet-less claim links."
+                />
+                <Calendar className="w-5 h-5 text-indigo-400" />
+              </div>
+
+              <div className="flex items-center gap-3 mb-4">
+                <LoadingButton
+                  onClick={() => mindbodySync.syncBookings()}
+                  isLoading={mindbodySync.isSyncing}
+                  className="px-4 py-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-sm font-bold hover:bg-indigo-500/30 transition-all"
+                >
+                  {mindbodySync.isSyncing ? "Syncing..." : "Sync Bookings"}
+                </LoadingButton>
+                <LoadingButton
+                  onClick={() => mindbodySync.fetchUpcomingClasses(7)}
+                  isLoading={mindbodySync.isLoadingClasses}
+                  className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 text-sm font-bold hover:bg-white/10 transition-all"
+                >
+                  {mindbodySync.isLoadingClasses ? "Loading..." : "Fetch Classes"}
+                </LoadingButton>
+              </div>
+
+              {mindbodySync.syncResult && (
+                <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm font-bold text-emerald-300">
+                      Synced {mindbodySync.syncResult.synced} bookings · {mindbodySync.syncResult.claimLinks.length} claim links generated
+                    </span>
+                  </div>
+                  {mindbodySync.syncResult.claimLinks.slice(0, 3).map((link) => (
+                    <div key={link.bookingId} className="text-xs text-white/50 mt-1">
+                      {link.className} → {link.clientEmail} · <span className="text-indigo-400">{link.url}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {mindbodySync.classes.length > 0 && (
+                <div className="space-y-2">
+                  {mindbodySync.classes.slice(0, 5).map((cls) => (
+                    <div key={cls.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                      <div>
+                        <div className="text-sm font-bold text-white/80">{cls.name}</div>
+                        <div className="text-xs text-white/40">{cls.instructor} · {cls.location}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs font-bold text-white/60">{cls.totalBooked}/{cls.maxCapacity} booked</div>
+                        <div className="text-[10px] text-white/30">{new Date(cls.startDateTime).toLocaleString()}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {mindbodySync.error && (
+                <div className="mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-400" />
+                    <span className="text-xs text-rose-300">{mindbodySync.error}</span>
+                  </div>
+                </div>
+              )}
+            </GlassCard>
           </div>
         </div>
       </main>

@@ -237,22 +237,9 @@ export async function getCoachingWithVenice(
         ? " You are a DATA ANALYST: metrics-driven, precise, analytical. Reference numbers and zones."
         : "";
 
-  const prompt = `You are a cycling coach.${personalityStyle} Current rider state:
-- Heart Rate: ${context.riderHeartRate} BPM (target: ${context.targetHeartRate})
-- Resistance: ${context.currentResistance}%
-- Cadence: ${context.currentCadence} RPM
-- Progress: ${Math.round(context.workoutProgress * 100)}%
-- Performance: ${context.recentPerformance}
-- Fatigue: ${context.fatigueLevel}
-${historyText}
-
-Respond with JSON:
-{
-  "message": "1-2 sentence coaching advice",
-  "tone": "encouraging|challenging|calm|energetic|tactical",
-  "action": { "type": "increase_resistance|decrease_resistance|maintain|sprint|recover", "value": number },
-  "motivation": "One-line encouragement"
-}`;
+  const prompt = context.customSystemPrompt
+    ? `${context.customSystemPrompt}\n\nCurrent rider state:\n- Heart Rate: ${context.riderHeartRate} BPM (target: ${context.targetHeartRate})\n- Resistance: ${context.currentResistance}%\n- Cadence: ${context.currentCadence} RPM\n- Progress: ${Math.round(context.workoutProgress * 100)}%\n- Performance: ${context.recentPerformance}\n- Fatigue: ${context.fatigueLevel}\n${historyText}\n\nRespond with JSON:\n{\n  "message": "1-2 sentence coaching advice",\n  "tone": "encouraging|challenging|calm|energetic|tactical",\n  "action": { "type": "increase_resistance|decrease_resistance|maintain|sprint|recover", "value": number },\n  "motivation": "One-line encouragement"\n}`
+    : `You are a cycling coach.${personalityStyle} Current rider state:\n- Heart Rate: ${context.riderHeartRate} BPM (target: ${context.targetHeartRate})\n- Resistance: ${context.currentResistance}%\n- Cadence: ${context.currentCadence} RPM\n- Progress: ${Math.round(context.workoutProgress * 100)}%\n- Performance: ${context.recentPerformance}\n- Fatigue: ${context.fatigueLevel}\n${historyText}\n\nRespond with JSON:\n{\n  "message": "1-2 sentence coaching advice",\n  "tone": "encouraging|challenging|calm|energetic|tactical",\n  "action": { "type": "increase_resistance|decrease_resistance|maintain|sprint|recover", "value": number },\n  "motivation": "One-line encouragement"\n}`;
 
   const response = await fetch(`${VENICE_API_URL}/chat/completions`, {
     method: "POST",
@@ -297,11 +284,14 @@ export async function agentReasoningWithVenice(
     telemetry: { avgBpm: number; resistance: number; duration: number };
     market: { ticketsSold: number; revenue: number; capacity: number };
     recentDecisions: string[];
-  }
+  },
+  customSystemPrompt?: string,
 ): Promise<AgentDecision> {
   const apiKey = getVeniceApiKey();
 
-  const prompt = `You are ${agentName}, an AI instructor with ${personality} personality.
+  const prompt = customSystemPrompt
+    ? `${customSystemPrompt}\n\nContext:\n- Heart Rate: ${context.telemetry.avgBpm} BPM\n- Resistance: ${context.telemetry.resistance}%\n- Duration: ${context.telemetry.duration} mins\n- Tickets: ${context.market.ticketsSold}/${context.market.capacity}\n- Revenue: ${context.market.revenue}\n- Recent actions: ${context.recentDecisions.slice(-3).join(", ") || "None"}\n\nAvailable actions: increase_resistance, decrease_resistance, maintain, surge_price, discount_price, wait\n\nRespond with JSON:\n{\n  "thoughtProcess": "Your reasoning",\n  "action": "action_name",\n  "parameters": {},\n  "confidence": 0.85,\n  "reasoning": "Why this action",\n  "expectedOutcome": "What will happen"\n}`
+    : `You are ${agentName}, an AI instructor with ${personality} personality.
 
 Context:
 - Heart Rate: ${context.telemetry.avgBpm} BPM

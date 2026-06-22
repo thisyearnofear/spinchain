@@ -83,6 +83,10 @@ export const CONTRACT_ADDRESSES = {
   /** Chainlink CRE Forwarder contract */
   CRE_FORWARDER: (process.env.NEXT_PUBLIC_CHAINLINK_FORWARDER ??
     ZERO_ADDRESS) as `0x${string}`,
+
+  /** SpinPack ERC-1155 — Master NFT (route IP) + access tickets */
+  SPIN_PACK: (process.env.NEXT_PUBLIC_SPIN_PACK_ADDRESS ??
+    ZERO_ADDRESS) as `0x${string}`,
 } as const;
 
 // Legacy named exports (used throughout the codebase)
@@ -568,6 +572,159 @@ export const INCENTIVE_ENGINE_ABI = [
     ],
     outputs: [],
     stateMutability: "nonpayable",
+  },
+] as const;
+
+export const SPIN_PACK_ABI = [
+  {
+    type: "function",
+    name: "createPack",
+    inputs: [
+      { name: "tokenId", type: "uint256" },
+      { name: "capacity", type: "uint128" },
+      { name: "pricePerTicket", type: "uint256" },
+      { name: "paymentToken", type: "address" },
+      { name: "startTime", type: "uint256" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "updatePack",
+    inputs: [
+      { name: "tokenId", type: "uint256" },
+      { name: "capacity", type: "uint128" },
+      { name: "pricePerTicket", type: "uint256" },
+      { name: "active", type: "bool" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "purchaseTickets",
+    inputs: [
+      { name: "tokenId", type: "uint256" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+    stateMutability: "payable",
+  },
+  {
+    type: "function",
+    name: "redeemTicket",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "setURI",
+    inputs: [{ name: "newuri", type: "string" }],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "setRevenueRecipient",
+    inputs: [{ name: "recipient", type: "address" }],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "pause",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "unpause",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "getUtilization",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getRemainingTickets",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "hasRedeemed",
+    inputs: [
+      { name: "rider", type: "address" },
+      { name: "tokenId", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "packs",
+    inputs: [{ name: "", type: "uint256" }],
+    outputs: [
+      { name: "capacity", type: "uint128" },
+      { name: "sold", type: "uint128" },
+      { name: "startTime", type: "uint256" },
+      { name: "pricePerTicket", type: "uint256" },
+      { name: "paymentToken", type: "address" },
+      { name: "active", type: "bool" },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "masterOwner",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "revenueRecipient",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "event",
+    name: "PackCreated",
+    inputs: [
+      { indexed: true, name: "tokenId", type: "uint256" },
+      { name: "capacity", type: "uint128" },
+      { name: "pricePerTicket", type: "uint256" },
+      { name: "paymentToken", type: "address" },
+    ],
+  },
+  {
+    type: "event",
+    name: "TicketPurchased",
+    inputs: [
+      { indexed: true, name: "tokenId", type: "uint256" },
+      { indexed: true, name: "buyer", type: "address" },
+      { name: "amount", type: "uint256" },
+      { name: "totalPrice", type: "uint256" },
+    ],
+  },
+  {
+    type: "event",
+    name: "TicketRedeemed",
+    inputs: [
+      { indexed: true, name: "tokenId", type: "uint256" },
+      { indexed: true, name: "rider", type: "address" },
+    ],
   },
 ] as const;
 

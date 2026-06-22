@@ -325,7 +325,11 @@ export class TelemetryEngine {
 
   /** Loads multiple ghosts for the social riders UI (best-effort).
    *  Fetches 3 ghosts: personal_best, leaderboard, and instructor-level pacer. */
-  async loadMultiGhost(classId: string): Promise<void> {
+  async loadMultiGhost(
+    classId: string,
+    riderAddress?: string,
+    ghostBlobId?: string,
+  ): Promise<void> {
     if (this.multiGhostFetched || this.routeCoordinates.length === 0) return;
     this.multiGhostFetched = true;
 
@@ -333,12 +337,12 @@ export class TelemetryEngine {
       const [pb, leaderboard, pacer] = await Promise.all([
         fetchGhostWithFallback(
           this.routeCoordinates,
-          { classId, ghostType: "personal_best", riderName: "Your Best" },
+          { classId, riderAddress, routeBlobId: ghostBlobId, ghostType: "personal_best", riderName: "Your Best" },
           30,
         ),
         fetchGhostWithFallback(
           this.routeCoordinates,
-          { classId, ghostType: "leaderboard", riderName: "Peloton Avg" },
+          { classId, riderAddress, routeBlobId: ghostBlobId, ghostType: "leaderboard", riderName: "Peloton Avg" },
           25,
         ),
         fetchGhostWithFallback(

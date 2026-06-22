@@ -16,6 +16,7 @@ import { getCoachingWithVenice, chatWithVenice } from "@/app/lib/venice-client";
 import { getCoachingWithNvidia, chatWithNvidia } from "@/app/lib/nvidia-client";
 import { TtlCache } from "@/app/lib/api/cache";
 import { checkRateLimit } from "@/app/lib/api/rate-limiter";
+import { fetchCoachPromptFromWalrus } from "@/app/lib/walrus/coach-prompt-fetch";
 
 export const runtime = "edge";
 
@@ -76,43 +77,52 @@ export async function POST(req: NextRequest) {
     }
 
     if (mode === "coaching" && context) {
+      // Fetch real system prompt from Walrus if a blob ID is provided
+      let effectiveContext = context;
+      if (context.systemPromptCid) {
+        const walrusPrompt = await fetchCoachPromptFromWalrus(context.systemPromptCid);
+        if (walrusPrompt?.systemPrompt) {
+          effectiveContext = { ...context, customSystemPrompt: walrusPrompt.systemPrompt } as typeof context;
+        }
+      }
+
       if (VENICE_API_KEY) {
-        console.log(`[Venice] Coaching: HR ${context.riderHeartRate} BPM, progress ${Math.round(context.workoutProgress * 100)}%`);
+        console.log(`[Venice] Coaching: HR ${effectiveContext.riderHeartRate} BPM, progress ${Math.round(effectiveContext.workoutProgress * 100)}%`);
         try {
-          response = await getCoachingWithVenice(context, conversationHistory);
+          response = await getCoachingWithVenice(effectiveContext, conversationHistory);
         } catch (veniceErr) {
           console.warn("[Venice] Coaching failed, trying NVIDIA:", veniceErr);
           if (NVIDIA_API_KEY) {
             try {
-              response = await getCoachingWithNvidia(context, conversationHistory);
+              response = await getCoachingWithNvidia(effectiveContext, conversationHistory);
               providerUsed = "nvidia";
             } catch (nvidiaErr) {
               console.warn("[NVIDIA] Coaching failed, falling back to Gemini:", nvidiaErr);
               if (!GEMINI_API_KEY) throw nvidiaErr;
-              response = await getCoachingWithGemini(context, conversationHistory);
+              response = await getCoachingWithGemini(effectiveContext, conversationHistory);
               providerUsed = "gemini";
             }
           } else if (GEMINI_API_KEY) {
-            response = await getCoachingWithGemini(context, conversationHistory);
+            response = await getCoachingWithGemini(effectiveContext, conversationHistory);
             providerUsed = "gemini";
           } else {
             throw veniceErr;
           }
         }
       } else if (NVIDIA_API_KEY) {
-        console.log(`[NVIDIA] Coaching: HR ${context.riderHeartRate} BPM, progress ${Math.round(context.workoutProgress * 100)}%`);
+        console.log(`[NVIDIA] Coaching: HR ${effectiveContext.riderHeartRate} BPM, progress ${Math.round(effectiveContext.workoutProgress * 100)}%`);
         try {
-          response = await getCoachingWithNvidia(context, conversationHistory);
+          response = await getCoachingWithNvidia(effectiveContext, conversationHistory);
           providerUsed = "nvidia";
         } catch (nvidiaErr) {
           console.warn("[NVIDIA] Coaching failed, falling back to Gemini:", nvidiaErr);
           if (!GEMINI_API_KEY) throw nvidiaErr;
-          response = await getCoachingWithGemini(context, conversationHistory);
+          response = await getCoachingWithGemini(effectiveContext, conversationHistory);
           providerUsed = "gemini";
         }
       } else {
-        console.log(`[Gemini] Coaching: HR ${context.riderHeartRate} BPM, progress ${Math.round(context.workoutProgress * 100)}%`);
-        response = await getCoachingWithGemini(context, conversationHistory);
+        console.log(`[Gemini] Coaching: HR ${effectiveContext.riderHeartRate} BPM, progress ${Math.round(effectiveContext.workoutProgress * 100)}%`);
+        response = await getCoachingWithGemini(effectiveContext, conversationHistory);
         providerUsed = "gemini";
       }
     } else {
