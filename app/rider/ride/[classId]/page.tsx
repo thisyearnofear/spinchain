@@ -90,6 +90,20 @@ export default function LiveRidePage() {
 
   // ─── AI Instructor (personality-driven rule-based coaching) ───
   const telemetrySnapshot = useTelemetryStore(selectTelemetrySnapshot);
+  const [suiSessionId, setSuiSessionId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isRiding) {
+      setSuiSessionId(null);
+      return;
+    }
+    const interval = setInterval(() => {
+      const state = coordinatorRef.current?.getSuiSessionState?.();
+      if (state?.sessionId && !state.sessionId.startsWith("pending-")) {
+        setSuiSessionId(state.sessionId);
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isRiding]);
   const aiInstructorMetrics = useMemo(
     () =>
       isRiding
@@ -110,7 +124,7 @@ export default function LiveRidePage() {
   const aiInstructor = useAiInstructor({
     agentName: "Coach",
     personality: "data",
-    sessionObjectId: null,
+    sessionObjectId: suiSessionId,
     metrics: aiInstructorMetrics,
     currentInterval,
     isEnabled: isRiding,
@@ -131,9 +145,11 @@ export default function LiveRidePage() {
   }, [aiInstructor.logs, setAiLogs]);
 
   // ─── LLM Coaching (periodic AI-powered coaching via /api/ai/chat) ──
+  const aiMeta = classData?.metadata?.ai as { systemPromptCid?: string } | undefined;
   useLLMCoaching({
     enabled: isRiding,
     personality: "data",
+    systemPromptCid: aiMeta?.systemPromptCid,
   });
 
   // ─── Panel State ───────────────────────────────────────────────
