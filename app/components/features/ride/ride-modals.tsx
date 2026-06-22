@@ -89,6 +89,7 @@ export const RideModals = memo(function RideModals({
   const completionSyncStatus = useRideModalStore((s) => s.completionSyncStatus);
   const completionPrimaryAction = useRideModalStore((s) => s.completionPrimaryAction);
   const walrusAnchorInfo = useRideModalStore((s) => s.walrusAnchorInfo);
+  const completedRideId = useRideModalStore((s) => s.completedRideId);
 
   return (
     <>
@@ -178,6 +179,8 @@ export const RideModals = memo(function RideModals({
           syncStatus={completionSyncStatus}
           primaryAction={completionPrimaryAction}
           walrusAnchorInfo={walrusAnchorInfo}
+          classId={classId}
+          completedRideId={completedRideId ?? undefined}
           onExportTCX={() => {
             downloadTCX(
               {

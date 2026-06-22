@@ -16,6 +16,7 @@ import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import { Star, Cloud, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { LoadingButton } from "../../ui/loading-button";
 import { ShareCardButton } from "./share-card";
+import { RideComparison, SegmentBreakdown } from "./ride-comparison";
 
 export interface RewardClaimStatus {
   mode: "zk" | "chainlink";
@@ -54,6 +55,8 @@ interface RideCompletionProps {
   syncStatus?: "local_only" | "queued" | "relayed" | "anchored" | "failed";
   primaryAction?: "view_history" | "ride_again";
   walrusAnchorInfo?: { blobId: string; txDigest?: string } | null;
+  classId?: string;
+  completedRideId?: string;
 }
 
 type CompletionTab = "summary" | "rewards" | "storage";
@@ -79,6 +82,8 @@ export function RideCompletion({
   syncStatus = "local_only",
   primaryAction = "view_history",
   walrusAnchorInfo = null,
+  classId,
+  completedRideId,
 }: RideCompletionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<CompletionTab>("summary");
@@ -315,6 +320,8 @@ export function RideCompletion({
               spinEarned={spinEarned}
               agentName={agentName}
               walrusAnchorInfo={walrusAnchorInfo}
+              classId={classId}
+              completedRideId={completedRideId}
             />
           )}
           {activeTab === "rewards" && (
@@ -437,6 +444,8 @@ function SummaryTab({
   spinEarned,
   agentName,
   walrusAnchorInfo,
+  classId,
+  completedRideId,
 }: {
   agentPersonality: "zen" | "drill-sergeant" | "data";
   elapsedTime: number;
@@ -448,6 +457,8 @@ function SummaryTab({
   spinEarned: string;
   agentName: string;
   walrusAnchorInfo: { blobId: string; txDigest?: string } | null;
+  classId?: string;
+  completedRideId?: string;
 }) {
   return (
     <div className="space-y-4">
@@ -516,6 +527,24 @@ function SummaryTab({
           walrusBlobId={walrusAnchorInfo?.blobId}
         />
       </div>
+
+      {/* Ride comparison vs previous ride on same route */}
+      <RideComparison
+        currentRideId={completedRideId}
+        classId={classId}
+        avgEffort={avgEffort}
+        avgPower={avgPower}
+        avgHeartRate={avgHeartRate}
+        durationSec={elapsedTime}
+        spinEarned={spinEarned}
+      />
+
+      {/* Zone-based segment breakdown */}
+      <SegmentBreakdown
+        durationSec={elapsedTime}
+        avgEffort={avgEffort}
+        avgHeartRate={avgHeartRate}
+      />
     </div>
   );
 }
