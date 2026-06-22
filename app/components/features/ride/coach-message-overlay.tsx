@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Zap, Target, Sparkles, Brain } from "lucide-react";
-import { useCoachingStore, selectLastCoachMessage, selectCurrentInterval, selectIsSpeaking } from "@/app/stores/coaching-store";
+import { useCoachingStore, selectLastCoachMessage, selectIsSpeaking } from "@/app/stores/coaching-store";
 
 const PHASE_COLORS: Record<string, { glow: string; accent: string; bar: string }> = {
   sprint: { glow: "bg-red-500/20", accent: "text-red-400", bar: "bg-red-500/50" },
