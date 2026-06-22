@@ -56,7 +56,7 @@ export const RideModals = memo(function RideModals({
   aiPersonality,
   ridePointsRef,
   router,
-  onExitRide,
+  onExitRide: _onExitRide,
   onCompletionExit,
   onEnableSimulatorFromModal,
   onDismissNoBike,

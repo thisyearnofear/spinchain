@@ -13,7 +13,6 @@ import { EventBus } from "./event-bus";
 import type {
   TelemetrySnapshot,
   TelemetryAverages,
-  TelemetryHistory,
   DeviceType,
   PerformanceTier,
   MultiGhostState,

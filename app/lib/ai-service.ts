@@ -19,15 +19,6 @@
  * - Circuit breakers implemented in API routes for cost control
  */
 
-import {
-  generateRouteWithGemini,
-  generateNarrativeWithGemini,
-  chatWithGemini,
-  getCoachingWithGemini,
-  agentReasoningWithGemini,
-  generateRouteStream,
-} from "./gemini-client";
-
 import type {
   RouteRequest,
   RouteResponse,
@@ -35,22 +26,6 @@ import type {
   CoachingResponse,
   AgentDecision,
 } from "./ai-types";
-
-import {
-  generateRouteWithVenice,
-  generateNarrativeWithVenice,
-  chatWithVenice,
-  getCoachingWithVenice,
-  agentReasoningWithVenice,
-} from "./venice-client";
-
-import {
-  generateRouteWithNvidia,
-  generateNarrativeWithNvidia,
-  chatWithNvidia,
-  getCoachingWithNvidia,
-  agentReasoningWithNvidia,
-} from "./nvidia-client";
 
 import {
   AIProvider,

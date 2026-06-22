@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import {
   GlassCard,
@@ -9,11 +9,9 @@ import {
   SurfaceCard,
 } from "@/app/components/ui/ui";
 import { LoadingButton } from "@/app/components/ui/loading-button";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
   Zap,
-  Shield,
   MessageSquare,
   TrendingUp,
   Activity,
@@ -64,16 +62,15 @@ export default function InstructorLivePage() {
   const networkStatus = useNetworkStatus();
   const [isAgentPaused, setIsAgentPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [riderCount, setRiderCount] = useState(DEMO_DEFAULTS.riderCount);
-  const [activeRiders, setActiveRiders] = useState(DEMO_DEFAULTS.activeRiders);
+  const [riderCount] = useState(DEMO_DEFAULTS.riderCount);
+  const [activeRiders] = useState(DEMO_DEFAULTS.activeRiders);
   const [benchmark, setBenchmark] = useState<GhostPerformance | null>(null);
-  const [marketStats, setMarketStats] = useState(DEMO_DEFAULTS.marketStats);
+  const [marketStats] = useState(DEMO_DEFAULTS.marketStats);
 
   // Real telemetry from Zustand stores
   const rideSnapshot = useTelemetryStore(selectTelemetrySnapshot);
   const rideAverages = useTelemetryStore(selectTelemetryAverages);
   const rideActive = useRideStore((s) => s.isActive);
-  const rideProgress = useRideStore((s) => s.rideProgress);
   const rideSession = useRideStore((s) => s.session);
   const aiLogs = useCoachingStore(selectAiLogs);
   const lastCoachMessage = useCoachingStore(selectLastCoachMessage);
@@ -81,6 +78,14 @@ export default function InstructorLivePage() {
   const currentInterval = useCoachingStore(selectCurrentInterval);
   const mindbodySync = useMindbodySync();
   const spinPack = useSpinPack();
+  const [spinPackForm, setSpinPackForm] = useState({
+    tokenId: 1,
+    capacity: 20,
+    priceEth: 0.01,
+    purchaseTokenId: 1,
+    purchaseAmount: 1,
+    redeemTokenId: 1,
+  });
 
   // Use real telemetry when ride is active, fall back to demo data
   const telemetry = rideActive
@@ -794,20 +799,116 @@ export default function InstructorLivePage() {
                 </div>
               )}
 
-              <div className="flex items-center gap-3">
-                <LoadingButton
-                  onClick={() => spinPack.createPack({
-                    tokenId: BigInt(1),
-                    capacity: BigInt(20),
-                    pricePerTicket: BigInt(10000000000000000),
-                    paymentToken: "0x0000000000000000000000000000000000000000",
-                    startTime: BigInt(Math.floor(Date.now() / 1000)),
-                  })}
-                  isLoading={spinPack.isCreating}
-                  className="px-4 py-2 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-300 text-sm font-bold hover:bg-purple-500/30 transition-all"
-                >
-                  {spinPack.isCreating ? "Creating..." : "Create Demo Pack"}
-                </LoadingButton>
+              {/* Create Pack Form */}
+              <div className="space-y-3 mb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Token ID</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={spinPackForm.tokenId}
+                      onChange={(e) => setSpinPackForm((p) => ({ ...p, tokenId: Number(e.target.value) }))}
+                      className="w-full mt-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 focus:outline-none focus:border-purple-400/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Capacity</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={spinPackForm.capacity}
+                      onChange={(e) => setSpinPackForm((p) => ({ ...p, capacity: Number(e.target.value) }))}
+                      className="w-full mt-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 focus:outline-none focus:border-purple-400/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Price (ETH)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.001}
+                      value={spinPackForm.priceEth}
+                      onChange={(e) => setSpinPackForm((p) => ({ ...p, priceEth: Number(e.target.value) }))}
+                      className="w-full mt-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 focus:outline-none focus:border-purple-400/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <LoadingButton
+                    onClick={() => spinPack.createPack({
+                      tokenId: BigInt(spinPackForm.tokenId),
+                      capacity: BigInt(spinPackForm.capacity),
+                      pricePerTicket: BigInt(Math.floor(spinPackForm.priceEth * 1e18)),
+                      paymentToken: "0x0000000000000000000000000000000000000000",
+                      startTime: BigInt(Math.floor(Date.now() / 1000)),
+                    })}
+                    isLoading={spinPack.isCreating}
+                    className="px-4 py-2 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-300 text-sm font-bold hover:bg-purple-500/30 transition-all"
+                  >
+                    {spinPack.isCreating ? "Creating..." : "Create Pack"}
+                  </LoadingButton>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-white/10 my-4" />
+
+              {/* Purchase & Redeem */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Purchase Tickets</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="Token ID"
+                      value={spinPackForm.purchaseTokenId}
+                      onChange={(e) => setSpinPackForm((p) => ({ ...p, purchaseTokenId: Number(e.target.value) }))}
+                      className="w-20 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white/80 focus:outline-none focus:border-purple-400/50"
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="Qty"
+                      value={spinPackForm.purchaseAmount}
+                      onChange={(e) => setSpinPackForm((p) => ({ ...p, purchaseAmount: Number(e.target.value) }))}
+                      className="w-16 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white/80 focus:outline-none focus:border-purple-400/50"
+                    />
+                    <LoadingButton
+                      onClick={() => spinPack.purchaseTickets(
+                        BigInt(spinPackForm.purchaseTokenId),
+                        BigInt(spinPackForm.purchaseAmount),
+                        BigInt(Math.floor(spinPackForm.priceEth * 1e18 * spinPackForm.purchaseAmount)),
+                      )}
+                      isLoading={spinPack.isPurchasing}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold hover:bg-emerald-500/30 transition-all"
+                    >
+                      Buy
+                    </LoadingButton>
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Redeem Ticket</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="Token ID"
+                      value={spinPackForm.redeemTokenId}
+                      onChange={(e) => setSpinPackForm((p) => ({ ...p, redeemTokenId: Number(e.target.value) }))}
+                      className="w-20 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white/80 focus:outline-none focus:border-purple-400/50"
+                    />
+                    <LoadingButton
+                      onClick={() => spinPack.redeemTicket(BigInt(spinPackForm.redeemTokenId))}
+                      isLoading={spinPack.isRedeeming}
+                      className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold hover:bg-amber-500/30 transition-all"
+                    >
+                      Redeem
+                    </LoadingButton>
+                  </div>
+                </div>
               </div>
             </GlassCard>
           </div>

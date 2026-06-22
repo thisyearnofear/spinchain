@@ -319,7 +319,6 @@ export async function generateNarrativeWithGemini(
     const minEle = Math.min(...elevationProfile);
     const maxEle = Math.max(...elevationProfile);
     const elevationGain = maxEle - minEle;
-    const avgEle = elevationProfile.reduce((a, b) => a + b, 0) / elevationProfile.length;
     
     // Calculate grade changes
     let totalClimbing = 0;

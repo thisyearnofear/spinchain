@@ -134,7 +134,7 @@ describe("CoachingEngine", () => {
       engine.onTelemetry(85, 1, "sprint");
 
       expect(handler).toHaveBeenCalledWith(
-        expect.objectContaining({ text: "Pick up the pace!" }),
+        expect.objectContaining({ text: "Cadence at 85 RPM — target is 100. Let's close that gap." }),
       );
 
       vi.useRealTimers();

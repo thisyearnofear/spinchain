@@ -31,6 +31,7 @@ import type { RewardMode } from "../../../hooks/rewards/use-rewards";
 import { useWakeLock } from "../../../hooks/use-wake-lock";
 import { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 import { useAiInstructor } from "@/app/hooks/ai/use-ai-instructor";
+import { useLLMCoaching } from "@/app/hooks/ai/use-llm-coaching";
 import { RidePreviewBadge } from "../../../components/features/common/yellow-status-indicator";
 import { useHaptic } from "../../../hooks/use-haptic";
 import {
@@ -128,6 +129,12 @@ export default function LiveRidePage() {
       );
     }
   }, [aiInstructor.logs, setAiLogs]);
+
+  // ─── LLM Coaching (periodic AI-powered coaching via /api/ai/chat) ──
+  useLLMCoaching({
+    enabled: isRiding,
+    personality: "data",
+  });
 
   // ─── Panel State ───────────────────────────────────────────────
   const panelState = usePanelState(deviceType);

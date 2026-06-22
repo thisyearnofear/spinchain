@@ -106,7 +106,7 @@ ${request.preferences ? `Preferences: ${request.preferences}` : ""}`;
     }
 
     return route;
-  } catch (parseError) {
+  } catch (_parseError) {
     console.error("Failed to parse Venice response:", content);
     throw new Error("Failed to parse route from Venice AI");
   }

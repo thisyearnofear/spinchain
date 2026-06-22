@@ -13,7 +13,6 @@ import {
   Loader2,
   Zap,
   Activity,
-  Brain,
   Shield,
   Settings2,
   ArrowRight,
@@ -82,7 +81,7 @@ export function CoachProfile({
     personality:
       initialPersonality === "drill-sergeant" ? "drill" : initialPersonality,
   });
-  const { playSound, preloadSounds } = useWorkoutAudio();
+  const { preloadSounds } = useWorkoutAudio();
 
   // Test voice samples
   const voiceSamples = {
@@ -254,7 +253,6 @@ export function CoachProfile({
             console.log("Coach Genesis complete:", result);
             setIsLoading(false);
             // Extract actual coach ID from transaction effects
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const createdObjects = (result.effects as any)?.created;
             if (createdObjects && createdObjects.length > 0) {
               const coachObjectId = createdObjects[0].reference.objectId;
