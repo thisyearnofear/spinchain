@@ -166,6 +166,12 @@ sui client upgrade --upgrade-capability <SUI_UPGRADE_CAP_ID>
 - [ ] Submit to Sui Overflow 2026 (deadline Jun 21)
 - [ ] Publish the demo video link in the submission form
 
+### Progress updates (2026-06-22)
+
+- **Real Noir ZK circuit live:** `effort_threshold` circuit compiled and served from `/public/circuits/`. `NoirProver` uses `BarretenbergBackend` (not mock). Browser generates real UltraPlonk proofs via WASM. Circuit proves HR > threshold for min_duration without revealing raw HR data.
+- **UI polish for judges:** Instructor live page demo data labeled as "Preview Mode" (fake numbers hidden when no ride active). Phase tags removed from UI. SpinPack labeled as "Preview". Old wizard component deleted (746 lines removed). Unified builder flow with wallet connection at publish step.
+- **On-chain verifier deployed:** `HonkVerifier` at `0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B` on Fuji. ZK proofs cryptographically verified on-chain.
+
 ### Phase 4 — Mainnet preparation (post-hackathon, optional but unlocks 100% prize)
 
 > "If a winning team has already deployed their project to mainnet by the time winners are announced in August, they will receive 100% of the prize upfront."
@@ -199,6 +205,7 @@ This phase is staged separately so the hackathon submission is not blocked on it
 | Walrus mainnet aggregator URL not yet stable | Phase 4 is opt-in; testnet submission is the goal. We do not require mainnet Walrus for the Walrus Track story |
 | Move struct extension breaks existing Sui objects | The new fields are `Option<...>` and additive only. Existing on-chain `RiderStats` objects migrate automatically because the struct change is forward-compatible |
 | ~~`submitZKProofBatch` on Avalanche still uses `MockUltraVerifier` on testnet~~ | **Resolved (2026-06-22):** Real `HonkVerifier` deployed to Fuji (`0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B`). ZK proofs are cryptographically verified on-chain. `EffortThresholdVerifier` updated to point to real verifier. |
+| ~~Browser-side ZK prover uses MockProver (SHA-256 hash, not real Noir)~~ | **Resolved (2026-06-22):** `NoirProver` rewritten to use `BarretenbergBackend` with real Noir circuit. Circuit compiled and served from `/public/circuits/`. Browser generates real UltraPlonk proofs via WASM. Mock fallback only when packages unavailable. |
 
 ## References
 

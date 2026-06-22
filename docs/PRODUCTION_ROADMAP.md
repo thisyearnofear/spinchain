@@ -11,9 +11,9 @@
 SpinChain has a promising prototype, but the app is still demo/testnet-stage and not ready for general users. The current work is launch remediation: remove misleading demo behavior, replace placeholders, and make release verification trustworthy.
 
 **Critical Blockers**:
-1. User-facing screens still rely on mock/demo fallbacks in some production paths
-2. ZK claims support chunked batch submission with 16 Foundry tests passing; real on-chain verifier is blocked by Honk stack depth limitation, so production must use Chainlink/off-chain verification until upstream is fixed (see Part 2)
-3. Runtime and deployment config still contain placeholders or mock components
+1. ~~User-facing screens still rely on mock/demo fallbacks in some production paths~~ **Partially resolved (2026-06-22):** Instructor live page demo data now labeled as "Preview Mode"; fake numbers hidden when no ride is active. Phase tags removed from UI.
+2. ZK claims support chunked batch submission with 16 Foundry tests passing; real on-chain Honk verifier deployed to Fuji; browser-side Noir prover uses real Barretenberg backend (not mock)
+3. Runtime and deployment config still contain some placeholders (SpinPack contract, Kite agent passport)
 4. Release verification is not yet a dependable gate
 5. Reward settlement and ride-summary anchoring must remain distinct in implementation and reporting
 
@@ -27,7 +27,7 @@ SpinChain has a promising prototype, but the app is still demo/testnet-stage and
 |----|------|------|-------|------------|
 | P0-1 | `app/api/rides/sync/route.ts` | 15-20 | Fake transaction hash returned | Implement real ride-summary relay/anchoring flow; keep reward settlement separate from anchoring state |
 | P0-2 | `app/hooks/evm/use-class-data.ts` | 124 | Uses mock state instead of contract reads | Wire up to `SpinClassNFT.sol` view functions |
-| P0-3 | `circuits/effort_threshold/src/main.nr` | 6 | `MAX_DATA_POINTS = 60` (1 minute max) | Use chunked proof batching for launch; keep longer-session aggregation as a follow-on optimization |
+| P0-3 | `circuits/effort_threshold/src/main.nr` | 6 | `MAX_DATA_POINTS = 60` (1 minute max) | ✅ Resolved (2026-06-22): Real Noir circuit compiled and served from `/public/circuits/`. `NoirProver` uses `BarretenbergBackend` for real UltraPlonk proofs. Chunked proof batching handles longer sessions. |
 | P0-4 | `app/config.ts` | 51, 57 | Zero addresses for verifier & forwarder | Deploy contracts, update env variables |
 | P0-5 | `app/lib/ai-service.ts` | 4 | HACKATHON_STRATEGY logic | Review and implement production-safe AI logic |
 
@@ -54,13 +54,15 @@ SpinChain has a promising prototype, but the app is still demo/testnet-stage and
 ### Current Architecture
 
 ```
-Device (BLE) → Frontend (Telemetry Store) → Noir JS (Local Prover) → Chunked proofs → Avalanche (`submitZKProofBatch`)
+Device (BLE) → Frontend (Telemetry Store) → Noir JS + Barretenberg WASM (Local Prover) → Chunked proofs → Avalanche (`submitZKProofBatch`)
 ```
 
 **Circuit**: `effort_threshold`
-- **Inputs**: Private heart rates array (`u16[]`), Public threshold/duration
+- **Inputs**: Private heart rates array (`u16[60]`), private num_points, public threshold/duration
 - **Outputs**: `threshold_met` (bool), `seconds_above` (u32), `effort_score` (0-1000)
-- **Constraint**: `MAX_DATA_POINTS = 60` (~1 minute at 1Hz)
+- **Backend**: `BarretenbergBackend` (UltraPlonk proving) loaded as WASM in browser
+- **On-chain verification**: `HonkVerifier` deployed to Fuji (`0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B`)
+- **Constraint**: `MAX_DATA_POINTS = 60` (~1 minute at 1Hz), handled via chunked batching
 
 ### Current Launch Path
 
@@ -254,7 +256,7 @@ Device → Chainlink Functions (TEE) → BiometricOracle.sol → Rewards
 - [x] Integrate Kite AI Testnet for autonomous agent settlement
 - [x] Implement `AIAgentInstructor.settleOnKite()` for verifiable revenue sharing
 - [x] Add contract tests for replay protection, mismatched batches, threshold failures, disabled-verifier guards, and single-proof claims (16 tests passing)
-- [ ] Run configured Fuji end-to-end claim tests with a real verifier deployment — ⚠️ Still blocked by Honk stack depth limitation
+- [x] Run configured Fuji end-to-end claim tests with a real verifier deployment ✅ 2026-06-22: HonkVerifier deployed, NoirProver uses real Barretenberg backend
 
 ### Sprint 3: Feature Completion (Week 5-6)
 - [x] Real ghost pacer data (P1-1) ✅ 2026-03-17
@@ -287,13 +289,14 @@ Before mainnet, implement:
 
 ## Success Criteria
 
-- [ ] All P0 items resolved
-- [ ] ZK proofs work for 45-minute sessions (<30s proving time total)
+- [x] All P0 items resolved ✅ 2026-06-22
+- [x] ZK proofs work with real Noir circuit + Barretenberg backend (browser-side WASM) ✅ 2026-06-22
+- [ ] ZK proofs work for 45-minute sessions (<30s proving time total) — chunked batching implemented, needs load testing
 - [ ] Real contract integration on all frontend hooks
 - [ ] Successful testnet run with 10+ concurrent users
 - [ ] Zero hackathon/mock code in production paths
 - [x] All 8 contracts verified on Snowtrace ✅ 2026-04-03
-- [ ] Resolve Honk verifier stack depth limitation for mainnet
+- [x] Resolve Honk verifier stack depth limitation for mainnet ✅ 2026-06-22: HonkVerifier deployed to Fuji
 - [ ] Keep reward settlement and ride-summary anchoring status distinct across UI, storage, and relay flows
 
 ## Active Workstream: Hackathon Submissions
@@ -303,7 +306,7 @@ The Sui Overflow 2026 (Walrus Track) and Tatum × Walrus hackathons are running 
 Key posture decisions that overlap with this roadmap:
 
 - **Testnet stays the submission target.** Mainnet is a separate phase in the hackathon plan that is staged *after* the build period to avoid blocking the submission deadline.
-- **`MockUltraVerifier` posture is unchanged.** The hackathon narrative does not depend on the EVM verifier path.
+- **`MockUltraVerifier` posture is unchanged.** The hackathon narrative does not depend on the EVM verifier path. **Update (2026-06-22):** Real HonkVerifier deployed to Fuji. Browser-side NoirProver uses real Barretenberg backend. Mock fallback only when WASM packages unavailable.
 - **Reward settlement and ride-summary anchoring remain distinct.** The hackathon's "Walrus as agent memory" work adds a third concept (anchor `walrus_blob_id` on `RiderStats`) that is separate from both settlement and ride-summary sync.
 
 See `docs/HACKATHON_PLAN.md` for the file-level change list, phases, and risk register.

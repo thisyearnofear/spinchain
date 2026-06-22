@@ -11,13 +11,13 @@ This file distinguishes between what is implemented in the current app, what is 
 - BLE/mobile scaffolding and simulator-oriented ride inputs
 - Route visualization and themed ride cards
 - Early AI endpoints and route-generation flows
-- Noir effort-threshold prototype circuit
+- Noir effort-threshold circuit with real Barretenberg backend — browser-side ZK proof generation
 - Chunked ZK reward claims that batch 60-second proofs into one `IncentiveEngine` submission
 
 ### Not Yet Launch-Ready
 - Fully validated production-safe reward settlement
-- Real testnet verifier and engine validation for chunked proof claims
-- Reliable replacement of mock data in user-facing flows
+- Reliable replacement of mock data in all user-facing flows (instructor live page now labels demo data as "Preview Mode")
+- SpinPack ERC-1155 contract deployment (UI labeled as "Preview")
 - Finalized launch verification and operational monitoring
 
 ---
@@ -277,10 +277,11 @@ const HIGH_PRIVACY = {
 ```
 
 ### Local Oracle
-- Browser-based proof generation (<1s)
+- Browser-based proof generation using real Noir circuit + Barretenberg WASM backend
 - 10-minute rolling telemetry buffer
 - Walrus encrypted backup
 - No data leaves device without consent
+- Circuit proves HR > threshold for min_duration without revealing raw heart rate values
 
 ---
 

@@ -27,16 +27,18 @@ Open [http://localhost:3000](http://localhost:3000)
 | **Route Visualization** | GPX and route-preview flows with themed class cards |
 | **BLE + Mobile Foundation** | Capacitor setup and BLE integration scaffolding |
 | **On-Chain Prototype** | Avalanche/Sui contract integration with testnet config |
-| **ZK Prototype** | Noir effort-threshold circuit for short telemetry windows |
+| **ZK Proofs** | Real Noir effort-threshold circuit with Barretenberg backend — generates browser-side ZK proofs |
 
 ---
 
 ## Status
 
-- Launch readiness: not ready
+- Launch readiness: not ready (testnet/demo stage)
 - Network posture: Avalanche Fuji + Sui testnet
-- Data posture: some user-facing screens still fall back to mock/demo data
-- Reward path: chunked ZK batch claims are wired, but configured verifier/engine validation is still incomplete
+- ZK proofs: real Noir circuit (`effort_threshold`) with Barretenberg backend generates browser-side ZK proofs; on-chain verifier deployed to Fuji
+- UI polish: demo data on instructor live page labeled as "Preview Mode"; phase tags removed from UI; SpinPack labeled as preview
+- Reward path: chunked ZK batch claims wired with real on-chain verification; Chainlink CRE fallback documented
+- Builder flow: unified into single progressive builder (wizard removed); wallet connection prompted at publish step
 - Verification: build and lint should be treated as required release gates
 
 ---
@@ -79,7 +81,7 @@ git commit --no-verify
 - **Blockchain**: Avalanche (EVM), Sui (Move), Chainlink CRE
 - **Frontend**: Next.js 16, React Three Fiber, Tailwind CSS
 - **Mobile**: Capacitor 5.7, BLE plugin
-- **ZK**: Noir circuits, UltraPlonk verifier
+- **ZK**: Noir circuits, Barretenberg backend (UltraPlonk proving), on-chain Honk verifier
 - **AI**: Venice AI, NVIDIA NIM (MiniMax-M3), and Gemini 3.0 Flash with multi-provider fallback (Venice → NVIDIA → Gemini)
 - **Storage**: Walrus (verifiable data layer for ride telemetry, route GPX, AI coach memory)
 
