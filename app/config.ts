@@ -90,7 +90,8 @@ export const ZK_CONFIG = {
 
 export const CHAINLINK_CONFIG = {
   // Chainlink Runtime Environment (CRE) configuration for biometric oracle
-  // Uses CRE_FORWARDER from deployed contracts (with fallback to env)
+  // NOTE: CRE workflow is not yet deployed — pending Chainlink Early Access approval.
+  // Forwarder and workflowId will be null until a real CRE DON is provisioned.
   forwarder:
     configuredAddress(process.env.NEXT_PUBLIC_CHAINLINK_FORWARDER) ??
     configuredAddress(CONTRACT_ADDRESSES.CRE_FORWARDER),

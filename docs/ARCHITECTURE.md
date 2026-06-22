@@ -129,8 +129,11 @@ Fallback speed calculation using aerodynamic drag and gravity:
 
 ## Chainlink Runtime Environment (CRE)
 
-SpinChain leverages **Chainlink CRE** for decentralized biometric verification:
+SpinChain is designed to use **Chainlink CRE** for decentralized biometric verification. The on-chain contracts (`BiometricOracle.sol`) are deployed and tested, but the CRE workflow itself is **not yet running** — deployment requires Chainlink Early Access approval.
 
+**Status**: `BiometricOracle.sol` deployed to Fuji with 5 Foundry tests passing. CRE workflow code exists in `app/lib/chainlink/cre/` but uses placeholder config (zero-address forwarder, fake workflow ID). Early Access request pending.
+
+**Intended architecture** (once CRE is approved):
 - **Decentralized Orchestration**: CRE monitors `VerificationRequested` events
 - **Confidential HTTP**: Securely fetches private HR data from wearable APIs
 - **Off-Chain Computation**: "Qualifying Minutes" calculated in trusted execution
@@ -141,7 +144,7 @@ SpinChain leverages **Chainlink CRE** for decentralized biometric verification:
 For testing without BLE hardware:
 1. **Pedal Simulator**: Generate telemetry via keyboard (Guest Mode)
 2. **Simulator API**: Simulator data accessible via standard API
-3. **CRE Workflow**: Fetches, verifies, reports effort scores on-chain
+3. **CRE Workflow**: Would fetch, verify, and report effort scores on-chain (not yet deployed)
 
 ---
 

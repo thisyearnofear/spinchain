@@ -228,8 +228,10 @@ function claimSessionReward(
 For users without WebGPU or with older phones, offer an alternative verification path:
 
 ```
-Device → Chainlink Functions (TEE) → BiometricOracle.sol → Rewards
+Device → Chainlink CRE (TEE) → BiometricOracle.sol → Rewards
 ```
+
+**Status**: Not yet running. `BiometricOracle.sol` deployed and tested (5 Foundry tests). CRE workflow code exists but requires Chainlink Early Access approval to deploy. Forwarder address is placeholder zero.
 
 **Trade-offs**:
 - ✅ No client-side proving (works on any device)

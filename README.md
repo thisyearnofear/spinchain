@@ -78,7 +78,7 @@ git commit --no-verify
 
 ## Tech Stack
 
-- **Blockchain**: Avalanche (EVM), Sui (Move), Chainlink CRE
+- **Blockchain**: Avalanche (EVM), Sui (Move), Chainlink CRE (pending Early Access)
 - **Frontend**: Next.js 16, React Three Fiber, Tailwind CSS
 - **Mobile**: Capacitor 5.7, BLE plugin
 - **ZK**: Noir circuits, Barretenberg backend (UltraPlonk proving), on-chain Honk verifier

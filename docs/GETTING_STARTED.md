@@ -135,8 +135,8 @@ The intended reward path is:
 
 2. **On-Chain Settlement**
    - Avalanche Fuji/testnet oriented today
-   - Runtime configuration still needs final validation
-   - When `NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS` is unset, the app falls back to Chainlink claim requests instead of ZK submission
+   - ZK verification path is live (HonkVerifier deployed, Barretenberg WASM prover in browser)
+   - Chainlink CRE path is scaffolded but not running (pending Early Access approval from Chainlink team)
 
 3. **Token Distribution**
    - SPIN token minting wired to IncentiveEngine on Fuji
@@ -191,7 +191,7 @@ forge test --match-path test/ZKBatchRewards.t.sol -vvv
 ### End-to-End Simulation
 
 ```bash
-# Chainlink CRE flow (with simulator data)
+# Chainlink CRE flow (simulated — not deployed, pending Early Access)
 node scripts/simulate-cre-flow.js
 
 # ZK Live Loop validation
@@ -202,8 +202,8 @@ npx ts-node --esm scripts/e2e-live-loop.ts
 
 | Feature | Method | Status |
 |---------|--------|--------|
-| CRE Biometric Oracle | Foundry tests | Partial |
-| Confidential HTTP | Local simulation | Prototype |
+| CRE Biometric Oracle | Foundry tests (5 passing) | Not running — pending Chainlink Early Access |
+| Confidential HTTP | Local simulation only | Not deployed |
 | Incentive Engine | 16 Foundry tests passing | Partial |
 | ZK Circuits | Nargo tests + Foundry tests | ✅ Real verifier on Fuji |
 | Snowtrace Verification | All 8 contracts verified | ✅ Complete |
@@ -304,8 +304,9 @@ npx cap open android
 
 **0:45-1:20** | Chainlink CRE
 - Finish ride → "Verify Performance"
-- Run `node scripts/simulate-cre-flow.js`
+- Run `node scripts/simulate-cre-flow.js` (simulated — CRE workflow not yet deployed)
 - Explain Confidential HTTP fetching private data
+- Note: CRE deployment pending Chainlink Early Access approval
 
 **1:20-1:45** | Settlement
 - Show "Verified" status

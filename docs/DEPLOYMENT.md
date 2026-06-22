@@ -83,6 +83,8 @@ All contracts deployed and verified on [Snowtrace](https://testnet.snowtrace.io)
 
 > The `HonkVerifier` is a real UltraHonk Solidity verifier generated from the Noir circuit via `bb.js 5.0.0-rc.1`. ZK proofs are cryptographically verified on-chain — no mock.
 
+> `BiometricOracle` is deployed with the deployer as the CRE forwarder (placeholder). The CRE workflow is not yet running — deployment requires Chainlink Early Access approval. Once approved, call `updateConfig(realForwarder, realWorkflowId)` to activate.
+
 > `YellowSettlement` was consolidated into `IncentiveEngine` as `submitChannelProof` / `batchSubmitChannelProof`. The address above for `IncentiveEngine` is the canonical settlement target.
 
 ---
