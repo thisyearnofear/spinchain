@@ -35,7 +35,6 @@ import { useMindbodySync } from "@/app/hooks/integrations/use-mindbody-sync";
 import { useSpinPack } from "@/app/hooks/evm/use-spin-pack";
 import { RidePreviewBadge } from "@/app/components/features/common/yellow-status-indicator";
 
-import { useNetworkStatus } from "@/app/hooks/use-network-status";
 import { useTelemetryStore, selectTelemetrySnapshot, selectTelemetryAverages } from "@/app/stores/telemetry-store";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useCoachingStore, selectAiLogs, selectLastCoachMessage, selectCurrentInterval } from "@/app/stores/coaching-store";
@@ -59,7 +58,6 @@ const DEMO_DEFAULTS = {
 } as const;
 
 export default function InstructorLivePage() {
-  const networkStatus = useNetworkStatus();
   const [isAgentPaused, setIsAgentPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [riderCount] = useState(DEMO_DEFAULTS.riderCount);
@@ -193,7 +191,7 @@ export default function InstructorLivePage() {
               <div className="flex items-center gap-1.5 bg-red-500/20 border border-red-500/30 px-3 py-1 rounded-full">
                 <span className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
                 <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">
-                  {rideActive ? "Live Session" : networkStatus.ready ? "Live Session" : "Demo Session"}
+                  {rideActive ? "Live Session" : "Preview Mode"}
                 </span>
               </div>
               <Tag className="bg-indigo-500/10 border-indigo-500/20 text-indigo-400">
@@ -208,16 +206,16 @@ export default function InstructorLivePage() {
           <div className="flex items-center gap-2">
             <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-2 flex flex-col items-center min-w-[80px]">
               <span className="text-[10px] font-bold text-white/40 uppercase">
-                Riders
+                {rideActive ? "Riders" : "Sample"}
               </span>
-              <span className="text-xl font-black">{riderCount}</span>
+              <span className="text-xl font-black">{rideActive ? riderCount : "—"}</span>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-2 flex flex-col items-center min-w-[80px]">
               <span className="text-[10px] font-bold text-white/40 uppercase">
-                Active
+                {rideActive ? "Active" : "Sample"}
               </span>
               <span className="text-xl font-black text-emerald-400">
-                {activeRiders}
+                {rideActive ? activeRiders : "—"}
               </span>
             </div>
           </div>
@@ -299,6 +297,9 @@ export default function InstructorLivePage() {
                 <h3 className="text-sm font-black uppercase tracking-widest text-white/80">
                   Benchmark Engine
                 </h3>
+                {!rideActive && (
+                  <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest ml-auto">Sample data</span>
+                )}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="flex flex-col gap-1">
@@ -314,25 +315,25 @@ export default function InstructorLivePage() {
                     Gap Time
                   </span>
                   <span className="text-xs font-bold text-emerald-400">
-                    {DEMO_DEFAULTS.benchmarkGapTime}
+                    {rideActive ? DEMO_DEFAULTS.benchmarkGapTime : "—"}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-[9px] font-bold text-white/30 uppercase">
                     Estimated Rev
                   </span>
-                  <span className="text-xs font-bold text-white">{DEMO_DEFAULTS.estimatedRevenue}</span>
+                  <span className="text-xs font-bold text-white">{rideActive ? DEMO_DEFAULTS.estimatedRevenue : "—"}</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-[9px] font-bold text-white/30 uppercase">
                     Engagement
                   </span>
-                  <span className="text-xs font-bold text-amber-400">High</span>
+                  <span className="text-xs font-bold text-amber-400">{rideActive ? "High" : "—"}</span>
                 </div>
               </div>
             </div>
 
-            {/* Live Style Hot-Swap (Phase 2 Override) */}
+            {/* Live Style Hot-Swap */}
             {styleAnchors.length > 0 && (
               <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-sm">
                 <div className="flex items-center justify-between mb-6">
@@ -342,9 +343,6 @@ export default function InstructorLivePage() {
                       Style Overrides
                     </h3>
                   </div>
-                  <Tag className="bg-indigo-500/10 text-indigo-400 text-[10px]">
-                    Phase 2
-                  </Tag>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {styleAnchors.map((anchor) => (
@@ -406,58 +404,66 @@ export default function InstructorLivePage() {
               </button>
             </div>
 
-            {/* Market Tracking (Desktop only or scrollable on mobile) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <SurfaceCard
-                eyebrow="Economics"
-                title="Class Revenue"
-                className="bg-emerald-500/10 border-emerald-500/20"
-              >
-                <div className="mt-4 flex items-end justify-between">
-                  <div className="flex items-end gap-3">
-                    <span className="text-4xl font-black text-white tracking-tighter">
-                      ${marketStats.revenue}
-                    </span>
-                    <span className="text-sm font-bold text-emerald-400 mb-1.5">
-                      {marketStats.trending}
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">
-                      Agent Multiplier
-                    </span>
-                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
-                      <TrendingUp className="w-3 h-3 text-emerald-400" />
-                      <span className="text-xs font-black text-emerald-400">
-                        1.5x $SPIN
+              {/* Market Tracking */}
+            {!rideActive ? (
+              <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-sm text-center">
+                <p className="text-sm text-white/40">
+                  Revenue and conversion metrics appear here during a live session.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <SurfaceCard
+                  eyebrow="Economics"
+                  title="Class Revenue"
+                  className="bg-emerald-500/10 border-emerald-500/20"
+                >
+                  <div className="mt-4 flex items-end justify-between">
+                    <div className="flex items-end gap-3">
+                      <span className="text-4xl font-black text-white tracking-tighter">
+                        ${marketStats.revenue}
+                      </span>
+                      <span className="text-sm font-bold text-emerald-400 mb-1.5">
+                        {marketStats.trending}
                       </span>
                     </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">
+                        Agent Multiplier
+                      </span>
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                        <TrendingUp className="w-3 h-3 text-emerald-400" />
+                        <span className="text-xs font-black text-emerald-400">
+                          1.5x $SPIN
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <p className="text-xs text-white/40 mt-4 italic">
-                  Agent autonomously increased rewards to drive last-minute
-                  occupancy.
-                </p>
-              </SurfaceCard>
+                  <p className="text-xs text-white/40 mt-4 italic">
+                    Agent autonomously increased rewards to drive last-minute
+                    occupancy.
+                  </p>
+                </SurfaceCard>
 
-              <SurfaceCard
-                eyebrow="Market"
-                title="Conversion"
-                className="bg-amber-500/10 border-amber-500/20"
-              >
-                <div className="mt-4 flex items-end gap-3">
-                  <span className="text-4xl font-black text-white tracking-tighter">
-                    {DEMO_DEFAULTS.conversionRate}
-                  </span>
-                  <span className="text-sm font-bold text-amber-400 mb-1.5">
-                    {DEMO_DEFAULTS.conversionVsAvg}
-                  </span>
-                </div>
-                <p className="text-xs text-white/40 mt-2">
-                  Trial users converting to monthly subs.
-                </p>
-              </SurfaceCard>
-            </div>
+                <SurfaceCard
+                  eyebrow="Market"
+                  title="Conversion"
+                  className="bg-amber-500/10 border-amber-500/20"
+                >
+                  <div className="mt-4 flex items-end gap-3">
+                    <span className="text-4xl font-black text-white tracking-tighter">
+                      {DEMO_DEFAULTS.conversionRate}
+                    </span>
+                    <span className="text-sm font-bold text-amber-400 mb-1.5">
+                      {DEMO_DEFAULTS.conversionVsAvg}
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/40 mt-2">
+                    Trial users converting to monthly subs.
+                  </p>
+                </SurfaceCard>
+              </div>
+            )}
           </div>
 
           {/* Sidebar / Focus Column */}
@@ -667,12 +673,12 @@ export default function InstructorLivePage() {
                 </div>
                 <div className="mt-6 pt-6 border-t border-white/5 flex flex-col items-center justify-center text-center">
                   <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-2">
-                    Kite AI Settlement Active
+                    {rideActive ? "Kite AI Settlement Active" : "Settlement Ready"}
                   </p>
                   <div className="flex gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/20" />
+                    <div className={`w-1.5 h-1.5 rounded-full ${rideActive ? "bg-emerald-500 animate-pulse" : "bg-white/10"}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${rideActive ? "bg-emerald-500/40" : "bg-white/10"}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${rideActive ? "bg-emerald-500/20" : "bg-white/10"}`} />
                   </div>
                 </div>
               </div>
@@ -752,7 +758,7 @@ export default function InstructorLivePage() {
             </GlassCard>
           </div>
 
-          {/* SpinPack Ticket Management */}
+          {/* SpinPack Ticket Management — Preview */}
           <div className="mt-8">
             <GlassCard className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -761,7 +767,10 @@ export default function InstructorLivePage() {
                   title="SpinPack ERC-1155"
                   description="Create ticket packs and let riders purchase on-chain."
                 />
-                <Ticket className="w-5 h-5 text-purple-400" />
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-purple-400/60">Preview</span>
+                  <Ticket className="w-5 h-5 text-purple-400" />
+                </div>
               </div>
 
               {!spinPack.isDeployed && (
@@ -769,7 +778,7 @@ export default function InstructorLivePage() {
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-400" />
                     <span className="text-xs text-amber-300">
-                      SpinPack contract not deployed yet. Set <code className="text-amber-200">NEXT_PUBLIC_SPIN_PACK_ADDRESS</code> after running the deploy script. UI is ready — forms will submit once the contract is live.
+                      Ticket pack contract is in preview. The UI is fully built — contract deployment coming soon.
                     </span>
                   </div>
                 </div>

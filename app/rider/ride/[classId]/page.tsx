@@ -387,7 +387,7 @@ export default function LiveRidePage() {
         classId={classId}
         isPracticeMode={isPracticeMode}
         practiceClassName={practiceConfig?.name}
-        rewardModeLabel={rewardMode === "yellow-stream" ? "Yellow Stream" : rewardMode === "zk-batch" ? "ZK Batch" : "Sui Native"}
+        rewardModeLabel={rewardMode === "yellow-stream" ? "Yellow Stream" : "ZK Batch"}
         loadStartedAt={loadStartedAt}
         onPracticeMode={() => router.push("/rider?mode=practice")}
         onBack={() => router.push("/rider")}
