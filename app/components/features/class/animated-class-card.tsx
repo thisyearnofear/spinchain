@@ -245,10 +245,10 @@ export function AnimatedClassCard({
           </div>
         )}
 
-        {/* Coachy badge */}
+        {/* AI badge */}
         {classData.metadata?.ai?.enabled && (
           <div className="absolute top-3 right-3 z-10 px-2 py-1 rounded-full bg-[color:var(--accent)]/10 border border-[color:var(--accent)]/30">
-            <span className="text-[10px] font-semibold text-[color:var(--accent)]">Coachy</span>
+            <span className="text-[10px] font-semibold text-[color:var(--accent)]">AI Coach</span>
           </div>
         )}
 

@@ -44,7 +44,7 @@ const routes: Route[] = [
     distance: "12 km",
     elevation: "+80m",
     theme: "city",
-      instructor: "Coachy",
+      instructor: "AI Coach",
     liveRiders: 156,
     nextClass: "Live now",
   },
@@ -72,7 +72,7 @@ const routes: Route[] = [
     distance: "35 km",
     elevation: "+800m",
     theme: "forest",
-      instructor: "Coachy Pro",
+      instructor: "AI Coach Pro",
     liveRiders: 42,
     nextClass: "In 4 hours",
   },
@@ -198,7 +198,7 @@ function RouteCard({ route, index }: { route: Route; index: number }) {
             <div>
               <p className="text-sm font-medium text-[color:var(--foreground)]">{route.instructor}</p>
               <p className="text-xs text-[color:var(--muted)]">
-                {route.instructor.startsWith("Coachy") ? "AI Training Partner" : route.instructor === "Team SpinChain" ? "Group Class" : "Human Instructor"}
+                {route.instructor.startsWith("AI") ? "AI Training Partner" : route.instructor === "Team SpinChain" ? "Group Class" : "Human Instructor"}
               </p>
             </div>
           </div>

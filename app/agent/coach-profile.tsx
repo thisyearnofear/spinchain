@@ -658,7 +658,7 @@ export function CoachProfile({
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-white/40">Network</span>
-                <span className="text-cyan-400 font-bold">SUI TESTNET</span>
+                <span className="text-cyan-400 font-bold">Sui Network</span>
               </div>
             </div>
 

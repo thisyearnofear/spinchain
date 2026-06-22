@@ -99,7 +99,7 @@ function AgentPageContent() {
                     Performance Layer
                   </h2>
                   <p className="text-[10px] text-[color:var(--muted)]">
-                    SUI NETWORK (TESTNET)
+                    Sui Network
                   </p>
                 </div>
               </div>
