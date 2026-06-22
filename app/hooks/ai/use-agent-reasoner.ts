@@ -7,12 +7,14 @@ interface UseAgentReasonerProps {
   agentName: string;
   personality: string;
   enabled?: boolean;
+  systemPromptCid?: string;
 }
 
 export function useAgentReasoner({
   agentName,
   personality,
   enabled = true,
+  systemPromptCid,
 }: UseAgentReasonerProps) {
   const [state, setState] = useState<ReasoningState>("idle");
   const [lastDecision, setLastDecision] = useState<AgentDecision | null>(null);
@@ -28,7 +30,8 @@ export function useAgentReasoner({
         const decision = await aiService.agentReasoning(
           agentName,
           personality,
-          context
+          context,
+          systemPromptCid,
         );
 
         setLastDecision(decision);
@@ -44,7 +47,7 @@ export function useAgentReasoner({
         setState("error");
       }
     },
-    [agentName, personality, enabled],
+    [agentName, personality, enabled, systemPromptCid],
   );
 
   return {

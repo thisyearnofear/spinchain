@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useClass } from "../../../hooks/evm/use-class-data";
 import { usePracticeConfig } from "../../../hooks/ride/use-practice-config";
 import { useRideStore } from "@/app/stores/ride-store";
-import { useTelemetryStore } from "@/app/stores/telemetry-store";
+import { useTelemetryStore, selectTelemetrySnapshot } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useUIStore } from "@/app/stores/ui-store";
 import { useRideModalStore } from "@/app/stores/ride-modal-store";
@@ -30,6 +30,7 @@ import { SettlementStream } from "../../../components/features/ride/settlement-s
 import type { RewardMode } from "../../../hooks/rewards/use-rewards";
 import { useWakeLock } from "../../../hooks/use-wake-lock";
 import { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
+import { useAiInstructor } from "@/app/hooks/ai/use-ai-instructor";
 import { RidePreviewBadge } from "../../../components/features/common/yellow-status-indicator";
 import { useHaptic } from "../../../hooks/use-haptic";
 import {
@@ -85,6 +86,48 @@ export default function LiveRidePage() {
     coordinatorRef.current = coordinator;
   }, [coordinator]);
   const emptyRidePointsRef = useRef<RideRecordPoint[]>([]);
+
+  // ─── AI Instructor (personality-driven rule-based coaching) ───
+  const telemetrySnapshot = useTelemetryStore(selectTelemetrySnapshot);
+  const aiInstructorMetrics = useMemo(
+    () =>
+      isRiding
+        ? {
+            power: telemetrySnapshot.power,
+            cadence: telemetrySnapshot.cadence,
+            heartRate: telemetrySnapshot.heartRate,
+            speed: telemetrySnapshot.speed,
+            distance: telemetrySnapshot.distance,
+            resistance: telemetrySnapshot.resistance,
+            wBal: telemetrySnapshot.wBal,
+            wBalPercentage: telemetrySnapshot.wBalPercentage,
+            timestamp: telemetrySnapshot.timestamp,
+          }
+        : null,
+    [isRiding, telemetrySnapshot],
+  );
+  const aiInstructor = useAiInstructor({
+    agentName: "Coach",
+    personality: "data",
+    sessionObjectId: null,
+    metrics: aiInstructorMetrics,
+    currentInterval,
+    isEnabled: isRiding,
+  });
+
+  // Forward AI instructor logs to coaching store for UI display
+  const setAiLogs = useCoachingStore((s) => s.setAiLogs);
+  useEffect(() => {
+    if (aiInstructor.logs.length > 0) {
+      setAiLogs(
+        aiInstructor.logs.map((log) => ({
+          type: log.type === "action" ? "action" : log.type === "alert" ? "correction" : "observation",
+          message: log.message,
+          timestamp: log.timestamp,
+        })),
+      );
+    }
+  }, [aiInstructor.logs, setAiLogs]);
 
   // ─── Panel State ───────────────────────────────────────────────
   const panelState = usePanelState(deviceType);

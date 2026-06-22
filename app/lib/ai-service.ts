@@ -325,7 +325,8 @@ export class AIService {
       telemetry: { avgBpm: number; resistance: number; duration: number };
       market: { ticketsSold: number; revenue: number; capacity: number };
       recentDecisions: string[];
-    }
+    },
+    systemPromptCid?: string,
   ): Promise<AgentDecision & { _meta?: { provider: string } }> {
     const provider = this.getProvider();
     
@@ -334,6 +335,7 @@ export class AIService {
       personality,
       context,
       provider,
+      systemPromptCid,
     });
 
     return {

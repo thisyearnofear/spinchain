@@ -50,6 +50,7 @@ interface SuiCoachData {
   fields: {
     current_tempo: string;
     resistance_level: number;
+    system_prompt_cid?: string;
     [key: string]: unknown;
   };
 }
@@ -96,6 +97,7 @@ export function CoachProfile({
   const [coachId, setCoachId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [coachData, setCoachData] = useState<SuiCoachData | null>(null);
+  const systemPromptCid = coachData?.fields?.system_prompt_cid;
 
   // Configuration State
   const [config, setConfig] = useState({
@@ -124,7 +126,8 @@ export function CoachProfile({
   } = useAgentReasoner({
     agentName: config.name,
     personality: config.personality,
-    enabled: true, // Always enable reasoning for profile view
+    enabled: true,
+    systemPromptCid,
   });
 
   // Poll for coach data if we have an ID

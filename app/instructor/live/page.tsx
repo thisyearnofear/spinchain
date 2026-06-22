@@ -27,12 +27,14 @@ import {
   CheckCircle2,
   AlertTriangle,
   Calendar,
+  Ticket,
 } from "lucide-react";
 import {
   fetchGhostWithFallback,
   GhostPerformance,
 } from "@/app/lib/analytics/ghost-service";
 import { useMindbodySync } from "@/app/hooks/integrations/use-mindbody-sync";
+import { useSpinPack } from "@/app/hooks/evm/use-spin-pack";
 import { RidePreviewBadge } from "@/app/components/features/common/yellow-status-indicator";
 
 import { useNetworkStatus } from "@/app/hooks/use-network-status";
@@ -78,6 +80,7 @@ export default function InstructorLivePage() {
   const lastDecision = useCoachingStore((s) => s.lastDecision) as AgentDecision | null;
   const currentInterval = useCoachingStore(selectCurrentInterval);
   const mindbodySync = useMindbodySync();
+  const spinPack = useSpinPack();
 
   // Use real telemetry when ride is active, fall back to demo data
   const telemetry = rideActive
@@ -741,6 +744,71 @@ export default function InstructorLivePage() {
                   </div>
                 </div>
               )}
+            </GlassCard>
+          </div>
+
+          {/* SpinPack Ticket Management */}
+          <div className="mt-8">
+            <GlassCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <SectionHeader
+                  eyebrow="On-chain Tickets"
+                  title="SpinPack ERC-1155"
+                  description="Create ticket packs and let riders purchase on-chain."
+                />
+                <Ticket className="w-5 h-5 text-purple-400" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Create Pack</p>
+                  <p className="text-xs text-white/60 mt-1">Mint a new ticket pack with capacity & pricing.</p>
+                </div>
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Purchase</p>
+                  <p className="text-xs text-white/60 mt-1">Riders buy tickets directly from the contract.</p>
+                </div>
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Redeem</p>
+                  <p className="text-xs text-white/60 mt-1">Burn a ticket to unlock the class.</p>
+                </div>
+              </div>
+
+              {spinPack.isSuccess && (
+                <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm font-bold text-emerald-300">
+                      Transaction confirmed{spinPack.hash ? ` · ${spinPack.hash.slice(0, 10)}...` : ""}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {spinPack.error && (
+                <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-400" />
+                    <span className="text-xs text-rose-300">{String(spinPack.error)}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                <LoadingButton
+                  onClick={() => spinPack.createPack({
+                    tokenId: BigInt(1),
+                    capacity: BigInt(20),
+                    pricePerTicket: BigInt(10000000000000000),
+                    paymentToken: "0x0000000000000000000000000000000000000000",
+                    startTime: BigInt(Math.floor(Date.now() / 1000)),
+                  })}
+                  isLoading={spinPack.isCreating}
+                  className="px-4 py-2 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-300 text-sm font-bold hover:bg-purple-500/30 transition-all"
+                >
+                  {spinPack.isCreating ? "Creating..." : "Create Demo Pack"}
+                </LoadingButton>
+              </div>
             </GlassCard>
           </div>
         </div>

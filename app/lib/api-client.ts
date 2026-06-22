@@ -314,6 +314,7 @@ export const aiClient = {
       cadence: number;
       zone: string;
       routeContext?: string;
+      systemPromptCid?: string;
     },
     conversationHistory?: Array<{ role: "rider" | "coach"; message: string }>,
     provider?: string
@@ -342,6 +343,7 @@ export const aiClient = {
       recentDecisions: string[];
     };
     provider?: string;
+    systemPromptCid?: string;
   }) {
     return apiClient.post<{
       action: string;
