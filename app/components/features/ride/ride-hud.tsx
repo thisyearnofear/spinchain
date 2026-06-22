@@ -389,18 +389,30 @@ export function RideHUD() {
           )}
           {multiGhostState && multiGhostState.length > 0 && (
             <div className="flex gap-2">
-              {multiGhostState.map((ghost) => (
-                <div key={ghost.id} className="relative group">
-                  <div
-                    className={`w-8 h-8 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-[10px] font-black ${ghost.leadLagTime < 0 ? "text-emerald-400" : "text-rose-400"}`}
-                  >
-                    {ghost.name.substring(0, 1)}
+              {multiGhostState.map((ghost, idx) => {
+                const isLeading = ghost.leadLagTime < 0;
+                const gapLabel = Math.abs(ghost.leadLagTime).toFixed(0);
+                return (
+                  <div key={ghost.id ?? idx} className="relative group flex flex-col items-center">
+                    <div
+                      className={`w-9 h-9 rounded-full bg-black/50 border flex items-center justify-center text-[10px] font-black transition-all ${
+                        isLeading
+                          ? "border-emerald-500/40 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]"
+                          : "border-rose-500/40 text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.15)]"
+                      }`}
+                    >
+                      {ghost.name?.substring(0, 1) ?? "?"}
+                    </div>
+                    <div className="absolute -bottom-1.5 -right-1.5 min-w-[20px] h-4 px-1 rounded-full bg-black border border-white/10 flex items-center justify-center text-[7px] font-bold text-white/70">
+                      {gapLabel}s
+                    </div>
+                    {/* Tooltip on hover */}
+                    <div className="absolute top-full mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap text-[8px] font-bold text-white/60 bg-black/80 px-2 py-0.5 rounded">
+                      {ghost.name} · {ghost.power ?? 0}W
+                    </div>
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-black border border-white/10 flex items-center justify-center text-[6px] font-bold">
-                    {Math.abs(ghost.leadLagTime).toFixed(0)}s
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

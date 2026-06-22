@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { useTransaction } from './use-transaction';
 import { CONTRACT_ERROR_CONTEXT } from '@/app/lib/errors';
 import { getLocalOracle, type LocalProofResult } from '@/app/lib/zk/oracle';
+import { getProver } from '@/app/lib/zk/prover';
 import { createDisclosure, calculatePrivacyScore, getPrivacyLevel } from '@/app/lib/zk/disclosure';
 import { INCENTIVE_ENGINE_ABI, INCENTIVE_ENGINE_ADDRESS } from "@/app/lib/contracts";
 import type { ZKProof } from '@/app/lib/zk/types';
@@ -188,8 +189,19 @@ export function useZKClaim() {
       }));
       return;
     }
-    
-    // Step 2: Submit to IncentiveEngine for verification + mint
+
+    // Step 2: Verify proof locally before submitting on-chain
+    const prover = getProver();
+    const isValid = await prover.verify(proofResult.proof);
+    if (!isValid) {
+      setZkState(prev => ({
+        ...prev,
+        error: new Error('Local proof verification failed — proof is invalid'),
+      }));
+      return;
+    }
+
+    // Step 3: Submit to IncentiveEngine for on-chain verification + mint
     await submitProof(
       params,
       proofResult.proof,

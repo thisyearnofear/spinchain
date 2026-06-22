@@ -13,6 +13,8 @@ export function useSpinPack() {
     pendingMessage: "Processing SpinPack transaction...",
   });
 
+  const isDeployed = CONTRACT_ADDRESSES.SPIN_PACK !== ZERO_ADDRESS;
+
   const createPack = useCallback(
     async (params: {
       tokenId: bigint;
@@ -21,9 +23,7 @@ export function useSpinPack() {
       paymentToken: string;
       startTime: bigint;
     }) => {
-      if (CONTRACT_ADDRESSES.SPIN_PACK === ZERO_ADDRESS) {
-        throw new Error("SpinPack contract not deployed");
-      }
+      if (!isDeployed) return;
       setIsCreating(true);
       write({
         address: CONTRACT_ADDRESSES.SPIN_PACK,
@@ -39,14 +39,12 @@ export function useSpinPack() {
       });
       setIsCreating(false);
     },
-    [write],
+    [write, isDeployed],
   );
 
   const purchaseTickets = useCallback(
     (tokenId: bigint, amount: bigint, value: bigint) => {
-      if (CONTRACT_ADDRESSES.SPIN_PACK === ZERO_ADDRESS) {
-        throw new Error("SpinPack contract not deployed");
-      }
+      if (!isDeployed) return;
       setIsPurchasing(true);
       write({
         address: CONTRACT_ADDRESSES.SPIN_PACK,
@@ -57,14 +55,12 @@ export function useSpinPack() {
       });
       setIsPurchasing(false);
     },
-    [write],
+    [write, isDeployed],
   );
 
   const redeemTicket = useCallback(
     (tokenId: bigint) => {
-      if (CONTRACT_ADDRESSES.SPIN_PACK === ZERO_ADDRESS) {
-        throw new Error("SpinPack contract not deployed");
-      }
+      if (!isDeployed) return;
       setIsRedeeming(true);
       write({
         address: CONTRACT_ADDRESSES.SPIN_PACK,
@@ -74,7 +70,7 @@ export function useSpinPack() {
       });
       setIsRedeeming(false);
     },
-    [write],
+    [write, isDeployed],
   );
 
   return {
@@ -87,5 +83,6 @@ export function useSpinPack() {
     isSuccess,
     hash,
     error,
+    isDeployed,
   };
 }

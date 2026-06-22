@@ -201,20 +201,42 @@ export function generateMockGhost(
 
   routeCoordinates.forEach((coord, i) => {
     if (i > 0) {
-      // Haversine distance calculation for accuracy
       const prev = routeCoordinates[i - 1];
       const d = haversineDistance(prev.lat, prev.lng, coord.lat, coord.lng);
       totalDistance += d;
     }
 
     const elapsedSeconds = (totalDistance * 1000) / speedMps;
-    
+
+    // Add realistic variation based on elevation and position
+    const elevation = coord.ele ?? 0;
+    const prevElevation = i > 0 ? (routeCoordinates[i - 1].ele ?? 0) : elevation;
+    const gradient = i > 0 ? (elevation - prevElevation) / Math.max(haversineDistance(routeCoordinates[i - 1].lat, routeCoordinates[i - 1].lng, coord.lat, coord.lng) * 1000, 1) : 0;
+
+    // HR increases on climbs, decreases on descents, drifts up over time
+    const baseHr = 150;
+    const climbEffect = Math.max(0, gradient * 800);
+    const fatigueDrift = Math.min(15, elapsedSeconds / 60);
+    const hrNoise = Math.sin(i * 0.3) * 4;
+    const heartRate = Math.round(baseHr + climbEffect + fatigueDrift + hrNoise);
+
+    // Power varies with gradient (harder on climbs)
+    const basePower = 200;
+    const powerVar = Math.round(gradient * 300 + Math.sin(i * 0.5) * 15);
+    const power = Math.max(120, basePower + powerVar);
+
+    // Cadence stays relatively stable with small variation
+    const cadence = Math.round(88 + Math.sin(i * 0.4) * 4);
+
+    // Speed reduces on climbs
+    const speed = Math.max(15, targetSpeedKmh - Math.abs(gradient) * 50);
+
     points.push({
       timestamp: startTime + (elapsedSeconds * 1000),
-      heartRate: 150,
-      power: 200,
-      cadence: 90,
-      speed: targetSpeedKmh,
+      heartRate,
+      power,
+      cadence,
+      speed,
       distance: totalDistance,
       latitude: coord.lat,
       longitude: coord.lng,

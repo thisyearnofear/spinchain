@@ -444,22 +444,26 @@ export default function LiveRidePage() {
 
       {isRiding && viewMode === "immersive" && hudMode !== "minimal" && multiGhostState.length > 0 && (
         <div className="fixed top-40 left-6 z-40 flex flex-col gap-3">
-          {multiGhostState.map((rider) => (
-            <div key={rider.id} className="flex items-center gap-3 bg-black/70 backdrop-blur-xl border border-white/10 rounded-full pl-1.5 pr-4 py-1.5 animate-in fade-in slide-in-from-left-5 duration-500">
-              <div className="relative">
-                <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-black text-indigo-300">
-                  {rider.name.substring(0, 2).toUpperCase()}
+          {multiGhostState.map((rider, idx) => {
+            const isAhead = rider.leadLagTime < 0;
+            const positionColor = idx === 0 ? "emerald" : idx === 1 ? "amber" : "rose";
+            return (
+              <div key={rider.id ?? idx} className="flex items-center gap-3 bg-black/70 backdrop-blur-xl border border-white/10 rounded-full pl-1.5 pr-4 py-1.5 animate-in fade-in slide-in-from-left-5 duration-500">
+                <div className="relative">
+                  <div className={`w-8 h-8 rounded-full bg-${positionColor}-500/20 border border-${positionColor}-500/30 flex items-center justify-center text-[10px] font-black text-${positionColor}-300`}>
+                    {rider.name?.substring(0, 2).toUpperCase() ?? "??"}
+                  </div>
+                  {rider.active && <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-black animate-pulse" />}
                 </div>
-                {rider.active && <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-black animate-pulse" />}
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-white/80 leading-none">{rider.name}</span>
+                  <span className={`text-[8px] font-bold uppercase tracking-widest mt-0.5 ${isAhead ? "text-emerald-400" : "text-rose-400"}`}>
+                    {rider.power}W · {isAhead ? "+" : ""}{Math.abs(rider.leadLagTime).toFixed(1)}s {isAhead ? "ahead" : "behind"}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black text-white/80 leading-none">{rider.name}</span>
-                <span className="text-[8px] font-bold text-white/50 uppercase tracking-widest mt-0.5">
-                  {rider.power}W | {rider.leadLagTime > 0 ? "+" : ""}{rider.leadLagTime.toFixed(1)}s
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

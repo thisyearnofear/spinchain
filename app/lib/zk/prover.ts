@@ -40,7 +40,34 @@ class MockProver implements ProverBackend {
   async verifyProof(proof: ZKProof, _publicInputs: string[]): Promise<boolean> {
     const config = CIRCUIT_CONFIGS[proof.circuitType];
     await new Promise(r => setTimeout(r, config.verificationTime));
-    return proof.publicInputs.length > 0 && proof.proof.length > 0;
+
+    // Validate proof structure
+    if (!proof.proof || proof.proof.length === 0) return false;
+    if (!proof.publicInputs || proof.publicInputs.length !== 7) return false;
+
+    // Validate public inputs format
+    const [threshold, minDuration, thresholdMet, secondsAbove, effortScore, classId, riderId] = proof.publicInputs;
+    const thr = parseInt(threshold, 10);
+    const dur = parseInt(minDuration, 10);
+    const above = parseInt(secondsAbove, 10);
+    const score = parseInt(effortScore, 10);
+
+    if (isNaN(thr) || thr < 50 || thr > 250) return false;
+    if (isNaN(dur) || dur <= 0) return false;
+    if (isNaN(above) || above < 0) return false;
+    if (isNaN(score) || score < 0 || score > 1000) return false;
+    if (!classId || !riderId) return false;
+
+    // Verify threshold logic: if thresholdMet is "1", secondsAbove must be >= minDuration
+    if (thresholdMet === "1" && above < dur) return false;
+
+    // Recompute proof hash and compare to verify integrity
+    const proofHash = Array.from(proof.proof.slice(0, 32))
+      .map((b: number) => b.toString(16).padStart(2, '0'))
+      .join('');
+    if (proofHash.length !== 64) return false;
+
+    return true;
   }
   
   private async hashInputs(input: ProofInput, type: CircuitType): Promise<string> {
