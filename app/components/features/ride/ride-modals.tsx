@@ -28,6 +28,7 @@ interface RideModalsProps {
   ridePointsRef: React.MutableRefObject<RideRecordPoint[]>;
   router: AppRouterInstance;
   onExitRide: () => void;
+  onCompletionExit: () => void;
   onEnableSimulatorFromModal: () => void;
   onDismissNoBike: () => void;
   onDismissKeyboardHints: () => void;
@@ -56,6 +57,7 @@ export const RideModals = memo(function RideModals({
   ridePointsRef,
   router,
   onExitRide,
+  onCompletionExit,
   onEnableSimulatorFromModal,
   onDismissNoBike,
   onDismissKeyboardHints,
@@ -64,7 +66,6 @@ export const RideModals = memo(function RideModals({
   onDismissTutorial,
   onSimulatorMetrics,
 }: RideModalsProps) {
-  const rideProgress = useRideStore((s) => s.rideProgress);
   const isRiding = useRideStore((s) => s.isActive);
   const elapsedTime = useRideStore((s) => s.elapsedTime);
 
@@ -83,6 +84,8 @@ export const RideModals = memo(function RideModals({
   const showTutorial = useRideModalStore((s) => s.showTutorial);
   const tutorialStep = useRideModalStore((s) => s.tutorialStep);
   const tutorialSteps = useRideModalStore((s) => s.tutorialSteps);
+  const showCompletionScreen = useRideModalStore((s) => s.showCompletionScreen);
+  const isExitingRide = useRideModalStore((s) => s.isExitingRide);
   const completionSyncStatus = useRideModalStore((s) => s.completionSyncStatus);
   const completionPrimaryAction = useRideModalStore((s) => s.completionPrimaryAction);
   const walrusAnchorInfo = useRideModalStore((s) => s.walrusAnchorInfo);
@@ -119,7 +122,27 @@ export const RideModals = memo(function RideModals({
         )}
       </AnimatePresence>
 
-      {rideProgress >= 100 && (
+      {/* Exit loading overlay — shown while Walrus upload + Sui anchoring is in progress */}
+      <AnimatePresence>
+        {isExitingRide && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center z-[90] bg-black/80 backdrop-blur-sm pointer-events-auto"
+          >
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-12 w-12 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+              <div className="text-center">
+                <p className="text-sm font-bold text-white tracking-tight">Saving your ride</p>
+                <p className="text-xs text-white/50 mt-1">Uploading to Walrus & anchoring on Sui…</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {showCompletionScreen && (
         <RideCompletion
           isPracticeMode={isPracticeMode}
           elapsedTime={elapsedTime}
@@ -129,7 +152,7 @@ export const RideModals = memo(function RideModals({
           telemetrySource={
             bleConnected ? "live-bike" : useSimulator ? "simulator" : "estimated"
           }
-          onExit={onExitRide}
+          onExit={onCompletionExit}
           onRideAgain={() => router.push(`/rider/ride/${classId}`)}
           onShare={() => {
             if (typeof window === "undefined") return;
@@ -187,11 +210,13 @@ export const RideModals = memo(function RideModals({
         />
       )}
 
-      <DemoCompleteModal
-        isOpen={showDemoModal}
-        onClose={onDemoModalClose}
-        stats={demoStats}
-      />
+      {showDemoModal && !showCompletionScreen && (
+        <DemoCompleteModal
+          isOpen={showDemoModal}
+          onClose={onDemoModalClose}
+          stats={demoStats}
+        />
+      )}
 
       {showTutorial && (
         <RideTutorialOverlay

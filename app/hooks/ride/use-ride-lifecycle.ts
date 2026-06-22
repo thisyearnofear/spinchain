@@ -215,6 +215,7 @@ export function useRideLifecycle({
   const exitRide = useCallback(async () => {
     if (useRideStore.getState().isExiting) return; // Guard against double-exit
     useRideStore.setState({ isExiting: true });
+    modalStore.getState().setIsExitingRide(true);
     stopAudio();
 
     try {
@@ -252,18 +253,23 @@ export function useRideLifecycle({
       modalStore.getState().setCompletionPrimaryAction(result.primaryAction);
       void processRideSyncQueue();
 
+      // Stop the ride UI and show completion screen for all modes
+      useRideStore.setState({ isActive: false });
+      modalStore.getState().setIsExitingRide(false);
+
       if (isPracticeMode) {
         modalStore.getState().setDemoStats({ duration: elapsedTime, avgHeartRate: result.avgHR, maxHeartRate: result.avgHR, effortScore: result.effortScore, spinEarned: result.spinEarned, rewardsWereActive: true });
         useRideStore.setState({ isExiting: false });
-        modalStore.getState().setShowDemoModal(true);
+        modalStore.getState().setShowCompletionScreen(true);
       } else {
-        router.push("/rider/journey?completed=true");
+        modalStore.getState().setShowCompletionScreen(true);
       }
     } catch (err) {
       console.error("[Ride] exitRide failed:", err);
       useRideStore.setState({ isExiting: false, isActive: false });
+      modalStore.getState().setIsExitingRide(false);
       if (isPracticeMode) {
-        modalStore.getState().setShowDemoModal(true);
+        modalStore.getState().setShowCompletionScreen(true);
       } else {
         router.push("/rider/journey?completed=true");
       }
@@ -292,11 +298,23 @@ export function useRideLifecycle({
     }
   }, [coordinator, trackLiveTelemetry]);
 
+  const handleCompletionExit = useCallback(() => {
+    modalStore.getState().setShowCompletionScreen(false);
+    modalStore.getState().setWalrusAnchorInfo(null);
+    modalStore.getState().setShowDemoModal(false);
+    if (isPracticeMode) {
+      router.push("/rider");
+    } else {
+      router.push("/rider/journey?completed=true");
+    }
+  }, [router, isPracticeMode, modalStore]);
+
   return {
     connectionHint,
     startRide,
     pauseRide,
     exitRide,
+    handleCompletionExit,
     handleEnableSimulatorFromModal,
     handleDemoModalClose,
     handleDismissNoBike,

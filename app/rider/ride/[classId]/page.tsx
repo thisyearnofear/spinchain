@@ -433,6 +433,7 @@ export default function LiveRidePage() {
         ridePointsRef={emptyRidePointsRef}
         router={router}
         onExitRide={lifecycle.exitRide}
+        onCompletionExit={lifecycle.handleCompletionExit}
         onEnableSimulatorFromModal={lifecycle.handleEnableSimulatorFromModal}
         onDismissNoBike={lifecycle.handleDismissNoBike}
         onDismissKeyboardHints={lifecycle.handleDismissKeyboardHints}

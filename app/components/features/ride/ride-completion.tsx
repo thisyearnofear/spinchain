@@ -10,11 +10,11 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { formatTime } from "@/app/lib/formatters";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
-import { Star, Cloud, Share2, CheckCircle2, ExternalLink } from "lucide-react";
+import { Star, Cloud, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { LoadingButton } from "../../ui/loading-button";
-import { WalrusClient } from "@/app/lib/walrus/client";
 
 export interface RewardClaimStatus {
   mode: "zk" | "chainlink";
@@ -83,8 +83,6 @@ export function RideCompletion({
   const [activeTab, setActiveTab] = useState<CompletionTab>("summary");
   const [rating, setRating] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isPersisting, setIsPersisting] = useState(false);
-  const [walrusId, setWalrusId] = useState<string | null>(null);
 
   const getAgentDebrief = useCallback(() => {
     const powerRating =
@@ -109,36 +107,6 @@ export function RideCompletion({
 
     return `Session analysis: ${formatTime(elapsedTime)} duration, ${avgPower}W avg power, ${avgHeartRate} BPM avg HR. ${hrEfficiency ? `Power-to-HR efficiency: ${hrEfficiency}. ` : ""}Effort score ${avgEffort}/1000 (${effortTier}). ${effortTier === "elite" ? "Performance logged — recommending threshold increase for next session." : `Target: push effort above ${avgEffort < 500 ? 500 : 800} next ride for higher SPIN yield.`}`;
   }, [agentPersonality, avgPower, avgHeartRate, avgEffort, elapsedTime]);
-
-  const handlePersistToWalrus = useCallback(async () => {
-    setIsPersisting(true);
-    try {
-      const walrus = new WalrusClient();
-      const summary = {
-        timestamp: Date.now(),
-        duration: elapsedTime,
-        avgPower,
-        avgHr: avgHeartRate,
-        effort: avgEffort,
-        agent: agentName,
-        debrief: getAgentDebrief(),
-      };
-      const result = await walrus.store(
-        JSON.stringify(summary),
-        "application/json",
-      );
-      if (result.success && result.blobId) {
-        setWalrusId(result.blobId);
-        trackEvent(ANALYTICS_EVENTS.RIDE_SYNC_SUCCESS, {
-          blobId: result.blobId,
-        });
-      }
-    } catch (err) {
-      console.error("Walrus persist failed:", err);
-    } finally {
-      setIsPersisting(false);
-    }
-  }, [elapsedTime, avgPower, avgHeartRate, avgEffort, agentName, getAgentDebrief]);
 
   useEffect(() => {
     containerRef.current?.focus();
@@ -182,8 +150,11 @@ export function RideCompletion({
   ];
 
   return (
-    <div
+    <motion.div
       ref={containerRef}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
       className="absolute inset-0 flex items-center justify-center pointer-events-auto p-4 overflow-hidden"
       role="dialog"
       aria-modal="true"
@@ -197,13 +168,23 @@ export function RideCompletion({
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[400px] h-[300px] bg-purple-600/8 blur-[100px] rounded-full pointer-events-none" />
 
-      <div className="relative w-full max-w-lg flex flex-col max-h-[90vh] text-center">
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+        className="relative w-full max-w-lg flex flex-col max-h-[90vh] text-center"
+      >
         {/* Header */}
         <div className="mb-4 shrink-0">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-indigo-500/30">
+            <motion.div
+              initial={{ scale: 0, rotate: -20 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.3 }}
+              className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-indigo-500/30"
+            >
               🧠
-            </div>
+            </motion.div>
           </div>
           <p className="text-[10px] uppercase tracking-[0.3em] text-indigo-300/70 mb-1">
             Performance Debrief
@@ -218,6 +199,52 @@ export function RideCompletion({
             {formatTime(elapsedTime)} session • {isPracticeMode ? "Practice" : "Live"} mode
           </p>
         </div>
+
+        {/* Walrus + Sui anchor info — prominent, above tabs */}
+        {walrusAnchorInfo && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+            className="mb-4 shrink-0 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Anchored on Walrus + Sui</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                href={`https://aggregator.walrus-testnet.walrus.space/v1/${walrusAnchorInfo.blobId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[10px] text-indigo-300 hover:text-indigo-200 transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" /> View on Walrus
+              </a>
+              {walrusAnchorInfo.txDigest && (
+                <a
+                  href={`https://suiscan.xyz/testnet/tx/${walrusAnchorInfo.txDigest}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] text-indigo-300 hover:text-indigo-200 transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" /> View on SuiScan
+                </a>
+              )}
+            </div>
+            <p className="text-[8px] font-mono text-white/30 truncate mt-1.5 uppercase">Blob: {walrusAnchorInfo.blobId}</p>
+          </motion.div>
+        )}
+
+        {/* Walrus pending state */}
+        {!walrusAnchorInfo && (
+          <div className="mb-4 shrink-0 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 text-white/40 animate-spin" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Walrus upload pending</span>
+            </div>
+          </div>
+        )}
 
         {/* Tab Bar — borderless, underline-style */}
         <div
@@ -304,8 +331,6 @@ export function RideCompletion({
               agentName={agentName}
               rating={rating}
               isSubmitted={isSubmitted}
-              isPersisting={isPersisting}
-              walrusId={walrusId}
               walrusAnchorInfo={walrusAnchorInfo}
               syncStatus={syncStatus}
               onSetRating={setRating}
@@ -313,7 +338,6 @@ export function RideCompletion({
                 setIsSubmitted(true);
                 localStorage.setItem(`coach_rating_${agentName}`, String(rating));
               }}
-              onPersistToWalrus={handlePersistToWalrus}
             />
           )}
         </div>
@@ -391,8 +415,8 @@ export function RideCompletion({
             </button>
           ) : null}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -742,24 +766,18 @@ function StorageTab({
   agentName,
   rating,
   isSubmitted,
-  isPersisting,
-  walrusId,
   walrusAnchorInfo,
   syncStatus,
   onSetRating,
   onSubmitRating,
-  onPersistToWalrus,
 }: {
   agentName: string;
   rating: number;
   isSubmitted: boolean;
-  isPersisting: boolean;
-  walrusId: string | null;
   walrusAnchorInfo: { blobId: string; txDigest?: string } | null;
   syncStatus: string;
   onSetRating: (r: number) => void;
   onSubmitRating: () => void;
-  onPersistToWalrus: () => void;
 }) {
   return (
     <div className="space-y-5">
@@ -808,24 +826,10 @@ function StorageTab({
           </div>
         )}
 
-        {!walrusId && !walrusAnchorInfo ? (
-          <LoadingButton
-            variant="secondary"
-            className="w-full h-12 rounded-xl gap-2 font-bold uppercase tracking-widest text-[10px]"
-            onClick={onPersistToWalrus}
-            isLoading={isPersisting}
-            loadingText="Uploading to Walrus..."
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            Persist Forever
-          </LoadingButton>
-        ) : (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-emerald-400">
-              <CheckCircle2 className="w-4 h-4" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Anchored to Walrus</span>
-            </div>
-            <p className="text-[8px] font-mono text-white/40 truncate uppercase">Blob ID: {walrusId}</p>
+        {!walrusAnchorInfo && (
+          <div className="flex items-center gap-2 text-white/40">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Uploading to Walrus…</span>
           </div>
         )}
       </div>

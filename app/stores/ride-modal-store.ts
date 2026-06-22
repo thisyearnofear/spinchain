@@ -36,6 +36,8 @@ interface RideModalState {
   completionPrimaryAction: "view_history" | "ride_again";
   walrusAnchorInfo: WalrusAnchorInfo | null;
   completedRideId: string | null;
+  isExitingRide: boolean;
+  showCompletionScreen: boolean;
 
   setShowNoBikeModal: (v: boolean) => void;
   setShowKeyboardHints: (v: boolean) => void;
@@ -49,6 +51,8 @@ interface RideModalState {
   setCompletionPrimaryAction: (action: "view_history" | "ride_again") => void;
   setWalrusAnchorInfo: (info: WalrusAnchorInfo | null) => void;
   setCompletedRideId: (id: string | null) => void;
+  setIsExitingRide: (v: boolean) => void;
+  setShowCompletionScreen: (v: boolean) => void;
 }
 
 const initialDemoStats: DemoStats = {
@@ -73,6 +77,8 @@ export const useRideModalStore = create<RideModalState>((set) => ({
   completionPrimaryAction: "view_history",
   walrusAnchorInfo: null,
   completedRideId: null,
+  isExitingRide: false,
+  showCompletionScreen: false,
 
   setShowNoBikeModal: (v) => set({ showNoBikeModal: v }),
   setShowKeyboardHints: (v) => set({ showKeyboardHints: v }),
@@ -86,4 +92,6 @@ export const useRideModalStore = create<RideModalState>((set) => ({
   setCompletionPrimaryAction: (action) => set({ completionPrimaryAction: action }),
   setWalrusAnchorInfo: (info) => set({ walrusAnchorInfo: info }),
   setCompletedRideId: (id) => set({ completedRideId: id }),
+  setIsExitingRide: (v) => set({ isExitingRide: v }),
+  setShowCompletionScreen: (v) => set({ showCompletionScreen: v }),
 }));
