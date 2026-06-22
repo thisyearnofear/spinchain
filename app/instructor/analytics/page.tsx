@@ -15,8 +15,10 @@ import {
   Calendar,
   Award,
   Activity,
-  Download
+  Download,
+  ArrowRight
 } from "lucide-react";
+import Link from "next/link";
 
 // Generate realistic trend data for sparklines
 function generateTrendData(baseValue: number, points: number = 10, variance: number = 0.2): number[] {
@@ -59,15 +61,32 @@ export default function InstructorAnalyticsPage() {
                 <span className="text-2xl">📊</span>
                 <div>
                   <h3 className="text-lg font-semibold text-amber-600 dark:text-amber-400 mb-1">
-                    Connect Wallet to View Analytics
+                    Connect your wallet to view analytics
                   </h3>
                   <p className="text-sm text-amber-900 dark:text-amber-200/80">
-                    Track your revenue, class performance, and rider engagement.
+                    Track your revenue, class performance, and rider engagement once you start teaching.
                   </p>
                 </div>
               </div>
               <ConnectWallet />
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-8 text-center">
+            <span className="mb-4 block text-4xl">📈</span>
+            <h2 className="text-xl font-semibold text-[color:var(--foreground)] mb-2">
+              No classes yet
+            </h2>
+            <p className="text-sm text-[color:var(--muted)] max-w-md mx-auto mb-6">
+              Once you publish your first class, you'll see revenue, rider engagement, and performance metrics here.
+            </p>
+            <Link
+              href="/instructor/builder"
+              className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent)] px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              Create your first class
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </main>
       </div>
