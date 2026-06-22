@@ -331,13 +331,16 @@ function QuizShell({ children, onSkip, stepId, theme }: QuizShellProps) {
       </div>
 
       <div className="relative w-full max-w-md px-2 py-8 md:py-12 max-h-[92vh] overflow-y-auto">
-        <button
-          onClick={onSkip}
-          className="absolute top-0 right-2 text-xs font-medium text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
-          aria-label="Skip quiz"
-        >
-          Skip →
-        </button>
+        <div className="absolute top-0 right-2 flex items-center gap-2">
+          <span className="text-[10px] font-medium text-[color:var(--muted)]/60 hidden sm:inline">Personalize your experience</span>
+          <button
+            onClick={onSkip}
+            className="text-xs font-medium text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors px-3 py-1.5 rounded-full border border-[color:var(--border)] hover:border-[color:var(--border-strong)]"
+            aria-label="Skip quiz"
+          >
+            Maybe later
+          </button>
+        </div>
 
         {children}
       </div>

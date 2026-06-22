@@ -42,14 +42,15 @@ function HomeContent() {
       return () => window.cancelAnimationFrame(frame);
     }
 
-    // Show quiz for first-time visitors
+    // Show quiz for first-time visitors after a short delay
+    // so they see the landing page first
     if (!hasProfile) {
       const completed = localStorage.getItem(RIDER_QUIZ_KEY);
       if (!completed) {
-        const frame = window.requestAnimationFrame(() => {
+        const timer = window.setTimeout(() => {
           setShowQuiz(true);
-        });
-        return () => window.cancelAnimationFrame(frame);
+        }, 3000);
+        return () => window.clearTimeout(timer);
       }
     }
 
