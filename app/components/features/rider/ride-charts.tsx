@@ -192,7 +192,6 @@ export function CalendarHeatmap({ rides }: { rides: RideSummary[] }) {
   }, [grid]);
 
   const cellSize = 13;
-  const gap = 3;
   const dayLabels = ["", "M", "", "W", "", "F", ""];
 
   return (
@@ -291,7 +290,6 @@ export function WeeklyVolumeChart({ rides }: { rides: RideSummary[] }) {
 
   const maxTotal = Math.max(...data.map((d) => d.total), 1);
   const barWidth = 48;
-  const gap = 12;
   const chartHeight = 120;
   const labelArea = 20;
 

@@ -105,8 +105,6 @@ function JourneyContent() {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  const recent = rides.slice(0, 8);
-
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,#1a2550,transparent_55%),radial-gradient(circle_at_80%_20%,#2a1d5a,transparent_40%)]">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">

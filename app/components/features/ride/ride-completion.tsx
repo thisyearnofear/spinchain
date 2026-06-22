@@ -13,7 +13,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { formatTime } from "@/app/lib/formatters";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
-import { Share2, Star, Cloud, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
+import { Star, Cloud, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { LoadingButton } from "../../ui/loading-button";
 import { ShareCardButton } from "./share-card";
 
