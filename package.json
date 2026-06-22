@@ -50,6 +50,7 @@
     "zustand": "5.0.11"
   },
   "devDependencies": {
+    "@aztec/bb.js": "5.0.0-rc.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

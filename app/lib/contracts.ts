@@ -66,7 +66,7 @@ export const CONTRACT_ADDRESSES = {
   /** MockUltraVerifier (testnet only — see docs/DEPLOYMENT.md for Honk verifier limitation) — verified Fuji: https://testnet.snowtrace.io/address/0x202aEd029708F2e0540B63a4025Dcb2556F85ba1 */
   ULTRA_VERIFIER: (process.env.NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS ??
     process.env.NEXT_PUBLIC_MOCK_ULTRA_VERIFIER_ADDRESS ??
-    "0xf63be2C9f838A5fb96B2A4A5d99941EA7CF1E713") as `0x${string}`,
+    "0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B") as `0x${string}`,
 
   /** EffortThresholdVerifier — wraps UltraVerifier with replay protection — verified Fuji: https://testnet.snowtrace.io/address/0x783C36f6502052EC31971e75E20D0012910dbA91 */
   EFFORT_VERIFIER: (process.env.NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS ??
