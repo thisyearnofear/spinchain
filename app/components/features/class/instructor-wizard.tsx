@@ -137,7 +137,7 @@ export function InstructorWizard() {
     saveDraft("ready_to_publish");
     setIsSubmitting(false);
     setShowReadyState(true);
-    toast.success("Draft ready to publish", "Open the advanced builder to connect the final publishing flow.");
+    toast.success("Draft ready to publish", "Open the publisher to finalize and publish your class on-chain.");
   };
 
   const handleStartNewDraft = () => {
@@ -164,7 +164,7 @@ export function InstructorWizard() {
           </div>
 
           <p className="max-w-xl text-sm leading-relaxed text-[color:var(--muted)] md:text-base">
-            We saved this class plan locally and marked it ready for the final publish step. The next handoff is the advanced builder, where you can connect the full route and onchain publishing flow.
+            We saved this class plan locally and marked it ready for the final publish step. The next step is the advanced builder, where you can connect the full route and publish your class on-chain.
           </p>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -180,7 +180,7 @@ export function InstructorWizard() {
                 <div className="flex justify-between gap-4">
                   <span className="text-[color:var(--muted)]">Format</span>
                   <span className="font-medium text-[color:var(--foreground)]">
-                    {formData.mode === "agentic" ? "Coachy-assisted" : "Human-led"}
+                    {formData.mode === "agentic" ? "AI-Assisted" : "Human-led"}
                   </span>
                 </div>
                 <div className="flex justify-between gap-4">
@@ -195,9 +195,9 @@ export function InstructorWizard() {
                 What happens next
               </p>
               <ul className="mt-3 space-y-2 text-sm text-[color:var(--muted)]">
-                <li>Review the complete builder configuration</li>
+                <li>Review the complete class configuration</li>
                 <li>Confirm route, schedule, and publish settings</li>
-                <li>Use the connected wallet for the final publish step</li>
+                <li>Connect your wallet for the final publish step</li>
               </ul>
             </SurfaceCard>
           </div>
@@ -208,7 +208,7 @@ export function InstructorWizard() {
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[color:var(--accent)] px-6 py-3 font-semibold text-white transition-opacity hover:opacity-90"
             >
               <Rocket className="h-4 w-4" />
-              Open Advanced Builder
+              Go to Publisher
             </Link>
             <button
               onClick={handleStartNewDraft}
@@ -388,9 +388,9 @@ export function InstructorWizard() {
                 <div className={`mb-4 w-fit rounded-lg p-2 ${formData.mode === "agentic" ? "bg-indigo-500 text-white" : "bg-[color:var(--surface)] text-[color:var(--muted)]"}`}>
                   <Bot size={24} />
                 </div>
-                <h3 className="mb-2 font-bold text-[color:var(--foreground)]">Coachy Mode</h3>
+                <h3 className="mb-2 font-bold text-[color:var(--foreground)]">AI-Assisted Coaching</h3>
                 <p className="text-xs text-[color:var(--muted)]">
-                  Use AI-supported coaching to scale class delivery while preserving your preferred training style.
+                  Let AI handle pacing cues and real-time coaching while you focus on class design and rider engagement.
                 </p>
               </button>
             </div>
@@ -398,7 +398,7 @@ export function InstructorWizard() {
             {formData.mode === "agentic" && (
               <div className="animate-in fade-in slide-in-from-top-2 space-y-4">
                 <label className="block text-sm font-medium text-[color:var(--foreground)]">
-                  Select Coachy&apos;s Personality
+                  Choose a Coaching Style
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   {[
@@ -422,7 +422,7 @@ export function InstructorWizard() {
                 </div>
                 <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-3 text-[10px] text-blue-300">
                   <TrendingUp size={12} className="mr-2 inline" />
-                  Coachy can adapt pacing cues to live rider effort while keeping the class structure consistent.
+                  The AI coach adapts pacing cues to live rider effort while keeping the class structure consistent.
                 </div>
               </div>
             )}
@@ -522,7 +522,7 @@ export function InstructorWizard() {
               <div className="mb-3 flex items-start justify-between">
                 <h4 className="text-xs uppercase tracking-wider text-[color:var(--muted)]">Class Identity</h4>
                 <Tag color={formData.mode === "agentic" ? "indigo" : "blue"}>
-                  {formData.mode === "agentic" ? "🤖 Coachy" : "👤 Standard"}
+                  {formData.mode === "agentic" ? "🤖 AI-Assisted" : "👤 Standard"}
                 </Tag>
               </div>
               <div className="space-y-2 text-sm">
@@ -540,7 +540,7 @@ export function InstructorWizard() {
                 </div>
                 {formData.mode === "agentic" && (
                   <div className="flex justify-between gap-4">
-                    <span className="text-[color:var(--muted)]">Coachy personality</span>
+                    <span className="text-[color:var(--muted)]">Coaching style</span>
                     <span className="capitalize text-indigo-400">{formData.personality.replace("-", " ")}</span>
                   </div>
                 )}
@@ -594,7 +594,7 @@ export function InstructorWizard() {
 
             <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-3 text-[10px] text-indigo-300">
               <Zap size={12} className="mr-2 inline" />
-              This flow now saves a real draft and creates a clear next step instead of ending with a simulated alert.
+              This flow saves a real draft and creates a clear next step for publishing.
             </div>
           </div>
         )}
@@ -637,7 +637,7 @@ export function InstructorWizard() {
               >
                 {isConnected
                   ? formData.mode === "agentic"
-                    ? "Continue To Publish With Coachy"
+                    ? "Continue To Publish"
                     : "Continue To Publish"
                   : "Connect Wallet To Publish"}
               </LoadingButton>

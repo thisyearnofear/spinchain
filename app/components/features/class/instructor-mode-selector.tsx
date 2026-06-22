@@ -43,7 +43,7 @@ const modes: InstructorMode[] = [
   {
     id: "agent",
     icon: "🤖",
-    title: "Coachy",
+    title: "AI Coach",
     subtitle: "AI-Led Class Design",
     description: "Prototype an AI-led coaching experience, tune the tone of the session, and explore how an autonomous class could extend your reach.",
     features: [
@@ -52,7 +52,7 @@ const modes: InstructorMode[] = [
       "Blend AI support with your brand",
       "Explore scalable class formats"
     ],
-    cta: "Preview Coachy flow",
+    cta: "Preview AI Coach flow",
     href: "/instructor/ai",
     color: "from-cyan-500 to-blue-500",
     visualTitle: "AI coaching preview",
