@@ -1,64 +1,68 @@
-// Noir Prover - Production ZK proof generation
-// Replaces MockProver with actual Noir circuits
+// Noir Prover - Production ZK proof generation using real Noir circuits
+// Uses @noir-lang/noir_js + @noir-lang/backend_barretenberg
 
 import type { ProofInput, ZKProof, CircuitType } from './types';
 import { ZK_CONFIG } from "@/app/config";
 
-// UltraPlonk backend interface (dynamically imported)
-interface NoirBackend {
-  generateProof(witness: unknown): Promise<{ proof: Uint8Array; publicInputs: string[] }>;
-  verifyProof(proof: Uint8Array, publicInputs: string[]): Promise<boolean>;
+// Lazily-loaded module references (browser only)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let BackendCtor: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let NoirCtor: any = null;
+
+// Compiled circuit shape from Nargo
+interface CompiledCircuit {
+  bytecode: string;
+  abi: unknown;
+}
+
+// ProofData shape returned by BarretenbergBackend
+interface ProofData {
+  proof: Uint8Array;
+  publicInputs: string[];
 }
 
 // Browser-compatible Noir prover using @noir-lang packages
 export class NoirProver {
-  private backend: NoirBackend | null = null;
-  private circuit: unknown = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private backend: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private noir: any = null;
+  private circuit: CompiledCircuit | null = null;
   private initialized = false;
-  
-  // Circuit bytecode (compiled from Nargo)
-  private circuitBytecode: Uint8Array | null = null;
-  
+
   async initialize(): Promise<void> {
     if (this.initialized) return;
-    
+
     try {
-      // Dynamic import using string literals to prevent TypeScript from checking
-      const backendPkg = '@noir-lang/backend_barretenberg';
-      const noirPkg = '@noir-lang/noir_js';
-      
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const backendModule = await (eval(`import('${backendPkg}')`) as Promise<any>).catch(() => null);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const noirModule = await (eval(`import('${noirPkg}')`) as Promise<any>).catch(() => null);
-      
-      if (!backendModule || !noirModule) {
-        console.warn('[NoirProver] Noir packages not installed, falling back to mock');
-        this.initialized = false;
+      // Dynamic imports — only run in browser, not during SSR/build
+      if (typeof window === 'undefined') {
+        console.warn('[NoirProver] Not in browser, skipping initialization');
         return;
       }
-      
-      // Load circuit (in production, fetch from server or CDN)
+
+      if (!BackendCtor || !NoirCtor) {
+        const backendMod = await import(/* webpackIgnore: true */ '@noir-lang/backend_barretenberg');
+        const noirMod = await import(/* webpackIgnore: true */ '@noir-lang/noir_js');
+        BackendCtor = backendMod.BarretenbergBackend;
+        NoirCtor = noirMod.Noir;
+      }
+
+      // Load compiled circuit from public directory
       await this.loadCircuit();
-      
-      if (!this.circuitBytecode) {
+
+      if (!this.circuit) {
         console.warn('[NoirProver] Circuit not loaded, falling back to mock');
-        this.initialized = false;
         return;
       }
-      
-      // Initialize backend
-      const { UltraPlonkBackend } = backendModule;
-      this.backend = new UltraPlonkBackend(this.circuitBytecode);
-      
-      // Initialize Noir
-      const { Noir } = noirModule;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const noir = new Noir(this.circuit as any);
-      await noir.init();
-      
+
+      // Initialize backend and Noir
+      this.backend = new BackendCtor(this.circuit);
+      this.noir = new NoirCtor(this.circuit);
+      await this.noir.init();
+
       this.initialized = true;
-      console.log('[NoirProver] Initialized successfully');
+      console.log('[NoirProver] Initialized successfully with BarretenbergBackend');
     } catch (error) {
       console.error('[NoirProver] Initialization failed:', error);
       this.initialized = false;
@@ -66,23 +70,16 @@ export class NoirProver {
   }
   
   private async loadCircuit(): Promise<void> {
-    // Load the compiled circuit from public directory
     try {
       const response = await fetch('/circuits/effort_threshold/target/effort_threshold.json');
       if (response.ok) {
-        const circuitJson = await response.json();
-        this.circuit = circuitJson;
-        
-        // The JSON contains the bytecode directly
-        if (circuitJson.bytecode) {
-          // Convert hex string to Uint8Array
-          const hex = circuitJson.bytecode.replace(/^0x/, '');
-          this.circuitBytecode = new Uint8Array(
-            hex.match(/.{1,2}/g)?.map((byte: string) => parseInt(byte, 16)) || []
-          );
+        const circuitJson = await response.json() as CompiledCircuit;
+        if (circuitJson.bytecode && circuitJson.abi) {
+          this.circuit = circuitJson;
+          console.log('[NoirProver] Circuit loaded successfully');
+        } else {
+          console.warn('[NoirProver] Circuit JSON missing bytecode or abi');
         }
-        
-        console.log('[NoirProver] Circuit loaded successfully');
       } else {
         console.warn('[NoirProver] Circuit not found at /circuits/...');
       }
@@ -95,48 +92,14 @@ export class NoirProver {
     input: ProofInput,
     circuitType: CircuitType
   ): Promise<ZKProof> {
-    if (!this.initialized || !this.backend) {
-      throw new Error('Prover not initialized');
+    if (!this.initialized || !this.backend || !this.noir) {
+      throw new Error('Noir prover not initialized');
     }
-    
-    // Prepare witness based on circuit type
-    const witness = this.prepareWitness(input, circuitType);
-    
-    // Generate proof
-    const startTime = performance.now();
-    const { proof, publicInputs } = await this.backend.generateProof(witness);
-    const provingTime = performance.now() - startTime;
-    
-    console.log(`[NoirProver] Proof generated in ${provingTime.toFixed(0)}ms`);
-    
-    return {
-      proof,
-      publicInputs: [...this.normalizePublicInputs(publicInputs), input.classId, input.riderId],
-      circuitType,
-      verifierAddress: ZK_CONFIG.verifierAddress ?? "",
-    };
-  }
-  
-  async verifyProof(proof: ZKProof): Promise<boolean> {
-    if (!this.backend) {
-      throw new Error('Prover not initialized');
-    }
-    
-    const startTime = performance.now();
-    const valid = await this.backend.verifyProof(proof.proof, proof.publicInputs);
-    const verifyTime = performance.now() - startTime;
-    
-    console.log(`[NoirProver] Verification completed in ${verifyTime.toFixed(0)}ms`);
-    
-    return valid;
-  }
-  
-  private prepareWitness(input: ProofInput, _circuitType: CircuitType): unknown {
-    // Convert telemetry to circuit format
-    // Circuit expects fixed-size array of 60 points
+
+    // Build circuit inputs — circuit expects a single struct argument
     const MAX_POINTS = 60;
     const heartRates: number[] = new Array(MAX_POINTS).fill(0);
-    
+
     const samples =
       input.heartRateSamples && input.heartRateSamples.length > 0
         ? input.heartRateSamples.slice(0, MAX_POINTS)
@@ -145,26 +108,75 @@ export class NoirProver {
     for (let i = 0; i < numPoints; i++) {
       heartRates[i] = Math.max(0, Math.floor(samples[i]));
     }
-    
+
+    const circuitInputs = {
+      input: {
+        heart_rates: heartRates,
+        num_points: numPoints,
+        threshold: Math.max(50, Math.min(250, Math.floor(input.threshold))),
+        min_duration: Math.floor(input.minDuration),
+      },
+    };
+
+    // Execute circuit to get witness
+    const startTime = performance.now();
+    const { witness } = await this.noir.execute(circuitInputs);
+
+    // Generate proof from witness
+    const proofData: ProofData = await this.backend.generateProof(witness);
+    const provingTime = performance.now() - startTime;
+
+    console.log(`[NoirProver] Proof generated in ${provingTime.toFixed(0)}ms`);
+
+    // Circuit returns: [threshold_met (bool), seconds_above (u32), effort_score (u16)]
+    // Map to the 7-element format expected by ZKProof consumers:
+    // [threshold, minDuration, thresholdMet, secondsAbove, effortScore, classId, riderId]
+    const rawOutputs = proofData.publicInputs;
+    const thresholdMet = rawOutputs[0] === 'true' || rawOutputs[0] === '1' ? '1' : '0';
+    const secondsAbove = rawOutputs[1] ?? '0';
+    const effortScore = rawOutputs[2] ?? '0';
+
     return {
-      heart_rates: heartRates,
-      num_points: numPoints,
-      threshold: input.threshold,
-      min_duration: input.minDuration,
+      proof: proofData.proof,
+      publicInputs: [
+        String(Math.floor(input.threshold)),
+        String(Math.floor(input.minDuration)),
+        thresholdMet,
+        secondsAbove,
+        effortScore,
+        input.classId,
+        input.riderId,
+      ],
+      circuitType,
+      verifierAddress: ZK_CONFIG.verifierAddress ?? "",
     };
   }
 
-  private normalizePublicInputs(values: string[]): string[] {
-    return values.slice(0, 5).map((value) => {
-      if (value === "true") return "1";
-      if (value === "false") return "0";
-      return value;
-    });
+  async verifyProof(proof: ZKProof, _publicInputs: string[]): Promise<boolean> {
+    if (!this.backend) {
+      throw new Error('Noir prover not initialized');
+    }
+
+    const startTime = performance.now();
+    // BarretenbergBackend.verifyProof takes ProofData { proof, publicInputs }
+    // Our circuit has no public inputs (all in private struct), only public return values.
+    // The circuit returns 3 public outputs: [threshold_met, seconds_above, effort_score]
+    // In our 7-element ZKProof format, these are at indices 2-4.
+    const proofData: ProofData = {
+      proof: proof.proof,
+      publicInputs: proof.publicInputs.slice(2, 5),
+    };
+    const valid = await this.backend.verifyProof(proofData);
+    const verifyTime = performance.now() - startTime;
+
+    console.log(`[NoirProver] Verification completed in ${verifyTime.toFixed(0)}ms`);
+
+    return valid;
   }
-  
-  // Check if Noir is available (circuits compiled and deployed)
+
+  // Check if Noir is available (circuits compiled and loaded)
   isAvailable(): boolean {
-    return this.initialized && this.circuitBytecode !== null;
+    return this.initialized && this.circuit !== null;
   }
 }
 

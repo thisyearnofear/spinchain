@@ -4,6 +4,13 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  serverExternalPackages: [
+    "@noir-lang/noir_js",
+    "@noir-lang/backend_barretenberg",
+    "@aztec/bb.js",
+    "@noir-lang/acvm_js",
+    "@noir-lang/noirc_abi",
+  ],
   experimental: {
   },
   turbopack: {},
@@ -14,6 +21,11 @@ const nextConfig: NextConfig = {
         ...(config.resolve.alias || {}),
         "@react-native-async-storage/async-storage": false,
         "pino-pretty": false,
+      };
+      // Support WASM modules from @noir-lang packages
+      config.experiments = {
+        ...config.experiments,
+        asyncWebAssembly: true,
       };
     }
 

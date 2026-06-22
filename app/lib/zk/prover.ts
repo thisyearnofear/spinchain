@@ -106,12 +106,13 @@ export class ZKProver {
   private mockBackend: MockProver;
   private noirBackend: NoirProver | null = null;
   private useNoir: boolean = false;
-  
+  private initPromise: Promise<void> | null = null;
+
   constructor() {
     this.mockBackend = new MockProver();
-    this.tryInitializeNoir();
+    this.initPromise = this.tryInitializeNoir();
   }
-  
+
   private async tryInitializeNoir(): Promise<void> {
     try {
       this.noirBackend = await getNoirProver();
@@ -122,7 +123,14 @@ export class ZKProver {
       this.useNoir = false;
     }
   }
-  
+
+  async ensureInitialized(): Promise<void> {
+    if (this.initPromise) {
+      await this.initPromise;
+      this.initPromise = null;
+    }
+  }
+
   private getBackend(): ProverBackend {
     return this.useNoir && this.noirBackend ? this.noirBackend : this.mockBackend;
   }
@@ -136,6 +144,7 @@ export class ZKProver {
     minDuration: number,
     heartRateSamples?: number[]
   ): Promise<ZKProof> {
+    await this.ensureInitialized();
     const input: ProofInput = {
       heartRate,
       heartRateSamples,
@@ -147,7 +156,7 @@ export class ZKProver {
       classId,
       minDuration,
     };
-    
+
     return this.getBackend().generateProof(input, 'effort_threshold');
   }
   
@@ -161,6 +170,7 @@ export class ZKProver {
     riderId: string,
     duration: number
   ): Promise<ZKProof> {
+    await this.ensureInitialized();
     const input: ProofInput = {
       heartRate,
       power,
@@ -171,12 +181,13 @@ export class ZKProver {
       classId,
       minDuration: duration,
     };
-    
+
     return this.getBackend().generateProof(input, 'composite');
   }
   
   // Verify any proof
   async verify(proof: ZKProof): Promise<boolean> {
+    await this.ensureInitialized();
     return this.getBackend().verifyProof(proof, proof.publicInputs);
   }
   
