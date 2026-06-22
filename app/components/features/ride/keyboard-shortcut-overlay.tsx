@@ -51,7 +51,7 @@ function KeyboardShortcutOverlayInternal({ show, duration = 5000, onDismiss }: K
 
   return (
     <div
-      className={`fixed top-20 left-1/2 -translate-x-1/2 pointer-events-none transition-opacity duration-400 ${
+      className={`fixed top-20 left-1/2 -translate-x-1/2 sm:left-6 sm:translate-x-0 pointer-events-none transition-opacity duration-400 ${
         fading ? "opacity-0" : "opacity-100"
       }`}
       style={{ zIndex: Z_LAYERS.tooltips }}

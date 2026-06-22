@@ -177,6 +177,12 @@ export class RideCoordinator {
         isPractice: config.isPracticeMode,
       },
     });
+
+    // Reset telemetry history so stale data from a previous ride doesn't bleed in
+    useTelemetryStore.setState({
+      history: { power: [], cadence: [], heartRate: [] },
+      recentPower: [],
+    });
   }
 
   async stop(): Promise<void> {
@@ -328,6 +334,18 @@ export class RideCoordinator {
     ) {
       storeUpdate.multiGhostState = [...nextMulti];
     }
+
+    // Update rolling history arrays for performance graphs (last 60 samples)
+    const prevHistory = useTelemetryStore.getState().history;
+    const MAX_HISTORY = 60;
+    storeUpdate.history = {
+      power: [...prevHistory.power, snapshot.power].slice(-MAX_HISTORY),
+      cadence: [...prevHistory.cadence, snapshot.cadence].slice(-MAX_HISTORY),
+      heartRate: [...prevHistory.heartRate, snapshot.heartRate].slice(-MAX_HISTORY),
+    };
+
+    // Update recentPower for focus view power trend (last 30 samples)
+    storeUpdate.recentPower = [...useTelemetryStore.getState().recentPower, snapshot.power].slice(-30);
 
     useTelemetryStore.setState(storeUpdate as never);
 

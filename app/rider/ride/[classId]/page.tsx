@@ -387,8 +387,8 @@ export default function LiveRidePage() {
 
       {isRiding && viewMode === "immersive" && hudMode !== "minimal" && deviceType !== "mobile" && (
         <div className="fixed top-40 right-6 z-40 flex flex-col gap-4">
-          <PerformanceGraph data={telemetryHistory.power} color="text-yellow-400" label="Power" max={400} />
-          <PerformanceGraph data={telemetryHistory.cadence} color="text-blue-400" label="Cadence" max={140} />
+          <PerformanceGraph data={telemetryHistory.power ?? []} color="text-yellow-400" label="Power" max={400} />
+          <PerformanceGraph data={telemetryHistory.cadence ?? []} color="text-blue-400" label="Cadence" max={140} />
         </div>
       )}
 

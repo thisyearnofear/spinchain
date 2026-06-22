@@ -46,12 +46,12 @@ type PanelStorageState = {
   positions: PanelPositions;
 };
 
-const STORAGE_KEY = 'spinchain:ride:panelState';
+const STORAGE_KEY = 'spinchain:ride:panelState.v2';
 
 function getDefaultPositions(): PanelPositions {
   return {
-    focusLeft: { x: 16, y: 16 },
-    focusRight: { x: -16, y: 16 },
+    focusLeft: { x: 16, y: 100 },
+    focusRight: { x: -16, y: 100 },
     focusBottom: { x: 0, y: -16 },
   };
 }
