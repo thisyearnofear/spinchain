@@ -83,9 +83,9 @@ export const CONTRACT_ADDRESSES = {
   CRE_FORWARDER: (process.env.NEXT_PUBLIC_CHAINLINK_FORWARDER ??
     ZERO_ADDRESS) as `0x${string}`,
 
-  /** SpinPack ERC-1155 — Master NFT (route IP) + access tickets */
+  /** SpinPack ERC-1155 — Master NFT (route IP) + access tickets — verified Fuji: https://testnet.snowtrace.io/address/0x2C8443584daFA864Caa967cBDD7ec3D17157618B */
   SPIN_PACK: (process.env.NEXT_PUBLIC_SPIN_PACK_ADDRESS ??
-    ZERO_ADDRESS) as `0x${string}`,
+    "0x2C8443584daFA864Caa967cBDD7ec3D17157618B") as `0x${string}`,
 } as const;
 
 // Legacy named exports (used throughout the codebase)

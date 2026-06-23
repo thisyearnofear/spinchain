@@ -55,7 +55,10 @@ export const CONTRACTS = {
     chainId: 2358,
     rpcUrl: "https://rpc.kite-testnet.gokite.ai",
     explorerUrl: "https://explorer.kite-testnet.gokite.ai",
-    agentPassport: "0x42f3f1954e3CB988c3F9adBb9E68b168F9B6330C", // Placeholder for actual Agent Passport
+    // NOT YET DEPLOYED — Kite AI SDK (Agent Passport / AA Wallet) integration is pending.
+    // This is the only remaining placeholder contract address in the codebase.
+    // Once the Kite SDK is integrated, replace with the real Agent Passport contract address.
+    agentPassport: null as `0x${string}` | null,
     usdc: "0x5425890298aed601595a70AB815c96711a31Bc65", // Shared Fuji/Kite USDC bridge address (demo)
   },
 } as const;

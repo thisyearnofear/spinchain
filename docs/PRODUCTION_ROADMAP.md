@@ -160,5 +160,5 @@ Carried over from previous remediation work:
 - [ ] Live telemetry integration in instructor yellow page (P1-4)
 - [ ] End-to-end testing on Fuji testnet with real verifier + engine addresses
 - [ ] Gas/performance validation for chunked ZK proofs on 45-min sessions
-- [ ] Resolve placeholder config values (SpinPack contract, Kite agent passport)
+- [x] Resolve placeholder config values — SpinPack deployed (`0x2C8443...`), all 8 Fuji contracts verified. Only Kite agent passport remains undeployed (pending Kite SDK integration)
 - [ ] Keep reward settlement and ride-summary anchoring status distinct across UI, storage, and relay flows
