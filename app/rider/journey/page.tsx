@@ -39,6 +39,8 @@ import {
 } from "../../components/features/rider/ride-charts";
 import { DataOwnershipDashboard } from "../../components/features/rider/data-ownership-dashboard";
 import { RiderHomeworkCard } from "../../components/features/rider/rider-homework-card";
+import { RideAnalysisCard } from "../../components/features/rider/ride-analysis-card";
+import { TrainingPlanCard } from "../../components/features/rider/training-plan-card";
 import { useProfileSyncEffect } from "../../hooks/common/use-profile-sync";
 
 function JourneyContent() {
@@ -466,6 +468,12 @@ function JourneyContent() {
             )}
           </div>
         </div>
+
+        {/* AI Ride Analysis */}
+        <RideAnalysisCard />
+
+        {/* AI Training Plan */}
+        <TrainingPlanCard />
 
         {/* Homework from coach */}
         <RiderHomeworkCard />

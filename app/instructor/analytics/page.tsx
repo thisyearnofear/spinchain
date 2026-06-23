@@ -7,6 +7,7 @@ import { SurfaceCard, Tag, MetricTileEnhanced } from "../../components/ui/ui";
 import { ConnectWallet } from "../../components/features/wallet/connect-wallet";
 import { useInstructorAnalytics } from "../../hooks/evm/use-instructor-analytics";
 import { InstructorRoster } from "../../components/features/instructor/instructor-roster";
+import { InstructorInsightsPanel } from "../../components/features/instructor/instructor-insights-panel";
 import { motion } from "framer-motion";
 import { 
   Activity, 
@@ -375,6 +376,9 @@ export default function InstructorAnalyticsPage() {
             </table>
           </div>
         </SurfaceCard>
+
+        {/* AI Roster Insights */}
+        <InstructorInsightsPanel />
 
         {/* Rider Roster with homework assignment */}
         <InstructorRoster />

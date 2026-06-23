@@ -129,19 +129,19 @@ CREATE TABLE progress_snapshots (
 - **Extend RiderProfile** with physical/biometric fields: FTP, maxHR, restingHR, weight, height, injuries, training zones
 - **Adaptive difficulty** — adjust `getRecommendedDifficulty()` and `getRecommendedDuration()` based on ride history (avg effort trend, recent PRs) instead of static quiz answers
 
-## Phase 2: Instructor-Rider Loop (in progress)
+## Phase 2: Instructor-Rider Loop ✅ Complete
 
 - **Rider roster view** ✅ — instructors see who attended, their progress over time (`/api/instructor/roster`, `InstructorRoster` component)
 - **Homework assignment system** ✅ — instructor assigns a practice ride after class (`/api/homework` CRUD, `useInstructorHomework` hook, assign modal)
 - **Post-class practice flow** ✅ — rider sees "Homework from your coach" on journey page (`RiderHomeworkCard` component)
 - **Progress tracking between classes** ✅ — "Since your last class with [instructor], your avg power went from 180W to 205W" (`/api/progress/delta`, `useProgressDelta` hook, delta badges in roster)
 
-## Phase 3: Agentic Intelligence (2-3 weeks)
+## Phase 3: Agentic Intelligence ✅ Complete
 
-- **Post-ride AI analysis** — LLM analyzes ride vs. previous rides, generates insights
-- **AI homework recommendations** — "Based on your last class, practice these intervals"
-- **Instructor AI insights** — "3 riders haven't practiced since your last class, 2 improved FTP"
-- **Personalized training plans** — AI generates multi-week plans from ride history + profile
+- **Post-ride AI analysis** ✅ — LLM compares latest ride vs history, returns improvements, focus areas, tips, trend comparison (`/api/ai/ride-analysis`, `RideAnalysisCard`)
+- **AI homework recommendations** ✅ — Generates practice workout from ride history + profile (`/api/ai/homework-recommendations`, `useHomeworkRecommendation` hook)
+- **Instructor AI insights** ✅ — Analyzes roster: engagement, improvements, concerns, roster health (`/api/ai/instructor-insights`, `InstructorInsightsPanel`)
+- **Personalized training plans** ✅ — Multi-week structured plans with daily workouts, progression, tips (`/api/ai/training-plan`, `TrainingPlanCard`)
 
 ## Phase 4: Scale (Ongoing)
 
