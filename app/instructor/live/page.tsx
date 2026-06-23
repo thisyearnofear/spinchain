@@ -34,6 +34,7 @@ import {
 import { useMindbodySync } from "@/app/hooks/integrations/use-mindbody-sync";
 import { useSpinPack } from "@/app/hooks/evm/use-spin-pack";
 import { RidePreviewBadge } from "@/app/components/features/common/yellow-status-indicator";
+import { useLiveTelemetry } from "@/app/hooks/common/use-live-telemetry";
 
 import { useTelemetryStore, selectTelemetrySnapshot, selectTelemetryAverages } from "@/app/stores/telemetry-store";
 import { useRideStore } from "@/app/stores/ride-store";
@@ -60,16 +61,19 @@ const DEMO_DEFAULTS = {
 export default function InstructorLivePage() {
   const [isAgentPaused, setIsAgentPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [riderCount] = useState(DEMO_DEFAULTS.riderCount);
-  const [activeRiders] = useState(DEMO_DEFAULTS.activeRiders);
   const [benchmark, setBenchmark] = useState<GhostPerformance | null>(null);
   const [marketStats] = useState(DEMO_DEFAULTS.marketStats);
 
-  // Real telemetry from Zustand stores
+  // Real telemetry from Zustand stores (instructor's own bike if riding)
   const rideSnapshot = useTelemetryStore(selectTelemetrySnapshot);
   const rideAverages = useTelemetryStore(selectTelemetryAverages);
   const rideActive = useRideStore((s) => s.isActive);
   const rideSession = useRideStore((s) => s.session);
+
+  // Live telemetry from all riders in the class (polled from server)
+  const liveClassId = rideSession?.classId ?? null;
+  const { data: liveTelemetry } = useLiveTelemetry(liveClassId);
+
   const aiLogs = useCoachingStore(selectAiLogs);
   const lastCoachMessage = useCoachingStore(selectLastCoachMessage);
   const lastDecision = useCoachingStore((s) => s.lastDecision) as AgentDecision | null;
@@ -85,14 +89,23 @@ export default function InstructorLivePage() {
     redeemTokenId: 1,
   });
 
-  // Use real telemetry when ride is active, fall back to demo data
-  const telemetry = rideActive
+  // Use live class telemetry when available, fall back to instructor's own bike, then demo
+  const telemetry = liveTelemetry && liveTelemetry.activeRiders > 0
     ? {
-        avgPower: Math.round(rideAverages.avgPower || rideSnapshot.power || 0),
-        avgHr: Math.round(rideAverages.avgHr || rideSnapshot.heartRate || 0),
-        intensity: Math.round(rideSnapshot.effort * 100 || 0),
+        avgPower: liveTelemetry.avgPower,
+        avgHr: liveTelemetry.avgHeartRate,
+        intensity: Math.round(liveTelemetry.avgEffort * 100),
       }
-    : DEMO_DEFAULTS.telemetry;
+    : rideActive
+      ? {
+          avgPower: Math.round(rideAverages.avgPower || rideSnapshot.power || 0),
+          avgHr: Math.round(rideAverages.avgHr || rideSnapshot.heartRate || 0),
+          intensity: Math.round(rideSnapshot.effort * 100 || 0),
+        }
+      : DEMO_DEFAULTS.telemetry;
+
+  const riderCount = liveTelemetry?.activeRiders ?? DEMO_DEFAULTS.riderCount;
+  const activeRiders = liveTelemetry?.activeRiders ?? DEMO_DEFAULTS.activeRiders;
 
   const [activeStyleAnchor, setActiveStyleAnchor] = useState<string | null>(
     null,
@@ -671,6 +684,30 @@ export default function InstructorLivePage() {
                         </div>
                       ))}
                 </div>
+
+                {/* Live Rider Telemetry */}
+                {liveTelemetry && liveTelemetry.activeRiders > 0 && (
+                  <div className="mt-6 pt-6 border-t border-white/5">
+                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] mb-3">
+                      Live Rider Feed
+                    </p>
+                    <div className="space-y-2">
+                      {liveTelemetry.riders.slice(0, 8).map((rider, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs">
+                          <span className="font-mono text-white/60">
+                            {rider.address.slice(0, 6)}…{rider.address.slice(-4)}
+                          </span>
+                          <div className="flex items-center gap-4">
+                            <span className="text-white/80 font-bold">{rider.power}W</span>
+                            <span className="text-rose-400/80">{rider.heartRate} bpm</span>
+                            <span className="text-white/50">{rider.cadence} rpm</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-6 pt-6 border-t border-white/5 flex flex-col items-center justify-center text-center">
                   <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-2">
                     {rideActive ? "Kite AI Settlement Active" : "Settlement Ready"}

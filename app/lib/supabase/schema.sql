@@ -9,6 +9,7 @@
 --   auth_nonces           — one-time nonces for wallet sign-in
 --   gyms                  — gym registry with calibration profiles
 --   bike_calibrations     — per-bike power/HR calibration offsets
+--   live_telemetry        — real-time rider telemetry for instructor live view
 
 -- ============================================================================
 -- Extensions
@@ -255,3 +256,44 @@ create policy "Gym creators can manage bike calibrations"
       and (gyms.created_by = auth.jwt() ->> 'address' or gyms.created_by is null)
     )
   );
+
+-- ============================================================================
+-- Live Telemetry (real-time rider feed for instructor live view)
+-- ============================================================================
+create table if not exists live_telemetry (
+  id uuid primary key default gen_random_uuid(),
+  class_id text not null,
+  rider_address text not null,
+  heart_rate integer default 0,
+  power integer default 0,
+  cadence integer default 0,
+  effort integer default 0,
+  elapsed_sec integer default 0,
+  updated_at timestamptz default now(),
+  unique (class_id, rider_address)
+);
+
+-- Auto-expire stale rows (older than 5 minutes)
+create index if not exists idx_live_telemetry_class on live_telemetry(class_id);
+create index if not exists idx_live_telemetry_updated on live_telemetry(updated_at);
+
+alter table live_telemetry enable row level security;
+
+-- Riders can push their own telemetry
+create policy "Riders can upsert own live telemetry"
+  on live_telemetry for insert
+  with check (rider_address = auth.jwt() ->> 'address');
+
+create policy "Riders can update own live telemetry"
+  on live_telemetry for update
+  using (rider_address = auth.jwt() ->> 'address');
+
+-- Anyone authenticated can read (instructor needs to see all riders in class)
+create policy "Authenticated users can read live telemetry"
+  on live_telemetry for select
+  using (auth.jwt() ->> 'address' is not null);
+
+-- Riders can delete their own row when ride ends
+create policy "Riders can delete own live telemetry"
+  on live_telemetry for delete
+  using (rider_address = auth.jwt() ->> 'address');

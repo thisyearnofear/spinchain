@@ -46,6 +46,7 @@ import { useRideRewards } from "@/app/hooks/ride/use-ride-rewards";
 import { useRideSimulator } from "@/app/hooks/ride/use-ride-simulator";
 import { useRideLifecycle } from "@/app/hooks/ride/use-ride-lifecycle";
 import { usePrPursuit } from "@/app/hooks/ride/use-pr-pursuit";
+import { usePushLiveTelemetry } from "@/app/hooks/common/use-live-telemetry";
 
 export default function LiveRidePage() {
   const params = useParams();
@@ -339,6 +340,28 @@ export default function LiveRidePage() {
     setBleConnected,
     trackLiveTelemetry: analyticsHook.trackLiveTelemetry,
   });
+
+  // Push live telemetry to server for instructor view (throttled)
+  const { pushTelemetry, clearTelemetry } = usePushLiveTelemetry(isRiding && !isPracticeMode ? classId : null);
+  useEffect(() => {
+    if (!isRiding) return;
+    pushTelemetry({
+      heartRate: telemetrySnapshot.heartRate,
+      power: telemetrySnapshot.power,
+      cadence: telemetrySnapshot.cadence,
+      effort: telemetrySnapshot.effort,
+      elapsedSec: elapsedTime,
+    });
+  }, [isRiding, telemetrySnapshot, elapsedTime, pushTelemetry]);
+
+  // Clear live telemetry on unmount or ride end
+  const isRidingRef = useRef(isRiding);
+  isRidingRef.current = isRiding;
+  useEffect(() => {
+    return () => {
+      if (isRidingRef.current) clearTelemetry();
+    };
+  }, [clearTelemetry]);
 
   // Sync completedRideId back to rewards hook
   const completedRideId = useRideModalStore((s) => s.completedRideId);
