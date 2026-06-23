@@ -1,5 +1,6 @@
 import { getWalrusClient } from "./client";
 import { STORAGE_KEYS, type RideSummary } from "../analytics/ride-history";
+import { isClient, safeParse } from "@/app/lib/utils";
 
 const INDEX_KEY = STORAGE_KEYS.walrusRideBlobs;
 
@@ -8,16 +9,12 @@ interface RideBlobIndex {
 }
 
 function readLocalIndex(): RideBlobIndex {
-  if (typeof window === "undefined") return {};
-  try {
-    return JSON.parse(window.localStorage.getItem(INDEX_KEY) ?? "{}");
-  } catch {
-    return {};
-  }
+  if (!isClient()) return {};
+  return safeParse<RideBlobIndex>(window.localStorage.getItem(INDEX_KEY), {});
 }
 
 function writeLocalIndex(index: RideBlobIndex): void {
-  if (typeof window === "undefined") return;
+  if (!isClient()) return;
   window.localStorage.setItem(INDEX_KEY, JSON.stringify(index));
 }
 

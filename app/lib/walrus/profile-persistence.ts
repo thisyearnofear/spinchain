@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { RiderProfile } from "@/app/stores/rider-profile-store";
 import { STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
+import { isClient, safeParse } from "@/app/lib/utils";
 
 export interface ProfileSyncState {
   walrusBlobId: string | null;
@@ -42,16 +43,12 @@ export const useProfileSync = create<ProfileSyncStore>()(
 const PROFILE_INDEX_KEY = STORAGE_KEYS.walrusProfileBlob;
 
 function readProfileIndex(): { blobId: string; address: string; syncedAt: number } | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return JSON.parse(window.localStorage.getItem(PROFILE_INDEX_KEY) ?? "null");
-  } catch {
-    return null;
-  }
+  if (!isClient()) return null;
+  return safeParse(window.localStorage.getItem(PROFILE_INDEX_KEY), null);
 }
 
 function writeProfileIndex(data: { blobId: string; address: string; syncedAt: number }) {
-  if (typeof window === "undefined") return;
+  if (!isClient()) return;
   window.localStorage.setItem(PROFILE_INDEX_KEY, JSON.stringify(data));
 }
 

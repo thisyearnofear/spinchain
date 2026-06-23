@@ -114,3 +114,15 @@ export function removeLocalStorage(key: string): boolean {
     return false;
   }
 }
+
+/**
+ * Safely parse JSON from a string, returning a fallback on failure
+ */
+export function safeParse<T>(input: string | null, fallback: T): T {
+  if (!input) return fallback;
+  try {
+    return JSON.parse(input) as T;
+  } catch {
+    return fallback;
+  }
+}

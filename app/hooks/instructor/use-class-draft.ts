@@ -18,6 +18,8 @@ export interface InstructorClassDraftFormData {
   useAI: boolean;
 }
 
+import { isClient } from "@/app/lib/utils";
+
 interface StoredInstructorClassDraft {
   version: 1;
   savedAt: number | null;
@@ -38,14 +40,10 @@ function createDefaultDraft(
   };
 }
 
-function hasWindow() {
-  return typeof window !== "undefined";
-}
-
 function readStoredDraft(
   initialFormData: InstructorClassDraftFormData,
 ): { draft: StoredInstructorClassDraft; restored: boolean } {
-  if (!hasWindow()) {
+  if (!isClient()) {
     return { draft: createDefaultDraft(initialFormData), restored: false };
   }
 
@@ -111,12 +109,12 @@ export function getStoredInstructorClassDraft(
 }
 
 function writeStoredDraft(draft: StoredInstructorClassDraft) {
-  if (!hasWindow()) return;
+  if (!isClient()) return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
 }
 
 function clearStoredDraft() {
-  if (!hasWindow()) return;
+  if (!isClient()) return;
   window.localStorage.removeItem(STORAGE_KEY);
 }
 

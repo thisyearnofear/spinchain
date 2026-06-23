@@ -7,6 +7,8 @@ export interface RideProofSummary {
   verifiedScore?: number;
 }
 
+import { isClient, safeParse } from "@/app/lib/utils";
+
 export type RideSyncStatus = "local_only" | "queued" | "relayed" | "anchored" | "failed";
 
 export interface RideSummary {
@@ -104,18 +106,6 @@ export const PERFORMANCE_GATES = {
   rideSaveLatencyMs: 200,
   journeyCacheLoadMs: 300,
 };
-
-const hasWindow = () => typeof window !== "undefined";
-
-function safeParse<T>(input: string | null, fallback: T): T {
-  if (!input) return fallback;
-  try {
-    const parsed = JSON.parse(input);
-    return parsed as T;
-  } catch {
-    return fallback;
-  }
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -221,18 +211,18 @@ function toRideSummary(value: unknown): RideSummary | null {
 }
 
 function writeRideHistory(rides: RideSummary[]) {
-  if (!hasWindow()) return;
+  if (!isClient()) return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rides));
 }
 
 function readRideHistoryRaw(): RideSummary[] {
-  if (!hasWindow()) return [];
+  if (!isClient()) return [];
   const parsed = safeParse<unknown[]>(window.localStorage.getItem(STORAGE_KEY), []);
   return parsed.map(toRideSummary).filter((ride): ride is RideSummary => Boolean(ride));
 }
 
 function migrateLegacyIfNeeded() {
-  if (!hasWindow()) return;
+  if (!isClient()) return;
   if (window.localStorage.getItem(STORAGE_KEY)) return;
   const legacy = safeParse<unknown[]>(window.localStorage.getItem(LEGACY_STORAGE_KEY), []);
   if (!legacy.length) return;
@@ -248,7 +238,7 @@ function migrateLegacyIfNeeded() {
 }
 
 function readQueue(): RideSyncQueueItem[] {
-  if (!hasWindow()) return [];
+  if (!isClient()) return [];
   const parsed = safeParse<unknown[]>(window.localStorage.getItem(QUEUE_STORAGE_KEY), []);
   return parsed
     .map((item) => {
@@ -266,7 +256,7 @@ function readQueue(): RideSyncQueueItem[] {
 }
 
 function writeQueue(items: RideSyncQueueItem[]) {
-  if (!hasWindow()) return;
+  if (!isClient()) return;
   window.localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(items));
 }
 
@@ -321,8 +311,8 @@ export function createCanonicalRideSummary(input: Omit<RideSummary, "schemaVersi
 }
 
 export function getRideHistory(): RideSummary[] {
-  if (!hasWindow()) return [];
-  const start = hasWindow() && typeof window.performance !== "undefined" ? window.performance.now() : 0;
+  if (!isClient()) return [];
+  const start = isClient() && typeof window.performance !== "undefined" ? window.performance.now() : 0;
   migrateLegacyIfNeeded();
   const rides = readRideHistoryRaw().sort((a, b) => b.completedAt - a.completedAt);
   if (start > 0) {
@@ -335,7 +325,7 @@ export function getRideHistory(): RideSummary[] {
 }
 
 export function saveRideSummary(summary: RideSummary): RideSummary[] {
-  if (!hasWindow()) return [];
+  if (!isClient()) return [];
   const start = typeof window.performance !== "undefined" ? window.performance.now() : 0;
   const result = mergeRide(summary);
   if (start > 0) {
@@ -435,7 +425,7 @@ async function relayRideSummary(summary: RideSummary): Promise<RelaySyncResult> 
 }
 
 export async function processRideSyncQueue(now = Date.now()) {
-  if (!hasWindow()) return;
+  if (!isClient()) return;
   if (!navigator.onLine) return;
 
   const queue = readQueue();
