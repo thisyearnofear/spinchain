@@ -254,6 +254,7 @@ export function useRideLifecycle({
       modalStore.getState().setWalrusAnchorInfo(result.walrusAnchorInfo);
       modalStore.getState().setCompletedRideId(result.canonicalSummary.id);
       modalStore.getState().setCompletionSyncStatus(result.syncStatus);
+      modalStore.getState().setCompletionSettlementStatus(result.settlementStatus);
       modalStore.getState().setCompletionPrimaryAction(result.primaryAction);
       void processRideSyncQueue();
 

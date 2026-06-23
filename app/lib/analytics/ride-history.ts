@@ -392,16 +392,47 @@ export function getRideRewardStatus(ride: RideSummary): {
   if (ride.proof.status === "requested") {
     return { label: "Verification requested", tone: "amber" };
   }
-  if (ride.proof.status === "failed" || ride.settlement?.status === "failed") {
-    return { label: "Claim failed", tone: "red" };
+  if (ride.proof.status === "failed") {
+    return { label: "Reward claim failed", tone: "red" };
   }
   if (ride.proof.isVerified || ride.settlement?.status === "confirmed") {
-    return { label: "Verified on-chain", tone: "emerald" };
+    return { label: "Rewards confirmed on-chain", tone: "emerald" };
   }
   if (ride.settlement?.status === "pending") {
-    return { label: "Pending settlement", tone: "neutral" };
+    return { label: "Reward settlement pending", tone: "neutral" };
   }
-  return { label: "Not claimed", tone: "neutral" };
+  if (ride.settlement?.status === "failed") {
+    return { label: "Settlement failed", tone: "red" };
+  }
+  return { label: "Rewards not claimed", tone: "neutral" };
+}
+
+export function getRideAnchoringStatus(ride: RideSummary): {
+  label: string;
+  tone: "neutral" | "cyan" | "emerald" | "amber" | "red";
+} {
+  if (ride.anchoring?.status === "confirmed") {
+    return { label: "Anchored on Sui", tone: "emerald" };
+  }
+  if (ride.anchoring?.status === "failed") {
+    return { label: "Anchoring failed", tone: "red" };
+  }
+  if (ride.anchoring?.status === "pending") {
+    return { label: "Anchoring pending", tone: "amber" };
+  }
+  if (ride.sync.status === "anchored") {
+    return { label: "Relay anchored", tone: "emerald" };
+  }
+  if (ride.sync.status === "relayed") {
+    return { label: "Relayed to network", tone: "cyan" };
+  }
+  if (ride.sync.status === "queued") {
+    return { label: "Queued for relay", tone: "amber" };
+  }
+  if (ride.sync.status === "failed") {
+    return { label: "Sync failed", tone: "red" };
+  }
+  return { label: "Local only", tone: "neutral" };
 }
 
 type RelaySyncResult = {

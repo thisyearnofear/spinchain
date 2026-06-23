@@ -53,6 +53,7 @@ interface PersistRideResult {
   avgHR: number;
   walrusAnchorInfo: { blobId: string; txDigest?: string } | null;
   syncStatus: RideSyncStatus;
+  settlementStatus: "pending" | "confirmed" | "failed" | "skipped" | undefined;
   primaryAction: "view_history" | "ride_again";
 }
 
@@ -158,6 +159,7 @@ export function useRidePersistence() {
       avgHR,
       walrusAnchorInfo,
       syncStatus: queued.sync.status,
+      settlementStatus: canonicalSummary.settlement?.status,
       primaryAction: getRetentionSignals(saved).ctaPrimary,
     };
   }, [suiAccount]);

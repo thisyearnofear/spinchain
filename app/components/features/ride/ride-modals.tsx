@@ -87,6 +87,7 @@ export const RideModals = memo(function RideModals({
   const showCompletionScreen = useRideModalStore((s) => s.showCompletionScreen);
   const isExitingRide = useRideModalStore((s) => s.isExitingRide);
   const completionSyncStatus = useRideModalStore((s) => s.completionSyncStatus);
+  const completionSettlementStatus = useRideModalStore((s) => s.completionSettlementStatus);
   const completionPrimaryAction = useRideModalStore((s) => s.completionPrimaryAction);
   const walrusAnchorInfo = useRideModalStore((s) => s.walrusAnchorInfo);
   const completedRideId = useRideModalStore((s) => s.completedRideId);
@@ -177,6 +178,7 @@ export const RideModals = memo(function RideModals({
           agentName={agentName}
           agentPersonality={aiPersonality || "data"}
           syncStatus={completionSyncStatus}
+          settlementStatus={completionSettlementStatus}
           primaryAction={completionPrimaryAction}
           walrusAnchorInfo={walrusAnchorInfo}
           classId={classId}

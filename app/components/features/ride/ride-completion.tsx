@@ -15,7 +15,7 @@ import { formatTime } from "@/app/lib/formatters";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import { getEffortTier } from "@/app/lib/analytics/ride-history";
 import { WALRUS_AGGREGATOR_URL } from "@/app/lib/walrus/types";
-import { Star, Cloud, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
+import { Star, Cloud, CheckCircle2, ExternalLink, Loader2, AlertTriangle } from "lucide-react";
 import { LoadingButton } from "../../ui/loading-button";
 import { ShareCardButton } from "./share-card";
 import { RideComparison, SegmentBreakdown } from "./ride-comparison";
@@ -59,6 +59,7 @@ interface RideCompletionProps {
   walrusAnchorInfo?: { blobId: string; txDigest?: string } | null;
   classId?: string;
   completedRideId?: string;
+  settlementStatus?: "pending" | "confirmed" | "failed" | "skipped" | undefined;
 }
 
 type CompletionTab = "summary" | "rewards" | "storage";
@@ -86,6 +87,7 @@ export function RideCompletion({
   walrusAnchorInfo = null,
   classId,
   completedRideId,
+  settlementStatus,
 }: RideCompletionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<CompletionTab>("summary");
@@ -343,6 +345,7 @@ export function RideCompletion({
               isSubmitted={isSubmitted}
               walrusAnchorInfo={walrusAnchorInfo}
               syncStatus={syncStatus}
+              settlementStatus={settlementStatus}
               onSetRating={setRating}
               onSubmitRating={() => {
                 setIsSubmitted(true);
@@ -811,6 +814,7 @@ function StorageTab({
   isSubmitted,
   walrusAnchorInfo,
   syncStatus,
+  settlementStatus,
   onSetRating,
   onSubmitRating,
 }: {
@@ -819,6 +823,7 @@ function StorageTab({
   isSubmitted: boolean;
   walrusAnchorInfo: { blobId: string; txDigest?: string } | null;
   syncStatus: string;
+  settlementStatus?: "pending" | "confirmed" | "failed" | "skipped" | undefined;
   onSetRating: (r: number) => void;
   onSubmitRating: () => void;
 }) {
@@ -879,7 +884,7 @@ function StorageTab({
 
       {/* Sync Status — no card, just text */}
       <div className="pt-1 border-t border-white/5">
-        <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1 mt-3">Sync Status</p>
+        <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1 mt-3">Storage Sync</p>
         <p className="text-xs text-white/50">
           {syncStatus.replace("_", " ")}
           {syncStatus === "queued" ? " • queued for relay" : ""}
@@ -888,6 +893,33 @@ function StorageTab({
           {syncStatus === "failed" ? " • retry from Journey when online" : ""}
         </p>
       </div>
+
+      {/* Reward Settlement Status — separate from anchoring */}
+      {settlementStatus && settlementStatus !== "skipped" && (
+        <div className="pt-1 border-t border-white/5">
+          <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1 mt-3">Reward Settlement</p>
+          <div className="flex items-center gap-2">
+            {settlementStatus === "confirmed" && (
+              <>
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                <span className="text-xs text-emerald-400 font-semibold">Confirmed on-chain</span>
+              </>
+            )}
+            {settlementStatus === "pending" && (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
+                <span className="text-xs text-amber-400 font-semibold">Pending — awaiting confirmation</span>
+              </>
+            )}
+            {settlementStatus === "failed" && (
+              <>
+                <AlertTriangle className="w-3 h-3 text-rose-400" />
+                <span className="text-xs text-rose-400 font-semibold">Failed — retry from Journey</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Coach Rating — no card */}
       <div className="pt-1 border-t border-white/5">

@@ -9,6 +9,7 @@ import {
   getLeaderboardSnapshot,
   getPRs,
   getRideRewardStatus,
+  getRideAnchoringStatus,
   getRetentionSignals,
   getRideHistory,
   saveRideSummary,
@@ -445,6 +446,11 @@ function JourneyContent() {
                         >
                           {getRideRewardStatus(ride).label}
                         </span>
+                        <span
+                          className={`rounded-full px-2 py-1 font-semibold ${getStatusToneClasses(getRideAnchoringStatus(ride).tone)}`}
+                        >
+                          {getRideAnchoringStatus(ride).label}
+                        </span>
                         {ride.proof.mode !== "none" ? (
                           <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/60">
                             {ride.proof.mode}
@@ -460,7 +466,6 @@ function JourneyContent() {
                     <div className="text-right text-xs text-white/70">
                       <p>{ride.avgEffort}/1000 effort</p>
                       <p>{ride.spinEarned.toFixed(1)} SPIN</p>
-                      <p className="mt-2 text-white/40">{ride.sync.status.replace("_", " ")}</p>
                     </div>
                   </div>
                 </div>

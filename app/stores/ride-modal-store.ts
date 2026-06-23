@@ -33,6 +33,7 @@ interface RideModalState {
   tutorialSteps: TutorialStepDef[];
   showMilestone: MilestoneInfo | null;
   completionSyncStatus: RideSyncStatus;
+  completionSettlementStatus: "pending" | "confirmed" | "failed" | "skipped" | undefined;
   completionPrimaryAction: "view_history" | "ride_again";
   walrusAnchorInfo: WalrusAnchorInfo | null;
   completedRideId: string | null;
@@ -48,6 +49,7 @@ interface RideModalState {
   setTutorialSteps: (steps: TutorialStepDef[]) => void;
   setShowMilestone: (m: MilestoneInfo | null) => void;
   setCompletionSyncStatus: (status: RideSyncStatus) => void;
+  setCompletionSettlementStatus: (status: "pending" | "confirmed" | "failed" | "skipped" | undefined) => void;
   setCompletionPrimaryAction: (action: "view_history" | "ride_again") => void;
   setWalrusAnchorInfo: (info: WalrusAnchorInfo | null) => void;
   setCompletedRideId: (id: string | null) => void;
@@ -74,6 +76,7 @@ export const useRideModalStore = create<RideModalState>((set) => ({
   tutorialSteps: [],
   showMilestone: null,
   completionSyncStatus: "local_only",
+  completionSettlementStatus: undefined,
   completionPrimaryAction: "view_history",
   walrusAnchorInfo: null,
   completedRideId: null,
@@ -89,6 +92,7 @@ export const useRideModalStore = create<RideModalState>((set) => ({
   setTutorialSteps: (steps) => set({ tutorialSteps: steps }),
   setShowMilestone: (m) => set({ showMilestone: m }),
   setCompletionSyncStatus: (status) => set({ completionSyncStatus: status }),
+  setCompletionSettlementStatus: (status) => set({ completionSettlementStatus: status }),
   setCompletionPrimaryAction: (action) => set({ completionPrimaryAction: action }),
   setWalrusAnchorInfo: (info) => set({ walrusAnchorInfo: info }),
   setCompletedRideId: (id) => set({ completedRideId: id }),
