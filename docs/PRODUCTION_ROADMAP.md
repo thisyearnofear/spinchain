@@ -27,7 +27,7 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 
 ---
 
-## Phase 0: Backend Infrastructure (2 weeks)
+## Phase 0: Backend Infrastructure ✅ Complete
 
 **Goal**: Move from localStorage-primary to Supabase-primary with localStorage as cache only.
 
@@ -122,19 +122,19 @@ CREATE TABLE progress_snapshots (
 
 ---
 
-## Phase 1: Fix the Foundation (1-2 weeks)
+## Phase 1: Fix the Foundation ✅ Complete
 
 - **Fix 2 ESLint errors** in `use-rider-stats.ts` — replace module-level mutable cache with `useRef`
 - **Clean 127 lint warnings** — `eslint --fix` + manual cleanup of unused vars, catch errors
 - **Extend RiderProfile** with physical/biometric fields: FTP, maxHR, restingHR, weight, height, injuries, training zones
 - **Adaptive difficulty** — adjust `getRecommendedDifficulty()` and `getRecommendedDuration()` based on ride history (avg effort trend, recent PRs) instead of static quiz answers
 
-## Phase 2: Instructor-Rider Loop (2-3 weeks)
+## Phase 2: Instructor-Rider Loop (in progress)
 
-- **Rider roster view** — instructors see who attended, their progress over time
-- **Homework assignment system** — instructor assigns a practice ride after class
-- **Post-class practice flow** — rider sees "Your homework from [class]" on journey page
-- **Progress tracking between classes** — "Since your last class with [instructor], your avg power went from 180W to 205W"
+- **Rider roster view** ✅ — instructors see who attended, their progress over time (`/api/instructor/roster`, `InstructorRoster` component)
+- **Homework assignment system** ✅ — instructor assigns a practice ride after class (`/api/homework` CRUD, `useInstructorHomework` hook, assign modal)
+- **Post-class practice flow** ✅ — rider sees "Homework from your coach" on journey page (`RiderHomeworkCard` component)
+- **Progress tracking between classes** ✅ — "Since your last class with [instructor], your avg power went from 180W to 205W" (`/api/progress/delta`, `useProgressDelta` hook, delta badges in roster)
 
 ## Phase 3: Agentic Intelligence (2-3 weeks)
 

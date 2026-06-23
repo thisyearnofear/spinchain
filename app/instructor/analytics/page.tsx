@@ -6,6 +6,7 @@ import { PrimaryNav } from "../../components/layout/nav";
 import { SurfaceCard, Tag, MetricTileEnhanced } from "../../components/ui/ui";
 import { ConnectWallet } from "../../components/features/wallet/connect-wallet";
 import { useInstructorAnalytics } from "../../hooks/evm/use-instructor-analytics";
+import { InstructorRoster } from "../../components/features/instructor/instructor-roster";
 import { motion } from "framer-motion";
 import { 
   Activity, 
@@ -374,6 +375,9 @@ export default function InstructorAnalyticsPage() {
             </table>
           </div>
         </SurfaceCard>
+
+        {/* Rider Roster with homework assignment */}
+        <InstructorRoster />
       </main>
     </div>
   );

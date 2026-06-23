@@ -38,6 +38,7 @@ import {
   ZoneDistributionChart,
 } from "../../components/features/rider/ride-charts";
 import { DataOwnershipDashboard } from "../../components/features/rider/data-ownership-dashboard";
+import { RiderHomeworkCard } from "../../components/features/rider/rider-homework-card";
 import { useProfileSyncEffect } from "../../hooks/common/use-profile-sync";
 
 function JourneyContent() {
@@ -465,6 +466,9 @@ function JourneyContent() {
             )}
           </div>
         </div>
+
+        {/* Homework from coach */}
+        <RiderHomeworkCard />
 
         {/* Data Ownership & Preferences */}
         <div className="space-y-4">
