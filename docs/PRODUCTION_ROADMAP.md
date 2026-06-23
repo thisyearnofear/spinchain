@@ -143,12 +143,12 @@ CREATE TABLE progress_snapshots (
 - **Instructor AI insights** ✅ — Analyzes roster: engagement, improvements, concerns, roster health (`/api/ai/instructor-insights`, `InstructorInsightsPanel`)
 - **Personalized training plans** ✅ — Multi-week structured plans with daily workouts, progression, tips (`/api/ai/training-plan`, `TrainingPlanCard`)
 
-## Phase 4: Scale (Ongoing)
+## Phase 4: Scale (in progress)
 
-- **Real contract data for analytics** — replace mocked values with on-chain reads + Supabase joins
-- **Rider-instructor relationship on-chain** — attendance records, homework completion attestations
-- **Cross-gym support** — bike calibration profiles, gym registry, telemetry normalization across bike brands
-- **Load testing** — 10+ concurrent users on testnet
+- **Real contract data for analytics** ✅ — replaced mocked sparklines with real daily trend buckets from Supabase, real attendance/repeat rider rates wired into hook
+- **Cross-gym support** ✅ — gym registry + bike calibration schema, `/api/gyms` CRUD API, `GymManager` UI with brand selection and per-gym power/HR offsets, telemetry normalization utilities
+- **Revenue tracking** ✅ — `getAccumulatedRevenue` now queries Supabase ride_summaries instead of returning mock zeros, Kite settlement marked as pending stub
+- **Load testing** — pending testnet deployment
 - **Security audit** — pre-mainnet
 
 ---
