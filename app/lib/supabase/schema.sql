@@ -7,6 +7,8 @@
 --   homework_assignments  — instructor-assigned practice rides
 --   progress_snapshots    — daily aggregates for trend tracking
 --   auth_nonces           — one-time nonces for wallet sign-in
+--   gyms                  — gym registry with calibration profiles
+--   bike_calibrations     — per-bike power/HR calibration offsets
 
 -- ============================================================================
 -- Extensions
@@ -188,3 +190,68 @@ $$ language plpgsql;
 create trigger if not exists rider_profiles_updated_at
   before update on rider_profiles
   for each row execute function update_updated_at();
+
+-- ============================================================================
+-- Gyms (registry for cross-gym support)
+-- ============================================================================
+create table if not exists gyms (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  location text,
+  brand text not null default 'generic',
+  -- Default calibration offsets for this gym's bike model
+  power_offset integer default 0,
+  power_scale real default 1.0,
+  hr_offset integer default 0,
+  hr_scale real default 1.0,
+  -- Metadata
+  created_by text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_gyms_name on gyms(name);
+
+-- ============================================================================
+-- Bike Calibrations (per-bike within a gym)
+-- ============================================================================
+create table if not exists bike_calibrations (
+  id uuid primary key default gen_random_uuid(),
+  gym_id uuid references gyms(id) on delete cascade,
+  bike_id text not null,
+  -- Calibration offsets specific to this bike
+  power_offset integer default 0,
+  power_scale real default 1.0,
+  hr_offset integer default 0,
+  hr_scale real default 1.0,
+  -- Last calibration date
+  calibrated_at timestamptz default now(),
+  -- Unique bike within gym
+  unique (gym_id, bike_id)
+);
+
+create index if not exists idx_bike_calibrations_gym on bike_calibrations(gym_id);
+
+-- RLS for gyms: anyone can read, only creator/admin can write
+alter table gyms enable row level security;
+create policy "Anyone can read gyms"
+  on gyms for select
+  using (true);
+create policy "Creators can manage own gyms"
+  on gyms for all
+  using (auth.jwt() ->> 'address' = created_by or created_by is null);
+
+-- RLS for bike calibrations: anyone can read, gym creator can write
+alter table bike_calibrations enable row level security;
+create policy "Anyone can read bike calibrations"
+  on bike_calibrations for select
+  using (true);
+create policy "Gym creators can manage bike calibrations"
+  on bike_calibrations for all
+  using (
+    exists (
+      select 1 from gyms
+      where gyms.id = gym_id
+      and (gyms.created_by = auth.jwt() ->> 'address' or gyms.created_by is null)
+    )
+  );
