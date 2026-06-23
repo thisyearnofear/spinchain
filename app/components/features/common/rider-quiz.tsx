@@ -119,6 +119,28 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const prefill = sessionStorage.getItem("spinchain-quiz-prefill");
+    if (prefill) {
+      try {
+        const data = JSON.parse(prefill);
+        const prefilled: Record<string, string> = {};
+        if (data.goal) prefilled.goal = data.goal;
+        if (data.experience) prefilled.experience = data.experience;
+        if (data.frequency) prefilled.frequency = data.frequency;
+        if (data.motivation) prefilled.motivation = data.motivation;
+        if (data.coach) prefilled.coach = data.coach;
+        if (Object.keys(prefilled).length > 0) {
+          setAnswers(prefilled);
+        }
+      } catch {
+        // ignore
+      }
+      sessionStorage.removeItem("spinchain-quiz-prefill");
+    }
+  }, []);
+
   if (!mounted) return null;
 
   const step = quizSteps[currentStep];
@@ -143,7 +165,7 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
         motivation: newAnswers.motivation as Motivation,
         coachPersonality: newAnswers.coach as CoachPersonality,
         displayName,
-        createdAt: Date.now(),
+        createdAt: new Date().getTime(),
       });
       localStorage.setItem(RIDER_QUIZ_KEY, "true");
     } else {

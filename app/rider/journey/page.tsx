@@ -34,6 +34,9 @@ import {
   WeeklyVolumeChart,
   ZoneDistributionChart,
 } from "../../components/features/rider/ride-charts";
+import { DataOwnershipDashboard } from "../../components/features/rider/data-ownership-dashboard";
+import { UpdatePreferencesButton } from "../../components/features/rider/update-preferences-button";
+import { useProfileSyncEffect } from "../../hooks/common/use-profile-sync";
 
 function JourneyContent() {
   const searchParams = useSearchParams();
@@ -44,6 +47,8 @@ function JourneyContent() {
   const [walrusFeed, setWalrusFeed] = useState<WalrusFeedEntry[]>([]);
   const { address } = useAccount();
   const isCompletedLanding = searchParams.get("completed") === "true";
+
+  useProfileSyncEffect();
 
   const retention = useMemo(() => getRetentionSignals(rides), [rides]);
   const prs = useMemo(() => getPRs(rides), [rides]);
@@ -457,6 +462,17 @@ function JourneyContent() {
               ))
             )}
           </div>
+        </div>
+
+        {/* Data Ownership & Preferences */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black text-white tracking-tight">
+              Settings
+            </h2>
+            <UpdatePreferencesButton />
+          </div>
+          <DataOwnershipDashboard />
         </div>
       </main>
     </div>
