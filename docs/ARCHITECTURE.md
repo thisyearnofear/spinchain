@@ -187,27 +187,6 @@ For testing without BLE hardware:
 
 ## Roadmap
 
-### Phase 1: MVP ✅
-- Dual-chain wallet integration
-- AI Instructor Studio
-- 3D Route Worlds with GPX visualization
-- Pedal Simulator + Guest Mode
-- Mobile BLE via Capacitor
+See [PRODUCTION_ROADMAP.md](./PRODUCTION_ROADMAP.md) for the full phased plan.
 
-### Phase 2: Privacy 🚧
-- Noir ZK circuits compiled and tested
-- Short-window verifier path exists
-- Chunked proof batching is implemented for ride claims
-- Launch-safe verifier deployment and end-to-end validation are still required
-
-### Phase 3: Ecosystem 🚧
-- Mindbody/ClassPass bridge
-- Instructor DAO governance
-- Multi-sport adapters (yoga, rowing)
-- Sponsor SDK for wellness brands
-
-### Phase 4: Scale 🚧
-- Studio chain partnerships
-- Dedicated privacy subnet
-- Cross-chain rewards (AWM)
-- Insurance integrations
+**Summary**: Phase 0 (backend infrastructure + Supabase migration) → Phase 1 (foundation: lint, biometric profile, adaptive difficulty) → Phase 2 (instructor-rider loop: homework, roster, progress tracking) → Phase 3 (agentic intelligence: post-ride AI analysis, training plans) → Phase 4 (scale: real contract data, cross-gym, load testing, security audit).

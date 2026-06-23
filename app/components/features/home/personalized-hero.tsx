@@ -5,7 +5,7 @@ import { CoachyMascot } from "@/app/components/ui/coachy-mascot";
 import {
   useRiderProfile,
   COACH_LABELS,
-  getRecommendedDifficulty,
+  getAdaptiveDifficulty,
   getRecommendedDuration,
   mapCoachPersonalityToEngine,
   getRecommendedRideName,
@@ -21,8 +21,12 @@ export function PersonalizedHero() {
 
   const riderName = useRiderName();
 
-  const { totalRides, streak, prs, isFirstTime } = useRiderStats();
-  const difficulty = getRecommendedDifficulty(profile);
+  const { totalRides, streak, prs, isFirstTime, rides } = useRiderStats();
+  const recentRides = rides.slice(0, 10);
+  const recentAvgEffort = recentRides.length > 0
+    ? recentRides.reduce((s, r) => s + r.avgEffort, 0) / recentRides.length
+    : 0;
+  const difficulty = getAdaptiveDifficulty(profile, recentAvgEffort, totalRides);
   const duration = getRecommendedDuration(profile);
   const rideName = getRecommendedRideName(difficulty);
   const coachEngine = mapCoachPersonalityToEngine(profile.coachPersonality ?? null);
