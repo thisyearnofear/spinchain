@@ -27,6 +27,7 @@ import {
   Route,
 } from "lucide-react";
 import { getWalrusFeed, retrieveRideSummaryFromWalrus, type WalrusFeedEntry } from "../../lib/walrus/ride-persistence";
+import { useSupabaseSync } from "../../hooks/common/use-supabase-sync";
 import { WALRUS_AGGREGATOR_URL } from "../../lib/walrus/types";
 import { useAccount } from "wagmi";
 import Link from "next/link";
@@ -50,6 +51,7 @@ function JourneyContent() {
   const isCompletedLanding = searchParams.get("completed") === "true";
 
   useProfileSyncEffect();
+  useSupabaseSync();
 
   const retention = useMemo(() => getRetentionSignals(rides), [rides]);
   const prs = useMemo(() => getPRs(rides), [rides]);

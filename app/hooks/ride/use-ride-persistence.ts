@@ -14,6 +14,7 @@ import {
   type RideSummary,
 } from "@/app/lib/analytics/ride-history";
 import { persistRideSummaryToWalrus } from "@/app/lib/walrus/ride-persistence";
+import { saveRideToSupabase } from "@/app/hooks/common/use-supabase-sync";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 import type { RewardClaimStatus } from "@/app/components/features/ride/ride-completion";
@@ -112,6 +113,9 @@ export function useRidePersistence() {
     });
 
     const saved = saveRideSummary(canonicalSummary);
+
+    // Mirror to Supabase (fire-and-forget — localStorage remains primary for UI)
+    void saveRideToSupabase(canonicalSummary);
 
     let walrusAnchorInfo: { blobId: string; txDigest?: string } | null = null;
     try {
