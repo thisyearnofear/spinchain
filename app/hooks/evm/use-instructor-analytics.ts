@@ -9,6 +9,26 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAccount } from "wagmi";
 import { useClasses } from "./use-class-data";
+import { isSupabaseConfigured } from "@/app/lib/supabase/client";
+
+export interface RiderBreakdown {
+  address: string;
+  rideCount: number;
+  avgEffort: number;
+  avgPower: number;
+  lastRideAt: string | null;
+}
+
+export interface RealAnalytics {
+  totalRides: number;
+  uniqueRiders: number;
+  repeatRiderRate: number;
+  avgEffort: number;
+  avgPower: number;
+  avgHeartRate: number;
+  attendanceRate: number;
+  riderBreakdown: RiderBreakdown[];
+}
 
 export interface ClassAnalytics {
   classAddress: `0x${string}`;
@@ -80,7 +100,32 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
   
   const [isLoading, setIsLoading] = useState(true);
   const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1000));
-  const [error, setError] = useState<Error | null>(null);
+  const [error, _setError] = useState<Error | null>(null);
+  const [realAnalytics, setRealAnalytics] = useState<RealAnalytics | null>(null);
+
+  // Fetch real analytics from Supabase
+  useEffect(() => {
+    if (!address) return;
+    if (!isSupabaseConfigured()) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/instructor/analytics?range=${timeRange}`, {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) {
+          setRealAnalytics(data as RealAnalytics);
+        }
+      } catch {
+        // Silent fail — fall back to on-chain estimates
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [address, timeRange]);
 
   // Filter classes by instructor
   const instructorClasses = useMemo(() => {
@@ -132,7 +177,7 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
         grossRevenue,
         instructorRevenue,
         protocolFee,
-        attendanceRate: 0.85, // Estimated - would come from contract
+        attendanceRate: realAnalytics?.attendanceRate ?? 0,
         status,
       };
     });
@@ -155,7 +200,7 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
     
     const engagement: EngagementMetrics = {
       totalRiders,
-      uniqueRiders: Math.floor(totalRiders * 0.7), // Estimated - would dedupe addresses
+      uniqueRiders: realAnalytics?.uniqueRiders ?? Math.floor(totalRiders * 0.7),
       avgClassSize: completedClasses.length > 0 
         ? totalRiders / completedClasses.length 
         : 0,
@@ -165,7 +210,7 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
       avgAttendanceRate: completedClasses.length > 0
         ? completedClasses.reduce((sum, c) => sum + c.attendanceRate, 0) / completedClasses.length
         : 0,
-      repeatRiderRate: 0.35, // Estimated - would calculate from rider addresses
+      repeatRiderRate: realAnalytics?.repeatRiderRate ?? 0,
     };
 
     // Performance metrics
@@ -184,7 +229,7 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
       classes: classAnalytics,
       timeRange,
     };
-  }, [filteredClasses, nowSeconds, timeRange]);
+  }, [filteredClasses, nowSeconds, timeRange, realAnalytics]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -201,6 +246,7 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
     analytics,
     isLoading,
     error,
+    realAnalytics,
     refetch: () => {
       // Would trigger refetch of contract data
     },
