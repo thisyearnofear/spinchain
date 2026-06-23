@@ -14,7 +14,8 @@
  * - CLEAN: Clear separation between service and UI
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAccount } from 'wagmi';
 import { 
   resolveProfile, 
   resolveProfiles,
@@ -119,3 +120,18 @@ export {
   getENSDataContentHash 
 };
 export type { Profile };
+
+/**
+ * useRiderName — Resolves a display name from ENS/profile or wallet address.
+ * Returns "Rider" fallback if neither is available.
+ */
+export function useRiderName(fallback = "Rider"): string {
+  const { address } = useAccount();
+  const { profile } = useProfile(address ?? "");
+
+  return useMemo(() => {
+    if (profile) return getDisplayName(profile, address ?? "");
+    if (address) return formatAddress(address);
+    return fallback;
+  }, [profile, address, fallback]);
+}

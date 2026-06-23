@@ -11,23 +11,15 @@ import {
   getRecommendedRideName,
 } from "@/app/stores/rider-profile-store";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
-import { useAccount } from "wagmi";
-import { useProfile, getDisplayName, formatAddress } from "@/app/hooks/common/use-profile";
+import { useRiderName } from "@/app/hooks/common/use-profile";
 import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import Link from "next/link";
-import { useMemo } from "react";
 import { Flame, Trophy, Bike, Zap } from "lucide-react";
 
 export function PersonalizedHero() {
   const profile = useRiderProfile();
-  const { address } = useAccount();
-  const { profile: ensProfile } = useProfile(address);
 
-  const riderName = useMemo(() => {
-    if (ensProfile) return getDisplayName(ensProfile, address ?? "");
-    if (address) return formatAddress(address);
-    return "Rider";
-  }, [ensProfile, address]);
+  const riderName = useRiderName();
 
   const { totalRides, streak, prs, isFirstTime } = useRiderStats();
   const difficulty = getRecommendedDifficulty(profile);
