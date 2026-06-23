@@ -8,6 +8,7 @@
  */
 
 import type { RideRecordPoint } from "./ride-recorder";
+import { WALRUS_AGGREGATOR_URL } from "@/app/lib/walrus/types";
 import { getWalrusFeed, retrieveRideSummaryFromWalrus } from "../walrus/ride-persistence";
 
 export interface GhostPerformance {
@@ -83,7 +84,7 @@ export async function fetchRealGhost(
   try {
     // 1. Try direct blob ID if provided
     if (routeBlobId && riderAddress) {
-      const walrusUrl = `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${routeBlobId}`;
+      const walrusUrl = `${WALRUS_AGGREGATOR_URL}/v1/blobs/${routeBlobId}`;
       
       const response = await fetch(walrusUrl, {
         method: "GET",

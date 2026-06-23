@@ -27,6 +27,7 @@ import {
   Route,
 } from "lucide-react";
 import { getWalrusFeed, retrieveRideSummaryFromWalrus, type WalrusFeedEntry } from "../../lib/walrus/ride-persistence";
+import { WALRUS_AGGREGATOR_URL } from "../../lib/walrus/types";
 import { useAccount } from "wagmi";
 import Link from "next/link";
 import {
@@ -377,7 +378,7 @@ function JourneyContent() {
                       anchored
                     </span>
                     <a
-                      href={`https://aggregator.walrus-testnet.walrus.space/v1/${item.blobId}`}
+                      href={`${WALRUS_AGGREGATOR_URL}/v1/${item.blobId}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >

@@ -6,7 +6,9 @@
  * aggregator so the AI clients can use it instead of hardcoded defaults.
  */
 
-const WALRUS_AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space";
+import { WALRUS_AGGREGATOR_URL } from "./types";
+
+const WALRUS_AGGREGATOR = WALRUS_AGGREGATOR_URL;
 
 interface CoachSystemPrompt {
   name: string;

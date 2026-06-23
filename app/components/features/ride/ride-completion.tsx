@@ -14,6 +14,7 @@ import { motion } from "framer-motion";
 import { formatTime } from "@/app/lib/formatters";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import { getEffortTier } from "@/app/lib/analytics/ride-history";
+import { WALRUS_AGGREGATOR_URL } from "@/app/lib/walrus/types";
 import { Star, Cloud, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { LoadingButton } from "../../ui/loading-button";
 import { ShareCardButton } from "./share-card";
@@ -221,7 +222,7 @@ export function RideCompletion({
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <a
-                href={`https://aggregator.walrus-testnet.walrus.space/v1/${walrusAnchorInfo.blobId}`}
+                href={`${WALRUS_AGGREGATOR_URL}/v1/${walrusAnchorInfo.blobId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-[10px] text-indigo-300 hover:text-indigo-200 transition-colors"
@@ -847,7 +848,7 @@ function StorageTab({
             </div>
             <div className="flex items-center gap-3">
               <a
-                href={`https://aggregator.walrus-testnet.walrus.space/v1/${walrusAnchorInfo.blobId}`}
+                href={`${WALRUS_AGGREGATOR_URL}/v1/${walrusAnchorInfo.blobId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-[10px] text-indigo-300 hover:text-indigo-200 transition-colors"

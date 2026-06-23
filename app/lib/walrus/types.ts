@@ -21,9 +21,11 @@ export interface StorageConfig {
   redundancy: 'low' | 'medium' | 'high';
 }
 
+export const WALRUS_AGGREGATOR_URL = 'https://aggregator.walrus-testnet.walrus.space';
+
 export const DEFAULT_STORAGE_CONFIG: StorageConfig = {
   aggregators: [
-    'https://aggregator.walrus-testnet.walrus.space',
+    WALRUS_AGGREGATOR_URL,
     'https://aggregator2.walrus-testnet.walrus.space',
   ],
   epochs: 30, // ~30 days
