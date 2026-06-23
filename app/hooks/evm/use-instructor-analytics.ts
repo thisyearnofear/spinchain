@@ -19,6 +19,14 @@ export interface RiderBreakdown {
   lastRideAt: string | null;
 }
 
+export interface TrendBucket {
+  day: string;
+  rideCount: number;
+  uniqueRiders: number;
+  avgEffort: number;
+  avgPower: number;
+}
+
 export interface RealAnalytics {
   totalRides: number;
   uniqueRiders: number;
@@ -28,6 +36,7 @@ export interface RealAnalytics {
   avgHeartRate: number;
   attendanceRate: number;
   riderBreakdown: RiderBreakdown[];
+  trends: TrendBucket[];
 }
 
 export interface ClassAnalytics {
@@ -200,16 +209,16 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
     
     const engagement: EngagementMetrics = {
       totalRiders,
-      uniqueRiders: realAnalytics?.uniqueRiders ?? Math.floor(totalRiders * 0.7),
+      uniqueRiders: realAnalytics?.uniqueRiders ?? Math.max(1, Math.floor(totalRiders * 0.7)),
       avgClassSize: completedClasses.length > 0 
         ? totalRiders / completedClasses.length 
         : 0,
       avgFillRate: completedClasses.length > 0
         ? completedClasses.reduce((sum, c) => sum + c.fillRate, 0) / completedClasses.length
         : 0,
-      avgAttendanceRate: completedClasses.length > 0
+      avgAttendanceRate: realAnalytics?.attendanceRate ?? (completedClasses.length > 0
         ? completedClasses.reduce((sum, c) => sum + c.attendanceRate, 0) / completedClasses.length
-        : 0,
+        : 0),
       repeatRiderRate: realAnalytics?.repeatRiderRate ?? 0,
     };
 

@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
       avgHeartRate: 0,
       attendanceRate: 0,
       riderBreakdown: [],
+      trends: [],
     });
   }
 
@@ -123,6 +124,24 @@ export async function GET(request: NextRequest) {
     };
   });
 
+  // Build daily trend buckets for sparklines
+  const sortedRides = [...rides].sort(
+    (a, b) => new Date(a.completed_at).getTime() - new Date(b.completed_at).getTime()
+  );
+  const dayMap = new Map<string, { rides: typeof sortedRides }>();
+  for (const ride of sortedRides) {
+    const day = new Date(ride.completed_at).toISOString().slice(0, 10);
+    if (!dayMap.has(day)) dayMap.set(day, { rides: [] });
+    dayMap.get(day)!.rides.push(ride);
+  }
+  const trendBuckets = Array.from(dayMap.entries()).map(([day, { rides: dayRides }]) => ({
+    day,
+    rideCount: dayRides.length,
+    uniqueRiders: new Set(dayRides.map((r) => r.rider_address).filter(Boolean)).size,
+    avgEffort: dayRides.reduce((s, r) => s + (r.avg_effort || 0), 0) / dayRides.length,
+    avgPower: dayRides.filter((r) => r.avg_power).reduce((s, r) => s + (r.avg_power || 0), 0) / Math.max(dayRides.filter((r) => r.avg_power).length, 1),
+  }));
+
   return apiOk({
     totalRides: rides.length,
     uniqueRiders,
@@ -132,5 +151,6 @@ export async function GET(request: NextRequest) {
     avgHeartRate,
     attendanceRate: Math.min(attendanceRate, 1),
     riderBreakdown,
+    trends: trendBuckets,
   });
 }

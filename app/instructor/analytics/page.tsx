@@ -8,6 +8,7 @@ import { ConnectWallet } from "../../components/features/wallet/connect-wallet";
 import { useInstructorAnalytics } from "../../hooks/evm/use-instructor-analytics";
 import { InstructorRoster } from "../../components/features/instructor/instructor-roster";
 import { InstructorInsightsPanel } from "../../components/features/instructor/instructor-insights-panel";
+import { GymManager } from "../../components/features/gym/gym-manager";
 import { motion } from "framer-motion";
 import { 
   Activity, 
@@ -31,15 +32,27 @@ function generateTrendData(baseValue: number, points: number = 10, variance: num
 export default function InstructorAnalyticsPage() {
   const { isConnected } = useAccount();
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d" | "all">("30d");
-  const { analytics } = useInstructorAnalytics(timeRange);
+  const { analytics, realAnalytics } = useInstructorAnalytics(timeRange);
 
-  // Generate trend data based on actual metrics
-  const trendData = useMemo(() => ({
-    revenue: generateTrendData(analytics.revenue.totalInstructor || 1000, 12),
-    riders: generateTrendData(analytics.engagement.totalRiders || 100, 12),
-    classes: generateTrendData(analytics.performance.completedClasses || 10, 12),
-    fillRate: generateTrendData(analytics.engagement.avgFillRate * 100 || 50, 12),
-  }), [analytics]);
+  // Use real trend data from Supabase when available, fall back to estimated
+  const trendData = useMemo(() => {
+    const realTrends = realAnalytics?.trends;
+    if (realTrends && realTrends.length > 0) {
+      return {
+        revenue: realTrends.map(t => t.rideCount * 15 * 0.8),
+        riders: realTrends.map(t => t.uniqueRiders),
+        classes: realTrends.map(t => t.rideCount),
+        fillRate: realTrends.map(t => t.avgEffort),
+      };
+    }
+    // Fallback: estimated trend data
+    return {
+      revenue: generateTrendData(analytics.revenue.totalInstructor || 1000, 12),
+      riders: generateTrendData(analytics.engagement.totalRiders || 100, 12),
+      classes: generateTrendData(analytics.performance.completedClasses || 10, 12),
+      fillRate: generateTrendData(analytics.engagement.avgFillRate * 100 || 50, 12),
+    };
+  }, [analytics, realAnalytics]);
 
   if (!isConnected) {
     return (
@@ -382,6 +395,9 @@ export default function InstructorAnalyticsPage() {
 
         {/* Rider Roster with homework assignment */}
         <InstructorRoster />
+
+        {/* Gym Registry & Bike Calibration */}
+        <GymManager />
       </main>
     </div>
   );
