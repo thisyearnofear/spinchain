@@ -13,6 +13,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { formatTime } from "@/app/lib/formatters";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
+import { getEffortTier } from "@/app/lib/analytics/ride-history";
 import { Star, Cloud, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { LoadingButton } from "../../ui/loading-button";
 import { ShareCardButton } from "./share-card";
@@ -97,8 +98,8 @@ export function RideCompletion({
       avgHeartRate > 0 && avgPower > 0
         ? (avgPower / avgHeartRate).toFixed(1)
         : null;
-    const effortTier =
-      avgEffort >= 800 ? "elite" : avgEffort >= 500 ? "strong" : "building";
+    const tierInfo = getEffortTier(avgEffort);
+    const effortTier = tierInfo.label;
 
     if (agentPersonality === "drill-sergeant") {
       if (effortTier === "elite") {
@@ -310,7 +311,6 @@ export function RideCompletion({
         >
           {activeTab === "summary" && (
             <SummaryTab
-              agentPersonality={agentPersonality}
               elapsedTime={elapsedTime}
               avgHeartRate={avgHeartRate}
               avgPower={avgPower}
@@ -328,8 +328,6 @@ export function RideCompletion({
             <RewardsTab
               isPracticeMode={isPracticeMode}
               elapsedTime={elapsedTime}
-              avgHeartRate={avgHeartRate}
-              avgPower={avgPower}
               avgEffort={avgEffort}
               spinEarned={spinEarned}
               agentName={agentName}
@@ -434,7 +432,6 @@ export function RideCompletion({
 // ─── Summary Tab ─────────────────────────────────────────────────
 
 function SummaryTab({
-  agentPersonality,
   elapsedTime,
   avgHeartRate,
   avgPower,
@@ -447,7 +444,6 @@ function SummaryTab({
   classId,
   completedRideId,
 }: {
-  agentPersonality: "zen" | "drill-sergeant" | "data";
   elapsedTime: number;
   avgHeartRate: number;
   avgPower: number;
@@ -543,7 +539,6 @@ function SummaryTab({
       <SegmentBreakdown
         durationSec={elapsedTime}
         avgEffort={avgEffort}
-        avgHeartRate={avgHeartRate}
       />
     </div>
   );
@@ -554,8 +549,6 @@ function SummaryTab({
 function RewardsTab({
   isPracticeMode,
   elapsedTime,
-  avgHeartRate,
-  avgPower,
   avgEffort,
   spinEarned,
   agentName,
@@ -564,8 +557,6 @@ function RewardsTab({
 }: {
   isPracticeMode: boolean;
   elapsedTime: number;
-  avgHeartRate: number;
-  avgPower: number;
   avgEffort: number;
   spinEarned: string;
   agentName: string;

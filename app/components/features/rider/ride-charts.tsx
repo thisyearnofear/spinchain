@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { RideSummary } from "@/app/lib/analytics/ride-history";
+import { getEffortTier, type RideSummary } from "@/app/lib/analytics/ride-history";
 
 /* ─── Effort Trend Line Chart ─── */
 
@@ -273,9 +273,9 @@ export function WeeklyVolumeChart({ rides }: { rides: RideSummary[] }) {
         return rd >= weekStart && rd < weekEnd;
       });
 
-      const building = weekRides.filter((r) => r.avgEffort < 500).length;
-      const strong = weekRides.filter((r) => r.avgEffort >= 500 && r.avgEffort < 800).length;
-      const elite = weekRides.filter((r) => r.avgEffort >= 800).length;
+      const building = weekRides.filter((r) => getEffortTier(r.avgEffort).label === "building").length;
+      const strong = weekRides.filter((r) => getEffortTier(r.avgEffort).label === "strong").length;
+      const elite = weekRides.filter((r) => getEffortTier(r.avgEffort).label === "elite").length;
 
       weeks.push({
         weekLabel: `${weekStart.getMonth() + 1}/${weekStart.getDate()}`,

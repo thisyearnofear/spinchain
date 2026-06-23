@@ -5,6 +5,8 @@ import { useCallback } from "react";
 import {
   createCanonicalRideSummary,
   enqueueRideSync,
+  getEffortTier,
+  estimateZones,
   getRetentionSignals,
   processRideSyncQueue,
   saveRideSummary,
@@ -94,8 +96,8 @@ export function useRidePersistence() {
       avgEffort: averages.avgEffort,
       spinEarned: Number(displaySpin),
       telemetrySource,
-      effortTier: averages.avgEffort >= 800 ? "platinum" : averages.avgEffort >= 650 ? "gold" : averages.avgEffort >= 500 ? "silver" : "bronze",
-      zones: { recovery: 25, endurance: 35, threshold: 25, sprint: 15 },
+      effortTier: getEffortTier(averages.avgEffort).tier,
+      zones: estimateZones(averages.avgEffort),
       proof: {
         mode: rewardMode === "sui-native" ? "none" : rewardMode,
         status: rewardClaimStatus?.phase === "claimed" ? "claimed" : rewardClaimStatus?.phase === "ready" ? "ready" : rewardClaimStatus?.phase === "error" ? "failed" : "idle",

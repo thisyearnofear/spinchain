@@ -82,9 +82,21 @@ export interface RetentionSignals {
   ctaPrimary: "view_history" | "ride_again";
 }
 
-const STORAGE_KEY = "spinchain:rides:history:v2";
-const LEGACY_STORAGE_KEY = "spinchain:rides:history:v1";
-const QUEUE_STORAGE_KEY = "spinchain:rides:sync-queue:v1";
+export const STORAGE_KEYS = {
+  rideHistory: "spinchain:rides:history:v2",
+  rideHistoryLegacy: "spinchain:rides:history:v1",
+  syncQueue: "spinchain:rides:sync-queue:v1",
+  riderProfile: "spinchain-rider-profile",
+  rideStore: "spinchain-ride-store",
+  quizCompleted: "spinchain-rider-quiz-completed",
+  walrusRideBlobs: "spinchain:walrus:ride-blobs:v1",
+  walrusProfileBlob: "spinchain:walrus:profile-blob:v1",
+  profileSync: "spinchain-profile-sync",
+} as const;
+
+const STORAGE_KEY = STORAGE_KEYS.rideHistory;
+const LEGACY_STORAGE_KEY = STORAGE_KEYS.rideHistoryLegacy;
+const QUEUE_STORAGE_KEY = STORAGE_KEYS.syncQueue;
 const MAX_RIDES = 200;
 const MAX_RETRIES = 6;
 const BASE_BACKOFF_MS = 15_000;
@@ -566,8 +578,9 @@ export function getBadges(rides: RideSummary[]) {
   if (latest.avgEffort >= prs.bestEffort) badges.push("PR Effort");
   if (latest.avgPower >= prs.bestPower) badges.push("PR Power");
   if (latest.zones.threshold + latest.zones.sprint >= 50) badges.push("Zone Hunter");
-  if (latest.avgEffort >= 800) badges.push("Tier Elite");
-  else if (latest.avgEffort >= 650) badges.push("Tier Strong");
+  const tier = getEffortTier(latest.avgEffort);
+  if (tier.label === "elite") badges.push("Tier Elite");
+  else if (tier.label === "strong") badges.push("Tier Strong");
   return badges;
 }
 
@@ -688,4 +701,34 @@ export async function getLeaderboardSnapshot(rides: RideSummary[], classId: stri
       txHash: latestAnchored?.anchoring?.txHash,
     },
   };
+}
+
+// ─── Shared Effort Tier + Zone Utilities ──────────────────────────
+
+export type EffortTierLabel = "elite" | "strong" | "building";
+
+export interface EffortTierInfo {
+  tier: RideSummary["effortTier"];
+  label: EffortTierLabel;
+  displayLabel: string;
+  color: string;
+  zones: { recovery: number; endurance: number; threshold: number; sprint: number };
+}
+
+const EFFORT_TIERS: EffortTierInfo[] = [
+  { tier: "platinum", label: "elite", displayLabel: "ELITE", color: "#818cf8", zones: { recovery: 10, endurance: 25, threshold: 35, sprint: 30 } },
+  { tier: "gold", label: "strong", displayLabel: "STRONG", color: "#6366f1", zones: { recovery: 15, endurance: 35, threshold: 30, sprint: 20 } },
+  { tier: "silver", label: "strong", displayLabel: "STRONG", color: "#6366f1", zones: { recovery: 20, endurance: 40, threshold: 25, sprint: 15 } },
+  { tier: "bronze", label: "building", displayLabel: "BUILDING", color: "#4f46e5", zones: { recovery: 30, endurance: 45, threshold: 15, sprint: 10 } },
+];
+
+export function getEffortTier(avgEffort: number): EffortTierInfo {
+  if (avgEffort >= 800) return EFFORT_TIERS[0];
+  if (avgEffort >= 650) return EFFORT_TIERS[1];
+  if (avgEffort >= 500) return EFFORT_TIERS[2];
+  return EFFORT_TIERS[3];
+}
+
+export function estimateZones(avgEffort: number): { recovery: number; endurance: number; threshold: number; sprint: number } {
+  return getEffortTier(avgEffort).zones;
 }

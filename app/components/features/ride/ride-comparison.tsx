@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowUp, ArrowDown, Minus, TrendingUp } from "lucide-react";
-import { getRideHistory, type RideSummary } from "@/app/lib/analytics/ride-history";
+import { getRideHistory, estimateZones } from "@/app/lib/analytics/ride-history";
 import { formatTime } from "@/app/lib/formatters";
 
 /**
@@ -154,16 +154,12 @@ export function RideComparison({
 export function SegmentBreakdown({
   durationSec,
   avgEffort,
-  avgHeartRate,
 }: {
   durationSec: number;
   avgEffort: number;
-  avgHeartRate: number;
 }) {
   const segments = useMemo(() => {
-    // Derive zone distribution from effort and HR
-    // This mirrors the zone estimation in ride persistence
-    const zones = estimateZones(avgEffort, avgHeartRate);
+    const zones = estimateZones(avgEffort);
     const total = zones.recovery + zones.endurance + zones.threshold + zones.sprint;
 
     return [
@@ -204,7 +200,7 @@ export function SegmentBreakdown({
         hrRange: "> 85% max",
       },
     ];
-  }, [durationSec, avgEffort, avgHeartRate]);
+  }, [durationSec, avgEffort]);
 
   return (
     <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
@@ -267,17 +263,4 @@ export function SegmentBreakdown({
       </div>
     </div>
   );
-}
-
-function estimateZones(avgEffort: number, avgHeartRate: number) {
-  if (avgEffort >= 800) {
-    return { recovery: 10, endurance: 25, threshold: 35, sprint: 30 };
-  }
-  if (avgEffort >= 650) {
-    return { recovery: 15, endurance: 35, threshold: 30, sprint: 20 };
-  }
-  if (avgEffort >= 500) {
-    return { recovery: 20, endurance: 40, threshold: 25, sprint: 15 };
-  }
-  return { recovery: 30, endurance: 45, threshold: 15, sprint: 10 };
 }
