@@ -222,31 +222,31 @@ export class AIAgentInstructor {
 
   /**
    * Settle agent revenue on Kite AI blockchain
-   * 
-   * Kite is purpose-built for autonomous agent transactions.
-   * This settles the agent's share of class revenue on Kite for verifiable proof of work.
+   *
+   * Uses gokite-aa-sdk to transfer USDC from the agent's AA wallet
+   * via gasless transactions through the Kite bundler.
+   * Falls back to pending status if Kite SDK is not configured.
    */
   async settleOnKite(revenue: number, classId: string): Promise<{
     txHash: string;
     attestationId: string;
     status: "settled" | "pending" | "failed";
+    explorerUrl?: string;
   }> {
-    // TODO: Integrate Kite AI SDK (Agent Passport / AA Wallet) when available.
-    // 1. Generate an attestation for the work performed (coaching)
-    // 2. Submit payment intent via AP2/x402 protocol
-    // 3. Execute settlement on Kite Chain (L1)
-    // Until then, return pending status so callers know settlement hasn't happened.
+    const { settleAgentRevenue, isKiteConfigured } = await import("./kite-settlement");
 
-    const attestationId = `kite-attest-${classId}-${Date.now()}`;
-    const txHash = `0xkite${Math.random().toString(16).slice(2, 42)}`;
+    if (!isKiteConfigured()) {
+      console.warn(
+        `[KiteSettlement] Kite SDK not configured — set KITE_SIGNER_PRIVATE_KEY, NEXT_PUBLIC_KITE_AA_WALLET, and NEXT_PUBLIC_KITE_AGENT_VAULT. Revenue: $${revenue.toFixed(2)} for ${this.config.name}`,
+      );
+      return {
+        txHash: "",
+        attestationId: "",
+        status: "pending",
+      };
+    }
 
-    console.warn(`[KiteSettlement] Stub settlement — Kite SDK not yet integrated. Revenue: $${revenue.toFixed(2)} for ${this.config.name}`);
-
-    return {
-      txHash,
-      attestationId,
-      status: "pending",
-    };
+    return settleAgentRevenue(revenue, classId, this.config.wallet);
   }
 
   /**
@@ -277,6 +277,15 @@ export class AIAgentInstructor {
       shouldWithdraw: true,
       reasoning: `Optimal withdrawal: balance=$${balance.toFixed(2)}, gas=$${estimatedGasCost.toFixed(2)}`,
     };
+  }
+
+  /**
+   * Get the agent's Kite chain wallet balances (KITE native + USDC).
+   * Returns zeros if Kite SDK is not configured.
+   */
+  async getKiteBalances(): Promise<{ kiteBalance: bigint; usdcBalance: bigint }> {
+    const { getAgentBalances } = await import("./kite-settlement");
+    return getAgentBalances();
   }
 }
 

@@ -160,7 +160,7 @@ Carried over from previous remediation work:
 - [x] Live telemetry integration in instructor yellow page (P1-4) — riders push HR/power/cadence via `/api/live-telemetry`, instructor page polls aggregated feed with per-rider table
 - [x] End-to-end testing on Fuji testnet — `E2EFujiDeployment.t.sol` fork test + `scripts/e2e-verify-fuji.sh` verification script
 - [x] Gas/performance validation for chunked ZK proofs on 45-min sessions — see benchmarks below
-- [x] Resolve placeholder config values — SpinPack deployed (`0x2C8443...`), all 8 Fuji contracts verified. Only Kite agent passport remains undeployed (pending Kite SDK integration)
+- [x] Resolve placeholder config values — SpinPack deployed (`0x2C8443...`), all 8 Fuji contracts verified. Kite SDK integrated (gokite-aa-sdk) — agent vault + AA wallet addresses set via env vars when deployed
 - [x] Keep reward settlement and ride-summary anchoring status distinct across UI, storage, and relay flows — separate `getRideRewardStatus` / `getRideAnchoringStatus` functions, separate UI badges in journey page, separate settlement section in ride completion storage tab
 
 ### Gas Benchmark Results (Foundry, mock verifier)

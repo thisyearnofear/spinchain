@@ -51,15 +51,19 @@ export const CONTRACTS = {
     usdt: configuredAddress(process.env.NEXT_PUBLIC_USDT_ADDRESS),
   },
   // Kite AI Testnet - Agent Settlement & Attestations
+  // Network details: https://docs.gokite.ai/kite-chain/1-getting-started/network-information
   kite: {
-    chainId: 2358,
-    rpcUrl: "https://rpc.kite-testnet.gokite.ai",
-    explorerUrl: "https://explorer.kite-testnet.gokite.ai",
-    // NOT YET DEPLOYED — Kite AI SDK (Agent Passport / AA Wallet) integration is pending.
-    // This is the only remaining placeholder contract address in the codebase.
-    // Once the Kite SDK is integrated, replace with the real Agent Passport contract address.
-    agentPassport: null as `0x${string}` | null,
-    usdc: "0x5425890298aed601595a70AB815c96711a31Bc65", // Shared Fuji/Kite USDC bridge address (demo)
+    chainId: 2368,
+    chainName: "KiteAI Testnet",
+    rpcUrl: "https://rpc-testnet.gokite.ai",
+    explorerUrl: "https://testnet.kitescan.ai",
+    bundlerRpcUrl: "https://bundler-service.staging.gokite.ai/rpc/",
+    // Agent Passport / AA Wallet — deployed via gokite-aa-sdk
+    // Set via env var when deployed; null until then.
+    agentVault: configuredAddress(process.env.NEXT_PUBLIC_KITE_AGENT_VAULT) as `0x${string}` | null,
+    aaWallet: configuredAddress(process.env.NEXT_PUBLIC_KITE_AA_WALLET) as `0x${string}` | null,
+    // USDC on Kite testnet (may differ from Fuji USDC)
+    usdc: configuredAddress(process.env.NEXT_PUBLIC_KITE_USDC_ADDRESS) ?? "0x5425890298aed601595a70AB815c96711a31Bc65",
   },
 } as const;
 
