@@ -1,7 +1,7 @@
 import { getWalrusClient } from "./client";
-import type { RideSummary } from "../analytics/ride-history";
+import { STORAGE_KEYS, type RideSummary } from "../analytics/ride-history";
 
-const INDEX_KEY = "spinchain:walrus:ride-blobs:v1";
+const INDEX_KEY = STORAGE_KEYS.walrusRideBlobs;
 
 interface RideBlobIndex {
   [rideId: string]: { blobId: string; className: string; completedAt: number };

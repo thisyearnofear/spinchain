@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { RiderProfile } from "@/app/stores/rider-profile-store";
+import { STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
 
 export interface ProfileSyncState {
   walrusBlobId: string | null;
@@ -32,13 +33,13 @@ export const useProfileSync = create<ProfileSyncStore>()(
       reset: () => set({ walrusBlobId: null, suiTxDigest: null, lastSyncedAt: null, syncStatus: "idle" }),
     }),
     {
-      name: "spinchain-profile-sync",
+      name: STORAGE_KEYS.profileSync,
       storage: createJSONStorage(() => localStorage),
     }
   )
 );
 
-const PROFILE_INDEX_KEY = "spinchain:walrus:profile-blob:v1";
+const PROFILE_INDEX_KEY = STORAGE_KEYS.walrusProfileBlob;
 
 function readProfileIndex(): { blobId: string; address: string; syncedAt: number } | null {
   if (typeof window === "undefined") return null;

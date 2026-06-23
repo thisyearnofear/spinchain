@@ -53,6 +53,18 @@ export const useRiderProfile = create<RiderProfileState>()(
   )
 );
 
+export function toProfilePayload(s: RiderProfile): RiderProfile {
+  return {
+    goal: s.goal,
+    experience: s.experience,
+    frequency: s.frequency,
+    motivation: s.motivation,
+    coachPersonality: s.coachPersonality,
+    displayName: s.displayName,
+    createdAt: s.createdAt,
+  };
+}
+
 export const GOAL_LABELS: Record<FitnessGoal, string> = {
   "endurance": "Build endurance",
   "weight-loss": "Lose weight",

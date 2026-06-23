@@ -21,12 +21,12 @@ import {
   mapCoachPersonalityToEngine,
   getRecommendedRideName,
 } from "@/app/stores/rider-profile-store";
-import { getRideHistory, getStreakStats } from "@/app/lib/analytics/ride-history";
+import { getRideHistory, getStreakStats, STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 import { useAccount } from "wagmi";
 import { useProfile, getDisplayName, formatAddress } from "@/app/hooks/common/use-profile";
 
-export const RIDER_QUIZ_KEY = "spinchain-rider-quiz-completed";
+export const RIDER_QUIZ_KEY = STORAGE_KEYS.quizCompleted;
 
 interface QuizStep {
   id: string;

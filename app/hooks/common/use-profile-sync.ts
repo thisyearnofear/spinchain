@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
-import { useRiderProfile } from "@/app/stores/rider-profile-store";
+import { useRiderProfile, toProfilePayload } from "@/app/stores/rider-profile-store";
 import { useProfileSync, persistProfileToWalrus, retrieveProfileFromWalrus } from "@/app/lib/walrus/profile-persistence";
 
 /**
@@ -29,18 +29,7 @@ export function useProfileSyncEffect() {
     let cancelled = false;
     (async () => {
       setSyncing();
-      const blobId = await persistProfileToWalrus(
-        {
-          goal: profile.goal,
-          experience: profile.experience,
-          frequency: profile.frequency,
-          motivation: profile.motivation,
-          coachPersonality: profile.coachPersonality,
-          displayName: profile.displayName,
-          createdAt: profile.createdAt,
-        },
-        address
-      );
+      const blobId = await persistProfileToWalrus(toProfilePayload(profile), address);
       if (cancelled) return;
       if (blobId) {
         setSynced(blobId);
