@@ -207,6 +207,7 @@ export function useRideLifecycle({
       }
       speak(greeting, "intense");
     }, 3000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bleConnected, useSimulator, classId, isPracticeMode, isTrainingMode, rewards, coordinator, classData, deviceType, performanceTier, walletConnected, address, rewardMode, agentName, workoutPlan, playCountdown, speak, isRidingRef, trackedCompletionRef]);
 
   const pauseRide = useCallback(() => {
@@ -277,6 +278,7 @@ export function useRideLifecycle({
         router.push("/rider/journey?completed=true");
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stopAudio, telemetryAverages, persistRide, classId, classData, practiceConfig, agentName, address, elapsedTime, bleConnected, isPracticeMode, useSimulator, rewardMode, rewardClaimStatus, useChainlinkRewards, chainlinkSuccess, zkSuccess, privacyScore, privacyLevel, walletConnected, rewards, coordinatorRef, router]);
 
   const handleEnableSimulatorFromModal = useCallback(() => {

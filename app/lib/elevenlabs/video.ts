@@ -10,7 +10,6 @@
  * - FUTURE-PROOF: Architecture ready for when API access is granted
  */
 
-import { ELEVENLABS_CONFIG } from "./constants";
 
 export interface LipSyncRequest {
   videoUrl: string;      // Input video or image
@@ -46,7 +45,7 @@ function isStudioApiAvailable(): boolean {
  * Requires Studio API access
  */
 export async function generateLipSyncVideo(
-  request: LipSyncRequest
+  _request: LipSyncRequest
 ): Promise<GeneratedVideo | null> {
   if (!isStudioApiAvailable()) {
     console.warn('Studio API not available. Contact ElevenLabs sales for access.');
@@ -62,7 +61,7 @@ export async function generateLipSyncVideo(
  * Requires Studio API access
  */
 export async function generateVideo(
-  request: VideoGenerationRequest
+  _request: VideoGenerationRequest
 ): Promise<GeneratedVideo | null> {
   if (!isStudioApiAvailable()) {
     console.warn('Studio API not available. Contact ElevenLabs sales for access.');

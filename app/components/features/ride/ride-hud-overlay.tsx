@@ -9,7 +9,6 @@ import type { PanelKey, PanelState, WidgetMode } from "@/app/hooks/ui/use-panel-
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 import type { HapticType } from "@/app/hooks/use-haptic";
 import { useRideStore } from "@/app/stores/ride-store";
-import { useRewardsStore } from "@/app/stores/rewards-store";
 import { useUIStore } from "@/app/stores/ui-store";
 import { selectHudMode } from "@/app/stores/ui-store";
 
@@ -41,7 +40,7 @@ interface RideHUDOverlayProps {
 
 export const RideHUDOverlay = memo(function RideHUDOverlay(props: RideHUDOverlayProps) {
   const isRiding = useRideStore((s) => s.isActive);
-  const deviceType = useUIStore((s) => s.deviceType);
+  const _deviceType = useUIStore((s) => s.deviceType);
   const widgetsMode = useUIStore((s) => s.widgetsMode);
   const viewMode = useUIStore((s) => s.viewMode);
   const hudMode = useUIStore(selectHudMode);

@@ -64,7 +64,7 @@ export function useAiInstructor({
       const cadence = metrics.cadence;
       const wBalPct = metrics.wBalPercentage ?? 100;
       
-      const targetHrZone = currentInterval?.targetHrZone;
+      const _targetHrZone = currentInterval?.targetHrZone;
       const targetRpm = currentInterval?.targetRpm;
       const targetPower = currentInterval?.targetPower;
 
@@ -132,6 +132,7 @@ export function useAiInstructor({
     }, 5000); // Check every 5 seconds
 
     return () => clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEnabled, metrics, currentInterval, personality, agentName, triggerBeat]);
 
   return {

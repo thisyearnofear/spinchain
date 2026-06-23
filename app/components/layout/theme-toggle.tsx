@@ -1,7 +1,7 @@
 'use client';
 
 import { useTheme } from './theme-provider';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export function ThemeToggle() {
   const { resolvedTheme, toggleTheme } = useTheme();

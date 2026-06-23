@@ -129,6 +129,7 @@ function RouteCard({ route, index }: { route: Route; index: number }) {
               className="absolute inset-0"
               style={{ y: imageY }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={route.image}
                 alt={route.name}

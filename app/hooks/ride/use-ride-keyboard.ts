@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useUIStore } from "@/app/stores/ui-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
-import { useRideStore } from "@/app/stores/ride-store";
 import { DEFAULT_ROAD_GEARS } from "@/app/lib/analytics/physiological-models";
 import type { usePanelState } from "@/app/hooks/ui/use-panel-state";
 import type { useRideCoordinator } from "@/app/engines/use-ride-coordinator";

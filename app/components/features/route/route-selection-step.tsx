@@ -50,7 +50,7 @@ export function RouteSelectionStep({
 
   const themes: VisualizerTheme[] = ["neon", "alpine", "mars", "anime", "rainbow"];
 
-  const handleRouteGenerated = (gpxSummary: GpxSummary) => {
+  const handleRouteGenerated = (_gpxSummary: GpxSummary) => {
     // When a route is generated, we need to convert it to SavedRoute
     // For now, we'll let the user save it to library first
     setMode("library");

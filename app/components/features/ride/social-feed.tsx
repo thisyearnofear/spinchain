@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Zap, Trophy, MessageSquare, Hand } from "lucide-react";
+import { Zap, Trophy, MessageSquare, Hand } from "lucide-react";
 
 interface SocialEvent {
   id: string;

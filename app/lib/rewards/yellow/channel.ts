@@ -12,8 +12,6 @@ import { INCENTIVE_ENGINE_ADDRESS } from "../../contracts";
 import {
   createSession,
   closeSession,
-  isClearNodeConnected,
-  disconnectClearNode,
 } from "./clearnode";
 
 // ============================================================================

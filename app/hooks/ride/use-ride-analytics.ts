@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRideStore } from "@/app/stores/ride-store";
-import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useHaptic } from "@/app/hooks/use-haptic";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import { useRideModalStore } from "@/app/stores/ride-modal-store";

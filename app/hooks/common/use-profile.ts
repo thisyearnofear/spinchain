@@ -102,6 +102,7 @@ export function useProfiles(addresses: string[]): UseProfilesReturn {
     };
 
     fetchProfiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addresses.join(',')]); // Re-fetch when addresses change
 
   return {

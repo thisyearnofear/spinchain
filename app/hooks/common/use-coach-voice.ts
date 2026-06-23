@@ -159,6 +159,7 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConfigured, personality, intensity, getVoiceSettings]);
 
   const stop = useCallback(() => {

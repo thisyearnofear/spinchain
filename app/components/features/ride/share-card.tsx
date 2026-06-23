@@ -194,6 +194,7 @@ export function ShareCardButton({
 
             <h3 className="text-lg font-bold text-white mb-4">Your Share Card</h3>
 
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={dataUrl}
               alt="SpinChain ride share card"

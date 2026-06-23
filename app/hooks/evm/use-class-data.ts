@@ -57,8 +57,8 @@ const CURATED_CLASSES = [
   },
 ];
 
-// Alias for backward compat in useClass()
-const MOCK_CLASSES = CURATED_CLASSES;
+type CuratedClass = (typeof CURATED_CLASSES)[number];
+
 
 /**
  * Guest Demo Class
@@ -160,7 +160,7 @@ function inferBeatType(label: string): StoryBeatType {
   return "scenery";
 }
 
-function createFallbackMetadataFromDemo(demoClass: typeof MOCK_CLASSES[number]): EnhancedClassMetadata {
+function createFallbackMetadataFromDemo(demoClass: CuratedClass): EnhancedClassMetadata {
   const seed = demoClass.address;
   const themeOptions: EnhancedClassMetadata["route"]["theme"][] = ["neon", "alpine", "mars"];
   const personalityOptions: EnhancedClassMetadata["ai"]["personality"][] = ["zen", "drill-sergeant", "data"];
@@ -339,7 +339,7 @@ async function loadContractClass(
   });
 }
 
-async function loadDemoClass(demoClass: typeof MOCK_CLASSES[number]): Promise<ClassWithRoute> {
+async function loadDemoClass(demoClass: CuratedClass): Promise<ClassWithRoute> {
   const metadata = createFallbackMetadataFromDemo(demoClass);
 
   return hydrateClassFromMetadata({

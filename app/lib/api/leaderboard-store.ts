@@ -34,7 +34,11 @@ function evict(classId: string): void {
   const entries = classEntries.get(classId);
   if (!entries) return;
   const live = entries.filter((e) => e.expiresAt > now);
-  live.length ? classEntries.set(classId, live) : classEntries.delete(classId);
+  if (live.length) {
+    classEntries.set(classId, live);
+  } else {
+    classEntries.delete(classId);
+  }
 }
 
 export function upsertLeaderboardEntry(sub: LeaderboardSubmission): void {

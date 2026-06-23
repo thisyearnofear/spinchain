@@ -5,9 +5,8 @@
  */
 
 import type { RouteResponse } from "./ai-service";
-import type { SavedRoute } from "./route-library";
 import { getAssetManager, getWalrusClient } from "./walrus/client";
-import type { StoreResult, RetrieveResult } from "./walrus/types";
+import type { StoreResult } from "./walrus/types";
 
 /**
  * Route deployment record
@@ -67,7 +66,7 @@ export async function uploadRouteToWalrus(
     // Convert to JSON and encode
     const jsonString = JSON.stringify(routeData);
     const encoder = new TextEncoder();
-    const data = encoder.encode(jsonString);
+    const _data = encoder.encode(jsonString);
 
     // Store on Walrus
     const result = await assetManager.storeWorld(

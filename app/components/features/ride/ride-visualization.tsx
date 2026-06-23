@@ -1,7 +1,6 @@
 "use client";
 
-import type { WorkoutPlan, IntervalPhase } from "@/app/lib/workout-plan";
-import { Z_LAYERS } from "@/app/lib/ui/z-layers";
+import type { WorkoutPlan } from "@/app/lib/workout-plan";
 import type { VisualizerTheme } from "@/app/components/features/route/route-visualizer";
 import type {
   PanelKey,

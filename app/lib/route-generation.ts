@@ -4,7 +4,7 @@
  */
 
 import type { RouteResponse } from "./ai-service";
-import type { GpxSummary, StoryBeat } from "../routes/builder/gpx-uploader";
+import type { GpxSummary } from "../routes/builder/gpx-uploader";
 
 /**
  * Haversine distance calculation

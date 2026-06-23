@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRideStore } from "@/app/stores/ride-store";
-import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import type { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 import type { ClassWithRoute } from "@/app/hooks/evm/use-class-data";
 
@@ -20,7 +19,6 @@ export function useRideSimulator({
   isRiding,
   isTrainingMode,
   isGuestMode,
-  isPracticeMode,
   telemetryEffort,
   coordinator,
   classDataRef,

@@ -248,7 +248,7 @@ function parseWorkoutPlan(content: string, req: SynthRequest): WorkoutPlan {
       difficulty: parsed.difficulty || (req.durationMinutes > 30 ? "hard" : "moderate"),
       totalDuration: totalSeconds || req.durationMinutes * 60,
       tags: parsed.tags || ["ai-curated", req.theme, req.personality],
-      intervals: parsed.intervals.map((i: any, idx: number) => ({
+      intervals: parsed.intervals.map((i: any, _idx: number) => ({
         phase: i.phase || "endurance",
         durationSeconds: i.durationSeconds || 300,
         targetRpm: Array.isArray(i.targetRpm) ? i.targetRpm : [80, 100],
@@ -256,7 +256,7 @@ function parseWorkoutPlan(content: string, req: SynthRequest): WorkoutPlan {
         musicEnergy: typeof i.musicEnergy === "number" ? i.musicEnergy : 0.5,
       })),
     };
-  } catch (parseError) {
+  } catch {
     console.error("[Synthesis] Failed to parse plan:", content.substring(0, 200));
     throw new Error("Failed to parse workout plan from AI response");
   }

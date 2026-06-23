@@ -8,7 +8,6 @@
  * Network state channels directly to riders who meet the biometric criteria.
  */
 
-import { parseReward } from "./calculator";
 import type { TelemetryPoint } from "../zk/oracle";
 
 export interface Sponsor {

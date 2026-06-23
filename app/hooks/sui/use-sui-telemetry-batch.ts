@@ -52,7 +52,7 @@ export function useSuiTelemetryBatch(
   sessionId: string | null,
   statsObjectId: string | null
 ): UseSuiTelemetryBatchReturn {
-  const suiClient = useSuiClient();
+  const _suiClient = useSuiClient();
   const account = useCurrentAccount();
   const { execute, isPending: isSubmitting } = useSuiTransaction({
     successMessage: `Telemetry batch submitted`,

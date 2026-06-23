@@ -21,14 +21,14 @@ import { EmptyState } from "../components/features/common/empty-state";
 import { RiderHero } from "../components/features/rider/rider-hero";
 import { useToast } from "../components/ui/toast";
 import { NetworkStatusBanner } from "../components/features/common/yellow-status-indicator";
-import { Bike, Compass, CalendarClock } from "lucide-react";
+import { Bike, CalendarClock } from "lucide-react";
 import type { SavedRoute } from "../lib/route-library";
 
 export default function RiderPage() {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
   const { classes, isLoading, error } = useClasses();
-  const { instructors, isLoading: instructorsLoading } = useInstructors();
+  const { instructors } = useInstructors();
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
   const [filterUpcoming, setFilterUpcoming] = useState(true);
   const [showGuestBanner, setShowGuestBanner] = useState(true);

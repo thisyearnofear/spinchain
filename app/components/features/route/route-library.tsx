@@ -29,7 +29,7 @@ export function RouteLibrary({ onRouteSelect, onClose }: RouteLibraryProps) {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterFavorites, setFilterFavorites] = useState(false);
-  const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
+  const [_selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
 
   const stats = getStats();
 

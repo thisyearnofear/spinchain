@@ -259,7 +259,7 @@ export class LocalSpeechRecognizer {
   start() {
     try {
       this.recognition?.start();
-    } catch (e) {
+    } catch {
       // Ignore if already started
     }
   }
@@ -311,7 +311,7 @@ export class RealtimeTranscriber {
       }
     };
     
-    this.ws.onerror = (error) => {
+    this.ws.onerror = (_error) => {
       this.onError(new Error('WebSocket error'));
     };
     

@@ -93,7 +93,7 @@ describe("VisualizationEngine", () => {
 
     it("computes FPS from frame timestamps", () => {
       // Simulate 60 frames over 1 second
-      const start = performance.now();
+      const _start = performance.now();
       for (let i = 0; i < 60; i++) {
         vi.advanceTimersByTime(16);
         engine.onFrame();
@@ -210,7 +210,7 @@ describe("VisualizationEngine", () => {
     it("dispose clears everything", () => {
       engine.start();
       const clearSpy = vi.spyOn(global, "clearInterval");
-      const disposeSpy = vi.spyOn(bus, "dispose");
+      const _disposeSpy = vi.spyOn(bus, "dispose");
       engine.dispose();
       expect(clearSpy).toHaveBeenCalled();
     });

@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import { memo, Suspense } from "react";
 import type { VisualizerTheme } from "@/app/components/features/route/route-visualizer";
 import type { StoryBeat } from "@/app/components/features/route/route-visualizer";
-import type { RenderMode } from "@/app/engines/types";
 
 // Dynamic import — R3F bundle is heavy and only loaded when needed
 const RouteVisualizer = dynamic(

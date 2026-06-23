@@ -1,4 +1,4 @@
-import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient, type Address } from 'viem';
+import { type PublicClient, type WalletClient, type Address } from 'viem';
 
 export interface SponsorPoolConfig {
   classId: string;

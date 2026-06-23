@@ -20,7 +20,7 @@ export type Config = {
  */
 export const onCronTrigger = async (
   runtime: Runtime<Config>, 
-  trigger: any
+  _trigger: any
 ): Promise<void> => {
   const config = runtime.config;
   const confidentialHttp = new ConfidentialHTTPClient();
@@ -96,7 +96,7 @@ export const onCronTrigger = async (
   }).result();
 };
 
-export const initWorkflow = (config: Config) => {
+export const initWorkflow = (_config: Config) => {
   const cron = new CronCapability();
 
   return [

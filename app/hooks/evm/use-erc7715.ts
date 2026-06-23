@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from "react";
 import { useAccount } from "wagmi";
-import { type Address, type Hex } from "viem";
 import { INCENTIVE_ENGINE_ADDRESS } from "@/app/lib/contracts";
 
 /**

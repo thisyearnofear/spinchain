@@ -35,11 +35,9 @@ export function AIRouteGenerator({
   const {
     isListening,
     isSupported: isVoiceSupported,
-    transcript,
     interimTranscript,
     error: voiceError,
     toggleListening,
-    clearTranscript,
   } = useVoiceInput({
     continuous: false,
     interimResults: true,

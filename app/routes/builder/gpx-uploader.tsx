@@ -45,7 +45,7 @@ function haversineKm(a: TrackPoint, b: TrackPoint) {
   return 2 * earthRadiusKm * Math.asin(Math.sqrt(h));
 }
 
-function detectBeats(points: TrackPoint[], distanceKm: number): StoryBeat[] {
+function detectBeats(points: TrackPoint[], _distanceKm: number): StoryBeat[] {
   const beats: StoryBeat[] = [];
   if (points.length < 10) return beats;
 

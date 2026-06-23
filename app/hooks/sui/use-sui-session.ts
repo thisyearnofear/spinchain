@@ -69,7 +69,7 @@ interface UseSuiSessionReturn {
  * ```
  */
 export function useSuiSession(): UseSuiSessionReturn {
-  const client = useSuiClient();
+  const _client = useSuiClient();
   const account = useCurrentAccount();
   
   const [session, setSession] = useState<SuiSession | null>(null);

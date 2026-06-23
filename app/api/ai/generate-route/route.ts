@@ -21,7 +21,6 @@ import {
   generateRouteWithGemini,
   generateRouteStream,
   RouteRequest,
-  RouteResponse,
   type RouteTheme,
 } from "@/app/lib/gemini-client";
 import { generateRouteWithVenice } from "@/app/lib/venice-client";

@@ -59,7 +59,6 @@ export function RideControls({
   isRiding,
   isStarting,
   rideProgress,
-  isPracticeMode,
   isTrainingMode,
   useSimulator,
   deviceType,
@@ -73,7 +72,6 @@ export function RideControls({
   onSetWorkoutPlan,
   onSetUseSimulator,
   onBleMetrics,
-  onSimulatorMetrics,
   onHaptic,
   panelState,
   onTogglePanel,
@@ -273,7 +271,6 @@ function InputModeSelector({
   isCollapsed,
   onToggle,
   isTrainingMode,
-  walletConnected,
 }: {
   useSimulator: boolean;
   deviceType: string;

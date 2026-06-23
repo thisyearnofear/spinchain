@@ -51,7 +51,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-     
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 
   useEffect(() => {

@@ -224,7 +224,7 @@ export function RideHUD() {
   const targetRpm = useCoachingStore((s) => s.currentInterval?.targetRpm);
   const lastCoachMessage = useCoachingStore((s) => s.lastCoachMessage);
   const lastDecision = useCoachingStore((s) => s.lastDecision);
-  const routeTheme = useCoachingStore((s) => s.routeTheme);
+  const _routeTheme = useCoachingStore((s) => s.routeTheme);
 
   // Interval audio cues
   useIntervalAudioCues(intervalPhase, isRiding);

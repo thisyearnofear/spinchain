@@ -30,7 +30,6 @@ import {
 import {
   openRewardChannel,
   closeRewardChannel,
-  getActiveChannel,
   isChannelOpen,
   getNextSequence,
 } from "@/app/lib/rewards/yellow/channel";

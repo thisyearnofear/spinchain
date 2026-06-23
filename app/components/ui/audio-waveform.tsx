@@ -107,7 +107,6 @@ export function AudioWaveform({
 export function AudioIndicator({
   isActive,
   color = "#6366f1",
-  size = "md",
   className = "",
 }: {
   isActive: boolean;

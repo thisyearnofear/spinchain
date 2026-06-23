@@ -8,7 +8,6 @@ import { useToast } from "@/app/components/ui/toast";
 import {
   listPendingSettlements,
   upsertPendingSettlement,
-  markPendingSettlementSettled,
   syncPendingWithSDK,
   formatReward,
   type PendingYellowSettlement,
@@ -123,7 +122,7 @@ export default function InstructorYellowSettlementsPage() {
         setHasSessionPermission(true);
         toast.success("Permission Granted", "App can now auto-settle for this session");
       }
-    } catch (e) {
+    } catch {
       toast.error("Permission Refused", "Smart Account authorization is required for auto-settle");
     }
   };

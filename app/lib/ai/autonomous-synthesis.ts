@@ -7,7 +7,7 @@
  * - Recommends music vibes
  */
 
-import { WorkoutPlan, WorkoutInterval, IntervalPhase } from "@/app/lib/workout-plan";
+import { WorkoutPlan } from "@/app/lib/workout-plan";
 
 export interface SynthesisRequest {
   goal: string; // e.g. "Burn 500 calories", "High intensity sprint work"

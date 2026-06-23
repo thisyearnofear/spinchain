@@ -37,7 +37,7 @@ export function useSuiTransaction(
   options: UseSuiTransactionOptions = {}
 ): UseSuiTransactionReturn {
   const toast = useToast();
-  const client = useSuiClient();
+  const _client = useSuiClient();
   const { mutate: signAndExecute, isPending, data, error, reset } = useSignAndExecuteTransaction();
 
   const [digest, setDigest] = useState<string | null>(null);

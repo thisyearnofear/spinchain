@@ -14,7 +14,6 @@ import {
   generateLipSyncVideo,
   createFallbackAvatarAnimation,
   LipSyncRequest,
-  GeneratedVideo,
 } from '@/app/lib/elevenlabs/video';
 
 interface UseCoachAvatarOptions {

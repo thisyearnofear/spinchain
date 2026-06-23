@@ -8,15 +8,13 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   AIProvider,
   UserAIPreferences,
-  DEFAULT_AI_PREFERENCES,
   getUserAIPreferences,
   setUserAIPreferences,
   getProviderBadge,
-  PROVIDERS,
 } from "@/app/lib/ai-providers";
 import { getAIService } from "@/app/lib/ai-service";
 
@@ -265,7 +263,7 @@ export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps
 
 // Compact version for nav bar
 export function AIProviderBadge() {
-  const [provider, setProvider] = useState<AIProvider>(() => getUserAIPreferences().preferredProvider);
+  const [provider, _setProvider] = useState<AIProvider>(() => getUserAIPreferences().preferredProvider);
 
   const badge = getProviderBadge(provider);
 

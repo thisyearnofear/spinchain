@@ -109,6 +109,7 @@ export function CoachAvatar({
         `}
       >
         {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={avatarUrl}
             alt={name}

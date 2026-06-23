@@ -82,7 +82,7 @@ Return ONLY valid JSON, no markdown.`;
       // Remove any markdown code blocks if present
       const jsonText = text.replace(/```json\n?|\n?```/g, "").trim();
       analysis = JSON.parse(jsonText);
-    } catch (parseError) {
+    } catch {
       console.error("Failed to parse AI response:", text);
       // Fallback to default values
       analysis = getDefaultAnalysis(body);

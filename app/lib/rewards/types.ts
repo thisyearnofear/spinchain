@@ -7,7 +7,6 @@
  * - MODULAR: Types support multiple reward modes (Yellow, ZK, Sui)
  */
 
-import type { TelemetryPoint } from "../zk/oracle";
 
 // ============================================================================
 // Reward Calculation

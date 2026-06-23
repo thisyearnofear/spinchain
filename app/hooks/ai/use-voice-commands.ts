@@ -11,8 +11,6 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  transcribeAudio,
-  parseCommand,
   ParsedCommand,
   VOICE_COMMANDS,
   isSpeechRecognitionSupported,
@@ -42,10 +40,10 @@ export interface UseVoiceCommandsReturn {
 }
 
 export function useVoiceCommands(options: UseVoiceCommandsOptions = {}): UseVoiceCommandsReturn {
-  const { onCommand, language = 'en', continuous = true, useLocalOnly = true } = options;
+  const { onCommand, useLocalOnly = true } = options;
 
   const [isListening, setIsListening] = useState(false);
-  const [isSupported, setIsSupported] = useState(() => isSpeechRecognitionSupported());
+  const [isSupported, _setIsSupported] = useState(() => isSpeechRecognitionSupported());
   const [hasPermission, setHasPermission] = useState(false);
   const [lastCommand, setLastCommand] = useState<ParsedCommand | null>(null);
   const [transcript, setTranscript] = useState('');
@@ -96,7 +94,7 @@ export function useVoiceCommands(options: UseVoiceCommandsOptions = {}): UseVoic
     audioChunksRef.current = [];
     try {
       // ... existing getUserMedia and recognition logic
-    } catch (e) {
+    } catch {
       setIsListening(false);
     }
   }, [isSupported, hasPermission, useLocalOnly, requestPermission, handleRecognizedCommand]);

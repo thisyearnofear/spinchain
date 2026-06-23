@@ -8,13 +8,7 @@ import { ConnectWallet } from "../../components/features/wallet/connect-wallet";
 import { useInstructorAnalytics } from "../../hooks/evm/use-instructor-analytics";
 import { motion } from "framer-motion";
 import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Users, 
-  Calendar,
-  Award,
-  Activity,
+  Activity, 
   Download,
   ArrowRight
 } from "lucide-react";
@@ -43,7 +37,7 @@ export default function InstructorAnalyticsPage() {
     riders: generateTrendData(analytics.engagement.totalRiders || 100, 12),
     classes: generateTrendData(analytics.performance.completedClasses || 10, 12),
     fillRate: generateTrendData(analytics.engagement.avgFillRate * 100 || 50, 12),
-  }), [analytics, timeRange]);
+  }), [analytics]);
 
   if (!isConnected) {
     return (

@@ -26,7 +26,7 @@ export interface StoryBeat {
  * Follows DRY principle: Uses shared transaction handling from use-sui-transaction
  */
 export function useSuiTelemetry(sessionId: string | null, statsObjectId: string | null) {
-    const suiClient = useSuiClient();
+    const _suiClient = useSuiClient();
     const account = useCurrentAccount();
     const { execute, isPending: isUpdating, error } = useSuiTransaction({
         successMessage: "Telemetry updated",

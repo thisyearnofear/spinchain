@@ -349,6 +349,7 @@ export default function LiveRidePage() {
     if (completedRideId) {
       rewardsHook.setCompletedRideId(completedRideId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [completedRideId, rewardsHook.setCompletedRideId]);
 
   // ─── Visibility Pause (save CPU when tab hidden) ──────────────

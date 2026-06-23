@@ -12,7 +12,7 @@ export const runtime = "edge";
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     if (!ELEVENLABS_API_KEY) {
       return apiError("ELEVENLABS_API_KEY not set", "NOT_CONFIGURED", 503);

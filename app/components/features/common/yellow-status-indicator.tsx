@@ -15,7 +15,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 import { isClearNodeConnected } from "@/app/lib/rewards/yellow/clearnode";
 import { useNetworkStatus } from "@/app/hooks/use-network-status";

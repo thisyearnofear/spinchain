@@ -5,9 +5,9 @@ import type { ProofInput, ZKProof, CircuitType } from './types';
 import { ZK_CONFIG } from "@/app/config";
 
 // Lazily-loaded module references (browser only)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 let BackendCtor: any = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 let NoirCtor: any = null;
 
 // Compiled circuit shape from Nargo
@@ -24,9 +24,9 @@ interface ProofData {
 
 // Browser-compatible Noir prover using @noir-lang packages
 export class NoirProver {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   private backend: any = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   private noir: any = null;
   private circuit: CompiledCircuit | null = null;
   private initialized = false;

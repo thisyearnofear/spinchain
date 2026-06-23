@@ -10,7 +10,6 @@
  * - PERFORMANT: Caching and preloading
  */
 
-import { ELEVENLABS_CONFIG } from "./constants";
 
 export interface MusicGenerationRequest {
   prompt: string;

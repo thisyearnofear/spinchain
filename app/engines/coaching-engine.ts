@@ -18,11 +18,10 @@
 import { EventBus } from "./event-bus";
 import {
   getCurrentInterval,
-  getIntervalProgress,
   getIntervalRemaining,
   PHASE_DEFAULTS,
 } from "@/app/lib/workout-plan";
-import type { WorkoutPlan, WorkoutInterval, IntervalPhase } from "@/app/lib/workout-plan";
+import type { WorkoutPlan, WorkoutInterval } from "@/app/lib/workout-plan";
 
 export interface CoachingConfig {
   agentName: string;
@@ -130,7 +129,7 @@ export class CoachingEngine {
 
   // ─── Interval Tracking ────────────────────────────────────────
 
-  private checkIntervals(progress: number): void {
+  private checkIntervals(_progress: number): void {
     const plan = this.config.workoutPlan;
     if (!plan || plan.intervals.length === 0) return;
 

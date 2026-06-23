@@ -8,10 +8,8 @@ import {
   SurfaceCard,
   Tag,
 } from "@/app/components/ui/ui";
-import { HookVisualizer } from "@/app/agent/hook-visualizer";
-import { CoachProfile } from "@/app/agent/coach-profile";
 import { TrainingStudio } from "@/app/components/features/coach";
-import { useCoachingStore, selectAiLogs, selectLastCoachMessage, selectLastDecision } from "@/app/stores/coaching-store";
+import { useCoachingStore, selectAiLogs, selectLastCoachMessage } from "@/app/stores/coaching-store";
 import { useTelemetryStore, selectTelemetrySnapshot, selectTelemetryAverages } from "@/app/stores/telemetry-store";
 import { useRideStore } from "@/app/stores/ride-store";
 import type { AgentDecision } from "@/app/lib/ai-types";

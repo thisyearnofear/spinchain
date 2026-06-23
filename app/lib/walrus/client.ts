@@ -2,7 +2,6 @@
 // DRY: Single client for all Walrus operations
 
 import type {
-  WalrusBlob,
   StorageConfig,
   AssetType,
   StoredAsset,
@@ -32,7 +31,7 @@ export class WalrusClient {
   async store(
     data: Uint8Array | string,
     contentType: string = 'application/octet-stream',
-    epochs: number = this.config.epochs
+    _epochs: number = this.config.epochs
   ): Promise<StoreResult> {
     const body = typeof data === 'string' ? data : Buffer.from(data);
     
@@ -123,7 +122,7 @@ export class WalrusClient {
       const text = new TextDecoder().decode(result.data);
       const data = JSON.parse(text) as T;
       return { success: true, data };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to parse JSON' };
     }
   }
@@ -245,7 +244,7 @@ export class AssetManager {
         telemetry,
         metadata: result.data.metadata,
       };
-    } catch (error) {
+    } catch {
       return { error: 'Failed to decompress telemetry' };
     }
   }

@@ -137,7 +137,7 @@ export function resolveProvider(
 ): { provider: Exclude<AIProvider, "auto">; source: "user" | "server" | "fallback" } {
   // If user specifically requested a provider, try to use it
   if (requestedProvider !== "auto") {
-    const config = PROVIDERS[requestedProvider];
+    const _config = PROVIDERS[requestedProvider];
     
     // Check if the requested provider is available
     if (requestedProvider === "venice" && serverEnv.veniceAvailable) {

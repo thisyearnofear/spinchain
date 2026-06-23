@@ -5,7 +5,6 @@
  * Generates industry-standard activity files for Strava, Garmin, etc.
  */
 
-import type { FitnessMetrics } from "../ble/types";
 
 export interface RideRecordPoint {
   timestamp: number;

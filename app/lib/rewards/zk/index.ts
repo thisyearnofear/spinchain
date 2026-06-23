@@ -10,7 +10,7 @@
 import { useState, useCallback } from "react";
 import type { ZKProofInput, ZKProofResult, PrivacyDisclosure } from "../types";
 import { calculateEffortScore } from "../calculator";
-import { getLocalOracle, type LocalProofResult } from "../../zk/oracle";
+import { getLocalOracle } from "../../zk/oracle";
 import { getProver } from "../../zk/prover";
 import { createDisclosure, calculatePrivacyScore, getPrivacyLevel } from "../../zk/disclosure";
 
@@ -36,7 +36,7 @@ export function useZKRewards(): UseZKRewardsReturn {
     setIsGenerating(true);
 
     try {
-      const oracle = getLocalOracle();
+      const _oracle = getLocalOracle();
       const prover = getProver();
 
       // Calculate effort score

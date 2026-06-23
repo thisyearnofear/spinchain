@@ -31,7 +31,7 @@ import {
 } from "@erc7824/nitrolite";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import type { Hex, Address } from "viem";
-import { YELLOW_CLEARNODE_URL, SPINCHAIN_PROTOCOL, DEFAULT_CHANNEL_PARAMS } from "./index";
+import { YELLOW_CLEARNODE_URL, SPINCHAIN_PROTOCOL } from "./index";
 
 // ============================================================================
 // Session Key (ephemeral key for ClearNode RPC signing)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useMemo, Suspense } from "react";
 import Link from "next/link";
 import { HookVisualizer } from "./hook-visualizer";
 import { CoachProfile } from "./coach-profile";

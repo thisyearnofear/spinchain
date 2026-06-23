@@ -11,7 +11,6 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  generateWorkoutMusic,
   generatePhaseMusic,
   WorkoutSoundtrack,
   WorkoutPhase,
@@ -39,7 +38,7 @@ export interface UseWorkoutMusicReturn {
 }
 
 export function useWorkoutMusic(options: UseWorkoutMusicOptions = {}): UseWorkoutMusicReturn {
-  const { autoPlay = false, volume = 0.5 } = options;
+  const { autoPlay = false } = options;
   
   const [currentTrack, setCurrentTrack] = useState<WorkoutSoundtrack | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -108,6 +107,7 @@ export function useWorkoutMusic(options: UseWorkoutMusicOptions = {}): UseWorkou
     } finally {
       setIsGenerating(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlay]);
 
   const play = useCallback(() => {

@@ -23,7 +23,6 @@ import {
   isChannelOpen,
   getNextSequence,
   type ChannelCallbacks,
-  type MessageSigner,
 } from "./channel";
 import { submitState, isClearNodeConnected } from "./clearnode";
 
@@ -177,6 +176,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
         throw error;
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
