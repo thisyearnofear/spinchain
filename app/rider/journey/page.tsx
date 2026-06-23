@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { PrimaryNav } from "../../components/layout/nav";
 import {
   getBadges,
+  getEffortTier,
   getLeaderboardSnapshot,
   getPRs,
   getRideRewardStatus,
@@ -35,7 +36,6 @@ import {
   ZoneDistributionChart,
 } from "../../components/features/rider/ride-charts";
 import { DataOwnershipDashboard } from "../../components/features/rider/data-ownership-dashboard";
-import { UpdatePreferencesButton } from "../../components/features/rider/update-preferences-button";
 import { useProfileSyncEffect } from "../../hooks/common/use-profile-sync";
 
 function JourneyContent() {
@@ -59,9 +59,8 @@ function JourneyContent() {
   const { tierLabel, tierColor, tierDescription } = useMemo(() => {
     if (rides.length === 0) return { tierLabel: "—", tierColor: "#6b7280", tierDescription: "Complete rides to earn a tier." };
     const avgEffort = rides.reduce((s, r) => s + r.avgEffort, 0) / rides.length;
-    if (avgEffort >= 800) return { tierLabel: "ELITE", tierColor: "#818cf8", tierDescription: `Avg effort ${Math.round(avgEffort)}/1000 across ${rides.length} rides.` };
-    if (avgEffort >= 500) return { tierLabel: "STRONG", tierColor: "#6366f1", tierDescription: `Avg effort ${Math.round(avgEffort)}/1000 across ${rides.length} rides.` };
-    return { tierLabel: "BUILDING", tierColor: "#4f46e5", tierDescription: `Avg effort ${Math.round(avgEffort)}/1000 across ${rides.length} rides.` };
+    const tier = getEffortTier(avgEffort);
+    return { tierLabel: tier.displayLabel, tierColor: tier.color, tierDescription: `Avg effort ${Math.round(avgEffort)}/1000 across ${rides.length} rides.` };
   }, [rides]);
 
   // Derive active multiplier from real streak data
@@ -470,7 +469,6 @@ function JourneyContent() {
             <h2 className="text-xl font-black text-white tracking-tight">
               Settings
             </h2>
-            <UpdatePreferencesButton />
           </div>
           <DataOwnershipDashboard />
         </div>

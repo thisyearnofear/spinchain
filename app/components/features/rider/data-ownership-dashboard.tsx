@@ -1,37 +1,31 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Database, Download, Trash2, Cloud, HardDrive, Shield, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-import { getRideHistory } from "@/app/lib/analytics/ride-history";
-import { useRiderProfile } from "@/app/stores/rider-profile-store";
+import { Database, Download, Trash2, Cloud, HardDrive, Shield, CheckCircle2, AlertCircle, Loader2, Settings2 } from "lucide-react";
+import { getRideHistory, STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
+import { useRiderProfile, toProfilePayload } from "@/app/stores/rider-profile-store";
 import { useProfileSync, persistProfileToWalrus, getProfileBlobId } from "@/app/lib/walrus/profile-persistence";
 import { useAccount } from "wagmi";
 
 export function DataOwnershipDashboard() {
   const { address } = useAccount();
+  const router = useRouter();
   const profile = useRiderProfile();
   const profileSync = useProfileSync();
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [syncingProfile, setSyncingProfile] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [prefLoading, setPrefLoading] = useState(false);
 
   const rides = useMemo(() => getRideHistory(), []);
   const profileBlobId = useMemo(() => getProfileBlobId(), []);
 
   const localStorageKeys = useMemo(() => {
     if (typeof window === "undefined") return [];
-    const keys = [
-      "spinchain:rides:history:v2",
-      "spinchain-rider-profile",
-      "spinchain-ride-store",
-      "spinchain-rider-quiz-completed",
-      "spinchain:walrus:ride-blobs:v1",
-      "spinchain:walrus:profile-blob:v1",
-      "spinchain-profile-sync",
-      "spinchain:rides:sync-queue:v1",
-    ];
+    const keys = Object.values(STORAGE_KEYS).filter((k) => k !== STORAGE_KEYS.rideHistoryLegacy);
     return keys.filter((k) => localStorage.getItem(k) !== null).map((k) => ({
       key: k,
       size: new Blob([localStorage.getItem(k) ?? ""]).size,
@@ -43,7 +37,7 @@ export function DataOwnershipDashboard() {
   const walrusRidesCount = useMemo(() => {
     if (typeof window === "undefined") return 0;
     try {
-      const index = JSON.parse(localStorage.getItem("spinchain:walrus:ride-blobs:v1") ?? "{}");
+      const index = JSON.parse(localStorage.getItem(STORAGE_KEYS.walrusRideBlobs) ?? "{}");
       return Object.keys(index).length;
     } catch {
       return 0;
@@ -55,15 +49,7 @@ export function DataOwnershipDashboard() {
     const data = {
       exportedAt: new Date().toISOString(),
       address: address ?? "guest",
-      profile: {
-        goal: profile.goal,
-        experience: profile.experience,
-        frequency: profile.frequency,
-        motivation: profile.motivation,
-        coachPersonality: profile.coachPersonality,
-        displayName: profile.displayName,
-        createdAt: profile.createdAt,
-      },
+      profile: toProfilePayload(profile),
       rides,
       walrusProfileBlobId: profileBlobId,
     };
@@ -79,17 +65,7 @@ export function DataOwnershipDashboard() {
 
   const handleDeleteAll = useCallback(() => {
     setDeleting(true);
-    const keys = [
-      "spinchain:rides:history:v2",
-      "spinchain:rides:history:v1",
-      "spinchain-rider-profile",
-      "spinchain-ride-store",
-      "spinchain-rider-quiz-completed",
-      "spinchain:walrus:ride-blobs:v1",
-      "spinchain:walrus:profile-blob:v1",
-      "spinchain-profile-sync",
-      "spinchain:rides:sync-queue:v1",
-    ];
+    const keys = [...Object.values(STORAGE_KEYS), STORAGE_KEYS.rideHistoryLegacy];
     keys.forEach((k) => localStorage.removeItem(k));
     setTimeout(() => {
       setDeleting(false);
@@ -102,18 +78,7 @@ export function DataOwnershipDashboard() {
     if (!address || !profile.isComplete()) return;
     setSyncingProfile(true);
     profileSync.setSyncing();
-    const blobId = await persistProfileToWalrus(
-      {
-        goal: profile.goal,
-        experience: profile.experience,
-        frequency: profile.frequency,
-        motivation: profile.motivation,
-        coachPersonality: profile.coachPersonality,
-        displayName: profile.displayName,
-        createdAt: profile.createdAt,
-      },
-      address
-    );
+    const blobId = await persistProfileToWalrus(toProfilePayload(profile), address);
     if (blobId) {
       profileSync.setSynced(blobId);
     } else {
@@ -121,6 +86,21 @@ export function DataOwnershipDashboard() {
     }
     setSyncingProfile(false);
   }, [address, profile, profileSync]);
+
+  const handleUpdatePreferences = useCallback(() => {
+    setPrefLoading(true);
+    const prefill = {
+      goal: profile.goal,
+      experience: profile.experience,
+      frequency: profile.frequency,
+      motivation: profile.motivation,
+      coach: profile.coachPersonality,
+    };
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("spinchain-quiz-prefill", JSON.stringify(prefill));
+    }
+    router.push("/?welcome=true&prefill=true");
+  }, [profile, router]);
 
   return (
     <div className="rounded-[2.5rem] border border-emerald-500/20 bg-emerald-500/5 p-8 relative overflow-hidden">
@@ -283,6 +263,20 @@ export function DataOwnershipDashboard() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Update preferences */}
+          <button
+            onClick={handleUpdatePreferences}
+            disabled={prefLoading}
+            className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white/80 transition-[transform,background-color] duration-150 active:scale-95 hover:bg-white/10 disabled:opacity-50"
+          >
+            {prefLoading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Settings2 className="w-3.5 h-3.5" />
+            )}
+            Update Preferences
+          </button>
         </div>
 
         {/* Info note */}
