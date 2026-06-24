@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAccount } from "wagmi";
@@ -40,7 +40,27 @@ function MobileMenuButton({ isOpen, onClick }: { isOpen: boolean; onClick: () =>
   );
 }
 
-function SettingsDropdown() {
+function ModeToggle({ isInstructor, onToggle }: { isInstructor: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className={`group relative flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition-all ${
+        isInstructor
+          ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/30"
+          : "bg-white/5 text-white/40 border border-white/10 hover:text-white"
+      }`
+    }
+    >
+      <span className="relative flex h-2 w-2">
+        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isInstructor ? "bg-indigo-400" : "bg-white/20"}`}></span>
+        <span className={`relative inline-flex rounded-full h-2 w-2 ${isInstructor ? "bg-indigo-500" : "bg-white/30"}`}></span>
+      </span>
+      {isInstructor ? "Switch to Riding" : "Switch to Coaching"}
+    </button>
+  );
+}
+
+function SettingsDropdown({ isInstructorMode, onModeToggle }: { isInstructorMode: boolean; onModeToggle: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const clickSound = useUIClickSound();
@@ -89,6 +109,10 @@ function SettingsDropdown() {
           >
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
+                <span className="text-sm text-[color:var(--muted)]">Mode</span>
+                <ModeToggle isInstructor={isInstructorMode} onToggle={onModeToggle} />
+              </div>
+              <div className="flex items-center justify-between">
                 <span className="text-sm text-[color:var(--muted)]">Theme</span>
                 <ThemeToggleCompact />
               </div>
@@ -100,59 +124,6 @@ function SettingsDropdown() {
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-function NavLink({ href, children, onClick }: { href: string; children: React.ReactNode; onClick?: () => void }) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className="block w-full text-center rounded-full border border-[color:var(--border)] px-5 py-2.5 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
-    >
-      {children}
-    </Link>
-  );
-}
-
-function PrimaryCTA({
-  href,
-  children,
-  onClick,
-  className,
-}: {
-  href: string;
-  children: React.ReactNode;
-  onClick?: () => void;
-  className?: string;
-}) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className={`block w-full text-center rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[color:var(--glow)] ${className ?? ""}`}
-    >
-      {children}
-    </Link>
-  );
-}
-
-function ModeToggle({ isInstructor, onToggle }: { isInstructor: boolean; onToggle: () => void }) {
-  return (
-    <button
-      onClick={onToggle}
-      className={`group relative flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
-        isInstructor 
-          ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/30" 
-          : "bg-white/5 text-white/40 border border-white/10 hover:text-white"
-      }`}
-    >
-      <span className="relative flex h-2 w-2">
-        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isInstructor ? "bg-indigo-400" : "bg-white/20"}`}></span>
-        <span className={`relative inline-flex rounded-full h-2 w-2 ${isInstructor ? "bg-indigo-500" : "bg-white/30"}`}></span>
-      </span>
-      {isInstructor ? "Switch to Riding" : "Switch to Coaching"}
-    </button>
   );
 }
 
@@ -177,7 +148,7 @@ function RiderIdentityChip() {
   return (
     <Link
       href="/rider/journey"
-      className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 pl-1 pr-3 py-1 hover:border-white/20 hover:bg-white/10 transition-colors"
+      className="flex items-center gap-2 rounded-full border border-white/5 bg-white/[0.03] pl-1 pr-3 py-1 hover:border-white/15 hover:bg-white/[0.07] transition-colors"
       title="View your journey"
     >
       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-[10px] font-bold text-white shrink-0 overflow-hidden">
@@ -200,12 +171,104 @@ function RiderIdentityChip() {
   );
 }
 
+interface NavItem {
+  href: string;
+  label: string;
+}
+
+function NavTabs({ items, pathname, isInstructorMode }: { items: NavItem[]; pathname: string; isInstructorMode: boolean }) {
+  const tabRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const pillRef = useRef<HTMLSpanElement | null>(null);
+
+  const activeIndex = useMemo(() => {
+    const idx = items.findIndex(item => pathname === item.href || pathname?.startsWith(item.href + "/"));
+    return idx >= 0 ? idx : 0;
+  }, [items, pathname]);
+
+  const movePill = useCallback((index: number, animate: boolean) => {
+    const tab = tabRefs.current[items[index]?.href];
+    const pill = pillRef.current;
+    if (!tab || !pill) return;
+    if (!animate) {
+      pill.style.transition = "none";
+      pill.style.transform = `translateX(${tab.offsetLeft}px)`;
+      pill.style.width = `${tab.offsetWidth}px`;
+      void pill.offsetWidth;
+      pill.style.transition = "";
+    } else {
+      pill.style.transform = `translateX(${tab.offsetLeft}px)`;
+      pill.style.width = `${tab.offsetWidth}px`;
+    }
+  }, [items]);
+
+  useEffect(() => {
+    movePill(activeIndex, false);
+  }, [activeIndex, movePill]);
+
+  useEffect(() => {
+    const onResize = () => movePill(activeIndex, false);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [activeIndex, movePill]);
+
+  return (
+    <div
+      className={`t-tabs relative flex items-center gap-1 rounded-full p-1 ${
+        isInstructorMode
+          ? "bg-indigo-500/[0.07] border border-indigo-500/10"
+          : "bg-white/[0.03] border border-white/5"
+      }`}
+    >
+      <span
+        ref={pillRef}
+        className={`t-tabs-pill absolute top-1 bottom-1 rounded-full ${
+          isInstructorMode
+            ? "bg-indigo-500/15"
+            : "bg-white/10"
+        }`}
+      />
+      {items.map((item) => {
+        const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            ref={(el) => { tabRefs.current[item.href] = el; }}
+            className={`relative z-10 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              isActive
+                ? "text-[color:var(--foreground)]"
+                : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
+            }`}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+function MobileNavLink({ href, children, onClick, active }: { href: string; children: React.ReactNode; onClick?: () => void; active?: boolean }) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`block w-full text-center rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+        active
+          ? "bg-[color:var(--accent)]/10 text-[color:var(--foreground)] border border-[color:var(--accent)]/20"
+          : "text-[color:var(--muted)] hover:text-[color:var(--foreground)] border border-white/5 bg-white/[0.02]"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export function PrimaryNav() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const showSuiWallet = useSuiWalletVisible();
   
-  // Airbnb-style context detection
   const isInstructorMode = pathname?.startsWith("/instructor") || pathname?.startsWith("/agent");
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
@@ -213,6 +276,19 @@ export function PrimaryNav() {
   const handleModeToggle = () => {
     window.location.href = isInstructorMode ? "/rider" : "/instructor";
   };
+
+  const navItems: NavItem[] = isInstructorMode
+    ? [
+        { href: "/instructor/builder", label: "Create" },
+        { href: "/instructor/templates", label: "Templates" },
+        { href: "/instructor/analytics", label: "Analytics" },
+        { href: "/instructor/ai", label: "AI Coach" },
+      ]
+    : [
+        { href: "/rider", label: "Explore" },
+        { href: "/rider/journey", label: "Activity" },
+        { href: "/routes", label: "Routes" },
+      ];
 
   return (
     <nav className="flex w-full flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
@@ -235,52 +311,19 @@ export function PrimaryNav() {
           </div>
         </Link>
         <div className="flex items-center gap-2 lg:hidden">
-          <ModeToggle isInstructor={isInstructorMode} onToggle={handleModeToggle} />
           <MobileMenuButton isOpen={isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
         </div>
       </div>
 
       {/* Desktop Navigation */}
-      <div className="hidden lg:flex lg:items-center gap-6 overflow-visible">
-        <div className="flex items-center gap-4">
+      <div className="hidden lg:flex lg:items-center gap-4 overflow-visible">
+        <NavTabs items={navItems} pathname={pathname ?? "/"} isInstructorMode={isInstructorMode} />
+
+        <div className="flex items-center gap-2">
           <RiderIdentityChip />
-          <div className="flex items-center gap-2">
-            <ConnectWallet />
-            {showSuiWallet && <SuiWalletButton />}
-          </div>
-          
-          <div className="h-6 w-px bg-white/10 mx-1" />
-          
-          <div className="flex items-center gap-2">
-            {isInstructorMode ? (
-              <>
-                <NavLink href="/instructor/builder">Create Class</NavLink>
-                <NavLink href="/instructor/templates">Templates</NavLink>
-                <NavLink href="/instructor/analytics">Analytics</NavLink>
-                <NavLink href="/instructor/ai">AI Coach</NavLink>
-              </>
-            ) : (
-              <>
-                <NavLink href="/rider">Explore</NavLink>
-                <NavLink href="/rider/journey">My Activity</NavLink>
-                <NavLink href="/routes">Routes</NavLink>
-              </>
-            )}
-            <SettingsDropdown />
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <ModeToggle isInstructor={isInstructorMode} onToggle={handleModeToggle} />
-          {isInstructorMode ? (
-            <PrimaryCTA href="/instructor/builder" className="bg-indigo-600 shadow-indigo-500/20">
-              New Class
-            </PrimaryCTA>
-          ) : (
-            <PrimaryCTA href="/rider" className="bg-emerald-500 shadow-emerald-500/20">
-              Find a Ride
-            </PrimaryCTA>
-          )}
+          <ConnectWallet />
+          {showSuiWallet && <SuiWalletButton />}
+          <SettingsDropdown isInstructorMode={isInstructorMode} onModeToggle={handleModeToggle} />
         </div>
       </div>
 
@@ -296,39 +339,26 @@ export function PrimaryNav() {
             <div className="flex flex-col gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
               <div className="flex items-center justify-between mb-2">
                 <RiderIdentityChip />
-                <span className="text-xs font-bold text-white/40 uppercase">Account</span>
                 <ConnectWallet />
               </div>
               
               <div className="grid grid-cols-2 gap-2">
-                {isInstructorMode ? (
-                  <>
-                    <NavLink href="/instructor/builder" onClick={closeMobileMenu}>Create</NavLink>
-                    <NavLink href="/instructor/templates" onClick={closeMobileMenu}>Templates</NavLink>
-                    <NavLink href="/instructor/analytics" onClick={closeMobileMenu}>Analytics</NavLink>
-                    <NavLink href="/instructor/ai" onClick={closeMobileMenu}>AI Coach</NavLink>
-                    <SettingsDropdown />
-                  </>
-                ) : (
-                  <>
-                    <NavLink href="/rider" onClick={closeMobileMenu}>Explore</NavLink>
-                    <NavLink href="/rider/journey" onClick={closeMobileMenu}>Activity</NavLink>
-                    <NavLink href="/routes" onClick={closeMobileMenu}>Routes</NavLink>
-                    <SettingsDropdown />
-                  </>
-                )}
+                {navItems.map((item) => (
+                  <MobileNavLink
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeMobileMenu}
+                    active={pathname === item.href || pathname?.startsWith(item.href + "/")}
+                  >
+                    {item.label}
+                  </MobileNavLink>
+                ))}
+              </div>
+
+              <div className="border-t border-white/10 pt-3">
+                <SettingsDropdown isInstructorMode={isInstructorMode} onModeToggle={handleModeToggle} />
               </div>
             </div>
-
-            {isInstructorMode ? (
-              <PrimaryCTA href="/instructor/builder" onClick={closeMobileMenu} className="bg-indigo-600">
-                New Class
-              </PrimaryCTA>
-            ) : (
-              <PrimaryCTA href="/rider" onClick={closeMobileMenu} className="bg-emerald-500">
-                Find a Ride
-              </PrimaryCTA>
-            )}
           </motion.div>
         )}
       </AnimatePresence>
