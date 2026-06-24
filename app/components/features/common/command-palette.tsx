@@ -138,21 +138,16 @@ export function CommandPalette({
           <div className="p-6 overflow-y-auto max-h-[50vh]">
             <div className="space-y-4">
               {Object.entries(COMMAND_CATEGORIES).map(([key, category]) => (
-                <motion.div
+                <div
                   key={key}
-                  className="rounded-xl border border-[color:var(--border)] overflow-hidden"
-                  initial={false}
-                  animate={{
-                    borderColor:
-                      activeCategory === key
-                        ? "rgba(99, 102, 241, 0.5)"
-                        : "var(--border)",
-                  }}
+                  className="t-acc rounded-xl border border-[color:var(--border)] overflow-hidden"
+                  data-open={activeCategory === key}
                 >
                   <button
                     onClick={() =>
                       setActiveCategory(activeCategory === key ? null : key)
                     }
+                    aria-expanded={activeCategory === key}
                     className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
                   >
                     <div className="flex items-center gap-3">
@@ -161,39 +156,29 @@ export function CommandPalette({
                         {category.label}
                       </span>
                     </div>
-                    <ChevronRight
-                      className={`w-5 h-5 transition-transform ${
-                        activeCategory === key ? "rotate-90" : ""
-                      }`}
-                    />
+                    <span className={`t-acc-chevron ${activeCategory === key ? "rotate-90" : ""}`}>
+                      <ChevronRight className="w-5 h-5" />
+                    </span>
                   </button>
 
-                  <AnimatePresence>
-                    {activeCategory === key && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-                        className="overflow-hidden"
-                      >
-                        <div className="p-4 pt-0 space-y-2">
-                          {category.commands.map((cmd) => (
-                            <div
-                              key={cmd}
-                              className="flex items-center gap-3 p-3 rounded-lg bg-white/5"
-                            >
-                              <Mic className="w-4 h-4 text-indigo-400" />
-                              <span className="text-sm text-[color:var(--foreground)] capitalize">
-                                &quot;{cmd}&quot;
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
+                  <div className="t-acc-panel">
+                    <div className="t-acc-panel-inner">
+                      <div className="p-4 pt-0 space-y-2">
+                        {category.commands.map((cmd) => (
+                          <div
+                            key={cmd}
+                            className="flex items-center gap-3 p-3 rounded-lg bg-white/5"
+                          >
+                            <Mic className="w-4 h-4 text-indigo-400" />
+                            <span className="text-sm text-[color:var(--foreground)] capitalize">
+                              &quot;{cmd}&quot;
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

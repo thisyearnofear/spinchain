@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { tabsTransition } from "@/app/lib/motion";
 
 interface InstructorMode {
   id: "human" | "agent";
@@ -73,34 +74,60 @@ const particleData = Array.from({ length: PARTICLE_COUNT }, () => ({
 export function InstructorModeSelector() {
   const [activeMode, setActiveMode] = useState<"human" | "agent">("human");
   const [isHovered, setIsHovered] = useState(false);
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const pillRef = useRef<HTMLSpanElement | null>(null);
 
   const currentMode = modes.find(m => m.id === activeMode)!;
+
+  const movePill = useCallback((modeId: string, animate: boolean) => {
+    const tab = tabRefs.current[modeId];
+    const pill = pillRef.current;
+    if (!tab || !pill) return;
+    if (!animate) {
+      pill.style.transition = "none";
+      pill.style.transform = `translateX(${tab.offsetLeft}px)`;
+      pill.style.width = `${tab.offsetWidth}px`;
+      void pill.offsetWidth;
+      pill.style.transition = "";
+    } else {
+      pill.style.transform = `translateX(${tab.offsetLeft}px)`;
+      pill.style.width = `${tab.offsetWidth}px`;
+    }
+  }, []);
+
+  useEffect(() => {
+    movePill(activeMode, false);
+  }, [activeMode, movePill]);
+
+  useEffect(() => {
+    const onResize = () => movePill(activeMode, false);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [activeMode, movePill]);
 
   return (
     <div className="w-full">
       {/* Toggle Switch */}
       <div className="flex justify-center mb-8">
-        <div 
-          className="relative flex p-1 rounded-full bg-[color:var(--surface-strong)] border border-[color:var(--border)]"
+        <div
+          className="t-tabs relative flex p-1 rounded-full bg-[color:var(--surface-strong)] border border-[color:var(--border)]"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          {/* Animated background pill */}
-          <motion.div
-            className={`absolute top-1 bottom-1 rounded-full bg-gradient-to-r ${currentMode.color} opacity-20`}
-            initial={false}
-            animate={{
-              x: activeMode === "human" ? 4 : "100%",
-              width: "calc(50% - 4px)",
-              left: activeMode === "human" ? 0 : -4
-            }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          {/* Sliding pill */}
+          <span
+            ref={pillRef}
+            className={`t-tabs-pill absolute top-1 bottom-1 rounded-full bg-gradient-to-r ${currentMode.color} opacity-20`}
           />
-          
+
           {modes.map((mode) => (
             <button
               key={mode.id}
-              onClick={() => setActiveMode(mode.id)}
+              ref={(el) => { tabRefs.current[mode.id] = el; }}
+              onClick={() => {
+                setActiveMode(mode.id);
+                movePill(mode.id, true);
+              }}
               className={`relative z-10 flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-colors ${
                 activeMode === mode.id
                   ? "text-[color:var(--foreground)]"
@@ -121,7 +148,7 @@ export function InstructorModeSelector() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+          transition={tabsTransition}
           className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]"
         >
           {/* Animated gradient background */}

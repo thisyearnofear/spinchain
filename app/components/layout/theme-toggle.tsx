@@ -1,23 +1,15 @@
 'use client';
 
 import { useTheme } from './theme-provider';
-import { useState } from 'react';
 
 export function ThemeToggle() {
   const { resolvedTheme, toggleTheme } = useTheme();
-  const [isAnimating, setIsAnimating] = useState(false);
-
-  const handleToggle = () => {
-    setIsAnimating(true);
-    toggleTheme();
-    setTimeout(() => setIsAnimating(false), 500);
-  };
 
   const isDark = resolvedTheme === 'dark';
 
   return (
     <button
-      onClick={handleToggle}
+      onClick={toggleTheme}
       className="relative group"
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -82,7 +74,6 @@ export function ThemeToggle() {
             ? 'translate-x-6 bg-gradient-to-br from-indigo-400 to-purple-500' 
             : 'translate-x-0 bg-gradient-to-br from-amber-300 to-orange-400'
           }
-          ${isAnimating ? 'scale-90' : 'scale-100'}
           shadow-lg
         `}>
           {/* Icon */}
@@ -118,7 +109,7 @@ export function ThemeToggle() {
           <div className={`
             absolute inset-0 rounded-full blur-sm transition-opacity duration-500
             ${isDark ? 'bg-purple-400/50' : 'bg-amber-300/50'}
-            ${isAnimating ? 'opacity-100' : 'opacity-0'}
+            opacity-0 group-hover:opacity-100
           `} />
         </div>
       </div>

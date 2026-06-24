@@ -187,14 +187,12 @@ export function RideCompletion({
         {/* Header */}
         <div className="mb-4 shrink-0">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <motion.div
-              initial={{ scale: 0, rotate: -20 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.3 }}
-              className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-indigo-500/30"
+            <div
+              className="t-success-check h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-indigo-500/30"
+              data-state="in"
             >
               🧠
-            </motion.div>
+            </div>
           </div>
           <p className="text-[10px] uppercase tracking-[0.3em] text-indigo-300/70 mb-1">
             Performance Debrief
