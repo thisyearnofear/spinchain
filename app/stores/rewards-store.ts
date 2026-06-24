@@ -18,6 +18,7 @@ interface RewardsState {
   clearNodeConnected: boolean;
   simulatedReward: string;
   isSimulating: boolean;
+  streamingRate: number;
 }
 
 const initialState: RewardsState = {
@@ -29,6 +30,7 @@ const initialState: RewardsState = {
   clearNodeConnected: false,
   simulatedReward: "0",
   isSimulating: false,
+  streamingRate: 0,
 };
 
 export const useRewardsStore = create<RewardsState>()(() => ({

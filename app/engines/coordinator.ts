@@ -421,9 +421,16 @@ export class RideCoordinator {
 
     this.eventUnsubs.push(
       this.bus.on("rewards:tick", (data) => {
+        const elapsedSeconds = useRideStore.getState().elapsedTime;
+        const elapsedMinutes = elapsedSeconds / 60;
+        const streamingRate = elapsedMinutes > 0
+          ? Number(data.accumulated) / 1e18 / elapsedMinutes
+          : 0;
+
         useRewardsStore.setState({
           accumulatedReward: data.accumulated,
           formattedReward: this.rewards.formattedReward,
+          streamingRate,
         });
       }),
     );
