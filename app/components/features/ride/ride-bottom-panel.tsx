@@ -25,6 +25,8 @@ interface RideBottomPanelProps {
   onSetWidgetsMode: (mode: WidgetMode) => void;
   onStartRide: () => void;
   onPauseRide: () => void;
+  onResumeRide: () => void;
+  onExitRide: () => void;
   onSetWorkoutPlan: (plan: WorkoutPlan | null) => void;
   onSetUseSimulator: (v: boolean) => void;
   onBleMetrics: (metrics: { heartRate?: number; power?: number; cadence?: number; speed?: number; effort?: number; distance?: number; timestamp?: number }) => void;
@@ -40,6 +42,8 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   onSetWidgetsMode,
   onStartRide,
   onPauseRide,
+  onResumeRide,
+  onExitRide,
   onSetWorkoutPlan,
   onSetUseSimulator,
   onBleMetrics,
@@ -382,14 +386,14 @@ export const RideBottomPanel = memo(function RideBottomPanel({
               </div>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => { onHaptic("medium"); onStartRide(); }}
+                  onClick={() => { onHaptic("medium"); onResumeRide(); }}
                   className="rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation"
                   aria-label="Resume ride"
                 >
                   ▶ Resume
                 </button>
                 <button
-                  onClick={onPauseRide}
+                  onClick={onExitRide}
                   className="rounded-full bg-white/10 px-4 py-3 text-sm font-medium text-white/60 hover:bg-white/20 transition-all active:scale-95 touch-manipulation"
                   aria-label="Exit ride"
                 >

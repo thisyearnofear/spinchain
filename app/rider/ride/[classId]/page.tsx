@@ -473,6 +473,7 @@ export default function LiveRidePage() {
           onSetWidgetsMode={panelState.setMobileRideWidgetsMode}
           onStartRide={lifecycle.startRide}
           onPauseRide={lifecycle.pauseRide}
+          onResumeRide={lifecycle.resumeRide}
           onSetWorkoutPlan={setWorkoutPlan}
           onBleMetrics={lifecycle.handleBleMetrics}
           onHaptic={haptic.trigger}

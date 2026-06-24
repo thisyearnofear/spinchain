@@ -218,9 +218,16 @@ export function useRideLifecycle({
 
   const pauseRide = useCallback(() => {
     isRidingRef.current = false;
-    useRideStore.setState({ isActive: false });
+    coordinator.pauseRide();
+    useRideStore.setState({ isActive: false, isPaused: true });
     playSound("recover");
-  }, [playSound, isRidingRef]);
+  }, [playSound, isRidingRef, coordinator]);
+
+  const resumeRide = useCallback(() => {
+    isRidingRef.current = true;
+    coordinator.resumeRide();
+    useRideStore.setState({ isActive: true, isPaused: false });
+  }, [coordinator, isRidingRef]);
 
   const exitRide = useCallback(async () => {
     if (useRideStore.getState().isExiting) return; // Guard against double-exit
@@ -325,6 +332,7 @@ export function useRideLifecycle({
     connectionHint,
     startRide,
     pauseRide,
+    resumeRide,
     exitRide,
     handleCompletionExit,
     handleEnableSimulatorFromModal,
