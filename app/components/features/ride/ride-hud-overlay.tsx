@@ -20,7 +20,6 @@ interface RideHUDOverlayProps {
   connectionHint: string | null;
   simulatedReward: { isSimulating: boolean; formattedReward: string };
   panelState: PanelState;
-  rewardMode: RewardMode;
   onSetUseSimulator: (v: boolean) => void;
   onSetRewardMode: (m: RewardMode) => void;
   onExitRide: () => void;
@@ -98,24 +97,22 @@ export const RideHUDOverlay = memo(function RideHUDOverlay(props: RideHUDOverlay
         </button>
       )}
 
-      {hudMode !== "minimal" && (
-        <RideBottomPanel
-          walletConnected={props.walletConnected}
-          workoutPlan={props.workoutPlan}
-          connectionHint={props.connectionHint}
-          panelState={props.panelState}
-          onTogglePanel={props.onTogglePanel}
-          onSetWidgetsMode={props.onSetWidgetsMode}
-          onStartRide={props.onStartRide}
-          onPauseRide={props.onPauseRide}
-          onSetWorkoutPlan={props.onSetWorkoutPlan}
-          onSetUseSimulator={props.onSetUseSimulator}
-          onBleMetrics={props.onBleMetrics}
-          onSimulatorMetrics={props.onSimulatorMetrics}
-          onHaptic={props.onHaptic}
-          formatTime={props.formatTime}
-        />
-      )}
+      <RideBottomPanel
+        walletConnected={props.walletConnected}
+        workoutPlan={props.workoutPlan}
+        connectionHint={props.connectionHint}
+        panelState={props.panelState}
+        onTogglePanel={props.onTogglePanel}
+        onSetWidgetsMode={props.onSetWidgetsMode}
+        onStartRide={props.onStartRide}
+        onPauseRide={props.onPauseRide}
+        onSetWorkoutPlan={props.onSetWorkoutPlan}
+        onSetUseSimulator={props.onSetUseSimulator}
+        onBleMetrics={props.onBleMetrics}
+        onSimulatorMetrics={props.onSimulatorMetrics}
+        onHaptic={props.onHaptic}
+        formatTime={props.formatTime}
+      />
     </div>
   );
 });

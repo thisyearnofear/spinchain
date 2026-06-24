@@ -61,6 +61,17 @@ export const useRideStore = create<RideState>()(
   ),
 );
 
+export type RidePhase = "preRide" | "starting" | "active" | "paused";
+
+export function getRidePhase(state: RideState): RidePhase {
+  if (state.isStarting) return "starting";
+  if (state.isActive) return "active";
+  if (state.rideProgress > 0 || state.elapsedTime > 0) return "paused";
+  return "preRide";
+}
+
+export const selectRidePhase = (s: RideState): RidePhase => getRidePhase(s);
+
 export const selectIsActive = (s: RideState) => s.isActive;
 export const selectIsPaused = (s: RideState) => s.isPaused;
 export const selectElapsedTime = (s: RideState) => s.elapsedTime;

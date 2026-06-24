@@ -456,7 +456,6 @@ export default function LiveRidePage() {
           connectionHint={lifecycle.connectionHint}
           simulatedReward={simulatorHook.simulatedRewards}
           panelState={panelState.state}
-          rewardMode={rewardMode}
           onSetUseSimulator={setUseSimulator}
           onSetRewardMode={setRewardMode}
           onExitRide={lifecycle.exitRide}

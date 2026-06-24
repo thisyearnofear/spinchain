@@ -210,11 +210,7 @@ export default function FocusRouteVisualizer({
       return { top: position.y, left: Math.max(0, position.x) };
     }
 
-    if (key === "focusRight") {
-      return { top: position.y, right: Math.max(0, -position.x) };
-    }
-
-    return { left: position.x, bottom: Math.max(16, -position.y) };
+    return { top: position.y, right: Math.max(0, -position.x) };
   }, [panelPositions]);
 
   const handleDragStart = useCallback((event: ReactPointerEvent<HTMLDivElement>, key: DesktopPanelKey) => {

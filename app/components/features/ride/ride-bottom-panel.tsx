@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { RideControls } from "./ride-controls";
 import type { WorkoutPlan, IntervalPhase } from "@/app/lib/workout-plan";
 import type {
@@ -10,10 +10,11 @@ import type {
   WidgetMode,
 } from "@/app/hooks/ui/use-panel-state";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
-import { useRideStore } from "@/app/stores/ride-store";
+import { useRideStore, selectRidePhase } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useUIStore } from "@/app/stores/ui-store";
+import { EASE_SMOOTH } from "@/app/lib/motion";
 import type { HapticType } from "@/app/hooks/use-haptic";
 
 interface RideBottomPanelProps {
@@ -49,8 +50,8 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   onHaptic,
   formatTime,
 }: RideBottomPanelProps) {
-  const isRiding = useRideStore((s) => s.isActive);
-  const isStarting = useRideStore((s) => s.isStarting);
+  const phase = useRideStore(selectRidePhase);
+  const isRiding = phase === "active";
   const rideProgress = useRideStore((s) => s.rideProgress);
   const elapsedTime = useRideStore((s) => s.elapsedTime);
 
@@ -74,8 +75,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   const reasonerState = useCoachingStore((s) => s.reasonerState);
   const lastDecision = useCoachingStore((s) => s.lastDecision);
   const thoughtLog = useCoachingStore((s) => s.thoughtLog);
-
-  const aiActive = isRiding;
 
   const isWidgetsMinimized = widgetsMode === "minimized";
   const isWidgetsCollapsed = widgetsMode === "collapsed";
@@ -133,7 +132,9 @@ export const RideBottomPanel = memo(function RideBottomPanel({
     [],
   );
 
-  if (isRiding && isWidgetsMinimized) {
+  const isActivePhase = phase === "active" || phase === "paused";
+
+  if (isActivePhase && isWidgetsMinimized) {
     return (
       <div
         className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-auto"
@@ -150,7 +151,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
     );
   }
 
-  if (isRiding && isWidgetsCollapsed) {
+  if (isActivePhase && isWidgetsCollapsed) {
     return (
       <div
         className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-auto"
@@ -175,169 +176,241 @@ export const RideBottomPanel = memo(function RideBottomPanel({
     );
   }
 
-  return (
-    <div
-      className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom transition-all duration-300 ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${!isRiding && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`}
-      style={{
-        zIndex: Z_LAYERS.widgets,
-        ...(deviceType !== "mobile" && isRiding
-          ? {
-              transform: `translate(${desktopOffset.x}px, ${desktopOffset.y}px)`,
-            }
-          : {}),
-      }}
-    >
-      <div
-        className={`max-w-7xl mx-auto ${!isRiding && deviceType === "desktop" ? "overflow-y-auto flex-1 min-h-0" : ""}`}
-      >
-        {isRiding && (
-          <div className="mb-1 flex items-center justify-center gap-2">
-            <div
-              className="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1 text-[10px] text-white/50 cursor-grab active:cursor-grabbing touch-none"
-              onPointerDown={handleDragStart}
-              onPointerMove={handleDragMove}
-              onPointerUp={handleDragEnd}
-              title="Drag up to reveal more, drag down to hide"
-            >
-              <span className="text-white/30 select-none" aria-hidden="true">⠿</span>
-              <span className="hidden sm:inline">Drag to reposition</span>
-            </div>
-            <button
-              onClick={() => onSetWidgetsMode("collapsed")}
-              className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-white/60 hover:bg-white/20 transition-colors"
-            >
-              Collapse
-            </button>
-            <button
-              onClick={() => onSetWidgetsMode("minimized")}
-              className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-white/60 hover:bg-white/20 transition-colors"
-            >
-              Minimize
-            </button>
-          </div>
-        )}
+  const containerClass = `absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom transition-all duration-300 ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${phase === "preRide" && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`;
+  const containerStyle = {
+    zIndex: Z_LAYERS.widgets,
+    ...(deviceType !== "mobile" && isRiding
+      ? { transform: `translate(${desktopOffset.x}px, ${desktopOffset.y}px)` }
+      : {}),
+  } as const;
 
-        {/* Progress Info + Interval Status */}
-        {hudMode !== "minimal" && (
-          <div className="mb-3 sm:mb-4">
-            {isRiding && (
-              <div className="mb-3 rounded-full border border-white/10 bg-black/50 p-1 shadow-lg shadow-black/30 backdrop-blur">
-                <div className="flex h-2.5 overflow-hidden rounded-full bg-white/10">
-                  {workoutPlan ? (
-                    workoutPlan.intervals.map((interval, i) => {
-                      const widthPct = (interval.durationSeconds / workoutPlan.totalDuration) * 100;
-                      const isCurrent = i === currentIntervalIndex;
-                      const isComplete = i < currentIntervalIndex;
-                      const phaseColor =
-                        interval.phase === "sprint" ? "bg-red-500"
-                          : interval.phase === "interval" ? "bg-yellow-500"
-                          : interval.phase === "warmup" ? "bg-green-500"
-                          : interval.phase === "recovery" ? "bg-blue-500"
-                          : interval.phase === "cooldown" ? "bg-indigo-400"
-                          : "bg-purple-500";
-                      return (
+  return (
+    <div className={containerClass} style={containerStyle}>
+      <div className={`max-w-7xl mx-auto ${phase === "preRide" && deviceType === "desktop" ? "overflow-y-auto flex-1 min-h-0" : ""}`}>
+        <AnimatePresence mode="wait">
+          {/* ─── Pre-ride: Setup + Start ─── */}
+          {phase === "preRide" && (
+            <motion.div
+              key="pre-ride"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: EASE_SMOOTH }}
+            >
+              <RideControls
+                isRiding={false}
+                isStarting={false}
+                rideProgress={0}
+                isPracticeMode={isPracticeMode}
+                isTrainingMode={isTrainingMode}
+                useSimulator={useSimulator}
+                deviceType={deviceType}
+                workoutPlan={workoutPlan}
+                bleConnected={bleConnected}
+                walletConnected={walletConnected}
+                canStartRide={bleConnected || useSimulator}
+                startHint={connectionHint}
+                onStartRide={onStartRide}
+                onPauseRide={onPauseRide}
+                onSetWorkoutPlan={onSetWorkoutPlan}
+                onSetUseSimulator={onSetUseSimulator}
+                onBleMetrics={onBleMetrics}
+                onSimulatorMetrics={onSimulatorMetrics}
+                onHaptic={onHaptic}
+                panelState={panelState}
+                onTogglePanel={onTogglePanel}
+              />
+            </motion.div>
+          )}
+
+          {/* ─── Starting: Loading state ─── */}
+          {phase === "starting" && (
+            <motion.div
+              key="starting"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: EASE_SMOOTH }}
+              className="flex items-center justify-center py-8"
+            >
+              <div className="flex items-center gap-3 text-white/70">
+                <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 4" opacity="0.3" />
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="15 45" opacity="0.8" />
+                  <circle cx="12" cy="12" r="2" fill="currentColor" />
+                </svg>
+                <span className="text-sm font-medium">Starting ride…</span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ─── Active ride: Tray with stats + controls ─── */}
+          {phase === "active" && (
+            <motion.div
+              key="active"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: EASE_SMOOTH }}
+            >
+              {/* Widget controls */}
+              <div className="mb-1 flex items-center justify-center gap-2">
+                <div
+                  className="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1 text-[10px] text-white/50 cursor-grab active:cursor-grabbing touch-none"
+                  onPointerDown={handleDragStart}
+                  onPointerMove={handleDragMove}
+                  onPointerUp={handleDragEnd}
+                  title="Drag up to reveal more, drag down to hide"
+                >
+                  <span className="text-white/30 select-none" aria-hidden="true">⠿</span>
+                  <span className="hidden sm:inline">Drag to reposition</span>
+                </div>
+                <button
+                  onClick={() => onSetWidgetsMode("collapsed")}
+                  className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-white/60 hover:bg-white/20 transition-colors"
+                >
+                  Collapse
+                </button>
+                <button
+                  onClick={() => onSetWidgetsMode("minimized")}
+                  className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-white/60 hover:bg-white/20 transition-colors"
+                >
+                  Minimize
+                </button>
+              </div>
+
+              {hudMode !== "minimal" && (
+                <div className="mb-3 sm:mb-4">
+                  {/* Progress bar */}
+                  <div className="mb-3 rounded-full border border-white/10 bg-black/50 p-1 shadow-lg shadow-black/30 backdrop-blur">
+                    <div className="flex h-2.5 overflow-hidden rounded-full bg-white/10">
+                      {workoutPlan ? (
+                        workoutPlan.intervals.map((interval, i) => {
+                          const widthPct = (interval.durationSeconds / workoutPlan.totalDuration) * 100;
+                          const isCurrent = i === currentIntervalIndex;
+                          const isComplete = i < currentIntervalIndex;
+                          const phaseColor =
+                            interval.phase === "sprint" ? "bg-red-500"
+                              : interval.phase === "interval" ? "bg-yellow-500"
+                              : interval.phase === "warmup" ? "bg-green-500"
+                              : interval.phase === "recovery" ? "bg-blue-500"
+                              : interval.phase === "cooldown" ? "bg-indigo-400"
+                              : "bg-purple-500";
+                          return (
+                            <div
+                              key={i}
+                              className="relative h-full border-r border-black/20 last:border-r-0"
+                              style={{ width: `${widthPct}%` }}
+                            >
+                              <div
+                                className={`h-full origin-left transition-transform duration-300 ${phaseColor} ${
+                                  isComplete ? "opacity-90" : isCurrent ? "opacity-75" : "opacity-20"
+                                }`}
+                                style={{ transform: `scaleX(${isCurrent ? intervalProgress : isComplete ? 1 : 0})` }}
+                              />
+                            </div>
+                          );
+                        })
+                      ) : (
                         <div
-                          key={i}
-                          className="relative h-full border-r border-black/20 last:border-r-0"
-                          style={{ width: `${widthPct}%` }}
-                        >
-                          <div
-                            className={`h-full origin-left transition-transform duration-300 ${phaseColor} ${
-                              isComplete ? "opacity-90" : isCurrent ? "opacity-75" : "opacity-20"
-                            }`}
-                            style={{ transform: `scaleX(${isCurrent ? intervalProgress : isComplete ? 1 : 0})` }}
-                          />
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div
-                      className="h-full origin-left bg-gradient-to-r from-indigo-500 to-purple-500 transition-transform duration-300"
-                      style={{ transform: `scaleX(${rideProgress / 100})` }}
+                          className="h-full origin-left bg-gradient-to-r from-indigo-500 to-purple-500 transition-transform duration-300"
+                          style={{ transform: `scaleX(${rideProgress / 100})` }}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {currentInterval && (
+                    <IntervalBanner
+                      currentInterval={currentInterval}
+                      currentIntervalIndex={currentIntervalIndex}
+                      intervalRemaining={intervalRemaining}
+                      telemetryCadence={telemetryCadence}
+                      workoutPlan={workoutPlan}
+                      formatTime={formatTime}
                     />
                   )}
+
+                  <AgentFeedback
+                    agentName={agentName}
+                    reasonerState={reasonerState}
+                    lastDecision={lastDecision}
+                    thoughtLog={thoughtLog}
+                  />
+
+                  <div className="flex items-center justify-between text-white">
+                    <div className="text-left">
+                      <p className="text-[10px] sm:text-sm text-white/50">Time</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xl sm:text-2xl font-bold">
+                          {formatTime(elapsedTime)}
+                        </p>
+                        <button
+                          onClick={onPauseRide}
+                          className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white transition-all active:scale-95 touch-manipulation"
+                          aria-label="Pause ride"
+                        >
+                          ⏸ Pause
+                        </button>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] sm:text-sm text-white/50">Effort</p>
+                      <p className="text-xl sm:text-2xl font-bold text-purple-400">
+                        {telemetryEffort}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {isRiding && currentInterval && (
-              <IntervalBanner
-                currentInterval={currentInterval}
-                currentIntervalIndex={currentIntervalIndex}
-                intervalRemaining={intervalRemaining}
-                telemetryCadence={telemetryCadence}
-                workoutPlan={workoutPlan}
-                formatTime={formatTime}
-              />
-            )}
-
-            {isRiding && aiActive && (
-              <AgentFeedback
-                agentName={agentName}
-                reasonerState={reasonerState}
-                lastDecision={lastDecision}
-                thoughtLog={thoughtLog}
-              />
-            )}
-
-            <div className="flex items-center justify-between text-white">
-              <div className="text-left">
-                <p className="text-[10px] sm:text-sm text-white/50">Time</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-xl sm:text-2xl font-bold">
-                    {formatTime(elapsedTime)}
-                  </p>
-                  {isRiding && (
-                    <button
-                      onClick={onPauseRide}
-                      className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white transition-all active:scale-95 touch-manipulation"
-                      aria-label="Pause ride"
-                    >
-                      ⏸ Pause
-                    </button>
-                  )}
+              {isSpeaking && (
+                <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[10px] text-indigo-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                  Speaking
                 </div>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] sm:text-sm text-white/50">Effort</p>
-                <p className="text-xl sm:text-2xl font-bold text-purple-400">
-                  {telemetryEffort}
+              )}
+            </motion.div>
+          )}
+
+          {/* ─── Paused: Resume prompt ─── */}
+          {phase === "paused" && (
+            <motion.div
+              key="paused"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: EASE_SMOOTH }}
+              className="flex flex-col items-center gap-4 py-6"
+            >
+              <div className="text-center">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 mb-1">Paused</p>
+                <p className="text-3xl font-bold text-white tabular-nums">
+                  {formatTime(elapsedTime)}
+                </p>
+                <p className="text-xs text-white/40 mt-1">
+                  {Math.round(rideProgress)}% complete
                 </p>
               </div>
-            </div>
-          </div>
-        )}
-
-        <RideControls
-          isRiding={isRiding}
-          isStarting={isStarting}
-          rideProgress={rideProgress}
-          isPracticeMode={isPracticeMode}
-          isTrainingMode={isTrainingMode}
-          useSimulator={useSimulator}
-          deviceType={deviceType}
-          workoutPlan={workoutPlan}
-          bleConnected={bleConnected}
-          walletConnected={walletConnected}
-          canStartRide={bleConnected || useSimulator}
-          startHint={connectionHint}
-          onStartRide={onStartRide}
-          onPauseRide={onPauseRide}
-          onSetWorkoutPlan={onSetWorkoutPlan}
-          onSetUseSimulator={onSetUseSimulator}
-          onBleMetrics={onBleMetrics}
-          onSimulatorMetrics={onSimulatorMetrics}
-          onHaptic={onHaptic}
-          panelState={panelState}
-          onTogglePanel={onTogglePanel}
-        />
-
-        {isRiding && isSpeaking && (
-          <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[10px] text-indigo-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-            Speaking
-          </div>
-        )}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => { onHaptic("medium"); onStartRide(); }}
+                  className="rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation"
+                  aria-label="Resume ride"
+                >
+                  ▶ Resume
+                </button>
+                <button
+                  onClick={onPauseRide}
+                  className="rounded-full bg-white/10 px-4 py-3 text-sm font-medium text-white/60 hover:bg-white/20 transition-all active:scale-95 touch-manipulation"
+                  aria-label="Exit ride"
+                >
+                  Exit
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

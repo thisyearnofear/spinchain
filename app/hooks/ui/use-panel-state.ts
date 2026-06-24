@@ -28,11 +28,10 @@ export interface PanelState {
   // Focus View panels
   focusLeft: WidgetMode;
   focusRight: WidgetMode;
-  focusBottom: WidgetMode;
 }
 
 export type PanelKey = keyof PanelState;
-export type DesktopPanelKey = 'focusLeft' | 'focusRight' | 'focusBottom';
+export type DesktopPanelKey = 'focusLeft' | 'focusRight';
 
 export interface PanelPosition {
   x: number;
@@ -52,7 +51,6 @@ function getDefaultPositions(): PanelPositions {
   return {
     focusLeft: { x: 16, y: 100 },
     focusRight: { x: -16, y: 100 },
-    focusBottom: { x: 0, y: -16 },
   };
 }
 
@@ -61,8 +59,6 @@ const PANEL_EDGE_SNAP_THRESHOLD = 24;
 const PANEL_APPROX_SIZE = {
   sideWidth: 416,
   sideHeight: 520,
-  bottomWidth: 1216,
-  bottomHeight: 256,
 } as const;
 
 function clamp(value: number, min: number, max: number) {
@@ -79,7 +75,6 @@ function getDefaultState(deviceType: 'mobile' | 'tablet' | 'desktop'): PanelStat
     mobileRideWidgets: 'expanded',
     focusLeft: 'expanded',
     focusRight: 'expanded',
-    focusBottom: 'expanded',
   };
 
   const allCollapsed: PanelState = {
@@ -89,7 +84,6 @@ function getDefaultState(deviceType: 'mobile' | 'tablet' | 'desktop'): PanelStat
     mobileRideWidgets: 'collapsed',
     focusLeft: 'collapsed',
     focusRight: 'collapsed',
-    focusBottom: 'collapsed',
   };
 
   // Mobile: collapse by default (limited screen space)
@@ -120,7 +114,6 @@ function migrateStoredPositions(stored: Record<string, unknown>): PanelPositions
   return {
     focusLeft: toPosition(stored.focusLeft, defaults.focusLeft),
     focusRight: toPosition(stored.focusRight, defaults.focusRight),
-    focusBottom: toPosition(stored.focusBottom, defaults.focusBottom),
   };
 }
 
@@ -182,7 +175,6 @@ function migrateStoredState(stored: Record<string, unknown>): Partial<PanelState
     mobileRideWidgets: toMode(stored.mobileRideWidgets),
     focusLeft: toMode(stored.focusLeft),
     focusRight: toMode(stored.focusRight),
-    focusBottom: toMode(stored.focusBottom),
   };
 }
 
@@ -276,7 +268,6 @@ export function usePanelState(
       mobileRideWidgets: 'minimized',
       focusLeft: 'collapsed',
       focusRight: 'collapsed',
-      focusBottom: 'collapsed',
     };
     setState({ ...defaultState, [key]: 'expanded' });
   }, []);
@@ -293,7 +284,6 @@ export function usePanelState(
       mobileRideWidgets: 'expanded',
       focusLeft: 'expanded',
       focusRight: 'expanded',
-      focusBottom: 'expanded',
     });
   }, []);
 
@@ -305,7 +295,6 @@ export function usePanelState(
       mobileRideWidgets: 'minimized',
       focusLeft: 'collapsed',
       focusRight: 'collapsed',
-      focusBottom: 'collapsed',
     });
   }, []);
 
@@ -334,7 +323,6 @@ export function usePanelState(
         mobileRideWidgets: deviceType === 'mobile' ? 'minimized' : prev.mobileRideWidgets,
         focusLeft: 'minimized',
         focusRight: 'minimized',
-        focusBottom: 'minimized',
         workoutPlan: prev.workoutPlan === 'expanded' ? 'collapsed' : prev.workoutPlan,
         inputMode: prev.inputMode === 'expanded' ? 'collapsed' : prev.inputMode,
         deviceSelector: prev.deviceSelector === 'expanded' ? 'collapsed' : prev.deviceSelector,
@@ -372,27 +360,15 @@ export function usePanelState(
       const current = prev[key];
       const next = { ...current };
 
-      if (key === 'focusLeft' || key === 'focusRight') {
-        const maxTop = viewport.height - PANEL_APPROX_SIZE.sideHeight - PANEL_EDGE_MARGIN;
-        next.y = clamp(current.y, PANEL_EDGE_MARGIN, maxTop);
+      const maxTop = viewport.height - PANEL_APPROX_SIZE.sideHeight - PANEL_EDGE_MARGIN;
+      next.y = clamp(current.y, PANEL_EDGE_MARGIN, maxTop);
 
-        const xFromLeft = current.x;
-        const xFromRight = viewport.width + current.x;
-        const nearLeft = xFromLeft <= PANEL_EDGE_MARGIN + PANEL_EDGE_SNAP_THRESHOLD;
-        const nearRight = xFromRight <= PANEL_EDGE_MARGIN + PANEL_EDGE_SNAP_THRESHOLD;
-        const snapLeft = nearLeft || (!nearRight && xFromLeft <= xFromRight);
-        next.x = snapLeft ? PANEL_EDGE_MARGIN : -PANEL_EDGE_MARGIN;
-      } else {
-        const maxLeft = viewport.width - PANEL_APPROX_SIZE.bottomWidth - PANEL_EDGE_MARGIN;
-        next.x = clamp(current.x, PANEL_EDGE_MARGIN, maxLeft);
-
-        const yFromBottom = Math.abs(current.y);
-        const yFromTop = viewport.height + current.y;
-        const nearBottom = yFromBottom <= PANEL_EDGE_MARGIN + PANEL_EDGE_SNAP_THRESHOLD;
-        const nearTop = yFromTop <= PANEL_EDGE_MARGIN + PANEL_EDGE_SNAP_THRESHOLD;
-        const snapBottom = nearBottom || (!nearTop && yFromBottom <= yFromTop);
-        next.y = snapBottom ? -PANEL_EDGE_MARGIN : PANEL_EDGE_MARGIN;
-      }
+      const xFromLeft = current.x;
+      const xFromRight = viewport.width + current.x;
+      const nearLeft = xFromLeft <= PANEL_EDGE_MARGIN + PANEL_EDGE_SNAP_THRESHOLD;
+      const nearRight = xFromRight <= PANEL_EDGE_MARGIN + PANEL_EDGE_SNAP_THRESHOLD;
+      const snapLeft = nearLeft || (!nearRight && xFromLeft <= xFromRight);
+      next.x = snapLeft ? PANEL_EDGE_MARGIN : -PANEL_EDGE_MARGIN;
 
       return { ...prev, [key]: next };
     });
