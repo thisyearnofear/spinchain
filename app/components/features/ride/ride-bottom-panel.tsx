@@ -18,7 +18,6 @@ import { EASE_SMOOTH } from "@/app/lib/motion";
 import type { HapticType } from "@/app/hooks/use-haptic";
 
 interface RideBottomPanelProps {
-  walletConnected: boolean;
   workoutPlan: WorkoutPlan | null;
   connectionHint: string | null;
   panelState: PanelState;
@@ -29,13 +28,11 @@ interface RideBottomPanelProps {
   onSetWorkoutPlan: (plan: WorkoutPlan | null) => void;
   onSetUseSimulator: (v: boolean) => void;
   onBleMetrics: (metrics: { heartRate?: number; power?: number; cadence?: number; speed?: number; effort?: number; distance?: number; timestamp?: number }) => void;
-  onSimulatorMetrics: (metrics: { heartRate: number; power: number; cadence: number; speed: number; effort: number; distance?: number; timestamp?: number }) => void;
   onHaptic: (type?: HapticType) => boolean;
   formatTime: (seconds: number) => string;
 }
 
 export const RideBottomPanel = memo(function RideBottomPanel({
-  walletConnected,
   workoutPlan,
   connectionHint,
   panelState,
@@ -46,7 +43,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   onSetWorkoutPlan,
   onSetUseSimulator,
   onBleMetrics,
-  onSimulatorMetrics,
   onHaptic,
   formatTime,
 }: RideBottomPanelProps) {
@@ -59,7 +55,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   const deviceType = useUIStore((s) => s.deviceType);
   const widgetsMode = useUIStore((s) => s.widgetsMode);
   const useSimulator = useUIStore((s) => s.useSimulator);
-  const isPracticeMode = useUIStore((s) => s.isPracticeMode);
   const isTrainingMode = useUIStore((s) => s.isTrainingMode);
   const bleConnected = useUIStore((s) => s.bleConnected);
 
@@ -198,24 +193,17 @@ export const RideBottomPanel = memo(function RideBottomPanel({
               transition={{ duration: 0.2, ease: EASE_SMOOTH }}
             >
               <RideControls
-                isRiding={false}
-                isStarting={false}
-                rideProgress={0}
-                isPracticeMode={isPracticeMode}
                 isTrainingMode={isTrainingMode}
                 useSimulator={useSimulator}
                 deviceType={deviceType}
                 workoutPlan={workoutPlan}
                 bleConnected={bleConnected}
-                walletConnected={walletConnected}
                 canStartRide={bleConnected || useSimulator}
                 startHint={connectionHint}
                 onStartRide={onStartRide}
-                onPauseRide={onPauseRide}
                 onSetWorkoutPlan={onSetWorkoutPlan}
                 onSetUseSimulator={onSetUseSimulator}
                 onBleMetrics={onBleMetrics}
-                onSimulatorMetrics={onSimulatorMetrics}
                 onHaptic={onHaptic}
                 panelState={panelState}
                 onTogglePanel={onTogglePanel}

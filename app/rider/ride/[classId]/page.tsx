@@ -467,7 +467,6 @@ export default function LiveRidePage() {
           onPauseRide={lifecycle.pauseRide}
           onSetWorkoutPlan={setWorkoutPlan}
           onBleMetrics={lifecycle.handleBleMetrics}
-          onSimulatorMetrics={simulatorHook.handleSimulatorMetrics}
           onHaptic={haptic.trigger}
           formatTime={formatTime}
         />

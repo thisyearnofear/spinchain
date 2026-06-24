@@ -10,20 +10,14 @@ import { useUIClickSound } from "@/app/hooks/use-ui-click-sound";
 const SIMULATOR_ONBOARDING_DISMISSED_KEY = "spinchain:ride:simOnboardingDismissed";
 
 interface RideControlsProps {
-  isRiding: boolean;
-  isStarting: boolean;
-  rideProgress: number;
-  isPracticeMode: boolean;
   isTrainingMode?: boolean;
   useSimulator: boolean;
   deviceType: "mobile" | "tablet" | "desktop";
   workoutPlan: WorkoutPlan | null;
   bleConnected: boolean;
-  walletConnected?: boolean;
   canStartRide?: boolean;
   startHint?: string | null;
   onStartRide: () => void;
-  onPauseRide: () => void;
   onSetWorkoutPlan: (plan: WorkoutPlan | null) => void;
   onSetUseSimulator: (use: boolean) => void;
   onBleMetrics: (metrics: {
@@ -32,13 +26,6 @@ interface RideControlsProps {
     cadence?: number;
     speed?: number;
     effort?: number;
-  }) => void;
-  onSimulatorMetrics: (metrics: {
-    heartRate: number;
-    power: number;
-    cadence: number;
-    speed: number;
-    effort: number;
   }) => void;
   // Haptic feedback callback for mobile
   onHaptic?: (type: "light" | "medium" | "heavy" | "success" | "warning" | "error") => void;
@@ -56,19 +43,14 @@ interface RideControlsProps {
  * - DRY: Uses shared CollapseToggle component
  */
 export function RideControls({
-  isRiding,
-  isStarting,
-  rideProgress,
   isTrainingMode,
   useSimulator,
   deviceType,
   workoutPlan,
   bleConnected,
-  walletConnected,
   canStartRide = true,
   startHint,
   onStartRide,
-  onPauseRide: _onPauseRide,
   onSetWorkoutPlan,
   onSetUseSimulator,
   onBleMetrics,
@@ -79,7 +61,7 @@ export function RideControls({
   // Default to expanded if no panel state provided (backward compatible)
   const isWorkoutExpanded = (panelState?.workoutPlan ?? "expanded") === "expanded";
   const isInputModeExpanded = (panelState?.inputMode ?? "expanded") === "expanded";
-  const isStartDisabled = isStarting || !canStartRide;
+  const isStartDisabled = !canStartRide;
   const disabledStartReason = !canStartRide
     ? (startHint ?? "Connect a bike or enable 🎮 Try Without Bike to start your ride.")
     : null;
@@ -88,68 +70,56 @@ export function RideControls({
   return (
     <div className="max-w-7xl mx-auto">
       {/* Pre-ride Setup */}
-      {!isRiding && rideProgress === 0 && (
-        <div className="mb-4 max-w-sm mx-auto space-y-3">
-          {/* Workout Plan Selector */}
-          <WorkoutSelector
-            workoutPlan={workoutPlan}
-            onSelect={onSetWorkoutPlan}
-            isCollapsed={!isWorkoutExpanded}
-            onToggle={() => onTogglePanel?.('workoutPlan')}
+      <div className="mb-4 max-w-sm mx-auto space-y-3">
+        {/* Workout Plan Selector */}
+        <WorkoutSelector
+          workoutPlan={workoutPlan}
+          onSelect={onSetWorkoutPlan}
+          isCollapsed={!isWorkoutExpanded}
+          onToggle={() => onTogglePanel?.('workoutPlan')}
+        />
+
+        {/* Input Mode Toggle */}
+        <InputModeSelector
+          useSimulator={useSimulator}
+          deviceType={deviceType}
+          onSelect={onSetUseSimulator}
+          isTrainingMode={isTrainingMode}
+          isCollapsed={!isInputModeExpanded}
+          onToggle={() => onTogglePanel?.('inputMode')}
+        />
+
+        {/* BLE Device Selector - only shown when not using simulator */}
+        {!useSimulator && (
+          <DeviceSelector
+            onMetricsUpdate={onBleMetrics}
+            className="bg-black/80 backdrop-blur-xl border-white/10"
           />
+        )}
+      </div>
 
-          {/* Input Mode Toggle */}
-          <InputModeSelector
-            useSimulator={useSimulator}
-            deviceType={deviceType}
-            onSelect={onSetUseSimulator}
-            isTrainingMode={isTrainingMode}
-            walletConnected={walletConnected}
-            isCollapsed={!isInputModeExpanded}
-            onToggle={() => onTogglePanel?.('inputMode')}
-          />
-
-          {/* BLE Device Selector - only shown when not using simulator */}
-          {!useSimulator && (
-            <DeviceSelector
-              onMetricsUpdate={onBleMetrics}
-              className="bg-black/80 backdrop-blur-xl border-white/10"
-            />
-          )}
-        </div>
-      )}
-
-      {/* Main Controls - Start/Resume only; Pause is shown inline with the Time stat during a ride */}
-      {!isRiding && (
-        <div className="flex items-center justify-center gap-3 sm:sticky sm:bottom-0 sm:pt-3 sm:pb-1 sm:bg-gradient-to-t sm:from-black/80 sm:to-transparent">
-          <button
-            onClick={() => {
-              clickSound("success");
-              onHaptic?.("medium");
-              onStartRide();
-            }}
-            disabled={isStartDisabled}
-            title={disabledStartReason ?? undefined}
-            className={`relative rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white transition-[transform,background-color,box-shadow] duration-150 active:scale-95 touch-manipulation min-h-[56px] ${
-              isStartDisabled
-                ? "bg-white/15 border border-white/20 shadow-none cursor-not-allowed"
-                : "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/50"
-            }`}
-            aria-label={rideProgress > 0 ? "Resume ride" : "Start ride"}
-            aria-describedby={disabledStartReason ? "start-ride-hint" : undefined}
-            aria-disabled={isStartDisabled}
-          >
-            {isStarting ? (
-              <span className="flex items-center gap-2">
-                <LoadingSpinner />
-                <span>Starting...</span>
-              </span>
-            ) : (
-              <span>{rideProgress > 0 ? "Resume" : "Start Ride"}</span>
-            )}
-          </button>
-        </div>
-      )}
+      {/* Main Controls - Start button */}
+      <div className="flex items-center justify-center gap-3 sm:sticky sm:bottom-0 sm:pt-3 sm:pb-1 sm:bg-gradient-to-t sm:from-black/80 sm:to-transparent">
+        <button
+          onClick={() => {
+            clickSound("success");
+            onHaptic?.("medium");
+            onStartRide();
+          }}
+          disabled={isStartDisabled}
+          title={disabledStartReason ?? undefined}
+          className={`relative rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white transition-[transform,background-color,box-shadow] duration-150 active:scale-95 touch-manipulation min-h-[56px] ${
+            isStartDisabled
+              ? "bg-white/15 border border-white/20 shadow-none cursor-not-allowed"
+              : "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/50"
+          }`}
+          aria-label="Start ride"
+          aria-describedby={disabledStartReason ? "start-ride-hint" : undefined}
+          aria-disabled={isStartDisabled}
+        >
+          <span>Start Ride</span>
+        </button>
+      </div>
 
       {/* BLE Status */}
       {bleConnected && (
@@ -276,7 +246,6 @@ function InputModeSelector({
   deviceType: string;
   onSelect: (use: boolean) => void;
   isTrainingMode?: boolean;
-  walletConnected?: boolean;
 } & CollapsiblePanelProps) {
   const [showOnboardingHint, setShowOnboardingHint] = useState(false);
 
@@ -423,15 +392,5 @@ function InputModeSelector({
         </p>
       )}
     </div>
-  );
-}
-
-function LoadingSpinner() {
-  return (
-    <svg className="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 4" opacity="0.3" />
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="15 45" opacity="0.8" />
-      <circle cx="12" cy="12" r="2" fill="currentColor" />
-    </svg>
   );
 }
