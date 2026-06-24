@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRideStore } from "@/app/stores/ride-store";
+import { useRewardsStore } from "@/app/stores/rewards-store";
 import type { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 import type { ClassWithRoute } from "@/app/hooks/evm/use-class-data";
 
@@ -37,13 +38,12 @@ export function useRideSimulator({
     return () => clearInterval(id);
   }, [shouldSimulate, isRiding, telemetryEffort]);
 
-  const resetSimulatedSpin = useCallback(() => setSimulatedSpin(0), []);
-  const simulatedRewards = useMemo(() => ({
-    simulatedReward: simulatedSpin,
-    isSimulating: shouldSimulate,
-    formattedReward: simulatedSpin.toFixed(1),
-    reset: resetSimulatedSpin,
-  }), [simulatedSpin, shouldSimulate, resetSimulatedSpin]);
+  useEffect(() => {
+    useRewardsStore.setState({
+      isSimulating: shouldSimulate,
+      simulatedReward: simulatedSpin.toFixed(1),
+    });
+  }, [shouldSimulate, simulatedSpin]);
 
   const handleSimulatorMetrics = useCallback((metrics: {
     heartRate: number; power: number; cadence: number; speed: number;
@@ -74,7 +74,6 @@ export function useRideSimulator({
 
   return {
     isRidingRef,
-    simulatedRewards,
     handleSimulatorMetrics,
   };
 }

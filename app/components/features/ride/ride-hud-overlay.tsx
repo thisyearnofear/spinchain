@@ -18,7 +18,6 @@ interface RideHUDOverlayProps {
   walletConnected: boolean;
   workoutPlan: WorkoutPlan | null;
   connectionHint: string | null;
-  simulatedReward: { isSimulating: boolean; formattedReward: string };
   panelState: PanelState;
   onSetUseSimulator: (v: boolean) => void;
   onSetRewardMode: (m: RewardMode) => void;
@@ -39,7 +38,6 @@ interface RideHUDOverlayProps {
 
 export const RideHUDOverlay = memo(function RideHUDOverlay(props: RideHUDOverlayProps) {
   const isRiding = useRideStore((s) => s.isActive);
-  const _deviceType = useUIStore((s) => s.deviceType);
   const widgetsMode = useUIStore((s) => s.widgetsMode);
   const viewMode = useUIStore((s) => s.viewMode);
   const hudMode = useUIStore(selectHudMode);
@@ -53,7 +51,6 @@ export const RideHUDOverlay = memo(function RideHUDOverlay(props: RideHUDOverlay
         instructor={props.classData.instructor}
         routeIsGenerated={props.routeIsGenerated}
         walletConnected={props.walletConnected}
-        simulatedReward={props.simulatedReward}
         onSetUseSimulator={props.onSetUseSimulator}
         onSetRewardMode={props.onSetRewardMode}
         onExitRide={props.onExitRide}

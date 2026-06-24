@@ -454,7 +454,6 @@ export default function LiveRidePage() {
           walletConnected={walletConnected}
           workoutPlan={workoutPlan}
           connectionHint={lifecycle.connectionHint}
-          simulatedReward={simulatorHook.simulatedRewards}
           panelState={panelState.state}
           onSetUseSimulator={setUseSimulator}
           onSetRewardMode={setRewardMode}

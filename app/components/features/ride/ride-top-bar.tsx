@@ -14,7 +14,6 @@ interface RideTopBarProps {
   instructor: string;
   routeIsGenerated?: boolean;
   walletConnected: boolean;
-  simulatedReward?: { isSimulating: boolean; formattedReward: string };
   onSetUseSimulator: (v: boolean) => void;
   onSetRewardMode: (m: RewardMode) => void;
   onExitRide: () => void;
@@ -28,7 +27,6 @@ export const RideTopBar = memo(function RideTopBar({
   instructor,
   routeIsGenerated = false,
   walletConnected,
-  simulatedReward,
   onSetUseSimulator,
   onSetRewardMode,
   onExitRide,
@@ -44,6 +42,8 @@ export const RideTopBar = memo(function RideTopBar({
   const rewardsFormattedReward = useRewardsStore((s) => s.formattedReward);
   const rewardsIsActive = useRewardsStore((s) => s.isActive);
   const rewardsClearNodeConnected = useRewardsStore((s) => s.clearNodeConnected);
+  const rewardsIsSimulating = useRewardsStore((s) => s.isSimulating);
+  const rewardsSimulatedReward = useRewardsStore((s) => s.simulatedReward);
 
   const viewMode = useUIStore((s) => s.viewMode);
   const hudMode = useUIStore((s) => s.hudMode);
@@ -130,10 +130,10 @@ export const RideTopBar = memo(function RideTopBar({
           {/* Active reward badge — compact, during ride only */}
           {isActive && !isPracticeMode && !isTrainingMode && !isGuestMode && (
             <div className="hidden sm:flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/50 px-2 py-1.5 text-[10px] font-medium text-white/70">
-              {simulatedReward?.isSimulating ? (
+              {rewardsIsSimulating ? (
                 <>
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  <span className="text-amber-300">~{simulatedReward.formattedReward}</span>
+                  <span className="text-amber-300">~{rewardsSimulatedReward}</span>
                 </>
               ) : rewardMode === "yellow-stream" ? (
                 <>
