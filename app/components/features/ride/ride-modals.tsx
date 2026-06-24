@@ -6,6 +6,7 @@ import { Sparkles } from "lucide-react";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { RideCompletion, type RewardClaimStatus } from "./ride-completion";
 import { NoBikeModal } from "./no-bike-modal";
+import { ExitConfirmModal } from "./exit-confirm-modal";
 import { KeyboardShortcutOverlay } from "./keyboard-shortcut-overlay";
 import { PedalSimulator } from "@/app/components/features/common/pedal-simulator";
 import { DemoCompleteModal } from "@/app/components/features/common/demo-complete-modal";
@@ -56,7 +57,7 @@ export const RideModals = memo(function RideModals({
   aiPersonality,
   ridePointsRef,
   router,
-  onExitRide: _onExitRide,
+  onExitRide,
   onCompletionExit,
   onEnableSimulatorFromModal,
   onDismissNoBike,
@@ -91,6 +92,7 @@ export const RideModals = memo(function RideModals({
   const completionPrimaryAction = useRideModalStore((s) => s.completionPrimaryAction);
   const walrusAnchorInfo = useRideModalStore((s) => s.walrusAnchorInfo);
   const completedRideId = useRideModalStore((s) => s.completedRideId);
+  const showExitConfirm = useRideModalStore((s) => s.showExitConfirm);
 
   return (
     <>
@@ -197,6 +199,15 @@ export const RideModals = memo(function RideModals({
           }}
         />
       )}
+
+      <ExitConfirmModal
+        open={showExitConfirm}
+        onConfirm={() => {
+          useRideModalStore.getState().setShowExitConfirm(false);
+          onExitRide();
+        }}
+        onCancel={() => useRideModalStore.getState().setShowExitConfirm(false)}
+      />
 
       <NoBikeModal
         open={showNoBikeModal}

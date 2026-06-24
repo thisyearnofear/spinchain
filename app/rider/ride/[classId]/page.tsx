@@ -395,6 +395,14 @@ export default function LiveRidePage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }, []);
 
+  const handleExitClick = useCallback(() => {
+    if (useRideStore.getState().isActive) {
+      useRideModalStore.getState().setShowExitConfirm(true);
+    } else {
+      lifecycle.exitRide();
+    }
+  }, [lifecycle]);
+
   // ─── Tutorial ──────────────────────────────────────────────────
   const { nextStep: nextTutorial, dismiss: dismissTutorial } = useRideTutorial({ isPracticeMode, walletConnected });
 
@@ -457,7 +465,7 @@ export default function LiveRidePage() {
           panelState={panelState.state}
           onSetUseSimulator={setUseSimulator}
           onSetRewardMode={setRewardMode}
-          onExitRide={lifecycle.exitRide}
+          onExitRide={handleExitClick}
           onResetPrefs={handleResetPrefs}
           onCollapseToggle={handleCollapseToggle}
           isAllCollapsed={panelState.isAllCollapsed}

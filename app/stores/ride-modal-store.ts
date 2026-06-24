@@ -39,6 +39,7 @@ interface RideModalState {
   completedRideId: string | null;
   isExitingRide: boolean;
   showCompletionScreen: boolean;
+  showExitConfirm: boolean;
 
   setShowNoBikeModal: (v: boolean) => void;
   setShowKeyboardHints: (v: boolean) => void;
@@ -55,6 +56,7 @@ interface RideModalState {
   setCompletedRideId: (id: string | null) => void;
   setIsExitingRide: (v: boolean) => void;
   setShowCompletionScreen: (v: boolean) => void;
+  setShowExitConfirm: (v: boolean) => void;
 }
 
 const initialDemoStats: DemoStats = {
@@ -82,6 +84,7 @@ export const useRideModalStore = create<RideModalState>((set) => ({
   completedRideId: null,
   isExitingRide: false,
   showCompletionScreen: false,
+  showExitConfirm: false,
 
   setShowNoBikeModal: (v) => set({ showNoBikeModal: v }),
   setShowKeyboardHints: (v) => set({ showKeyboardHints: v }),
@@ -98,4 +101,5 @@ export const useRideModalStore = create<RideModalState>((set) => ({
   setCompletedRideId: (id) => set({ completedRideId: id }),
   setIsExitingRide: (v) => set({ isExitingRide: v }),
   setShowCompletionScreen: (v) => set({ showCompletionScreen: v }),
+  setShowExitConfirm: (v) => set({ showExitConfirm: v }),
 }));
