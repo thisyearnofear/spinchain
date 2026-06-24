@@ -97,9 +97,10 @@ export const RideModals = memo(function RideModals({
       <AnimatePresence>
         {showMilestone && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.5, y: 100 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 1.5, filter: "blur(20px)" }}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96, filter: "blur(8px)" }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="fixed inset-0 flex items-center justify-center z-[100] pointer-events-none"
           >
             <div className="relative">

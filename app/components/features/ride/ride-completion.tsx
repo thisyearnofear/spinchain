@@ -179,9 +179,9 @@ export function RideCompletion({
       <div className="absolute bottom-0 right-0 w-[400px] h-[300px] bg-purple-600/8 blur-[100px] rounded-full pointer-events-none" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
         className="relative w-full max-w-lg flex flex-col max-h-[90vh] text-center"
       >
         {/* Header */}

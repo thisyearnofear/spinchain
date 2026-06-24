@@ -82,10 +82,10 @@ export function CommandPalette({
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
+          initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          exit={{ scale: 0.96, opacity: 0 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
           className="bg-[color:var(--surface)] rounded-2xl border border-[color:var(--border)] max-w-lg w-full max-h-[80vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
