@@ -116,6 +116,7 @@ export class RideCoordinator {
 
     // Start collecting telemetry samples at 1Hz
     this.sampleTimerId = setInterval(() => {
+      if (!useRideStore.getState().isActive) return;
       const snapshot = this.telemetry.rawSnapshot;
       this.telemetry.samples.push({
         hr: snapshot.heartRate,
