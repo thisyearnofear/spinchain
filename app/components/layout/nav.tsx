@@ -13,6 +13,7 @@ import { useProfile, getDisplayName, formatAddress } from "@/app/hooks/common/us
 import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import { useRiderProfile } from "@/app/stores/rider-profile-store";
 import { motion, AnimatePresence } from "framer-motion";
+import { dropdownTransition } from "@/app/lib/motion";
 
 function useSuiWalletVisible(): boolean {
   const pathname = usePathname();
@@ -81,7 +82,7 @@ function SettingsDropdown() {
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.99 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            transition={dropdownTransition}
             style={{ transformOrigin: "top center", zIndex: 9999 }}
             className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-64 max-w-[90vw] rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-xl backdrop-blur-xl p-4"
             data-testid="settings-dropdown"

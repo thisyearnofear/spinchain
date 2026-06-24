@@ -5,6 +5,7 @@ import { Bike, Zap, TrendingUp, Users } from "lucide-react";
 import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import { useClasses } from "@/app/hooks/evm/use-class-data";
 import { useInstructors } from "@/app/hooks/evm/use-instructors";
+import { modalTransition } from "@/app/lib/motion";
 
 export function RiderHero() {
   const { totalRides, prs } = useRiderStats();
@@ -49,7 +50,7 @@ export function RiderHero() {
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+              transition={{ ...modalTransition, duration: 0.4 }}
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[color:var(--accent)]/10 border border-[color:var(--accent)]/20 mb-6"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--accent)] animate-pulse" />
@@ -61,7 +62,7 @@ export function RiderHero() {
             <motion.h1
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.05, ease: [0.23, 1, 0.32, 1] }}
+              transition={{ ...modalTransition, duration: 0.4, delay: 0.05 }}
               className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter text-[color:var(--foreground)] leading-[1.05]"
             >
               Ride smarter.
@@ -74,7 +75,7 @@ export function RiderHero() {
             <motion.p
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
+              transition={{ ...modalTransition, duration: 0.4, delay: 0.1 }}
               className="mt-5 text-base sm:text-lg text-[color:var(--muted)] max-w-lg leading-relaxed"
             >
               Immersive cycling classes with AI coaching, real-time telemetry,
@@ -84,7 +85,7 @@ export function RiderHero() {
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.15, ease: [0.23, 1, 0.32, 1] }}
+              transition={{ ...modalTransition, duration: 0.4, delay: 0.15 }}
               className="mt-8 flex flex-wrap gap-3"
             >
               <a
@@ -108,7 +109,7 @@ export function RiderHero() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.2, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ ...modalTransition, duration: 0.4, delay: 0.2 }}
             className="grid grid-cols-2 gap-3 w-full lg:w-auto"
           >
             {stats.map((stat, i) => (
@@ -116,7 +117,7 @@ export function RiderHero() {
                 key={stat.label}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.25 + i * 0.05, ease: [0.23, 1, 0.32, 1] }}
+                transition={{ ...modalTransition, delay: 0.25 + i * 0.05 }}
                 className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)]/60 backdrop-blur p-4 lg:w-[160px]"
               >
                 <stat.icon className="w-4 h-4 text-[color:var(--accent)] mb-2" strokeWidth={1.5} />

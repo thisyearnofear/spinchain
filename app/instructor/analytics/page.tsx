@@ -10,6 +10,7 @@ import { InstructorRoster } from "../../components/features/instructor/instructo
 import { InstructorInsightsPanel } from "../../components/features/instructor/instructor-insights-panel";
 import { GymManager } from "../../components/features/gym/gym-manager";
 import { motion } from "framer-motion";
+import { modalTransition } from "@/app/lib/motion";
 import { 
   Activity, 
   Download,
@@ -168,7 +169,7 @@ export default function InstructorAnalyticsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0, duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ ...modalTransition, delay: 0 }}
           >
             <MetricTileEnhanced
               label="Total Revenue"
@@ -184,7 +185,7 @@ export default function InstructorAnalyticsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05, duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ ...modalTransition, delay: 0.05 }}
           >
             <MetricTileEnhanced
               label="Total Riders"
@@ -200,7 +201,7 @@ export default function InstructorAnalyticsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ ...modalTransition, delay: 0.1 }}
           >
             <MetricTileEnhanced
               label="Classes Taught"
@@ -216,7 +217,7 @@ export default function InstructorAnalyticsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ ...modalTransition, delay: 0.15 }}
           >
             <MetricTileEnhanced
               label="Avg Fill Rate"

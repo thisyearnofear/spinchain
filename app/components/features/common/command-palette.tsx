@@ -12,6 +12,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, X, ChevronRight } from "lucide-react";
+import { modalTransition } from "@/app/lib/motion";
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -85,7 +86,7 @@ export function CommandPalette({
           initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.96, opacity: 0 }}
-          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          transition={modalTransition}
           className="bg-[color:var(--surface)] rounded-2xl border border-[color:var(--border)] max-w-lg w-full max-h-[80vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >

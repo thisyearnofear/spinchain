@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
+import { modalTransition } from "@/app/lib/motion";
 import { formatTime } from "@/app/lib/formatters";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import { getEffortTier } from "@/app/lib/analytics/ride-history";
@@ -181,7 +182,7 @@ export function RideCompletion({
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+        transition={{ ...modalTransition, delay: 0.1 }}
         className="relative w-full max-w-lg flex flex-col max-h-[90vh] text-center"
       >
         {/* Header */}

@@ -6,6 +6,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, AlertCircle, Info, X, Loader2 } from 'lucide-react';
+import { dropdownTransition } from '@/app/lib/motion';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info' | 'loading';
 
@@ -108,7 +109,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       initial={{ opacity: 0, x: 40, scale: 0.95 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 40, scale: 0.95 }}
-      transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+      transition={dropdownTransition}
       className={`
         flex items-start gap-3 p-4 rounded-xl border backdrop-blur-md shadow-lg
         min-w-[320px] max-w-[420px] pointer-events-auto

@@ -17,6 +17,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useAccount } from "wagmi";
+import { modalTransition } from "@/app/lib/motion";
 
 export interface DemoCompleteModalProps {
   isOpen: boolean;
@@ -68,7 +69,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            transition={modalTransition}
             className="fixed inset-0 flex items-center justify-center z-50 p-4"
           >
             <div className="w-full max-w-lg bg-[color:var(--surface)] rounded-3xl border border-[color:var(--border)] shadow-2xl overflow-hidden">

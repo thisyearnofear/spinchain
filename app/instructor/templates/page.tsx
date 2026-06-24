@@ -5,6 +5,7 @@ import { PrimaryNav } from "@/app/components/layout/nav";
 import { GlassCard } from "@/app/components/ui/ui";
 import { EmptyState } from "@/app/components/features/common/empty-state";
 import { motion, AnimatePresence } from "framer-motion";
+import { modalTransition } from "@/app/lib/motion";
 import {
   Search,
   Clock,
@@ -293,10 +294,10 @@ export default function TemplateMarketplacePage() {
                 <motion.div
                   key={template.id}
                   layout
-                  initial={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={modalTransition}
                 >
                   <GlassCard className="p-0 overflow-hidden group hover:border-indigo-500/30 transition-[border-color] duration-200 cursor-pointer" >
                     {/* Theme gradient header */}

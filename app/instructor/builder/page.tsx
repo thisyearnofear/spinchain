@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PrimaryNav } from "@/app/components/layout/nav";
+import { modalTransition } from "@/app/lib/motion";
 import {
   SurfaceCard,
   Tag,
@@ -386,9 +387,9 @@ export default function InstructorBuilderPage() {
             className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
           >
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+              transition={modalTransition}
               className="max-w-md w-full bg-[#12141c] border border-white/10 rounded-3xl p-8 shadow-2xl"
             >
               <div className="h-16 w-16 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-6">
