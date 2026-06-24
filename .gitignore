@@ -82,6 +82,8 @@ circuits/*/target/
 .blackboxcli/
 .letta/
 .commandcode/
+.agents/
+skills-lock.json
 
 # External repos
 /remix-glassmorphism-analytics-/
