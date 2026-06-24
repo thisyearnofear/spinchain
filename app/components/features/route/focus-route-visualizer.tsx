@@ -181,13 +181,10 @@ export default function FocusRouteVisualizer({
   const equipment = useMemo(() => EQUIPMENT.find((item) => item.id === equipmentId), [equipmentId]);
   const leftMode = panelState?.focusLeft ?? "expanded";
   const rightMode = panelState?.focusRight ?? "expanded";
-  const bottomMode = panelState?.focusBottom ?? "expanded";
   const leftExpanded = leftMode === "expanded";
   const rightExpanded = rightMode === "expanded";
-  const bottomExpanded = bottomMode === "expanded";
   const leftMinimized = leftMode === "minimized";
   const rightMinimized = rightMode === "minimized";
-  const bottomMinimized = bottomMode === "minimized";
 
   // Handler for accordion behavior - uses expandOne on mobile, toggle on desktop
   const handleToggle = useCallback((key: PanelKey) => {
@@ -350,7 +347,6 @@ export default function FocusRouteVisualizer({
     [clampedProgress, padX, points, routeBottom, routeTop, storyBeats, styles.lineColor, width],
   );
 
-  const nextBeat = beatMarkers.find((beat) => beat.progress >= clampedProgress) ?? beatMarkers[beatMarkers.length - 1];
   const currentSlope = useMemo(() => {
     const index = Math.min(points.length - 2, Math.max(0, Math.floor(clampedProgress * Math.max(1, points.length - 1))));
     const current = points[index];
@@ -360,7 +356,6 @@ export default function FocusRouteVisualizer({
   }, [clampedProgress, points]);
   const completionWidth = padX + clampedProgress * (width - padX * 2);
   const routePreviewCoordinate = routeStartCoordinate ?? currentCoordinate ?? null;
-  const nextBeatDistance = nextBeat ? Math.max(0, Math.round((nextBeat.progress - clampedProgress) * 100)) : 0;
   const horizonPatternOpacity = clamp(styles.patternOpacity + effortRatio * 0.04, styles.patternOpacity, styles.patternOpacity + 0.08);
   const isGridTheme = styles.atmosphere === "grid" || styles.atmosphere === "prism";
   const isMistTheme = styles.atmosphere === "mist";
@@ -668,9 +663,7 @@ export default function FocusRouteVisualizer({
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-white/55">
               {/* Drag handle grip dots */}
               <span className="text-white/25 text-[10px] leading-none select-none" aria-hidden="true">⠿</span>
-              <span>Focus View</span>
-              <span className="h-1 w-1 rounded-full bg-white/40" />
-              <span>{styles.worldLabel}</span>
+              <span>Route</span>
             </div>
             <CollapseToggle
               isCollapsed={!leftExpanded}
@@ -682,7 +675,7 @@ export default function FocusRouteVisualizer({
           {/* Collapsible Content */}
           {leftExpanded && (
             <div className="px-4 pb-4">
-              <div className="text-xl font-semibold text-white">{routeName}</div>
+              <div className="text-xl font-semibold text-white">{styles.worldLabel}</div>
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/72">
                 <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1">
                   {avatar?.name ?? "Rider"}
@@ -717,7 +710,7 @@ export default function FocusRouteVisualizer({
           {/* Collapsed preview badge */}
           {!leftExpanded && !leftMinimized && (
             <div className="px-4 pb-3 flex items-center gap-2">
-              <span className="text-xs text-white/60">{routeName}</span>
+              <span className="text-xs text-white/60">{styles.worldLabel}</span>
               <span className="text-xs" style={{ color: currentZone.color }}>{currentZone.label}</span>
             </div>
           )}
@@ -828,131 +821,6 @@ export default function FocusRouteVisualizer({
         ) : null}
       </div>
 
-      {/* Bottom Panel - Route Progress - More compact on mobile */}
-      <div
-        className="absolute"
-        id="focus-bottom-panel"
-        style={{ ...getDesktopPanelStyle("focusBottom"), right: 16, width: "min(calc(100% - 2rem), 76rem)", zIndex: Z_LAYERS.widgets }}
-        onPointerDown={(event) => handleDragStart(event, "focusBottom")}
-        onPointerMove={handleDragMove}
-        onPointerUp={handleDragEnd}
-      >
-        <div
-          className="rounded-[1.75rem] border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
-          style={{ background: `linear-gradient(180deg, ${styles.panelColor} 0%, rgba(3,7,18,0.9) 100%)` }}
-        >
-          {/* Collapsed state - thin progress bar only */}
-          {!bottomExpanded && !bottomMinimized && (
-            <div className="p-2">
-              <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full transition-all duration-300"
-                  style={{
-                    width: `${clamp(clampedProgress * 100, 0, 100)}%`,
-                    background: `linear-gradient(90deg, ${styles.lineColor} 0%, ${currentZone.color} 100%)`,
-                  }}
-                />
-              </div>
-              <div className="mt-1 flex items-center justify-between">
-                <button
-                  onClick={() => handleToggle('focusBottom')}
-                  className="text-[10px] text-white/40 hover:text-white/60 transition-colors"
-                  aria-label="Expand Route Progress"
-                >
-                  {Math.round(clampedProgress * 100)}%
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Expanded content */}
-          {bottomExpanded && (
-            <div className="px-4 py-4">
-              <div className="flex items-center justify-between mb-2 cursor-grab active:cursor-grabbing">
-                <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-white/45">
-                  {/* Drag handle grip dots */}
-                  <span className="text-white/25 text-[10px] leading-none select-none" aria-hidden="true">⠿</span>
-                  <span>Route Progress</span>
-                </div>
-                <CollapseToggle
-                  isCollapsed={false}
-                  onToggle={() => handleToggle('focusBottom')}
-                  label="Route Progress"
-                />
-              </div>
-              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="focus-route-sync h-full rounded-full transition-all duration-300"
-                      style={{
-                        width: `${clamp(clampedProgress * 100, 0, 100)}%`,
-                        background: `linear-gradient(90deg, ${styles.lineColor} 0%, ${currentZone.color} 100%)`,
-                        ...routeSyncStyle,
-                      }}
-                    />
-                  </div>
-                  <div className="mt-2 flex items-center gap-2 text-[11px] text-white/55">
-                    <span className="inline-block h-2 w-2 rounded-full focus-pulse" style={{ backgroundColor: currentZone.color }} />
-                    <span>{nextBeat ? `${nextBeatDistance}% to ${nextBeat.label}` : "Cruising"}</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4 text-xs text-white/72 md:min-w-[20rem]">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">Low</div>
-                    <div className="mt-1 text-sm font-semibold text-white">{Math.round(min)} m</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">High</div>
-                    <div className="mt-1 text-sm font-semibold text-white">{Math.round(max)} m</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">Next Beat</div>
-                    <div className="mt-1 text-sm font-semibold text-white">{nextBeat?.label ?? "Cruise"}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Desktop minimized pills */}
-      <div className="hidden md:flex absolute right-4 bottom-8 gap-2" style={{ zIndex: Z_LAYERS.widgets + 10 }}>
-        {leftMinimized && (
-          <button
-            onClick={() => {
-              handleToggle("focusLeft");
-              onTrackWidgetInteraction?.("restore", "focusLeft");
-            }}
-            className="rounded-full bg-black/70 border border-white/20 px-3 py-1.5 text-xs text-white/80"
-          >
-            Route
-          </button>
-        )}
-        {rightMinimized && (
-          <button
-            onClick={() => {
-              handleToggle("focusRight");
-              onTrackWidgetInteraction?.("restore", "focusRight");
-            }}
-            className="rounded-full bg-black/70 border border-white/20 px-3 py-1.5 text-xs text-white/80"
-          >
-            Metrics
-          </button>
-        )}
-        {bottomMinimized && (
-          <button
-            onClick={() => {
-              handleToggle("focusBottom");
-              onTrackWidgetInteraction?.("restore", "focusBottom");
-            }}
-            className="rounded-full bg-black/70 border border-white/20 px-3 py-1.5 text-xs text-white/80"
-          >
-            Progress
-          </button>
-        )}
-      </div>
     </div>
   );
 }

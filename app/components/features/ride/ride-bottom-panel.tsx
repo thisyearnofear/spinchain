@@ -67,6 +67,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
 
   const currentInterval = useCoachingStore((s) => s.currentInterval);
   const currentIntervalIndex = useCoachingStore((s) => s.currentIntervalIndex);
+  const intervalProgress = useCoachingStore((s) => s.intervalProgress);
   const intervalRemaining = useCoachingStore((s) => s.intervalRemaining);
   const isSpeaking = useCoachingStore((s) => s.isSpeaking);
   const agentName = useCoachingStore((s) => s.currentInterval ? "Coach" : "");
@@ -219,6 +220,46 @@ export const RideBottomPanel = memo(function RideBottomPanel({
         {/* Progress Info + Interval Status */}
         {hudMode !== "minimal" && (
           <div className="mb-3 sm:mb-4">
+            {isRiding && (
+              <div className="mb-3 rounded-full border border-white/10 bg-black/50 p-1 shadow-lg shadow-black/30 backdrop-blur">
+                <div className="flex h-2.5 overflow-hidden rounded-full bg-white/10">
+                  {workoutPlan ? (
+                    workoutPlan.intervals.map((interval, i) => {
+                      const widthPct = (interval.durationSeconds / workoutPlan.totalDuration) * 100;
+                      const isCurrent = i === currentIntervalIndex;
+                      const isComplete = i < currentIntervalIndex;
+                      const phaseColor =
+                        interval.phase === "sprint" ? "bg-red-500"
+                          : interval.phase === "interval" ? "bg-yellow-500"
+                          : interval.phase === "warmup" ? "bg-green-500"
+                          : interval.phase === "recovery" ? "bg-blue-500"
+                          : interval.phase === "cooldown" ? "bg-indigo-400"
+                          : "bg-purple-500";
+                      return (
+                        <div
+                          key={i}
+                          className="relative h-full border-r border-black/20 last:border-r-0"
+                          style={{ width: `${widthPct}%` }}
+                        >
+                          <div
+                            className={`h-full origin-left transition-transform duration-300 ${phaseColor} ${
+                              isComplete ? "opacity-90" : isCurrent ? "opacity-75" : "opacity-20"
+                            }`}
+                            style={{ transform: `scaleX(${isCurrent ? intervalProgress : isComplete ? 1 : 0})` }}
+                          />
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div
+                      className="h-full origin-left bg-gradient-to-r from-indigo-500 to-purple-500 transition-transform duration-300"
+                      style={{ transform: `scaleX(${rideProgress / 100})` }}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
             {isRiding && currentInterval && (
               <IntervalBanner
                 currentInterval={currentInterval}

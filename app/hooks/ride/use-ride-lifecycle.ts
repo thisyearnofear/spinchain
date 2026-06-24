@@ -182,12 +182,18 @@ export function useRideLifecycle({
       ghostBlobId: classData?.metadata?.route?.walrusBlobId,
     }).catch((err: unknown) => console.warn("[Ride] Coordinator start failed:", err));
 
+    const { rideProgress, elapsedTime } = useRideStore.getState();
+    const isResuming = rideProgress > 0 || elapsedTime > 0;
+
     if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
     startTimeoutRef.current = setTimeout(() => {
       isRidingRef.current = true;
-      useRideStore.setState({ isActive: true, isStarting: false, rideProgress: 0, elapsedTime: 0 });
-      useTelemetryStore.getState().reset();
-      trackedCompletionRef.current = false;
+      useRideStore.setState({ isActive: true, isStarting: false });
+      if (!isResuming) {
+        useRideStore.setState({ rideProgress: 0, elapsedTime: 0 });
+        useTelemetryStore.getState().reset();
+        trackedCompletionRef.current = false;
+      }
 
       // Personalized coach greeting
       const rides = getRideHistory();

@@ -89,38 +89,34 @@ export const RideTopBar = memo(function RideTopBar({
         {/* Left: Rider identity + Class info */}
         <div className="flex-1 min-w-0 z-50 relative">
           {/* Rider chip — avatar + name + streak */}
-          <div className="flex items-center gap-2 mb-1">
-            <div className="flex items-center gap-1.5 rounded-full bg-white/8 border border-white/10 pl-1 pr-2.5 py-0.5">
-              {/* Avatar */}
-              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-[9px] font-bold text-white shrink-0 overflow-hidden">
-                {profile?.avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  riderName.charAt(0).toUpperCase()
+          {(isRiding || rideProgress > 0) && (
+            <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-1.5 rounded-full bg-white/8 border border-white/10 pl-1 pr-2.5 py-0.5">
+                {/* Avatar */}
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-[9px] font-bold text-white shrink-0 overflow-hidden">
+                  {profile?.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    riderName.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <span className="text-[11px] font-semibold text-white/90 truncate max-w-[100px]">
+                  {riderName}
+                </span>
+                {streak.daily > 0 && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-orange-400 shrink-0" title={`${streak.daily}-day streak`}>
+                    🔥{streak.daily}
+                  </span>
                 )}
               </div>
-              <span className="text-[11px] font-semibold text-white/90 truncate max-w-[100px]">
-                {riderName}
-              </span>
-              {streak.daily > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-orange-400 shrink-0" title={`${streak.daily}-day streak`}>
-                  🔥{streak.daily}
-                </span>
-              )}
             </div>
-          </div>
+          )}
           {/* Class info — compact single-line metadata */}
           <div className="flex items-center gap-2">
             <h1 className="text-base sm:text-xl font-bold text-white truncate">
               {className}
             </h1>
-            {isPracticeMode && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-medium shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                Practice
-              </span>
-            )}
             {routeIsGenerated && !isPracticeMode && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-zinc-500/20 text-zinc-400 text-[10px] font-medium shrink-0" title="Route loaded from approximation — live data unavailable">
                 <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
