@@ -9,12 +9,11 @@ export function SettlementStream() {
   const isRiding = useRideStore((s) => s.isActive);
   const isActive = useRewardsStore((s) => s.isActive && s.mode === "yellow-stream" && isRiding);
   const accumulated = useRewardsStore((s) => Number(s.accumulatedReward));
-  const rate = useRewardsStore((s) => s.streamingRate);
   const containerRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(0);
 
   useEffect(() => {
-    if (!isActive || rate <= 0) return;
+    if (!isActive) return;
     const container = containerRef.current;
     if (!container) return;
 
@@ -31,13 +30,13 @@ export function SettlementStream() {
       while (container.children.length > 10) {
         container.removeChild(container.firstChild!);
       }
-    }, Math.max(200, 1000 / (rate * 10)));
+    }, 800);
 
     return () => {
       clearInterval(interval);
       if (container) container.innerHTML = "";
     };
-  }, [isActive, rate]);
+  }, [isActive]);
 
   if (!isActive) return null;
 
@@ -62,7 +61,7 @@ export function SettlementStream() {
           <div className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-1 bg-yellow-500/10 px-2 py-1 rounded-lg border border-yellow-500/20">
             <Zap className="w-2.5 h-2.5 text-yellow-400" />
-            <span className="text-[9px] font-black text-yellow-400 tabular-nums">{(rate / 1e18 * 60).toFixed(1)}/min</span>
+            <span className="text-[9px] font-black text-yellow-400">LIVE</span>
           </div>
         </div>
       </div>
