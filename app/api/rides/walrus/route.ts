@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiError } from "@/app/lib/api/response";
+import { verifySession } from "@/app/lib/auth/session";
 
 export const dynamic = "force-dynamic";
+
+async function getAuthPayload(request: NextRequest) {
+  const token = request.cookies.get("spinchain-session")?.value
+    || request.headers.get("authorization")?.replace("Bearer ", "");
+  if (!token) return null;
+  return verifySession(token);
+}
 
 interface WalrusRideEntry {
   rideId: string;
@@ -21,6 +29,11 @@ const MAX_ENTRIES = 10000;
  */
 export async function POST(req: NextRequest) {
   try {
+    const payload = await getAuthPayload(req);
+    if (!payload) {
+      return apiError("Authentication required", "FORBIDDEN", 401);
+    }
+
     const body = await req.json();
     const { rideId, riderId, blobId, className, completedAt } = body;
 
@@ -31,9 +44,12 @@ export async function POST(req: NextRequest) {
       return apiError("Missing required field: blobId", "MISSING_FIELD", 400);
     }
 
+    // Enforce that riderId matches authenticated user (or use authenticated address)
+    const effectiveRiderId = typeof riderId === "string" ? riderId : payload.address;
+
     const entry: WalrusRideEntry = {
       rideId,
-      riderId: typeof riderId === "string" ? riderId : "anon",
+      riderId: effectiveRiderId,
       blobId,
       className: typeof className === "string" ? className : "Unknown",
       completedAt: typeof completedAt === "number" ? completedAt : Date.now(),
