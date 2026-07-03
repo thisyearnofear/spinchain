@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
 
 export interface SessionPayload {
   address: string;
@@ -89,10 +90,17 @@ export async function createSession(
   });
 
   if (error) {
-    // Fallback: create a simple signed token
-    // In production, use a proper JWT library with JWT_SECRET
+    // Fallback: create an HMAC-signed token to prevent tampering
+    // WARNING: This is NOT a full JWT. Use a proper JWT library in production.
     const payload: SessionPayload = { address: address.toLowerCase(), role, exp };
-    return btoa(JSON.stringify(payload));
+    const payloadB64 = btoa(JSON.stringify(payload));
+    if (JWT_SECRET) {
+      const signature = await hmacSign(JWT_SECRET, payloadB64);
+      return `${payloadB64}.${signature}`;
+    }
+    // Without JWT_SECRET, we cannot sign — log a warning
+    console.warn("[auth] SUPABASE_JWT_SECRET not set — session tokens are unsigned!");
+    return payloadB64;
   }
 
   // Extract token from the generated link
@@ -107,11 +115,53 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
   if (!token) return null;
 
   try {
-    // Simple decode for now — in production, verify signature with JWT_SECRET
-    const payload = JSON.parse(atob(token)) as SessionPayload;
+    // Check for HMAC-signed token format (payload.signature)
+    const parts = token.split(".");
+    let payloadB64: string;
+
+    if (parts.length === 2 && JWT_SECRET) {
+      // Signed token — verify HMAC
+      const [payloadPart, signature] = parts;
+      const expectedSignature = await hmacSign(JWT_SECRET, payloadPart);
+      if (signature !== expectedSignature) {
+        return null; // Signature mismatch — token tampered
+      }
+      payloadB64 = payloadPart;
+    } else if (parts.length === 1) {
+      // Legacy unsigned token — only accept if no JWT_SECRET configured
+      if (JWT_SECRET) {
+        console.warn("[auth] Rejecting unsigned token when JWT_SECRET is configured");
+        return null;
+      }
+      payloadB64 = token;
+    } else {
+      return null; // Invalid format
+    }
+
+    const payload = JSON.parse(atob(payloadB64)) as SessionPayload;
     if (payload.exp < Math.floor(Date.now() / 1000)) return null;
+    if (!payload.address || !payload.role || !payload.exp) return null;
     return payload;
   } catch {
     return null;
   }
+}
+
+/**
+ * HMAC-SHA256 sign a message using the JWT secret.
+ * Uses Web Crypto API (available in Edge Runtime).
+ */
+async function hmacSign(secret: string, message: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
