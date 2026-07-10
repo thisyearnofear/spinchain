@@ -378,6 +378,7 @@ export default function LiveRidePage() {
 
   // Sync completedRideId back to rewards hook
   const completedRideId = useRideModalStore((s) => s.completedRideId);
+  const showCompletionScreen = useRideModalStore((s) => s.showCompletionScreen);
 
   // PR pursuit callouts during ride
   usePrPursuit(isRiding);
@@ -544,7 +545,7 @@ export default function LiveRidePage() {
 
       {hudMode !== "minimal" && <FlowBackground />}
       {hudMode !== "minimal" && <SettlementStream />}
-      <CoachMessageOverlay />
+      {!showCompletionScreen && <CoachMessageOverlay />}
 
       {isRiding && currentInterval?.phase === "sprint" && (
         <div className="absolute inset-0 pointer-events-none rounded-none border-4 border-red-500/60 animate-pulse" />
