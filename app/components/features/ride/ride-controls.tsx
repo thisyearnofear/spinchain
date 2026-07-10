@@ -20,13 +20,6 @@ interface RideControlsProps {
   onStartRide: () => void;
   onSetWorkoutPlan: (plan: WorkoutPlan | null) => void;
   onSetUseSimulator: (use: boolean) => void;
-  onBleMetrics: (metrics: {
-    heartRate?: number;
-    power?: number;
-    cadence?: number;
-    speed?: number;
-    effort?: number;
-  }) => void;
   // Haptic feedback callback for mobile
   onHaptic?: (type: "light" | "medium" | "heavy" | "success" | "warning" | "error") => void;
   // Collapsible panel state
@@ -53,7 +46,6 @@ export function RideControls({
   onStartRide,
   onSetWorkoutPlan,
   onSetUseSimulator,
-  onBleMetrics,
   onHaptic,
   panelState,
   onTogglePanel,
@@ -90,11 +82,11 @@ export function RideControls({
         />
 
         {/* BLE Device Selector - only shown when not using simulator */}
+        {/* BLE Device Selector - only shown when not using simulator.
+            Metrics + connection status flow to the ride via the page-level
+            useBleData instance, not through this component. */}
         {!useSimulator && (
-          <DeviceSelector
-            onMetricsUpdate={onBleMetrics}
-            className="bg-black/80 backdrop-blur-xl border-white/10"
-          />
+          <DeviceSelector className="bg-black/80 backdrop-blur-xl border-white/10" />
         )}
       </div>
 

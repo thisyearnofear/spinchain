@@ -56,8 +56,6 @@ interface UseRideLifecycleParams {
   stopAudio: () => void;
   speak: (text: string, emotion?: unknown) => void;
   setUseSimulator: (v: boolean) => void;
-  setBleConnected: (v: boolean) => void;
-  trackLiveTelemetry: () => void;
 }
 
 export function useRideLifecycle({
@@ -93,7 +91,6 @@ export function useRideLifecycle({
   stopAudio,
   speak,
   setUseSimulator,
-  trackLiveTelemetry,
 }: UseRideLifecycleParams) {
   const router = useRouter();
   const suiClient = useSuiClient();
@@ -310,13 +307,6 @@ export function useRideLifecycle({
   const handleDismissNoBike = useCallback(() => modalStore.getState().setShowNoBikeModal(false), [modalStore]);
   const handleDismissKeyboardHints = useCallback(() => modalStore.getState().setShowKeyboardHints(false), [modalStore]);
 
-  const handleBleMetrics = useCallback((metrics: { heartRate?: number; power?: number; cadence?: number; speed?: number; effort?: number; distance?: number; timestamp?: number }) => {
-    coordinator.ingestBleMetrics(metrics);
-    if (metrics.heartRate || metrics.power) {
-      trackLiveTelemetry();
-    }
-  }, [coordinator, trackLiveTelemetry]);
-
   const handleCompletionExit = useCallback(() => {
     modalStore.getState().setShowCompletionScreen(false);
     modalStore.getState().setWalrusAnchorInfo(null);
@@ -339,6 +329,5 @@ export function useRideLifecycle({
     handleDemoModalClose,
     handleDismissNoBike,
     handleDismissKeyboardHints,
-    handleBleMetrics,
   };
 }

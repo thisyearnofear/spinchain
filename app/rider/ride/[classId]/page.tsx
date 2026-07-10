@@ -42,6 +42,8 @@ import {
 import { SectionErrorBoundary } from "../../../components/layout/error-boundary";
 import { useRideKeyboard } from "@/app/hooks/ride/use-ride-keyboard";
 import { useRideAnalytics } from "@/app/hooks/ride/use-ride-analytics";
+import { useBleData } from "@/app/hooks/ble/use-ble-data";
+import type { FitnessMetrics } from "@/app/lib/ble/types";
 import { useRideRewards } from "@/app/hooks/ride/use-ride-rewards";
 import { useRideSimulator } from "@/app/hooks/ride/use-ride-simulator";
 import { useRideLifecycle } from "@/app/hooks/ride/use-ride-lifecycle";
@@ -196,7 +198,15 @@ export default function LiveRidePage() {
   }, [panelState]);
 
   // ─── BLE / Simulator State ─────────────────────────────────────
-  const [bleConnected, setBleConnected] = useState(false);
+  // The page owns the BLE metrics stream for the whole ride — DeviceSelector
+  // only lives in the pre-ride panel, so it can't be the one forwarding
+  // metrics or connection status once the ride starts.
+  const trackLiveTelemetryRef = useRef<() => void>(() => {});
+  const handleBleMetrics = useCallback((metrics: FitnessMetrics) => {
+    coordinator.ingestBleMetrics(metrics);
+    if (metrics.heartRate || metrics.power) trackLiveTelemetryRef.current();
+  }, [coordinator]);
+  const { isConnected: bleConnected } = useBleData({ onSuccess: handleBleMetrics, silent: true });
   const [useSimulator, setUseSimulator] = useState(() => {
     if (typeof window === "undefined") return false;
     const urlParams = new URLSearchParams(window.location.search);
@@ -297,6 +307,10 @@ export default function LiveRidePage() {
     playSound,
   });
 
+  useEffect(() => {
+    trackLiveTelemetryRef.current = analyticsHook.trackLiveTelemetry;
+  }, [analyticsHook.trackLiveTelemetry]);
+
   useRideKeyboard({
     isRiding,
     panelState,
@@ -337,8 +351,6 @@ export default function LiveRidePage() {
     stopAudio,
     speak,
     setUseSimulator,
-    setBleConnected,
-    trackLiveTelemetry: analyticsHook.trackLiveTelemetry,
   });
 
   // Push live telemetry to server for instructor view (throttled)
@@ -475,7 +487,6 @@ export default function LiveRidePage() {
           onPauseRide={lifecycle.pauseRide}
           onResumeRide={lifecycle.resumeRide}
           onSetWorkoutPlan={setWorkoutPlan}
-          onBleMetrics={lifecycle.handleBleMetrics}
           onHaptic={haptic.trigger}
           formatTime={formatTime}
         />

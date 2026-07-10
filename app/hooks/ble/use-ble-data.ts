@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, type MutableRefObject } from "react";
 import { getUnifiedBleService } from "@/app/lib/mobile-bridge";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import type { 
@@ -22,6 +22,28 @@ interface UseBleDataOptions {
   autoConnect?: boolean;
   onSuccess?: (metrics: FitnessMetrics) => void;
   onError?: (error: BleError) => void;
+  /** Suppress toast notifications (for headless instances that only observe state) */
+  silent?: boolean;
+}
+
+// The BLE service holds a single callbacks object, but multiple hook instances
+// must observe it at once (pre-ride DeviceSelector UI + the ride page, which
+// owns metric forwarding for the whole ride). This module-level bridge fans
+// each service event out to every mounted hook instance, so unmounting one
+// (e.g. DeviceSelector when the ride starts) no longer severs the others.
+const bleListeners = new Set<MutableRefObject<BleServiceCallbacks>>();
+let bleBridgeInstalled = false;
+
+function installBleBridge(ble: ReturnType<typeof getUnifiedBleService>): void {
+  if (bleBridgeInstalled) return;
+  bleBridgeInstalled = true;
+  ble.setCallbacks({
+    onMetricsUpdate: (metrics) => bleListeners.forEach((l) => l.current.onMetricsUpdate?.(metrics)),
+    onStatusChange: (status) => bleListeners.forEach((l) => l.current.onStatusChange?.(status)),
+    onError: (error) => bleListeners.forEach((l) => l.current.onError?.(error)),
+    onDeviceConnected: (device) => bleListeners.forEach((l) => l.current.onDeviceConnected?.(device)),
+    onDeviceDisconnected: (deviceId) => bleListeners.forEach((l) => l.current.onDeviceDisconnected?.(deviceId)),
+  });
 }
 
 interface UseBleDataReturn {
@@ -49,15 +71,17 @@ interface UseBleDataReturn {
 }
 
 export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
-  const { autoConnect = false, onSuccess, onError } = options;
+  const { autoConnect = false, onSuccess, onError, silent = false } = options;
   const ble = getUnifiedBleService();
   const toast = useToast();
-  const [metrics, setMetrics] = useState<FitnessMetrics | null>(null);
-  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
-  const [device, setDevice] = useState<BleDevice | null>(null);
+  // Initialize from the service snapshot — a device may already be connected
+  // when this instance mounts (e.g. DeviceSelector remounting after a pause).
+  const [metrics, setMetrics] = useState<FitnessMetrics | null>(() => ble.getMetrics());
+  const [status, setStatus] = useState<ConnectionStatus>(() => ble.getStatus());
+  const [device, setDevice] = useState<BleDevice | null>(() => ble.getDevice());
   const [error, setError] = useState<BleError | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(() => ble.getStatus() === 'connected');
   const [isPending, setIsPending] = useState(false);
   const [savedDevices, setSavedDevices] = useState<SavedDevice[]>(() => ble.getSavedDevices());
   
@@ -81,40 +105,48 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
       onError: (bleError) => {
         setError(bleError);
         const parsedError = parseBleError(bleError);
-        
-        toast.error(
-          parsedError.title,
-          parsedError.message
-        );
-        
+
+        if (!silent) {
+          toast.error(
+            parsedError.title,
+            parsedError.message
+          );
+          trackEvent(ANALYTICS_EVENTS.TELEMETRY_CONNECT_FAILED, {
+            errorType: bleError.type,
+          });
+        }
+
         onError?.(bleError);
-        trackEvent(ANALYTICS_EVENTS.TELEMETRY_CONNECT_FAILED, {
-          errorType: bleError.type,
-        });
       },
-      
+
       onDeviceConnected: (connectedDevice) => {
         setDevice(connectedDevice);
         setSavedDevices(ble.getSavedDevices()); // Refresh saved devices
-        toast.success('Device Connected!', `${connectedDevice.name} is now connected`);
-        trackEvent(ANALYTICS_EVENTS.TELEMETRY_CONNECT_SUCCESS, {
-          deviceName: connectedDevice.name,
-        });
+        if (!silent) {
+          toast.success('Device Connected!', `${connectedDevice.name} is now connected`);
+          trackEvent(ANALYTICS_EVENTS.TELEMETRY_CONNECT_SUCCESS, {
+            deviceName: connectedDevice.name,
+          });
+        }
       },
-      
+
       onDeviceDisconnected: () => {
         setDevice(null);
         setMetrics(null);
-        toast.info('Device Disconnected', 'Fitness equipment disconnected');
+        if (!silent) {
+          toast.info('Device Disconnected', 'Fitness equipment disconnected');
+        }
       }
     };
 
-    ble.setCallbacks(callbacksRef.current);
+    installBleBridge(ble);
+    const listenerRef = callbacksRef;
+    bleListeners.add(listenerRef);
 
     return () => {
-      ble.setCallbacks({});
+      bleListeners.delete(listenerRef);
     };
-  }, [ble, onError, onSuccess, toast]);
+  }, [ble, onError, onSuccess, toast, silent]);
 
   // Action methods - defined before useEffect to avoid reference issues
   const scanAndConnect = useCallback(async (): Promise<boolean> => {

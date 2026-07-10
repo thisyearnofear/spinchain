@@ -29,7 +29,6 @@ interface RideBottomPanelProps {
   onExitRide: () => void;
   onSetWorkoutPlan: (plan: WorkoutPlan | null) => void;
   onSetUseSimulator: (v: boolean) => void;
-  onBleMetrics: (metrics: { heartRate?: number; power?: number; cadence?: number; speed?: number; effort?: number; distance?: number; timestamp?: number }) => void;
   onHaptic: (type?: HapticType) => boolean;
   formatTime: (seconds: number) => string;
 }
@@ -46,7 +45,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
   onExitRide,
   onSetWorkoutPlan,
   onSetUseSimulator,
-  onBleMetrics,
   onHaptic,
   formatTime,
 }: RideBottomPanelProps) {
@@ -207,7 +205,6 @@ export const RideBottomPanel = memo(function RideBottomPanel({
                 onStartRide={onStartRide}
                 onSetWorkoutPlan={onSetWorkoutPlan}
                 onSetUseSimulator={onSetUseSimulator}
-                onBleMetrics={onBleMetrics}
                 onHaptic={onHaptic}
                 panelState={panelState}
                 onTogglePanel={onTogglePanel}

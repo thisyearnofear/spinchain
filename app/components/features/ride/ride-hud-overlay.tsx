@@ -31,7 +31,6 @@ interface RideHUDOverlayProps {
   onPauseRide: () => void;
   onResumeRide: () => void;
   onSetWorkoutPlan: (p: WorkoutPlan | null) => void;
-  onBleMetrics: (m: { heartRate?: number; power?: number; cadence?: number; speed?: number; effort?: number; distance?: number; timestamp?: number }) => void;
   onHaptic: (type?: HapticType) => boolean;
   formatTime: (s: number) => string;
 }
@@ -106,7 +105,6 @@ export const RideHUDOverlay = memo(function RideHUDOverlay(props: RideHUDOverlay
         onExitRide={props.onExitRide}
         onSetWorkoutPlan={props.onSetWorkoutPlan}
         onSetUseSimulator={props.onSetUseSimulator}
-        onBleMetrics={props.onBleMetrics}
         onHaptic={props.onHaptic}
         formatTime={props.formatTime}
       />
