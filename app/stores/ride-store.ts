@@ -52,9 +52,11 @@ export const useRideStore = create<RideState>()(
     {
       name: "spinchain-ride-store",
       storage: createJSONStorage(() => localStorage),
+      // isActive is deliberately not persisted: rehydrating an "active" ride
+      // after a reload would show a live HUD with no running coordinator.
+      // Persisted elapsedTime>0 rehydrates as the paused/resume state instead.
       partialize: (state) => ({
         session: state.session,
-        isActive: state.isActive,
         elapsedTime: state.elapsedTime,
       }),
     },

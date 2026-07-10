@@ -388,17 +388,18 @@ export default function LiveRidePage() {
   }, [completedRideId, rewardsHook.setCompletedRideId]);
 
   // ─── Visibility Pause (save CPU when tab hidden) ──────────────
+  // Go through the real pause flow so the coordinator halts and the rider
+  // comes back to the paused screen with a Resume button — not a dead ride.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handleVisibility = () => {
-      if (document.hidden && simulatorHook.isRidingRef.current) {
-        simulatorHook.isRidingRef.current = false;
-        useRideStore.setState({ isActive: false });
+      if (document.hidden && useRideStore.getState().isActive) {
+        lifecycle.pauseRide();
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [simulatorHook.isRidingRef]);
+  }, [lifecycle.pauseRide]);
 
   const formatTime = useCallback((seconds: number) => {
     const wholeSeconds = Math.max(0, Math.floor(seconds));
