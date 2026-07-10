@@ -44,6 +44,7 @@ import { useRideKeyboard } from "@/app/hooks/ride/use-ride-keyboard";
 import { useRideAnalytics } from "@/app/hooks/ride/use-ride-analytics";
 import { useBleData } from "@/app/hooks/ble/use-ble-data";
 import type { FitnessMetrics } from "@/app/lib/ble/types";
+import { useToast } from "@/app/components/ui/toast";
 import { useRideRewards } from "@/app/hooks/ride/use-ride-rewards";
 import { useRideSimulator } from "@/app/hooks/ride/use-ride-simulator";
 import { useRideLifecycle } from "@/app/hooks/ride/use-ride-lifecycle";
@@ -386,6 +387,22 @@ export default function LiveRidePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [completedRideId, rewardsHook.setCompletedRideId]);
+
+  // ─── BLE Disconnect Auto-Pause ─────────────────────────────────
+  // Losing the bike mid-ride should pause, not keep the ride "running" on
+  // dead telemetry. The native BLE service auto-reconnects; the rider
+  // resumes from the paused screen once it's back.
+  const toast = useToast();
+  const prevBleConnectedRef = useRef(bleConnected);
+  useEffect(() => {
+    const wasConnected = prevBleConnectedRef.current;
+    prevBleConnectedRef.current = bleConnected;
+    if (wasConnected && !bleConnected && !useSimulator && useRideStore.getState().isActive) {
+      lifecycle.pauseRide();
+      toast.warning("Ride paused", "Your bike disconnected — attempting to reconnect. Resume when it's back.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bleConnected, useSimulator, lifecycle.pauseRide, toast]);
 
   // ─── Visibility Pause (save CPU when tab hidden) ──────────────
   // Go through the real pause flow so the coordinator halts and the rider
