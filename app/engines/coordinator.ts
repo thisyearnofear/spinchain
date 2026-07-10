@@ -29,6 +29,7 @@ import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
+import { useUIStore } from "@/app/stores/ui-store";
 import {
   getCurrentInterval,
   getIntervalProgress,
@@ -47,6 +48,7 @@ export class RideCoordinator {
   private oracle = getLocalOracle();
 
   private config: RideStartConfig | null = null;
+  private durationSeconds = 45 * 60;
   private unsubTick: (() => void) | null = null;
   private eventUnsubs: Array<() => void> = [];
   private rafRunning = false;
@@ -88,9 +90,9 @@ export class RideCoordinator {
     // Configure engines
     const routeCoordinates =
       config.classData?.route?.route?.coordinates ?? [];
-    const durationSeconds = (config.classData?.metadata?.duration ?? 45) * 60;
+    this.durationSeconds = (config.classData?.metadata?.duration ?? 45) * 60;
 
-    this.telemetry.start(routeCoordinates, durationSeconds);
+    this.telemetry.start(routeCoordinates, this.durationSeconds);
 
     if (config.isPracticeMode) {
       this.device.connectSimulator("Simulator active — use arrow keys to pedal");
@@ -114,7 +116,9 @@ export class RideCoordinator {
     // Start RAF commit loop (single loop, no mixed timers)
     this.startCommitLoop();
 
-    // Start collecting telemetry samples at 1Hz
+    // Start collecting telemetry samples at 1Hz. This timer is also the
+    // ride clock for real-device rides — the simulator drives time itself
+    // (time-scaled) in handleSimulatorMetrics, so skip advancing it there.
     this.sampleTimerId = setInterval(() => {
       if (!useRideStore.getState().isActive) return;
       const snapshot = this.telemetry.rawSnapshot;
@@ -134,6 +138,16 @@ export class RideCoordinator {
         power: snapshot.power,
         cadence: snapshot.cadence,
       });
+
+      if (!useUIStore.getState().useSimulator) {
+        const elapsedTime = useRideStore.getState().elapsedTime + 1;
+        const rideProgress = Math.min((elapsedTime / this.durationSeconds) * 100, 100);
+        useRideStore.setState({ elapsedTime, rideProgress });
+      }
+
+      // Drive the interval/coaching clock for both device paths
+      const { elapsedTime, rideProgress } = useRideStore.getState();
+      this.bus.emit("lifecycle:tick", { elapsed: elapsedTime, progress: rideProgress });
     }, 1000);
 
     // Configure rewards engine
