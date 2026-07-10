@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useAdaptiveQuality } from "@/app/lib/responsive";
 import {
   CatmullRomCurve3,
@@ -973,6 +973,37 @@ function WelcomeSign({ theme, name, curve }: { theme: VisualizerTheme; name?: st
   );
 }
 
+/**
+ * Caps the render loop to a target fps instead of the display's native
+ * refresh rate. Pairs with <Canvas frameloop="demand"> — R3F only renders
+ * (and runs useFrame callbacks) when invalidate() is called, so this drives
+ * that call on its own rAF loop, downsampled to the target interval. Without
+ * this, "always" frameloop renders at native refresh rate (e.g. 120Hz on
+ * newer devices) for the whole ride regardless of the computed quality tier.
+ */
+function FrameRateLimiter({ fps }: { fps: number }) {
+  const invalidate = useThree((s) => s.invalidate);
+
+  useEffect(() => {
+    let rafId: number;
+    let lastMs = 0;
+    const intervalMs = 1000 / fps;
+
+    const loop = (nowMs: number) => {
+      if (nowMs - lastMs >= intervalMs) {
+        lastMs = nowMs;
+        invalidate();
+      }
+      rafId = requestAnimationFrame(loop);
+    };
+    rafId = requestAnimationFrame(loop);
+
+    return () => cancelAnimationFrame(rafId);
+  }, [fps, invalidate]);
+
+  return null;
+}
+
 function Scene({
   elevationProfile,
   theme = "neon",
@@ -1307,7 +1338,7 @@ export default function RouteVisualizer({
         <Canvas
           gl={{ alpha: true }}
           dpr={effectiveQuality.pixelRatio}
-          frameloop={mode === "ride" ? "always" : "demand"}
+          frameloop="demand"
           performance={{ min: 0.5 }}
           onCreated={({ gl, invalidate }) => {
             // WebGL context-loss recovery. Without this, a lost GPU context
@@ -1328,6 +1359,7 @@ export default function RouteVisualizer({
             );
           }}
         >
+          {mode === "ride" && <FrameRateLimiter fps={effectiveQuality.fps} />}
           <Scene
             elevationProfile={elevationProfile}
             theme={theme}
