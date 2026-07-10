@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useClass } from "../../../hooks/evm/use-class-data";
+import { useClass, type ClassWithRoute } from "../../../hooks/evm/use-class-data";
 import { usePracticeConfig } from "../../../hooks/ride/use-practice-config";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore, selectTelemetrySnapshot } from "@/app/stores/telemetry-store";
@@ -36,6 +36,7 @@ import { RidePreviewBadge } from "../../../components/features/common/yellow-sta
 import { useHaptic } from "../../../hooks/use-haptic";
 import {
   type WorkoutPlan,
+  type WorkoutInterval,
   PHASE_TO_THEME,
   PRESET_WORKOUTS,
 } from "../../../lib/workout-plan";
@@ -60,49 +61,37 @@ const POSITION_AVATAR_CLASSES = [
   "bg-rose-500/20 border border-rose-500/30 text-rose-300",
 ];
 
-export default function LiveRidePage() {
-  const params = useParams();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const classId = params.classId as string;
-
-  // ─── Data Loading ──────────────────────────────────────────────
-  const { isPracticeMode, practiceConfig, practiceClassData } = usePracticeConfig(classId);
-  const { classData: fetchedClassData, isLoading } = useClass(classId as `0x${string}`);
-  const classData = isPracticeMode ? practiceClassData : fetchedClassData;
-  const [loadStartedAt] = useState(() => Date.now());
-  const classDataRef = useRef(classData);
-  useEffect(() => { classDataRef.current = classData; }, [classData]);
-
-  // ─── Device / Viewport ─────────────────────────────────────────
-  const deviceType = useDeviceType();
-  const orientation = useOrientation();
-  const viewportHeight = useActualViewportHeight();
-  const performanceTier = usePerformanceTier();
-
-  // ─── Store Reads ───────────────────────────────────────────────
-  const isRiding = useRideStore((s) => s.isActive);
-  const rideProgress = useRideStore((s) => s.rideProgress);
-  const elapsedTime = useRideStore((s) => s.elapsedTime);
-  const multiGhostState = useRideStore((s) => s.multiGhostState);
-
-  const telemetryHeartRate = useTelemetryStore((s) => s.snapshot.heartRate);
-  const telemetryEffort = useTelemetryStore((s) => s.snapshot.effort);
-  const telemetryHistory = useTelemetryStore((s) => s.history);
-  const telemetryAverages = useTelemetryStore((s) => s.averages);
-
-  const currentInterval = useCoachingStore((s) => s.currentInterval);
-
-  // ─── Ride Coordinator ──────────────────────────────────────────
-  const coordinator = useRideCoordinator();
-  const coordinatorRef = useRef(coordinator);
-  useEffect(() => {
-    coordinatorRef.current = coordinator;
-  }, [coordinator]);
-  const emptyRidePointsRef = useRef<RideRecordPoint[]>([]);
+/**
+ * RideAiTelemetryBridge — owns the telemetry-snapshot-driven side effects
+ * (rule-based AI instructor, LLM coaching, live telemetry push to the
+ * instructor view) in an isolated component tree.
+ *
+ * telemetrySnapshot gets a new object identity on every telemetry commit
+ * (up to 10Hz on high-tier desktop). Subscribing to it directly from the
+ * 500+ line root page re-rendered the entire ride page at that rate. This
+ * component renders nothing — it exists purely to scope that subscription
+ * away from the root.
+ */
+function RideAiTelemetryBridge({
+  isRiding,
+  isPracticeMode,
+  classId,
+  classData,
+  currentInterval,
+  elapsedTime,
+  coordinatorRef,
+}: {
+  isRiding: boolean;
+  isPracticeMode: boolean;
+  classId: string;
+  classData: ClassWithRoute | null;
+  currentInterval: WorkoutInterval | null;
+  elapsedTime: number;
+  coordinatorRef: React.MutableRefObject<ReturnType<typeof useRideCoordinator> | null>;
+}) {
+  const telemetrySnapshot = useTelemetryStore(selectTelemetrySnapshot);
 
   // ─── AI Instructor (personality-driven rule-based coaching) ───
-  const telemetrySnapshot = useTelemetryStore(selectTelemetrySnapshot);
   const [suiSessionId, setSuiSessionId] = useState<string | null>(null);
   useEffect(() => {
     if (!isRiding) {
@@ -116,7 +105,8 @@ export default function LiveRidePage() {
       }
     }, 2000);
     return () => clearInterval(interval);
-  }, [isRiding]);
+  }, [isRiding, coordinatorRef]);
+
   const aiInstructorMetrics = useMemo(
     () =>
       isRiding
@@ -164,6 +154,74 @@ export default function LiveRidePage() {
     personality: "data",
     systemPromptCid: aiMeta?.systemPromptCid,
   });
+
+  // ─── Push live telemetry to server for instructor view (throttled) ───
+  const { pushTelemetry, clearTelemetry } = usePushLiveTelemetry(isRiding && !isPracticeMode ? classId : null);
+  useEffect(() => {
+    if (!isRiding) return;
+    pushTelemetry({
+      heartRate: telemetrySnapshot.heartRate,
+      power: telemetrySnapshot.power,
+      cadence: telemetrySnapshot.cadence,
+      effort: telemetrySnapshot.effort,
+      elapsedSec: elapsedTime,
+    });
+  }, [isRiding, telemetrySnapshot, elapsedTime, pushTelemetry]);
+
+  // Clear live telemetry on unmount or ride end
+  const isRidingRef = useRef(isRiding);
+  useEffect(() => {
+    isRidingRef.current = isRiding;
+  }, [isRiding]);
+  useEffect(() => {
+    return () => {
+      if (isRidingRef.current) clearTelemetry();
+    };
+  }, [clearTelemetry]);
+
+  return null;
+}
+
+export default function LiveRidePage() {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const classId = params.classId as string;
+
+  // ─── Data Loading ──────────────────────────────────────────────
+  const { isPracticeMode, practiceConfig, practiceClassData } = usePracticeConfig(classId);
+  const { classData: fetchedClassData, isLoading } = useClass(classId as `0x${string}`);
+  const classData = isPracticeMode ? practiceClassData : fetchedClassData;
+  const [loadStartedAt] = useState(() => Date.now());
+  const classDataRef = useRef(classData);
+  useEffect(() => { classDataRef.current = classData; }, [classData]);
+
+  // ─── Device / Viewport ─────────────────────────────────────────
+  const deviceType = useDeviceType();
+  const orientation = useOrientation();
+  const viewportHeight = useActualViewportHeight();
+  const performanceTier = usePerformanceTier();
+
+  // ─── Store Reads ───────────────────────────────────────────────
+  const isRiding = useRideStore((s) => s.isActive);
+  const rideProgress = useRideStore((s) => s.rideProgress);
+  const elapsedTime = useRideStore((s) => s.elapsedTime);
+  const multiGhostState = useRideStore((s) => s.multiGhostState);
+
+  const telemetryHeartRate = useTelemetryStore((s) => s.snapshot.heartRate);
+  const telemetryEffort = useTelemetryStore((s) => s.snapshot.effort);
+  const telemetryHistory = useTelemetryStore((s) => s.history);
+  const telemetryAverages = useTelemetryStore((s) => s.averages);
+
+  const currentInterval = useCoachingStore((s) => s.currentInterval);
+
+  // ─── Ride Coordinator ──────────────────────────────────────────
+  const coordinator = useRideCoordinator();
+  const coordinatorRef = useRef(coordinator);
+  useEffect(() => {
+    coordinatorRef.current = coordinator;
+  }, [coordinator]);
+  const emptyRidePointsRef = useRef<RideRecordPoint[]>([]);
 
   // ─── Panel State ───────────────────────────────────────────────
   const panelState = usePanelState(deviceType);
@@ -362,28 +420,6 @@ export default function LiveRidePage() {
     setUseSimulator,
   });
 
-  // Push live telemetry to server for instructor view (throttled)
-  const { pushTelemetry, clearTelemetry } = usePushLiveTelemetry(isRiding && !isPracticeMode ? classId : null);
-  useEffect(() => {
-    if (!isRiding) return;
-    pushTelemetry({
-      heartRate: telemetrySnapshot.heartRate,
-      power: telemetrySnapshot.power,
-      cadence: telemetrySnapshot.cadence,
-      effort: telemetrySnapshot.effort,
-      elapsedSec: elapsedTime,
-    });
-  }, [isRiding, telemetrySnapshot, elapsedTime, pushTelemetry]);
-
-  // Clear live telemetry on unmount or ride end
-  const isRidingRef = useRef(isRiding);
-  isRidingRef.current = isRiding;
-  useEffect(() => {
-    return () => {
-      if (isRidingRef.current) clearTelemetry();
-    };
-  }, [clearTelemetry]);
-
   // Sync completedRideId back to rewards hook
   const completedRideId = useRideModalStore((s) => s.completedRideId);
   const showCompletionScreen = useRideModalStore((s) => s.showCompletionScreen);
@@ -474,6 +510,16 @@ export default function LiveRidePage() {
       <div className="absolute top-2 left-2 z-50">
         <RidePreviewBadge />
       </div>
+
+      <RideAiTelemetryBridge
+        isRiding={isRiding}
+        isPracticeMode={isPracticeMode}
+        classId={classId}
+        classData={classData}
+        currentInterval={currentInterval}
+        elapsedTime={elapsedTime}
+        coordinatorRef={coordinatorRef}
+      />
 
       <SectionErrorBoundary title="ride visualization">
         <RideVisualization
