@@ -183,6 +183,13 @@ export class LocalOracle {
     let totalSecondsAbove = 0;
     let weightedEffortScore = 0;
 
+    const qualifying = chunks.filter(
+      (chunk) => chunk.some((sample) => sample > input.threshold),
+    ).length;
+    console.log(
+      `[LocalOracle] Proving ${qualifying}/${chunks.length} chunks (${input.heartRateSamples.length} samples, threshold ${input.threshold})`,
+    );
+
     for (const chunk of chunks) {
       const secondsAbove = chunk.filter((sample) => sample > input.threshold).length;
       if (secondsAbove === 0) continue;

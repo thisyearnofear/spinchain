@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
   },
   serverExternalPackages: [
     "@noir-lang/noir_js",
-    "@noir-lang/backend_barretenberg",
     "@aztec/bb.js",
     "@noir-lang/acvm_js",
     "@noir-lang/noirc_abi",

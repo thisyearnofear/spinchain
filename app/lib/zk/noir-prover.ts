@@ -1,14 +1,11 @@
 // Noir Prover - Production ZK proof generation using real Noir circuits
-// Uses @noir-lang/noir_js + @noir-lang/backend_barretenberg
+// Witness generation via @noir-lang/noir_js; proving via @aztec/bb.js
+// UltraHonk, whose browser backend runs the heavy WASM work in its own
+// worker — off the main thread. Proofs use the EVM (keccak) flavor so they
+// match the generated HonkVerifier.sol.
 
 import type { ProofInput, ZKProof, CircuitType } from './types';
 import { ZK_CONFIG } from "@/app/config";
-
-// Lazily-loaded module references (browser only)
- 
-let BackendCtor: any = null;
- 
-let NoirCtor: any = null;
 
 // Compiled circuit shape from Nargo
 interface CompiledCircuit {
@@ -16,18 +13,49 @@ interface CompiledCircuit {
   abi: unknown;
 }
 
-// ProofData shape returned by BarretenbergBackend
+// ProofData shape returned by the Barretenberg backend
 interface ProofData {
   proof: Uint8Array;
   publicInputs: string[];
 }
 
-// Browser-compatible Noir prover using @noir-lang packages
+interface HonkBackend {
+  generateProof(compressedWitness: Uint8Array, options?: object): Promise<ProofData>;
+  verifyProof(proofData: ProofData, options?: object): Promise<boolean>;
+}
+
+interface NoirProgram {
+  init(): Promise<void>;
+  execute(inputs: Record<string, unknown>): Promise<{ witness: Uint8Array }>;
+}
+
+const EVM_PROOF_OPTIONS = { verifierTarget: 'evm' } as const;
+
+/** Public outputs come back as hex field elements (e.g. "0x...01") */
+function fieldToNumber(value: string | undefined): number {
+  if (!value) return 0;
+  if (value === 'true') return 1;
+  if (value === 'false') return 0;
+  try {
+    return Number(BigInt(value));
+  } catch {
+    return parseInt(value, 10) || 0;
+  }
+}
+
+/** Barretenberg expects public inputs as 32-byte hex field elements */
+function numberToField(value: string): string {
+  try {
+    return '0x' + BigInt(value).toString(16).padStart(64, '0');
+  } catch {
+    return value;
+  }
+}
+
+// Browser-compatible Noir prover using @noir-lang/noir_js + @aztec/bb.js
 export class NoirProver {
-   
-  private backend: any = null;
-   
-  private noir: any = null;
+  private backend: HonkBackend | null = null;
+  private noir: NoirProgram | null = null;
   private circuit: CompiledCircuit | null = null;
   private initialized = false;
 
@@ -35,17 +63,10 @@ export class NoirProver {
     if (this.initialized) return;
 
     try {
-      // Dynamic imports — only run in browser, not during SSR/build
+      // Browser only — not during SSR/build
       if (typeof window === 'undefined') {
         console.warn('[NoirProver] Not in browser, skipping initialization');
         return;
-      }
-
-      if (!BackendCtor || !NoirCtor) {
-        const backendMod = await import(/* webpackIgnore: true */ '@noir-lang/backend_barretenberg');
-        const noirMod = await import(/* webpackIgnore: true */ '@noir-lang/noir_js');
-        BackendCtor = backendMod.BarretenbergBackend;
-        NoirCtor = noirMod.Noir;
       }
 
       // Load compiled circuit from public directory
@@ -56,19 +77,28 @@ export class NoirProver {
         return;
       }
 
-      // Initialize backend and Noir
-      this.backend = new BackendCtor(this.circuit);
-      this.noir = new NoirCtor(this.circuit);
+      // Lazy-load the proving stack so its WASM stays out of the main bundle
+      const [noirMod, bbMod] = await Promise.all([
+        import('@noir-lang/noir_js'),
+        import('@aztec/bb.js'),
+      ]);
+
+      const api = await bbMod.Barretenberg.new();
+      this.backend = new bbMod.UltraHonkBackend(
+        this.circuit.bytecode,
+        api,
+      ) as unknown as HonkBackend;
+      this.noir = new noirMod.Noir(this.circuit as never) as unknown as NoirProgram;
       await this.noir.init();
 
       this.initialized = true;
-      console.log('[NoirProver] Initialized successfully with BarretenbergBackend');
+      console.log('[NoirProver] Initialized successfully with UltraHonkBackend');
     } catch (error) {
       console.error('[NoirProver] Initialization failed:', error);
       this.initialized = false;
     }
   }
-  
+
   private async loadCircuit(): Promise<void> {
     try {
       const response = await fetch('/circuits/effort_threshold/target/effort_threshold.json');
@@ -87,7 +117,7 @@ export class NoirProver {
       console.warn('[NoirProver] Circuit load failed:', error);
     }
   }
-  
+
   async generateProof(
     input: ProofInput,
     circuitType: CircuitType
@@ -118,12 +148,11 @@ export class NoirProver {
       },
     };
 
-    // Execute circuit to get witness
+    // Execute circuit to get witness (fast); proving runs in bb.js's worker
     const startTime = performance.now();
     const { witness } = await this.noir.execute(circuitInputs);
 
-    // Generate proof from witness
-    const proofData: ProofData = await this.backend.generateProof(witness);
+    const proofData: ProofData = await this.backend.generateProof(witness, EVM_PROOF_OPTIONS);
     const provingTime = performance.now() - startTime;
 
     console.log(`[NoirProver] Proof generated in ${provingTime.toFixed(0)}ms`);
@@ -132,9 +161,9 @@ export class NoirProver {
     // Map to the 7-element format expected by ZKProof consumers:
     // [threshold, minDuration, thresholdMet, secondsAbove, effortScore, classId, riderId]
     const rawOutputs = proofData.publicInputs;
-    const thresholdMet = rawOutputs[0] === 'true' || rawOutputs[0] === '1' ? '1' : '0';
-    const secondsAbove = rawOutputs[1] ?? '0';
-    const effortScore = rawOutputs[2] ?? '0';
+    const thresholdMet = fieldToNumber(rawOutputs[0]) ? '1' : '0';
+    const secondsAbove = String(fieldToNumber(rawOutputs[1]));
+    const effortScore = String(fieldToNumber(rawOutputs[2]));
 
     return {
       proof: proofData.proof,
@@ -158,15 +187,14 @@ export class NoirProver {
     }
 
     const startTime = performance.now();
-    // BarretenbergBackend.verifyProof takes ProofData { proof, publicInputs }
-    // Our circuit has no public inputs (all in private struct), only public return values.
-    // The circuit returns 3 public outputs: [threshold_met, seconds_above, effort_score]
-    // In our 7-element ZKProof format, these are at indices 2-4.
+    // Our circuit has no public inputs (all in private struct), only public
+    // return values: [threshold_met, seconds_above, effort_score]. In our
+    // 7-element ZKProof format, these are at indices 2-4.
     const proofData: ProofData = {
       proof: proof.proof,
-      publicInputs: proof.publicInputs.slice(2, 5),
+      publicInputs: proof.publicInputs.slice(2, 5).map(numberToField),
     };
-    const valid = await this.backend.verifyProof(proofData);
+    const valid = await this.backend.verifyProof(proofData, EVM_PROOF_OPTIONS);
     const verifyTime = performance.now() - startTime;
 
     console.log(`[NoirProver] Verification completed in ${verifyTime.toFixed(0)}ms`);
