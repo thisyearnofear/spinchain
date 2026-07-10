@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRewards, type RewardMode } from "@/app/hooks/rewards/use-rewards";
+import { useRewardsStore } from "@/app/stores/rewards-store";
 import { useChainlinkVerification } from "@/app/hooks/evm/use-chainlink-verification";
 import { useZKClaim } from "@/app/hooks/evm/use-zk-claim";
 import { REWARD_VERIFICATION } from "@/app/config";
@@ -53,6 +54,20 @@ export function useRideRewards({
 
   const useChainlinkRewards = REWARD_VERIFICATION.mode === "chainlink";
   const [completedRideId, setCompletedRideId] = useState<string | null>(null);
+
+  // Yellow streaming is driven by this hook (wallet-signed channel), but the
+  // in-ride HUD reads the rewards store — bridge the stream state across.
+  // zk-batch/sui-native accrual is written to the store by the coordinator.
+  useEffect(() => {
+    if (rewardMode !== "yellow-stream") return;
+    useRewardsStore.setState({
+      isActive: rewards.isActive,
+      streamState: rewards.streamState ?? null,
+      clearNodeConnected: rewards.clearNodeConnected ?? false,
+      accumulatedReward: rewards.accumulatedReward,
+      formattedReward: rewards.formattedReward,
+    });
+  }, [rewardMode, rewards.isActive, rewards.streamState, rewards.clearNodeConnected, rewards.accumulatedReward, rewards.formattedReward]);
 
   const rewardClaimStatus: RewardClaimStatus | undefined = useMemo(() => {
     if (isPracticeMode || isTrainingMode) return undefined;
