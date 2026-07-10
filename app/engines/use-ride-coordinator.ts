@@ -106,6 +106,15 @@ export function useRideCoordinator() {
   }, []);
 
   /**
+   * Stops the ride engines (finalizes telemetry averages, ends the oracle
+   * session) WITHOUT disposing — Sui anchoring during ride persistence still
+   * needs the coordinator. Disposal happens on unmount.
+   */
+  const stopEngines = useCallback(async (): Promise<void> => {
+    await coordinatorRef.current?.stop();
+  }, []);
+
+  /**
    * Updates elapsed time (called by lifecycle tick from existing hooks).
    */
   const setElapsedSeconds = useCallback((seconds: number): void => {
@@ -262,6 +271,7 @@ export function useRideCoordinator() {
       pauseRide,
       resumeRide,
       stopRide,
+      stopEngines,
       setElapsedSeconds,
       setCurrentGear,
       speak,
@@ -287,6 +297,7 @@ export function useRideCoordinator() {
       pauseRide,
       resumeRide,
       stopRide,
+      stopEngines,
       setElapsedSeconds,
       setCurrentGear,
       speak,

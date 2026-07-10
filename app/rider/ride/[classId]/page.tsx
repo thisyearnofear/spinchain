@@ -334,7 +334,6 @@ export default function LiveRidePage() {
     workoutPlan,
     deviceType,
     performanceTier,
-    telemetryAverages,
     elapsedTime,
     rewardClaimStatus: rewardsHook.rewardClaimStatus,
     useChainlinkRewards: rewardsHook.useChainlinkRewards,
