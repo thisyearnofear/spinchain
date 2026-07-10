@@ -566,6 +566,7 @@ export default function LiveRidePage() {
       <RideModals
         classId={classId}
         classData={classData}
+        walletConnected={walletConnected}
         rewardsFormattedReward={rewardsHook.rewards.formattedReward}
         handleClaimRewards={rewardsHook.handleClaimRewards}
         rewardClaimStatus={rewardsHook.rewardClaimStatus}

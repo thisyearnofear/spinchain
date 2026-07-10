@@ -191,7 +191,7 @@ function JourneyContent() {
                   </span>
                 </div>
                 <p className="mt-4 text-[10px] text-white/40 font-medium">
-                  Rewards are claimed automatically after each ride. No separate claim action needed.
+                  Claim SPIN from each ride&apos;s summary screen right after you finish — it isn&apos;t automatic yet.
                 </p>
               </div>
 
