@@ -183,7 +183,8 @@ export async function fetchGhostWithFallback(
 
   // Fall back to mock ghost with custom name if provided
   const mockRiderName = options.riderName || (options.ghostType === "personal_best" ? "Your Best" : "Gold Standard");
-  return generateMockGhost(routeCoordinates, targetSpeedKmh, undefined, mockRiderName);
+  const mockId = `${options.classId}-${options.ghostType ?? "instructor"}-mock`;
+  return generateMockGhost(routeCoordinates, targetSpeedKmh, undefined, mockRiderName, mockId);
 }
 
 /**
@@ -195,6 +196,7 @@ export function generateMockGhost(
   targetSpeedKmh: number,
   startTime: number = Date.now(),
   riderName: string = "Gold Standard",
+  id: string = "gold-standard",
 ): GhostPerformance {
   const points: RideRecordPoint[] = [];
   let totalDistance = 0;
@@ -246,7 +248,7 @@ export function generateMockGhost(
   });
 
   return {
-    id: "gold-standard",
+    id,
     riderName,
     points,
     totalTime: (totalDistance * 1000) / speedMps,

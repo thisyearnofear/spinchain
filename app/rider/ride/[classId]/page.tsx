@@ -51,6 +51,15 @@ import { useRideLifecycle } from "@/app/hooks/ride/use-ride-lifecycle";
 import { usePrPursuit } from "@/app/hooks/ride/use-pr-pursuit";
 import { usePushLiveTelemetry } from "@/app/hooks/common/use-live-telemetry";
 
+/** Fully static class strings per multi-ghost avatar position, so Tailwind's
+ *  build-time scanner can see them (dynamic `bg-${color}-500` templates get
+ *  purged from the production bundle). */
+const POSITION_AVATAR_CLASSES = [
+  "bg-emerald-500/20 border border-emerald-500/30 text-emerald-300",
+  "bg-amber-500/20 border border-amber-500/30 text-amber-300",
+  "bg-rose-500/20 border border-rose-500/30 text-rose-300",
+];
+
 export default function LiveRidePage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -521,11 +530,14 @@ export default function LiveRidePage() {
         <div className="fixed top-40 left-6 z-40 flex flex-col gap-3">
           {multiGhostState.map((rider, idx) => {
             const isAhead = rider.leadLagTime < 0;
-            const positionColor = idx === 0 ? "emerald" : idx === 1 ? "amber" : "rose";
+            // Static per-index classes — Tailwind can't see classes built from
+            // template strings (bg-${color}-500) at build time, so those get
+            // purged from the production bundle and render unstyled.
+            const positionAvatarClass = POSITION_AVATAR_CLASSES[idx % POSITION_AVATAR_CLASSES.length];
             return (
               <div key={rider.id ?? idx} className="flex items-center gap-3 bg-black/70 backdrop-blur-xl border border-white/10 rounded-full pl-1.5 pr-4 py-1.5 animate-in fade-in slide-in-from-left-5 duration-500">
                 <div className="relative">
-                  <div className={`w-8 h-8 rounded-full bg-${positionColor}-500/20 border border-${positionColor}-500/30 flex items-center justify-center text-[10px] font-black text-${positionColor}-300`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black ${positionAvatarClass}`}>
                     {rider.name?.substring(0, 2).toUpperCase() ?? "??"}
                   </div>
                   {rider.active && <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-black animate-pulse" />}
