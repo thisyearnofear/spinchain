@@ -763,6 +763,15 @@ function MobileCompactHUD({
               currentPower={currentPower}
               isActive={isRiding}
             />
+            <svg
+              className="ml-auto h-4 w-4 shrink-0 text-white/30"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+            </svg>
           </div>
         ) : (
           <div className="flex flex-col gap-6">
