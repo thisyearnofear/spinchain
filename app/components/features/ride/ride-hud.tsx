@@ -11,6 +11,7 @@ import { useUIStore } from "@/app/stores/ui-store";
 import { useIntervalAudioCues } from "@/app/hooks/ride/use-interval-audio";
 import { PrPacingIndicator } from "@/app/components/features/ride/pr-pacing-indicator";
 import { SegmentTracker } from "@/app/components/features/ride/segment-tracker";
+import { RiveRider } from "@/app/components/features/ride/rive-rider";
 import type { IntervalPhase } from "@/app/lib/workout-plan";
 import type { GhostState } from "@/app/lib/analytics/ghost-service";
 import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
@@ -381,6 +382,13 @@ export function RideHUD() {
               mode={rewardsMode as "yellow-stream" | "zk-batch" | "sui-native"}
               symbol="SPIN"
             />
+          </div>
+        )}
+
+        {/* Rive rider avatar — reacts to telemetry, interval phase, coach, rewards, PR */}
+        {isRiding && (
+          <div className="flex justify-center">
+            <RiveRider size={140} />
           </div>
         )}
 
