@@ -255,7 +255,12 @@ async function resolveRouteForMetadata(
     return { route: enrichWalrusRouteData(cachedRoute, metadata, classId), isGenerated: false };
   }
 
-  if (metadata.route.walrusBlobId) {
+  const isPlaceholderBlob =
+    !metadata.route.walrusBlobId ||
+    metadata.route.walrusBlobId.startsWith('practice-') ||
+    metadata.route.walrusBlobId.startsWith('demo-');
+
+  if (!isPlaceholderBlob) {
     try {
       const remoteRoute = await retrieveRouteFromWalrus(metadata.route.walrusBlobId);
       if (remoteRoute) {

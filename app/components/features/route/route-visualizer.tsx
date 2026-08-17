@@ -656,9 +656,18 @@ function RiderMarker({
     // Lift slightly above road
     groupRef.current.position.y += equipment?.type === "vehicle" ? 2.5 : 1.5;
 
-    // Update rotation to face forward
-    const lookAt = point.clone().add(tangent);
-    groupRef.current.lookAt(lookAt);
+    // getTangentAt can return NaN independently of getPointAt near a closed
+    // curve's near-zero-length segments (most likely right at ride start,
+    // where progress sits close to the wrap boundary). Feeding a NaN tangent
+    // into lookAt() sets a NaN rotation quaternion, which NaN-poisons this
+    // group's world matrix — and <Trail> below samples that world position
+    // every frame, baking the NaN into its geometry (visible as a burst of
+    // THREE.BufferGeometry NaN warnings that self-heals once progress moves
+    // off the degenerate value).
+    if (Number.isFinite(tangent.x) && Number.isFinite(tangent.y) && Number.isFinite(tangent.z)) {
+      const lookAt = point.clone().add(tangent);
+      groupRef.current.lookAt(lookAt);
+    }
 
     // Reactive pulsing
     if (auraRef.current) {
@@ -1108,7 +1117,16 @@ function Scene({
       if (!Number.isFinite(riderPos.x)) return;
       riderPos.y -= 10; // match group offset [0, -10, 0]
 
-      const tangent = curve.getTangentAt(safeCurveP).normalize();
+      const rawTangent = curve.getTangentAt(safeCurveP);
+      // Same class of bug as RiderMarker: getTangentAt can be NaN near a
+      // closed curve's near-zero-length segments even when getPointAt is
+      // fine. Unlike RiderMarker's self-healing Trail buffer, camera.lerp()
+      // toward a NaN target permanently poisons camera.position (NaN in,
+      // NaN out on every subsequent lerp) — skip the frame instead.
+      if (!Number.isFinite(rawTangent.x) || !Number.isFinite(rawTangent.y) || !Number.isFinite(rawTangent.z)) {
+        return;
+      }
+      const tangent = rawTangent.normalize();
       const up = Math.abs(tangent.y) > 0.98 ? new Vector3(1, 0, 0) : new Vector3(0, 1, 0);
       const side = new Vector3().crossVectors(tangent, up).normalize();
 
