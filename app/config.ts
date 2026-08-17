@@ -39,6 +39,13 @@ function resolveRewardVerificationMode(): RewardVerificationMode {
     : "chainlink";
 }
 
+/**
+ * Demo mode flag — controls whether fabricated demo content (curated sample
+ * classes, hardcoded metrics) is shown. Reads NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG.
+ * Defaults to false so production never shows fake data.
+ */
+export const DEMO_MODE = process.env.NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG === "true";
+
 export const CONTRACTS = {
   // Avalanche Fuji Testnet Addresses
   avalanche: {
