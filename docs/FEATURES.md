@@ -15,10 +15,12 @@ This file distinguishes between what is implemented in the current app, what is 
 - Chunked ZK reward claims that batch 60-second proofs into one `IncentiveEngine` submission
 
 ### Not Yet Launch-Ready
-- Fully validated production-safe reward settlement
-- Reliable replacement of mock data in all user-facing flows (instructor live page now labels demo data as "Preview Mode")
-- SpinPack ERC-1155 contract deployment (UI labeled as "Preview")
+- Fully validated production-safe reward settlement (ZK batch claims verified on Fuji; browser-level E2E of the full claim loop still missing)
+- Supabase backend provisioned — schema + client code complete, but no instance/env vars exist yet; persistence silently falls back to localStorage
+- Live Vercel deployment is stale — ships the pre-UltraHonk bundle that fails Noir init; redeploy from HEAD
+- SpinPack ERC-1155 contract is deployed on Fuji, but UI flows around it still carry "Preview" labels
 - Finalized launch verification and operational monitoring
+- Demo/mock content is now gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (off by default) — local dev sets it true; verify Vercel leaves it unset
 
 ---
 
@@ -237,7 +239,7 @@ function beforeSwap(...) override {
 - Plans stored as JSON
 - Persistent across devices
 - Cost-efficient (off-chain)
-- AI Coach system prompts and decision logs are stored as Walrus blobs and anchored on Sui `RiderStats` / `Coach` objects (see `docs/HACKATHON_PLAN.md`)
+- AI Coach system prompts and decision logs are stored as Walrus blobs and anchored on Sui `RiderStats` / `Coach` objects
 
 ---
 

@@ -125,6 +125,15 @@ sui client publish --gas-budget 100000000
 | **Upgrade Tx** | `350668558` |
 | **Upgrade Cap** | `0x146219a29eb67a17fbcc52d580857a399aa20a06eee235570a3beace14752f75` |
 
+**v2 upgrade contents** (additive, preserves `original-id`):
+- `spinsession::anchor_telemetry_blob` entry function (Walrus-as-memory anchoring)
+- `spinsession::TelemetryAnchor` struct + `TelemetryBlobAttached` event
+- `spin_token` module (`TreasuryManager` shared object with buyback/burn/deposit entry functions)
+
+Anchor flow verified end-to-end on testnet: live `anchor_telemetry_blob` call emitted
+`TelemetryBlobAttached` and minted a `TelemetryAnchor` object (tx
+`GBQRG544QKNTvqXmioTTaKEdQjr5spCSj1ryv6NSE8ML`).
+
 ---
 
 ## ZK Verifier (Noir)
@@ -159,7 +168,7 @@ node $BB write_solidity_verifier -k target/vk_evm/vk -o ../../contracts/evm/src-
 **Note:** `HonkVerifier.sol` must be compiled without `via_ir` (it triggers a stack-too-deep error). It lives in `contracts/evm/src-honk/` and is compiled via `FOUNDRY_PROFILE=honk`. The rest of the contracts use `via_ir = true` in the default profile.
 
 ### ZK Verification Flow (Real)
-1. Browser generates real Noir proof via `@noir-lang/noir_js` + `backend_barretenberg`
+1. Browser generates real Noir proof via `@noir-lang/noir_js` + `@aztec/bb.js` (UltraHonk backend, off the main thread)
 2. Proof submitted on-chain to `EffortThresholdVerifier`
 3. `EffortThresholdVerifier` calls `HonkVerifier.verify()` — real cryptographic verification
 4. If valid, `IncentiveEngine` distributes SPIN token rewards
@@ -276,9 +285,14 @@ forge test -vvv
 - Treat CI and local verification as part of the launch work still in progress
 - See `docs/PRODUCTION_ROADMAP.md` for the current blocker list
 
-## Hackathon Submissions
+**Current deployment blockers (2026-08-17):**
+- ⚠️ The live Vercel build is STALE — it predates the UltraHonk migration (`bfa6d6c6e`) and ships a broken `@noir-lang/backend_barretenberg` import, so every user sees `[NoirProver] Initialization failed` when starting a ride. **Redeploy from HEAD to fix.**
+- Supabase is not provisioned: create a project, run `app/lib/supabase/schema.sql`, then set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` on Vercel (and `.env.local`). Without these, persistence/auth silently fall back to localStorage.
+- Keep `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` unset (or `false`) on Vercel so no demo/mock data reaches users; `.env.local` sets it `true` for local dev only.
 
-The deployment posture above is also the submission posture for the Sui Overflow 2026 (Walrus Track) and Tatum × Walrus hackathons. Both submissions target testnet and use the existing Walrus client (`app/lib/walrus/`) and Sui Move package (`contracts/move/spinchain/`) as deployed today. Tatum's Sui RPC is consumed by a single-file URL swap in `app/sui-provider.tsx` — no parallel Sui client, no new SDK, no architecture deviation. See `docs/HACKATHON_PLAN.md` for the file-level change list, phasing, and mainnet-readiness criteria required to unlock the 100% prize payout.
+## Tatum Sui RPC (optional)
+
+Tatum's Sui RPC is consumed by a single-file URL swap in `app/sui-provider.tsx` — no parallel Sui client, no new SDK. Set `NEXT_PUBLIC_TATUM_API_KEY` to route Sui JSON-RPC through Tatum's gateway; unset falls back to Mysten public fullnodes.
 
 ---
 

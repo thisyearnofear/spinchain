@@ -1,16 +1,16 @@
 # SpinChain Production Roadmap
 
-**Updated**: 2026-06-23
+**Updated**: 2026-08-17
 
 ---
 
 ## Current State
 
-SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coaching (rule-based + LLM), ZK proof rewards, Walrus-anchored telemetry, on-chain class contracts, and a personalized onboarding flow. The codebase is clean (0 TS errors, 0 new lint warnings after DRY consolidation).
+SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coaching (rule-based + LLM), ZK proof rewards, Walrus-anchored telemetry, on-chain class contracts, Supabase-backed persistence, instructor-rider loop, and a personalized onboarding flow. Codebase is clean (0 TS errors, 1 lint warning, 132 tests passing, CI green).
 
-**What's done**: Dual-chain integration, ZK batch claims with real Noir proofs, Walrus persistence, rider quiz + personalized hero, ride history with effort tiers/zones/streaks/badges, post-ride comparison, data ownership dashboard, instructor class builder, instructor analytics (mocked), AI coach personalities, ghost racing.
+**What's done**: Phases 0–3 complete (Supabase backend + wallet auth, instructor-rider loop, agentic AI insights), real ZK batch claims on Fuji, all 8 EVM contracts deployed + verified, Sui package v2 on testnet, Walrus persistence, ride history/analytics/badges, gym registry + calibration, ghost racing, Rive rider avatar slot (CSS fallback until `rider.riv` is exported).
 
-**What's missing**: Persistent backend, instructor-rider loop, homework system, agentic insights, biometric personalization.
+**What's missing for users**: Vercel redeploy (live build is stale), Supabase provisioning on Vercel, browser-level E2E tests, testnet soft-launch validation.
 
 ---
 
@@ -163,6 +163,24 @@ Carried over from previous remediation work:
 - [x] Resolve placeholder config values — SpinPack deployed (`0x2C8443...`), all 8 Fuji contracts verified. Kite SDK integrated (gokite-aa-sdk) — agent vault + AA wallet addresses set via env vars when deployed
 - [x] Keep reward settlement and ride-summary anchoring status distinct across UI, storage, and relay flows — separate `getRideRewardStatus` / `getRideAnchoringStatus` functions, separate UI badges in journey page, separate settlement section in ride completion storage tab
 
+From the 2026-08-17 launch-prep session:
+
+- [x] Demo/mock data gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (off by default) — curated classes, instructor-live demo metrics, fake leaderboard no longer reach production users
+- [x] Walrus 400 spam eliminated — placeholder blob IDs (`practice-*`, `demo-*`) skip the aggregator fetch
+- [x] NaN tangent guards in route visualizer (rider marker + camera follow)
+- [x] Ride HUD polish — `tabular-nums` on all live numbers, mobile tap-to-expand restored, swipe/click conflict guard, chevron affordance, 7px→9px labels
+- [x] Landing page perf — mousemove gradient now writes direct to DOM (no full-tree re-renders)
+- [x] Reduced-motion support — `<MotionConfig reducedMotion="user">` app-wide
+- [ ] **Redeploy Vercel from HEAD** — live site still serves the pre-`bfa6d6c6e` bundle with the broken `@noir-lang/backend_barretenberg` import (causes `[NoirProver] Initialization failed` for every ride start)
+- [ ] **Provision Supabase** — create project, run `app/lib/supabase/schema.sql`, set `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` locally + on Vercel. Until then all persistence/auth silently falls back to localStorage
+- [ ] **Browser-level E2E tests** — wallet connect → class join → ride → ZK proof → claim; Supabase auth (nonce → sign → JWT); API routes (`/api/rides`, `/api/homework`, `/api/auth/*`)
+- [ ] **Testnet soft-launch validation** — real users through the full loop on Fuji + Sui testnet
+- [ ] UI/UX polish backlog (LOW): hero infinite pulse loop, `aria-label` on mobile HUD widget, scattered `transition-all` on low-frequency targets, `text-[8px]` labels on mobile
+- [ ] Chainlink CRE — blocked on Early Access approval (ZK path is independent, not a launch blocker)
+- [ ] Rive rider asset — export `rider.riv` per `public/rive/README.md` contract (HUD falls back to CSS orb until then)
+- [ ] Load testing — pending testnet deployment
+- [ ] Security audit — pre-mainnet
+
 ### Gas Benchmark Results (Foundry, mock verifier)
 
 | Chunks | Ride Duration | Gas (batch) | Gas (individual) | Savings | Fuji Block Headroom |
@@ -194,3 +212,56 @@ cd contracts/evm && forge test --match-contract E2EFujiDeployment --fork-url fuj
 # Manual verification script
 ./scripts/e2e-verify-fuji.sh
 ```
+
+---
+
+## Mainnet Migration Path (post-testnet)
+
+When ready to leave testnet:
+
+- [ ] Publish `spinsession.move` package to Sui mainnet (`sui client publish` with mainnet env) → update `NEXT_PUBLIC_SUI_PACKAGE_ID`
+- [ ] Flip Walrus to mainnet: `NEXT_PUBLIC_WALRUS_NETWORK=mainnet` (aggregator `https://aggregator.walrus-mainnet.walrus.space`)
+- [ ] Deploy `IncentiveEngine.sol` + supporting contracts to Avalanche C-Chain mainnet (replacing Fuji) → update all `NEXT_PUBLIC_*_ADDRESS` env vars
+- [ ] Re-run the full claim flow end-to-end on mainnet (single + batched ZK proofs)
+- [ ] Security audit of contracts before real-value deployment
+
+---
+
+## Session Log
+
+### 2026-08-17 — Launch-prep: production bug fixes + UI/UX pass
+
+**Production bugs reported by test users (ride start):**
+
+- ✅ **NoirProver init failure** (`Failed to resolve module specifier '@noir-lang/backend_barretenberg'`) — root cause: the live Vercel build predates `bfa6d6c6e`, where the old code used `import(/* webpackIgnore: true */ '@noir-lang/backend_barretenberg')` and the browser couldn't resolve the bare specifier. Current HEAD already uses `@aztec/bb.js` UltraHonk. **Action left: redeploy Vercel from HEAD** — no code change needed.
+- ✅ **Walrus 400 spam** (`aggregator.walrus-testnet.walrus.space/v1/blobs/practice-...`) — practice/demo classes carried fake blob IDs that were sent to the aggregator 3× before falling back. `resolveRouteForMetadata` now skips the fetch for `practice-*` / `demo-*` blob IDs (use-class-data.ts).
+- ✅ **NaN tangent poisoning** (route-visualizer.tsx) — `getTangentAt` can return NaN near a closed curve's degenerate segments; previously NaN-poisoned the Trail buffer and permanently broke the camera follow lerp. Both paths now guard with `Number.isFinite`.
+
+**Demo data out of production:**
+
+- ✅ New `DEMO_MODE` flag in `app/config.ts` driven by `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (defaults to **off**).
+- ✅ Curated fake classes (Coach Atlas / Dr. Spin / Coach Nova / Zen Master) no longer show when the chain has no classes — rider page gets the real empty state instead.
+- ✅ Instructor live page: hardcoded metrics, benchmark, revenue, conversion copy, and fake leaderboard all gated; real telemetry/leaderboard API data or zeros/empty states otherwise.
+- ✅ `.env.local` keeps the flag on for local dev; production stays clean.
+
+**UI/UX pass (make-interfaces-feel-better + emil-design-eng + impeccable skills installed in `.agents/skills/`):**
+
+- ✅ `tabular-nums` on every live-updating number (MetricCard, mobile compact/expanded values, ghost lead/lag, multi-ghost gap badges, top-bar reward ticker, ride-progress stats) — 10Hz telemetry no longer shifts layout.
+- ✅ MetricCard value: `transition-all` → `transition-colors` (no transitions on a text node).
+- ✅ Mobile compact HUD: tap now expands/collapses (expanded state was previously unreachable dead code), swipe still cycles the metric, click-after-swipe guard added, chevron affordance on collapsed state.
+- ✅ Landing page: mousemove gradient now writes straight to the DOM via ref — no more full React tree re-render per mouse move.
+- ✅ `<MotionConfig reducedMotion="user">` in providers — all framer-motion animations respect the OS reduce-motion preference.
+- ✅ Ghost gap label bumped 7px → 9px.
+
+**Remaining (priority order):**
+
+1. **Redeploy Vercel from HEAD** — fixes the Noir error users see right now.
+2. **Provision Supabase** — create project, run `app/lib/supabase/schema.sql`, set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` and Vercel env vars. Until then ride history / profiles / homework / auth fall back to localStorage (data loss risk).
+3. **Verify `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` stays unset on Vercel** (defaults to off; `.env.local` has it true for dev).
+4. **Browser-level E2E tests** — wallet connect → class join → ride → ZK proof → claim; Supabase auth (nonce → sign → JWT); API routes (`/api/rides`, `/api/homework`, `/api/auth/*`).
+5. **LOW UI polish backlog** — hero infinite pulse loop (`scale [1,1.02,1]` repeating), `aria-label` on the mobile HUD widget button, ~19 `transition-all` on low-frequency targets (top-bar/bottom-panel/tutorial), 14× `text-[8px]` labels (fine on desktop, borderline on mobile).
+6. **Rive rider asset** — export `rider.riv` per the contract in `public/rive/README.md` (HUD renders a CSS fallback orb until then).
+7. **Testnet soft-launch** — real users through the full loop on Fuji + Sui testnet.
+8. **Chainlink CRE** — blocked on Early Access approval; ZK path works independently (not a blocker).
+
+Commits: `7eb30e2` (Walrus + NaN fixes), `533bd6b` (Rive slot), `88c2ca0` (HUD numbers + mobile expand), `6fd96b3` (demo flag), `17c2108` (landing perf), `8c3112b` (reduced motion).

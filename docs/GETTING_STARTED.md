@@ -2,10 +2,11 @@
 
 This guide is for local development and internal testing.
 
-Current status as of 2026-06-22:
-- The app is in demo/testnet stage
-- Some rider-facing views fall back to curated demo data when on-chain contract data is unavailable
-- Real Noir ZK circuit deployed: HonkVerifier on Fuji, Barretenberg WASM prover in browser
+Current status as of 2026-08-17:
+- The app is in testnet stage; user launch prep underway
+- Demo content (curated sample classes, instructor-live filler metrics) is gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` — off by default; set it `true` in `.env.local` to see demo content locally
+- Real Noir ZK circuit deployed: HonkVerifier on Fuji, UltraHonk proving in the browser via `@aztec/bb.js` (off the main thread)
+- Supabase code is complete but no instance is provisioned yet — persistence/auth fall back to localStorage until env vars are set
 - Do not treat this repo as production-ready without completing the launch checklist in `docs/PRODUCTION_ROADMAP.md`
 
 ## Quick Start
@@ -21,7 +22,7 @@ cp .env.local.template .env.local
 pnpm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3210](http://localhost:3210) (dev server is pinned to port 3210)
 
 ---
 
@@ -56,13 +57,13 @@ NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=0x...
 NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x...
 NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=0x...
 
-# Tatum Sui RPC (optional, see docs/HACKATHON_PLAN.md)
+# Tatum Sui RPC (optional)
 # When set, Sui JSON-RPC traffic routes through Tatum's gateway.
 # Free key at https://dashboard.tatum.io
 NEXT_PUBLIC_TATUM_API_KEY=
 
 # Walrus network (optional, defaults to testnet)
-# Set to "mainnet" once Phase 4 in docs/HACKATHON_PLAN.md is executed
+# Set to "mainnet" once the mainnet migration (see docs/PRODUCTION_ROADMAP.md) is executed
 NEXT_PUBLIC_WALRUS_NETWORK=testnet
 ```
 

@@ -125,6 +125,28 @@ Fallback speed calculation using aerodynamic drag and gravity:
 | ZK Proofs | Avalanche Events | N/A | Permanent |
 | Agent Audits | Kite AI Events | N/A | Permanent |
 
+### Walrus-as-Memory data flow
+
+High-frequency biometric data is too voluminous to keep on-chain (10Hz+ = thousands
+of points per session). SpinChain splits storage across two layers that compose
+into verifiable, persistent, low-cost fitness data:
+
+1. **During a ride** — 10Hz telemetry (HR, power, cadence) streams into Sui
+   `RiderStats` Move objects via batched PTB transactions (~50 points per tx,
+   ~80% gas reduction vs one-point-per-tx).
+2. **At ride completion** — the full telemetry time-series is uploaded to Walrus
+   as a compressed JSON blob.
+3. **On-chain anchoring** — a `TelemetryAnchor` Move object is minted on Sui
+   (`spinsession::anchor_telemetry_blob`) storing the Walrus blob ID, storage
+   epoch, and point count: a durable on-chain pointer to the off-chain data.
+4. **AI Coach memory** — the `Coach` struct carries a `system_prompt_cid` field
+   referencing Walrus blobs with the agent's behavioral logic and decision
+   history, so coach personality is verifiable and survives wallet migration.
+
+Verified on Sui testnet: anchor call emits `TelemetryBlobAttached` and the
+`TelemetryAnchor` object is owned by the deployer. The on-chain objects stay
+small; Walrus holds the heavy data.
+
 ---
 
 ## Chainlink Runtime Environment (CRE)

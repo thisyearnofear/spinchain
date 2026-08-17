@@ -29,7 +29,7 @@ export const onCronTrigger = async (
   runtime.log(`Checking for new verification requests at ${config.ORACLE_ADDRESS}`);
 
   // In this SDK version, we manually fetch logs or data if log trigger is unavailable
-  // For the simulation/hackathon, we'll simulate the event processing
+  // For simulation, we simulate the event processing
   
   // Example: Mocking the detection of a request for simulation purposes
   // In production with a full SDK, this would be an automatic trigger.
