@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo, useMemo } from "react";
+import { useState, useEffect, memo, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { YellowRewardTicker } from "@/app/components/features/common/yellow-reward-ticker";
 import { useTelemetryStore, selectHeartRate, selectPower, selectCadence, selectSpeed, selectEffort, selectCurrentGear, selectGearRatio } from "@/app/stores/telemetry-store";
@@ -160,7 +160,7 @@ function GhostLeadLag({
         Ghost Pacer
       </span>
       <div className="flex items-baseline gap-1.5">
-        <span className={`text-lg font-black ${color} tracking-tighter`}>
+        <span className={`text-lg font-black tabular-nums ${color} tracking-tighter`}>
           {isLeading ? "+" : "-"}
           {absTime.toFixed(1)}s
         </span>
@@ -426,7 +426,7 @@ export function RideHUD() {
                     >
                       {ghost.name?.substring(0, 1) ?? "?"}
                     </div>
-                    <div className="absolute -bottom-1.5 -right-1.5 min-w-[20px] h-4 px-1 rounded-full bg-black border border-white/10 flex items-center justify-center text-[7px] font-bold text-white/70">
+                    <div className="absolute -bottom-1.5 -right-1.5 min-w-[20px] h-4 px-1 rounded-full bg-black border border-white/10 flex items-center justify-center text-[9px] font-bold tabular-nums text-white/70">
                       {gapLabel}s
                     </div>
                     {/* Tooltip on hover */}
@@ -551,7 +551,7 @@ const MetricCard = memo(function MetricCard({
 
       <div className="relative z-10">
         <p
-          className={`text-5xl sm:text-7xl font-black tracking-tighter ${color} transition-all duration-300`}
+          className={`text-5xl sm:text-7xl font-black tracking-tighter tabular-nums ${color} transition-colors duration-300`}
         >
           {value}
           <span className="text-sm sm:text-lg font-bold text-white/40 ml-2 tracking-normal uppercase">
@@ -618,6 +618,9 @@ function MobileCompactHUD({
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
     null,
   );
+  // Set when a swipe just cycled the widget, so the click event some
+  // browsers fire after touchend doesn't also toggle expansion.
+  const swipeConsumedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -626,20 +629,13 @@ function MobileCompactHUD({
   }, [visibleWidget]);
 
   const handleTap = () => {
-    if (expanded) {
-      setExpanded(false);
-    } else {
-      setVisibleWidget((prev) => {
-        const widgets: (typeof prev)[] = [
-          "primary",
-          "power",
-          "heartrate",
-          "cadence",
-        ];
-        const currentIdx = widgets.indexOf(prev);
-        return widgets[(currentIdx + 1) % widgets.length];
-      });
+    // Tap expands/collapses; horizontal swipe cycles the visible widget
+    // (handled in handleTouchEnd).
+    if (swipeConsumedRef.current) {
+      swipeConsumedRef.current = false;
+      return;
     }
+    setExpanded((prev) => !prev);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -652,6 +648,7 @@ function MobileCompactHUD({
     const deltaY = e.changedTouches[0].clientY - touchStart.y;
 
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
+      swipeConsumedRef.current = true;
       setVisibleWidget((prev) => {
         const widgets: (typeof prev)[] = [
           "primary",
@@ -746,7 +743,7 @@ function MobileCompactHUD({
               </span>
               <div className="flex items-baseline gap-1">
                 <span
-                  className={`text-3xl font-black tracking-tighter ${currentMetric.color}`}
+                  className={`text-3xl font-black tracking-tighter tabular-nums ${currentMetric.color}`}
                 >
                   {currentMetric.value}
                 </span>
@@ -774,7 +771,7 @@ function MobileCompactHUD({
                 {phaseMetrics.primary.label}
               </p>
               <p
-                className={`text-6xl font-black tracking-tighter ${phaseMetrics.primary.color}`}
+                className={`text-6xl font-black tracking-tighter tabular-nums ${phaseMetrics.primary.color}`}
               >
                 {phaseMetrics.primary.value}
                 <span className="text-base font-bold text-white/20 ml-2 uppercase">
@@ -796,7 +793,7 @@ function MobileCompactHUD({
                     {metric.label}
                   </p>
                   <p
-                    className={`text-xl font-black tracking-tighter ${metric.color}`}
+                    className={`text-xl font-black tracking-tighter tabular-nums ${metric.color}`}
                   >
                     {metric.value}
                   </p>

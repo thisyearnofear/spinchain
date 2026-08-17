@@ -165,7 +165,7 @@ function Stat({
   return (
     <div className="text-center sm:text-left">
       <p className="text-[10px] sm:text-sm text-white/50">{label}</p>
-      <p className={`text-xl sm:text-2xl font-bold ${valueColor}`}>{value}</p>
+      <p className={`text-xl sm:text-2xl font-bold tabular-nums ${valueColor}`}>{value}</p>
     </div>
   );
 }
