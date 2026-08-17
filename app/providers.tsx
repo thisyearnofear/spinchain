@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MotionConfig } from 'framer-motion';
 import { WagmiProvider, useAccount, type Config } from 'wagmi';
 import { createBrowserWagmiConfig } from './wagmi';
 import { SuiProvider } from './sui-provider';
@@ -153,11 +154,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   
   return (
     <ThemeProvider>
-      <ToastProvider>
-        <InnerProviders>
-          {children}
-        </InnerProviders>
-      </ToastProvider>
+      {/* Respect OS "reduce motion" for every framer-motion animation in the app */}
+      <MotionConfig reducedMotion="user">
+        <ToastProvider>
+          <InnerProviders>
+            {children}
+          </InnerProviders>
+        </ToastProvider>
+      </MotionConfig>
     </ThemeProvider>
   );
 }
