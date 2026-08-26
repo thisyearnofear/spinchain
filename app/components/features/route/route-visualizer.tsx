@@ -15,6 +15,7 @@ import {
   MathUtils,
   PerspectiveCamera as ThreePerspectiveCamera,
   Points,
+  BackSide,
 } from "three";
 import {
   EffectComposer,
@@ -1115,6 +1116,69 @@ function FrameRateLimiter({ fps }: { fps: number }) {
   return null;
 }
 
+// ─── Flow Celebration ───────────────────────────────────────────────
+// Triggers celebration particles when flow tier increases
+
+interface FlowCelebrationProps {
+  effect: { tier: number; startedAt: number } | null;
+}
+
+function FlowCelebration({ effect }: FlowCelebrationProps) {
+  const groupRef = useRef<Group>(null);
+  const startedAtRef = useRef<number | null>(null);
+
+  useFrame((state) => {
+    if (!effect || !groupRef.current) return;
+
+    // Reset when tier changes
+    if (startedAtRef.current === null || (effect.tier !== effect._lastTier)) {
+      startedAtRef.current = state.clock.elapsedTime;
+      effect._lastTier = effect.tier;
+    }
+
+    const elapsed = state.clock.elapsedTime - startedAtRef.current;
+    if (elapsed > 3) {
+      startedAtRef.current = null;
+      return;
+    }
+
+    // Fade out celebration particles over 3 seconds
+    const progress = elapsed / 3;
+    groupRef.current.children.forEach((child, i) => {
+      const mesh = child as Mesh;
+      const mat = mesh.material as THREE.MeshBasicMaterial;
+      mat.opacity = Math.max(0, 0.8 * (1 - progress));
+      mesh.scale.multiplyScalar(1.02);
+    });
+  });
+
+  if (!effect || startedAtRef.current === null) return null;
+
+  return (
+    <group ref={groupRef}>
+      {/* Celebration burst particles */}
+      {Array.from({ length: 20 + effect.tier * 10 }).map((_, i) => {
+        const angle = (i / (20 + effect.tier * 10)) * Math.PI * 2;
+        const radius = 2 + effect.tier * 0.5;
+        return (
+          <mesh
+            key={i}
+            position={[
+              Math.cos(angle) * radius,
+              Math.sin(angle) * radius + 3,
+              0,
+            ]}
+          >
+            <sphereGeometry args={[0.1, 8, 8]}
+            />
+            <meshBasicMaterial color={"#f59e0b"} transparent opacity={0.8} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
 function Scene({
   elevationProfile,
   theme = "neon",
@@ -1156,6 +1220,30 @@ function Scene({
   const smoothedShakeRef = useRef(new Vector3());
   const _shakeTargetVec = useRef(new Vector3());
 
+  // ─── Flow Tier Tracking ────────────────────────────────────────
+  const previousFlowTierRef = useRef<FlowStateTier | null>(null);
+  const [currentFlowEffect, setCurrentFlowEffect] = useState<{
+    tier: number;
+    startedAt: number;
+  } | null>(null);
+
+  // Detect flow tier changes
+  useEffect(() => {
+    if (flowTier && flowTier > (previousFlowTierRef.current ?? 0)) {
+      // Flow tier increased — trigger celebration
+      const celebration = {
+        tier: flowTier,
+        startedAt: performance.now(),
+      };
+      setCurrentFlowEffect(celebration);
+      // Auto-clear after 3 seconds
+      setTimeout(() => {
+        setCurrentFlowEffect((prev) => prev?.startedAt < performance.now() - 3000 ? null : prev);
+      }, 3000);
+    }
+    previousFlowTierRef.current = flowTier ?? 0;
+  }, [flowTier]);
+
   // Mouse parallax — subtle camera offset based on pointer position
   const mouseParallaxRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
   const driftTimeRef = useRef(0);
@@ -1168,6 +1256,18 @@ function Scene({
   // Tier 0 = baseline, Tier 4 = 2.2x visual intensity
   const FLOW_SCALING = [1, 1.2, 1.5, 1.8, 2.2];
   const flowScale = FLOW_SCALING[flowTier] ?? 1;
+
+  // ─── Flow Color Palette ────────────────────────────────────────
+  // Each flow tier has a distinct color that tints the entire world
+  const FLOW_COLORS = [
+    null, // Tier 0: no flow color
+    "#34d399", // Tier 1: Focused (green)
+    "#f59e0b", // Tier 2: Flow (amber)
+    "#f97316", // Tier 3: Super Flow (orange)
+    "#ef4444", // Tier 4: Mastery (red)
+  ];
+  const flowColor = FLOW_COLORS[flowTier] ?? null;
+  const showFlowEffects = flowTier >= 1;
 
   // --- Compute reactive world parameters from effort + phase + flow ---
   const reactive = useMemo(() => {
@@ -1359,6 +1459,37 @@ function Scene({
           color={reactive ? reactive.sparkleColor : styles.particleColor}
           opacity={reactive ? reactive.sparkleOpacity : Math.min(0.5, 0.1 + stats.power / 500)}
         />
+      )}
+
+      {/* ─── Flow State Effects ───────────────────────────────────── */}
+      {showFlowEffects && mode === "ride" && (
+        <>
+          {/* Flow-colored ambient overlay */}
+          <mesh>
+            <sphereGeometry args={[150, 32, 32]} />
+            <meshBasicMaterial
+              color={flowColor}
+              transparent
+              opacity={0.03 + flowTier * 0.02}
+              side={THREE.BackSide}
+              depthWrite={false}
+            />
+          </mesh>
+
+          {/* Flow golden particles — scale with tier */}
+          <Sparkles
+            count={flowTier * 200}
+            scale={80}
+            size={Math.min(3, 1 + flowTier * 0.3)}
+            speed={0.5 + flowTier * 0.3}
+            color={flowColor ?? "#f59e0b"}
+            opacity={Math.min(0.7, 0.1 + flowTier * 0.1)}
+            fade
+          />
+
+          {/* Flow milestone celebration — burst particles on tier changes */}
+          <FlowCelebration effect={currentFlowEffect} />
+        </>
       )}
 
       <group position={[0, -10, 0]}>
