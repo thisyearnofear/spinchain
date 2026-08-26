@@ -57,6 +57,7 @@ import { usePushLiveTelemetry } from "@/app/hooks/common/use-live-telemetry";
 import { useSensorySync } from "@/app/hooks/ride/use-sensory-sync";
 import { useFlowState, type FlowStateEvent } from "@/app/lib/flow-state";
 import type { FlowStateTier } from "@/app/lib/flow-state";
+import { milestonesAndStreaks } from "@/app/lib/milestones";
 
 /** Fully static class strings per multi-ghost avatar position, so Tailwind's
  *  build-time scanner can see them (dynamic `bg-${color}-500` templates get
@@ -433,7 +434,29 @@ export default function LiveRidePage() {
   // PR pursuit callouts during ride
   usePrPursuit(isRiding);
 
-  // ─── Sensory sync (audio + visual + haptic choreography) ────────
+  // ─── Milestone Recording ─────────────────────────────────────
+  const recordMilestonesOnCompletion = useCallback(() => {
+    // Record ride stats for milestone tracking
+    milestonesAndStreaks.recordRide({
+      durationSec: elapsedTime,
+      avgPower: telemetryAverages.avgPower || 0,
+      maxPower: maxPowerRef.current,
+      avgHR: telemetryAverages.avgHr || 0,
+      maxHR: maxHRRef.current,
+      avgCadence: 0, // Would need to track cadence history
+      distance: 0, // Would calculate from GPS
+      calories: Math.round(elapsedTime * 0.15), // Rough estimate
+      flowMinutes: flow.totalFlowMinutes,
+      peakFlowTier: flow.flowTier,
+    });
+  }, [elapsedTime, telemetryAverages, maxPowerRef.current, maxHRRef.current, flow]);
+
+  // Trigger milestone recording when completion screen appears
+  useEffect(() => {
+    if (showCompletionScreen) {
+      recordMilestonesOnCompletion();
+    }
+  }, [showCompletionScreen, recordMilestonesOnCompletion]); // eslint-disable-line react-hooks/exhaustive-deps
   const { setCountdownPhase, resetCountdown } = useSensorySync();
 
   // ─── Flow State Engine ──────────────────────────────────────────

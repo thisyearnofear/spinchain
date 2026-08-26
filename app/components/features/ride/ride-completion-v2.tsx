@@ -39,8 +39,9 @@ import {
   phaseLabel,
   type IntervalPhase,
 } from "@/app/lib/phase-theme";
-import { Star, Cloud, CheckCircle2, ExternalLink, Loader2, ShieldCheck, Zap, TrendingUp, Trophy } from "lucide-react";
+import { Star, Cloud, CheckCircle2, ExternalLink, Loader2, ShieldCheck, Zap, TrendingUp, Trophy, Flame } from "lucide-react";
 import { WALRUS_AGGREGATOR_URL } from "@/app/lib/walrus/types";
+import { milestonesAndStreaks, type SessionMilestone, MILESTONE_TIERS } from "@/app/lib/milestones";
 import { ShareCardButton } from "./share-card";
 import { RideComparison } from "./ride-comparison";
 import { getEffortTier } from "@/app/lib/analytics/ride-history";
@@ -110,6 +111,8 @@ export function RideCompletionV2({
   const [prBeaten, setPrBeaten] = useState(false);
   const [rating, setRating] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [earnedMilestones, setEarnedMilestones] = useState<SessionMilestone[]>([]);
+  const [currentStreak, setCurrentStreak] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const celebrationStartTime = useRef(Date.now());
 
@@ -125,6 +128,38 @@ export function RideCompletionV2({
       });
     }
   }, [storePrBeaten]);
+
+  // ─── Milestone Detection ─────────────────────────────────────
+  useEffect(() => {
+    // Detect and record session milestones
+    const newMilestones = milestonesAndStreaks.detectAndRecordMilestones({
+      duration: elapsedTime / 60, // Convert seconds to minutes
+      avgPower,
+      maxPower,
+      hr: avgHeartRate,
+      maxHR: maxHeartRate,
+      cadence: 0, // Would come from telemetry if available
+      distance: 0, // Would calculate from ride data
+      flowMinutes: 0, // Would track from flow state
+      peakFlowTier: 0,
+    });
+    
+    if (newMilestones.length > 0) {
+      setEarnedMilestones(newMilestones);
+      // Fire milestone celebration
+      newMilestones.forEach((m) => {
+        useSensoryStore.getState().setLatestEvent({
+          type: "milestone",
+          tier: m.tier,
+          title: m.title,
+          timestamp: Date.now(),
+        });
+      });
+    }
+
+    // Load current streak
+    setCurrentStreak(milestonesAndStreaks.getCurrentStreak());
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Agent debrief
   const getAgentDebrief = useCallback(() => {
@@ -406,6 +441,63 @@ export function RideCompletionV2({
                 </div>
               )}
             </div>
+          )}
+
+          {/* Milestones — earned during this ride */}
+          {earnedMilestones.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mb-4"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <p className="text-[10px] uppercase tracking-widest text-amber-400/60 font-bold">
+                  {earnedMilestones.length} Milestone{earnedMilestones.length > 1 ? 's' : ''} Earned
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                {earnedMilestones.map((milestone, idx) => (
+                  <motion.div
+                    key={milestone.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + idx * 0.1 }}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                    style={{
+                      borderColor: MILESTONE_TIERS[milestone.tier].borderColor,
+                      backgroundColor: MILESTONE_TIERS[milestone.tier].bgColor,
+                    }}
+                  >
+                    <span className="text-2xl">{MILESTONE_TIERS[milestone.tier].icon}</span>
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-white">{milestone.title}</p>
+                      <p className="text-[10px] text-white/40">{milestone.description}</p>
+                    </div>
+                    <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: MILESTONE_TIERS[milestone.tier].color }}>
+                      {MILESTONE_TIERS[milestone.tier].label}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Streak indicator — always shown if user has streak */}
+          {currentStreak > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.6 }}
+              className="mb-4 flex items-center justify-center gap-3 rounded-xl bg-orange-500/5 border border-orange-500/20 px-4 py-3"
+            >
+              <Flame className="w-5 h-5 text-orange-400" />
+              <div className="text-left">
+                <p className="text-[9px] uppercase tracking-widest text-orange-400/60 font-bold">Current Streak</p>
+                <p className="text-xl font-black text-orange-300 tabular-nums">{currentStreak} Day{currentStreak > 1 ? 's' : ''}</p>
+              </div>
+            </motion.div>
           )}
 
           {/* SPIN earned — prominent */}
