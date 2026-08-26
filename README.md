@@ -6,6 +6,14 @@ Current state: testnet/demo stage, live on Vercel at https://spinchain.vercel.ap
 
 ---
 
+## The Wedge
+
+> **SpinChain makes indoor cycling addictive by turning physical effort into real-time visual transformation in a 3D world.**
+
+Every feature decision, UI change, and refactor must reference [docs/WEDGE.md](./docs/WEDGE.md). It defines what we build in the foreground (the core loop) vs. the background (infrastructure/moats). When in doubt, read the wedge doc before implementing.
+
+---
+
 ## Quick Start
 
 ```bash
@@ -49,11 +57,11 @@ Open [http://localhost:3000](http://localhost:3000)
 
 | Doc | Description |
 |-----|-------------|
-| [Architecture](docs/ARCHITECTURE.md) | Dual-engine design, ZK privacy, tech stack |
-| [Getting Started](docs/GETTING_STARTED.md) | Local setup, current flows, testing, troubleshooting |
-| [Features](docs/FEATURES.md) | Implemented features vs. planned features |
-| [Deployment](docs/DEPLOYMENT.md) | Testnet deployment notes and current release blockers |
-| [Production Roadmap](docs/PRODUCTION_ROADMAP.md) | Current launch blockers and launch checklist |
+| [WEDGE](docs/WEDGE.md) | The wedge: effort → visual transformation. Feature discipline, guardrails, anti-examples. **Read first.** |
+| [IMPLEMENTATION-PLAN](docs/IMPLEMENTATION-PLAN.md) | Phased tasks with files, sizes, deadlines. Maps to wedge guardrails. |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | Blockchain infrastructure, engine architecture, adaptive UX, ride experience, transitions, Yellow Network. |
+| [OPERATIONS](docs/OPERATIONS.md) | Local setup, deployment, testing, production roadmap, current product state. |
+| [DEMO](docs/DEMO.md) | 3-minute pitch script (standalone). |
 
 ---
 
