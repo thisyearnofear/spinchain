@@ -75,12 +75,18 @@
 - **Why**: If the demo ride feels less magical than a real ride, the wedge is broken.
 - **Test**: Pedal with arrow keys. Sprint with ↑. The world should visibly react within one frame.
 
-### 2.4 Add Milestone Pop-Up On First Achievement
-- **File**: `app/components/features/ride/` — new component `MilestonePopUp.tsx`
-- **What**: When the rider hits their first milestone (e.g., "1 minute in flow"), show a celebratory pop-up with the milestone badge.
+### 2.4 Add Milestone Pop-Up On First Achievement ✅
+- **Commit**: `pending` — `app/rider/ride/[classId]/page.tsx`
+- **What**: Real-time milestone detection during ride. When the rider hits their first milestone (e.g., "1 minute in flow"), show a celebratory pop-up with the milestone badge.
 - **Why**: Dopamine hit. This is the moment the rider realizes "I'm actually doing something." Strava's segment badges, Duolingo's streak fire, Fortnite's first kill — all are momentary celebrations.
-- **Design**: 2-second pop-up, particle burst, badge animation. Respects reduced-motion.
+- **Design**: 2-second pop-up with emoji badge, respects reduced-motion.
 - **Uses**: Existing milestone definitions from `app/lib/milestones.ts`
+- **Implementation**:
+  - Added `useEffect` that checks for milestones at each minute boundary during the ride
+  - Tracks shown milestone IDs to avoid duplicate pop-ups in the same ride
+  - Shows the highest-value new milestone (sorted by tier: bronze < silver < gold < platinum < diamond)
+  - Auto-dismisses after 2 seconds via `setShowMilestone(null)`
+  - Uses existing `MilestoneOverlay` component in modal stack
 
 ---
 

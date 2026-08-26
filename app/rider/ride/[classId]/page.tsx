@@ -484,6 +484,68 @@ export default function LiveRidePage() {
     }
   }, [showCompletionScreen, recordMilestonesOnCompletion]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Real-time Milestone Detection During Ride ──────────────────
+  // Tracks shown milestone IDs to avoid duplicate pop-ups in the same ride
+  const shownMilestoneIdsRef = useRef<Set<string>>(new Set());
+  const prevRideMinuteRef = useRef<number>(0);
+  const setShowMilestone = useRideModalStore((s) => s.setShowMilestone);
+
+  useEffect(() => {
+    if (!isRiding) {
+      // Reset tracking when ride starts/stops
+      shownMilestoneIdsRef.current = new Set();
+      prevRideMinuteRef.current = 0;
+      return;
+    }
+
+    const currentMinute = Math.floor(elapsedTime / 60);
+
+    // Check for milestones at each minute boundary
+    if (currentMinute > prevRideMinuteRef.current && currentMinute > 0) {
+      prevRideMinuteRef.current = currentMinute;
+
+      // Check for milestones at this time threshold
+      const milestoneCheck = milestonesAndStreaks.detectAndRecordMilestones({
+        duration: elapsedTime / 60,
+        avgPower: telemetryAverages.avgPower || 0,
+        maxPower: maxPowerRef.current,
+        hr: telemetryAverages.avgHr || 0,
+        maxHR: maxHRRef.current,
+        cadence: 0,
+        distance: 0,
+        flowMinutes: flow.totalFlowMinutes,
+        peakFlowTier: flow.flowTier,
+      });
+
+      // Show the most valuable new milestone
+      const newMilestones = milestoneCheck.filter(
+        (m) => !shownMilestoneIdsRef.current.has(m.id)
+      );
+
+      if (newMilestones.length > 0) {
+        // Sort by tier value (show highest first)
+        const tierOrder = ['bronze', 'silver', 'gold', 'platinum', 'diamond'] as const;
+        newMilestones.sort((a, b) =>
+          tierOrder.indexOf(b.tier) - tierOrder.indexOf(a.tier)
+        );
+
+        const milestone = newMilestones[0];
+        shownMilestoneIdsRef.current.add(milestone.id);
+
+        // Show milestone overlay (auto-dismisses after 2s via modal stack)
+        setShowMilestone({
+          title: `${milestone.tier === 'diamond' ? '💎' : milestone.tier === 'platinum' ? '💎' : milestone.tier === 'gold' ? '🥇' : milestone.tier === 'silver' ? '🥈' : '🥉'} ${milestone.title}`,
+          subtitle: milestone.description,
+        });
+
+        // Auto-dismiss after 2s (also handled by modal stack's autoDismissMs)
+        setTimeout(() => {
+          setShowMilestone(null);
+        }, 2000);
+      }
+    }
+  }, [elapsedTime, isRiding, telemetryAverages, maxPowerRef.current, maxHRRef.current, flow, setShowMilestone]);
+
   // ─── Experience Level Adaptation ─────────────────────────────
   const experience = useExperience();
 
