@@ -51,12 +51,14 @@ interface RideHUDOverlayV2Props {
   hudMode: "full" | "compact" | "minimal";
   isRiding: boolean;
   showCompletionScreen: boolean;
+  flowTier?: number;
 }
 
 export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   hudMode,
   isRiding,
   showCompletionScreen,
+  flowTier = 0,
 }: RideHUDOverlayV2Props) {
   if (showCompletionScreen || hudMode === "minimal") return null;
 
@@ -134,6 +136,11 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
 
   // ─── Expansion state ────────────────────────────────────────────
   const [expanded, setExpanded] = useState(false);
+
+  // ─── Flow state label ─────────────────────────────────────────
+  const FLOW_LABELS = ["", "Focused", "Flow", "Super Flow", "Mastery"];
+  const FLOW_COLORS = ["", "#34d399", "#f59e0b", "#f97316", "#ef4444"];
+  const showFlowBadge = flowTier >= 1;
 
   // ─── Render ─────────────────────────────────────────────────────
   return (
@@ -245,6 +252,40 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
               {phaseText}
             </span>
           </motion.div>
+
+          {/* Flow state badge — only shows when rider enters flow */}
+          <AnimatePresence>
+            {showFlowBadge && (
+              <motion.div
+                className="flex items-center gap-2 rounded-full px-3 py-1 border backdrop-blur-xl"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                style={{
+                  borderColor: `${FLOW_COLORS[flowTier]}30`,
+                  backgroundColor: `${FLOW_COLORS[flowTier]}10`,
+                }}
+              >
+                {/* Flow fire/pulse icon */}
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  style={{ color: FLOW_COLORS[flowTier] }}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A8 8 0 0117.657 18.657z"
+                  />
+                </svg>
+                <span className="text-[9px] font-black uppercase tracking-[0.25em]" style={{ color: FLOW_COLORS[flowTier] }}>
+                  {FLOW_LABELS[flowTier]}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Primary metric — big, central, breathing */}
           <motion.div

@@ -5,6 +5,7 @@ import { memo, Suspense } from "react";
 import type { VisualizerTheme } from "@/app/components/features/route/route-visualizer";
 import type { StoryBeat } from "@/app/components/features/route/route-visualizer";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
+import type { FlowStateTier } from "@/app/lib/flow-state";
 
 // Dynamic import — R3F bundle is heavy and only loaded when needed
 const RouteVisualizer = dynamic(
@@ -27,6 +28,7 @@ export interface TronRendererProps {
   className?: string;
   userDisplayName?: string;
   intervalPhase?: IntervalPhase | null;
+  flowTier?: FlowStateTier;
 }
 
 /**
@@ -67,6 +69,7 @@ export const TronRenderer = memo(function TronRenderer(props: TronRendererProps)
         className={props.className}
         userDisplayName={props.userDisplayName}
         intervalPhase={props.intervalPhase}
+        flowTier={props.flowTier}
       />
     </Suspense>
   );

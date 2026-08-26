@@ -41,6 +41,7 @@ import {
 import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-theme";
 import { computeReactiveParams, type ReactiveParams } from "./world-reactivity";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
+import type { FlowStateTier } from "@/app/lib/flow-state";
 export type { VisualizerTheme } from "./visualizer-theme";
 
 // Import Selection types
@@ -1146,6 +1147,7 @@ function Scene({
   };
   userDisplayName?: string;
   intervalPhase?: IntervalPhase;
+  flowTier?: FlowStateTier;
 }) {
   const curve = useRouteCurve(elevationProfile);
   const styles = THEMES[theme];
@@ -1161,11 +1163,31 @@ function Scene({
   // Get performance tier for adaptive quality - use quality.fps as proxy if available
   const performanceTier = quality?.fps === 30 ? "low" : quality?.fps === 45 ? "medium" : "high";
 
-  // --- Compute reactive world parameters from effort + phase ---
+  // ─── Flow State Visual Scaling ─────────────────────────────────
+  // Flow tier scales all reactive parameters proportionally.
+  // Tier 0 = baseline, Tier 4 = 2.2x visual intensity
+  const FLOW_SCALING = [1, 1.2, 1.5, 1.8, 2.2];
+  const flowScale = FLOW_SCALING[flowTier] ?? 1;
+
+  // --- Compute reactive world parameters from effort + phase + flow ---
   const reactive = useMemo(() => {
     if (mode !== "ride") return null;
-    return computeReactiveParams(theme, stats, intervalPhase, progress);
-  }, [theme, stats, intervalPhase, progress, mode]);
+    const base = computeReactiveParams(theme, stats, intervalPhase, progress);
+    // Apply flow state scaling
+    return {
+      ...base,
+      bloomIntensity: base.bloomIntensity * flowScale,
+      chromaticOffset: base.chromaticOffset * flowScale,
+      vignetteDarkness: Math.min(1, base.vignetteDarkness + flowTier * 0.05),
+      fogDensity: Math.max(15, base.fogDensity - flowTier * 5),
+      starsRotationSpeed: base.starsRotationSpeed * flowScale,
+      sparklesSpeed: base.sparkleSpeed * flowScale,
+      sparkleOpacity: Math.min(0.8, base.sparkleOpacity + flowTier * 0.05),
+      roadGlowIntensity: base.roadGlowIntensity * flowScale,
+      riderAuraScale: base.riderAuraScale * (1 + flowTier * 0.15),
+      riderLightIntensity: base.riderLightIntensity * flowScale,
+    };
+  }, [theme, stats, intervalPhase, progress, mode, flowTier, flowScale]);
 
   // --- Progress tracking via refs (no React state updates inside useFrame) ---
   // Calling setState inside useFrame triggers a full React re-render every animation
@@ -1419,6 +1441,7 @@ export default function RouteVisualizer({
   quality,
   userDisplayName,
   intervalPhase = null,
+  flowTier = 0,
 }: {
   elevationProfile?: number[];
   theme?: VisualizerTheme;
@@ -1433,6 +1456,7 @@ export default function RouteVisualizer({
   quality?: "low" | "medium" | "high";
   userDisplayName?: string;
   intervalPhase?: IntervalPhase;
+  flowTier?: FlowStateTier;
 }) {
   const adaptiveQuality = useAdaptiveQuality();
 
@@ -1526,6 +1550,7 @@ export default function RouteVisualizer({
             quality={effectiveQuality}
             userDisplayName={userDisplayName}
             intervalPhase={intervalPhase}
+            flowTier={flowTier}
           />
         </Canvas>
       </Suspense>

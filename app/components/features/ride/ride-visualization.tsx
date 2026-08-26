@@ -13,6 +13,7 @@ import type { StoryBeat } from "@/app/components/features/route/route-visualizer
 import { TronRenderer } from "@/app/components/features/renderers/tron-renderer";
 import { FocusRenderer } from "@/app/components/features/renderers/focus-renderer";
 import type { VisualizationConfig, RenderMode } from "@/app/engines/types";
+import type { FlowStateTier } from "@/app/lib/flow-state";
 import { useEffect, useMemo, useState } from "react";
 import { probeGpu, getQualitySettings } from "@/app/lib/gpu-probe";
 import { useRideStore } from "@/app/stores/ride-store";
@@ -43,6 +44,7 @@ interface RideVisualizationProps {
   onExpandOne: (key: PanelKey) => void;
   onHaptic?: (type?: HapticType) => boolean;
   visualizationConfig?: VisualizationConfig;
+  flowTier?: FlowStateTier;
 }
 
 export function RideVisualization({
@@ -61,6 +63,7 @@ export function RideVisualization({
   onExpandOne,
   onHaptic,
   visualizationConfig,
+  flowTier = 0,
 }: RideVisualizationProps) {
   const viewMode = useUIStore((s) => s.viewMode);
   const deviceType = useUIStore((s) => s.deviceType);
@@ -159,6 +162,7 @@ export function RideVisualization({
           className="h-full w-full"
           userDisplayName={undefined}
           intervalPhase={currentInterval?.phase ?? null}
+          flowTier={flowTier}
         />
       )}
 

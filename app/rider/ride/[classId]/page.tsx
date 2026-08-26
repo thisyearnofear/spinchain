@@ -55,6 +55,8 @@ import { useRideLifecycle } from "@/app/hooks/ride/use-ride-lifecycle";
 import { usePrPursuit } from "@/app/hooks/ride/use-pr-pursuit";
 import { usePushLiveTelemetry } from "@/app/hooks/common/use-live-telemetry";
 import { useSensorySync } from "@/app/hooks/ride/use-sensory-sync";
+import { useFlowState, type FlowStateEvent } from "@/app/lib/flow-state";
+import type { FlowStateTier } from "@/app/lib/flow-state";
 
 /** Fully static class strings per multi-ghost avatar position, so Tailwind's
  *  build-time scanner can see them (dynamic `bg-${color}-500` templates get
@@ -433,6 +435,45 @@ export default function LiveRidePage() {
 
   // ─── Sensory sync (audio + visual + haptic choreography) ────────
   const { setCountdownPhase, resetCountdown } = useSensorySync();
+
+  // ─── Flow State Engine ──────────────────────────────────────────
+  const telemetrySnapshot = useTelemetryStore((s) => s.snapshot);
+  const [hrResting] = useState(() => {
+    // Default ~60 bpm, would come from user profile in production
+    return 60;
+  });
+
+  const flow = useFlowState(
+    telemetrySnapshot.power,
+    telemetrySnapshot.heartRate,
+    hrResting,
+  );
+
+  // Register flow event handler → dispatch to coach channel + sensory sync
+  useEffect(() => {
+    flow.registerFlowEventHandler((event: FlowStateEvent) => {
+      // 1. Send coach message via coaching store
+      if (event.message) {
+        const coachingStore = useCoachingStore.getState();
+        coachingStore.setAiLogs([
+          {
+            type: "observation",
+            message: event.message,
+            timestamp: Date.now(),
+          },
+        ]);
+      }
+
+      // 2. Fire sensory sync event (audio + haptic choreography)
+      if (event.type === "tier-rise" || event.type === "peak") {
+        // Brief haptic burst on tier escalation
+        haptic.trigger(event.tier === 4 ? "success" : "warning");
+      }
+
+      // 3. Log analytics event
+      // (could integrate with telemetry store or analytics system)
+    });
+  }, [flow, haptic]);
   useEffect(() => {
     if (completedRideId) {
       rewardsHook.setCompletedRideId(completedRideId);
@@ -622,6 +663,7 @@ export default function LiveRidePage() {
           onTrackWidgetInteraction={handleTrackWidgetInteraction}
           onExpandOne={panelState.expandOne}
           onHaptic={haptic.trigger}
+          flowTier={flow.flowTier}
         />
       </SectionErrorBoundary>
 
@@ -634,6 +676,7 @@ export default function LiveRidePage() {
           hudMode={hudMode}
           isRiding={isRiding}
           showCompletionScreen={showCompletionScreen}
+          flowTier={flow.flowTier}
         />
       </SectionErrorBoundary>
 
