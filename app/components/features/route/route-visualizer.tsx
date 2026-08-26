@@ -43,6 +43,7 @@ import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-
 import { computeReactiveParams, type ReactiveParams } from "./world-reactivity";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
 import type { FlowStateTier } from "@/app/lib/flow-state";
+import type { ContextPalette } from "@/app/lib/context-palette";
 export type { VisualizerTheme } from "./visualizer-theme";
 
 // Import Selection types
@@ -1212,6 +1213,7 @@ function Scene({
   userDisplayName?: string;
   intervalPhase?: IntervalPhase;
   flowTier?: FlowStateTier;
+  contextPalette?: ContextPalette;
 }) {
   const curve = useRouteCurve(elevationProfile);
   const styles = THEMES[theme];
@@ -1588,6 +1590,7 @@ export default function RouteVisualizer({
   userDisplayName?: string;
   intervalPhase?: IntervalPhase;
   flowTier?: FlowStateTier;
+  contextPalette?: ContextPalette;
 }) {
   const adaptiveQuality = useAdaptiveQuality();
 
@@ -1682,6 +1685,7 @@ export default function RouteVisualizer({
             userDisplayName={userDisplayName}
             intervalPhase={intervalPhase}
             flowTier={flowTier}
+            contextPalette={contextPalette}
           />
         </Canvas>
       </Suspense>
