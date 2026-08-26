@@ -60,6 +60,7 @@ import { useFlowState, type FlowStateEvent } from "@/app/lib/flow-state";
 import type { FlowStateTier } from "@/app/lib/flow-state";
 import { milestonesAndStreaks } from "@/app/lib/milestones";
 import { experienceManager, useExperience } from "@/app/lib/experience-level";
+import { musicEngine, useMusicEngine } from "@/app/lib/music-engine";
 
 /** Fully static class strings per multi-ghost avatar position, so Tailwind's
  *  build-time scanner can see them (dynamic `bg-${color}-500` templates get
@@ -523,10 +524,52 @@ export default function LiveRidePage() {
         haptic.trigger(event.tier === 4 ? "success" : "warning");
       }
 
-      // 3. Log analytics event
+      // 3. Update music engine with flow state
+      if (musicEngine) {
+        musicEngine.updateFlowState(event.tier);
+      }
+
+      // 4. Log analytics event
       // (could integrate with telemetry store or analytics system)
     });
   }, [flow, haptic]);
+
+  // ─── Music Engine Integration ──────────────────────────────────
+  const [currentMusicPhase, setCurrentMusicPhase] = useState<string | null>(null);
+
+  // Select music track based on interval phase
+  useEffect(() => {
+    if (!isRiding || !currentInterval) return;
+    
+    const phase = currentInterval.phase ?? 'interval';
+    if (phase !== currentMusicPhase) {
+      setCurrentMusicPhase(phase);
+      // Transition to new phase's music
+      musicEngine.transitionToPhase(phase);
+    }
+  }, [currentInterval?.phase, isRiding]);
+
+  // Update music flow state as flow changes
+  useEffect(() => {
+    if (isRiding) {
+      musicEngine.updateFlowState(flow.flowTier);
+    }
+  }, [flow.flowTier, isRiding]);
+
+  // ─── TTS Ducking ───────────────────────────────────────────────
+  const coachIsSpeaking = useCoachingStore((s) => s.isSpeaking);
+  const prevSpeakingRef = useRef(false);
+
+  useEffect(() => {
+    if (coachIsSpeaking && !prevSpeakingRef.current) {
+      // Start ducking when coach begins speaking
+      musicEngine.startDucking();
+    } else if (!coachIsSpeaking && prevSpeakingRef.current) {
+      // Stop ducking when coach stops speaking
+      musicEngine.stopDucking();
+    }
+    prevSpeakingRef.current = coachIsSpeaking;
+  }, [coachIsSpeaking]);
   useEffect(() => {
     if (completedRideId) {
       rewardsHook.setCompletedRideId(completedRideId);
