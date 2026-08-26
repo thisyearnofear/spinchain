@@ -78,6 +78,7 @@ interface RideCompletionV2Props {
   maxHeartRate?: number;
   maxPower?: number;
   peakEffort?: number;
+  rideMilestones?: SessionMilestone[];
 }
 
 type CompletionPhase = "celebration" | "stats" | "actions";
@@ -106,6 +107,7 @@ export function RideCompletionV2({
   maxHeartRate = avgHeartRate,
   maxPower = avgPower,
   peakEffort = avgEffort,
+  rideMilestones = [],
 }: RideCompletionV2Props) {
   const [completionPhase, setCompletionPhase] = useState<CompletionPhase>("celebration");
   const [prBeaten, setPrBeaten] = useState(false);
@@ -113,6 +115,16 @@ export function RideCompletionV2({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [earnedMilestones, setEarnedMilestones] = useState<SessionMilestone[]>([]);
   const [currentStreak, setCurrentStreak] = useState(0);
+  
+  // Use passed-in milestones from ride page (set when ride completes)
+  useEffect(() => {
+    if (rideMilestones.length > 0) {
+      setEarnedMilestones(rideMilestones);
+    }
+    
+    // Load current streak
+    setCurrentStreak(milestonesAndStreaks.getCurrentStreak());
+  }, [rideMilestones]);
   const containerRef = useRef<HTMLDivElement>(null);
   const celebrationStartTime = useRef(Date.now());
 
@@ -130,34 +142,9 @@ export function RideCompletionV2({
   }, [storePrBeaten]);
 
   // ─── Milestone Detection ─────────────────────────────────────
+  // Milestones are passed in from the ride page when the ride completes.
+  // No need to detect here — just load streak from persistent storage.
   useEffect(() => {
-    // Detect and record session milestones
-    const newMilestones = milestonesAndStreaks.detectAndRecordMilestones({
-      duration: elapsedTime / 60, // Convert seconds to minutes
-      avgPower,
-      maxPower,
-      hr: avgHeartRate,
-      maxHR: maxHeartRate,
-      cadence: 0, // Would come from telemetry if available
-      distance: 0, // Would calculate from ride data
-      flowMinutes: 0, // Would track from flow state
-      peakFlowTier: 0,
-    });
-    
-    if (newMilestones.length > 0) {
-      setEarnedMilestones(newMilestones);
-      // Fire milestone celebration
-      newMilestones.forEach((m) => {
-        useSensoryStore.getState().setLatestEvent({
-          type: "milestone",
-          tier: m.tier,
-          title: m.title,
-          timestamp: Date.now(),
-        });
-      });
-    }
-
-    // Load current streak
     setCurrentStreak(milestonesAndStreaks.getCurrentStreak());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

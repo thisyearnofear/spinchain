@@ -18,6 +18,7 @@ import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overl
 import { RideModals } from "../../../components/features/ride/ride-modals";
 import { useSwipeGesture } from "@/app/hooks/ride/use-swipe-gesture";
 import type { RideRecordPoint } from "../../../lib/analytics/ride-recorder";
+import type { SessionMilestone } from "@/app/lib/milestones";
 import {
   useDeviceType,
   useOrientation,
@@ -58,6 +59,7 @@ import { useSensorySync } from "@/app/hooks/ride/use-sensory-sync";
 import { useFlowState, type FlowStateEvent } from "@/app/lib/flow-state";
 import type { FlowStateTier } from "@/app/lib/flow-state";
 import { milestonesAndStreaks } from "@/app/lib/milestones";
+import { experienceManager, useExperience } from "@/app/lib/experience-level";
 
 /** Fully static class strings per multi-ghost avatar position, so Tailwind's
  *  build-time scanner can see them (dynamic `bg-${color}-500` templates get
@@ -435,6 +437,8 @@ export default function LiveRidePage() {
   usePrPursuit(isRiding);
 
   // ─── Milestone Recording ─────────────────────────────────────
+  const [rideMilestones, setRideMilestones] = useState<SessionMilestone[]>([]);
+
   const recordMilestonesOnCompletion = useCallback(() => {
     // Record ride stats for milestone tracking
     milestonesAndStreaks.recordRide({
@@ -449,6 +453,27 @@ export default function LiveRidePage() {
       flowMinutes: flow.totalFlowMinutes,
       peakFlowTier: flow.flowTier,
     });
+
+    // Detect and record session milestones
+    const newMilestones = milestonesAndStreaks.detectAndRecordMilestones({
+      duration: elapsedTime / 60, // Convert seconds to minutes
+      avgPower: telemetryAverages.avgPower || 0,
+      maxPower: maxPowerRef.current,
+      hr: telemetryAverages.avgHr || 0,
+      maxHR: maxHRRef.current,
+      cadence: 0,
+      distance: 0,
+      flowMinutes: flow.totalFlowMinutes,
+      peakFlowTier: flow.flowTier,
+    });
+
+    // Update local milestone state
+    if (newMilestones.length > 0) {
+      setRideMilestones(newMilestones);
+    }
+
+    // Also update experience level
+    experienceManager.recordRide();
   }, [elapsedTime, telemetryAverages, maxPowerRef.current, maxHRRef.current, flow]);
 
   // Trigger milestone recording when completion screen appears
@@ -457,6 +482,11 @@ export default function LiveRidePage() {
       recordMilestonesOnCompletion();
     }
   }, [showCompletionScreen, recordMilestonesOnCompletion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Experience Level Adaptation ─────────────────────────────
+  const experience = useExperience();
+
+  // ─── Sensory sync (audio + visual + haptic choreography) ────────
   const { setCountdownPhase, resetCountdown } = useSensorySync();
 
   // ─── Flow State Engine ──────────────────────────────────────────
@@ -741,6 +771,7 @@ export default function LiveRidePage() {
           maxHeartRate={maxHRRef.current}
           maxPower={maxPowerRef.current}
           peakEffort={peakEffortRef.current}
+          rideMilestones={rideMilestones}
         />
       )}
 

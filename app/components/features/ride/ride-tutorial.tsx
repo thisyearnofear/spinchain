@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useMemo, useRef } from "react";
 import { useRideModalStore } from "@/app/stores/ride-modal-store";
+import { experienceManager } from "@/app/lib/experience-level";
 
 type TutorialAudience = "web3" | "fitness";
 
@@ -72,38 +73,71 @@ export function useRideTutorial(opts?: { isPracticeMode?: boolean; walletConnect
     [audience],
   );
 
+  // Adaptive tutorial filtering based on experience level
+  const adaptedSteps = useMemo(() => {
+    const config = experienceManager.getConfig();
+    
+    // Veterans (tier 3) skip all tutorials
+    if (config.tutorialFrequency === 'none') return [];
+    
+    // New riders get all steps
+    if (config.tutorialFrequency === 'full') return steps;
+    
+    // Reduced: only show critical steps for developers
+    if (config.tutorialFrequency === 'reduced') {
+      return steps.slice(0, 3); // Show first 3 steps only
+    }
+    
+    return steps;
+  }, [steps]);
+
   useEffect(() => {
-    modalStore.getState().setTutorialSteps(steps);
-  }, [steps, modalStore]);
+    modalStore.getState().setTutorialSteps(adaptedSteps);
+  }, [adaptedSteps, modalStore]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    
+    const config = experienceManager.getConfig();
     const searchParams = new URLSearchParams(window.location.search);
     const hasSeenTutorial = localStorage.getItem(STORAGE_KEY);
-    if (!hasSeenTutorial || searchParams.get("setup") === "true") {
-      const frame = window.requestAnimationFrame(() => {
-        modalStore.getState().setShowTutorial(true);
-      });
-      return () => window.cancelAnimationFrame(frame);
-    }
+    
+    // Skip tutorial for veterans or if already seen (unless setup=true)
+    if (config.tutorialFrequency === 'none' && !searchParams.get("setup")) return;
+    if (hasSeenTutorial && !searchParams.get("setup")) return;
+    
+    const frame = window.requestAnimationFrame(() => {
+      modalStore.getState().setShowTutorial(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [modalStore]);
 
   const nextStep = useCallback(() => {
     const currentStep = modalStore.getState().tutorialStep;
-    if (currentStep < steps.length - 1) {
+    if (currentStep < adaptedSteps.length - 1) {
       modalStore.getState().setTutorialStep(currentStep + 1);
     } else {
       modalStore.getState().setShowTutorial(false);
       localStorage.setItem(STORAGE_KEY, "true");
+      
+      // Mark tutorial as dismissed in experience manager
+      if (adaptedSteps.length > 0) {
+        experienceManager.dismissTutorial('ride-tutorial');
+      }
     }
-  }, [steps.length, modalStore]);
+  }, [adaptedSteps.length, modalStore]);
 
   const dismiss = useCallback(() => {
     modalStore.getState().setShowTutorial(false);
     localStorage.setItem(STORAGE_KEY, "true");
-  }, [modalStore]);
+    
+    // Mark tutorial as dismissed in experience manager
+    if (adaptedSteps.length > 0) {
+      experienceManager.dismissTutorial('ride-tutorial');
+    }
+  }, [adaptedSteps.length, modalStore]);
 
-  return { nextStep, dismiss, steps };
+  return { nextStep, dismiss, steps: adaptedSteps };
 }
 
 export function RideTutorialOverlay({
