@@ -7,6 +7,7 @@ import {
   resetQuiz,
   RIDER_QUIZ_KEY,
 } from "@/app/components/features/common/rider-quiz";
+import { STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
 import { useRiderProfile } from "@/app/stores/rider-profile-store";
 import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import { InstructorModeSelector } from "@/app/components/features/class/instructor-mode-selector";
@@ -44,15 +45,16 @@ function HomeContent() {
       return () => window.cancelAnimationFrame(frame);
     }
 
-    // Show quiz for first-time visitors after a short delay
-    // so they see the landing page first
+    // Show quiz for first-time visitors ONLY after their first ride
+    // (wedge: let them experience the product before asking for information)
     if (!hasProfile) {
       const completed = localStorage.getItem(RIDER_QUIZ_KEY);
-      if (!completed) {
-        const timer = window.setTimeout(() => {
+      const postRide = localStorage.getItem(STORAGE_KEYS.quizPostRide);
+      if (!completed && postRide === "true") {
+        const frame = window.requestAnimationFrame(() => {
           setShowQuiz(true);
-        }, 3000);
-        return () => window.clearTimeout(timer);
+        });
+        return () => window.cancelAnimationFrame(frame);
       }
     }
 

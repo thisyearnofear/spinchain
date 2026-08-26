@@ -113,24 +113,21 @@
 
 ---
 
-## Phase 4: Onboarding Reorder (1 week)
+## Phase 4: Onboarding Reorder ✅ COMPLETE
 
-**Goal**: Get riders into the ride before asking anything of them.
+**All tasks done.** Riders experience the product before being asked for information.
 
-### 4.1 Move Quiz Post-Ride
-- **File**: `app/components/features/common/rider-quiz.tsx` + `app/page.tsx`
-- **What**: Currently the quiz fires after 3 seconds on the landing page. Move it to fire after the first ride completes:
-  1. First visit: show landing, let them ride demo
-  2. After first ride: show quiz
-  3. After quiz: show profile with personalized stats
-- **Why**: [30-second rule](./WEDGE.md#the-core-loop-must-be-under-30-seconds). Let them experience the product before asking for information.
-- **Implementation**: Set `localStorage[RIDER_QUIZ_KEY] = "post-ride"` after first ride, show quiz on next visit.
+### 4.1 Move Quiz Post-Ride ✅
+- **Commit**: `pending` — `app/page.tsx` + `app/rider/ride/[classId]/page.tsx` + `app/lib/analytics/ride-history.ts`
+- Removed 3-second auto-fire timer from landing page
+- Added `STORAGE_KEYS.quizPostRide` flag set when first ride completes
+- Quiz now shows on next landing visit only after first ride is done
+- Wedge: let them experience the product before asking for information
 
-### 4.2 Remove Wallet Requirement From Demo
-- **File**: `app/rider/ride/[classId]/page.tsx`
-- **What**: The demo ride should not check wallet connection at all. Remove any `isConnected` gate on the demo ride path.
-- **Why**: Wallet connection is friction. Demo rides are the wedge entrance. Don't put a lock on the door.
-- **Implementation**: Check `demo=true` query param. If present, skip wallet check and use simulated rewards.
+### 4.2 Remove Wallet Requirement From Demo ✅
+- Already done — `PrimaryCTA` shows "Start Demo Ride — No Wallet Needed" for disconnected users
+- Practice mode (`isPracticeMode`) bypasses all wallet checks
+- No changes needed
 
 ---
 

@@ -59,6 +59,7 @@ import { useSensorySync } from "@/app/hooks/ride/use-sensory-sync";
 import { useFlowState, type FlowStateEvent } from "@/app/lib/flow-state";
 import type { FlowStateTier } from "@/app/lib/flow-state";
 import { milestonesAndStreaks } from "@/app/lib/milestones";
+import { STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
 import { experienceManager, useExperience } from "@/app/lib/experience-level";
 import { musicEngine, useMusicEngine } from "@/app/lib/music-engine";
 
@@ -484,6 +485,10 @@ export default function LiveRidePage() {
   useEffect(() => {
     if (showCompletionScreen) {
       recordMilestonesOnCompletion();
+      // Mark first ride done so quiz shows on next landing visit (Phase 4.1)
+      if (typeof window !== "undefined") {
+        localStorage.setItem(STORAGE_KEYS.quizPostRide, "true");
+      }
     }
   }, [showCompletionScreen, recordMilestonesOnCompletion]); // eslint-disable-line react-hooks/exhaustive-deps
 
