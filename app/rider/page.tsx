@@ -19,8 +19,9 @@ import { OnboardingChecklist } from "../components/features/common/onboarding-ch
 import { WelcomeBanner } from "../components/features/common/welcome-banner";
 import { EmptyState } from "../components/features/common/empty-state";
 import { RiderHero } from "../components/features/rider/rider-hero";
+import { GamificationBar } from "../components/features/common/gamification-bar";
+import { useMilestones } from "../lib/milestones";
 import { useToast } from "../components/ui/toast";
-import { NetworkStatusBanner } from "../components/features/common/yellow-status-indicator";
 import { Bike, CalendarClock } from "lucide-react";
 import type { SavedRoute } from "../lib/route-library";
 
@@ -29,10 +30,20 @@ export default function RiderPage() {
   const { isConnected } = useAccount();
   const { classes, isLoading, error } = useClasses();
   const { instructors } = useInstructors();
+  const { streak, totalRides, bestMaxPower, totalFlowMinutes } = useMilestones();
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
   const [filterUpcoming, setFilterUpcoming] = useState(true);
   const [showGuestBanner, setShowGuestBanner] = useState(true);
   const toast = useToast();
+
+  // Hero greeting based on gamification state
+  const heroGreeting = totalRides === 0
+    ? "Ready to ride?"
+    : streak > 0
+      ? `Good to see you — ${streak} day streak 🔥`
+      : totalFlowMinutes > 30
+        ? `You've logged ${totalFlowMinutes}m in flow — time to build on that?`
+        : "Ready for your ride?";
 
   useEffect(() => {
     if (error) toast.error("Couldn't load classes", error);
@@ -141,10 +152,11 @@ export default function RiderPage() {
           <PrimaryNav />
         </div>
 
-        <NetworkStatusBanner />
+        {/* Gamification Bar — visible game signals on the front door */}
+        <GamificationBar />
 
         {/* Hero */}
-        <RiderHero />
+        <RiderHero initialGreeting={heroGreeting} />
 
         {/* First-time visitor explainer */}
         <WelcomeBanner />
@@ -156,7 +168,7 @@ export default function RiderPage() {
         <div id="classes" className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 scroll-mt-8">
           <div>
             <h1 className="text-3xl font-bold text-[color:var(--foreground)]">
-              Available Classes
+              {totalRides === 0 ? "Pick your first ride" : "Your classes"}
             </h1>
             <p className="mt-1 text-[color:var(--muted)]">
               {filteredClasses.length} {filterUpcoming ? "upcoming" : "past"}{" "}

@@ -7,16 +7,16 @@ import { useClasses } from "@/app/hooks/evm/use-class-data";
 import { useInstructors } from "@/app/hooks/evm/use-instructors";
 import { modalTransition } from "@/app/lib/motion";
 
-export function RiderHero() {
-  const { totalRides, prs } = useRiderStats();
+export function RiderHero({ initialGreeting }: { initialGreeting?: string }) {
+  const { prs } = useRiderStats();
   const { classes } = useClasses();
   const { instructors } = useInstructors();
 
+  const greeting = initialGreeting || "Ready to ride?";
+
   const activeRoutes = classes.length;
   const aiCoaches = instructors.length || 3;
-  const avgReward = totalRides > 0
-    ? `${prs.bestSpin.toFixed(0)} SPIN`
-    : "—";
+  const avgReward = prs.bestSpin > 0 ? `${prs.bestSpin.toFixed(0)} SPIN` : "—";
 
   const stats = [
     { icon: Bike, label: "Active Routes", value: activeRoutes.toString() },
@@ -65,11 +65,7 @@ export function RiderHero() {
               transition={{ ...modalTransition, duration: 0.4, delay: 0.05 }}
               className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter text-[color:var(--foreground)] leading-[1.05]"
             >
-              Ride smarter.
-              <br />
-              <span className="bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] bg-clip-text text-transparent">
-                Earn on-chain.
-              </span>
+              {greeting}
             </motion.h1>
 
             <motion.p
