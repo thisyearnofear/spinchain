@@ -36,7 +36,6 @@ import { useWakeLock } from "../../../hooks/use-wake-lock";
 import { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 import { useAiInstructor } from "@/app/hooks/ai/use-ai-instructor";
 import { useLLMCoaching } from "@/app/hooks/ai/use-llm-coaching";
-import { RidePreviewBadge } from "../../../components/features/common/yellow-status-indicator";
 import { useHaptic } from "../../../hooks/use-haptic";
 import {
   type WorkoutPlan,
@@ -795,10 +794,6 @@ export default function LiveRidePage() {
       className="fixed inset-0 bg-black"
       style={{ height: deviceType === "mobile" ? `${viewportHeight}px` : "100vh" }}
     >
-      <div className="absolute top-2 left-2 z-50">
-        <RidePreviewBadge />
-      </div>
-
       <RideAiTelemetryBridge
         isRiding={isRiding}
         isPracticeMode={isPracticeMode}

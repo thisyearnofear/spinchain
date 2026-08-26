@@ -88,34 +88,28 @@
 
 ---
 
-## Phase 3: Language Cleanup (1 week)
+## Phase 3: Language Cleanup ✅ COMPLETE
 
-**Goal**: Remove infrastructure language from rider-facing UX. The rider should never know about ZK, state channels, or smart contracts.
+**All tasks done.** Infrastructure language removed from rider-facing UX.
 
-### 3.1 Rewrite Coach Cards
-- **File**: `app/rider/page.tsx` → `featuredInstructors` array
-- **What**: Replace `agenticPowers` array with `specialties` that are rider-facing:
-  ```
-  BEFORE: "agenticPowers": ["Dynamic pricing based on demand", "Liquidity management via Uniswap v4 hooks"]
-  AFTER:  "specialties": ["Pushes harder on climbs", "Optimizes your pacing with data"]
-  ```
-- **Why**: [Rider language guardrail](./WEDGE.md#wedge-guardrails)
-- **Scope**: All coach profile cards, agent pages, and instructor listings.
+### 3.1 Rewrite Coach Cards ✅
+- **Commit**: `pending` — `app/rider/page.tsx`
+- Renamed `agenticPowers` → `specialties` (values were already good cycling terms)
+- Removed "AI-Powered" badge from coach cards
 
-### 3.2 Remove "Preview" Badges
-- **File**: Search for `Preview` or `preview` badges in rider-facing components.
-- **What**: Either implement the feature fully or remove the badge. Do not ship half-built features with a "Preview" label.
-- **Why**: [No preview badges guardrail](./WEDGE.md#wedge-guardrails)
-- **Target**: Reward settlement status badge, rider avatar (Rive) slot, ghost rider system, TCX export.
+### 3.2 Remove "Preview" Badges ✅
+- **Commit**: `pending` — `app/rider/ride/[classId]/page.tsx`
+- Removed `RidePreviewBadge` from ride page
+- `NetworkStatusBanner` already removed from rider landing in Phase 1
 
-### 3.3 Simplify Completion Screen Language
-- **File**: `app/components/features/ride/ride-completion-v2.tsx`
-- **What**: Replace infrastructure references ("Walrus blob attached", "Sui anchor minted") with rider outcomes:
-  ```
-  BEFORE: "Walrus blob ID: practice-route-001"
-  AFTER:  "Your ride data saved ✓"
-  ```
-- **Why**: Riders don't care about the storage mechanism. They care that their data is saved and they earned a reward.
+### 3.3 Simplify Completion Screen Language ✅
+- **Commit**: `pending` — `app/components/features/ride/ride-completion-v2.tsx`
+- "Anchored on Walrus + Sui" → "Your ride data saved ✓"
+- Removed "View on Walrus" / "View on SuiScan" links
+- "Anchored to Walrus + Sui" → "Ride data saved"
+- "Submit ZK Claim" → "Claim your reward"
+- "Storage & Rewards Details" → "Details"
+- Removed unused `WALRUS_AGGREGATOR_URL` and `ExternalLink` imports
 
 ---
 

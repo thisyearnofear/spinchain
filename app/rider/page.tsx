@@ -110,7 +110,7 @@ export default function RiderPage() {
       rating: "4.9",
       rides: "1.2k",
       specialty: "Alpine routes & sustained climbs",
-      agenticPowers: ["W'bal optimization", "FTP tracking", "Zone-based pacing"],
+      specialties: ["W'bal optimization", "FTP tracking", "Zone-based pacing"],
       href: "/agent?coach=atlas",
     },
     {
@@ -121,7 +121,7 @@ export default function RiderPage() {
       rating: "5.0",
       rides: "850",
       specialty: "HIIT intervals & sprints",
-      agenticPowers: ["Real-time resistance", "Sprint analytics", "Interval engineering"],
+      specialties: ["Real-time resistance", "Sprint analytics", "Interval engineering"],
       href: "/agent?coach=drspin",
     },
     {
@@ -132,7 +132,7 @@ export default function RiderPage() {
       rating: "4.8",
       rides: "2.1k",
       specialty: "Flow state & recovery rides",
-      agenticPowers: ["HRV adaptation", "Recovery scoring", "Breath sync"],
+      specialties: ["HRV adaptation", "Recovery scoring", "Breath sync"],
       href: "/agent?coach=zenmaster",
     },
   ];
@@ -329,9 +329,6 @@ export default function RiderPage() {
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-3xl">{coach.icon}</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                      AI-Powered
-                    </span>
                   </div>
                   <h3 className="text-lg font-bold text-white">{coach.name}</h3>
                   <p className="text-xs text-white/50 mb-2">{coach.role}</p>
@@ -339,7 +336,7 @@ export default function RiderPage() {
                     {coach.specialty}
                   </p>
                   <div className="flex flex-wrap gap-1 mb-4">
-                    {coach.agenticPowers.slice(0, 2).map((power) => (
+                    {coach.specialties.slice(0, 2).map((power) => (
                       <span
                         key={power}
                         className="text-[9px] font-medium text-white/30 bg-white/5 px-2 py-0.5 rounded"

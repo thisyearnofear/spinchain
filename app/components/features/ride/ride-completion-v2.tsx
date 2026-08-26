@@ -39,8 +39,7 @@ import {
   phaseLabel,
   type IntervalPhase,
 } from "@/app/lib/phase-theme";
-import { Star, Cloud, CheckCircle2, ExternalLink, Loader2, ShieldCheck, Zap, TrendingUp, Trophy, Flame } from "lucide-react";
-import { WALRUS_AGGREGATOR_URL } from "@/app/lib/walrus/types";
+import { Star, Cloud, CheckCircle2, Loader2, ShieldCheck, Zap, TrendingUp, Trophy, Flame } from "lucide-react";
 import { milestonesAndStreaks, type SessionMilestone, MILESTONE_TIERS } from "@/app/lib/milestones";
 import { ShareCardButton } from "./share-card";
 import { RideComparison } from "./ride-comparison";
@@ -362,7 +361,7 @@ export function RideCompletionV2({
             </h2>
           </div>
 
-          {/* Walrus + Sui anchor info */}
+          {/* Ride data saved confirmation */}
           {walrusAnchorInfo && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -370,29 +369,9 @@ export function RideCompletionV2({
               transition={{ delay: 0.2 }}
               className="mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3"
             >
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Anchored on Walrus + Sui</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <a
-                  href={`${WALRUS_AGGREGATOR_URL}/v1/${walrusAnchorInfo.blobId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] text-indigo-300 hover:text-indigo-200 transition-colors"
-                >
-                  <ExternalLink className="w-3 h-3" /> View on Walrus
-                </a>
-                {walrusAnchorInfo.txDigest && (
-                  <a
-                    href={`https://suiscan.xyz/testnet/tx/${walrusAnchorInfo.txDigest}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[10px] text-indigo-300 hover:text-indigo-200 transition-colors"
-                  >
-                    <ExternalLink className="w-3 h-3" /> View on SuiScan
-                  </a>
-                )}
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Your ride data saved ✓</span>
               </div>
             </motion.div>
           )}
@@ -677,7 +656,7 @@ function StorageDetails({
         <svg className={`w-3 h-3 transition-transform ${showDetails ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
-        <span>Storage & Rewards Details</span>
+        <span>Details</span>
       </button>
 
       <AnimatePresence>
@@ -689,19 +668,11 @@ function StorageDetails({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            {/* Walrus anchor */}
+            {/* Ride data saved */}
             {walrusAnchorInfo && (
               <div className="mt-2 flex items-center gap-2 text-[10px] text-emerald-400/60">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Anchored to Walrus + Sui</span>
-                <a
-                  href={`https://suiscan.xyz/testnet/tx/${walrusAnchorInfo.txDigest}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300"
-                >
-                  View →
-                </a>
+                <span>Ride data saved</span>
               </div>
             )}
 
@@ -763,7 +734,7 @@ function ClaimRewardsButton({
         ? "✓ Rewards Claimed"
         : rewardClaimStatus?.phase === "ready"
           ? "Claim Verified Rewards"
-          : "Submit ZK Claim";
+          : "Claim your reward";
 
   const claimButtonDisabled =
     !walletConnected ||
