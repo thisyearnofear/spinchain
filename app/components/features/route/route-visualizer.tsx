@@ -39,6 +39,8 @@ import {
   Text,
 } from "@react-three/drei";
 import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-theme";
+import { computeReactiveParams, type ReactiveParams } from "./world-reactivity";
+import type { IntervalPhase } from "@/app/lib/phase-theme";
 export type { VisualizerTheme } from "./visualizer-theme";
 
 // Import Selection types
@@ -138,11 +140,13 @@ function Road({
   theme = "neon",
   stats = { hr: 0, power: 0, cadence: 0 },
   steps = 300,
+  reactive = null,
 }: {
   curve: CatmullRomCurve3;
   theme?: VisualizerTheme;
   stats?: RiderStats;
   steps?: number;
+  reactive?: ReactiveParams | null;
 }) {
   const meshRef = useRef<Mesh>(null);
   const styles = THEMES[theme];
@@ -157,7 +161,22 @@ function Road({
 
     // Boost effect when sprinting
     const sprintFactor = Math.min(1, stats.power / 600);
-    material.emissiveIntensity = baseEmissive + (pulse * 0.1) + (sprintFactor * 0.4);
+    let emissiveIntensity = baseEmissive + (pulse * 0.1) + (sprintFactor * 0.4);
+    let emissiveColor = styles.roadEmissive;
+
+    // World reactivity: road glows with phase color and effort
+    if (reactive) {
+      emissiveIntensity = reactive.roadGlowIntensity;
+      emissiveColor = reactive.roadGlowColor;
+      // Add extra pulse during sprints
+      if (state.clock.elapsedTime % 0.5 < 0.25) {
+        emissiveIntensity *= 1.2;
+      }
+    }
+
+    material.emissiveIntensity = emissiveIntensity;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (material.emissive as any).set(emissiveColor);
 
     // Dynamic color shift if on rainbow theme
     if (theme === 'rainbow') {
@@ -198,7 +217,7 @@ function Road({
           metalness={0.9}
         />
       </mesh>
-      <RoadMarkings curve={curve} theme={theme} steps={steps} />
+      <RoadMarkings curve={curve} theme={theme} steps={steps} reactive={reactive} />
     </group>
   );
 }
@@ -207,10 +226,12 @@ function RoadMarkings({
   curve,
   theme = "neon",
   steps = 300,
+  reactive = null,
 }: {
   curve: CatmullRomCurve3;
   theme?: VisualizerTheme;
   steps?: number;
+  reactive?: ReactiveParams | null;
 }) {
   const styles = THEMES[theme];
 
@@ -260,10 +281,33 @@ function RoadMarkings({
     return { dashGeometry: dashGeo, edgeGeometry: edgeGeo };
   }, [curve, theme, steps]);
 
+  const dashRef = useRef<THREE.Mesh>(null);
+  const edgeRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    // Reactive line glow during high effort
+    if (reactive) {
+      const dashMat = dashRef.current?.material as THREE.MeshStandardMaterial | THREE.MeshBasicMaterial;
+      const edgeMat = edgeRef.current?.material as THREE.MeshStandardMaterial | THREE.MeshBasicMaterial;
+      if (dashMat && 'emissiveIntensity' in dashMat) {
+        dashMat.emissiveIntensity = reactive.roadGlowIntensity * 3;
+      }
+      if (edgeMat && 'emissiveIntensity' in edgeMat) {
+        edgeMat.emissiveIntensity = reactive.roadGlowIntensity * 6;
+      }
+      // Pulse edge glow during sprints
+      if (state.clock.elapsedTime % 0.4 < 0.2) {
+        if (edgeMat && 'emissiveIntensity' in edgeMat) {
+          (edgeMat as THREE.MeshStandardMaterial).emissiveIntensity *= 1.3;
+        }
+      }
+    }
+  });
+
   return (
     <group>
       {/* Dashed center line */}
-      <mesh geometry={dashGeometry}>
+      <mesh ref={dashRef} geometry={dashGeometry}>
         <meshStandardMaterial
           color={styles.lineColor}
           emissive={styles.lineColor}
@@ -274,7 +318,7 @@ function RoadMarkings({
       </mesh>
 
       {/* Edge glowing strips */}
-      <mesh geometry={edgeGeometry}>
+      <mesh ref={edgeRef} geometry={edgeGeometry}>
         <meshStandardMaterial
           color={styles.lineColor}
           emissive={styles.lineColor}
@@ -325,24 +369,30 @@ function FinishLine({ curve, theme = "neon" }: { curve: CatmullRomCurve3; theme?
   );
 }
 
-function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme; curve: CatmullRomCurve3; stats: RiderStats }) {
+function PropManager({ theme = "neon", curve, stats, reactive = null }: { theme?: VisualizerTheme; curve: CatmullRomCurve3; stats: RiderStats; reactive?: ReactiveParams | null }) {
   const themeData = THEMES[theme];
   const propConfig = themeData.props;
-
   const meshGroupRef = useRef<Group>(null);
 
   useFrame((state) => {
     if (!meshGroupRef.current) return;
 
-    // Pulse props with the beat
-    const pulse = 1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.05;
+    const pulseBase = 1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.05;
     meshGroupRef.current.children.forEach((child) => {
       const mesh = child as Mesh;
       if (mesh.material) {
-        // Only pulse if themed for it
+        const mat = mesh.material as MeshStandardMaterial;
         if (theme === 'neon' || theme === 'rainbow') {
-          const baseIntensity = theme === 'neon' ? 0.5 : 0.8;
-          (mesh.material as MeshStandardMaterial).emissiveIntensity = baseIntensity + (pulse - 1) * 2;
+          let baseIntensity = theme === 'neon' ? 0.5 : 0.8;
+          // World reactivity: props pulse harder during sprints
+          if (reactive) {
+            baseIntensity = reactive.propEmissiveIntensity;
+            // Extra pulse during sprints
+            if (state.clock.elapsedTime % 0.5 < 0.25) {
+              baseIntensity *= 1.25;
+            }
+          }
+          mat.emissiveIntensity = baseIntensity + (pulseBase - 1) * 2;
         }
       }
     });
@@ -405,14 +455,20 @@ function PropManager({ theme = "neon", curve, stats }: { theme?: VisualizerTheme
   );
 }
 
-function PostEffects({ theme = "neon", stats, performanceTier = "high" }: { theme: VisualizerTheme; stats: RiderStats; performanceTier?: "high" | "medium" | "low" }) {
+function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive = null }: { theme: VisualizerTheme; stats: RiderStats; performanceTier?: "high" | "medium" | "low"; reactive?: ReactiveParams | null }) {
   // Note: styles reserved for future theming of post-effects
 
   const powerFactor = Math.min(1, stats.power / 600);
   const intensityMultiplier = performanceTier === "low" ? 0 : performanceTier === "medium" ? 0.5 : 1;
-  const bloomIntensity = (0.5 + powerFactor * 2.0) * intensityMultiplier;
-  const chromaticOffset = stats.power > 300 ? powerFactor * 0.005 * intensityMultiplier : 0;
+  let bloomIntensity = (0.5 + powerFactor * 2.0) * intensityMultiplier;
+  let chromaticOffset = stats.power > 300 ? powerFactor * 0.005 * intensityMultiplier : 0;
   const noiseOpacity = theme === 'neon' ? 0.03 * intensityMultiplier : 0;
+
+  // World reactivity: bloom intensifies during sprints
+  if (reactive) {
+    bloomIntensity = reactive.bloomIntensity * intensityMultiplier;
+    chromaticOffset = reactive.chromaticOffset * intensityMultiplier;
+  }
 
   const effects = useMemo(() => {
     if (performanceTier === "low") return [];
@@ -436,10 +492,11 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high" }: { them
       />,
     ];
     if (performanceTier !== "medium") {
-      e.push(<Vignette key="vignette" eskil={false} offset={0.15} darkness={0.8} />);
+      const vignetteDarkness = reactive ? reactive.vignetteDarkness : 0.8;
+      e.push(<Vignette key="vignette" eskil={false} offset={0.15} darkness={vignetteDarkness} />);
     }
     return e;
-  }, [bloomIntensity, chromaticOffset, noiseOpacity, performanceTier]);
+  }, [bloomIntensity, chromaticOffset, noiseOpacity, performanceTier, reactive?.vignetteDarkness]);
 
   if (performanceTier === "low" || effects.length === 0) return null;
 
@@ -624,16 +681,16 @@ function RiderMarker({
   avatar,
   equipment,
   showYouLabel = false,
+  reactive = null,
 }: {
   curve: CatmullRomCurve3;
-  // Ref instead of plain number so useFrame always reads the latest value without
-  // requiring a React re-render from the parent each frame.
   progressRef: MutableRefObject<number>;
   theme?: VisualizerTheme;
   stats?: RiderStats;
   avatar?: AvatarAsset;
   equipment?: EquipmentAsset;
   showYouLabel?: boolean;
+  reactive?: ReactiveParams | null;
 }) {
   const groupRef = useRef<Group>(null);
   const styles = THEMES[theme];
@@ -671,20 +728,26 @@ function RiderMarker({
 
     // Reactive pulsing
     if (auraRef.current) {
-      // Pulse scale based on cadence
-      const pulse =
-        1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.2;
+      let pulse = 1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.2;
+      // World reactivity: aura scales with effort + phase
+      if (reactive) {
+        pulse *= reactive.riderAuraScale;
+      }
       auraRef.current.scale.set(pulse, pulse, pulse);
     }
 
     if (lightRef.current) {
-      // Intensity based on heart rate
-      lightRef.current.intensity = 5 + (stats.hr / 40) * 5;
+      let lightIntensity = 5 + (stats.hr / 40) * 5;
+      if (reactive) {
+        lightIntensity = reactive.riderLightIntensity;
+      }
+      lightRef.current.intensity = lightIntensity;
     }
   });
 
   // Power-reactive trail length
   const trailLength = Math.min(30, 5 + stats.power / 15);
+  const trailColor = reactive ? reactive.riderTrailColor : styles.riderColor;
 
   return (
     <group ref={groupRef}>
@@ -694,7 +757,7 @@ function RiderMarker({
       <Trail
         width={2 + stats.power / 200}
         length={trailLength}
-        color={styles.riderColor}
+        color={trailColor}
         attenuation={(t) => t * t}
       >
         <Float speed={5} rotationIntensity={0.2} floatIntensity={0.5}>
@@ -739,7 +802,7 @@ function RiderMarker({
             <meshBasicMaterial
               color={styles.riderColor}
               transparent
-              opacity={0.05 + stats.power / 2000}
+              opacity={reactive ? reactive.riderAuraOpacity : 0.05 + stats.power / 2000}
             />
           </mesh>
 
@@ -776,9 +839,13 @@ type SpeedLineData = {
 function SpeedLines({
   count = 20,
   theme = "neon",
+  reactive = null,
+  stats = { power: 0, cadence: 0, hr: 0 },
 }: {
   count?: number;
   theme?: VisualizerTheme;
+  reactive?: ReactiveParams | null;
+  stats?: RiderStats;
 }) {
   const styles = THEMES[theme];
   const [allLines] = useState<SpeedLineData[]>(() =>
@@ -798,36 +865,70 @@ function SpeedLines({
   return (
     <group>
       {visibleLines.map((line, i) => (
-        <LineInstance key={i} line={line} color={styles.lineColor} />
+        <LineInstance
+          key={i}
+          line={line}
+          color={reactive ? reactive.speedLineColor : styles.lineColor}
+          reactive={reactive}
+          stats={stats}
+        />
       ))}
     </group>
   );
 }
 
-function LineInstance({ line, color }: { line: SpeedLineData; color: string }) {
+function LineInstance({ line, color, reactive = null, stats = { power: 0, cadence: 0, hr: 0 } }: {
+  line: SpeedLineData;
+  color: string;
+  reactive?: ReactiveParams | null;
+  stats?: RiderStats;
+}) {
   const ref = useRef<Mesh>(null);
+
   useFrame((state, delta) => {
     if (!ref.current) return;
-    ref.current.position.z += line.speed * 200 * delta;
+    let speed = line.speed * 200;
+    // World reactivity: speed lines rush past during high effort
+    if (reactive) {
+      speed *= reactive.speedLineSpeed;
+    } else {
+      // Baseline cadence reactivity
+      speed *= 1 + (stats.cadence / 120) * 0.5;
+    }
+    ref.current.position.z += speed * delta;
     if (ref.current.position.z > 50) ref.current.position.z = -150;
+
+    // Pulse opacity during sprints
+    if (reactive) {
+      const mat = ref.current.material as THREE.MeshBasicMaterial;
+      const baseOpacity = reactive.speedLineOpacity;
+      if (state.clock.elapsedTime % 0.3 < 0.15) {
+        mat.opacity = baseOpacity * 1.3;
+      } else {
+        mat.opacity = baseOpacity;
+      }
+    }
   });
 
   return (
     <mesh ref={ref} position={line.position} rotation={[0, 0, 0]}>
       <boxGeometry args={[0.05, 0.05, 12 * line.scale]} />
-      <meshBasicMaterial color={color} transparent opacity={0.5} />
+      <meshBasicMaterial color={color} transparent opacity={reactive ? reactive.speedLineOpacity : 0.5} />
     </mesh>
   );
 }
 
-function FloatingParticles({ theme = "neon", stats }: { theme?: VisualizerTheme; stats: RiderStats }) {
+function FloatingParticles({ theme = "neon", stats, reactive = null }: { theme?: VisualizerTheme; stats: RiderStats; reactive?: ReactiveParams | null }) {
   const styles = THEMES[theme];
   const starsRef = useRef<Points>(null);
 
   useFrame(() => {
     if (!starsRef.current) return;
-    // Stars move faster when rider is pushing more power
-    const speed = 0.5 + (stats.power / 200);
+    let speed = 0.5 + (stats.power / 200);
+    // World reactivity: stars rotate faster during sprints
+    if (reactive) {
+      speed = reactive.starsRotationSpeed;
+    }
     starsRef.current.rotation.y += 0.0001 * speed;
     starsRef.current.rotation.z += 0.0002 * speed;
   });
@@ -843,7 +944,7 @@ function FloatingParticles({ theme = "neon", stats }: { theme?: VisualizerTheme;
       factor={6}
       saturation={theme === 'rainbow' ? 1 : 0}
       fade
-      speed={1}
+      speed={reactive ? reactive.sparkleSpeed : 1}
     />
   );
 }
@@ -1025,6 +1126,7 @@ function Scene({
   equipment,
   quality,
   userDisplayName,
+  intervalPhase = null,
 }: {
   elevationProfile: number[];
   theme?: VisualizerTheme;
@@ -1043,6 +1145,7 @@ function Scene({
     fps: number;
   };
   userDisplayName?: string;
+  intervalPhase?: IntervalPhase;
 }) {
   const curve = useRouteCurve(elevationProfile);
   const styles = THEMES[theme];
@@ -1057,6 +1160,12 @@ function Scene({
 
   // Get performance tier for adaptive quality - use quality.fps as proxy if available
   const performanceTier = quality?.fps === 30 ? "low" : quality?.fps === 45 ? "medium" : "high";
+
+  // --- Compute reactive world parameters from effort + phase ---
+  const reactive = useMemo(() => {
+    if (mode !== "ride") return null;
+    return computeReactiveParams(theme, stats, intervalPhase, progress);
+  }, [theme, stats, intervalPhase, progress, mode]);
 
   // --- Progress tracking via refs (no React state updates inside useFrame) ---
   // Calling setState inside useFrame triggers a full React re-render every animation
@@ -1149,8 +1258,12 @@ function Scene({
 
       const cam = state.camera as ThreePerspectiveCamera;
       if (cam.fov !== undefined) {
-        const baseFov = 60;
-        const targetFov = baseFov + Math.min(25, (stats.power / 400) * 20);
+        let targetFov = 60;
+        if (reactive) {
+          targetFov = reactive.fovTarget;
+        } else {
+          targetFov = baseFov + Math.min(25, (stats.power / 400) * 20);
+        }
         cam.fov = MathUtils.lerp(cam.fov, targetFov, 0.05);
         cam.updateProjectionMatrix();
       }
@@ -1194,25 +1307,25 @@ function Scene({
   return (
     <>
       <PerspectiveCamera makeDefault position={[0, 100, 100]} fov={60} rotation={[-Math.PI / 3, 0, 0]} />
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={reactive ? reactive.ambientIntensity : 0.5} />
       <pointLight
         position={[10, 50, 10]}
-        intensity={1}
-        color={theme === "mars" ? "#ef4444" : theme === "rainbow" ? "#ff00ff" : "#9b7bff"}
+        intensity={reactive ? reactive.pointLightIntensity : 1}
+        color={reactive ? reactive.pointLightColor : (theme === "mars" ? "#ef4444" : theme === "rainbow" ? "#ff00ff" : "#9b7bff")}
         castShadow={quality?.shadows}
       />
-      <fog attach="fog" args={[styles.fog, 40, 250]} />
+      <fog attach="fog" args={[reactive ? reactive.fogColor : styles.fog, reactive ? reactive.fogDensity : 40, 250]} />
 
       <Environment preset={styles.envPreset} />
 
       {/* Dynamic atmospheric effects - disabled on low tier for performance */}
-      <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} />
+      <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} reactive={reactive} />
 
       {/* Conditionally render expensive effects */}
-      {particleCount > 100 && <FloatingParticles theme={theme} stats={stats} />}
+      {particleCount > 100 && <FloatingParticles theme={theme} stats={stats} reactive={reactive} />}
 
       {mode === "ride" && speedLineCount > 0 && (
-        <SpeedLines count={speedLineCount} theme={theme} />
+        <SpeedLines count={speedLineCount} theme={theme} reactive={reactive} stats={stats} />
       )}
 
       {sparkleCount > 0 && (
@@ -1220,9 +1333,9 @@ function Scene({
           count={sparkleCount}
           scale={100}
           size={Math.min(4, 1.5 + stats.power / 150)}
-          speed={0.3 + (stats.cadence / 200)}
-          color={styles.particleColor}
-          opacity={Math.min(0.5, 0.1 + stats.power / 500)}
+          speed={reactive ? reactive.sparkleSpeed : 0.3 + (stats.cadence / 200)}
+          color={reactive ? reactive.sparkleColor : styles.particleColor}
+          opacity={reactive ? reactive.sparkleOpacity : Math.min(0.5, 0.1 + stats.power / 500)}
         />
       )}
 
@@ -1233,8 +1346,9 @@ function Scene({
           theme={theme}
           stats={stats}
           steps={performanceTier === "high" ? 600 : performanceTier === "medium" ? 250 : 100}
+          reactive={reactive}
         />
-        <PropManager theme={theme} curve={curve} stats={stats} />
+        <PropManager theme={theme} curve={curve} stats={stats} reactive={reactive} />
         <FinishLine curve={curve} theme={theme} />
         <WelcomeSign theme={theme} name={userDisplayName} curve={curve} />
 
@@ -1246,6 +1360,7 @@ function Scene({
           avatar={avatar}
           equipment={equipment}
           showYouLabel={mode === "ride"}
+          reactive={reactive}
         />
 
         {/* Limit ghosts on low-end devices */}
@@ -1259,8 +1374,15 @@ function Scene({
 
         {styles.grid && (
           <gridHelper
-            args={[300, 30, theme === "rainbow" ? "#ff00ff" : "#2a1d5a", "#121a2d"]}
+            args={[
+              300,
+              30,
+              reactive ? reactive.gridColor : (theme === "rainbow" ? "#ff00ff" : "#2a1d5a"),
+              "#121a2d",
+            ]}
             position={[0, -2, 0]}
+            transparent
+            opacity={reactive ? reactive.gridOpacity : 1}
           />
         )}
       </group>
@@ -1296,6 +1418,7 @@ export default function RouteVisualizer({
   equipmentId,
   quality,
   userDisplayName,
+  intervalPhase = null,
 }: {
   elevationProfile?: number[];
   theme?: VisualizerTheme;
@@ -1309,6 +1432,7 @@ export default function RouteVisualizer({
   equipmentId?: string;
   quality?: "low" | "medium" | "high";
   userDisplayName?: string;
+  intervalPhase?: IntervalPhase;
 }) {
   const adaptiveQuality = useAdaptiveQuality();
 
@@ -1333,18 +1457,29 @@ export default function RouteVisualizer({
   const avatar = useMemo(() => AVATARS.find(a => a.id === avatarId), [avatarId]);
   const equipment = useMemo(() => EQUIPMENT.find(e => e.id === equipmentId), [equipmentId]);
 
+  // Compute reactive sky gradient for world reactivity
+  const reactiveParams = useMemo(() => {
+    if (mode !== "ride" || !intervalPhase) return null;
+    return computeReactiveParams(theme, stats, intervalPhase, progress);
+  }, [theme, stats, intervalPhase, progress, mode]);
+
+  const skyTopStyle = reactiveParams ? reactiveParams.skyTopColor : styles.skyTop;
+  const skyBottomStyle = reactiveParams ? reactiveParams.skyBottomColor : styles.skyBottom;
+
   return (
     <div
       className={`relative w-full overflow-hidden rounded-2xl ${className}`}
       style={{
-        background: `linear-gradient(to bottom, ${styles.skyTop}, ${styles.skyBottom})`,
+        background: `linear-gradient(to bottom, ${skyTopStyle}, ${skyBottomStyle})`,
       }}
     >
-      {/* Horizon glow layer behind canvas */}
+      {/* Horizon glow layer behind canvas — reactive with phase */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: `radial-gradient(ellipse at 50% 80%, ${styles.horizonGlow}44 0%, transparent 50%)`,
+          background: reactiveParams
+            ? `radial-gradient(ellipse at 50% 80%, ${reactiveParams.fogColor}66 0%, transparent 50%)`
+            : `radial-gradient(ellipse at 50% 80%, ${styles.horizonGlow}44 0%, transparent 50%)`,
         }}
       />
 
@@ -1390,6 +1525,7 @@ export default function RouteVisualizer({
             equipment={equipment}
             quality={effectiveQuality}
             userDisplayName={userDisplayName}
+            intervalPhase={intervalPhase}
           />
         </Canvas>
       </Suspense>

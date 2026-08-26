@@ -158,6 +158,7 @@ export function RideVisualization({
           quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
           className="h-full w-full"
           userDisplayName={undefined}
+          intervalPhase={currentInterval?.phase ?? null}
         />
       )}
 
