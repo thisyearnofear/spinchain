@@ -14,37 +14,30 @@
 
 ---
 
-## Phase 1: Surface The Game (1–2 weeks)
+## Phase 1: Surface The Game ✅ COMPLETE
 
-**Goal**: Make the gamification visible on the front door. Riders must see streaks, flow, and milestones before clicking "Join."
+**All tasks done.** Gamification now visible on the front door. One primary CTA dominates. Class grid is secondary.
 
-### 1.1 Add Gamification Bar To Rider Landing Page
-- **File**: `app/rider/page.tsx`
-- **What**: Above the class grid, show a horizontal bar with: current streak 🔥, experience level badge, current flow tier (from localStorage), and milestone progress ring.
-- **Why**: [Visible game guardrail](./WEDGE.md#the-gamification-must-be-visible-before-the-ride)
-- **Design**: Compact horizontal strip, collapsible on mobile. Uses existing `UserMemory` store from `milestones.ts`.
-- **Not in scope**: Backend sync of these values (Phase 3). localStorage is fine for now.
+### 1.1 Add Gamification Bar To Rider Landing Page ✅
+- **Commit**: `6c005f1` — `app/components/features/common/gamification-bar.tsx`
+- Shows streak 🔥, total rides, best power, flow minutes
+- Empty state: "Start your first ride to unlock streaks, milestones, and flow tracking"
 
-### 1.2 Distill Rider Landing — One Primary CTA
-- **File**: `app/rider/page.tsx`
-- **What**: Replace the current class-grid-first layout with:
-  1. Gamification bar (from 1.1)
-  2. One big CTA: "Start Demo Ride" or "Your Next Class" (if they have upcoming)
-  3. Class grid pushed below the fold, behind a "Browse All" link
-- **Why**: [30-second rule](./WEDGE.md#the-core-loop-must-be-under-30-seconds) + [One primary CTA guardrail](./WEDGE.md#wedge-guardrails)
-- **Design**: Hero card with class name, route preview thumbnail, and "Join" button as the dominant element. Grid is secondary.
+### 1.2 Distill Rider Landing — One Primary CTA ✅
+- **Commit**: `222d96c` — `app/rider/page.tsx` + `app/components/features/common/primary-cta.tsx`
+- Before: 7+ competing CTAs causing analysis paralysis
+- After: ONE dominant action — green "Start Demo Ride" (disconnected) or accent "Your Next Class" (connected)
+- Class grid collapsed behind "Browse All Classes" accordion
+- Removed: WelcomeBanner, OnboardingChecklist, GuestDemoClass section
 
-### 1.3 Personalize The Rider Hero
-- **File**: `app/rider/page.tsx` + `app/components/features/rider/rider-hero.tsx`
-- **What**: Replace generic "Available Classes" heading with: "Good morning, [name]. Ready for your 3-day streak?"
-- **Why**: Makes the game feel personal. Strava and Duolingo do this — they lead with the user's progress, not the catalog.
-- **Design**: Uses `rider-profile-store.ts` for name, `milestones.ts` for streak. Fallback to generic if no profile exists.
+### 1.3 Personalize The Rider Hero ✅
+- **Commit**: `6c005f1` — `app/rider/page.tsx` + `app/components/features/rider/rider-hero.tsx`
+- Greeting logic: streak > flow > generic
+- Shows: "Good to see you — 3 day streak 🔥" or "You've logged 85m in flow — time to build on that?"
 
-### 1.4 Remove Network Status Banner From Rider Landing
-- **File**: `app/rider/page.tsx`
-- **What**: Remove `NetworkStatusBanner` from the rider landing page.
-- **Why**: Network status is infrastructure monitoring, not rider-facing content. Riders don't need to know about state channels on the landing page.
-- **Where it belongs**: Instructor admin page or a subtle status dot in the nav.
+### 1.4 Remove Network Status Banner From Rider Landing ✅
+- **Commit**: `6c005f1` — `app/rider/page.tsx`
+- Removed `NetworkStatusBanner` — infrastructure belongs on admin page, not rider landing
 
 ---
 
