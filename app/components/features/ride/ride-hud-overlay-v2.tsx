@@ -1,0 +1,451 @@
+/**
+ * RideHUDOverlay v2 — Simplified, phase-reactive HUD.
+ *
+ * Replaces the current 11+ element HUD with 3 focal points that breathe,
+ * pulse, and react to the rider's effort and the interval phase.
+ *
+ * The HUD has 2 modes:
+ *
+ * 1. ACTIVE RIDE (default): 3 focal points, nothing else
+ *    - Primary metric (biggest, center-bottom)
+ *    - Phase badge + time (small, above primary)
+ *    - Ghost status (small, beside)
+ *
+ * 2. EXPANDED (tap to toggle): shows everything else
+ *    - Workout plan progress bar
+ *    - Coach message
+ *    - Settlement stream
+ *    - Multi-ghost list
+ *    - Gear badge
+ *
+ * Phase-reactive behavior:
+ * - Background glow shifts color with phase
+ * - Metric cards breathe (scale up on high effort)
+ * - Screen edges pulse during sprints
+ * - Particles accelerate with effort
+ * - Coach messages dim background when shown
+ */
+
+import { memo, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRideStore } from "@/app/stores/ride-store";
+import { useTelemetryStore, selectEffort, selectPower, selectHeartRate, selectCadence, selectGhostState, selectMultiGhostState } from "@/app/stores/telemetry-store";
+import { useCoachingStore } from "@/app/stores/coaching-store";
+import { useRewardsStore } from "@/app/stores/rewards-store";
+import { useUIStore } from "@/app/stores/ui-store";
+import { useSensoryStore, useSensoryEvent } from "@/app/stores/sensory-store";
+import {
+  computePhaseTheme,
+  phaseAccent,
+  phaseLabel,
+  type IntervalPhase,
+} from "@/app/lib/phase-theme";
+import { YellowRewardTicker } from "@/app/components/features/common/yellow-reward-ticker";
+import { RideProgress } from "./ride-progress";
+import { CoachMessageOverlay } from "./coach-message-overlay";
+import { SettlementStream } from "./settlement-stream";
+import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
+import type { GhostState } from "@/app/lib/analytics/ghost-service";
+
+interface RideHUDOverlayV2Props {
+  hudMode: "full" | "compact" | "minimal";
+  isRiding: boolean;
+  showCompletionScreen: boolean;
+}
+
+export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
+  hudMode,
+  isRiding,
+  showCompletionScreen,
+}: RideHUDOverlayV2Props) {
+  if (showCompletionScreen || hudMode === "minimal") return null;
+
+  const power = useTelemetryStore(selectPower);
+  const heartRate = useTelemetryStore(selectHeartRate);
+  const cadence = useTelemetryStore(selectCadence);
+  const effort = useTelemetryStore(selectEffort);
+  const ghostState = useTelemetryStore(selectGhostState);
+  const multiGhostState = useTelemetryStore(selectMultiGhostState);
+  const currentInterval = useCoachingStore((s) => s.currentInterval);
+  const phase = currentInterval?.phase ?? null;
+  const isSpeaking = useCoachingStore((s) => s.isSpeaking);
+  const lastCoachMessage = useCoachingStore((s) => s.lastCoachMessage);
+  const rewardsActive = useRewardsStore((s) => s.isActive);
+  const rewardsStreamState = useRewardsStore((s) => s.streamState);
+  const rewardsMode = useRewardsStore((s) => s.mode);
+  const rewardsFormatted = useRewardsStore((s) => s.formattedReward);
+  const sensoryEvent = useSensoryEvent();
+
+  // ─── Phase theme (drives everything) ────────────────────────────
+  const theme = useMemo(
+    () => computePhaseTheme(phase as IntervalPhase, effort),
+    [phase, effort],
+  );
+
+  const accent = phaseAccent(phase);
+  const phaseText = phaseLabel(phase);
+
+  // ─── Primary metric (adapts to phase) ───────────────────────────
+  const primaryMetric = useMemo(() => {
+    if (phase === "sprint") {
+      return { label: "Cadence", value: cadence, unit: "rpm", color: "text-cyan-300" };
+    }
+    if (phase === "recovery" || phase === "cooldown") {
+      return { label: "Heart Rate", value: heartRate, unit: "bpm", color: "text-sky-300" };
+    }
+    // Default: power
+    return { label: "Power", value: power, unit: "W", color: "text-yellow-300" };
+  }, [phase, power, heartRate, cadence]);
+
+  // ─── Secondary metrics ──────────────────────────────────────────
+  const secondaryMetrics = useMemo(() => {
+    const metrics = [];
+    if (phase !== "sprint") {
+      metrics.push({ label: "Power", value: power, unit: "W", color: "text-yellow-300" });
+    }
+    if (phase !== "recovery" && phase !== "cooldown") {
+      metrics.push({ label: "Heart Rate", value: heartRate, unit: "bpm", color: "text-rose-300" });
+    }
+    if (phase !== "sprint") {
+      metrics.push({ label: "Cadence", value: cadence, unit: "rpm", color: "text-cyan-300" });
+    }
+    return metrics.slice(0, 2);
+  }, [phase, power, heartRate, cadence]);
+
+  // ─── Ghost status ───────────────────────────────────────────────
+  const ghostBadge = useMemo(() => {
+    if (!ghostState?.leadLagTime && multiGhostState.length === 0) return null;
+    const ghosts = multiGhostState.length > 0 ? multiGhostState : [
+      { id: "ghost", leadLagTime: ghostState?.leadLagTime ?? 0, distanceGap: ghostState?.distanceGap ?? 0, name: "Ghost" },
+    ];
+
+    const primaryGhost = ghosts[0];
+    const isAhead = primaryGhost.leadLagTime < 0;
+    const absTime = Math.abs(primaryGhost.leadLagTime);
+
+    return {
+      isAhead,
+      time: absTime,
+      distance: Math.abs(primaryGhost.distanceGap ?? 0),
+      name: primaryGhost.name ?? "Ghost",
+      color: isAhead ? "text-emerald-400" : "text-rose-400",
+    };
+  }, [ghostState, multiGhostState]);
+
+  // ─── Expansion state ────────────────────────────────────────────
+  const [expanded, setExpanded] = useState(false);
+
+  // ─── Render ─────────────────────────────────────────────────────
+  return (
+    <>
+      {/* ─── Ambient background glow ───────────────────────────────── */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        {/* Base phase color */}
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            background: `radial-gradient(ellipse at 50% 50%, ${theme.bg} 0%, transparent 70%)`,
+          }}
+          animate={{ opacity: [0.6, 0.9, 0.6] }}
+          transition={{
+            duration: theme.pulseRate / 1000,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+
+        {/* Intensity-based radial pulse */}
+        {theme.intensity > 0.5 && (
+          <motion.div
+            className="absolute inset-0"
+            style={{
+              background: `radial-gradient(circle at 50% 50%, ${theme.glow} 0%, transparent 50%)`,
+            }}
+            animate={{
+              scale: [1, 1 + theme.intensity * 0.15, 1],
+              opacity: theme.intensity * 0.5,
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        )}
+
+        {/* Sprint edge flash */}
+        {theme.screenPulseOpacity > 0 && (
+          <motion.div
+            className="absolute inset-0"
+            style={{
+              boxShadow: `inset 0 0 80px 20px ${theme.color}${Math.round(theme.screenPulseOpacity * 255).toString(16).padStart(2, "0")}`,
+            }}
+            animate={{ opacity: [0.3, 0.8, 0.3] }}
+            transition={{
+              duration: 0.6,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        )}
+
+        {/* Particles during high intensity */}
+        {theme.intensity > 0.6 && !expanded && (
+          <div className="absolute inset-0">
+            {Array.from({ length: Math.floor(theme.intensity * 12) }).map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute rounded-full"
+                style={{
+                  width: 1 + Math.random() * 3,
+                  height: 1 + Math.random() * 3,
+                  left: `${10 + Math.random() * 80}%`,
+                  top: `${20 + Math.random() * 60}%`,
+                  backgroundColor: theme.particle,
+                  opacity: theme.intensity * 0.4,
+                }}
+                animate={{
+                  y: [0, -20 - Math.random() * 30],
+                  opacity: [0, theme.intensity * 0.5, 0],
+                  scale: [0.5, 1.5],
+                }}
+                transition={{
+                  duration: 2 + Math.random() * 2,
+                  repeat: Infinity,
+                  delay: Math.random() * 2,
+                  ease: "easeOut",
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ─── Compact HUD (single metric) ───────────────────────────── */}
+      {expanded ? null : (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-3">
+          {/* Phase badge */}
+          <motion.div
+            className="flex items-center gap-2 rounded-full px-4 py-1.5 border backdrop-blur-xl"
+            style={{
+              borderColor: `${theme.color}30`,
+              backgroundColor: `${theme.color}10`,
+            }}
+            animate={{
+              boxShadow: theme.intensity > 0.5 ? `0 0 30px ${theme.color}20` : "none",
+            }}
+          >
+            <motion.div
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: theme.color }}
+              animate={{ scale: [1, 1.4, 1] }}
+              transition={{ duration: theme.pulseRate / 1000, repeat: Infinity }}
+            />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
+              {phaseText}
+            </span>
+          </motion.div>
+
+          {/* Primary metric — big, central, breathing */}
+          <motion.div
+            className="relative rounded-[2rem] border bg-black/80 backdrop-blur-2xl px-8 py-6 min-w-[200px]"
+            style={{
+              borderColor: `${theme.color}20`,
+            }}
+            // Breathe: scale slightly on high effort
+            animate={{
+              scale: 1 + (primaryMetric.value > 200 ? (primaryMetric.value - 200) * 0.0003 : 0),
+              boxShadow: theme.intensity > 0.5 ? `0 0 60px ${theme.color}15` : "none",
+            }}
+          >
+            {/* Accent top line */}
+            <div
+              className="absolute top-0 left-0 w-full h-px"
+              style={{
+                background: `linear-gradient(90deg, transparent, ${theme.color}40, transparent)`,
+              }}
+            />
+
+            {/* Metric label */}
+            <p className={`text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-2 text-center`}>
+              {primaryMetric.label}
+            </p>
+
+            {/* Metric value */}
+            <p
+              className={`text-6xl font-black tracking-tighter tabular-nums text-center leading-none`}
+              style={{
+                color: theme.color,
+                textShadow: `${theme.color}20 0 0 20px`,
+              }}
+            >
+              {primaryMetric.value}
+              <span className="text-sm font-bold text-white/20 ml-2">{primaryMetric.unit}</span>
+            </p>
+
+            {/* Intensity bar at bottom */}
+            {theme.intensity > 0.3 && (
+              <div className="absolute bottom-2 left-8 right-8 h-0.5 bg-white/5 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: theme.color }}
+                  animate={{ scaleX: theme.intensity }}
+                  transition={{ type: "tween", duration: 0.3 }}
+                />
+              </div>
+            )}
+          </motion.div>
+
+          {/* Ghost badge + secondaries */}
+          <div className="flex items-center gap-3">
+            {/* Ghost */}
+            {ghostBadge && (
+              <motion.div
+                className="flex flex-col items-center rounded-xl border bg-black/60 backdrop-blur px-3 py-1.5"
+                style={{ borderColor: ghostBadge.isAhead ? "rgba(16,185,129,0.3)" : "rgba(244,63,94,0.3)" }}
+              >
+                <span className="text-[7px] font-black text-white/40 uppercase tracking-widest">Ghost</span>
+                <span className={`text-sm font-black tabular-nums ${ghostBadge.color}`}>
+                  {ghostBadge.isAhead ? "+" : "-"}{ghostBadge.time.toFixed(1)}s
+                </span>
+              </motion.div>
+            )}
+
+            {/* Secondary metrics (horizontal row) */}
+            {secondaryMetrics.map((m) => (
+              <div
+                key={m.label}
+                className="flex flex-col items-center rounded-xl border bg-black/40 backdrop-blur px-2.5 py-1"
+                style={{ borderColor: "rgba(255,255,255,0.08)" }}
+              >
+                <span className="text-[7px] font-black text-white/30 uppercase tracking-widest">{m.label}</span>
+                <span className={`text-base font-black tabular-nums ${m.color}`}>
+                  {m.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Expanded HUD (tap to show everything) ─────────────────── */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 pointer-events-auto w-full max-w-md px-4"
+          >
+            {/* Tap to collapse */}
+            <div
+              className="rounded-2xl border bg-black/90 backdrop-blur-2xl p-4 border-white/10"
+              onClick={() => setExpanded(false)}
+            >
+              {/* Phase header */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: theme.color }}
+                    animate={{ scale: [1, 1.4, 1] }}
+                    transition={{ duration: theme.pulseRate / 1000, repeat: Infinity }}
+                  />
+                  <span className="text-xs font-black text-white/80 uppercase tracking-wider">
+                    {phaseText}
+                  </span>
+                </div>
+                <span className="text-[9px] text-white/40">Tap to collapse</span>
+              </div>
+
+              {/* All 4 metrics in a grid */}
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                {[
+                  { label: "Power", value: power, unit: "W", color: "text-yellow-300" },
+                  { label: "HR", value: heartRate, unit: "bpm", color: "text-rose-300" },
+                  { label: "Cadence", value: cadence, unit: "rpm", color: "text-cyan-300" },
+                  { label: "Effort", value: effort, unit: "/1000", color: "text-purple-300" },
+                ].map((m) => (
+                  <div
+                    key={m.label}
+                    className="rounded-xl border bg-white/5 p-2 text-center"
+                    style={{ borderColor: `${theme.color}15` }}
+                  >
+                    <p className="text-[7px] font-black text-white/30 uppercase tracking-wider">{m.label}</p>
+                    <p className={`text-lg font-black tabular-nums ${m.color}`}>
+                      {m.value}
+                    </p>
+                    <p className="text-[7px] text-white/20">{m.unit}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Coach message */}
+              {lastCoachMessage && isSpeaking && (
+                <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-2 mb-2">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                    <span className="text-[8px] font-black text-indigo-300 uppercase tracking-wider">Coach</span>
+                  </div>
+                  <p className="text-[10px] text-white/70 leading-relaxed">{lastCoachMessage}</p>
+                </div>
+              )}
+
+              {/* Ghost info */}
+              {multiGhostState.length > 0 && (
+                <div className="flex gap-1.5">
+                  {multiGhostState.map((ghost, idx) => {
+                    const isAhead = ghost.leadLagTime < 0;
+                    return (
+                      <div
+                        key={ghost.id ?? idx}
+                        className="flex items-center gap-1.5 rounded-full border bg-white/5 px-2 py-0.5 text-[9px]"
+                        style={{
+                          borderColor: isAhead ? "rgba(16,185,129,0.2)" : "rgba(244,63,94,0.2)",
+                        }}
+                      >
+                        <span className={`font-bold ${isAhead ? "text-emerald-400" : "text-rose-400"}`}>
+                          {ghost.name ?? "??"}
+                        </span>
+                        <span className="text-white/40">
+                          {isAhead ? "+" : "-"}{Math.abs(ghost.leadLagTime).toFixed(1)}s
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Tap zone to expand ────────────────────────────────────── */}
+      {!expanded && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-auto h-8 w-32 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"
+          aria-label="Show full HUD"
+        >
+          <svg className="w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
+      )}
+
+      {/* ─── Coach message overlay (always on top) ─────────────────── */}
+      {lastCoachMessage && <CoachMessageOverlay />}
+
+      {/* ─── Settlement stream (behind HUD) ────────────────────────── */}
+      {rewardsActive && rewardsStreamState && rewardsMode === "yellow-stream" && (
+        <div className="fixed inset-0 pointer-events-none -z-20">
+          <SettlementStream />
+        </div>
+      )}
+    </>
+  );
+});
+
+// Need useState
+import { useState } from "react";
