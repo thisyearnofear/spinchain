@@ -65,15 +65,13 @@
 - **Why**: First impressions compound. A weak activation undercuts the visual magic that follows.
 - **Not in scope**: New mechanics. Polish existing ones.
 
-### 2.3 Make The Demo Ride World Feel Alive
-- **File**: `app/components/features/route/route-visualizer.tsx` + `app/components/features/ride/enhanced-flow-background.tsx`
-- **What**: Ensure the demo ride uses the full reactive world:
-  - Road glow responds to keyboard cadence
-  - Fog density responds to simulated power
-  - Speed lines accelerate with simulated sprint
-  - Particles and bloom scale with effort
-- **Why**: If the demo ride feels less magical than a real ride, the wedge is broken.
-- **Test**: Pedal with arrow keys. Sprint with ↑. The world should visibly react within one frame.
+### 2.3 Make The Demo Ride World Feel Alive ✅
+- **Commit**: `pending` — `app/hooks/ride/use-demo-effort.ts` + `app/rider/ride/[classId]/page.tsx`
+- **File**: New hook `useDemoEffort` that generates keyboard-driven cadence/power for practice mode
+- **What**: W/↑ = pedal harder, S/↓ = brake, idle = coast. Feeds metrics into `coordinator.ingestSimulatorMetrics()` at 10Hz.
+- **Why**: Practice mode was excluded from the simulator (`shouldSimulate = isTrainingMode || isGuestMode`), so `flowTier` stayed at 0 and the reactive world never fired.
+- **Wired in**: `app/rider/ride/[classId]/page.tsx` line 401
+- **Test**: In demo mode, press W — world should visibly respond (particles, road glow, flow badge) within one frame.
 
 ### 2.4 Add Milestone Pop-Up On First Achievement ✅
 - **Commit**: `pending` — `app/rider/ride/[classId]/page.tsx`

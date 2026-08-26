@@ -52,6 +52,7 @@ import type { FitnessMetrics } from "@/app/lib/ble/types";
 import { useToast } from "@/app/components/ui/toast";
 import { useRideRewards } from "@/app/hooks/ride/use-ride-rewards";
 import { useRideSimulator } from "@/app/hooks/ride/use-ride-simulator";
+import { useDemoEffort } from "@/app/hooks/ride/use-demo-effort";
 import { useRideLifecycle } from "@/app/hooks/ride/use-ride-lifecycle";
 import { usePrPursuit } from "@/app/hooks/ride/use-pr-pursuit";
 import { usePushLiveTelemetry } from "@/app/hooks/common/use-live-telemetry";
@@ -395,6 +396,9 @@ export default function LiveRidePage() {
     coordinator,
     playSound,
   });
+
+  // Demo/practice mode: keyboard → cadence/power → reactive world
+  useDemoEffort({ isRiding, isPracticeMode: isPracticeMode, coordinator });
 
   const lifecycle = useRideLifecycle({
     classId,
