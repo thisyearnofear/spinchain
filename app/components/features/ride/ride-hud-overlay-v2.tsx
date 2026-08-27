@@ -60,8 +60,6 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   showCompletionScreen,
   flowTier = 0,
 }: RideHUDOverlayV2Props) {
-  if (showCompletionScreen || hudMode === "minimal") return null;
-
   const power = useTelemetryStore(selectPower);
   const heartRate = useTelemetryStore(selectHeartRate);
   const cadence = useTelemetryStore(selectCadence);
@@ -141,6 +139,10 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   const FLOW_LABELS = ["", "Focused", "Flow", "Super Flow", "Mastery"];
   const FLOW_COLORS = ["", "#34d399", "#f59e0b", "#f97316", "#ef4444"];
   const showFlowBadge = flowTier >= 1;
+
+  // Early return AFTER all hooks (rules of hooks): quiet/minimal mode renders
+  // nothing, but every hook above must always run in the same order.
+  if (showCompletionScreen || hudMode === "minimal") return null;
 
   // ─── Render ─────────────────────────────────────────────────────
   return (

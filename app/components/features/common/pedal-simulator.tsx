@@ -13,6 +13,10 @@ interface PedalSimulatorProps {
         speed: number;
         effort: number;
     }) => void;
+    /** When true, the keyboard input + metrics loop keep running (so stats
+     *  still update) but the on-screen widget is not rendered — used when the
+     *  HUD is collapsed to minimal/zen mode for a clean riding scene. */
+    visuallyHidden?: boolean;
     className?: string;
 }
 
@@ -34,7 +38,7 @@ function haptic(ms: number) {
     } catch { /* not supported */ }
 }
 
-export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: PedalSimulatorProps) {
+export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = false, className = '' }: PedalSimulatorProps) {
     const deviceType = useDeviceType();
     const [activeLeg, setActiveLeg] = useState<Leg>(null);
     const [showInstructions, setShowInstructions] = useState(true);
@@ -91,9 +95,9 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
         return { heartRate: Math.round(baseMetrics.current.heartRate), power: Math.round(baseMetrics.current.power), cadence: clampedCadence, speed: Math.round(speed * 10) / 10, effort: Math.round(baseMetrics.current.effort) };
     }, []);
 
-    // Animate crank rotation
+    // Animate crank rotation (skip when visually hidden — no on-screen widget)
     useEffect(() => {
-        if (!isActive) return;
+        if (!isActive || visuallyHidden) return;
         let last = performance.now();
         const tick = (now: number) => {
             const dt = now - last;
@@ -105,7 +109,7 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
         };
         animFrame.current = requestAnimationFrame(tick);
         return () => { if (animFrame.current) cancelAnimationFrame(animFrame.current); };
-    }, [isActive]);
+    }, [isActive, visuallyHidden]);
 
     const recordPedalStroke = useCallback((leg: 'left' | 'right') => {
         lastPedalLeg.current = leg;
@@ -205,7 +209,7 @@ export function PedalSimulator({ isActive, onMetricsUpdate, className = '' }: Pe
         return () => { if (metricsInterval.current) clearInterval(metricsInterval.current); };
     }, [isActive, calculateMetrics]);
 
-    if (!isActive) return null;
+    if (!isActive || visuallyHidden) return null;
 
     const zone = getCadenceZone(cadence);
 
