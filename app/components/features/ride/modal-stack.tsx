@@ -123,7 +123,7 @@ export function useModalStack() {
   }, [
     exitConfirm, showNoBike, showTutorial,
     setShowExitConfirm, setShowNoBike, setShowTutorial,
-    setShowDemoModal, setShowMilestone,
+    setShowDemoModal, setShowMilestone, setShowKeyboardHints,
   ]);
 
   // ─── Dismiss a modal ─────────────────────────────────────────

@@ -774,6 +774,17 @@ export default function LiveRidePage() {
   // dismisses them (Esc / button) so controls stay discoverable. The overlay
   // itself handles its own intro fade; we don't fight it with a second timer.
 
+  // ─── Modal store reads (hoisted before early returns — rules of hooks) ─
+  const showExitConfirm = useRideModalStore((s) => s.showExitConfirm);
+  const showNoBikeModal = useRideModalStore((s) => s.showNoBikeModal);
+  const showTutorialModal = useRideModalStore((s) => s.showTutorial);
+  const tutorialStep = useRideModalStore((s) => s.tutorialStep);
+  const tutorialSteps = useRideModalStore((s) => s.tutorialSteps);
+  const showMilestone = useRideModalStore((s) => s.showMilestone);
+  const showDemoModal = useRideModalStore((s) => s.showDemoModal);
+  const demoStats = useRideModalStore((s) => s.demoStats);
+  const isExitingRide = useRideModalStore((s) => s.isExitingRide);
+
   // ─── Loading / Not Found Gates ─────────────────────────────────
   if (isLoading && !isPracticeMode) {
     return (
@@ -938,16 +949,16 @@ export default function LiveRidePage() {
       {/* ─── Modal stack (disciplined, single modal at a time) ─────── */}
       <SectionErrorBoundary title="ride modals">
       <ModalStack
-        exitConfirm={useRideModalStore((s) => s.showExitConfirm)}
-        noBike={useRideModalStore((s) => s.showNoBikeModal)}
-        tutorial={useRideModalStore((s) => s.showTutorial)}
-        tutorialStep={useRideModalStore((s) => s.tutorialStep)}
-        tutorialSteps={useRideModalStore((s) => s.tutorialSteps)}
-        milestone={useRideModalStore((s) => s.showMilestone)}
+        exitConfirm={showExitConfirm}
+        noBike={showNoBikeModal}
+        tutorial={showTutorialModal}
+        tutorialStep={tutorialStep}
+        tutorialSteps={tutorialSteps}
+        milestone={showMilestone}
         keyboardHints={showKeyboardHints}
-        demoModal={useRideModalStore((s) => s.showDemoModal)}
-        demoStats={useRideModalStore((s) => s.demoStats)}
-        isExitingRide={useRideModalStore((s) => s.isExitingRide)}
+        demoModal={showDemoModal}
+        demoStats={demoStats}
+        isExitingRide={isExitingRide}
         useSimulator={useSimulator}
         isRiding={isRiding}
         hideSimulator={hudMode === "minimal"}

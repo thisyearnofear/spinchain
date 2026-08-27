@@ -26,7 +26,7 @@
  * - Coach messages dim background when shown
  */
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore, selectEffort, selectPower, selectHeartRate, selectCadence, selectGhostState, selectMultiGhostState } from "@/app/stores/telemetry-store";
@@ -140,6 +140,22 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   const FLOW_COLORS = ["", "#34d399", "#f59e0b", "#f97316", "#ef4444"];
   const showFlowBadge = flowTier >= 1;
 
+  // Particle layout is random but stable per mount. Math.random is impure, so
+  // it can't run during render (React Compiler flags it). useState with a lazy
+  // initializer runs exactly once, on mount — the accepted escape hatch for
+  // one-time random values that shouldn't shift on re-render.
+  const [particles] = useState(() =>
+    Array.from({ length: 12 }).map(() => ({
+      width: 1 + Math.random() * 3,
+      height: 1 + Math.random() * 3,
+      left: 10 + Math.random() * 80,
+      top: 20 + Math.random() * 60,
+      rise: 20 + Math.random() * 30,
+      duration: 2 + Math.random() * 2,
+      delay: Math.random() * 2,
+    })),
+  );
+
   // Early return AFTER all hooks (rules of hooks): quiet/minimal mode renders
   // nothing, but every hook above must always run in the same order.
   if (showCompletionScreen || hudMode === "minimal") return null;
@@ -201,27 +217,27 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
         {/* Particles during high intensity */}
         {theme.intensity > 0.6 && !expanded && (
           <div className="absolute inset-0">
-            {Array.from({ length: Math.floor(theme.intensity * 12) }).map((_, i) => (
+            {particles.slice(0, Math.floor(theme.intensity * 12)).map((p, i) => (
               <motion.div
                 key={i}
                 className="absolute rounded-full"
                 style={{
-                  width: 1 + Math.random() * 3,
-                  height: 1 + Math.random() * 3,
-                  left: `${10 + Math.random() * 80}%`,
-                  top: `${20 + Math.random() * 60}%`,
+                  width: p.width,
+                  height: p.height,
+                  left: `${p.left}%`,
+                  top: `${p.top}%`,
                   backgroundColor: theme.particle,
                   opacity: theme.intensity * 0.4,
                 }}
                 animate={{
-                  y: [0, -20 - Math.random() * 30],
+                  y: [0, -p.rise],
                   opacity: [0, theme.intensity * 0.5, 0],
                   scale: [0.5, 1.5],
                 }}
                 transition={{
-                  duration: 2 + Math.random() * 2,
+                  duration: p.duration,
                   repeat: Infinity,
-                  delay: Math.random() * 2,
+                  delay: p.delay,
                   ease: "easeOut",
                 }}
               />
@@ -489,6 +505,3 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
     </>
   );
 });
-
-// Need useState
-import { useState } from "react";
