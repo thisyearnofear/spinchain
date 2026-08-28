@@ -39,6 +39,13 @@ function resolveRewardVerificationMode(): RewardVerificationMode {
     : "chainlink";
 }
 
+/**
+ * Demo mode flag — controls whether fabricated demo content (curated sample
+ * classes, hardcoded metrics) is shown. Reads NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG.
+ * Defaults to false so production never shows fake data.
+ */
+export const DEMO_MODE = process.env.NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG === "true";
+
 export const CONTRACTS = {
   // Avalanche Fuji Testnet Addresses
   avalanche: {
@@ -76,7 +83,7 @@ export const SUI_CONFIG = {
   // Deployed Sui Move Package ID (Testnet) — see docs/DEPLOYMENT.md
   // Contains: spinsession (telemetry, sessions, coaches) + spin_token (SPIN rewards)
   // Sui is telemetry/sessions only. Reward minting and channel settlement
-  // both flow through IncentiveEngine on Avalanche (see HACKATHON_PLAN.md).
+  // both flow through IncentiveEngine on Avalanche (see docs/ARCHITECTURE.md).
   packageId:
     process.env.NEXT_PUBLIC_SUI_PACKAGE_ID ||
     "0x51542d1d4b43763d58e6f91f845f63157d5fc59bd95ead54dc370b0898d1185c",

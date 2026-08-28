@@ -133,17 +133,17 @@ export const RideTopBar = memo(function RideTopBar({
               {rewardsIsSimulating ? (
                 <>
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  <span className="text-amber-300">~{rewardsSimulatedReward}</span>
+                  <span className="text-amber-300 tabular-nums">~{rewardsSimulatedReward}</span>
                 </>
               ) : rewardMode === "yellow-stream" ? (
                 <>
                   <span className={`h-1.5 w-1.5 rounded-full ${rewardsClearNodeConnected ? "bg-yellow-400 animate-pulse" : "bg-zinc-500"}`} />
-                  <span className="text-yellow-300">{rewardsFormattedReward !== "0" ? `${rewardsFormattedReward} SPIN` : "Live"}</span>
+                  <span className="text-yellow-300 tabular-nums">{rewardsFormattedReward !== "0" ? `${rewardsFormattedReward} SPIN` : "Live"}</span>
                 </>
               ) : (
                 <>
                   <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                  <span className="text-indigo-300">{rewardsFormattedReward !== "0" ? `${rewardsFormattedReward} SPIN` : rewardsIsActive ? "Processing…" : "Verified"}</span>
+                  <span className="text-indigo-300 tabular-nums">{rewardsFormattedReward !== "0" ? `${rewardsFormattedReward} SPIN` : rewardsIsActive ? "Processing…" : "Verified"}</span>
                 </>
               )}
             </div>

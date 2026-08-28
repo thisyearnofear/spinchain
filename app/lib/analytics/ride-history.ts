@@ -91,6 +91,7 @@ export const STORAGE_KEYS = {
   riderProfile: "spinchain-rider-profile",
   rideStore: "spinchain-ride-store",
   quizCompleted: "spinchain-rider-quiz-completed",
+  quizPostRide: "spinchain-quiz-post-ride",
   walrusRideBlobs: "spinchain:walrus:ride-blobs:v1",
   walrusProfileBlob: "spinchain:walrus:profile-blob:v1",
   profileSync: "spinchain-profile-sync",

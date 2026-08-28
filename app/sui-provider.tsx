@@ -8,7 +8,6 @@ import { SUI_CONFIG } from "@/app/config";
 // Tatum Sui RPC gateway fallback. Set NEXT_PUBLIC_TATUM_API_KEY to route every
 // Sui read/write through Tatum's hosted gateway. Unset = Mysten defaults.
 // This is the single Tatum integration point — no SDK, no parallel client.
-// See docs/HACKATHON_PLAN.md (Phase 1) and docs/SUI_OVERFLOW_SUBMISSION.md.
 const TATUM_API_KEY = process.env.NEXT_PUBLIC_TATUM_API_KEY;
 const tatumUrl = (network: "testnet" | "mainnet" | "devnet" | "localnet"): string | undefined =>
 	TATUM_API_KEY ? `https://sui-${network}.gateway.tatum.io` : undefined;

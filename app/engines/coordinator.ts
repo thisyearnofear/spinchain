@@ -29,6 +29,7 @@ import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
+import { useUIStore } from "@/app/stores/ui-store";
 import {
   getCurrentInterval,
   getIntervalProgress,
@@ -47,6 +48,7 @@ export class RideCoordinator {
   private oracle = getLocalOracle();
 
   private config: RideStartConfig | null = null;
+  private durationSeconds = 45 * 60;
   private unsubTick: (() => void) | null = null;
   private eventUnsubs: Array<() => void> = [];
   private rafRunning = false;
@@ -88,9 +90,9 @@ export class RideCoordinator {
     // Configure engines
     const routeCoordinates =
       config.classData?.route?.route?.coordinates ?? [];
-    const durationSeconds = (config.classData?.metadata?.duration ?? 45) * 60;
+    this.durationSeconds = (config.classData?.metadata?.duration ?? 45) * 60;
 
-    this.telemetry.start(routeCoordinates, durationSeconds);
+    this.telemetry.start(routeCoordinates, this.durationSeconds);
 
     if (config.isPracticeMode) {
       this.device.connectSimulator("Simulator active — use arrow keys to pedal");
@@ -114,7 +116,9 @@ export class RideCoordinator {
     // Start RAF commit loop (single loop, no mixed timers)
     this.startCommitLoop();
 
-    // Start collecting telemetry samples at 1Hz
+    // Start collecting telemetry samples at 1Hz. This timer is also the
+    // ride clock for real-device rides — the simulator drives time itself
+    // (time-scaled) in handleSimulatorMetrics, so skip advancing it there.
     this.sampleTimerId = setInterval(() => {
       if (!useRideStore.getState().isActive) return;
       const snapshot = this.telemetry.rawSnapshot;
@@ -134,6 +138,27 @@ export class RideCoordinator {
         power: snapshot.power,
         cadence: snapshot.cadence,
       });
+
+      // Feed the rewards engine (no-op unless earning is active). Skip
+      // no-signal samples so idle time doesn't accrue base reward.
+      if (snapshot.heartRate > 0 || snapshot.power > 0) {
+        void this.rewards.recordEffort({
+          timestamp: Date.now(),
+          heartRate: snapshot.heartRate,
+          power: snapshot.power,
+          cadence: snapshot.cadence,
+        });
+      }
+
+      if (!useUIStore.getState().useSimulator) {
+        const elapsedTime = useRideStore.getState().elapsedTime + 1;
+        const rideProgress = Math.min((elapsedTime / this.durationSeconds) * 100, 100);
+        useRideStore.setState({ elapsedTime, rideProgress });
+      }
+
+      // Drive the interval/coaching clock for both device paths
+      const { elapsedTime, rideProgress } = useRideStore.getState();
+      this.bus.emit("lifecycle:tick", { elapsed: elapsedTime, progress: rideProgress });
     }, 1000);
 
     // Configure rewards engine
@@ -142,6 +167,21 @@ export class RideCoordinator {
       classId: config.classId,
       instructor: ("0x0" as `0x${string}`),
     });
+    useRewardsStore.setState({
+      mode: config.rewardMode,
+      isActive: false,
+      accumulatedReward: BigInt(0),
+      formattedReward: "0",
+      streamingRate: 0,
+      streamState: null,
+    });
+    // Yellow streaming needs a wallet-signed channel and is opened by the
+    // rewards hook; the other modes start engine-side so the live HUD accrues.
+    if (config.rewardMode !== "yellow-stream") {
+      this.rewards.startEarning().catch((err) =>
+        console.warn("[Coordinator] Rewards start failed:", err),
+      );
+    }
 
     // Start audio engine (mixer init, EventBus subscriptions)
     this.audio.start().catch((err) =>
@@ -210,6 +250,7 @@ export class RideCoordinator {
     this.clearTimers();
     this.audio.stop();
     this.rewards.stop();
+    useRewardsStore.setState({ isActive: false });
     this.sui.stop();
     this.telemetry.stop();
 

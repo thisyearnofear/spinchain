@@ -33,7 +33,6 @@ interface UseRideLifecycleParams {
   workoutPlan: WorkoutPlan | null;
   deviceType: DeviceType;
   performanceTier: PerformanceTier;
-  telemetryAverages: { avgHr: number; avgPower: number; avgEffort: number };
   elapsedTime: number;
   rewardClaimStatus: RewardClaimStatus | undefined;
   useChainlinkRewards: boolean;
@@ -56,8 +55,6 @@ interface UseRideLifecycleParams {
   stopAudio: () => void;
   speak: (text: string, emotion?: unknown) => void;
   setUseSimulator: (v: boolean) => void;
-  setBleConnected: (v: boolean) => void;
-  trackLiveTelemetry: () => void;
 }
 
 export function useRideLifecycle({
@@ -75,7 +72,6 @@ export function useRideLifecycle({
   workoutPlan,
   deviceType,
   performanceTier,
-  telemetryAverages,
   elapsedTime,
   rewardClaimStatus,
   useChainlinkRewards,
@@ -93,7 +89,6 @@ export function useRideLifecycle({
   stopAudio,
   speak,
   setUseSimulator,
-  trackLiveTelemetry,
 }: UseRideLifecycleParams) {
   const router = useRouter();
   const suiClient = useSuiClient();
@@ -236,7 +231,12 @@ export function useRideLifecycle({
     stopAudio();
 
     try {
-      const averages = telemetryAverages;
+      // Stop the engines first — this finalizes telemetry averages into the
+      // store and ends the oracle session (background proof generation +
+      // encrypted telemetry backup). The coordinator is not disposed here;
+      // Sui anchoring inside persistRide still needs it.
+      await coordinator.stopEngines().catch(() => {});
+      const averages = useTelemetryStore.getState().averages;
       const samples = useTelemetryStore.getState().snapshot;
 
       const result = await persistRide({
@@ -293,7 +293,7 @@ export function useRideLifecycle({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stopAudio, telemetryAverages, persistRide, classId, classData, practiceConfig, agentName, address, elapsedTime, bleConnected, isPracticeMode, useSimulator, rewardMode, rewardClaimStatus, useChainlinkRewards, chainlinkSuccess, zkSuccess, privacyScore, privacyLevel, walletConnected, rewards, coordinatorRef, router]);
+  }, [stopAudio, coordinator, persistRide, classId, classData, practiceConfig, agentName, address, elapsedTime, bleConnected, isPracticeMode, useSimulator, rewardMode, rewardClaimStatus, useChainlinkRewards, chainlinkSuccess, zkSuccess, privacyScore, privacyLevel, walletConnected, rewards, coordinatorRef, router]);
 
   const handleEnableSimulatorFromModal = useCallback(() => {
     modalStore.getState().setShowNoBikeModal(false);
@@ -309,13 +309,6 @@ export function useRideLifecycle({
 
   const handleDismissNoBike = useCallback(() => modalStore.getState().setShowNoBikeModal(false), [modalStore]);
   const handleDismissKeyboardHints = useCallback(() => modalStore.getState().setShowKeyboardHints(false), [modalStore]);
-
-  const handleBleMetrics = useCallback((metrics: { heartRate?: number; power?: number; cadence?: number; speed?: number; effort?: number; distance?: number; timestamp?: number }) => {
-    coordinator.ingestBleMetrics(metrics);
-    if (metrics.heartRate || metrics.power) {
-      trackLiveTelemetry();
-    }
-  }, [coordinator, trackLiveTelemetry]);
 
   const handleCompletionExit = useCallback(() => {
     modalStore.getState().setShowCompletionScreen(false);
@@ -339,6 +332,5 @@ export function useRideLifecycle({
     handleDemoModalClose,
     handleDismissNoBike,
     handleDismissKeyboardHints,
-    handleBleMetrics,
   };
 }

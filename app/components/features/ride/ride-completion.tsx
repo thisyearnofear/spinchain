@@ -39,6 +39,7 @@ export interface RewardClaimStatus {
 
 interface RideCompletionProps {
   isPracticeMode: boolean;
+  walletConnected: boolean;
   elapsedTime: number;
   avgHeartRate: number;
   avgPower: number;
@@ -67,6 +68,7 @@ type CompletionTab = "summary" | "rewards" | "storage";
 
 export function RideCompletion({
   isPracticeMode,
+  walletConnected,
   elapsedTime,
   avgHeartRate,
   avgPower,
@@ -131,8 +133,9 @@ export function RideCompletion({
     }
   }, [isPracticeMode, telemetrySource]);
 
-  const claimButtonLabel =
-    rewardClaimStatus?.phase === "requesting"
+  const claimButtonLabel = !walletConnected
+    ? "Connect Wallet to Claim"
+    : rewardClaimStatus?.phase === "requesting"
       ? "Requesting Verification…"
       : rewardClaimStatus?.phase === "requested"
         ? "✓ Verification Requested"
@@ -149,6 +152,7 @@ export function RideCompletion({
                 : "Submit ZK Claim";
 
   const claimButtonDisabled =
+    !walletConnected ||
     rewardClaimStatus?.phase === "requesting" ||
     rewardClaimStatus?.phase === "requested" ||
     rewardClaimStatus?.phase === "claiming" ||
@@ -417,14 +421,23 @@ export function RideCompletion({
               Deploy Class
             </button>
           ) : !isPracticeMode && onClaimRewards ? (
-            <button
-              onClick={onClaimRewards}
-              disabled={claimButtonDisabled}
-              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-[transform,opacity] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
-              aria-label="Request agent validation of rewards"
-            >
-              {claimButtonLabel}
-            </button>
+            <div className="flex-1">
+              <button
+                onClick={onClaimRewards}
+                disabled={claimButtonDisabled}
+                title={!walletConnected ? "Connect a wallet to claim rewards" : undefined}
+                aria-describedby={!walletConnected ? "claim-wallet-hint" : undefined}
+                className="w-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-[transform,opacity] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                aria-label="Request agent validation of rewards"
+              >
+                {claimButtonLabel}
+              </button>
+              {!walletConnected && (
+                <p id="claim-wallet-hint" className="mt-1.5 text-center text-[11px] text-white/40">
+                  Connect a wallet to claim the SPIN you earned this ride.
+                </p>
+              )}
+            </div>
           ) : null}
         </div>
       </motion.div>
@@ -747,7 +760,7 @@ function RewardVerificationStatus({
             </span>
           </div>
           <p className="text-white/50 pl-7">
-            Keep this ride open or revisit Journey to complete the claim once a verified score is available.
+            Keep this screen open — the claim button unlocks here once a verified score is available.
           </p>
         </div>
       )}

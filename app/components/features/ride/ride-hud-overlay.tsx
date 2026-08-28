@@ -9,6 +9,7 @@ import type { PanelKey, PanelState, WidgetMode } from "@/app/hooks/ui/use-panel-
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 import type { HapticType } from "@/app/hooks/use-haptic";
 import { useRideStore } from "@/app/stores/ride-store";
+import { useRideModalStore } from "@/app/stores/ride-modal-store";
 import { useUIStore } from "@/app/stores/ui-store";
 import { selectHudMode } from "@/app/stores/ui-store";
 
@@ -31,7 +32,6 @@ interface RideHUDOverlayProps {
   onPauseRide: () => void;
   onResumeRide: () => void;
   onSetWorkoutPlan: (p: WorkoutPlan | null) => void;
-  onBleMetrics: (m: { heartRate?: number; power?: number; cadence?: number; speed?: number; effort?: number; distance?: number; timestamp?: number }) => void;
   onHaptic: (type?: HapticType) => boolean;
   formatTime: (s: number) => string;
 }
@@ -41,8 +41,13 @@ export const RideHUDOverlay = memo(function RideHUDOverlay(props: RideHUDOverlay
   const widgetsMode = useUIStore((s) => s.widgetsMode);
   const viewMode = useUIStore((s) => s.viewMode);
   const hudMode = useUIStore(selectHudMode);
+  const showCompletionScreen = useRideModalStore((s) => s.showCompletionScreen);
 
   const cycleWidgetsMode = useUIStore((s) => s.cycleWidgetsMode);
+
+  // After exitRide the phase model still derives "paused" (elapsedTime > 0),
+  // which would stack the paused HUD on top of the completion screen.
+  if (showCompletionScreen) return null;
 
   return (
     <div className="absolute inset-0 pointer-events-none z-30">
@@ -106,7 +111,6 @@ export const RideHUDOverlay = memo(function RideHUDOverlay(props: RideHUDOverlay
         onExitRide={props.onExitRide}
         onSetWorkoutPlan={props.onSetWorkoutPlan}
         onSetUseSimulator={props.onSetUseSimulator}
-        onBleMetrics={props.onBleMetrics}
         onHaptic={props.onHaptic}
         formatTime={props.formatTime}
       />

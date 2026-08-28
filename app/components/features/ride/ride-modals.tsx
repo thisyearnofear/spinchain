@@ -21,6 +21,7 @@ import { useRideModalStore } from "@/app/stores/ride-modal-store";
 interface RideModalsProps {
   classId: string;
   classData: { name: string; instructor: string; startTime?: number; metadata?: EnhancedClassMetadata | null } | null;
+  walletConnected: boolean;
   rewardsFormattedReward: string;
   handleClaimRewards: () => void;
   rewardClaimStatus?: RewardClaimStatus;
@@ -50,6 +51,7 @@ interface RideModalsProps {
 export const RideModals = memo(function RideModals({
   classId,
   classData,
+  walletConnected,
   rewardsFormattedReward,
   handleClaimRewards,
   rewardClaimStatus,
@@ -150,6 +152,7 @@ export const RideModals = memo(function RideModals({
       {showCompletionScreen && (
         <RideCompletion
           isPracticeMode={isPracticeMode}
+          walletConnected={walletConnected}
           elapsedTime={elapsedTime}
           avgHeartRate={telemetryAverages.avgHr}
           avgPower={telemetryAverages.avgPower}

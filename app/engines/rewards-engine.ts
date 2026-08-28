@@ -102,6 +102,7 @@ export class RewardsEngine {
   // ─── ZK-specific state ────────────────────────────────────────
 
   batchAccumulator: BatchAccumulator | null = null;
+  private lastZkTelemetry: TelemetryPoint | null = null;
 
   // ─── Simulated rewards state ──────────────────────────────────
 
@@ -377,6 +378,23 @@ export class RewardsEngine {
       telemetry.heartRate,
       telemetry.power || 0,
     );
+
+    // Live accrual estimate (same rate math as yellow streaming) so the
+    // in-ride UI has a moving number; the authoritative amount still comes
+    // from the ZK claim at ride end.
+    if (this.lastZkTelemetry) {
+      this.accumulatedReward = calculateAccumulatedReward(
+        { heartRate: telemetry.heartRate, power: telemetry.power || 0 },
+        {
+          heartRate: this.lastZkTelemetry.heartRate,
+          power: this.lastZkTelemetry.power || 0,
+          timestamp: this.lastZkTelemetry.timestamp,
+        },
+        this.accumulatedReward,
+      );
+      this.emitTick();
+    }
+    this.lastZkTelemetry = { ...telemetry, timestamp: Date.now() };
   }
 
   private async finalizeZk(): Promise<FinalizeResult> {

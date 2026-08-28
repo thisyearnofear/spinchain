@@ -6,6 +6,14 @@ Current state: testnet/demo stage, live on Vercel at https://spinchain.vercel.ap
 
 ---
 
+## The Wedge
+
+> **SpinChain makes indoor cycling addictive by turning physical effort into real-time visual transformation in a 3D world.**
+
+Every feature decision, UI change, and refactor must reference [docs/WEDGE.md](./docs/WEDGE.md). It defines what we build in the foreground (the core loop) vs. the background (infrastructure/moats). When in doubt, read the wedge doc before implementing.
+
+---
+
 ## Quick Start
 
 ```bash
@@ -33,13 +41,15 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## Status
 
-- Launch readiness: not ready (testnet/demo stage)
+- Launch readiness: not ready (testnet stage; live Vercel build is stale — redeploy pending)
 - Network posture: Avalanche Fuji + Sui testnet
-- ZK proofs: real Noir circuit (`effort_threshold`) with Barretenberg backend generates browser-side ZK proofs; on-chain verifier deployed to Fuji
-- UI polish: demo data on instructor live page labeled as "Preview Mode"; phase tags removed from UI; SpinPack labeled as preview
-- Reward path: chunked ZK batch claims wired with real on-chain verification; Chainlink CRE fallback documented
+- ZK proofs: real Noir circuit (`effort_threshold`) with Barretenberg/UltraHonk backend generates browser-side ZK proofs; on-chain verifier deployed to Fuji
+- Demo data: gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (off by default) — production shows only real on-chain classes and real telemetry/leaderboard data
+- UI polish: tabular-nums on all live HUD numbers, mobile HUD tap-to-expand restored, reduced-motion support app-wide, landing mousemove no longer re-renders React
+- Reward path: chunked ZK batch claims wired with real on-chain verification; Chainlink CRE fallback documented (pending Early Access)
 - Builder flow: unified into single progressive builder (wizard removed); wallet connection prompted at publish step
-- Verification: build and lint should be treated as required release gates
+- Verification: build + lint + 132 unit tests green; browser-level E2E still missing
+- Persistence: Supabase code complete; **instance not yet provisioned** (falls back to localStorage until env vars are set)
 
 ---
 
@@ -47,22 +57,29 @@ Open [http://localhost:3000](http://localhost:3000)
 
 | Doc | Description |
 |-----|-------------|
-| [Architecture](docs/ARCHITECTURE.md) | Dual-engine design, ZK privacy, tech stack |
-| [Getting Started](docs/GETTING_STARTED.md) | Local setup, current flows, testing, troubleshooting |
-| [Features](docs/FEATURES.md) | Implemented features vs. planned features |
-| [Deployment](docs/DEPLOYMENT.md) | Testnet deployment notes and current release blockers |
-| [Production Roadmap](docs/PRODUCTION_ROADMAP.md) | Current launch blockers and launch checklist |
-| [Hackathon Plan](docs/HACKATHON_PLAN.md) | Sui Overflow 2026 (Walrus Track) + Tatum × Walrus submissions, file-level change list, and phasing |
+| [WEDGE](docs/WEDGE.md) | The wedge: effort → visual transformation. Feature discipline, guardrails, anti-examples. **Read first.** |
+| [IMPLEMENTATION-PLAN](docs/IMPLEMENTATION-PLAN.md) | Phased tasks with files, sizes, deadlines. Maps to wedge guardrails. |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | Blockchain infrastructure, engine architecture, adaptive UX, ride experience, transitions, Yellow Network. |
+| [OPERATIONS](docs/OPERATIONS.md) | Local setup, deployment, testing, production roadmap, current product state. |
+| [DEMO](docs/DEMO.md) | 3-minute pitch script (standalone). |
 
 ---
 
 ## Before User Launch
 
-- Remove mock/demo class fallbacks from user-facing flows
-- Replace placeholder and zero-value addresses in runtime config
-- Complete real verifier + engine deployment and testnet claim validation
-- Add coverage and operational validation for chunked ZK reward claims
-- Add reliable verification gates and release checklists
+- [x] Remove mock/demo class fallbacks from user-facing flows — gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (off by default; curated classes, instructor-live demo metrics, fake leaderboard only show when the flag is true)
+- [x] Replace placeholder and zero-value addresses in runtime config — all 8 Fuji contracts deployed with real addresses; zero-values guarded via `isZeroAddress`
+- [x] Complete real verifier + engine deployment and testnet claim validation — E2E Fuji fork tests + `scripts/e2e-verify-fuji.sh` passing
+- [ ] Add coverage and operational validation for chunked ZK reward claims — gas benchmarks done; browser-level E2E of the full claim loop still missing
+- [ ] Add reliable verification gates and release checklists — CI has lint/typecheck/test; needs E2E + a release checklist runbook
+
+**Remaining blockers (2026-08-17):**
+
+1. **Redeploy Vercel from current HEAD** — the live deployment is stale (pre-`bfa6d6c6e`) and still ships the broken `@noir-lang/backend_barretenberg` import, causing `[NoirProver] Initialization failed` for every user starting a ride. Current code uses `@aztec/bb.js` and is verified to build.
+2. **Provision Supabase** — create project, run `app/lib/supabase/schema.sql`, set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` locally and on Vercel. Without it, ride history/profiles/homework/auth silently fall back to localStorage.
+3. **E2E happy-path tests** — wallet connect → class join → ride → ZK proof → claim; Supabase auth (nonce → sign → JWT); API routes.
+4. **Chainlink CRE** — blocked on Early Access approval; ZK path works independently, not a launch blocker.
+5. **Testnet soft-launch** — validate the full loop with real users on Fuji/Sui testnet.
 
 ## Security
 

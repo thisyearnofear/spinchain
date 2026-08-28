@@ -134,7 +134,7 @@ export function powerToSpeed(
   // Simplified iterative solve for Velocity (v)
   // Power = (Gravity * Weight * (sin(atan(grad)) + Crr * cos(atan(grad))) * v) + (0.5 * Rho * CdA * v^3)
   // For most trainer apps, we use a pre-calculated lookup or simple cubic solver
-  // Here we use a linear approximation for hackathon performance:
+  // Here we use a linear approximation of the physics model for performance:
   const gradDec = gradientPct / 100;
   const gravityForce = weightKg * GRAVITY * (gradDec + crr);
 

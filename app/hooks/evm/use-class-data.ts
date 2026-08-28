@@ -11,12 +11,13 @@ import { usePublicClient, useReadContract } from "wagmi";
 import { CLASS_FACTORY_ABI, CLASS_FACTORY_ADDRESS, SPIN_CLASS_ABI } from "@/app/lib/contracts";
 import { parseClassMetadata, type EnhancedClassMetadata } from "@/app/lib/contracts";
 import { retrieveRouteFromWalrus, getCachedRoute, cacheRouteLocally, type WalrusRouteData } from "@/app/lib/route-storage";
+import { DEMO_MODE } from "@/app/config";
 import type { StoryBeat, StoryBeatType } from "@/app/routes/builder/gpx-uploader";
 import type { PublicClient } from "viem";
 
 /**
- * Curated class catalog — shown when no on-chain classes exist yet.
- * Seamlessly replaced by real classes the moment they appear on-chain.
+ * Curated class catalog — only shown in demo mode (NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG=true)
+ * when no on-chain classes exist. Production shows real classes or nothing.
  */
 const CURATED_CLASSES = [
   {
@@ -255,7 +256,12 @@ async function resolveRouteForMetadata(
     return { route: enrichWalrusRouteData(cachedRoute, metadata, classId), isGenerated: false };
   }
 
-  if (metadata.route.walrusBlobId) {
+  const isPlaceholderBlob =
+    !metadata.route.walrusBlobId ||
+    metadata.route.walrusBlobId.startsWith('practice-') ||
+    metadata.route.walrusBlobId.startsWith('demo-');
+
+  if (!isPlaceholderBlob) {
     try {
       const remoteRoute = await retrieveRouteFromWalrus(metadata.route.walrusBlobId);
       if (remoteRoute) {
@@ -451,8 +457,10 @@ export function useClass(classAddress: `0x${string}`) {
         }
       }
 
-      // Fallback to curated class if address matches
-      const curatedMatch = CURATED_CLASSES.find(c => c.address.toLowerCase() === classAddress.toLowerCase());
+      // Fallback to curated class if address matches (demo mode only)
+      const curatedMatch = DEMO_MODE
+        ? CURATED_CLASSES.find(c => c.address.toLowerCase() === classAddress.toLowerCase())
+        : undefined;
       if (curatedMatch) {
         setClassData(await loadDemoClass(curatedMatch));
         setIsLoading(false);
@@ -541,13 +549,15 @@ export function useClasses() {
         }
       }
 
-      // Seamless fallback: when no live classes exist on-chain, show curated classes
-      // so the app always feels alive. Real classes replace these automatically.
+      // Demo-mode fallback: when no live classes exist on-chain, show curated
+      // classes so demos feel alive. Production shows the (empty) real list.
       if (liveClasses.length > 0) {
         setClasses(liveClasses);
-      } else {
+      } else if (DEMO_MODE) {
         const curated = await Promise.all(CURATED_CLASSES.map((c) => loadDemoClass(c)));
         setClasses(curated);
+      } else {
+        setClasses([]);
       }
       setIsLoading(false);
     } catch (err) {

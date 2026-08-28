@@ -28,6 +28,20 @@ const PATTERNS: HapticPatterns = {
   error: [0, 200, 50, 200],
 };
 
+/** Standalone haptic trigger for use outside React components (e.g. in queue
+ *  callbacks). Mirrors useHaptic's trigger(). */
+export function haptic(type: HapticType = "light"): boolean {
+  if (typeof navigator === "undefined" || !("vibrate" in navigator)) {
+    return false;
+  }
+  try {
+    navigator.vibrate(PATTERNS[type]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function useHaptic() {
   const vibrate = useCallback((pattern: number | number[]) => {
     if (typeof navigator === "undefined" || !("vibrate" in navigator)) {

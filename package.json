@@ -3,18 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3210",
     "build": "next build",
     "build:web": "next build",
     "mobile:sync": "npx cap sync",
     "mobile:sync:ios": "npx cap sync ios",
     "mobile:sync:android": "npx cap sync android",
-    "start": "next start",
+    "start": "next start -p 3210",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "@aztec/bb.js": "5.0.0-rc.1",
     "@capacitor-community/bluetooth-le": "2.3.0",
     "@capacitor/android": "5.7.8",
     "@capacitor/app": "^5.0.8",
@@ -26,12 +27,12 @@
     "@google/generative-ai": "^0.24.1",
     "@mysten/dapp-kit": "^0.14.53",
     "@mysten/sui": "^1.45.2",
-    "@noir-lang/backend_barretenberg": "0.36.0",
     "@noir-lang/noir_js": "1.0.0-beta.19",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
+    "@rive-app/react-canvas": "4.29.1",
     "@supabase/supabase-js": "2.108.2",
     "@tanstack/react-query": "^5.90.20",
     "clsx": "2.1.1",
@@ -54,7 +55,6 @@
     "zustand": "5.0.11"
   },
   "devDependencies": {
-    "@aztec/bb.js": "5.0.0-rc.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

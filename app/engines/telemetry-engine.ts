@@ -255,15 +255,12 @@ export class TelemetryEngine {
     // Update multi-ghost state
     this.updateMultiGhostState();
 
-    // Collect sample for averages
-    this.samples.push({
-      hr: this.rawSnapshot.heartRate,
-      power: this.rawSnapshot.power,
-      effort: this.rawSnapshot.effort,
-    });
-    if (this.samples.length > 5_400) {
-      this.samples.splice(0, this.samples.length - 5_400);
-    }
+    // NOTE: samples (for averages) are collected by the coordinator's
+    // dedicated 1Hz timer, not here. commit() runs at an adaptive,
+    // device-dependent rate (up to 10Hz on high-tier desktop) — pushing
+    // samples here too would double-write the same capped 5,400-entry
+    // buffer, and on fast-committing devices would silently shrink the
+    // "whole ride average" to just the last ~9 minutes once the cap is hit.
 
     this.bus.emit("telemetry:committed", { ...this.rawSnapshot });
     return { ...this.rawSnapshot };

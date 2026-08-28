@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo, useMemo } from "react";
+import { useState, useEffect, memo, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { YellowRewardTicker } from "@/app/components/features/common/yellow-reward-ticker";
 import { useTelemetryStore, selectHeartRate, selectPower, selectCadence, selectSpeed, selectEffort, selectCurrentGear, selectGearRatio } from "@/app/stores/telemetry-store";
@@ -11,6 +11,7 @@ import { useUIStore } from "@/app/stores/ui-store";
 import { useIntervalAudioCues } from "@/app/hooks/ride/use-interval-audio";
 import { PrPacingIndicator } from "@/app/components/features/ride/pr-pacing-indicator";
 import { SegmentTracker } from "@/app/components/features/ride/segment-tracker";
+import { RiveRider } from "@/app/components/features/ride/rive-rider";
 import type { IntervalPhase } from "@/app/lib/workout-plan";
 import type { GhostState } from "@/app/lib/analytics/ghost-service";
 import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
@@ -159,7 +160,7 @@ function GhostLeadLag({
         Ghost Pacer
       </span>
       <div className="flex items-baseline gap-1.5">
-        <span className={`text-lg font-black ${color} tracking-tighter`}>
+        <span className={`text-lg font-black tabular-nums ${color} tracking-tighter`}>
           {isLeading ? "+" : "-"}
           {absTime.toFixed(1)}s
         </span>
@@ -384,6 +385,13 @@ export function RideHUD() {
           </div>
         )}
 
+        {/* Rive rider avatar — reacts to telemetry, interval phase, coach, rewards, PR */}
+        {isRiding && (
+          <div className="flex justify-center">
+            <RiveRider size={140} />
+          </div>
+        )}
+
         <div className="flex items-center justify-center gap-6">
           <div
             className={`rounded-full border px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.3em] text-white/80 backdrop-blur-xl transition-all duration-500 ${phaseAccent.border} ${phaseAccent.bg} ${phaseAccent.glow}`}
@@ -418,7 +426,7 @@ export function RideHUD() {
                     >
                       {ghost.name?.substring(0, 1) ?? "?"}
                     </div>
-                    <div className="absolute -bottom-1.5 -right-1.5 min-w-[20px] h-4 px-1 rounded-full bg-black border border-white/10 flex items-center justify-center text-[7px] font-bold text-white/70">
+                    <div className="absolute -bottom-1.5 -right-1.5 min-w-[20px] h-4 px-1 rounded-full bg-black border border-white/10 flex items-center justify-center text-[9px] font-bold tabular-nums text-white/70">
                       {gapLabel}s
                     </div>
                     {/* Tooltip on hover */}
@@ -543,7 +551,7 @@ const MetricCard = memo(function MetricCard({
 
       <div className="relative z-10">
         <p
-          className={`text-5xl sm:text-7xl font-black tracking-tighter ${color} transition-all duration-300`}
+          className={`text-5xl sm:text-7xl font-black tracking-tighter tabular-nums ${color} transition-colors duration-300`}
         >
           {value}
           <span className="text-sm sm:text-lg font-bold text-white/40 ml-2 tracking-normal uppercase">
@@ -610,6 +618,9 @@ function MobileCompactHUD({
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
     null,
   );
+  // Set when a swipe just cycled the widget, so the click event some
+  // browsers fire after touchend doesn't also toggle expansion.
+  const swipeConsumedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -618,20 +629,13 @@ function MobileCompactHUD({
   }, [visibleWidget]);
 
   const handleTap = () => {
-    if (expanded) {
-      setExpanded(false);
-    } else {
-      setVisibleWidget((prev) => {
-        const widgets: (typeof prev)[] = [
-          "primary",
-          "power",
-          "heartrate",
-          "cadence",
-        ];
-        const currentIdx = widgets.indexOf(prev);
-        return widgets[(currentIdx + 1) % widgets.length];
-      });
+    // Tap expands/collapses; horizontal swipe cycles the visible widget
+    // (handled in handleTouchEnd).
+    if (swipeConsumedRef.current) {
+      swipeConsumedRef.current = false;
+      return;
     }
+    setExpanded((prev) => !prev);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -644,6 +648,7 @@ function MobileCompactHUD({
     const deltaY = e.changedTouches[0].clientY - touchStart.y;
 
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
+      swipeConsumedRef.current = true;
       setVisibleWidget((prev) => {
         const widgets: (typeof prev)[] = [
           "primary",
@@ -738,7 +743,7 @@ function MobileCompactHUD({
               </span>
               <div className="flex items-baseline gap-1">
                 <span
-                  className={`text-3xl font-black tracking-tighter ${currentMetric.color}`}
+                  className={`text-3xl font-black tracking-tighter tabular-nums ${currentMetric.color}`}
                 >
                   {currentMetric.value}
                 </span>
@@ -758,6 +763,15 @@ function MobileCompactHUD({
               currentPower={currentPower}
               isActive={isRiding}
             />
+            <svg
+              className="ml-auto h-4 w-4 shrink-0 text-white/30"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+            </svg>
           </div>
         ) : (
           <div className="flex flex-col gap-6">
@@ -766,7 +780,7 @@ function MobileCompactHUD({
                 {phaseMetrics.primary.label}
               </p>
               <p
-                className={`text-6xl font-black tracking-tighter ${phaseMetrics.primary.color}`}
+                className={`text-6xl font-black tracking-tighter tabular-nums ${phaseMetrics.primary.color}`}
               >
                 {phaseMetrics.primary.value}
                 <span className="text-base font-bold text-white/20 ml-2 uppercase">
@@ -788,7 +802,7 @@ function MobileCompactHUD({
                     {metric.label}
                   </p>
                   <p
-                    className={`text-xl font-black tracking-tighter ${metric.color}`}
+                    className={`text-xl font-black tracking-tighter tabular-nums ${metric.color}`}
                   >
                     {metric.value}
                   </p>

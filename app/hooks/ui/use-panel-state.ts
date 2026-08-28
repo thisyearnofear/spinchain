@@ -310,13 +310,15 @@ export function usePanelState(
     preRidePositionsSnapshotRef.current = null;
   }, [deviceType]);
 
+  // Both layout transitions must be idempotent: the page effect that calls
+  // them re-runs whenever panel state changes identity, so an unconditional
+  // setState with a fresh object here becomes an infinite render loop.
   const startRideLayout = useCallback(() => {
     setState((prev) => {
-      if (!rideLayoutActiveRef.current) {
-        preRideSnapshotRef.current = prev;
-        preRidePositionsSnapshotRef.current = positions;
-        rideLayoutActiveRef.current = true;
-      }
+      if (rideLayoutActiveRef.current) return prev;
+      preRideSnapshotRef.current = prev;
+      preRidePositionsSnapshotRef.current = positions;
+      rideLayoutActiveRef.current = true;
 
       return {
         ...prev,
@@ -331,6 +333,7 @@ export function usePanelState(
   }, [deviceType, positions]);
 
   const endRideLayout = useCallback(() => {
+    if (!rideLayoutActiveRef.current) return;
     setState(preRideSnapshotRef.current ?? getDefaultState(deviceType));
     if (preRidePositionsSnapshotRef.current) {
       setPositions(preRidePositionsSnapshotRef.current);

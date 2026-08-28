@@ -134,7 +134,32 @@ export class ZKProver {
   private getBackend(): ProverBackend {
     return this.useNoir && this.noirBackend ? this.noirBackend : this.mockBackend;
   }
-  
+
+  /** Real proving must never hang the product: on slow devices (no
+   *  SharedArrayBuffer → single-threaded WASM) or a stuck worker, time out
+   *  and degrade to the mock backend for the rest of the session. */
+  private static readonly NOIR_PROOF_TIMEOUT_MS = 120_000;
+
+  private async generateWithFallback(input: ProofInput, circuitType: CircuitType): Promise<ZKProof> {
+    if (this.useNoir && this.noirBackend) {
+      try {
+        return await Promise.race([
+          this.noirBackend.generateProof(input, circuitType),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new Error(`Noir proving timed out after ${ZKProver.NOIR_PROOF_TIMEOUT_MS}ms`)),
+              ZKProver.NOIR_PROOF_TIMEOUT_MS,
+            ),
+          ),
+        ]);
+      } catch (error) {
+        console.warn('[ZKProver] Noir proving failed, using Mock for the rest of this session:', error);
+        this.useNoir = false;
+      }
+    }
+    return this.mockBackend.generateProof(input, circuitType);
+  }
+
   // Generate a proof for effort threshold
   async proveEffortThreshold(
     heartRate: number,
@@ -157,7 +182,7 @@ export class ZKProver {
       minDuration,
     };
 
-    return this.getBackend().generateProof(input, 'effort_threshold');
+    return this.generateWithFallback(input, 'effort_threshold');
   }
   
   // Generate composite proof (HR + Power + Cadence)
@@ -182,7 +207,7 @@ export class ZKProver {
       minDuration: duration,
     };
 
-    return this.getBackend().generateProof(input, 'composite');
+    return this.generateWithFallback(input, 'composite');
   }
   
   // Verify any proof

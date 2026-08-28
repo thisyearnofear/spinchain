@@ -22,6 +22,9 @@ interface CoachingState {
   lastDecision: AgentDecision | null;
   thoughtLog: string[];
   routeTheme: string;
+  /** True once this ride's live average power has beaten the rider's all-time
+   *  average-power PR. Fires at most once per ride; see use-pr-pursuit. */
+  prBeaten: boolean;
 }
 
 interface CoachingActions {
@@ -34,6 +37,7 @@ interface CoachingActions {
   setLastDecision: (decision: AgentDecision | null) => void;
   setThoughtLog: (log: string[]) => void;
   setRouteTheme: (theme: string) => void;
+  setPrBeaten: (beaten: boolean) => void;
   reset: () => void;
 }
 
@@ -49,6 +53,7 @@ const initialState: CoachingState = {
   lastDecision: null,
   thoughtLog: [],
   routeTheme: "neon",
+  prBeaten: false,
 };
 
 export const useCoachingStore = create<CoachingState & CoachingActions>()((set) => ({
@@ -65,6 +70,7 @@ export const useCoachingStore = create<CoachingState & CoachingActions>()((set) 
   setLastDecision: (decision) => set({ lastDecision: decision }),
   setThoughtLog: (log) => set({ thoughtLog: log }),
   setRouteTheme: (theme) => set({ routeTheme: theme }),
+  setPrBeaten: (beaten) => set({ prBeaten: beaten }),
 
   reset: () => set(initialState),
 }));
@@ -80,3 +86,4 @@ export const selectIsSpeaking = (s: CoachingState) => s.isSpeaking;
 export const selectAiLogs = (s: CoachingState) => s.aiLogs;
 export const selectLastDecision = (s: CoachingState) => s.lastDecision;
 export const selectRouteTheme = (s: CoachingState) => s.routeTheme;
+export const selectPrBeaten = (s: CoachingState) => s.prBeaten;

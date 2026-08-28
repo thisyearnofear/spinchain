@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@aztec/bb.js':
+        specifier: 5.0.0-rc.1
+        version: 5.0.0-rc.1
       '@capacitor-community/bluetooth-le':
         specifier: 2.3.0
         version: 2.3.0(@capacitor/core@5.7.8)
@@ -41,9 +44,6 @@ importers:
       '@mysten/sui':
         specifier: ^1.45.2
         version: 1.45.2(typescript@5.9.3)
-      '@noir-lang/backend_barretenberg':
-        specifier: 0.36.0
-        version: 0.36.0
       '@noir-lang/noir_js':
         specifier: 1.0.0-beta.19
         version: 1.0.0-beta.19
@@ -59,6 +59,9 @@ importers:
       '@react-three/postprocessing':
         specifier: ^3.0.4
         version: 3.0.4(@react-three/fiber@9.5.0(@types/react@19.2.10)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(three@0.182.0))(@types/three@0.182.0)(react@19.2.3)(three@0.182.0)
+      '@rive-app/react-canvas':
+        specifier: 4.29.1
+        version: 4.29.1(react@19.2.3)
       '@supabase/supabase-js':
         specifier: 2.108.2
         version: 2.108.2
@@ -120,9 +123,6 @@ importers:
         specifier: 5.0.11
         version: 5.0.11(@types/react@19.2.10)(react@19.2.3)(use-sync-external-store@1.4.0(react@19.2.3))
     devDependencies:
-      '@aztec/bb.js':
-        specifier: 5.0.0-rc.1
-        version: 5.0.0-rc.1
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.18
@@ -179,10 +179,6 @@ packages:
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
-
-  '@aztec/bb.js@0.58.0':
-    resolution: {integrity: sha512-ls9NNAkcTTOQ4TjqQ7oHb6MlM28KfXiXEN7e6YntPmmG4m1I0FqZ1uY0tFkpem1iXIORVyHVY5GqSadqhH1gvA==}
-    hasBin: true
 
   '@aztec/bb.js@5.0.0-rc.1':
     resolution: {integrity: sha512-YJlziTCaZrw4xNT6zm9MNBO1S8IGTVS0/JC8bzbPxszl49ACcS5shRiKl8s0orOEU6UEFspV/A/nKk2+QxH74A==}
@@ -976,17 +972,11 @@ packages:
   '@noir-lang/acvm_js@1.0.0-beta.19':
     resolution: {integrity: sha512-J4i5SkZ8SYMAfl3yNyneI3DorEfE5zsgsHljm0aY6mV4x+LcbqxzM6hdsSbXqboZ1ZUXXmmHjE9WqFMkJC94eQ==}
 
-  '@noir-lang/backend_barretenberg@0.36.0':
-    resolution: {integrity: sha512-TShUJfMZskV8LOKY22jbofKnPAhMxBgUIi2FxcoNJ9y52i56GibrF0iuse3atEMWc8LnOE0ci69wsqZ2yYP8iw==}
-
   '@noir-lang/noir_js@1.0.0-beta.19':
     resolution: {integrity: sha512-KtuO37XuBn+7PHReLGCyLVxKGBk+hSvUQs0r/rtNFTYty/KmSq/NwEXkwiA7aQTNUykrzTJGFbIForQWjIJT4g==}
 
   '@noir-lang/noirc_abi@1.0.0-beta.19':
     resolution: {integrity: sha512-rCEVNmXwfxC70VVJqOjvgP9mga+HVOIYzmsTQV9JeNG/BiWbxdHPJ+K0gT7EoCpz7VOVwfgWjFepxfbQk++GSw==}
-
-  '@noir-lang/types@0.36.0':
-    resolution: {integrity: sha512-3A/yJtnbTsn0o3T/D3YPs5b0vPOxYwos6Y5Ko6NhZsE6V31rYPv2a2NYmbfJRYuriwwzFbdE8+ui3UiV5BmvWw==}
 
   '@noir-lang/types@1.0.0-beta.19':
     resolution: {integrity: sha512-px/gpC8tvOvCPY6TbVYqMDqDadA75I2woOZ3b5vbyjxqaE4UtsKtcdsWQ9titSCslkYCe1WYRGiFE/LPyRgOpQ==}
@@ -1380,6 +1370,14 @@ packages:
 
   '@reown/appkit@1.7.8':
     resolution: {integrity: sha512-51kTleozhA618T1UvMghkhKfaPcc9JlKwLJ5uV+riHyvSoWPKPRIa5A6M1Wano5puNyW0s3fwywhyqTHSilkaA==}
+
+  '@rive-app/canvas@2.38.1':
+    resolution: {integrity: sha512-iK5HH2N1ZtkgbGV9nkIEyTv6j7Zbx6tVns/y6a8Yk+hPPnQl8XO5RS6gMM4V2NNmyvQ9PnAmnZDNaZCJUtaU8g==}
+
+  '@rive-app/react-canvas@4.29.1':
+    resolution: {integrity: sha512-DvXoiw4yah3kbKXmzQoifrEn+PiKrI9SEITTwMTgqHDNkwx0Eu3KTqjmLqYcmcaX3cK3o4uvUlQbkQouSVbv7A==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0
 
   '@rolldown/binding-android-arm64@1.0.3':
     resolution: {integrity: sha512-454rs7jHngixp/NMxd5srYD57OnzSlZ/eFTETjORQHLwJG1lRtmNOJcBerZlfu4GjKqeq8aCCIQrMdHyhI51Hw==}
@@ -2825,10 +2823,6 @@ packages:
 
   comlink@4.4.2:
     resolution: {integrity: sha512-OxGdvBmJuNKSCMO4NTl1L47VRp6xn2wG4F/2hYzB6tiCb709otOxtEYCSvK80PtjODfXXZu8ds+Nw5kVCjqd2g==}
-
-  commander@10.0.1:
-    resolution: {integrity: sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug==}
-    engines: {node: '>=14'}
 
   commander@12.1.0:
     resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
@@ -5762,15 +5756,6 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@aztec/bb.js@0.58.0':
-    dependencies:
-      comlink: 4.4.2
-      commander: 10.0.1
-      debug: 4.4.3
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - supports-color
-
   '@aztec/bb.js@5.0.0-rc.1':
     dependencies:
       comlink: 4.4.2
@@ -6835,14 +6820,6 @@ snapshots:
 
   '@noir-lang/acvm_js@1.0.0-beta.19': {}
 
-  '@noir-lang/backend_barretenberg@0.36.0':
-    dependencies:
-      '@aztec/bb.js': 0.58.0
-      '@noir-lang/types': 0.36.0
-      fflate: 0.8.2
-    transitivePeerDependencies:
-      - supports-color
-
   '@noir-lang/noir_js@1.0.0-beta.19':
     dependencies:
       '@noir-lang/acvm_js': 1.0.0-beta.19
@@ -6853,8 +6830,6 @@ snapshots:
   '@noir-lang/noirc_abi@1.0.0-beta.19':
     dependencies:
       '@noir-lang/types': 1.0.0-beta.19
-
-  '@noir-lang/types@0.36.0': {}
 
   '@noir-lang/types@1.0.0-beta.19': {}
 
@@ -7487,6 +7462,13 @@ snapshots:
       - uploadthing
       - utf-8-validate
       - zod
+
+  '@rive-app/canvas@2.38.1': {}
+
+  '@rive-app/react-canvas@4.29.1(react@19.2.3)':
+    dependencies:
+      '@rive-app/canvas': 2.38.1
+      react: 19.2.3
 
   '@rolldown/binding-android-arm64@1.0.3':
     optional: true
@@ -9500,8 +9482,6 @@ snapshots:
       delayed-stream: 1.0.0
 
   comlink@4.4.2: {}
-
-  commander@10.0.1: {}
 
   commander@12.1.0: {}
 

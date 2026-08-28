@@ -35,28 +35,45 @@ import { useMindbodySync } from "@/app/hooks/integrations/use-mindbody-sync";
 import { useSpinPack } from "@/app/hooks/evm/use-spin-pack";
 import { RidePreviewBadge } from "@/app/components/features/common/yellow-status-indicator";
 import { useLiveTelemetry } from "@/app/hooks/common/use-live-telemetry";
+import { DEMO_MODE } from "@/app/config";
 
 import { useTelemetryStore, selectTelemetrySnapshot, selectTelemetryAverages } from "@/app/stores/telemetry-store";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useCoachingStore, selectAiLogs, selectLastCoachMessage, selectCurrentInterval } from "@/app/stores/coaching-store";
 import type { AgentDecision } from "@/app/lib/ai-types";
 
-const DEMO_DEFAULTS = {
-  riderCount: 42,
-  activeRiders: 38,
-  marketStats: { ticketsSold: 42, revenue: 630, trending: "+12%" },
-  telemetry: { avgPower: 185, avgHr: 142, intensity: 75 },
-  benchmarkAvgPower: 200,
-  benchmarkGapTime: "+12.4s",
-  estimatedRevenue: "$840.00",
-  conversionRate: "14%",
-  conversionVsAvg: "+2% vs Avg",
-  leaderboard: [
-    { name: "Satoshi_N", score: "842", trend: "up" as const },
-    { name: "Vitalik.eth", score: "815", trend: "down" as const },
-    { name: "CyclingSam", score: "798", trend: "up" as const },
-  ],
-} as const;
+// Demo-only filler data for the live dashboard. Only used when
+// NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG=true; otherwise every metric falls back to real
+// telemetry/leaderboard data or zero placeholders.
+const DEMO_DEFAULTS = DEMO_MODE
+  ? ({
+      riderCount: 42,
+      activeRiders: 38,
+      marketStats: { ticketsSold: 42, revenue: 630, trending: "+12%" },
+      telemetry: { avgPower: 185, avgHr: 142, intensity: 75 },
+      benchmarkAvgPower: 200,
+      benchmarkGapTime: "+12.4s",
+      estimatedRevenue: "$840.00",
+      conversionRate: "14%",
+      conversionVsAvg: "+2% vs Avg",
+      leaderboard: [
+        { name: "Satoshi_N", score: "842", trend: "up" as const },
+        { name: "Vitalik.eth", score: "815", trend: "down" as const },
+        { name: "CyclingSam", score: "798", trend: "up" as const },
+      ],
+    } as const)
+  : ({
+      riderCount: 0,
+      activeRiders: 0,
+      marketStats: { ticketsSold: 0, revenue: 0, trending: "—" },
+      telemetry: { avgPower: 0, avgHr: 0, intensity: 0 },
+      benchmarkAvgPower: 0,
+      benchmarkGapTime: "—",
+      estimatedRevenue: "—",
+      conversionRate: "—",
+      conversionVsAvg: "",
+      leaderboard: [],
+    } as const);
 
 export default function InstructorLivePage() {
   const [isAgentPaused, setIsAgentPaused] = useState(false);
@@ -180,6 +197,7 @@ export default function InstructorLivePage() {
   const performanceDelta = useMemo(() => {
     if (!benchmark) return null;
     const benchmarkAvgPower = DEMO_DEFAULTS.benchmarkAvgPower;
+    if (!benchmarkAvgPower) return null;
     const delta = telemetry.avgPower - benchmarkAvgPower;
     return {
       value: delta,
@@ -452,10 +470,12 @@ export default function InstructorLivePage() {
                       </div>
                     </div>
                   </div>
-                  <p className="text-xs text-white/40 mt-4 italic">
-                    Agent autonomously increased rewards to drive last-minute
-                    occupancy.
-                  </p>
+                  {DEMO_MODE && (
+                    <p className="text-xs text-white/40 mt-4 italic">
+                      Agent autonomously increased rewards to drive last-minute
+                      occupancy.
+                    </p>
+                  )}
                 </SurfaceCard>
 
                 <SurfaceCard
@@ -660,29 +680,35 @@ export default function InstructorLivePage() {
                           </div>
                         </div>
                       ))
-                    : DEMO_DEFAULTS.leaderboard.map((rider, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between group opacity-40"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black text-white/20 w-4">
-                              {i + 1}
-                            </span>
-                            <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">
-                              {rider.name}
-                            </span>
+                    : DEMO_DEFAULTS.leaderboard.length > 0
+                      ? DEMO_DEFAULTS.leaderboard.map((rider, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center justify-between group opacity-40"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-[10px] font-black text-white/20 w-4">
+                                {i + 1}
+                              </span>
+                              <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">
+                                {rider.name}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black text-indigo-400">
+                                {rider.score}
+                              </span>
+                              <TrendingUp
+                                className={`w-3 h-3 ${rider.trend === "up" ? "text-emerald-400" : "text-rose-400 rotate-180"}`}
+                              />
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-black text-indigo-400">
-                              {rider.score}
-                            </span>
-                            <TrendingUp
-                              className={`w-3 h-3 ${rider.trend === "up" ? "text-emerald-400" : "text-rose-400 rotate-180"}`}
-                            />
-                          </div>
-                        </div>
-                      ))}
+                        ))
+                      : (
+                          <p className="text-xs text-white/40 text-center py-4">
+                            No rides recorded yet. Completed rides will appear here.
+                          </p>
+                        )}
                 </div>
 
                 {/* Live Rider Telemetry */}
