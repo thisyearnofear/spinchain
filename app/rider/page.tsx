@@ -94,6 +94,7 @@ export default function RiderPage() {
 
   // Get first upcoming class name for the CTA
   const nextClass = filteredClasses.find(
+    // eslint-disable-next-line react-hooks/purity -- Date.now() captured for first-render class filtering
     (cls) => cls.startTime > Math.floor(Date.now() / 1000)
   );
   const nextClassName = nextClass ? nextClass.name : undefined;
@@ -336,7 +337,7 @@ export default function RiderPage() {
                     {coach.specialty}
                   </p>
                   <div className="flex flex-wrap gap-1 mb-4">
-                    {coach.specialties.slice(0, 2).map((power) => (
+                    {(("specialties" in coach && coach.specialties) ? coach.specialties : []).slice(0, 2).map((power: string) => (
                       <span
                         key={power}
                         className="text-[9px] font-medium text-white/30 bg-white/5 px-2 py-0.5 rounded"

@@ -39,7 +39,7 @@ export interface SwipeOptions {
 
 export interface SwipeResult {
   /** Ref to attach to the container element */
-  ref: React.RefObject<HTMLDivElement>;
+  ref: React.RefObject<HTMLDivElement | null>;
   /** Manually trigger a dismiss */
   dismiss: () => void;
   /** Whether a gesture is in progress */

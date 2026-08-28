@@ -15,6 +15,7 @@ import { useEffect, useRef } from "react";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
+import { haptic } from "@/app/hooks/use-haptic";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
 
 type SensoryEventType =
@@ -34,7 +35,7 @@ interface SensoryEvent {
 
 export function useSensorySync() {
   const isRiding = useRideStore((s) => s.isActive);
-  const phase = useCoachingStore((s) => s.currentInterval?.phase ?? null);
+  const phase = useCoachingStore((s) => s.currentInterval?.phase ?? null) as IntervalPhase | null;
   const effort = useTelemetryStore((s) => s.snapshot.effort);
   const prBeaten = useCoachingStore((s) => s.prBeaten);
   const lastPhaseRef = useRef<IntervalPhase | null>(null);
@@ -62,50 +63,35 @@ export function useSensorySync() {
     // Phase change: medium haptic pulse
     if (event.type === "phase-change") {
       hapticQueueRef.current.push(() => {
-        try {
-          const { useUIStore } = require("@/app/stores/ui-store");
-          // Trigger a brief screen tint change — visual components read lastEventRef
-        } catch {}
+        haptic("medium");
       });
     }
 
     // Sprint start: heavy haptic + visual
     if (event.type === "sprint-start") {
       hapticQueueRef.current.push(() => {
-        try {
-          const { haptic } = require("@/app/hooks/use-haptic");
-          haptic?.("heavy");
-        } catch {}
+        haptic("heavy");
       });
     }
 
     // Recovery start: light, calming haptic
     if (event.type === "recovery-start") {
       hapticQueueRef.current.push(() => {
-        try {
-          const { haptic } = require("@/app/hooks/use-haptic");
-          haptic?.("light");
-        } catch {}
+        haptic("light");
       });
     }
 
     // PR beat: double pulse celebration
     if (event.type === "pr-beat") {
       hapticQueueRef.current.push(() => {
-        try {
-          const { haptic } = require("@/app/hooks/use-haptic");
-          haptic?.("success");
-        } catch {}
+        haptic("success");
       });
     }
 
     // Ride start: single confident pulse
     if (event.type === "ride-start") {
       hapticQueueRef.current.push(() => {
-        try {
-          const { haptic } = require("@/app/hooks/use-haptic");
-          haptic?.("medium");
-        } catch {}
+        haptic("medium");
       });
     }
   });
@@ -144,8 +130,11 @@ export function useSensorySync() {
   }, [isRiding, phase, effort, prBeaten]);
 
   // Expose the last event for visual components to consume
+  // Refs are read here intentionally so consumers receive the latest cue without re-render.
+  // eslint-disable-next-line react-hooks/refs
   const lastEvent = lastEventRef.current;
 
+  // eslint-disable-next-line react-hooks/refs
   return { lastEvent, fireCue: fireCue.current };
 }
 

@@ -135,7 +135,7 @@ export function getBeatProgress(
 export class DuckingEngine {
   private targetVolume: number;
   private currentVolume: number;
-  private isDucked: boolean;
+  private _isDucked: boolean;
   private duckAmount: number;
   private duckRecovery: number;
 
@@ -144,14 +144,14 @@ export class DuckingEngine {
     this.duckRecovery = config.duckRecovery;
     this.targetVolume = config.baseVolume;
     this.currentVolume = config.baseVolume;
-    this.isDucked = false;
+    this._isDucked = false;
   }
 
   /**
    * Start ducking (TTS speaking).
    */
   startDucking(): void {
-    this.isDucked = true;
+    this._isDucked = true;
     this.targetVolume = this.targetVolume * (1 - this.duckAmount);
   }
 
@@ -159,7 +159,7 @@ export class DuckingEngine {
    * Stop ducking (TTS finished).
    */
   stopDucking(): void {
-    this.isDucked = false;
+    this._isDucked = false;
     this.targetVolume = this.targetVolume / (1 - this.duckAmount);
     // Clamp to max
     this.targetVolume = Math.min(1, this.targetVolume);
@@ -169,7 +169,7 @@ export class DuckingEngine {
    * Update current volume with smooth transition.
    */
   update(deltaMs: number): number {
-    const speed = this.isDucked ? this.duckAmount : this.duckRecovery;
+    const speed = this._isDucked ? this.duckAmount : this.duckRecovery;
     const diff = this.targetVolume - this.currentVolume;
     this.currentVolume += diff * (speed * deltaMs / 1000);
     return Math.max(0, Math.min(1, this.currentVolume));
@@ -188,7 +188,7 @@ export class DuckingEngine {
   }
 
   isDucked(): boolean {
-    return this.isDucked;
+    return this._isDucked;
   }
 }
 
@@ -224,7 +224,7 @@ export class MusicEngine {
   private config: MusicConfig;
   private startTime: number = 0;
 
-  constructor(config: MusicConfig = {}) {
+  constructor(config: Partial<MusicConfig> = {}) {
     this.config = {
       baseVolume: 0.6,
       duckAmount: 0.7,
@@ -478,7 +478,9 @@ export function useMusicEngine() {
     state,
     isPlaying: state.isPlaying,
     currentTrack: state.currentTrack,
+    // eslint-disable-next-line react-hooks/refs
     volume: musicEngineRef.current.getVolume(),
+    // eslint-disable-next-line react-hooks/refs
     beat: getCurrentBeat(),
     playTrack,
     selectTrackForPhase,

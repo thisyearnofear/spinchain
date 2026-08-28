@@ -28,6 +28,7 @@ export interface RideStats {
   calories: number;
   flowMinutes: number;     // time in flow state (tier >= 2)
   peakFlowTier: number;
+  milestones?: string[];   // session milestone ids earned this ride
 }
 
 export interface SessionMilestone {
@@ -217,7 +218,7 @@ function calculateStreak(memory: UserMemory): { current: number; longest: number
 
   // Calculate current streak
   let current = 0;
-  let checkDate = new Date();
+  const checkDate = new Date();
   const todayStr = getTodayStr();
   const lastRideStr = memory.lastRideDate;
 
@@ -248,7 +249,7 @@ function calculateStreak(memory: UserMemory): { current: number; longest: number
 // ─── Milestone Detection ────────────────────────────────────────────
 
 export function detectSessionMilestones(
-  rideStats: { duration: number; avgPower: number; maxPower: number; hr: number; maxHR: number; cadence: number; distance: number; flowMinutes: number; peakFlowTier: number },
+  rideStats: { duration: number; power: number; maxPower: number; hr: number; maxHR: number; cadence: number; distance: number; flowMinutes: number; peakFlowTier: number },
   existingIds: string[],
 ): SessionMilestone[] {
   const newMilestones: SessionMilestone[] = [];
@@ -456,7 +457,20 @@ export class MilestonesAndStreaks {
     peakFlowTier: number;
   }): SessionMilestone[] {
     const existingIds = this.memory.rides[getTodayStr()]?.milestones ?? [];
-    const newMilestones = detectSessionMilestones(rideData, existingIds);
+    const newMilestones = detectSessionMilestones(
+      {
+        duration: rideData.duration,
+        power: rideData.avgPower,
+        maxPower: rideData.maxPower,
+        hr: rideData.hr,
+        maxHR: rideData.maxHR,
+        cadence: rideData.cadence,
+        distance: rideData.distance,
+        flowMinutes: rideData.flowMinutes,
+        peakFlowTier: rideData.peakFlowTier,
+      },
+      existingIds,
+    );
 
     if (newMilestones.length > 0) {
       // Record new milestones
@@ -534,6 +548,8 @@ export function useMilestones() {
   // Get milestone for tier (for UI rendering)
   const getMilestoneStyle = useCallback((tier: MilestoneTier) => MILESTONE_TIERS[tier], []);
 
+  // Ref read is intentional: expose pending milestones for render without triggering re-renders.
+  /* eslint-disable react-hooks/refs */
   return {
     memory,
     currentMilestones,
@@ -548,4 +564,5 @@ export function useMilestones() {
     getMilestoneStyle,
     refresh,
   };
+  /* eslint-enable react-hooks/refs */
 }

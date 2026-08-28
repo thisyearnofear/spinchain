@@ -117,13 +117,13 @@ export function useModalStack() {
         setShowDemoModal(true);
         break;
       case "milestone":
-        setShowMilestone(props.milestone);
+        setShowMilestone(props.milestone as { title: string; subtitle: string } | null);
         break;
     }
   }, [
     exitConfirm, showNoBike, showTutorial,
     setShowExitConfirm, setShowNoBike, setShowTutorial,
-    setShowDemoModal, setShowMilestone,
+    setShowDemoModal, setShowMilestone, setShowKeyboardHints,
   ]);
 
   // ─── Dismiss a modal ─────────────────────────────────────────
@@ -234,6 +234,18 @@ interface ModalStackProps {
   isExitingRide: boolean;
   useSimulator: boolean;
   isRiding: boolean;
+  /** When true, hides the on-screen pedal simulator (e.g. when the HUD is
+   *  collapsed to minimal/zen mode so the riding scene stays clean). */
+  hideSimulator?: boolean;
+  /** Called with metrics computed by the on-screen PedalSimulator so the
+   *  ride's keyboard/on-screen activity actually feeds the telemetry store. */
+  onSimulatorMetrics?: (metrics: {
+    heartRate: number;
+    power: number;
+    cadence: number;
+    speed: number;
+    effort: number;
+  }) => void;
 
   // Callbacks
   onExitConfirm: () => void;
@@ -259,6 +271,8 @@ export function ModalStack({
   isExitingRide,
   useSimulator,
   isRiding,
+  hideSimulator = false,
+  onSimulatorMetrics,
   onExitConfirm,
   onExitCancel,
   onNoBikeSimulator,
@@ -361,11 +375,14 @@ export function ModalStack({
         )}
       </AnimatePresence>
 
-      {/* PedalSimulator — always shown when active, but doesn't block */}
+      {/* PedalSimulator — always shown when active, but doesn't block.
+          Kept mounted in minimal mode (visually hidden) so keyboard pedaling
+          still feeds stats even when the riding UI is quieted. */}
       {useSimulator && (
         <PedalSimulator
           isActive={isRiding}
-          onMetricsUpdate={() => {}}
+          onMetricsUpdate={onSimulatorMetrics ?? (() => {})}
+          visuallyHidden={hideSimulator}
         />
       )}
     </>

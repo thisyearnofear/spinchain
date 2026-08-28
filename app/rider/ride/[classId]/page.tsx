@@ -51,7 +51,6 @@ import type { FitnessMetrics } from "@/app/lib/ble/types";
 import { useToast } from "@/app/components/ui/toast";
 import { useRideRewards } from "@/app/hooks/ride/use-ride-rewards";
 import { useRideSimulator } from "@/app/hooks/ride/use-ride-simulator";
-import { useDemoEffort } from "@/app/hooks/ride/use-demo-effort";
 import { useRideLifecycle } from "@/app/hooks/ride/use-ride-lifecycle";
 import { usePrPursuit } from "@/app/hooks/ride/use-pr-pursuit";
 import { usePushLiveTelemetry } from "@/app/hooks/common/use-live-telemetry";
@@ -215,6 +214,8 @@ export default function LiveRidePage() {
 
   // ─── Store Reads ───────────────────────────────────────────────
   const isRiding = useRideStore((s) => s.isActive);
+  const isStarting = useRideStore((s) => s.isStarting);
+  const isPaused = useRideStore((s) => s.isPaused);
   const rideProgress = useRideStore((s) => s.rideProgress);
   const elapsedTime = useRideStore((s) => s.elapsedTime);
   const multiGhostState = useRideStore((s) => s.multiGhostState);
@@ -238,6 +239,11 @@ export default function LiveRidePage() {
   const panelState = usePanelState(deviceType);
   const viewMode = useUIStore((s) => s.viewMode);
   const hudMode = useUIStore((s) => s.hudMode);
+  const setHudMode = useUIStore((s) => s.setHudMode);
+  const toggleQuietHud = useCallback(
+    () => setHudMode(hudMode === "minimal" ? "full" : "minimal"),
+    [setHudMode, hudMode],
+  );
 
   useEffect(() => {
     if (isRiding) panelState.startRideLayout();
@@ -397,8 +403,9 @@ export default function LiveRidePage() {
     playSound,
   });
 
-  // Demo/practice mode: keyboard → cadence/power → reactive world
-  useDemoEffort({ isRiding, isPracticeMode: isPracticeMode, coordinator });
+  // Demo/practice mode: keyboard → cadence/power → reactive world is handled by
+  // the PedalSimulator (wired to coordinator.ingestSimulatorMetrics via ModalStack).
+  // It is the single keyboard→stats source so stats don't flicker between two models.
 
   const lifecycle = useRideLifecycle({
     classId,
@@ -440,6 +447,24 @@ export default function LiveRidePage() {
 
   // PR pursuit callouts during ride
   usePrPursuit(isRiding);
+
+  // ─── Flow State Engine (declared early; milestones/flow handlers depend on it) ─
+  const telemetrySnapshot = useTelemetryStore((s) => s.snapshot);
+  const [hrResting] = useState(() => {
+    // Default ~60 bpm, would come from user profile in production
+    return 60;
+  });
+
+  const flow = useFlowState(
+    telemetrySnapshot.power,
+    telemetrySnapshot.heartRate,
+    hrResting,
+  );
+
+  // ─── Max telemetry tracking (for completion celebration) ─────────
+  const maxPowerRef = useRef(0);
+  const maxHRRef = useRef(0);
+  const peakEffortRef = useRef(0);
 
   // ─── Milestone Recording ─────────────────────────────────────
   const [rideMilestones, setRideMilestones] = useState<SessionMilestone[]>([]);
@@ -558,20 +583,7 @@ export default function LiveRidePage() {
   const experience = useExperience();
 
   // ─── Sensory sync (audio + visual + haptic choreography) ────────
-  const { setCountdownPhase, resetCountdown } = useSensorySync();
-
-  // ─── Flow State Engine ──────────────────────────────────────────
-  const telemetrySnapshot = useTelemetryStore((s) => s.snapshot);
-  const [hrResting] = useState(() => {
-    // Default ~60 bpm, would come from user profile in production
-    return 60;
-  });
-
-  const flow = useFlowState(
-    telemetrySnapshot.power,
-    telemetrySnapshot.heartRate,
-    hrResting,
-  );
+  useSensorySync();
 
   // Register flow event handler → dispatch to coach channel + sensory sync
   useEffect(() => {
@@ -708,10 +720,6 @@ export default function LiveRidePage() {
   }, [lifecycle]);
 
   // ─── Max telemetry tracking (for completion celebration) ─────────
-  const maxPowerRef = useRef(0);
-  const maxHRRef = useRef(0);
-  const peakEffortRef = useRef(0);
-
   useEffect(() => {
     if (!isRiding) return;
     if (telemetryHistory.power?.length > 0) {
@@ -735,10 +743,6 @@ export default function LiveRidePage() {
   const { nextStep: nextTutorial, dismiss: dismissTutorial } = useRideTutorial({ isPracticeMode, walletConnected });
 
   const showKeyboardHints = useRideModalStore((s) => s.showKeyboardHints);
-  const showKeyboardHintsRef = useRef(showKeyboardHints);
-  useEffect(() => {
-    showKeyboardHintsRef.current = showKeyboardHints;
-  }, [showKeyboardHints]);
 
   // Show keyboard controls hint when a simulator/practice ride starts
   useEffect(() => {
@@ -767,14 +771,20 @@ export default function LiveRidePage() {
     return "riding";
   })();
 
-  // Keyboard hint auto-dismiss
-  useEffect(() => {
-    if (!showKeyboardHintsRef.current) return;
-    const timer = setTimeout(() => {
-      setShowKeyboardHints(false);
-    }, 3000); // Reduced from 5s to 3s
-    return () => clearTimeout(timer);
-  }, [showKeyboardHints]);
+  // Keyboard hints: no page-level auto-dismiss — they persist until the user
+  // dismisses them (Esc / button) so controls stay discoverable. The overlay
+  // itself handles its own intro fade; we don't fight it with a second timer.
+
+  // ─── Modal store reads (hoisted before early returns — rules of hooks) ─
+  const showExitConfirm = useRideModalStore((s) => s.showExitConfirm);
+  const showNoBikeModal = useRideModalStore((s) => s.showNoBikeModal);
+  const showTutorialModal = useRideModalStore((s) => s.showTutorial);
+  const tutorialStep = useRideModalStore((s) => s.tutorialStep);
+  const tutorialSteps = useRideModalStore((s) => s.tutorialSteps);
+  const showMilestone = useRideModalStore((s) => s.showMilestone);
+  const showDemoModal = useRideModalStore((s) => s.showDemoModal);
+  const demoStats = useRideModalStore((s) => s.demoStats);
+  const isExitingRide = useRideModalStore((s) => s.isExitingRide);
 
   // ─── Loading / Not Found Gates ─────────────────────────────────
   if (isLoading && !isPracticeMode) {
@@ -830,7 +840,7 @@ export default function LiveRidePage() {
       </SectionErrorBoundary>
 
       {/* ─── Coach channel (replaces full-screen overlay) ─────────── */}
-      <CoachChannel />
+      {hudMode !== "minimal" && <CoachChannel />}
 
       {/* ─── Simplified reactive HUD (v2) ──────────────────────────── */}
       <SectionErrorBoundary title="ride HUD v2">
@@ -841,6 +851,59 @@ export default function LiveRidePage() {
           flowTier={flow.flowTier}
         />
       </SectionErrorBoundary>
+
+      {/* ─── Start ride (preview) — visible before the ride is active ───── */}
+      {!isRiding && !isStarting && !isPaused && !showCompletionScreen && !showActivation && classData && (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center pointer-events-none">
+          <button
+            onClick={() => setShowActivation(true)}
+            className="pointer-events-auto group relative rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-10 py-4 text-base font-black text-white shadow-[0_0_60px_rgba(99,102,241,0.5)] hover:scale-105 active:scale-95 transition-transform"
+            aria-label="Start ride"
+          >
+            Start Ride
+            <span className="block text-[9px] font-bold uppercase tracking-[0.3em] text-white/60 mt-0.5">
+              Keyboard: ← → to pedal
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* ─── Ride controls cluster (visible, always available) ──────── */}
+      {isRiding && !showCompletionScreen && (
+        <div className="fixed top-4 right-4 z-[70] flex flex-col gap-2 pointer-events-auto">
+          {/* Hide / show UI (quiet mode) */}
+          <button
+            onClick={toggleQuietHud}
+            className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 backdrop-blur-xl px-3 py-1.5 text-[10px] font-bold text-white/60 hover:text-white transition-colors"
+            title="Cycle HUD visibility (also: H)"
+            aria-label="Toggle HUD visibility"
+          >
+            {hudMode === "minimal" ? (
+              <>
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Show UI
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                Hide UI
+              </>
+            )}
+          </button>
+          {/* Keyboard shortcuts help (persistent, re-openable) — hidden in zen mode */}
+          {hudMode !== "minimal" && (
+            <button
+              onClick={() => useRideModalStore.getState().setShowKeyboardHints(true)}
+              className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 backdrop-blur-xl px-3 py-1.5 text-[10px] font-bold text-white/60 hover:text-white transition-colors"
+              title="Keyboard controls"
+              aria-label="Show keyboard controls"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>
+              Keys
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ─── Transition overlay (replaces raw activation) ──────────── */}
       <RideTransitionOverlay
@@ -875,7 +938,7 @@ export default function LiveRidePage() {
           agentPersonality={aiPersonality as "zen" | "drill-sergeant" | "data"}  
           walrusAnchorInfo={null}
           classId={classId}
-          completedRideId={completedRideId}
+          completedRideId={completedRideId ?? undefined}
           settlementStatus={undefined}
           maxHeartRate={maxHRRef.current}
           maxPower={maxPowerRef.current}
@@ -887,18 +950,20 @@ export default function LiveRidePage() {
       {/* ─── Modal stack (disciplined, single modal at a time) ─────── */}
       <SectionErrorBoundary title="ride modals">
       <ModalStack
-        exitConfirm={useRideModalStore((s) => s.showExitConfirm)}
-        noBike={useRideModalStore((s) => s.showNoBikeModal)}
-        tutorial={useRideModalStore((s) => s.showTutorial)}
-        tutorialStep={useRideModalStore((s) => s.tutorialStep)}
-        tutorialSteps={useRideModalStore((s) => s.tutorialSteps)}
-        milestone={useRideModalStore((s) => s.showMilestone)}
+        exitConfirm={showExitConfirm}
+        noBike={showNoBikeModal}
+        tutorial={showTutorialModal}
+        tutorialStep={tutorialStep}
+        tutorialSteps={tutorialSteps}
+        milestone={showMilestone}
         keyboardHints={showKeyboardHints}
-        demoModal={useRideModalStore((s) => s.showDemoModal)}
-        demoStats={useRideModalStore((s) => s.demoStats)}
-        isExitingRide={useRideModalStore((s) => s.isExitingRide)}
+        demoModal={showDemoModal}
+        demoStats={demoStats}
+        isExitingRide={isExitingRide}
         useSimulator={useSimulator}
         isRiding={isRiding}
+        hideSimulator={hudMode === "minimal"}
+        onSimulatorMetrics={(m) => coordinator.ingestSimulatorMetrics({ ...m, distance: 0, timestamp: Date.now() })}
 
         // Callbacks
         onExitConfirm={() => {

@@ -59,7 +59,7 @@ export const useSensoryStore = create<SensoryState & SensoryActions>()((set) => 
 export function useSensorySync() {
   const { setLatestEvent, setCountdownPhase, resetCountdown } = useSensoryStore();
   const isRiding = useRideStore((s) => s.isActive);
-  const phase = useCoachingStore((s) => s.currentInterval?.phase ?? null);
+  const phase = useCoachingStore((s) => s.currentInterval?.phase ?? null) as IntervalPhase | null;
   const effort = useTelemetryStore((s) => s.snapshot.effort);
   const prBeaten = useCoachingStore((s) => s.prBeaten);
 

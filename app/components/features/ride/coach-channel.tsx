@@ -112,7 +112,7 @@ export function CoachChannel() {
               <div className="px-4 py-3">
                 {/* Header */}
                 <div className="flex items-center gap-2 mb-2">
-                  <div
+                  <motion.div
                     className="w-2 h-2 rounded-full"
                     style={{
                       backgroundColor: theme.color,

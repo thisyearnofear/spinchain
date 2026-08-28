@@ -46,6 +46,10 @@ export function useRideKeyboard({
     if (typeof window === "undefined" || !isRiding) return;
     const totalGears = DEFAULT_ROAD_GEARS.front.length * DEFAULT_ROAD_GEARS.rear.length;
     const handleKeyDown = (e: KeyboardEvent) => {
+      // When the on-screen pedal simulator is driving input, ↑/↓ mean "pedal",
+      // not "shift gear" — don't also fire a gear change + resistance sound on
+      // every pedal stroke.
+      if (useUIStore.getState().useSimulator) return;
       if (e.key === "ArrowUp") {
         useTelemetryStore.setState((s) => ({ currentGear: Math.min(totalGears, s.currentGear + 1) }));
         playSound?.("resistanceUp");
