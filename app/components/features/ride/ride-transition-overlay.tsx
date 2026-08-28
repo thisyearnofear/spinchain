@@ -88,6 +88,18 @@ export function RideTransitionOverlay({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Callers may pass inline/unstable callbacks. If the timers below keyed on
+  // callback identity, a parent re-rendering at 10Hz (useFlowState tick)
+  // would tear down and restart them every render — the activation countdown
+  // would never advance (stuck on "3") and Skip would never appear. Read the
+  // latest callbacks through refs so the effects depend only on real state.
+  const onActivationCompleteRef = useRef(onActivationComplete);
+  const onSkipActivationRef = useRef(onSkipActivation);
+  useEffect(() => {
+    onActivationCompleteRef.current = onActivationComplete;
+    onSkipActivationRef.current = onSkipActivation;
+  });
+
   // ─── State machine ─────────────────────────────────────────────
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -110,7 +122,7 @@ export function RideTransitionOverlay({
         setInternalState("activation");
         timerRef.current = setTimeout(() => {
           setInternalState("riding");
-          onActivationComplete();
+          onActivationCompleteRef.current();
         }, reducedMotion ? 200 : TRANSITIONS.activationToRiding.enter);
         break;
       case "riding":
@@ -136,7 +148,8 @@ export function RideTransitionOverlay({
       if (timerRef.current) clearTimeout(timerRef.current);
       if (skipTimerRef.current) clearTimeout(skipTimerRef.current);
     };
-  }, [state, hasData, reducedMotion, onActivationComplete]);
+    // Callbacks are read via refs (see above) — deliberately not deps.
+  }, [state, hasData, reducedMotion]);
 
   // ─── Keyboard dismiss ──────────────────────────────────────────
   useEffect(() => {
@@ -274,29 +287,40 @@ function ActivationTransition({
   const [visible, setVisible] = useState(true);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Countdown logic
+  // Same reason as the parent: the countdown interval must not restart when
+  // the caller passes an unstable onDone. See RideTransitionOverlay.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  });
+
+  // Countdown logic. The updater must stay pure (React dev double-invokes
+  // updaters, which would fire side effects twice); completion is handled in
+  // its own effect watching `countdown`.
   useEffect(() => {
     if (reducedMotion) {
-      onDone();
+      onDoneRef.current();
       return;
     }
 
     timerRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          setVisible(false);
-          setTimeout(onDone, reducedMotion ? 100 : 400);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setCountdown((prev) => Math.max(0, prev - 1));
     }, reducedMotion ? 200 : 700);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [reducedMotion, onDone]);
+    // onDone is read via ref (see above) — deliberately not a dep.
+  }, [reducedMotion]);
+
+  // Countdown finished: stop the interval, fade out, then hand off to riding.
+  useEffect(() => {
+    if (countdown !== 0) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    setVisible(false);
+    const doneTimer = setTimeout(() => onDoneRef.current(), reducedMotion ? 100 : 400);
+    return () => clearTimeout(doneTimer);
+  }, [countdown, reducedMotion]);
 
   return (
     <motion.div

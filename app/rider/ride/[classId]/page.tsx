@@ -707,17 +707,28 @@ export default function LiveRidePage() {
     }
   }, [isRiding, activationComplete]);
 
+  // The page re-renders continuously (useFlowState ticks every 100ms,
+  // sensory-sync, etc.), and `lifecycle` is a fresh object each render. If the
+  // activation callbacks depend on it, `RideTransitionOverlay`'s countdown
+  // effect re-subscribes on every render and the interval never fires — the
+  // countdown gets stuck on "3" (and the Skip button never appears). Keep a
+  // ref to the latest lifecycle so these callbacks are referentially stable.
+  const lifecycleRef = useRef(lifecycle);
+  useEffect(() => {
+    lifecycleRef.current = lifecycle;
+  });
+
   const handleActivationComplete = useCallback(() => {
     setShowActivation(false);
     setActivationComplete(true);
-    lifecycle.startRide();
-  }, [lifecycle]);
+    lifecycleRef.current.startRide();
+  }, []);
 
   const handleActivationSkip = useCallback(() => {
     setShowActivation(false);
     setActivationComplete(true);
-    lifecycle.startRide();
-  }, [lifecycle]);
+    lifecycleRef.current.startRide();
+  }, []);
 
   // ─── Max telemetry tracking (for completion celebration) ─────────
   useEffect(() => {

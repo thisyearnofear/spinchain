@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["app/engines/__tests__/**/*.test.ts"],
+    include: ["app/engines/__tests__/**/*.test.ts", "app/components/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", "dist"],
   },
   resolve: {

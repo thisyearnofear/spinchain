@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The Next.js dev-mode indicator (floating button, top-left) was mistaken
+  // for an app bug during the ride activation countdown investigation.
+  // Dev-only either way; hidden to keep the corner of the viewport clean.
+  devIndicators: false,
   images: {
     unoptimized: true,
   },
