@@ -17,6 +17,7 @@ import {
   Points,
   BackSide,
 } from "three";
+import * as THREE from "three";
 import {
   EffectComposer,
   Bloom,
@@ -165,7 +166,7 @@ function Road({
     // Boost effect when sprinting
     const sprintFactor = Math.min(1, stats.power / 600);
     let emissiveIntensity = baseEmissive + (pulse * 0.1) + (sprintFactor * 0.4);
-    let emissiveColor = styles.roadEmissive;
+    let emissiveColor: string = styles.roadEmissive;
 
     // World reactivity: road glows with phase color and effort
     if (reactive) {
@@ -473,6 +474,7 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
     chromaticOffset = reactive.chromaticOffset * intensityMultiplier;
   }
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const effects = useMemo(() => {
     if (performanceTier === "low") return [];
     const e = [
@@ -1131,10 +1133,9 @@ function FlowCelebration({ effect }: FlowCelebrationProps) {
   useFrame((state) => {
     if (!effect || !groupRef.current) return;
 
-    // Reset when tier changes
-    if (startedAtRef.current === null || (effect.tier !== effect._lastTier)) {
+    // Reset when a new celebration begins
+    if (startedAtRef.current === null) {
       startedAtRef.current = state.clock.elapsedTime;
-      effect._lastTier = effect.tier;
     }
 
     const elapsed = state.clock.elapsedTime - startedAtRef.current;
@@ -1153,6 +1154,7 @@ function FlowCelebration({ effect }: FlowCelebrationProps) {
     });
   });
 
+  // eslint-disable-next-line react-hooks/refs
   if (!effect || startedAtRef.current === null) return null;
 
   return (
@@ -1193,6 +1195,8 @@ function Scene({
   quality,
   userDisplayName,
   intervalPhase = null,
+  flowTier = 0,
+  contextPalette,
 }: {
   elevationProfile: number[];
   theme?: VisualizerTheme;
@@ -1240,7 +1244,7 @@ function Scene({
       setCurrentFlowEffect(celebration);
       // Auto-clear after 3 seconds
       setTimeout(() => {
-        setCurrentFlowEffect((prev) => prev?.startedAt < performance.now() - 3000 ? null : prev);
+        setCurrentFlowEffect((prev) => (prev && prev.startedAt < performance.now() - 3000 ? null : prev));
       }, 3000);
     }
     previousFlowTierRef.current = flowTier ?? 0;
@@ -1386,7 +1390,7 @@ function Scene({
         if (reactive) {
           targetFov = reactive.fovTarget;
         } else {
-          targetFov = baseFov + Math.min(25, (stats.power / 400) * 20);
+          targetFov = 60 + Math.min(25, (stats.power / 400) * 20);
         }
         cam.fov = MathUtils.lerp(cam.fov, targetFov, 0.05);
         cam.updateProjectionMatrix();
@@ -1470,7 +1474,7 @@ function Scene({
           <mesh>
             <sphereGeometry args={[150, 32, 32]} />
             <meshBasicMaterial
-              color={flowColor}
+              color={flowColor ?? undefined}
               transparent
               opacity={0.03 + flowTier * 0.02}
               side={THREE.BackSide}
@@ -1486,7 +1490,6 @@ function Scene({
             speed={0.5 + flowTier * 0.3}
             color={flowColor ?? "#f59e0b"}
             opacity={Math.min(0.7, 0.1 + flowTier * 0.1)}
-            fade
           />
 
           {/* Flow milestone celebration — burst particles on tier changes */}
@@ -1536,8 +1539,8 @@ function Scene({
               "#121a2d",
             ]}
             position={[0, -2, 0]}
-            transparent
-            opacity={reactive ? reactive.gridOpacity : 1}
+            material-transparent
+            material-opacity={reactive ? reactive.gridOpacity : 1}
           />
         )}
       </group>
@@ -1575,6 +1578,7 @@ export default function RouteVisualizer({
   userDisplayName,
   intervalPhase = null,
   flowTier = 0,
+  contextPalette,
 }: {
   elevationProfile?: number[];
   theme?: VisualizerTheme;

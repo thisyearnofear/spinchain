@@ -23,7 +23,7 @@ import { VISUALIZER_THEMES } from "./visualizer-theme";
 
 import { useMemo } from "react";
 import type { VisualizerTheme } from "./visualizer-theme";
-import type { IntervalPhase } from "@/app/lib/workout-plan";
+import type { IntervalPhase } from "@/app/lib/phase-theme";
 
 // ─── Reactive parameters ────────────────────────────────────────────
 

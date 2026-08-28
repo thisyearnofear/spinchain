@@ -448,6 +448,24 @@ export default function LiveRidePage() {
   // PR pursuit callouts during ride
   usePrPursuit(isRiding);
 
+  // ─── Flow State Engine (declared early; milestones/flow handlers depend on it) ─
+  const telemetrySnapshot = useTelemetryStore((s) => s.snapshot);
+  const [hrResting] = useState(() => {
+    // Default ~60 bpm, would come from user profile in production
+    return 60;
+  });
+
+  const flow = useFlowState(
+    telemetrySnapshot.power,
+    telemetrySnapshot.heartRate,
+    hrResting,
+  );
+
+  // ─── Max telemetry tracking (for completion celebration) ─────────
+  const maxPowerRef = useRef(0);
+  const maxHRRef = useRef(0);
+  const peakEffortRef = useRef(0);
+
   // ─── Milestone Recording ─────────────────────────────────────
   const [rideMilestones, setRideMilestones] = useState<SessionMilestone[]>([]);
 
@@ -565,20 +583,7 @@ export default function LiveRidePage() {
   const experience = useExperience();
 
   // ─── Sensory sync (audio + visual + haptic choreography) ────────
-  const { setCountdownPhase, resetCountdown } = useSensorySync();
-
-  // ─── Flow State Engine ──────────────────────────────────────────
-  const telemetrySnapshot = useTelemetryStore((s) => s.snapshot);
-  const [hrResting] = useState(() => {
-    // Default ~60 bpm, would come from user profile in production
-    return 60;
-  });
-
-  const flow = useFlowState(
-    telemetrySnapshot.power,
-    telemetrySnapshot.heartRate,
-    hrResting,
-  );
+  useSensorySync();
 
   // Register flow event handler → dispatch to coach channel + sensory sync
   useEffect(() => {
@@ -715,10 +720,6 @@ export default function LiveRidePage() {
   }, [lifecycle]);
 
   // ─── Max telemetry tracking (for completion celebration) ─────────
-  const maxPowerRef = useRef(0);
-  const maxHRRef = useRef(0);
-  const peakEffortRef = useRef(0);
-
   useEffect(() => {
     if (!isRiding) return;
     if (telemetryHistory.power?.length > 0) {
@@ -937,7 +938,7 @@ export default function LiveRidePage() {
           agentPersonality={aiPersonality as "zen" | "drill-sergeant" | "data"}  
           walrusAnchorInfo={null}
           classId={classId}
-          completedRideId={completedRideId}
+          completedRideId={completedRideId ?? undefined}
           settlementStatus={undefined}
           maxHeartRate={maxHRRef.current}
           maxPower={maxPowerRef.current}

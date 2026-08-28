@@ -256,6 +256,8 @@ export function useFlowState(
   hr: number,
   hrResting: number,
 ) {
+  // performance.now() is intentionally captured once per mount; ref keeps it stable.
+  // eslint-disable-next-line react-hooks/purity
   const sessionStart = useRef(performance.now());
   const coachingStore = useCoachingStore();
 
@@ -267,13 +269,14 @@ export function useFlowState(
     duration: 0,
     trajectory: 0,
     previousTier: 0,
+    // eslint-disable-next-line react-hooks/purity
     enteredNewTierAt: performance.now(),
   });
 
   const [events, setEvents] = useState<FlowStateEvent[]>([]);
   const [totalFlowMinutes, setTotalFlowMinutes] = useState(0);
   const [milestones, setMilestones] = useState<number[]>([]);
-  const [onFlowEvent, setOnFlowEvent] = useState<(event: FlowStateEvent) => void | null>(null);
+  const [onFlowEvent, setOnFlowEvent] = useState<((event: FlowStateEvent) => void) | null>(null);
 
   // Rolling power history for trajectory calculation
   const powerHistoryRef = useRef<number[]>([]);
@@ -316,7 +319,8 @@ export function useFlowState(
   }, [currentPower]);
 
   // ─── Flow State Computation ──────────────────────────────────────
-  const intervalTarget = coachingStore.currentInterval?.targetPower ?? null;
+  const rawTarget = coachingStore.currentInterval?.targetPower ?? null;
+  const intervalTarget = rawTarget ? Math.round((rawTarget[0] + rawTarget[1]) / 2) : null;
   const intervalPhase = coachingStore.currentInterval?.phase ?? null;
 
   const tick = useCallback(() => {

@@ -74,6 +74,7 @@ interface RideCompletionV2Props {
   classId?: string;
   completedRideId?: string;
   settlementStatus?: "pending" | "confirmed" | "failed" | "skipped";
+  primaryAction?: "view_history" | "claim" | "exit";
   maxHeartRate?: number;
   maxPower?: number;
   peakEffort?: number;
@@ -103,6 +104,7 @@ export function RideCompletionV2({
   classId,
   completedRideId,
   settlementStatus,
+  primaryAction,
   maxHeartRate = avgHeartRate,
   maxPower = avgPower,
   peakEffort = avgEffort,
@@ -125,7 +127,23 @@ export function RideCompletionV2({
     setCurrentStreak(milestonesAndStreaks.getCurrentStreak());
   }, [rideMilestones]);
   const containerRef = useRef<HTMLDivElement>(null);
-  const celebrationStartTime = useRef(Date.now());
+  // Particle layout is random but stable per mount (Math.random is impure
+  // during render — useState lazy init runs once on mount).
+  const [celebrationParticles] = useState(() =>
+    Array.from({ length: 30 }).map(() => ({
+      width: 2 + Math.random() * 4,
+      height: 2 + Math.random() * 4,
+      left: 30 + Math.random() * 40,
+      top: 40 + Math.random() * 20,
+      xStart: -50 + Math.random() * 100,
+      xEnd: -80 - Math.random() * 60,
+      yStart: -30 - Math.random() * 50,
+      yEnd: 100 + Math.random() * 80,
+      rotate: 180 + Math.random() * 360,
+      duration: 1.5 + Math.random() * 1,
+      delay: Math.random() * 0.5,
+    })),
+  );
 
   // Check if PR was beaten (from store)
   const storePrBeaten = useCoachingStore((s) => s.prBeaten);
@@ -223,29 +241,29 @@ export function RideCompletionV2({
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            {Array.from({ length: 30 }).map((_, i) => (
+            {celebrationParticles.map((p, i) => (
               <motion.div
                 key={i}
                 className="absolute rounded-full"
                 style={{
-                  width: 2 + Math.random() * 4,
-                  height: 2 + Math.random() * 4,
-                  left: `${30 + Math.random() * 40}%`,
-                  top: `${40 + Math.random() * 20}%`,
+                  width: p.width,
+                  height: p.height,
+                  left: `${p.left}%`,
+                  top: `${p.top}%`,
                   backgroundColor: [
                     "#fbbf24", "#f43f5e", "#34d399", "#38bdf8", "#818cf8",
                   ][i % 5],
                 }}
                 animate={{
-                  x: [-50 + Math.random() * 100, -80 - Math.random() * 60],
-                  y: [-30 - Math.random() * 50, 100 + Math.random() * 80],
+                  x: [p.xStart, p.xEnd],
+                  y: [p.yStart, p.yEnd],
                   opacity: [0, 1, 0],
                   scale: [0, 1.5, 0.5],
-                  rotate: [0, 180 + Math.random() * 360],
+                  rotate: [0, p.rotate],
                 }}
                 transition={{
-                  duration: 1.5 + Math.random() * 1,
-                  delay: Math.random() * 0.5,
+                  duration: p.duration,
+                  delay: p.delay,
                   ease: "easeOut",
                 }}
               />
@@ -752,7 +770,3 @@ function ClaimRewardsButton({
     </button>
   );
 }
-
-// Need AnimatePresence
-import { AnimatePresence } from "framer-motion";
-import { useState } from "react";

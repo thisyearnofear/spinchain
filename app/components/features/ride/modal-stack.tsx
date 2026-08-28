@@ -117,7 +117,7 @@ export function useModalStack() {
         setShowDemoModal(true);
         break;
       case "milestone":
-        setShowMilestone(props.milestone);
+        setShowMilestone(props.milestone as { title: string; subtitle: string } | null);
         break;
     }
   }, [

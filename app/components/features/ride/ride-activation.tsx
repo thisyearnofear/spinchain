@@ -62,7 +62,7 @@ export function RideActivationSequence({
   const [countdownNumber, setCountdownNumber] = useState<number | null>(null);
   const [showNumber, setShowNumber] = useState(false);
   const startTimeRef = useRef(Date.now());
-  const hapticRef = useRef<HapticType | null>(null);
+  const hapticRef = useRef<((type: HapticType) => void) | null>(null);
   const reducedMotion = useReducedMotion();
 
   // Determine accent color from interval phase
@@ -206,7 +206,7 @@ export function RideActivationSequence({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.8, duration: 0.8, type: "spring" }}
             >
-              <div
+              <motion.div
                 className="w-24 h-24 rounded-full blur-2xl"
                 style={{ backgroundColor: theme.color, opacity: 0.3 }}
                 animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
@@ -229,7 +229,7 @@ export function RideActivationSequence({
                 transition={{ delay: 1.2 }}
                 className="flex items-center gap-2"
               >
-                <div
+                <motion.div
                   className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: theme.color }}
                   animate={{ scale: [1, 1.3, 1] }}

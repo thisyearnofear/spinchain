@@ -14,6 +14,7 @@ import { TronRenderer } from "@/app/components/features/renderers/tron-renderer"
 import { FocusRenderer } from "@/app/components/features/renderers/focus-renderer";
 import type { VisualizationConfig, RenderMode } from "@/app/engines/types";
 import type { FlowStateTier } from "@/app/lib/flow-state";
+import type { IntervalPhase } from "@/app/lib/phase-theme";
 import { useEffect, useMemo, useState } from "react";
 import { probeGpu, getQualitySettings } from "@/app/lib/gpu-probe";
 import { useRideStore } from "@/app/stores/ride-store";
@@ -161,7 +162,7 @@ export function RideVisualization({
           quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
           className="h-full w-full"
           userDisplayName={undefined}
-          intervalPhase={currentInterval?.phase ?? null}
+          intervalPhase={(currentInterval?.phase ?? undefined) as IntervalPhase | undefined}
           flowTier={flowTier}
         />
       )}

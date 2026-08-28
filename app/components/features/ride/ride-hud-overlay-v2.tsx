@@ -82,8 +82,8 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
     [phase, effort],
   );
 
-  const accent = phaseAccent(phase);
-  const phaseText = phaseLabel(phase);
+  const accent = phaseAccent(phase as IntervalPhase);
+  const phaseText = phaseLabel(phase as IntervalPhase);
 
   // ─── Primary metric (adapts to phase) ───────────────────────────
   const primaryMetric = useMemo(() => {
@@ -405,7 +405,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
               {/* Phase header */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div
+                  <motion.div
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: theme.color }}
                     animate={{ scale: [1, 1.4, 1] }}
