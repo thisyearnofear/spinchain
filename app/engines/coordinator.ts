@@ -141,11 +141,14 @@ export class RideCoordinator {
 
       // Feed the rewards engine (no-op unless earning is active). Skip
       // no-signal samples so idle time doesn't accrue base reward.
+      // Note: Noir circuits expect integer field elements (BigInt()), so
+      // telemetry values must be floored — raw sensor data can be floats
+      // (e.g., 205.8, 357.2 from the power accumulator).
       if (snapshot.heartRate > 0 || snapshot.power > 0) {
         void this.rewards.recordEffort({
           timestamp: Date.now(),
-          heartRate: snapshot.heartRate,
-          power: snapshot.power,
+          heartRate: Math.floor(snapshot.heartRate),
+          power: Math.floor(snapshot.power),
           cadence: snapshot.cadence,
         });
       }

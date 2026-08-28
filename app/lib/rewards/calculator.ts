@@ -91,8 +91,8 @@ export function getHeartRateZone(heartRate: number, maxHeartRate: number = 200):
  * @returns Reward calculation result
  */
 export function calculateRewardFromScore(effortScore: number): RewardCalculation {
-  // Clamp effort score to valid range
-  const clampedScore = Math.max(0, Math.min(1000, effortScore));
+  // Clamp effort score to valid range (integers for Noir circuit BigInt())
+  const clampedScore = Math.max(0, Math.min(1000, Math.trunc(effortScore)));
   
   // Calculate bonus: (effortScore * 90) / 1000
   const bonus = (BigInt(clampedScore) * MAX_BONUS) / BigInt(1000);
