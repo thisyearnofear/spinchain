@@ -972,7 +972,7 @@ export default function LiveRidePage() {
         isExitingRide={isExitingRide}
         useSimulator={useSimulator}
         isRiding={isRiding}
-        hideSimulator={hudMode === "minimal"}
+        hideSimulator={hudMode === "minimal" || useSimulator}
         onSimulatorMetrics={(m) => coordinator.ingestSimulatorMetrics({ ...m, distance: 0, timestamp: Date.now() })}
 
         // Callbacks

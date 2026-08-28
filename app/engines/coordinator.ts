@@ -29,7 +29,6 @@ import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
-import { useUIStore } from "@/app/stores/ui-store";
 import {
   getCurrentInterval,
   getIntervalProgress,
@@ -153,15 +152,16 @@ export class RideCoordinator {
         });
       }
 
-      if (!useUIStore.getState().useSimulator) {
-        const elapsedTime = useRideStore.getState().elapsedTime + 1;
-        const rideProgress = Math.min((elapsedTime / this.durationSeconds) * 100, 100);
-        useRideStore.setState({ elapsedTime, rideProgress });
-      }
+      // Advance ride clock and progress for every ride. Keyboard sim and
+      // practice rides are time-based (the simulator hook handles time-
+      // scaled metrics but does NOT drive the ride clock), so they still
+      // need elapsed time and progress to advance normally.
+      const elapsed = useRideStore.getState().elapsedTime + 1;
+      const progress = Math.min((elapsed / this.durationSeconds) * 100, 100);
+      useRideStore.setState({ elapsedTime: elapsed, rideProgress: progress });
 
       // Drive the interval/coaching clock for both device paths
-      const { elapsedTime, rideProgress } = useRideStore.getState();
-      this.bus.emit("lifecycle:tick", { elapsed: elapsedTime, progress: rideProgress });
+      this.bus.emit("lifecycle:tick", { elapsed: elapsed, progress: progress });
     }, 1000);
 
     // Configure rewards engine
