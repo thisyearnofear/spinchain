@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
@@ -57,39 +57,17 @@ interface UseRideLifecycleParams {
   setUseSimulator: (v: boolean) => void;
 }
 
-export function useRideLifecycle({
-  classId,
-  classData,
-  practiceConfig,
-  isPracticeMode,
-  isTrainingMode,
-  bleConnected,
-  useSimulator,
-  walletConnected,
-  address,
-  rewardMode,
-  agentName,
-  workoutPlan,
-  deviceType,
-  performanceTier,
-  elapsedTime,
-  rewardClaimStatus,
-  useChainlinkRewards,
-  chainlinkSuccess,
-  zkSuccess,
-  privacyScore,
-  privacyLevel,
-  rewards,
-  coordinator,
-  coordinatorRef,
-  isRidingRef,
-  trackedCompletionRef,
-  playCountdown,
-  playSound,
-  stopAudio,
-  speak,
-  setUseSimulator,
-}: UseRideLifecycleParams) {
+export function useRideLifecycle(params: UseRideLifecycleParams) {
+  // The ride page re-renders continuously (telemetry, sensory-sync, flow
+  // updates) and most params change identity every render. Handlers read
+  // everything through this ref so they — and the returned object — stay
+  // referentially stable. Consumers can then list `lifecycle.pauseRide`
+  // etc. in effect deps without resubscribing on every render.
+  const paramsRef = useRef(params);
+  useEffect(() => {
+    paramsRef.current = params;
+  });
+
   const router = useRouter();
   const suiClient = useSuiClient();
   const { mutateAsync: signAndExecuteSui } = useSignAndExecuteTransaction();
@@ -117,13 +95,13 @@ export function useRideLifecycle({
   );
 
   useEffect(() => {
-    coordinatorRef.current?.updateSuiConfig({
+    paramsRef.current.coordinatorRef.current?.updateSuiConfig({
       executeTransaction: suiExecuteTransaction,
       suiClient: suiClient as unknown as Parameters<
-        typeof coordinatorRef.current.updateSuiConfig
+        NonNullable<typeof paramsRef.current.coordinatorRef.current>["updateSuiConfig"]
       >[0]["suiClient"],
     });
-  }, [suiExecuteTransaction, suiClient, coordinatorRef]);
+  }, [suiExecuteTransaction, suiClient]);
 
   const { persistRide } = useRidePersistence();
   const startTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -136,6 +114,13 @@ export function useRideLifecycle({
   }, []);
 
   const startRide = useCallback(async () => {
+    const {
+      bleConnected, useSimulator, classId, isPracticeMode, isTrainingMode,
+      rewards, coordinator, classData, deviceType, performanceTier,
+      walletConnected, address, rewardMode, agentName, workoutPlan,
+      playCountdown, speak, isRidingRef, trackedCompletionRef,
+    } = paramsRef.current;
+
     // Guard against double-start
     if (useRideStore.getState().isStarting || isRidingRef.current) return;
 
@@ -208,23 +193,31 @@ export function useRideLifecycle({
       }
       speak(greeting, "intense");
     }, 3000);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bleConnected, useSimulator, classId, isPracticeMode, isTrainingMode, rewards, coordinator, classData, deviceType, performanceTier, walletConnected, address, rewardMode, agentName, workoutPlan, playCountdown, speak, isRidingRef, trackedCompletionRef]);
+  }, [modalStore]);
 
   const pauseRide = useCallback(() => {
+    const { isRidingRef, coordinator, playSound } = paramsRef.current;
     isRidingRef.current = false;
     coordinator.pauseRide();
     useRideStore.setState({ isActive: false, isPaused: true });
     playSound("recover");
-  }, [playSound, isRidingRef, coordinator]);
+  }, []);
 
   const resumeRide = useCallback(() => {
+    const { isRidingRef, coordinator } = paramsRef.current;
     isRidingRef.current = true;
     coordinator.resumeRide();
     useRideStore.setState({ isActive: true, isPaused: false });
-  }, [coordinator, isRidingRef]);
+  }, []);
 
   const exitRide = useCallback(async () => {
+    const {
+      stopAudio, coordinator, classId, classData, practiceConfig, agentName,
+      address, elapsedTime, bleConnected, isPracticeMode, useSimulator,
+      rewardMode, rewardClaimStatus, useChainlinkRewards, chainlinkSuccess,
+      zkSuccess, privacyScore, privacyLevel, walletConnected, rewards,
+      coordinatorRef,
+    } = paramsRef.current;
     if (useRideStore.getState().isExiting) return; // Guard against double-exit
     useRideStore.setState({ isExiting: true });
     modalStore.getState().setIsExitingRide(true);
@@ -292,15 +285,14 @@ export function useRideLifecycle({
         router.push("/rider/journey?completed=true");
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stopAudio, coordinator, persistRide, classId, classData, practiceConfig, agentName, address, elapsedTime, bleConnected, isPracticeMode, useSimulator, rewardMode, rewardClaimStatus, useChainlinkRewards, chainlinkSuccess, zkSuccess, privacyScore, privacyLevel, walletConnected, rewards, coordinatorRef, router]);
+  }, [persistRide, router, modalStore]);
 
   const handleEnableSimulatorFromModal = useCallback(() => {
     modalStore.getState().setShowNoBikeModal(false);
-    setUseSimulator(true);
+    paramsRef.current.setUseSimulator(true);
     modalStore.getState().setShowKeyboardHints(true);
     setConnectionHint(null);
-  }, [setUseSimulator, modalStore]);
+  }, [modalStore]);
 
   const handleDemoModalClose = useCallback(() => {
     modalStore.getState().setShowDemoModal(false);
@@ -314,23 +306,40 @@ export function useRideLifecycle({
     modalStore.getState().setShowCompletionScreen(false);
     modalStore.getState().setWalrusAnchorInfo(null);
     modalStore.getState().setShowDemoModal(false);
-    if (isPracticeMode) {
+    if (paramsRef.current.isPracticeMode) {
       router.push("/rider");
     } else {
       router.push("/rider/journey?completed=true");
     }
-  }, [router, isPracticeMode, modalStore]);
+  }, [router, modalStore]);
 
-  return {
-    connectionHint,
-    startRide,
-    pauseRide,
-    resumeRide,
-    exitRide,
-    handleCompletionExit,
-    handleEnableSimulatorFromModal,
-    handleDemoModalClose,
-    handleDismissNoBike,
-    handleDismissKeyboardHints,
-  };
+  // Stable identity: the ride page lists lifecycle.* methods in effect deps
+  // (BLE auto-pause, visibility pause); a fresh object each render made those
+  // effects resubscribe ~10x/sec, which needed eslint-disables to quiet.
+  return useMemo(
+    () => ({
+      connectionHint,
+      startRide,
+      pauseRide,
+      resumeRide,
+      exitRide,
+      handleCompletionExit,
+      handleEnableSimulatorFromModal,
+      handleDemoModalClose,
+      handleDismissNoBike,
+      handleDismissKeyboardHints,
+    }),
+    [
+      connectionHint,
+      startRide,
+      pauseRide,
+      resumeRide,
+      exitRide,
+      handleCompletionExit,
+      handleEnableSimulatorFromModal,
+      handleDemoModalClose,
+      handleDismissNoBike,
+      handleDismissKeyboardHints,
+    ],
+  );
 }

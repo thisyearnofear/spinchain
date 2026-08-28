@@ -515,7 +515,7 @@ export default function LiveRidePage() {
         localStorage.setItem(STORAGE_KEYS.quizPostRide, "true");
       }
     }
-  }, [showCompletionScreen, recordMilestonesOnCompletion]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showCompletionScreen, recordMilestonesOnCompletion]);
 
   // ─── Real-time Milestone Detection During Ride ──────────────────
   // Tracks shown milestone IDs to avoid duplicate pop-ups in the same ride
@@ -614,7 +614,7 @@ export default function LiveRidePage() {
       // 4. Log analytics event
       // (could integrate with telemetry store or analytics system)
     });
-  }, [flow, haptic]);
+  }, [flow.registerFlowEventHandler, haptic.trigger]);
 
   // ─── Music Engine Integration ──────────────────────────────────
   const [currentMusicPhase, setCurrentMusicPhase] = useState<string | null>(null);
@@ -672,8 +672,7 @@ export default function LiveRidePage() {
       lifecycle.pauseRide();
       toast.warning("Ride paused", "Your bike disconnected — attempting to reconnect. Resume when it's back.");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bleConnected, useSimulator, lifecycle.pauseRide, toast]);
+  }, [bleConnected, useSimulator, lifecycle, toast]);
 
   // ─── Visibility Pause (save CPU when tab hidden) ──────────────
   // Go through the real pause flow so the coordinator halts and the rider
@@ -687,7 +686,7 @@ export default function LiveRidePage() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [lifecycle.pauseRide]);
+  }, [lifecycle]);
 
   const formatTime = useCallback((seconds: number) => {
     const wholeSeconds = Math.max(0, Math.floor(seconds));

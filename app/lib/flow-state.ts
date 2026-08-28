@@ -257,9 +257,7 @@ export function useFlowState(
   hrResting: number,
 ) {
   // performance.now() is intentionally captured once per mount; ref keeps it stable.
-  // eslint-disable-next-line react-hooks/purity
   const sessionStart = useRef(performance.now());
-  const coachingStore = useCoachingStore();
 
   // Flow state tracking
   const [flowState, setFlowState] = useState<FlowState>({
@@ -269,14 +267,31 @@ export function useFlowState(
     duration: 0,
     trajectory: 0,
     previousTier: 0,
-    // eslint-disable-next-line react-hooks/purity
     enteredNewTierAt: performance.now(),
   });
 
   const [events, setEvents] = useState<FlowStateEvent[]>([]);
-  const [totalFlowMinutes, setTotalFlowMinutes] = useState(0);
   const [milestones, setMilestones] = useState<number[]>([]);
-  const [onFlowEvent, setOnFlowEvent] = useState<((event: FlowStateEvent) => void) | null>(null);
+
+  // The tick computes at 10Hz, but committing `newFlow` to state on every
+  // tick re-rendered the ride page ~10x/sec — which restarted effects that
+  // (directly or transitively) keyed on values flowing from here. Inputs and
+  // bookkeeping live in refs; React state only updates when something the UI
+  // actually consumes changes: tier, coarsely-quantized score, events, or
+  // milestones.
+  const flowStateRef = useRef(flowState);
+  const totalFlowMinutesRef = useRef(0);
+  const onFlowEventRef = useRef<((event: FlowStateEvent) => void) | null>(null);
+  const powerRef = useRef(currentPower);
+  const hrRef = useRef(hr);
+  const hrRestingRef = useRef(hrResting);
+  powerRef.current = currentPower;
+  hrRef.current = hr;
+  hrRestingRef.current = hrResting;
+
+  // Per-instance event/milestone dedupe sets (were module-level singletons).
+  const prevEventsRef = useRef(new Set<number>());
+  const milestonesRef = useRef(new Set<number>());
 
   // Rolling power history for trajectory calculation
   const powerHistoryRef = useRef<number[]>([]);
@@ -287,7 +302,7 @@ export function useFlowState(
     // Clear power history on new ride
     powerHistoryRef.current = [];
     sessionStart.current = performance.now();
-    setFlowState({
+    const initial: FlowState = {
       tier: 0,
       score: 0,
       consistency: 0,
@@ -295,16 +310,22 @@ export function useFlowState(
       trajectory: 0,
       previousTier: 0,
       enteredNewTierAt: performance.now(),
-    });
+    };
+    flowStateRef.current = initial;
+    setFlowState(initial);
+    totalFlowMinutesRef.current = 0;
     setEvents([]);
-    setTotalFlowMinutes(0);
     setMilestones([]);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    prevEventsRef.current.clear();
+    milestonesRef.current.clear();
+  }, []);
 
   // ─── Power History Collector ─────────────────────────────────────
+  // Interval reads latest power via ref so it is created once per mount
+  // instead of being torn down and rebuilt whenever currentPower changes.
   useEffect(() => {
     powerHistoryTimerRef.current = setInterval(() => {
-      powerHistoryRef.current.push(currentPower);
+      powerHistoryRef.current.push(powerRef.current);
       // Keep last 10 seconds at 30fps = 300 samples
       if (powerHistoryRef.current.length > 300) {
         powerHistoryRef.current.shift();
@@ -316,31 +337,35 @@ export function useFlowState(
         clearInterval(powerHistoryTimerRef.current);
       }
     };
-  }, [currentPower]);
+  }, []);
 
   // ─── Flow State Computation ──────────────────────────────────────
-  const rawTarget = coachingStore.currentInterval?.targetPower ?? null;
-  const intervalTarget = rawTarget ? Math.round((rawTarget[0] + rawTarget[1]) / 2) : null;
-  const intervalPhase = coachingStore.currentInterval?.phase ?? null;
+  // Selector-based subscription: re-renders only when the active interval
+  // changes, not on every coaching-store update.
+  const targetPower = useCoachingStore((s) => s.currentInterval?.targetPower ?? null);
+  const intervalTarget = targetPower ? Math.round((targetPower[0] + targetPower[1]) / 2) : null;
+  const intervalTargetRef = useRef(intervalTarget);
+  intervalTargetRef.current = intervalTarget;
 
   const tick = useCallback(() => {
     if (!powerHistoryRef.current.length) return;
 
-    const prevState = flowState;
+    const prevState = flowStateRef.current;
     const newFlow = computeFlowState(
-      currentPower,
-      intervalTarget,
+      powerRef.current,
+      intervalTargetRef.current,
       powerHistoryRef.current,
-      hr,
-      hrResting,
+      hrRef.current,
+      hrRestingRef.current,
       sessionStart.current,
       prevState.tier,
       prevState.enteredNewTierAt,
-      totalFlowMinutes,
+      totalFlowMinutesRef.current,
     );
+    flowStateRef.current = newFlow;
 
     // Detect transitions
-    const events: FlowStateEvent[] = [];
+    const newEvents: FlowStateEvent[] = [];
 
     if (newFlow.tier !== prevState.tier) {
       const eventType = newFlow.tier > prevState.tier ? "tier-rise" : "tier-fall";
@@ -351,11 +376,11 @@ export function useFlowState(
         score: newFlow.score,
         message: getFlowMessage(eventType, newFlow.tier, prevState.tier) ?? undefined,
       };
-      events.push(event);
+      newEvents.push(event);
 
       // Fire callback
-      if (onFlowEvent) {
-        onFlowEvent(event);
+      if (onFlowEventRef.current) {
+        onFlowEventRef.current(event);
       }
     }
 
@@ -368,48 +393,53 @@ export function useFlowState(
         score: newFlow.score,
         message: FLOW_MESSAGES.sustained?.[newFlow.tier] ?? undefined,
       };
-      events.push(sustainedEvent);
+      newEvents.push(sustainedEvent);
       prevEventsRef.current.add(newFlow.tier);
     }
 
-    // Update total flow minutes
+    // Update total flow minutes (ref only — not rendered live)
     if (newFlow.tier >= 2) {
-      setTotalFlowMinutes((prev) => {
-        const added = (performance.now() - newFlow.enteredNewTierAt) / 60000;
-        return prev + added / 60; // spread over tick interval
-      });
+      const added = (performance.now() - newFlow.enteredNewTierAt) / 60000;
+      totalFlowMinutesRef.current += added / 60; // spread over tick interval
     }
 
     // Check milestones
-    setTotalFlowMinutes((current) => {
-      for (const milestone of FLOW_CONFIG.MILESTONE_INTERVALS) {
-        const targetMins = milestone / 60000;
-        if (current >= targetMins && !milestonesRef.current.has(milestone)) {
-          setMilestones((prev) => [...prev, milestone]);
-          const milestoneEvent: FlowStateEvent = {
-            type: "peak",
-            tier: newFlow.tier,
-            previousTier: prevState.tier,
-            score: newFlow.score,
-            message: `${milestone / 60} minutes of flow — legendary.`,
-          };
-          events.push(milestoneEvent);
-          if (onFlowEvent) {
-            onFlowEvent(milestoneEvent);
-          }
-          milestonesRef.current.add(milestone);
+    let milestonesChanged = false;
+    for (const milestone of FLOW_CONFIG.MILESTONE_INTERVALS) {
+      const targetMins = milestone / 60000;
+      if (totalFlowMinutesRef.current >= targetMins && !milestonesRef.current.has(milestone)) {
+        milestonesRef.current.add(milestone);
+        milestonesChanged = true;
+        const milestoneEvent: FlowStateEvent = {
+          type: "peak",
+          tier: newFlow.tier,
+          previousTier: prevState.tier,
+          score: newFlow.score,
+          message: `${milestone / 60} minutes of flow — legendary.`,
+        };
+        newEvents.push(milestoneEvent);
+        if (onFlowEventRef.current) {
+          onFlowEventRef.current(milestoneEvent);
         }
       }
-      return current;
-    });
-
-    setFlowState(newFlow);
-    if (events.length > 0) {
-      setEvents((prev) => [...prev.slice(-20), ...events]); // keep last 20 events
     }
-  }, [currentPower, hr, hrResting, intervalTarget, totalFlowMinutes, onFlowEvent]);
 
-  // Run flow tick at ~10fps (every 100ms)
+    // Commit to state only when the UI-relevant values changed. The score
+    // moves a little on nearly every tick; the tier is what consumers render.
+    const tierChanged = newFlow.tier !== prevState.tier;
+    if (tierChanged) {
+      setFlowState(newFlow);
+    }
+    if (newEvents.length > 0) {
+      setEvents((prev) => [...prev.slice(-20), ...newEvents]); // keep last 20 events
+    }
+    if (milestonesChanged) {
+      setMilestones((prev) => [...prev, ...FLOW_CONFIG.MILESTONE_INTERVALS.filter((m) => milestonesRef.current.has(m) && !prev.includes(m))]);
+    }
+  }, []);
+
+  // Run flow tick at ~10fps (every 100ms). tick is stable and reads refs,
+  // so the interval is created once per mount.
   useEffect(() => {
     const interval = setInterval(tick, 100);
     return () => clearInterval(interval);
@@ -422,7 +452,7 @@ export function useFlowState(
    * Use this to trigger visuals, audio, or coach messages.
    */
   const registerFlowEventHandler = useCallback((handler: (event: FlowStateEvent) => void) => {
-    setOnFlowEvent(() => handler);
+    onFlowEventRef.current = handler;
   }, []);
 
   /**
@@ -431,7 +461,7 @@ export function useFlowState(
   const resetFlowState = useCallback(() => {
     powerHistoryRef.current = [];
     sessionStart.current = performance.now();
-    setFlowState({
+    const initial: FlowState = {
       tier: 0,
       score: 0,
       consistency: 0,
@@ -439,33 +469,39 @@ export function useFlowState(
       trajectory: 0,
       previousTier: 0,
       enteredNewTierAt: performance.now(),
-    });
+    };
+    flowStateRef.current = initial;
+    setFlowState(initial);
+    totalFlowMinutesRef.current = 0;
     setEvents([]);
-    setTotalFlowMinutes(0);
     setMilestones([]);
     prevEventsRef.current.clear();
     milestonesRef.current.clear();
   }, []);
 
-  return {
+  // Stable identity between renders (state only changes on tier/event/
+  // milestone transitions), so consumers can list flow.* in effect deps
+  // without resubscribing on every parent render. totalFlowMinutes is a
+  // getter over a ref, so the memoized object still returns fresh values.
+  return useMemo(() => ({
     flowState,
     events,
-    totalFlowMinutes,
+    get totalFlowMinutes() {
+      return totalFlowMinutesRef.current;
+    },
     milestones,
     registerFlowEventHandler,
     resetFlowState,
     // Convenience access
     flowTier: flowState.tier,
-    flowScore: flowState.score,
+    get flowScore() {
+      return flowStateRef.current.score;
+    },
     flowLabel: Object.entries(FLOW_CONFIG.TARGETS).find(
       ([, v]) => v.label === ["Calm", "Focused", "Flow", "Super Flow", "Mastery"][flowState.tier]
     )?.[1].label ?? "Calm",
-  };
+  }), [flowState, events, milestones, registerFlowEventHandler, resetFlowState]);
 }
-
-// Helpers for refs
-const prevEventsRef = { current: new Set<number>() };
-const milestonesRef = { current: new Set<number>() };
 
 // ─── Flow-Visual Mapping ───────────────────────────────────────────
 
