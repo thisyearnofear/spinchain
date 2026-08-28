@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
     const { verifyPersonalMessageSignature } = await import("@mysten/sui/verify");
     const message = new TextEncoder().encode(`Sign in to SpinChain\n\nNonce: ${body.nonce}`);
     const publicKey = await verifyPersonalMessageSignature(
-      { message, signature: body.signature as `0x${string}` },
-      body.publicKey as `0x${string}`,
+      message,
+      body.signature as `0x${string}`,
     );
     // Verify the public key matches the claimed address
     const verifiedAddress = publicKey.toSuiAddress();

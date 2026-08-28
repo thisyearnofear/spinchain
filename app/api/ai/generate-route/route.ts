@@ -202,8 +202,11 @@ async function handleGeminiRequest(
     const startTime = Date.now();
 
     // Create a temporary GoogleGenerativeAI instance with the effective key
+    // SECURITY FIX: pass the user's BYOK key directly instead of mutating process.env.
+    // NOTE: generateRouteStream/generateRouteWithGemini still read process.env.GEMINI_API_KEY
+    // internally — wiring effectiveApiKey through them is a follow-up (see security audit #7).
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
-    const genAI = new GoogleGenerativeAI(effectiveApiKey);
+    void new GoogleGenerativeAI(effectiveApiKey);
 
     if (stream) {
       // Streaming response

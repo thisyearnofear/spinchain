@@ -16,6 +16,8 @@
 
 // ─── Mindbody API Types ───────────────────────────────────────────────────────
 
+import crypto from "crypto";
+
 export interface MindbodyClass {
   Id: number;
   ClassDescription: { Name: string; Description: string };
@@ -197,7 +199,6 @@ export class MindbodyAdapter {
    * Uses Node.js crypto module.
    */
   private signPayload(payload: string): string {
-    const crypto = require('crypto');
     return crypto.createHmac('sha256', this.apiKey || 'fallback-secret-change-me').update(payload).digest('hex');
   }
 
