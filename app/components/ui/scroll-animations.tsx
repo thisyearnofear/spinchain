@@ -228,11 +228,22 @@ export function TextReveal({
     const element = ref.current;
     if (!element) return;
 
-    // Split text into words
+    // Split text into words using DOM manipulation instead of innerHTML
+    // to prevent potential XSS if children contains user-controlled data
     const words = children.split(" ");
-    element.innerHTML = words
-      .map(word => `<span class="inline-block overflow-hidden"><span class="inline-block">${word}</span></span>`)
-      .join(" ");
+    // Clear existing content safely
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
+    for (const word of words) {
+      const outerSpan = document.createElement("span");
+      outerSpan.className = "inline-block overflow-hidden";
+      const innerSpan = document.createElement("span");
+      innerSpan.className = "inline-block";
+      innerSpan.textContent = word; // textContent is XSS-safe
+      outerSpan.appendChild(innerSpan);
+      element.appendChild(outerSpan);
+    }
 
     const innerSpans = element.querySelectorAll("span > span");
     

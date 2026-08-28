@@ -16,6 +16,8 @@
 
 // ─── Mindbody API Types ───────────────────────────────────────────────────────
 
+import crypto from "crypto";
+
 export interface MindbodyClass {
   Id: number;
   ClassDescription: { Name: string; Description: string };
@@ -150,7 +152,8 @@ export class MindbodyAdapter {
   /**
    * Generate a wallet-less claim link for a non-crypto user.
    * The token encodes the booking ID + expiry as a base64 payload.
-   * In production, sign this with a server-side secret (e.g. JWT).
+   * Uses HMAC signing to prevent token forgery.
+   * In production, upgrade to a proper JWT library.
    */
   generateClaimLink(booking: MindbodyBooking): ClaimLink {
     const expiresAt = Math.floor(Date.now() / 1000) + CLAIM_LINK_TTL_SECS;
@@ -161,11 +164,42 @@ export class MindbodyAdapter {
       expiresAt,
     };
 
-    // Base64-encode payload (replace with JWT signing in production)
-    const token = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    
+    // Sign with HMAC to prevent tampering
+    const signature = this.signPayload(payloadB64);
+    const token = `${payloadB64}.${signature}`;
     const url = `${APP_BASE_URL}/claim?token=${token}`;
 
     return { url, token, expiresAt, booking };
+  }
+
+  /**
+   * Verify a claim link token's HMAC signature.
+   */
+  verifyClaimLink(token: string): { bookingId: number; classId: number; email: string; expiresAt: number } | null {
+    const parts = token.split('.');
+    if (parts.length !== 2) return null;
+    
+    const [payloadB64, signature] = parts;
+    const expectedSignature = this.signPayload(payloadB64);
+    if (signature !== expectedSignature) return null;
+    
+    try {
+      const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
+      if (payload.expiresAt < Math.floor(Date.now() / 1000)) return null;
+      return payload;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * HMAC-SHA256 sign a payload using the API key as secret.
+   * Uses Node.js crypto module.
+   */
+  private signPayload(payload: string): string {
+    return crypto.createHmac('sha256', this.apiKey || 'fallback-secret-change-me').update(payload).digest('hex');
   }
 
   // ── Sync ────────────────────────────────────────────────────────────────────

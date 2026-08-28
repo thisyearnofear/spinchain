@@ -60,12 +60,28 @@ export async function POST(request: NextRequest) {
     return apiError("Invalid or expired nonce", "FORBIDDEN", 403);
   }
 
-  // Verify the Sui signature
-  // The client signs the nonce string with their Sui wallet.
-  // We verify using @mysten/sui verifyPersonalMessageSignature.
-  // For now, we do a basic check — full verification happens client-side
-  // and the signature is validated against the publicKey.
-  // TODO: Add server-side signature verification with @mysten/sui
+  // SECURITY: Verify the Sui signature server-side.
+  // Without this verification, ANY client can forge a valid session
+  // by submitting any address + nonce without actually signing with their wallet.
+  //
+  // We reconstruct the signed message ("Sign in to SpinChain\n\nNonce: <nonce>")
+  // and verify using @mysten/sui verifyPersonalMessageSignature.
+  try {
+    const { verifyPersonalMessageSignature } = await import("@mysten/sui/verify");
+    const message = new TextEncoder().encode(`Sign in to SpinChain\n\nNonce: ${body.nonce}`);
+    const publicKey = await verifyPersonalMessageSignature(
+      message,
+      body.signature as `0x${string}`,
+    );
+    // Verify the public key matches the claimed address
+    const verifiedAddress = publicKey.toSuiAddress();
+    if (verifiedAddress !== address) {
+      return apiError("Signature does not match claimed address", "FORBIDDEN", 403);
+    }
+  } catch (verifyError) {
+    console.error("[auth] Signature verification failed:", verifyError);
+    return apiError("Invalid signature verification", "FORBIDDEN", 403);
+  }
 
   // Determine role: instructor if they have published classes on-chain
   const role = await determineRole(address);

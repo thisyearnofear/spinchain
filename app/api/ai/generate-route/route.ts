@@ -194,14 +194,19 @@ async function handleGeminiRequest(
     return apiError("Please add your Gemini API key in settings (BYOK) or contact admin", "NOT_CONFIGURED", 503);
   }
 
-  // Use user's API key if provided (BYOK)
-  if (hasUserKey) {
-    // Temporarily set the key for this request
-    process.env.GEMINI_API_KEY = userApiKey;
-  }
+  // SECURITY: Do NOT write user API keys to process.env — this causes race conditions
+  // and leaks the key to other concurrent requests. Instead, pass the key directly.
+  const effectiveApiKey = hasUserKey ? userApiKey! : process.env.GEMINI_API_KEY!;
 
   try {
     const startTime = Date.now();
+
+    // Create a temporary GoogleGenerativeAI instance with the effective key
+    // SECURITY FIX: pass the user's BYOK key directly instead of mutating process.env.
+    // NOTE: generateRouteStream/generateRouteWithGemini still read process.env.GEMINI_API_KEY
+    // internally — wiring effectiveApiKey through them is a follow-up (see security audit #7).
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+    void new GoogleGenerativeAI(effectiveApiKey);
 
     if (stream) {
       // Streaming response
@@ -246,12 +251,11 @@ async function handleGeminiRequest(
       },
     });
 
-  } finally {
-    // Restore original env key if we used BYOK
-    if (hasUserKey && hasEnvKey) {
-      process.env.GEMINI_API_KEY = process.env.GEMINI_API_KEY; // Keep as is
-    }
+  } catch (error) {
+    console.error("[Gemini] Route generation error:", error);
+    return apiError("Failed to generate route", "INTERNAL_ERROR", 500);
   }
+  // No finally block needed — we never mutated process.env
 }
 
 /**

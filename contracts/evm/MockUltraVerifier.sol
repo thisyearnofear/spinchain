@@ -11,6 +11,10 @@ pragma solidity ^0.8.24;
  *   See contracts/evm/UltraVerifier.sol for the production stub + full checklist.
  *
  * ⚠️  NEVER deploy this on mainnet — it accepts ANY proof as valid.
+ * ⚠️  Even on testnet, this means ANYONE can claim rewards without real effort.
+ *     The IncentiveEngine's daily mint limit and per-proof replay protection
+ *     provide partial mitigation, but reward fraud is still possible.
+ *     Deploy the real UltraVerifier before any public testnet with real value.
  *
  * @custom:security-contact security@spinchain.xyz
  */

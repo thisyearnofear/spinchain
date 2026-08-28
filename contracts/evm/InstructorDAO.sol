@@ -32,6 +32,7 @@ contract InstructorDAO is Ownable {
 
     mapping(bytes32 => Proposal) public proposals;
     mapping(address => bool) public isInstructor;
+    mapping(bytes32 => mapping(address => uint256)) public voteLocks; // proposalId => voter => locked amount
     uint256 public totalInstructors;
 
     // ============ Events ============
@@ -73,6 +74,7 @@ contract InstructorDAO is Ownable {
 
     /**
      * @notice Vote for a proposed route using SPIN governance tokens.
+     * @dev Tokens are locked for the duration of the vote. Use withdrawVoteTokens after voting ends.
      */
     function vote(bytes32 proposalId, uint256 amount) external {
         Proposal storage proposal = proposals[proposalId];
@@ -83,6 +85,10 @@ contract InstructorDAO is Ownable {
         if (!governanceToken.transferFrom(msg.sender, address(this), amount)) revert InsufficientBalance();
 
         proposal.votes += amount;
+        
+        // Track per-voter locked amounts for withdrawal
+        voteLocks[proposalId][msg.sender] += amount;
+        
         emit VoteCast(proposalId, msg.sender, amount);
 
         if (proposal.votes >= approvalThreshold && !proposal.approved) {
@@ -92,12 +98,40 @@ contract InstructorDAO is Ownable {
     }
 
     /**
-     * @notice Collect protocol fees from sessions (placeholder logic).
+     * @notice Withdraw governance tokens after voting ends.
+     * @param proposalId The proposal to withdraw tokens from.
+     */
+    function withdrawVoteTokens(bytes32 proposalId) external {
+        Proposal storage proposal = proposals[proposalId];
+        require(block.timestamp > proposal.endTime, "Voting still open");
+        
+        uint256 locked = voteLocks[proposalId][msg.sender];
+        require(locked > 0, "No tokens to withdraw");
+        
+        voteLocks[proposalId][msg.sender] = 0;
+        require(governanceToken.transfer(msg.sender, locked), "Transfer failed");
+    }
+
+    /**
+     * @notice Collect protocol fees from sessions.
+     * @dev Added slippage/amount validation to prevent draining DAO treasury.
      */
     function distributeFees(address[] calldata recipients, uint256[] calldata amounts) external onlyOwner {
         require(recipients.length == amounts.length, "Mismatched arrays");
+        require(recipients.length <= 50, "Too many recipients");
+        
+        uint256 totalAmount;
+        for (uint256 i = 0; i < amounts.length; i++) {
+            require(amounts[i] > 0, "Zero amount");
+            require(recipients[i] != address(0), "Zero address");
+            totalAmount += amounts[i];
+        }
+        
+        // Verify DAO has sufficient balance before distributing
+        require(governanceToken.balanceOf(address(this)) >= totalAmount, "Insufficient DAO balance");
+        
         for (uint256 i = 0; i < recipients.length; i++) {
-            governanceToken.transfer(recipients[i], amounts[i]);
+            require(governanceToken.transfer(recipients[i], amounts[i]), "Transfer failed");
         }
     }
 }

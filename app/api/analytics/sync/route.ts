@@ -34,7 +34,15 @@ function ensureAnalyticsDir() {
 
 function persistEvent(event: typeof analyticsEvents[0]) {
   ensureAnalyticsDir();
-  appendFileSync(ANALYTICS_FILE, JSON.stringify(event) + "\n", "utf-8");
+  // Sanitize event data before writing to prevent log injection
+  const sanitizedEvent = {
+    name: event.name.replace(/[\r\n]/g, ''),
+    timestamp: event.timestamp,
+    path: event.path?.replace(/[\r\n]/g, ''),
+    payload: sanitizePayload(event.payload),
+    sessionId: event.sessionId.replace(/[\r\n]/g, ''),
+  };
+  appendFileSync(ANALYTICS_FILE, JSON.stringify(sanitizedEvent) + "\n", "utf-8");
 }
 
 function isServerAnalyticsEnabled() {
@@ -42,9 +50,8 @@ function isServerAnalyticsEnabled() {
 }
 
 function hasAdminAccess(req: NextRequest) {
-  if (process.env.NODE_ENV !== "production") return true;
   const token = process.env.ANALYTICS_ADMIN_TOKEN;
-  if (!token) return false;
+  if (!token) return false; // Always require token, even in dev
   return req.headers.get("x-analytics-admin-token") === token;
 }
 
