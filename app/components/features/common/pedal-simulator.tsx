@@ -5,7 +5,7 @@ import { useDeviceType } from '../../../lib/responsive';
 import { ANALYTICS_EVENTS, trackEvent } from '@/app/lib/analytics/events';
 import { useTelemetryStore, selectPower, selectHeartRate } from '@/app/stores/telemetry-store';
 import { useCoachingStore } from '@/app/stores/coaching-store';
-import { computePhaseTheme, phaseAccent, phaseLabel, cadenceToIntensity, INTENSITY_RAMP, type IntervalPhase } from '@/app/lib/phase-theme';
+import { computePhaseTheme, phaseAccent, phaseLabel, cadenceToIntensity, type IntervalPhase } from '@/app/lib/phase-theme';
 import { SpinDripChip } from '@/app/components/features/ride/spin-drip-chip';
 
 interface PedalSimulatorProps {
