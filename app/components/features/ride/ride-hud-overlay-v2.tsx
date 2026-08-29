@@ -57,6 +57,9 @@ interface RideHUDOverlayV2Props {
    *  stack, expanded panel, and tap-zone would overlap it. Suppress them;
    *  ambient glow, coach overlay, and settlement stream still render. */
   suppressBottomStack?: boolean;
+  /** Total class duration in seconds — renders "elapsed / total" under the
+   *  phase badge so the rider always knows how long they've been riding. */
+  rideDurationSec?: number;
 }
 
 // Module-scope stable animation config. Passing fresh keyframe arrays / transition
@@ -75,17 +78,25 @@ const SPRINT_EDGE_TRANSITION = { duration: 0.6, repeat: Infinity, ease: EASE_IN_
 const FLOW_LABELS = ["", "Focused", "Flow", "Super Flow", "Mastery"];
 const FLOW_COLORS = ["", "#34d399", "#f59e0b", "#f97316", "#ef4444"];
 
+/** MM:SS clock formatting for the ride clock chip. */
+function formatClock(sec: number): string {
+  const s = Math.max(0, Math.floor(sec));
+  return `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+}
+
 export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   hudMode,
   isRiding,
   showCompletionScreen,
   flowTier = 0,
   suppressBottomStack = false,
+  rideDurationSec,
 }: RideHUDOverlayV2Props) {
   const power = useTelemetryStore(selectPower);
   const heartRate = useTelemetryStore(selectHeartRate);
   const cadence = useTelemetryStore(selectCadence);
   const effort = useTelemetryStore(selectEffort);
+  const rideElapsed = useRideStore((s) => s.elapsedTime);
   const ghostState = useTelemetryStore(selectGhostState);
   const multiGhostState = useTelemetryStore(selectMultiGhostState);
   const currentInterval = useCoachingStore((s) => s.currentInterval);
@@ -353,18 +364,25 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
             </span>
           </motion.div>
 
-          {/* Ride progress hairline — "how long is left" is the rider's #1
-              question; answers it without another numeric readout. */}
+          {/* Ride progress hairline + clock — "how long is left" is the
+              rider's #1 question; the hairline answers it at a glance and
+              the clock gives the number. */}
           {isRiding && (
-            <div className="h-0.5 w-28 rounded-full bg-white/10 overflow-hidden">
-              <motion.div
-                className="h-full rounded-full origin-left"
-                style={{ backgroundColor: theme.color }}
-                initial={false}
-                animate={{ scaleX: rideProgress / 100 }}
-                transition={{ type: "tween", duration: 0.5 }}
-              />
-            </div>
+            <>
+              <div className="h-0.5 w-28 rounded-full bg-white/10 overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full origin-left"
+                  style={{ backgroundColor: theme.color }}
+                  initial={false}
+                  animate={{ scaleX: rideProgress / 100 }}
+                  transition={{ type: "tween", duration: 0.5 }}
+                />
+              </div>
+              <p className="text-[10px] font-bold tabular-nums text-white/40">
+                {formatClock(rideElapsed)}
+                {rideDurationSec ? ` / ${formatClock(rideDurationSec)}` : ""}
+              </p>
+            </>
           )}
 
           {/* Flow state badge — only shows when rider enters flow */}

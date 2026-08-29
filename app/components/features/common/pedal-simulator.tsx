@@ -5,8 +5,15 @@ import { useDeviceType } from '../../../lib/responsive';
 import { ANALYTICS_EVENTS, trackEvent } from '@/app/lib/analytics/events';
 import { useTelemetryStore, selectPower, selectHeartRate } from '@/app/stores/telemetry-store';
 import { useCoachingStore } from '@/app/stores/coaching-store';
+import { useRideStore } from '@/app/stores/ride-store';
 import { computePhaseTheme, phaseAccent, phaseLabel, cadenceToIntensity, type IntervalPhase } from '@/app/lib/phase-theme';
 import { SpinDripChip } from '@/app/components/features/ride/spin-drip-chip';
+
+/** MM:SS clock formatting for the practice-bar time chip. */
+function formatClock(sec: number): string {
+    const s = Math.max(0, Math.floor(sec));
+    return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+}
 
 interface PedalSimulatorProps {
     isActive: boolean;
@@ -50,6 +57,8 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
     const ridePower = useTelemetryStore(selectPower);
     const rideHeartRate = useTelemetryStore(selectHeartRate);
     const ridePhase = useCoachingStore((s) => s.currentInterval?.phase ?? null);
+    const rideElapsed = useRideStore((s) => s.elapsedTime);
+    const rideProgressPct = useRideStore((s) => s.rideProgress);
     const rideTheme = computePhaseTheme(ridePhase as IntervalPhase, 500);
     const phaseAccentClasses = phaseAccent(ridePhase as IntervalPhase);
     const phaseText = phaseLabel(ridePhase as IntervalPhase);
@@ -270,7 +279,16 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
     if (deviceType === 'mobile') {
         return (
             <div className={`fixed bottom-0 inset-x-0 pointer-events-auto z-20 ${className}`}>
-                <div className="bg-black/50 backdrop-blur-2xl border-t border-white/10 px-4 pt-3 pb-6">
+                <div className="relative bg-black/50 backdrop-blur-2xl border-t border-white/10 px-4 pt-3 pb-6">
+                    {/* Ride progress hairline (practice mode) */}
+                    {showRideMetrics && (
+                        <div className="absolute inset-x-0 top-0 h-0.5 bg-white/5 overflow-hidden">
+                            <div
+                                className="h-full rounded-full origin-left transition-[width] duration-500"
+                                style={{ width: `${rideProgressPct}%`, backgroundColor: rideTheme.color }}
+                            />
+                        </div>
+                    )}
 
                     {/* Crank + cadence */}
                     <div className="flex items-center justify-center gap-5 mb-3">
@@ -292,6 +310,9 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                             <div className="flex items-center gap-1.5 rounded-full px-2.5 py-1 border border-white/10 bg-white/5">
                                 <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: rideTheme.color }} />
                                 <span className={`text-[9px] font-black uppercase tracking-widest ${phaseAccentClasses.text}`}>{phaseText}</span>
+                            </div>
+                            <div className="rounded-full px-2.5 py-1 border border-white/10 bg-white/5">
+                                <span className="text-[10px] font-black tabular-nums text-white/70">{formatClock(rideElapsed)}</span>
                             </div>
                             <div className="rounded-full px-2.5 py-1 border border-white/10 bg-white/5">
                                 <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">W </span>
@@ -352,7 +373,17 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
     // ── DESKTOP ──────────────────────────────────────────────────────────────
     return (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 pointer-events-none z-20 ${className}`}>
-            <div className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-black/50 backdrop-blur-2xl border border-white/12 shadow-2xl">
+            <div className="relative overflow-hidden flex items-center gap-4 px-5 py-3 rounded-2xl bg-black/50 backdrop-blur-2xl border border-white/12 shadow-2xl">
+                {/* Ride progress hairline (practice mode) */}
+                {showRideMetrics && (
+                    <div className="absolute inset-x-0 top-0 h-0.5 bg-white/5 overflow-hidden">
+                        <div
+                            className="h-full rounded-full origin-left transition-[width] duration-500"
+                            style={{ width: `${rideProgressPct}%`, backgroundColor: rideTheme.color }}
+                        />
+                    </div>
+                )}
+
                 <CrankVisual size={60} />
 
                 <div className="text-center min-w-[48px]">
@@ -404,6 +435,11 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                         <div className="text-center min-w-[44px]">
                             <p className="text-base font-black tabular-nums leading-none text-rose-300">{rideHeartRate}</p>
                             <p className="text-[10px] uppercase tracking-widest text-white/30 mt-0.5">BPM</p>
+                        </div>
+
+                        <div className="text-center min-w-[44px]">
+                            <p className="text-base font-black tabular-nums leading-none text-white/80">{formatClock(rideElapsed)}</p>
+                            <p className="text-[10px] uppercase tracking-widest text-white/30 mt-0.5">Time</p>
                         </div>
 
                         {/* Live SPIN accrual — reward loop visible in practice mode */}

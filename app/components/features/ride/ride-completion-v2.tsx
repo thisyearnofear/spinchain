@@ -39,7 +39,7 @@ import {
   phaseLabel,
   type IntervalPhase,
 } from "@/app/lib/phase-theme";
-import { Star, Cloud, CheckCircle2, Loader2, ShieldCheck, Zap, TrendingUp, Trophy, Flame } from "lucide-react";
+import { Star, Cloud, CheckCircle2, Loader2, ShieldCheck, Zap, TrendingUp, Trophy, Flame, Volume2 } from "lucide-react";
 import { milestonesAndStreaks, type SessionMilestone, MILESTONE_TIERS } from "@/app/lib/milestones";
 import { ShareCardButton } from "./share-card";
 import { RideComparison } from "./ride-comparison";
@@ -59,6 +59,9 @@ interface RideCompletionV2Props {
   onShare?: () => void;
   onClaimRewards?: () => void;
   onExportTCX?: () => void;
+  /** Optional vocal replay of the coach debrief (TTS) — debrief text is
+   *  passed back so the page owns the voice pipeline. */
+  onSpeakDebrief?: (text: string) => void;
   rewardClaimStatus?: {
     mode: "zk" | "chainlink";
     phase: string;
@@ -96,6 +99,7 @@ export function RideCompletionV2({
   onShare,
   onClaimRewards,
   onExportTCX,
+  onSpeakDebrief,
   rewardClaimStatus,
   spinEarned = "0",
   agentName = "Coach",
@@ -369,11 +373,21 @@ export function RideCompletionV2({
             </motion.div>
           )}
 
-          {/* Agent debrief */}
+          {/* Agent debrief + optional vocal replay */}
           <div className="relative pl-4 border-l-2 border-amber-400/40 mb-4">
             <p className="text-xs leading-relaxed text-white/70 italic">
               &ldquo;{getAgentDebrief()}&rdquo;
             </p>
+            {onSpeakDebrief && (
+              <button
+                onClick={() => onSpeakDebrief(getAgentDebrief())}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-colors hover:text-white hover:bg-white/10"
+                aria-label="Hear the coach read the debrief aloud"
+              >
+                <Volume2 className="w-3 h-3" />
+                Hear debrief
+              </button>
+            )}
           </div>
 
           {/* Stats grid — clean, minimal, no cards */}

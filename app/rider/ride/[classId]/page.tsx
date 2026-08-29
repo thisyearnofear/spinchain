@@ -685,6 +685,17 @@ export default function LiveRidePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [completedRideId, rewardsHook.setCompletedRideId]);
 
+  // ─── Auto-complete at 100% ─────────────────────────────────────
+  // Nothing else ends a ride when the route finishes: at real-time speed a
+  // rider exits manually, but the compressed practice clock hits 100% in
+  // ~45 seconds — without this, the track marker pins at the finish and the
+  // ride appears frozen. Persist + show completion instead.
+  useEffect(() => {
+    if (isRiding && rideProgress >= 100) {
+      lifecycle.exitRide();
+    }
+  }, [isRiding, rideProgress, lifecycle]);
+
   // ─── BLE Disconnect Auto-Pause ─────────────────────────────────
   // Losing the bike mid-ride should pause, not keep the ride "running" on
   // dead telemetry. The native BLE service auto-reconnects; the rider
@@ -899,8 +910,10 @@ export default function LiveRidePage() {
       </SectionErrorBoundary>
 
       {/* ─── Coach channel (replaces full-screen overlay) ─────────── */}
-      {/* Practice mode on mobile: raise it above the tall pedal-sheet bar. */}
-      {hudMode !== "minimal" && (
+      {/* Practice mode on mobile: raise it above the tall pedal-sheet bar.
+          Hidden on the completion screen — the completion debrief speaks for
+          the coach there (with optional vocal replay). */}
+      {hudMode !== "minimal" && !showCompletionScreen && (
         <CoachChannel
           className={
             isRiding && useSimulator && deviceType === "mobile" ? "bottom-[22rem]" : ""
@@ -916,6 +929,7 @@ export default function LiveRidePage() {
           showCompletionScreen={showCompletionScreen}
           flowTier={flow.flowTier}
           suppressBottomStack={isRiding && useSimulator}
+          rideDurationSec={(classData?.metadata?.duration ?? 45) * 60}
         />
       </SectionErrorBoundary>
 
@@ -1012,6 +1026,7 @@ export default function LiveRidePage() {
           onExit={lifecycle.handleCompletionExit}
           onRideAgain={handleRideAgain}
           onClaimRewards={rewardsHook.handleClaimRewards}
+          onSpeakDebrief={(text) => void speak(text, "data")}
           rewardClaimStatus={rewardsHook.rewardClaimStatus}
           spinEarned={rewardsHook.rewards.formattedReward}
           agentName={agentName}
