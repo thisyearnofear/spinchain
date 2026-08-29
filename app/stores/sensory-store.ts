@@ -118,16 +118,17 @@ export function useSensoryEvent() {
   return useSensoryStore((s) => s.latestEvent);
 }
 
-/** Hook: read the countdown state for pre-ride sequence */
+/** Hook: read the countdown state for pre-ride sequence.
+ *  Uses scalar selectors + useMemo — an inline object selector returns a fresh
+ *  identity every call and would re-render the consumer on ANY store change. */
 export function useCountdown() {
-  return useSensoryStore((s) => ({
-    phase: s.countdownPhase,
-    startTime: s.countdownStartTime,
-  }));
+  const phase = useSensoryStore((s) => s.countdownPhase);
+  const startTime = useSensoryStore((s) => s.countdownStartTime);
+  return useMemo(() => ({ phase, startTime }), [phase, startTime]);
 }
 
 // Need zustand
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";

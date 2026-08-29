@@ -75,9 +75,12 @@ export class RideCoordinator {
 
     this.device.onSimulatorTelemetry = (update) => {
       this.telemetry.ingestSimulator(update as Parameters<TelemetryEngine["ingestSimulator"]>[0]);
-      // Simulator needs immediate commit for responsive UI
-      const snapshot = this.telemetry.commit();
-      this.bridgeSnapshotToStore(snapshot);
+      // Simulator input fires per keydown/auto-repeat — far faster than the commit
+      // budget. Committing synchronously here ran the full pipeline + a store write
+      // per input event. Route it through the same throttle as the rAF loop.
+      if (this.telemetry.shouldCommit(Date.now())) {
+        this.bridgeSnapshotToStore(this.telemetry.commit());
+      }
     };
   }
 
@@ -115,9 +118,9 @@ export class RideCoordinator {
     // Start RAF commit loop (single loop, no mixed timers)
     this.startCommitLoop();
 
-    // Start collecting telemetry samples at 1Hz. This timer is also the
-    // ride clock for real-device rides — the simulator drives time itself
-    // (time-scaled) in handleSimulatorMetrics, so skip advancing it there.
+    // Start collecting telemetry samples at 1Hz. This timer is the single
+    // ride clock for every ride mode (device, keyboard sim, practice): it
+    // is the only writer of elapsedTime/rideProgress below.
     this.sampleTimerId = setInterval(() => {
       if (!useRideStore.getState().isActive) return;
       const snapshot = this.telemetry.rawSnapshot;
@@ -332,9 +335,11 @@ export class RideCoordinator {
     timestamp?: number;
   }): void {
     this.telemetry.ingestSimulator(metrics);
-    // Simulator needs immediate commit for responsive UI
-    const snapshot = this.telemetry.commit();
-    this.bridgeSnapshotToStore(snapshot);
+    // Throttle commits the same way as the rAF loop (see onSimulatorTelemetry):
+    // keyboard/on-screen pedal events can fire many times per second.
+    if (this.telemetry.shouldCommit(Date.now())) {
+      this.bridgeSnapshotToStore(this.telemetry.commit());
+    }
   }
 
   /** Set current gear (called from UI gear shift buttons) */

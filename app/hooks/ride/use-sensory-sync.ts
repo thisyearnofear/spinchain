@@ -15,6 +15,7 @@ import { useEffect, useRef } from "react";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
+import { useSensoryStore } from "@/app/stores/sensory-store";
 import { haptic } from "@/app/hooks/use-haptic";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
 
@@ -36,7 +37,6 @@ interface SensoryEvent {
 export function useSensorySync() {
   const isRiding = useRideStore((s) => s.isActive);
   const phase = useCoachingStore((s) => s.currentInterval?.phase ?? null) as IntervalPhase | null;
-  const effort = useTelemetryStore((s) => s.snapshot.effort);
   const prBeaten = useCoachingStore((s) => s.prBeaten);
   const lastPhaseRef = useRef<IntervalPhase | null>(null);
   const hadPrRef = useRef(false);
@@ -57,8 +57,11 @@ export function useSensorySync() {
 
   // Fire haptic + visual cue based on event type
   const fireCue = useRef((event: SensoryEvent) => {
-    // Store the event for visual components to react to
+    // Store the event for visual components to react to (in-hook ref) and
+    // publish to the sensory store so HUD components subscribing via
+    // useSensoryEvent() actually receive it (previously never set — dead layer).
     lastEventRef.current = event;
+    useSensoryStore.getState().setLatestEvent(event);
 
     // Phase change: medium haptic pulse
     if (event.type === "phase-change") {
@@ -99,6 +102,10 @@ export function useSensorySync() {
   useEffect(() => {
     if (!isRiding) return;
 
+    // Effort is only event payload — read it on demand so this hook doesn't
+    // subscribe to (and re-run on) the live effort value every telemetry commit.
+    const effort = useTelemetryStore.getState().snapshot.effort;
+
     // Detect phase change
     if (phase !== lastPhaseRef.current) {
       const event: SensoryEvent = { type: "phase-change", timestamp: Date.now(), phase };
@@ -127,7 +134,7 @@ export function useSensorySync() {
       rideStartedRef.current = true;
       fireCue.current({ type: "ride-start", timestamp: Date.now(), phase, effort });
     }
-  }, [isRiding, phase, effort, prBeaten]);
+  }, [isRiding, phase, prBeaten]);
 
   // Expose the last event for visual components to consume
   // Refs are read here intentionally so consumers receive the latest cue without re-render.

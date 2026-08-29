@@ -81,9 +81,16 @@ export async function fetchRealGhost(
 ): Promise<GhostPerformance | null> {
   const { classId, riderAddress, routeBlobId, ghostType = "personal_best" } = options;
 
+  // Practice/demo classes use a placeholder blob id (`practice-<ts>` / `demo-<ts>`),
+  // not a real Walrus blob. Fetching it returns HTTP 400 and spams the console —
+  // skip the network entirely and go straight to the feed/mock fallback.
+  const isPlaceholderBlob =
+    !!routeBlobId &&
+    (routeBlobId.startsWith("practice-") || routeBlobId.startsWith("demo-"));
+
   try {
-    // 1. Try direct blob ID if provided
-    if (routeBlobId && riderAddress) {
+    // 1. Try direct blob ID if provided (and it's a real blob, not a placeholder)
+    if (routeBlobId && riderAddress && !isPlaceholderBlob) {
       const walrusUrl = `${WALRUS_AGGREGATOR_URL}/v1/blobs/${routeBlobId}`;
       
       const response = await fetch(walrusUrl, {
@@ -91,9 +98,14 @@ export async function fetchRealGhost(
         headers: { "Accept": "application/json" },
       });
 
-      if (response.ok) {
+      // Never JSON.parse an error body — fall through to feed/mock on any non-ok.
+      if (!response.ok) {
+        console.debug(
+          `[GhostService] blob "${routeBlobId}" → HTTP ${response.status}; using fallback ghost`,
+        );
+      } else {
         const telemetryData = await response.json();
-        
+
         if (Array.isArray(telemetryData.points) && telemetryData.points.length > 0) {
           const points: RideRecordPoint[] = telemetryData.points.map((p: Record<string, unknown>) => ({
             timestamp: p.timestamp as number,

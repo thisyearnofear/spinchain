@@ -1,28 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRideStore } from "@/app/stores/ride-store";
+import { useEffect, useRef, useState } from "react";
 import { useRewardsStore } from "@/app/stores/rewards-store";
-import type { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
-import type { ClassWithRoute } from "@/app/hooks/evm/use-class-data";
+import { useTelemetryStore } from "@/app/stores/telemetry-store";
 
 interface UseRideSimulatorParams {
   isRiding: boolean;
   isTrainingMode: boolean;
   isGuestMode: boolean;
   isPracticeMode: boolean;
-  telemetryEffort: number;
-  coordinator: ReturnType<typeof useRideCoordinator>;
-  classDataRef: React.MutableRefObject<ClassWithRoute | null>;
 }
 
 export function useRideSimulator({
   isRiding,
   isTrainingMode,
   isGuestMode,
-  telemetryEffort,
-  coordinator,
-  classDataRef,
 }: UseRideSimulatorParams) {
   const isRidingRef = useRef(false);
   useEffect(() => { isRidingRef.current = isRiding; }, [isRiding]);
@@ -33,10 +25,13 @@ export function useRideSimulator({
   useEffect(() => {
     if (!shouldSimulate) { if (!isRiding) setSimulatedSpin(0); return; }
     const id = setInterval(() => {
-      setSimulatedSpin((prev) => prev + (10 + (Math.min(1000, telemetryEffort) * 90) / 1000) / (45 * 60));
+      // Read effort on demand (1Hz) rather than subscribing — the live value
+      // changes on every telemetry commit and would churn this hook's render.
+      const effort = useTelemetryStore.getState().snapshot.effort;
+      setSimulatedSpin((prev) => prev + (10 + (Math.min(1000, effort) * 90) / 1000) / (45 * 60));
     }, 1000);
     return () => clearInterval(id);
-  }, [shouldSimulate, isRiding, telemetryEffort]);
+  }, [shouldSimulate, isRiding]);
 
   useEffect(() => {
     useRewardsStore.setState({
@@ -45,35 +40,13 @@ export function useRideSimulator({
     });
   }, [shouldSimulate, simulatedSpin]);
 
-  const handleSimulatorMetrics = useCallback((metrics: {
-    heartRate: number; power: number; cadence: number; speed: number;
-    effort: number; distance?: number; timestamp?: number;
-  }) => {
-    coordinator.ingestSimulatorMetrics(metrics);
-
-    const currentClassData = classDataRef.current;
-    if (isRidingRef.current && currentClassData && metrics.cadence > 0) {
-      const TARGET_CADENCE = 80;
-      const cadenceRatio = Math.min(metrics.cadence / TARGET_CADENCE, 1.5);
-      const tickSeconds = 0.5 * cadenceRatio;
-      const SIMULATOR_DURATION_SECONDS = 3 * 60;
-      const realDuration = (currentClassData.metadata?.duration || 45) * 60;
-      const timeScale = realDuration / SIMULATOR_DURATION_SECONDS;
-      const scaledTick = tickSeconds * timeScale;
-
-      const newTime = useRideStore.getState().elapsedTime + scaledTick;
-      const newProgress = Math.min((newTime / realDuration) * 100, 100);
-      if (newProgress >= 100) {
-        isRidingRef.current = false;
-        useRideStore.setState({ isActive: false, rideProgress: 100, elapsedTime: newTime });
-      } else {
-        useRideStore.setState({ elapsedTime: newTime, rideProgress: newProgress });
-      }
-    }
-  }, [coordinator, classDataRef]);
+  // NOTE: This hook deliberately does NOT advance the ride clock. The
+  // coordinator's 1Hz sample timer is the single writer of elapsedTime /
+  // rideProgress for every ride mode (device, keyboard sim, practice) —
+  // see coordinator.ts. A previous time-scaled clock driver lived here but
+  // was dead code (never invoked by the page) and has been removed.
 
   return {
     isRidingRef,
-    handleSimulatorMetrics,
   };
 }

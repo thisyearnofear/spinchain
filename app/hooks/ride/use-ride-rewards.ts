@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useRewards, type RewardMode } from "@/app/hooks/rewards/use-rewards";
 import { useRewardsStore } from "@/app/stores/rewards-store";
 import { useChainlinkVerification } from "@/app/hooks/evm/use-chainlink-verification";
@@ -19,7 +20,6 @@ interface UseRideRewardsParams {
   address?: string;
   elapsedTime: number;
   telemetryAverages: { avgHr: number; avgPower: number };
-  telemetryHeartRate: number;
 }
 
 export function useRideRewards({
@@ -31,7 +31,6 @@ export function useRideRewards({
   address,
   elapsedTime,
   telemetryAverages,
-  telemetryHeartRate,
 }: UseRideRewardsParams) {
   const rewards = useRewards({
     mode: rewardMode,
@@ -108,7 +107,7 @@ export function useRideRewards({
       }
       await claimWithZK(
         { spinClass: classId as `0x${string}`, rider: address as `0x${string}`, rewardAmount: String(classData?.metadata?.rewards?.amount ?? 0), classId: classId as `0x${string}` },
-        { heartRate: telemetryAverages.avgHr || telemetryHeartRate, threshold, durationSeconds, heartRateSamples: [], avgPower: telemetryAverages.avgPower },
+        { heartRate: telemetryAverages.avgHr || useTelemetryStore.getState().snapshot.heartRate, threshold, durationSeconds, heartRateSamples: [], avgPower: telemetryAverages.avgPower },
       );
     } catch (err) {
       console.error("[Rewards] Claim failed:", err);
