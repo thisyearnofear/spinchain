@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useHaptic } from "@/app/hooks/use-haptic";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import { useRideModalStore } from "@/app/stores/ride-modal-store";
+import { useTelemetryStore } from "@/app/stores/telemetry-store";
 
 interface UseRideAnalyticsParams {
   classId: string;
@@ -12,7 +13,6 @@ interface UseRideAnalyticsParams {
   rideProgress: number;
   bleConnected: boolean;
   useSimulator: boolean;
-  telemetryEffort: number;
   playSound: (type: unknown) => void;
 }
 
@@ -23,7 +23,6 @@ export function useRideAnalytics({
   rideProgress,
   bleConnected,
   useSimulator,
-  telemetryEffort,
   playSound,
 }: UseRideAnalyticsParams) {
   const trackedEntryViewRef = useRef(false);
@@ -51,14 +50,21 @@ export function useRideAnalytics({
 
   useEffect(() => {
     if (!isRiding || trackedMilestoneRef.current) return;
-    if (telemetryEffort > 900) {
-      trackedMilestoneRef.current = true;
-      modalStore.getState().setShowMilestone({ title: "ELITE EFFORT", subtitle: "You just crossed 900 effort points!" });
-      haptic.success();
-      playSound("achievement");
-      setTimeout(() => modalStore.getState().setShowMilestone(null), 5000);
-    }
-  }, [telemetryEffort, isRiding, haptic, playSound, modalStore]);
+    // Poll at 1Hz instead of subscribing to the live effort value (which changes
+    // on every telemetry commit) so this hook doesn't re-run/re-render per commit.
+    const id = setInterval(() => {
+      if (trackedMilestoneRef.current) return;
+      const effort = useTelemetryStore.getState().snapshot.effort;
+      if (effort > 900) {
+        trackedMilestoneRef.current = true;
+        modalStore.getState().setShowMilestone({ title: "ELITE EFFORT", subtitle: "You just crossed 900 effort points!" });
+        haptic.success();
+        playSound("achievement");
+        setTimeout(() => modalStore.getState().setShowMilestone(null), 5000);
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isRiding, haptic, playSound, modalStore]);
 
   const trackLiveTelemetry = () => {
     if (!trackedLiveTelemetryRef.current) {

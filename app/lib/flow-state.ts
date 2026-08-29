@@ -285,9 +285,20 @@ export function useFlowState(
   const powerRef = useRef(currentPower);
   const hrRef = useRef(hr);
   const hrRestingRef = useRef(hrResting);
-  powerRef.current = currentPower;
-  hrRef.current = hr;
-  hrRestingRef.current = hrResting;
+
+  // Inputs are delivered via setInputs (called from a telemetry store
+  // subscription in the host) rather than by re-rendering the component on
+  // every telemetry commit. This decouples the ride page from the ~10Hz
+  // commit loop: the page no longer needs to subscribe to the live power/HR
+  // snapshot just to keep flow's inputs fresh.
+  const setInputs = useCallback(
+    (p: number, h: number, hrRest?: number) => {
+      powerRef.current = p;
+      hrRef.current = h;
+      if (hrRest !== undefined) hrRestingRef.current = hrRest;
+    },
+    [],
+  );
 
   // Per-instance event/milestone dedupe sets (were module-level singletons).
   const prevEventsRef = useRef(new Set<number>());
@@ -492,6 +503,7 @@ export function useFlowState(
     milestones,
     registerFlowEventHandler,
     resetFlowState,
+    setInputs,
     // Convenience access
     flowTier: flowState.tier,
     get flowScore() {
@@ -500,7 +512,7 @@ export function useFlowState(
     flowLabel: Object.entries(FLOW_CONFIG.TARGETS).find(
       ([, v]) => v.label === ["Calm", "Focused", "Flow", "Super Flow", "Mastery"][flowState.tier]
     )?.[1].label ?? "Calm",
-  }), [flowState, events, milestones, registerFlowEventHandler, resetFlowState]);
+  }), [flowState, events, milestones, registerFlowEventHandler, resetFlowState, setInputs]);
 }
 
 // ─── Flow-Visual Mapping ───────────────────────────────────────────

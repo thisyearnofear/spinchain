@@ -220,9 +220,10 @@ export default function LiveRidePage() {
   const elapsedTime = useRideStore((s) => s.elapsedTime);
   const multiGhostState = useRideStore((s) => s.multiGhostState);
 
-  const telemetryHeartRate = useTelemetryStore((s) => s.snapshot.heartRate);
-  const telemetryEffort = useTelemetryStore((s) => s.snapshot.effort);
-  const telemetryHistory = useTelemetryStore((s) => s.history);
+  // NOTE: the page deliberately does NOT subscribe to live snapshot values
+  // (heartRate/effort/history) — those change on every telemetry commit and
+  // would re-render the whole page at up to 10Hz. Consumers that need them
+  // read on demand via useTelemetryStore.getState() (see hooks below).
   const telemetryAverages = useTelemetryStore((s) => s.averages);
 
   const currentInterval = useCoachingStore((s) => s.currentInterval);
@@ -357,6 +358,12 @@ export default function LiveRidePage() {
   const playCountdown = useCallback((seconds: number) => coordinatorRef.current.playCountdown?.(seconds), []);
   const stopAudio = useCallback(() => coordinatorRef.current.stopAudio?.(), []);
   const speak = useCallback((text: string, emotion?: unknown) => coordinatorRef.current.speak?.(text, emotion as never)?.catch?.(() => {}), []);
+  // Stable identity so ModalStack can be memoized and doesn't re-render per page render.
+  const handleSimulatorMetrics = useCallback(
+    (m: { heartRate: number; power: number; cadence: number; speed: number; effort: number }) =>
+      coordinatorRef.current?.ingestSimulatorMetrics({ ...m, distance: 0, timestamp: Date.now() }),
+    [],
+  );
 
   // ─── Extracted Hooks ───────────────────────────────────────────
   const rewardsHook = useRideRewards({
@@ -368,7 +375,6 @@ export default function LiveRidePage() {
     address,
     elapsedTime,
     telemetryAverages,
-    telemetryHeartRate,
   });
 
   const simulatorHook = useRideSimulator({
@@ -376,7 +382,6 @@ export default function LiveRidePage() {
     isTrainingMode,
     isGuestMode,
     isPracticeMode,
-    telemetryEffort,
     coordinator,
     classDataRef,
   });
@@ -388,7 +393,6 @@ export default function LiveRidePage() {
     rideProgress,
     bleConnected,
     useSimulator,
-    telemetryEffort,
     playSound,
   });
 
@@ -445,20 +449,45 @@ export default function LiveRidePage() {
   const completedRideId = useRideModalStore((s) => s.completedRideId);
   const showCompletionScreen = useRideModalStore((s) => s.showCompletionScreen);
 
+  // Snapshot completion-time stats once, when the overlay opens. Previously these
+  // were read via useTelemetryStore.getState() during render — correct only while
+  // the page re-rendered every commit; they go stale once renders are event-driven.
+  const [completionStats, setCompletionStats] = useState<{ avgHr: number; avgPower: number; avgEffort: number } | null>(null);
+  useEffect(() => {
+    if (showCompletionScreen && !completionStats) {
+      const { averages } = useTelemetryStore.getState();
+      setCompletionStats({ avgHr: averages.avgHr, avgPower: averages.avgPower, avgEffort: averages.avgEffort });
+    } else if (!showCompletionScreen) {
+      setCompletionStats(null);
+    }
+  }, [showCompletionScreen, completionStats]);
+
   // PR pursuit callouts during ride
   usePrPursuit(isRiding);
 
   // ─── Flow State Engine (declared early; milestones/flow handlers depend on it) ─
-  const telemetrySnapshot = useTelemetryStore((s) => s.snapshot);
   const [hrResting] = useState(() => {
     // Default ~60 bpm, would come from user profile in production
     return 60;
   });
 
-  const flow = useFlowState(
-    telemetrySnapshot.power,
-    telemetrySnapshot.heartRate,
-    hrResting,
+  // NOTE: flow inputs are pushed via the telemetry-store subscription below,
+  // not via re-render — so the page does NOT subscribe to the live snapshot.
+  const flow = useFlowState(0, 0, hrResting);
+
+  // Push live power/HR into the flow engine without re-rendering the page.
+  // (Subscribing the component to s.snapshot here re-rendered the whole ride
+  // page at up to 10Hz on every telemetry commit.)
+  const flowSetInputsRef = useRef(flow.setInputs);
+  useEffect(() => {
+    flowSetInputsRef.current = flow.setInputs;
+  }, [flow.setInputs]);
+  useEffect(
+    () =>
+      useTelemetryStore.subscribe((s) => {
+        flowSetInputsRef.current(s.snapshot.power, s.snapshot.heartRate);
+      }),
+    [],
   );
 
   // ─── Max telemetry tracking (for completion celebration) ─────────
@@ -730,16 +759,19 @@ export default function LiveRidePage() {
   }, []);
 
   // ─── Max telemetry tracking (for completion celebration) ─────────
+  // Poll at 1Hz instead of subscribing to the live history array (which is
+  // rebuilt on every telemetry commit, so subscribing re-rendered the page and
+  // re-ran this effect up to 10x/sec). 1Hz granularity is plenty for maxima.
   useEffect(() => {
     if (!isRiding) return;
-    if (telemetryHistory.power?.length > 0) {
-      const currentMax = Math.max(...telemetryHistory.power);
-      if (currentMax > maxPowerRef.current) maxPowerRef.current = currentMax;
-    }
-    const snapshot = useTelemetryStore.getState().snapshot;
-    if (snapshot.heartRate > maxHRRef.current) maxHRRef.current = snapshot.heartRate;
-    if (snapshot.effort > peakEffortRef.current) peakEffortRef.current = snapshot.effort;
-  }, [telemetryHistory.power?.length, isRiding, telemetryHistory.power]);
+    const id = setInterval(() => {
+      const s = useTelemetryStore.getState().snapshot;
+      if (s.power > maxPowerRef.current) maxPowerRef.current = s.power;
+      if (s.heartRate > maxHRRef.current) maxHRRef.current = s.heartRate;
+      if (s.effort > peakEffortRef.current) peakEffortRef.current = s.effort;
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isRiding]);
 
   const handleExitClick = useCallback(() => {
     if (useRideStore.getState().isActive) {
@@ -934,9 +966,9 @@ export default function LiveRidePage() {
           isPracticeMode={isPracticeMode}
           walletConnected={walletConnected}
           elapsedTime={elapsedTime}
-          avgHeartRate={useTelemetryStore.getState().averages.avgHr}
-          avgPower={useTelemetryStore.getState().averages.avgPower}
-          avgEffort={useTelemetryStore.getState().averages.avgEffort}
+          avgHeartRate={completionStats?.avgHr ?? telemetryAverages.avgHr}
+          avgPower={completionStats?.avgPower ?? telemetryAverages.avgPower}
+          avgEffort={completionStats?.avgEffort ?? telemetryAverages.avgEffort}
           telemetrySource={useSimulator ? "simulator" : (bleConnected ? "live-bike" : "estimated")}
           onExit={lifecycle.handleCompletionExit}
           onRideAgain={() => lifecycle.handleCompletionExit()}
@@ -972,8 +1004,8 @@ export default function LiveRidePage() {
         isExitingRide={isExitingRide}
         useSimulator={useSimulator}
         isRiding={isRiding}
-        hideSimulator={hudMode === "minimal" || useSimulator}
-        onSimulatorMetrics={(m) => coordinator.ingestSimulatorMetrics({ ...m, distance: 0, timestamp: Date.now() })}
+        hideSimulator={hudMode === "minimal"}
+        onSimulatorMetrics={handleSimulatorMetrics}
 
         // Callbacks
         onExitConfirm={() => {

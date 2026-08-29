@@ -54,6 +54,17 @@ interface RideHUDOverlayV2Props {
   flowTier?: number;
 }
 
+// Module-scope stable animation config. Passing fresh keyframe arrays / transition
+// objects inline on every render makes framer-motion treat them as new targets and
+// restart each repeat:Infinity animation — so the ambient loops strobed at the
+// telemetry commit rate. Hoisted references stay stable across renders.
+const EASE_IN_OUT = "easeInOut" as const;
+const BASE_GLOW_KEYFRAMES = [0.6, 0.9, 0.6] as const;
+const SPRINT_EDGE_KEYFRAMES = [0.3, 0.8, 0.3] as const;
+const PULSE_KEYFRAMES = [1, 1.4, 1] as const;
+const INTENSITY_PULSE_TRANSITION = { duration: 2, repeat: Infinity, ease: EASE_IN_OUT } as const;
+const SPRINT_EDGE_TRANSITION = { duration: 0.6, repeat: Infinity, ease: EASE_IN_OUT } as const;
+
 export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   hudMode,
   isRiding,
@@ -80,6 +91,19 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   const theme = useMemo(
     () => computePhaseTheme(phase as IntervalPhase, effort),
     [phase, effort],
+  );
+
+  // Quantize intensity to ~0.1 steps for the *ambient* layer only. effort drifts
+  // on every telemetry commit; without quantization the ambient motion.divs get a
+  // fresh intensity (→ new keyframe/transition identities → framer-motion tears
+  // down and restarts every repeat:Infinity animation) up to 10x/sec.
+  const qIntensity = Math.round(theme.intensity * 10) / 10;
+  const ambient = useMemo(
+    () => ({ ...theme, intensity: qIntensity }),
+    // theme's other fields change only on phase change, so gating on
+    // phase + qIntensity keeps this object identity stable between commits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [phase, qIntensity],
   );
 
   const accent = phaseAccent(phase as IntervalPhase);
@@ -164,60 +188,54 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   return (
     <>
       {/* ─── Ambient background glow ───────────────────────────────── */}
+      {/* Uses the quantized `ambient` theme so these motion.divs only re-render
+          when phase changes or intensity crosses a 0.1 step — not every commit. */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         {/* Base phase color */}
         <motion.div
           className="absolute inset-0"
           style={{
-            background: `radial-gradient(ellipse at 50% 50%, ${theme.bg} 0%, transparent 70%)`,
+            background: `radial-gradient(ellipse at 50% 50%, ${ambient.bg} 0%, transparent 70%)`,
           }}
-          animate={{ opacity: [0.6, 0.9, 0.6] }}
+          animate={{ opacity: [...BASE_GLOW_KEYFRAMES] }}
           transition={{
-            duration: theme.pulseRate / 1000,
+            duration: ambient.pulseRate / 1000,
             repeat: Infinity,
-            ease: "easeInOut",
+            ease: EASE_IN_OUT,
           }}
         />
 
         {/* Intensity-based radial pulse */}
-        {theme.intensity > 0.5 && (
+        {ambient.intensity > 0.5 && (
           <motion.div
             className="absolute inset-0"
             style={{
-              background: `radial-gradient(circle at 50% 50%, ${theme.glow} 0%, transparent 50%)`,
+              background: `radial-gradient(circle at 50% 50%, ${ambient.glow} 0%, transparent 50%)`,
             }}
             animate={{
-              scale: [1, 1 + theme.intensity * 0.15, 1],
-              opacity: theme.intensity * 0.5,
+              scale: [1, 1 + ambient.intensity * 0.15, 1],
+              opacity: ambient.intensity * 0.5,
             }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
+            transition={INTENSITY_PULSE_TRANSITION}
           />
         )}
 
         {/* Sprint edge flash */}
-        {theme.screenPulseOpacity > 0 && (
+        {ambient.screenPulseOpacity > 0 && (
           <motion.div
             className="absolute inset-0"
             style={{
-              boxShadow: `inset 0 0 80px 20px ${theme.color}${Math.round(theme.screenPulseOpacity * 255).toString(16).padStart(2, "0")}`,
+              boxShadow: `inset 0 0 80px 20px ${ambient.color}${Math.round(ambient.screenPulseOpacity * 255).toString(16).padStart(2, "0")}`,
             }}
-            animate={{ opacity: [0.3, 0.8, 0.3] }}
-            transition={{
-              duration: 0.6,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
+            animate={{ opacity: [...SPRINT_EDGE_KEYFRAMES] }}
+            transition={SPRINT_EDGE_TRANSITION}
           />
         )}
 
         {/* Particles during high intensity */}
-        {theme.intensity > 0.6 && !expanded && (
+        {ambient.intensity > 0.6 && !expanded && (
           <div className="absolute inset-0">
-            {particles.slice(0, Math.floor(theme.intensity * 12)).map((p, i) => (
+            {particles.slice(0, Math.floor(ambient.intensity * 12)).map((p, i) => (
               <motion.div
                 key={i}
                 className="absolute rounded-full"
@@ -226,12 +244,12 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                   height: p.height,
                   left: `${p.left}%`,
                   top: `${p.top}%`,
-                  backgroundColor: theme.particle,
-                  opacity: theme.intensity * 0.4,
+                  backgroundColor: ambient.particle,
+                  opacity: ambient.intensity * 0.4,
                 }}
                 animate={{
                   y: [0, -p.rise],
-                  opacity: [0, theme.intensity * 0.5, 0],
+                  opacity: [0, ambient.intensity * 0.5, 0],
                   scale: [0.5, 1.5],
                 }}
                 transition={{
@@ -257,14 +275,14 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
               backgroundColor: `${theme.color}10`,
             }}
             animate={{
-              boxShadow: theme.intensity > 0.5 ? `0 0 30px ${theme.color}20` : "none",
+              boxShadow: ambient.intensity > 0.5 ? `0 0 30px ${theme.color}20` : "none",
             }}
           >
             <motion.div
               className="w-1.5 h-1.5 rounded-full"
               style={{ backgroundColor: theme.color }}
-              animate={{ scale: [1, 1.4, 1] }}
-              transition={{ duration: theme.pulseRate / 1000, repeat: Infinity }}
+              animate={{ scale: [...PULSE_KEYFRAMES] }}
+              transition={{ duration: ambient.pulseRate / 1000, repeat: Infinity }}
             />
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
               {phaseText}
@@ -311,10 +329,11 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
             style={{
               borderColor: `${theme.color}20`,
             }}
-            // Breathe: scale slightly on high effort
+            // Breathe: scale slightly on high effort. Quantized to 10W steps so the
+            // tween target doesn't change on every single-watt telemetry fluctuation.
             animate={{
-              scale: 1 + (primaryMetric.value > 200 ? (primaryMetric.value - 200) * 0.0003 : 0),
-              boxShadow: theme.intensity > 0.5 ? `0 0 60px ${theme.color}15` : "none",
+              scale: 1 + (Math.round(primaryMetric.value / 10) * 10 > 200 ? (Math.round(primaryMetric.value / 10) * 10 - 200) * 0.0003 : 0),
+              boxShadow: ambient.intensity > 0.5 ? `0 0 60px ${theme.color}15` : "none",
             }}
           >
             {/* Accent top line */}

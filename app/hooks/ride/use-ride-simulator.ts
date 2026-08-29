@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
+import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import type { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 import type { ClassWithRoute } from "@/app/hooks/evm/use-class-data";
 
@@ -11,7 +12,6 @@ interface UseRideSimulatorParams {
   isTrainingMode: boolean;
   isGuestMode: boolean;
   isPracticeMode: boolean;
-  telemetryEffort: number;
   coordinator: ReturnType<typeof useRideCoordinator>;
   classDataRef: React.MutableRefObject<ClassWithRoute | null>;
 }
@@ -20,7 +20,6 @@ export function useRideSimulator({
   isRiding,
   isTrainingMode,
   isGuestMode,
-  telemetryEffort,
   coordinator,
   classDataRef,
 }: UseRideSimulatorParams) {
@@ -33,10 +32,13 @@ export function useRideSimulator({
   useEffect(() => {
     if (!shouldSimulate) { if (!isRiding) setSimulatedSpin(0); return; }
     const id = setInterval(() => {
-      setSimulatedSpin((prev) => prev + (10 + (Math.min(1000, telemetryEffort) * 90) / 1000) / (45 * 60));
+      // Read effort on demand (1Hz) rather than subscribing — the live value
+      // changes on every telemetry commit and would churn this hook's render.
+      const effort = useTelemetryStore.getState().snapshot.effort;
+      setSimulatedSpin((prev) => prev + (10 + (Math.min(1000, effort) * 90) / 1000) / (45 * 60));
     }, 1000);
     return () => clearInterval(id);
-  }, [shouldSimulate, isRiding, telemetryEffort]);
+  }, [shouldSimulate, isRiding]);
 
   useEffect(() => {
     useRewardsStore.setState({
@@ -65,9 +67,16 @@ export function useRideSimulator({
       const newProgress = Math.min((newTime / realDuration) * 100, 100);
       if (newProgress >= 100) {
         isRidingRef.current = false;
-        useRideStore.setState({ isActive: false, rideProgress: 100, elapsedTime: newTime });
+        useRideStore.setState({ isActive: false, rideProgress: 100, elapsedTime: Math.round(newTime) });
       } else {
-        useRideStore.setState({ elapsedTime: newTime, rideProgress: newProgress });
+        // Quantize the clock to whole seconds. newTime advances fractionally per
+        // pedal event; writing it raw triggered a store update (→ page re-render)
+        // AND a synchronous persisted localStorage write on every pedal stroke.
+        const whole = Math.floor(newTime);
+        const prevWhole = Math.floor(useRideStore.getState().elapsedTime);
+        if (whole !== prevWhole) {
+          useRideStore.setState({ elapsedTime: whole, rideProgress: newProgress });
+        }
       }
     }
   }, [coordinator, classDataRef]);

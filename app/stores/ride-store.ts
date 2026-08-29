@@ -11,6 +11,32 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { MultiGhostState } from "@/app/engines/types";
+import { debounce } from "@/app/lib/utils";
+
+/**
+ * Debounced localStorage adapter. The ride clock (elapsedTime) is partialized
+ * for pause/resume and ticks every second; zustand/persist otherwise performs a
+ * synchronous JSON.stringify + localStorage.setItem on the main thread for every
+ * setState. Coalesce writes to a short trailing-edge debounce — the stored value
+ * is only ever read on rehydrate, so a sub-second delay is invisible.
+ */
+function createDebouncedStorage(delayMs = 400) {
+  const write = debounce(
+    ((name: string, value: string) => {
+      try {
+        window.localStorage.setItem(name, value);
+      } catch {
+        /* storage full / unavailable — non-fatal */
+      }
+    }) as (...args: unknown[]) => unknown,
+    delayMs,
+  );
+  return {
+    getItem: (name: string) => window.localStorage.getItem(name),
+    setItem: (name: string, value: string) => write(name, value),
+    removeItem: (name: string) => window.localStorage.removeItem(name),
+  };
+}
 
 export interface RideSession {
   id: string;
@@ -51,7 +77,7 @@ export const useRideStore = create<RideState>()(
     }),
     {
       name: "spinchain-ride-store",
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => createDebouncedStorage()),
       // isActive is deliberately not persisted: rehydrating an "active" ride
       // after a reload would show a live HUD with no running coordinator.
       // Persisted elapsedTime>0 rehydrates as the paused/resume state instead.
