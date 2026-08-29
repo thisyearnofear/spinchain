@@ -362,7 +362,7 @@ function FinishLine({ curve, theme = "neon" }: { curve: CatmullRomCurve3; theme?
         <meshBasicMaterial color="white" transparent opacity={0.2} wireframe />
       </mesh>
 
-      <Html position={[0, 8, 0]} center>
+      <Html position={[0, 8, 0]} center zIndexRange={[5, 0]}>
         <div className="text-white font-black px-4 py-1 rounded-sm skew-x-12 border-2 border-white animate-pulse" style={{ backgroundColor: `${styles.horizonGlow}cc`, boxShadow: `0 0 20px ${styles.horizonGlow}` }}>
           FINISH
         </div>
@@ -638,7 +638,7 @@ function HoloHUD({
       {/* Mini-Map Integration */}
       <HoloMap curve={curve} progress={displayProgress} theme={theme} />
 
-      <Html transform distanceFactor={5.5} position={[0, 0.2, 0.02]} scale={0.1}>
+      <Html transform distanceFactor={5.5} position={[0, 0.2, 0.02]} scale={0.1} zIndexRange={[5, 0]}>
         <div className="flex flex-col items-center justify-center p-6 min-w-[380px] select-none pointer-events-none bg-black/40 backdrop-blur-3xl rounded-3xl border border-white/10">
           <div className="flex items-center gap-10 mb-6">
             <div className="text-center">
@@ -984,7 +984,7 @@ function BeatMarker({
 
   return (
     <group position={[point.x, point.y + 3, point.z]} scale={scale}>
-      <Html center transform sprite distanceFactor={15}>
+      <Html center transform sprite distanceFactor={15} zIndexRange={[5, 0]}>
         <div className="flex flex-col items-center gap-1 group">
           <div
             className={`px-2 py-0.5 rounded-full text-[8px] font-bold text-white whitespace-nowrap border backdrop-blur-sm transition-all shadow-[0_0_10px_rgba(255,255,255,0.3)]`}
@@ -1050,7 +1050,7 @@ function GhostRider({
           metalness={1}
         />
       </mesh>
-      <Html position={[0, 2, 0]} center transform sprite distanceFactor={10}>
+      <Html position={[0, 2, 0]} center transform sprite distanceFactor={10} zIndexRange={[5, 0]}>
         <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded px-1.5 py-0.5 text-[8px] font-mono text-white/60">
           #{index + 2}
         </div>

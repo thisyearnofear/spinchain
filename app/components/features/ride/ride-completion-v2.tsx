@@ -30,21 +30,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { modalTransition } from "@/app/lib/motion";
 import { formatTime } from "@/app/lib/formatters";
 import { useCoachingStore } from "@/app/stores/coaching-store";
-import { useTelemetryStore, selectEffort, selectPower, selectHeartRate } from "@/app/stores/telemetry-store";
-import { useRideStore } from "@/app/stores/ride-store";
-import { useRewardsStore } from "@/app/stores/rewards-store";
 import { useSensoryStore } from "@/app/stores/sensory-store";
-import {
-  computePhaseTheme,
-  phaseLabel,
-  type IntervalPhase,
-} from "@/app/lib/phase-theme";
-import { Star, Cloud, CheckCircle2, Loader2, ShieldCheck, Zap, TrendingUp, Trophy, Flame, Volume2 } from "lucide-react";
-import { milestonesAndStreaks, type SessionMilestone, MILESTONE_TIERS } from "@/app/lib/milestones";
+import { Star, CheckCircle2, ShieldCheck, Trophy, Flame, Volume2 } from "lucide-react";
+import { milestonesAndStreaks, type SessionMilestone, type MilestoneTier, MILESTONE_TIERS } from "@/app/lib/milestones";
 import { ShareCardButton } from "./share-card";
 import { RideComparison } from "./ride-comparison";
 import { getEffortTier } from "@/app/lib/analytics/ride-history";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
+
+/** Highest tier first — order used by the milestone summary chips. */
+const MILESTONE_TIER_ORDER: MilestoneTier[] = ["diamond", "platinum", "gold", "silver", "bronze"];
 
 interface RideCompletionV2Props {
   isPracticeMode: boolean;
@@ -130,6 +125,28 @@ export function RideCompletionV2({
     // Load current streak
     setCurrentStreak(milestonesAndStreaks.getCurrentStreak());
   }, [rideMilestones]);
+
+  const [showMilestones, setShowMilestones] = useState(false);
+
+  // Hero moment: the single highest-tier milestone earned this ride.
+  const heroMilestone = earnedMilestones.reduce<SessionMilestone | null>(
+    (best, m) =>
+      !best || MILESTONE_TIERS[m.tier].scale > MILESTONE_TIERS[best.tier].scale ? m : best,
+    null,
+  );
+
+  const tierCounts = earnedMilestones.reduce<Partial<Record<MilestoneTier, number>>>(
+    (acc, m) => {
+      acc[m.tier] = (acc[m.tier] ?? 0) + 1;
+      return acc;
+    },
+    {},
+  );
+
+  // Drawer lists milestones best-first, then in the order they were earned.
+  const sortedMilestones = [...earnedMilestones].sort(
+    (a, b) => MILESTONE_TIERS[b.tier].scale - MILESTONE_TIERS[a.tier].scale,
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   // Particle layout is random but stable per mount (Math.random is impure
   // during render — useState lazy init runs once on mount).
@@ -209,16 +226,13 @@ export function RideCompletionV2({
     }
   }, [isPracticeMode, telemetrySource]);
 
-  // Phase theme for accent color
-  const theme = computePhaseTheme(null, avgEffort);
-
   return (
     <motion.div
       ref={containerRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="absolute inset-0 flex items-center justify-center pointer-events-auto p-4 overflow-hidden"
+      className="absolute inset-0 z-10 flex items-center justify-center pointer-events-auto p-4 overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="completion-title"
@@ -337,172 +351,193 @@ export function RideCompletionV2({
         </motion.div>
       )}
 
-      {/* ─── Phase 2: STATS ──────────────────────────────────────── */}
+      {/* ─── Phase 2: STATS ────────────────────────────────────────
+          Progressive disclosure: one hero moment, one line of truth,
+          everything else a tap away. The column scrolls so nothing is
+          ever unreachable (the action bar floats over the bottom). */}
       {completionPhase === "stats" && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="relative w-full max-w-lg flex flex-col"
+          className="relative w-full max-w-lg h-full max-h-full flex flex-col"
         >
-          {/* Header */}
-          <div className="mb-6 text-center">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-amber-300/60 mb-1">
-              Performance Debrief
-            </p>
-            <h2
-              id="completion-title"
-              className="text-xl font-bold text-white tracking-tight"
-            >
-              {agentName}&apos;s Notes
-            </h2>
-          </div>
+          <h2 id="completion-title" className="sr-only">
+            Ride complete — performance debrief
+          </h2>
 
-          {/* Ride data saved confirmation */}
-          {walrusAnchorInfo && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3"
-            >
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Your ride data saved ✓</span>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Agent debrief + optional vocal replay */}
-          <div className="relative pl-4 border-l-2 border-amber-400/40 mb-4">
-            <p className="text-xs leading-relaxed text-white/70 italic">
-              &ldquo;{getAgentDebrief()}&rdquo;
-            </p>
-            {onSpeakDebrief && (
-              <button
-                onClick={() => onSpeakDebrief(getAgentDebrief())}
-                className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-colors hover:text-white hover:bg-white/10"
-                aria-label="Hear the coach read the debrief aloud"
+          <div className="flex-1 overflow-y-auto px-1 pt-6 pb-52 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Hero — the ride's single best moment (peak-end rule) */}
+            {heroMilestone && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                className="relative mb-6 text-center"
               >
-                <Volume2 className="w-3 h-3" />
-                Hear debrief
-              </button>
-            )}
-          </div>
-
-          {/* Stats grid — clean, minimal, no cards */}
-          <div className="grid grid-cols-4 gap-4 mb-4 py-3 border-y border-white/5">
-            <StatItem label="Avg HR" value={avgHeartRate} unit="bpm" />
-            <StatItem label="Avg Power" value={avgPower} unit="W" />
-            <StatItem label="Effort" value={avgEffort} unit="/1000" highlight />
-            <StatItem label="Duration" value={formatTime(elapsedTime)} unit="" />
-          </div>
-
-          {/* Max stats */}
-          {(maxPower > avgPower || maxHeartRate > avgHeartRate) && (
-            <div className="grid grid-cols-2 gap-4 mb-4 py-2 border-b border-white/5">
-              {maxPower > avgPower && (
-                <div className="flex items-center gap-2 text-[11px] text-white/50">
-                  <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Peak Power: <span className="text-white font-bold">{maxPower}W</span></span>
-                </div>
-              )}
-              {maxHeartRate > avgHeartRate && (
-                <div className="flex items-center gap-2 text-[11px] text-white/50">
-                  <Zap className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Peak HR: <span className="text-white font-bold">{maxHeartRate}bpm</span></span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Milestones — earned during this ride */}
-          {earnedMilestones.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mb-4"
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <Trophy className="w-4 h-4 text-amber-400" />
-                <p className="text-[10px] uppercase tracking-widest text-amber-400/60 font-bold">
-                  {earnedMilestones.length} Milestone{earnedMilestones.length > 1 ? 's' : ''} Earned
+                <div
+                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full blur-3xl pointer-events-none"
+                  style={{ backgroundColor: MILESTONE_TIERS[heroMilestone.tier].bgColor }}
+                />
+                <motion.div
+                  initial={{ scale: 0, rotate: -20 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 16 }}
+                  className="relative text-5xl leading-none mb-2"
+                >
+                  {MILESTONE_TIERS[heroMilestone.tier].icon}
+                </motion.div>
+                <p
+                  className="relative text-2xl font-black tracking-tight"
+                  style={{ color: MILESTONE_TIERS[heroMilestone.tier].color }}
+                >
+                  {heroMilestone.title}
                 </p>
-              </div>
-              <div className="grid grid-cols-1 gap-2">
-                {earnedMilestones.map((milestone, idx) => (
-                  <motion.div
-                    key={milestone.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + idx * 0.1 }}
-                    className="flex items-center gap-3 rounded-xl border p-3"
-                    style={{
-                      borderColor: MILESTONE_TIERS[milestone.tier].borderColor,
-                      backgroundColor: MILESTONE_TIERS[milestone.tier].bgColor,
-                    }}
-                  >
-                    <span className="text-2xl">{MILESTONE_TIERS[milestone.tier].icon}</span>
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-white">{milestone.title}</p>
-                      <p className="text-[10px] text-white/40">{milestone.description}</p>
-                    </div>
-                    <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: MILESTONE_TIERS[milestone.tier].color }}>
-                      {MILESTONE_TIERS[milestone.tier].label}
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
+                <p className="relative mt-1 text-[10px] uppercase tracking-[0.3em] text-white/40 font-bold">
+                  {MILESTONE_TIERS[heroMilestone.tier].label} milestone
+                  <span className="normal-case tracking-normal font-normal"> · {heroMilestone.description}</span>
+                </p>
+              </motion.div>
+            )}
 
-          {/* Streak indicator — always shown if user has streak */}
-          {currentStreak > 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6 }}
-              className="mb-4 flex items-center justify-center gap-3 rounded-xl bg-orange-500/5 border border-orange-500/20 px-4 py-3"
-            >
-              <Flame className="w-5 h-5 text-orange-400" />
-              <div className="text-left">
-                <p className="text-[9px] uppercase tracking-widest text-orange-400/60 font-bold">Current Streak</p>
-                <p className="text-xl font-black text-orange-300 tabular-nums">{currentStreak} Day{currentStreak > 1 ? 's' : ''}</p>
+            {/* PR celebration */}
+            {prBeaten && !heroMilestone && (
+              <div className="mb-6 flex items-center justify-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-400" />
+                <span className="text-xl font-black text-amber-300">New Personal Record!</span>
               </div>
-            </motion.div>
-          )}
+            )}
 
-          {/* SPIN earned — prominent */}
-          {!isPracticeMode && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className="flex items-center justify-center gap-3 rounded-xl bg-amber-500/5 border border-amber-500/20 px-4 py-3 mb-4"
-            >
-              <span className="text-lg">💰</span>
-              <div className="text-left">
-                <p className="text-[9px] uppercase tracking-widest text-amber-400/60 font-bold">SPIN Earned</p>
-                <p className="text-xl font-black text-amber-300 tabular-nums">{spinEarned} SPIN</p>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Share card */}
-          {onShare && (
-            <div className="flex justify-center mb-4">
-              <ShareCardButton
-                effortScore={avgEffort}
-                avgPower={avgPower}
-                avgHeartRate={avgHeartRate}
-                durationSec={elapsedTime}
-                spinEarned={spinEarned}
-                agentName={agentName}
-                walrusBlobId={walrusAnchorInfo?.blobId}
-              />
+            {/* Coach's note + optional vocal replay */}
+            <div className="relative pl-4 border-l-2 border-amber-400/40 mb-6">
+              <p className="text-[9px] uppercase tracking-widest text-white/30 font-bold mb-1">
+                {agentName}&apos;s Notes
+              </p>
+              <p className="text-xs leading-relaxed text-white/70 italic">
+                &ldquo;{getAgentDebrief()}&rdquo;
+              </p>
+              {onSpeakDebrief && (
+                <button
+                  onClick={() => onSpeakDebrief(getAgentDebrief())}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-colors hover:text-white hover:bg-white/10"
+                  aria-label="Hear the coach read the debrief aloud"
+                >
+                  <Volume2 className="w-3 h-3" />
+                  Hear debrief
+                </button>
+              )}
             </div>
-          )}
+
+            {/* One line of truth — typographic, no cards */}
+            <div className="mb-6 text-center">
+              <div className="flex items-baseline justify-center flex-wrap gap-x-2.5 gap-y-1 text-white/20">
+                <InlineStat value={avgHeartRate} unit="bpm" />
+                <span aria-hidden>·</span>
+                <InlineStat value={avgPower} unit="W" />
+                <span aria-hidden>·</span>
+                <InlineStat value={avgEffort} unit="/1000" highlight />
+                <span aria-hidden>·</span>
+                <InlineStat value={formatTime(elapsedTime)} unit="" />
+              </div>
+              {(maxPower > avgPower || maxHeartRate > avgHeartRate) && (
+                <p className="mt-1.5 text-[11px] text-white/35 tabular-nums">
+                  peaks{" "}
+                  {maxPower > avgPower && (
+                    <span><span className="text-white/60 font-semibold">{maxPower}W</span></span>
+                  )}
+                  {maxPower > avgPower && maxHeartRate > avgHeartRate && " · "}
+                  {maxHeartRate > avgHeartRate && (
+                    <span><span className="text-white/60 font-semibold">{maxHeartRate}bpm</span></span>
+                  )}
+                </p>
+              )}
+            </div>
+
+            {/* Milestones — compact summary, full list one tap away */}
+            {earnedMilestones.length > 0 && (
+              <div className="mb-4">
+                <button
+                  onClick={() => setShowMilestones((v) => !v)}
+                  aria-expanded={showMilestones}
+                  className="w-full flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 transition-colors hover:bg-white/[0.06]"
+                >
+                  <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-400/80">
+                    <Trophy className="w-3.5 h-3.5" />
+                    {earnedMilestones.length} Milestone{earnedMilestones.length > 1 ? "s" : ""} Earned
+                  </span>
+                  <span className="flex items-center gap-2">
+                    {MILESTONE_TIER_ORDER.filter((t) => tierCounts[t]).map((t) => (
+                      <span key={t} className="text-[11px] text-white/60 tabular-nums">
+                        {MILESTONE_TIERS[t].icon}
+                        <span className="ml-0.5">{tierCounts[t]}</span>
+                      </span>
+                    ))}
+                    <span className={`text-white/30 transition-transform ${showMilestones ? "rotate-180" : ""}`}>▾</span>
+                  </span>
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {showMilestones && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-2 max-h-52 space-y-1.5 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                        {sortedMilestones.map((milestone, idx) => (
+                          <motion.div
+                            key={milestone.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className="flex items-center gap-3 rounded-xl border px-3 py-2"
+                            style={{
+                              borderColor: MILESTONE_TIERS[milestone.tier].borderColor,
+                              backgroundColor: MILESTONE_TIERS[milestone.tier].bgColor,
+                            }}
+                          >
+                            <span className="text-xl">{MILESTONE_TIERS[milestone.tier].icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-white">{milestone.title}</p>
+                              <p className="text-[10px] text-white/40 truncate">{milestone.description}</p>
+                            </div>
+                            <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: MILESTONE_TIERS[milestone.tier].color }}>
+                              {MILESTONE_TIERS[milestone.tier].label}
+                            </span>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* Streak / SPIN / saved — chips, not boxes */}
+            {(currentStreak > 0 || !isPracticeMode || walrusAnchorInfo) && (
+              <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
+                {currentStreak > 0 && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1.5 text-[11px] font-bold text-orange-300">
+                    <Flame className="w-3.5 h-3.5" />
+                    {currentStreak}-day streak
+                  </span>
+                )}
+                {!isPracticeMode && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1.5 text-[11px] font-bold text-amber-300 tabular-nums">
+                    <Star className="w-3.5 h-3.5" />
+                    {spinEarned} SPIN earned
+                  </span>
+                )}
+                {walrusAnchorInfo && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-bold text-emerald-300">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Ride saved
+                  </span>
+                )}
+              </div>
+            )}
 
           {/* Comparison + next-ride advice — collapsed by default so the
               stats phase leads with one decision (SPIN + debrief + actions),
@@ -552,16 +587,19 @@ export function RideCompletionV2({
               setIsSubmitted(true);
             }}
           />
+          </div>
         </motion.div>
       )}
 
-      {/* ─── Phase 3: ACTIONS (persistent bottom bar) ────────────── */}
+      {/* ─── Phase 3: ACTIONS (persistent bottom bar) ──────────────
+          pointer-events pass through the wrapper so the stats column can
+          scroll beneath the bar; each control re-enables its own events. */}
       {completionPhase !== "celebration" && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="absolute bottom-4 left-4 right-4 flex flex-col gap-2"
+          className="absolute bottom-4 left-4 right-4 flex flex-col gap-2 pointer-events-none [&>*]:pointer-events-auto"
         >
           {/* Primary actions */}
           <div className="flex gap-2">
@@ -591,6 +629,31 @@ export function RideCompletionV2({
             )}
           </div>
 
+          {/* Share + export — secondary row, promoted out of the content column */}
+          {(onShare || onExportTCX) && (
+            <div className="flex items-center justify-center gap-2">
+              {onShare && (
+                <ShareCardButton
+                  effortScore={avgEffort}
+                  avgPower={avgPower}
+                  avgHeartRate={avgHeartRate}
+                  durationSec={elapsedTime}
+                  spinEarned={spinEarned}
+                  agentName={agentName}
+                  walrusBlobId={walrusAnchorInfo?.blobId}
+                />
+              )}
+              {onExportTCX && (
+                <button
+                  onClick={onExportTCX}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-300 transition-all active:scale-95 hover:bg-amber-400/20"
+                >
+                  Export TCX
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Claim rewards */}
           {!isPracticeMode && onClaimRewards && (
             <ClaimRewardsButton
@@ -601,16 +664,6 @@ export function RideCompletionV2({
               onClick={onClaimRewards}
             />
           )}
-
-          {/* Export TCX */}
-          {onExportTCX && (
-            <button
-              onClick={onExportTCX}
-              className="w-full rounded-full border border-amber-400/30 bg-amber-400/10 py-2.5 text-xs font-medium text-amber-300 transition-all active:scale-95 hover:bg-amber-400/20"
-            >
-              Export TCX
-            </button>
-          )}
         </motion.div>
       )}
     </motion.div>
@@ -619,25 +672,20 @@ export function RideCompletionV2({
 
 // ─── Sub-components ────────────────────────────────────────────────
 
-function StatItem({
-  label,
+function InlineStat({
   value,
   unit,
   highlight = false,
 }: {
-  label: string;
   value: string | number;
   unit: string;
   highlight?: boolean;
 }) {
   return (
-    <div className="text-center">
-      <p className="text-[9px] uppercase tracking-widest text-white/30 mb-0.5">{label}</p>
-      <p className={`text-xl font-black tabular-nums tracking-tighter ${highlight ? "text-amber-300" : "text-white"}`}>
-        {value}
-        {unit && <span className="text-[10px] text-white/20 ml-1">{unit}</span>}
-      </p>
-    </div>
+    <span className={`whitespace-nowrap text-xl font-black tabular-nums tracking-tight ${highlight ? "text-amber-300" : "text-white"}`}>
+      {value}
+      {unit && <span className="ml-1 text-[10px] font-semibold uppercase tracking-wider text-white/30">{unit}</span>}
+    </span>
   );
 }
 
