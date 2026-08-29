@@ -382,8 +382,6 @@ export default function LiveRidePage() {
     isTrainingMode,
     isGuestMode,
     isPracticeMode,
-    coordinator,
-    classDataRef,
   });
 
   const analyticsHook = useRideAnalytics({

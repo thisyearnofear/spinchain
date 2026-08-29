@@ -118,9 +118,9 @@ export class RideCoordinator {
     // Start RAF commit loop (single loop, no mixed timers)
     this.startCommitLoop();
 
-    // Start collecting telemetry samples at 1Hz. This timer is also the
-    // ride clock for real-device rides — the simulator drives time itself
-    // (time-scaled) in handleSimulatorMetrics, so skip advancing it there.
+    // Start collecting telemetry samples at 1Hz. This timer is the single
+    // ride clock for every ride mode (device, keyboard sim, practice): it
+    // is the only writer of elapsedTime/rideProgress below.
     this.sampleTimerId = setInterval(() => {
       if (!useRideStore.getState().isActive) return;
       const snapshot = this.telemetry.rawSnapshot;

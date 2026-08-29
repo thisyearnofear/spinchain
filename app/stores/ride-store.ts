@@ -11,30 +11,54 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { MultiGhostState } from "@/app/engines/types";
-import { debounce } from "@/app/lib/utils";
 
 /**
  * Debounced localStorage adapter. The ride clock (elapsedTime) is partialized
  * for pause/resume and ticks every second; zustand/persist otherwise performs a
  * synchronous JSON.stringify + localStorage.setItem on the main thread for every
- * setState. Coalesce writes to a short trailing-edge debounce — the stored value
- * is only ever read on rehydrate, so a sub-second delay is invisible.
+ * setState. Coalesce writes to a short trailing-edge debounce, but flush on
+ * pagehide and before any read so a pending write is never dropped (closing the
+ * tab inside the debounce window) or read stale (read-your-writes).
  */
 function createDebouncedStorage(delayMs = 400) {
-  const write = debounce(
-    ((name: string, value: string) => {
-      try {
-        window.localStorage.setItem(name, value);
-      } catch {
-        /* storage full / unavailable — non-fatal */
-      }
-    }) as (...args: unknown[]) => unknown,
-    delayMs,
-  );
+  let pending: { name: string; value: string } | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  const flush = () => {
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    if (pending === null) return;
+    const { name, value } = pending;
+    pending = null;
+    try {
+      window.localStorage.setItem(name, value);
+    } catch {
+      /* storage full / unavailable — non-fatal */
+    }
+  };
+
+  // A trailing-edge debounce alone would drop the last ride-clock tick if the
+  // tab is closed or background-killed inside the debounce window.
+  if (typeof window !== "undefined") {
+    window.addEventListener("pagehide", flush);
+  }
+
   return {
-    getItem: (name: string) => window.localStorage.getItem(name),
-    setItem: (name: string, value: string) => write(name, value),
-    removeItem: (name: string) => window.localStorage.removeItem(name),
+    getItem: (name: string) => {
+      flush();
+      return window.localStorage.getItem(name);
+    },
+    setItem: (name: string, value: string) => {
+      pending = { name, value };
+      if (timer !== null) clearTimeout(timer);
+      timer = setTimeout(flush, delayMs);
+    },
+    removeItem: (name: string) => {
+      flush();
+      window.localStorage.removeItem(name);
+    },
   };
 }
 
