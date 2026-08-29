@@ -103,7 +103,7 @@ export function RideControls({
           className={`relative rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white transition-[transform,background-color,box-shadow] duration-150 active:scale-95 touch-manipulation min-h-[56px] ${
             isStartDisabled
               ? "bg-white/15 border border-white/20 shadow-none cursor-not-allowed"
-              : "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/50"
+              : "bg-gradient-to-r from-amber-400 to-yellow-500 shadow-lg shadow-amber-500/40"
           }`}
           aria-label="Start ride"
           aria-describedby={disabledStartReason ? "start-ride-hint" : undefined}

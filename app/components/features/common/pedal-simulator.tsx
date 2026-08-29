@@ -6,6 +6,7 @@ import { ANALYTICS_EVENTS, trackEvent } from '@/app/lib/analytics/events';
 import { useTelemetryStore, selectPower, selectHeartRate } from '@/app/stores/telemetry-store';
 import { useCoachingStore } from '@/app/stores/coaching-store';
 import { computePhaseTheme, phaseAccent, phaseLabel, type IntervalPhase } from '@/app/lib/phase-theme';
+import { SpinDripChip } from '@/app/components/features/ride/spin-drip-chip';
 
 interface PedalSimulatorProps {
     isActive: boolean;
@@ -403,13 +404,16 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
 
                         <div className="text-center min-w-[44px]">
                             <p className="text-base font-black tabular-nums leading-none text-yellow-300">{ridePower}</p>
-                            <p className="text-[8px] uppercase tracking-widest text-white/30 mt-0.5">Watts</p>
+                            <p className="text-[10px] uppercase tracking-widest text-white/30 mt-0.5">Watts</p>
                         </div>
 
                         <div className="text-center min-w-[44px]">
                             <p className="text-base font-black tabular-nums leading-none text-rose-300">{rideHeartRate}</p>
-                            <p className="text-[8px] uppercase tracking-widest text-white/30 mt-0.5">BPM</p>
+                            <p className="text-[10px] uppercase tracking-widest text-white/30 mt-0.5">BPM</p>
                         </div>
+
+                        {/* Live SPIN accrual — reward loop visible in practice mode */}
+                        <SpinDripChip />
                     </>
                 )}
             </div>

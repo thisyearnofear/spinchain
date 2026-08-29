@@ -92,7 +92,7 @@ export function RideProgress({
         ) : (
           // Simple progress bar for free ride
           <div
-            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300"
+            className="h-full bg-gradient-to-r from-amber-400 to-yellow-500 transition-all duration-300"
             style={{ width: `${rideProgress}%` }}
           />
         )}
@@ -145,7 +145,7 @@ export function RideProgress({
           <div className="flex items-center justify-between text-white">
             <Stat label="Progress" value={`${rideProgress.toFixed(0)}%`} />
             <Stat label="Time" value={formatTime(elapsedTime)} />
-            <Stat label="Effort" value={telemetry.effort.toString()} valueColor="text-purple-400" />
+            <Stat label="Effort" value={telemetry.effort.toString()} valueColor="text-amber-300" />
           </div>
         </div>
       )}

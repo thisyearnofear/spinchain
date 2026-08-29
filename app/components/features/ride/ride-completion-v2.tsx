@@ -569,7 +569,7 @@ export function RideCompletionV2({
             {primaryAction === "view_history" ? (
               <button
                 onClick={onExit}
-                className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/50 transition-all active:scale-95"
+                className="flex-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/40 transition-all active:scale-95"
               >
                 View History
               </button>
@@ -607,7 +607,7 @@ export function RideCompletionV2({
           {onExportTCX && (
             <button
               onClick={onExportTCX}
-              className="w-full rounded-full border border-indigo-500/30 bg-indigo-500/10 py-2.5 text-xs font-medium text-indigo-300 transition-all active:scale-95 hover:bg-indigo-500/20"
+              className="w-full rounded-full border border-amber-400/30 bg-amber-400/10 py-2.5 text-xs font-medium text-indigo-300 transition-all active:scale-95 hover:bg-amber-400/20"
             >
               Export TCX
             </button>
@@ -634,7 +634,7 @@ function StatItem({
   return (
     <div className="text-center">
       <p className="text-[9px] uppercase tracking-widest text-white/30 mb-0.5">{label}</p>
-      <p className={`text-xl font-black tabular-nums tracking-tighter ${highlight ? "text-purple-400" : "text-white"}`}>
+      <p className={`text-xl font-black tabular-nums tracking-tighter ${highlight ? "text-amber-300" : "text-white"}`}>
         {value}
         {unit && <span className="text-[10px] text-white/20 ml-1">{unit}</span>}
       </p>

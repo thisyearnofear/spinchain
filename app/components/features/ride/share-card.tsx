@@ -204,7 +204,7 @@ export function ShareCardButton({
             <div className="mt-4 flex gap-2">
               <button
                 onClick={download}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2.5 text-sm font-semibold text-white transition-[transform,opacity] duration-150 active:scale-95 hover:opacity-90"
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2.5 text-sm font-semibold text-white transition-[transform,opacity] duration-150 active:scale-95 hover:opacity-90"
               >
                 <Download className="w-4 h-4" />
                 Download PNG

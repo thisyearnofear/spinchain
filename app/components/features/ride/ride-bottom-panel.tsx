@@ -302,7 +302,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
                         })
                       ) : (
                         <div
-                          className="h-full origin-left bg-gradient-to-r from-indigo-500 to-purple-500 transition-transform duration-300"
+                          className="h-full origin-left bg-gradient-to-r from-amber-400 to-yellow-500 transition-transform duration-300"
                           style={{ transform: `scaleX(${rideProgress / 100})` }}
                         />
                       )}
@@ -345,7 +345,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] sm:text-sm text-white/50">Effort</p>
-                      <p className="text-xl sm:text-2xl font-bold text-purple-400">
+                      <p className="text-xl sm:text-2xl font-bold text-amber-300">
                         {telemetryEffort}
                       </p>
                     </div>
@@ -384,7 +384,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => { onHaptic("medium"); onResumeRide(); }}
-                  className="rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/50 transition-all active:scale-95 touch-manipulation"
+                  className="rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/40 transition-all active:scale-95 touch-manipulation"
                   aria-label="Resume ride"
                 >
                   ▶ Resume

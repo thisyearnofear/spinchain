@@ -43,7 +43,7 @@ function NoBikeModalInternal({ open, onEnableSimulator, onDismiss }: NoBikeModal
         <div className="flex flex-col gap-2">
           <button
             onClick={onEnableSimulator}
-            className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:shadow-indigo-500/50 active:scale-[0.98]"
+            className="w-full rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/40 transition-all hover:shadow-amber-500/40 active:scale-[0.98]"
           >
             🎮 Use Keyboard Controls
           </button>

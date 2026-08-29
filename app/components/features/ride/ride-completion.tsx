@@ -193,7 +193,7 @@ export function RideCompletion({
         <div className="mb-4 shrink-0">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div
-              className="t-success-check h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-indigo-500/30"
+              className="t-success-check h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-amber-500/40"
               data-state="in"
             >
               🧠
@@ -363,7 +363,7 @@ export function RideCompletion({
           {primaryAction === "view_history" ? (
             <button
               onClick={onExit}
-              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-[transform,opacity] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
+              className="flex-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-amber-500/40 transition-[transform,opacity] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
               aria-label={isPracticeMode ? "Back to builder" : "View history"}
             >
               {isPracticeMode ? "Back to Builder" : "View History"}
@@ -405,7 +405,7 @@ export function RideCompletion({
           {onExportTCX && (
             <button
               onClick={onExportTCX}
-              className="flex-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 py-2.5 sm:py-3 text-sm sm:text-base text-indigo-300 font-semibold transition-[transform,background-color] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-indigo-500/20"
+              className="flex-1 rounded-full border border-amber-400/30 bg-amber-400/10 py-2.5 sm:py-3 text-sm sm:text-base text-amber-300 transition-[transform,background-color] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:bg-amber-400/20"
               aria-label="Export activity as TCX"
             >
               Export TCX
@@ -415,7 +415,7 @@ export function RideCompletion({
           {isPracticeMode && onDeploy ? (
             <button
               onClick={onDeploy}
-              className="flex-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-[transform,opacity] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
+              className="flex-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-amber-500/40 transition-[transform,opacity] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90"
               aria-label="Deploy class"
             >
               Deploy Class
@@ -427,7 +427,7 @@ export function RideCompletion({
                 disabled={claimButtonDisabled}
                 title={!walletConnected ? "Connect a wallet to claim rewards" : undefined}
                 aria-describedby={!walletConnected ? "claim-wallet-hint" : undefined}
-                className="w-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-indigo-500/50 transition-[transform,opacity] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-lg shadow-amber-500/40 transition-[transform,opacity] duration-150 active:scale-95 touch-manipulation min-h-[44px] sm:min-h-[52px] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                 aria-label="Request agent validation of rewards"
               >
                 {claimButtonLabel}
@@ -993,7 +993,7 @@ function Stat({
     <div className="text-center">
       <p className="text-[10px] sm:text-xs text-white/40 uppercase tracking-widest mb-1">{label}</p>
       <p
-        className={`text-2xl sm:text-4xl font-black tracking-tighter ${highlight ? "text-purple-400" : "text-white"}`}
+        className={`text-2xl sm:text-4xl font-black tracking-tighter ${highlight ? "text-amber-300" : "text-white"}`}
       >
         {value}
       </p>

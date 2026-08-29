@@ -26,7 +26,7 @@
  * - Coach messages dim background when shown
  */
 
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore, selectEffort, selectPower, selectHeartRate, selectCadence, selectGhostState, selectMultiGhostState } from "@/app/stores/telemetry-store";
@@ -42,8 +42,8 @@ import {
 } from "@/app/lib/phase-theme";
 import { YellowRewardTicker } from "@/app/components/features/common/yellow-reward-ticker";
 import { RideProgress } from "./ride-progress";
-import { CoachMessageOverlay } from "./coach-message-overlay";
 import { SettlementStream } from "./settlement-stream";
+import { SpinDripChip } from "./spin-drip-chip";
 import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
 import type { GhostState } from "@/app/lib/analytics/ghost-service";
 
@@ -69,6 +69,11 @@ const SPRINT_EDGE_KEYFRAMES = [0.3, 0.8, 0.3] as const;
 const PULSE_KEYFRAMES = [1, 1.4, 1] as const;
 const INTENSITY_PULSE_TRANSITION = { duration: 2, repeat: Infinity, ease: EASE_IN_OUT } as const;
 const SPRINT_EDGE_TRANSITION = { duration: 0.6, repeat: Infinity, ease: EASE_IN_OUT } as const;
+
+// Flow tiers — hoisted so the celebration overlay and the badge share one
+// source (and so the celebration effect can read them without re-creating).
+const FLOW_LABELS = ["", "Focused", "Flow", "Super Flow", "Mastery"];
+const FLOW_COLORS = ["", "#34d399", "#f59e0b", "#f97316", "#ef4444"];
 
 export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   hudMode,
@@ -166,9 +171,23 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   const [expanded, setExpanded] = useState(false);
 
   // ─── Flow state label ─────────────────────────────────────────
-  const FLOW_LABELS = ["", "Focused", "Flow", "Super Flow", "Mastery"];
-  const FLOW_COLORS = ["", "#34d399", "#f59e0b", "#f97316", "#ef4444"];
   const showFlowBadge = flowTier >= 1;
+
+  // ─── Flow tier rise celebration ─────────────────────────────────
+  // A tier escalation is the product's core gamification payoff — it earned
+  // more than a 9px pill. On every tier RISE, play a 1.2s full-bleed flash
+  // in the tier color with a hero badge; a fall never celebrates.
+  const [tierCelebration, setTierCelebration] = useState<number | null>(null);
+  const prevTierRef = useRef(flowTier);
+  useEffect(() => {
+    const prev = prevTierRef.current;
+    prevTierRef.current = flowTier;
+    if (flowTier > prev && flowTier >= 1) {
+      setTierCelebration(flowTier);
+      const t = setTimeout(() => setTierCelebration(null), 1400);
+      return () => clearTimeout(t);
+    }
+  }, [flowTier]);
 
   // Particle layout is random but stable per mount. Math.random is impure, so
   // it can't run during render (React Compiler flags it). useState with a lazy
@@ -269,6 +288,44 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
           </div>
         )}
       </div>
+
+      {/* ─── Flow tier rise celebration (plays even in practice mode) ─ */}
+      <AnimatePresence>
+        {tierCelebration !== null && (
+          <motion.div
+            className="fixed inset-0 z-[60] pointer-events-none flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.4, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.2, times: [0, 0.25, 1] }}
+            style={{
+              background: `radial-gradient(circle at 50% 55%, ${FLOW_COLORS[tierCelebration]}55 0%, transparent 60%)`,
+            }}
+          >
+            <motion.div
+              className="rounded-3xl border backdrop-blur-xl px-10 py-6 text-center"
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: [0.6, 1.15, 1], opacity: [0, 1, 1, 0] }}
+              transition={{ duration: 1.2, times: [0, 0.3, 0.8, 1] }}
+              style={{
+                borderColor: `${FLOW_COLORS[tierCelebration]}60`,
+                background: `${FLOW_COLORS[tierCelebration]}14`,
+                boxShadow: `0 0 80px ${FLOW_COLORS[tierCelebration]}30`,
+              }}
+            >
+              <p
+                className="text-4xl font-black uppercase tracking-[0.2em]"
+                style={{ color: FLOW_COLORS[tierCelebration] }}
+              >
+                {FLOW_LABELS[tierCelebration]}
+              </p>
+              <p className="mt-1.5 text-[10px] font-black uppercase tracking-[0.3em] text-white/50">
+                Flow tier up
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Compact HUD (single metric) ───────────────────────────── */}
       {!suppressBottomStack && (expanded ? null : (
@@ -388,7 +445,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                 className="flex flex-col items-center rounded-xl border bg-black/60 backdrop-blur px-3 py-1.5"
                 style={{ borderColor: ghostBadge.isAhead ? "rgba(16,185,129,0.3)" : "rgba(244,63,94,0.3)" }}
               >
-                <span className="text-[7px] font-black text-white/40 uppercase tracking-widest">Ghost</span>
+                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Ghost</span>
                 <span className={`text-sm font-black tabular-nums ${ghostBadge.color}`}>
                   {ghostBadge.isAhead ? "+" : "-"}{ghostBadge.time.toFixed(1)}s
                 </span>
@@ -402,12 +459,15 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                 className="flex flex-col items-center rounded-xl border bg-black/40 backdrop-blur px-2.5 py-1"
                 style={{ borderColor: "rgba(255,255,255,0.08)" }}
               >
-                <span className="text-[7px] font-black text-white/30 uppercase tracking-widest">{m.label}</span>
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{m.label}</span>
                 <span className={`text-base font-black tabular-nums ${m.color}`}>
                   {m.value}
                 </span>
               </div>
             ))}
+
+            {/* Live SPIN accrual — the reward loop stays visible mid-ride */}
+            <SpinDripChip />
           </div>
         </div>
       ))}
@@ -456,11 +516,11 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                     className="rounded-xl border bg-white/5 p-2 text-center"
                     style={{ borderColor: `${theme.color}15` }}
                   >
-                    <p className="text-[7px] font-black text-white/30 uppercase tracking-wider">{m.label}</p>
+                    <p className="text-[10px] font-black text-white/30 uppercase tracking-wider">{m.label}</p>
                     <p className={`text-lg font-black tabular-nums ${m.color}`}>
                       {m.value}
                     </p>
-                    <p className="text-[7px] text-white/20">{m.unit}</p>
+                    <p className="text-[10px] text-white/20">{m.unit}</p>
                   </div>
                 ))}
               </div>
@@ -470,7 +530,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                 <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-2 mb-2">
                   <div className="flex items-center gap-1.5 mb-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                    <span className="text-[8px] font-black text-indigo-300 uppercase tracking-wider">Coach</span>
+                    <span className="text-[10px] font-black text-indigo-300 uppercase tracking-wider">Coach</span>
                   </div>
                   <p className="text-[10px] text-white/70 leading-relaxed">{lastCoachMessage}</p>
                 </div>
@@ -518,8 +578,10 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
         </button>
       )}
 
-      {/* ─── Coach message overlay (always on top) ─────────────────── */}
-      {lastCoachMessage && <CoachMessageOverlay />}
+      {/* ─── Coach messages ────────────────────────────────────────── */}
+      {/* CoachChannel (mounted by the page, bottom pill) is the single coach
+          surface. The old top-quarter CoachMessageOverlay duplicated the
+          same message with a second phase-color system — removed. */}
 
       {/* ─── Settlement stream (behind HUD) ────────────────────────── */}
       {rewardsActive && rewardsStreamState && rewardsMode === "yellow-stream" && (

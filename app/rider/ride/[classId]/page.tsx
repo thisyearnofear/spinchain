@@ -756,6 +756,26 @@ export default function LiveRidePage() {
     lifecycleRef.current.startRide();
   }, []);
 
+  // "Ride Again" must actually ride again: close the completion screen,
+  // reset the ride clock + telemetry + celebration refs so startRide treats
+  // it as a fresh ride (not a resume), and replay the activation ceremony.
+  // The ceremony's complete handler calls lifecycle.startRide(), which
+  // disposes the old coordinator and starts a fresh one.
+  const handleRideAgain = useCallback(() => {
+    const modals = useRideModalStore.getState();
+    modals.setShowCompletionScreen(false);
+    modals.setWalrusAnchorInfo(null);
+    modals.setShowMilestone(null);
+    useRideStore.setState({ rideProgress: 0, elapsedTime: 0, isActive: false, isPaused: false, isStarting: false });
+    useTelemetryStore.getState().reset();
+    maxPowerRef.current = 0;
+    maxHRRef.current = 0;
+    peakEffortRef.current = 0;
+    analyticsHook.trackedCompletionRef.current = false;
+    setActivationComplete(false);
+    setShowActivation(true);
+  }, [analyticsHook]);
+
   // ─── Max telemetry tracking (for completion celebration) ─────────
   // Poll at 1Hz instead of subscribing to the live history array (which is
   // rebuilt on every telemetry commit, so subscribing re-rendered the page and
@@ -905,7 +925,7 @@ export default function LiveRidePage() {
         <div className="fixed inset-0 z-[65] flex items-center justify-center pointer-events-none">
           <button
             onClick={() => setShowActivation(true)}
-            className="pointer-events-auto group relative rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-10 py-4 text-base font-black text-white shadow-[0_0_60px_rgba(99,102,241,0.5)] hover:scale-105 active:scale-95 transition-transform"
+            className="pointer-events-auto group relative rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-10 py-4 text-base font-black text-white shadow-[0_0_60px_rgba(245,158,11,0.5)] hover:scale-105 active:scale-95 transition-transform"
             aria-label="Start ride"
           >
             Start Ride
@@ -977,9 +997,8 @@ export default function LiveRidePage() {
           avgEffort={completionStats?.avgEffort ?? telemetryAverages.avgEffort}
           telemetrySource={useSimulator ? "simulator" : (bleConnected ? "live-bike" : "estimated")}
           onExit={lifecycle.handleCompletionExit}
-          onRideAgain={() => lifecycle.handleCompletionExit()}
+          onRideAgain={handleRideAgain}
           onClaimRewards={rewardsHook.handleClaimRewards}
-          onExportTCX={() => {}}
           rewardClaimStatus={rewardsHook.rewardClaimStatus}
           spinEarned={rewardsHook.rewards.formattedReward}
           agentName={agentName}
