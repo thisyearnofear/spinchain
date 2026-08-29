@@ -15,7 +15,6 @@ import { useRideTutorial } from "../../../components/features/ride/ride-tutorial
 import { RideLoading, RideNotFound } from "../../../components/features/ride/ride-loading";
 import { RideVisualization } from "../../../components/features/ride/ride-visualization";
 import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overlay";
-import { RideModals } from "../../../components/features/ride/ride-modals";
 import { useSwipeGesture } from "@/app/hooks/ride/use-swipe-gesture";
 import type { RideRecordPoint } from "../../../lib/analytics/ride-recorder";
 import type { SessionMilestone } from "@/app/lib/milestones";
@@ -922,14 +921,29 @@ export default function LiveRidePage() {
 
       {/* ─── Start ride (preview) — visible before the ride is active ───── */}
       {!isRiding && !isStarting && !isPaused && !showCompletionScreen && !showActivation && classData && (
-        <div className="fixed inset-0 z-[65] flex items-center justify-center pointer-events-none">
+        <div className="fixed inset-0 z-[65] flex flex-col items-center justify-center gap-6 pointer-events-none px-4">
+          {/* Class context — a floating button on a void tells the rider
+              nothing; name/duration/instructor earn the tap. */}
+          <div className="pointer-events-auto w-full max-w-sm rounded-2xl border border-white/10 bg-black/70 backdrop-blur-xl px-6 py-5 text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-300/80 mb-2">
+              {isPracticeMode ? "Practice Ride" : "Class"}
+            </p>
+            <h2 className="text-lg font-black text-white tracking-tight leading-snug">
+              {classData.metadata?.name ?? "Untitled Class"}
+            </h2>
+            <p className="mt-1.5 text-xs text-white/50">
+              {classData.metadata?.instructor ? `${classData.metadata.instructor} · ` : ""}
+              {classData.metadata?.duration ?? 45} min
+            </p>
+          </div>
+
           <button
             onClick={() => setShowActivation(true)}
             className="pointer-events-auto group relative rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-10 py-4 text-base font-black text-white shadow-[0_0_60px_rgba(245,158,11,0.5)] hover:scale-105 active:scale-95 transition-transform"
             aria-label="Start ride"
           >
             Start Ride
-            <span className="block text-[9px] font-bold uppercase tracking-[0.3em] text-white/60 mt-0.5">
+            <span className="block text-[10px] font-bold uppercase tracking-[0.3em] text-white/60 mt-0.5">
               Keyboard: ← → to pedal
             </span>
           </button>
@@ -976,7 +990,6 @@ export default function LiveRidePage() {
       {/* ─── Transition overlay (replaces raw activation) ──────────── */}
       <RideTransitionOverlay
         state={transitionState}
-        prevState={null}
         onActivationComplete={handleActivationComplete}
         onSkipActivation={handleActivationSkip}
         activationPhase={currentInterval?.phase ?? undefined}

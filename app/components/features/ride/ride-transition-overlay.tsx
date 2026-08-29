@@ -39,8 +39,6 @@ export type RideTransitionState =
 interface RideTransitionOverlayProps {
   /** Current transition state */
   state: RideTransitionState;
-  /** Previous state (for detecting direction) */
-  prevState: RideTransitionState | null;
   /** Fired when activation completes and riding begins */
   onActivationComplete: () => void;
   /** Fired when skip is tapped */
@@ -72,7 +70,6 @@ const TRANSITIONS = {
 
 export function RideTransitionOverlay({
   state,
-  prevState,
   onActivationComplete,
   onSkipActivation,
   activationPhase,
@@ -129,10 +126,10 @@ export function RideTransitionOverlay({
         setInternalState("riding");
         break;
       case "exiting":
-        setInternalState("exiting");
-        timerRef.current = setTimeout(() => {
-          setInternalState("completion");
-        }, reducedMotion ? 200 : TRANSITIONS.ridingToExiting.enter);
+        // The live saving overlay lives in ModalStack (isExitingRide).
+        // The page never enters this state; fall through to none so the
+        // old duplicate ExitingTransition stays dead.
+        setInternalState("none");
         break;
       case "completion":
         setInternalState("completion");
@@ -155,18 +152,17 @@ export function RideTransitionOverlay({
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        // Only dismiss non-critical states
-        if (
-          internalState === "activation" &&
-          (prevState === "loading" || prevState === "entering")
-        ) {
-          onSkipActivation();
+        // Activation is always skippable (the Skip button only appears after
+        // 1.5s; Esc should never make the rider wait). The old check against
+        // prevState was dead code — the page always passed prevState={null}.
+        if (internalState === "activation") {
+          onSkipActivationRef.current();
         }
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [internalState, prevState, onSkipActivation]);
+  }, [internalState]);
 
   // ─── Render ────────────────────────────────────────────────────
   return (
@@ -188,12 +184,6 @@ export function RideTransitionOverlay({
             onSkip={onSkipActivation}
             skipEnabled={skipEnabled}
             onDone={onActivationComplete}
-            reducedMotion={reducedMotion}
-          />
-        )}
-
-        {internalState === "exiting" && (
-          <ExitingTransition
             reducedMotion={reducedMotion}
           />
         )}
@@ -234,11 +224,11 @@ function LoadingTransition({
             transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
           />
           <motion.div
-            className="absolute inset-2 rounded-full border-2 border-transparent border-t-cyan-400"
+            className="absolute inset-2 rounded-full border-2 border-transparent border-t-amber-400"
             animate={{ rotate: -360 }}
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
           />
-          <div className="absolute inset-0 m-auto w-8 h-8 rounded-full bg-cyan-400/20 blur-xl animate-pulse" />
+          <div className="absolute inset-0 m-auto w-8 h-8 rounded-full bg-amber-400/20 blur-xl animate-pulse" />
         </div>
 
         <p className="text-sm font-bold text-white/70 tracking-wide">
@@ -248,7 +238,7 @@ function LoadingTransition({
         {/* Progress bar */}
         <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-cyan-400 to-indigo-400 rounded-full"
+            className="h-full bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full"
             initial={{ width: "0%" }}
             animate={{ width: `${Math.min(100, (progress / total) * 100)}%` }}
             transition={{ duration: 0.3, ease: "easeOut" }}
@@ -285,6 +275,7 @@ function ActivationTransition({
 }) {
   const [countdown, setCountdown] = useState(3);
   const [visible, setVisible] = useState(true);
+  const [goPhase, setGoPhase] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Same reason as the parent: the countdown interval must not restart when
@@ -313,13 +304,21 @@ function ActivationTransition({
     // onDone is read via ref (see above) — deliberately not a dep.
   }, [reducedMotion]);
 
-  // Countdown finished: stop the interval, fade out, then hand off to riding.
+  // Countdown finished: stop the interval, play the GO launch beat (a real
+  // launch moment instead of landing on "0"), then hand off to riding.
   useEffect(() => {
     if (countdown !== 0) return;
     if (timerRef.current) clearInterval(timerRef.current);
-    setVisible(false);
-    const doneTimer = setTimeout(() => onDoneRef.current(), reducedMotion ? 100 : 400);
-    return () => clearTimeout(doneTimer);
+    setGoPhase(true);
+    const fadeTimer = setTimeout(() => {
+      setGoPhase(false);
+      setVisible(false);
+    }, reducedMotion ? 100 : 650);
+    const doneTimer = setTimeout(() => onDoneRef.current(), reducedMotion ? 150 : 950);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(doneTimer);
+    };
   }, [countdown, reducedMotion]);
 
   return (
@@ -343,9 +342,9 @@ function ActivationTransition({
         />
       </div>
 
-      {/* Countdown number */}
+      {/* Countdown number → GO launch beat */}
       <AnimatePresence mode="wait">
-        {visible && (
+        {visible && countdown > 0 && (
           <motion.div
             key={countdown}
             initial={{ opacity: 0, scale: 0.5, y: 20 }}
@@ -366,11 +365,32 @@ function ActivationTransition({
             >
               {countdown}
             </motion.p>
-            {countdown === 1 && (
-              <p className="text-xs font-black uppercase tracking-[0.4em] text-white/40 mt-2">
-                Focus
-              </p>
-            )}
+            <p className="text-xs font-black uppercase tracking-[0.4em] text-white/40 mt-2">
+              {countdown === 3 ? "Ready" : countdown === 2 ? "Set" : "Focus"}
+            </p>
+          </motion.div>
+        )}
+        {visible && countdown === 0 && goPhase && (
+          <motion.div
+            key="go"
+            initial={{ opacity: 0, scale: 0.4 }}
+            animate={{ opacity: [0, 1, 1], scale: [0.4, 1.25, 1] }}
+            exit={{ opacity: 0, scale: 1.6 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col items-center"
+          >
+            <motion.p
+              className="text-9xl font-black tracking-tighter"
+              style={{
+                color: phase ? phaseColor(phase) : "#fbbf24",
+                textShadow: `0 0 80px ${phase ? phaseColor(phase) : "#fbbf24"}60`,
+              }}
+            >
+              GO
+            </motion.p>
+            <p className="text-xs font-black uppercase tracking-[0.4em] text-white/50 mt-2">
+              Start pedaling
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -389,34 +409,6 @@ function ActivationTransition({
           </motion.button>
         )}
       </AnimatePresence>
-    </motion.div>
-  );
-}
-
-// ─── Exiting transition (during save) ────────────────────────────
-
-function ExitingTransition({ reducedMotion }: { reducedMotion: boolean }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: reducedMotion ? 0.15 : 0.3 }}
-      className="fixed inset-0 z-[130] flex items-center justify-center bg-black/85 backdrop-blur-sm pointer-events-auto"
-    >
-      <div className="flex flex-col items-center gap-4">
-        <motion.div
-          className="w-12 h-12 rounded-full border-2 border-indigo-400 border-t-transparent"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-        />
-        <div className="text-center">
-          <p className="text-sm font-bold text-white">Saving your ride</p>
-          <p className="text-xs text-white/50 mt-1">
-            Uploading to Walrus & anchoring on Sui…
-          </p>
-        </div>
-      </div>
     </motion.div>
   );
 }

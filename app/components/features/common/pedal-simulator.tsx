@@ -5,7 +5,7 @@ import { useDeviceType } from '../../../lib/responsive';
 import { ANALYTICS_EVENTS, trackEvent } from '@/app/lib/analytics/events';
 import { useTelemetryStore, selectPower, selectHeartRate } from '@/app/stores/telemetry-store';
 import { useCoachingStore } from '@/app/stores/coaching-store';
-import { computePhaseTheme, phaseAccent, phaseLabel, type IntervalPhase } from '@/app/lib/phase-theme';
+import { computePhaseTheme, phaseAccent, phaseLabel, cadenceToIntensity, INTENSITY_RAMP, type IntervalPhase } from '@/app/lib/phase-theme';
 import { SpinDripChip } from '@/app/components/features/ride/spin-drip-chip';
 
 interface PedalSimulatorProps {
@@ -30,14 +30,6 @@ interface PedalSimulatorProps {
 }
 
 type Leg = 'left' | 'right' | null;
-
-function getCadenceZone(cadence: number): { label: string; color: string; ringColor: string; glowClass: string } {
-    if (cadence === 0)  return { label: 'Rest',   color: 'text-white/40',   ringColor: 'rgba(255,255,255,0.15)', glowClass: '' };
-    if (cadence < 60)   return { label: 'Easy',   color: 'text-blue-400',   ringColor: '#60a5fa',               glowClass: 'shadow-blue-500/40' };
-    if (cadence < 80)   return { label: 'Steady', color: 'text-green-400',  ringColor: '#4ade80',               glowClass: 'shadow-green-500/40' };
-    if (cadence < 100)  return { label: 'Push',   color: 'text-yellow-400', ringColor: '#facc15',               glowClass: 'shadow-yellow-500/40' };
-    return                     { label: 'Sprint', color: 'text-red-400',    ringColor: '#f87171',               glowClass: 'shadow-red-500/40' };
-}
 
 function haptic(ms: number) {
     try {
@@ -229,7 +221,9 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
 
     if (!isActive || visuallyHidden) return null;
 
-    const zone = getCadenceZone(cadence);
+    // Shared intensity ramp (phase-theme.ts) — one color language for every
+    // "how hard am I going" signal.
+    const zone = cadenceToIntensity(cadence);
 
     // Animated crank SVG
     const CrankVisual = ({ size = 80 }: { size?: number }) => {
@@ -253,7 +247,7 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                 <circle
                     cx={r} cy={r} r={ringR}
                     fill="none"
-                    stroke={zone.ringColor}
+                    stroke={zone.color}
                     strokeWidth="4"
                     strokeLinecap="round"
                     strokeDasharray={`${circ * pct} ${circ}`}
@@ -282,11 +276,11 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                     <div className="flex items-center justify-center gap-5 mb-3">
                         <CrankVisual size={68} />
                         <div className="text-center">
-                            <p className={`text-4xl font-bold tabular-nums leading-none ${zone.color}`} style={{ transition: 'color 0.4s' }}>
+                            <p className="text-4xl font-bold tabular-nums leading-none" style={{ color: zone.color, transition: 'color 0.4s' }}>
                                 {cadence}
                             </p>
                             <p className="text-[10px] uppercase tracking-widest text-white/35 mt-0.5">RPM</p>
-                            <p className={`text-xs font-semibold mt-1 ${zone.color}`} style={{ transition: 'color 0.4s' }}>
+                            <p className="text-xs font-semibold mt-1" style={{ color: zone.color, transition: 'color 0.4s' }}>
                                 {zone.label}
                             </p>
                         </div>
@@ -362,11 +356,11 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                 <CrankVisual size={60} />
 
                 <div className="text-center min-w-[48px]">
-                    <p className={`text-2xl font-bold tabular-nums leading-none ${zone.color}`} style={{ transition: 'color 0.4s' }}>
+                    <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: zone.color, transition: 'color 0.4s' }}>
                         {cadence}
                     </p>
                     <p className="text-[9px] uppercase tracking-widest text-white/35">RPM</p>
-                    <p className={`text-[10px] font-semibold mt-0.5 ${zone.color}`}>{zone.label}</p>
+                    <p className="text-[10px] font-semibold mt-0.5" style={{ color: zone.color, transition: 'color 0.4s' }}>{zone.label}</p>
                 </div>
 
                 <div className="w-px h-9 bg-white/12" />

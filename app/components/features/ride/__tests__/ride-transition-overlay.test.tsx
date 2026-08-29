@@ -50,7 +50,6 @@ function renderWithUnstableCallbacks(onDone: () => void, onSkip: () => void) {
     return (
       <RideTransitionOverlay
         state="activation"
-        prevState={null}
         onActivationComplete={() => onDone()}
         onSkipActivation={() => onSkip()}
         hasData={true}
@@ -93,12 +92,12 @@ describe("RideTransitionOverlay activation countdown", () => {
     renderWithUnstableCallbacks(onDone, vi.fn());
 
     // 4 interval ticks at 700ms bring the countdown to 0 (3→2, 2→1, 1→0 on
-    // successive ticks). The 400ms exit timeout is scheduled while React
-    // flushes that state update at the end of act(), so it must be advanced
-    // in a second step.
+    // successive ticks). Countdown 0 plays the GO launch beat: the handoff
+    // timer (950ms) is scheduled while React flushes that state update at
+    // the end of act(), so it must be advanced in a second step.
     act(() => void vi.advanceTimersByTime(2800));
     expect(onDone).not.toHaveBeenCalled();
-    act(() => void vi.advanceTimersByTime(400));
+    act(() => void vi.advanceTimersByTime(1000));
 
     expect(onDone).toHaveBeenCalledTimes(1);
   });

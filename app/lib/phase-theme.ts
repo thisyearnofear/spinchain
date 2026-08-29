@@ -29,6 +29,35 @@ export const PHASE_COLORS = {
 
 export type PhaseColorKey = keyof typeof PHASE_COLORS;
 
+/**
+ * INTENSITY_RAMP — the single "how hard am I going" language.
+ *
+ * Every effort signal (cadence zones, effort legends) maps onto this one
+ * 5-step ramp with one shared legend, so the rider learns one color
+ * vocabulary instead of several competing ones. Phase themes keep their
+ * identity as *state* colors; flow tiers are a reward axis with their own
+ * colors. The ramp hues deliberately match the hot end of the phase
+ * palette (amber steady / rose sprint) so the systems read as family.
+ */
+export const INTENSITY_RAMP = [
+  { key: "rest",   label: "Rest",   color: "#38bdf8" }, // sky — cooling down
+  { key: "easy",   label: "Easy",   color: "#34d399" }, // emerald — warming up
+  { key: "steady", label: "Steady", color: "#fbbf24" }, // amber — cruising
+  { key: "push",   label: "Push",   color: "#fb923c" }, // orange — working
+  { key: "sprint", label: "Sprint", color: "#f43f5e" }, // rose — all out
+] as const;
+
+export type IntensityStep = (typeof INTENSITY_RAMP)[number];
+
+/** Map a cadence (rpm) onto the shared intensity ramp. */
+export function cadenceToIntensity(cadence: number): IntensityStep {
+  if (cadence === 0) return INTENSITY_RAMP[0];
+  if (cadence < 60) return INTENSITY_RAMP[1];
+  if (cadence < 80) return INTENSITY_RAMP[2];
+  if (cadence < 100) return INTENSITY_RAMP[3];
+  return INTENSITY_RAMP[4];
+}
+
 export interface PhaseTheme {
   color: string;
   bg: string;

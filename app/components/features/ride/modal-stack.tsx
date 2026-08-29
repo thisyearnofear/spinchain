@@ -367,7 +367,7 @@ export function ModalStack({
             className="fixed inset-0 z-[130] flex items-center justify-center bg-black/85 backdrop-blur-sm pointer-events-auto"
           >
             <div className="flex flex-col items-center gap-4">
-              <div className="h-12 w-12 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+              <div className="h-12 w-12 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
               <div className="text-center">
                 <p className="text-sm font-bold text-white">Saving your ride</p>
                 <p className="text-xs text-white/50 mt-1">
@@ -409,8 +409,8 @@ function MilestoneOverlay({ title, subtitle }: {
       className="fixed inset-0 flex items-center justify-center z-[100] pointer-events-none"
     >
       <div className="relative">
-        <div className="absolute inset-0 bg-indigo-500/40 blur-[120px] animate-pulse rounded-full scale-150" />
-        <div className="relative bg-black/80 backdrop-blur-3xl border-2 border-indigo-500/50 rounded-[3rem] px-12 py-10 text-center shadow-[0_0_100px_rgba(99,102,241,0.4)]">
+        <div className="absolute inset-0 bg-amber-500/40 blur-[120px] animate-pulse rounded-full scale-150" />
+        <div className="relative bg-black/80 backdrop-blur-3xl border-2 border-amber-400/50 rounded-[3rem] px-12 py-10 text-center shadow-[0_0_100px_rgba(245,158,11,0.4)]">
           <div className="inline-block mb-4">
             <motion.div
               animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
@@ -422,7 +422,7 @@ function MilestoneOverlay({ title, subtitle }: {
           <h2 className="text-5xl font-black text-white tracking-tighter mb-2 italic uppercase">
             {title}
           </h2>
-          <p className="text-indigo-300 font-bold text-lg uppercase tracking-widest opacity-80">
+          <p className="text-amber-300 font-bold text-lg uppercase tracking-widest opacity-80">
             {subtitle}
           </p>
         </div>

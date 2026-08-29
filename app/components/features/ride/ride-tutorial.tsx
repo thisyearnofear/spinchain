@@ -198,14 +198,14 @@ export function RideTutorialOverlay({
       }}
     >
       <div className={`absolute ${currentStep.position} max-w-sm w-full transform transition-all duration-500 scale-100 opacity-100`}>
-        <div className="rounded-3xl border border-white/20 bg-indigo-600/90 p-8 shadow-[0_20px_50px_rgba(79,70,229,0.3)] backdrop-blur-xl">
+        <div className="rounded-3xl border border-amber-400/30 bg-zinc-900/95 p-8 shadow-[0_20px_50px_rgba(245,158,11,0.2)] backdrop-blur-xl">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold uppercase tracking-widest text-indigo-200">
+            <span className="text-xs font-bold uppercase tracking-widest text-amber-300">
               Step {step + 1} of {steps.length}
             </span>
             <button
               onClick={onDismiss}
-              className="text-indigo-200 hover:text-white transition-colors"
+              className="text-white/60 hover:text-white transition-colors"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -215,7 +215,7 @@ export function RideTutorialOverlay({
           <h3 id="tutorial-title" className="text-2xl font-bold text-white mb-3">
             {currentStep.title}
           </h3>
-          <p className="text-indigo-50/80 leading-relaxed mb-8">
+          <p className="text-white/80 leading-relaxed mb-8">
             {currentStep.content}
           </p>
           <div className="flex items-center justify-between gap-4">
@@ -233,14 +233,14 @@ export function RideTutorialOverlay({
             <div className="flex items-center gap-3">
             <button
               onClick={onDismiss}
-              className="text-sm font-medium text-indigo-200 hover:text-white transition-colors"
+              className="text-sm font-medium text-white/60 hover:text-white transition-colors"
             >
               Skip tutorial
             </button>
             <button
               ref={nextBtnRef}
               onClick={onNext}
-              className="flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-indigo-600 shadow-xl shadow-white/10 hover:bg-indigo-50 active:scale-95 transition-all"
+              className="flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-3 text-sm font-bold text-black shadow-xl shadow-amber-500/20 hover:brightness-110 active:scale-95 transition-all"
             >
               <span>{step === steps.length - 1 ? "Got it!" : "Next"}</span>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -250,7 +250,7 @@ export function RideTutorialOverlay({
             </div>
           </div>
         </div>
-        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[16px] border-t-indigo-600/90 opacity-0 sm:opacity-100" />
+        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[16px] border-t-zinc-900/95 opacity-0 sm:opacity-100" />
       </div>
     </div>
   );

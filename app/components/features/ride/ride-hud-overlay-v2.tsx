@@ -89,6 +89,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   const ghostState = useTelemetryStore(selectGhostState);
   const multiGhostState = useTelemetryStore(selectMultiGhostState);
   const currentInterval = useCoachingStore((s) => s.currentInterval);
+  const rideProgress = useRideStore((s) => s.rideProgress);
   const phase = currentInterval?.phase ?? null;
   const isSpeaking = useCoachingStore((s) => s.isSpeaking);
   const lastCoachMessage = useCoachingStore((s) => s.lastCoachMessage);
@@ -351,6 +352,20 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
               {phaseText}
             </span>
           </motion.div>
+
+          {/* Ride progress hairline — "how long is left" is the rider's #1
+              question; answers it without another numeric readout. */}
+          {isRiding && (
+            <div className="h-0.5 w-28 rounded-full bg-white/10 overflow-hidden">
+              <motion.div
+                className="h-full rounded-full origin-left"
+                style={{ backgroundColor: theme.color }}
+                initial={false}
+                animate={{ scaleX: rideProgress / 100 }}
+                transition={{ type: "tween", duration: 0.5 }}
+              />
+            </div>
+          )}
 
           {/* Flow state badge — only shows when rider enters flow */}
           <AnimatePresence>

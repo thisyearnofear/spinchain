@@ -220,11 +220,11 @@ export function RideCompletionV2({
       aria-labelledby="completion-title"
       tabIndex={-1}
       style={{
-        background: "radial-gradient(ellipse at 50% 30%, rgba(99,102,241,0.12) 0%, rgba(7,9,15,0.98) 60%), #07090f",
+        background: "radial-gradient(ellipse at 50% 30%, rgba(251,191,36,0.10) 0%, rgba(7,9,15,0.98) 60%), #07090f",
       }}
     >
       {/* Atmospheric glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-indigo-600/8 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-amber-500/8 blur-[120px] rounded-full pointer-events-none" />
 
       {/* ─── Phase 1: CELEBRATION ────────────────────────────────── */}
       {completionPhase === "celebration" && (
@@ -276,7 +276,7 @@ export function RideCompletionV2({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
           >
-            <p className="text-[10px] uppercase tracking-[0.4em] text-indigo-300/60 mb-2">
+            <p className="text-[10px] uppercase tracking-[0.4em] text-amber-300/60 mb-2">
               Session Complete
             </p>
             <motion.h2
@@ -324,36 +324,11 @@ export function RideCompletionV2({
             transition={{ delay: 0.7, duration: 0.5 }}
             className="mt-6 w-full"
           >
-            <div className="relative pl-4 border-l-2 border-indigo-400/40">
+            <div className="relative pl-4 border-l-2 border-amber-400/40">
               <p className="text-xs leading-relaxed text-white/60 italic">
                 &ldquo;{getAgentDebrief()}&rdquo;
               </p>
             </div>
-          </motion.div>
-
-          {/* Loading indicator for next phase */}
-          <motion.div
-            className="mt-6 flex items-center gap-2 text-[10px] text-white/30"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-          >
-            <div className="flex gap-0.5">
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  className="w-1 h-1 rounded-full bg-white/30"
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{
-                    duration: 1,
-                    repeat: Infinity,
-                    delay: i * 0.2,
-                    ease: "easeInOut",
-                  }}
-                />
-              ))}
-            </div>
-            <span>Stats loading…</span>
           </motion.div>
         </motion.div>
       )}
@@ -368,7 +343,7 @@ export function RideCompletionV2({
         >
           {/* Header */}
           <div className="mb-6 text-center">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-indigo-300/60 mb-1">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-amber-300/60 mb-1">
               Performance Debrief
             </p>
             <h2
@@ -395,7 +370,7 @@ export function RideCompletionV2({
           )}
 
           {/* Agent debrief */}
-          <div className="relative pl-4 border-l-2 border-indigo-400/40 mb-4">
+          <div className="relative pl-4 border-l-2 border-amber-400/40 mb-4">
             <p className="text-xs leading-relaxed text-white/70 italic">
               &ldquo;{getAgentDebrief()}&rdquo;
             </p>
@@ -515,30 +490,40 @@ export function RideCompletionV2({
             </div>
           )}
 
-          {/* Ride comparison */}
-          <RideComparison
-            currentRideId={completedRideId}
-            classId={classId}
-            avgEffort={avgEffort}
-            avgPower={avgPower}
-            avgHeartRate={avgHeartRate}
-            durationSec={elapsedTime}
-            spinEarned={spinEarned}
-          />
+          {/* Comparison + next-ride advice — collapsed by default so the
+              stats phase leads with one decision (SPIN + debrief + actions),
+              not eight competing ones. */}
+          <details className="group mb-4 rounded-xl border border-white/10 bg-white/[0.03]">
+            <summary className="flex cursor-pointer select-none items-center justify-between px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-white/40 transition-colors hover:text-white/60 [&::-webkit-details-marker]:hidden">
+              <span>Comparison &amp; next ride</span>
+              <span className="transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="px-4 pb-4 pt-1">
+              <RideComparison
+                currentRideId={completedRideId}
+                classId={classId}
+                avgEffort={avgEffort}
+                avgPower={avgPower}
+                avgHeartRate={avgHeartRate}
+                durationSec={elapsedTime}
+                spinEarned={spinEarned}
+              />
 
-          {/* Next ride recommendation */}
-          <div className="mt-4 pt-3 border-t border-white/5">
-            <p className="text-[10px] uppercase tracking-widest text-cyan-400/60 font-bold mb-1">
-              Next Ride
-            </p>
-            <p className="text-xs text-white/50 leading-relaxed">
-              {avgEffort >= 800
-                ? "You crushed it! Try a higher-intensity class to push your threshold further."
-                : avgEffort >= 500
-                  ? "Solid effort. Aim for above 700 effort next ride for higher SPIN rewards."
-                  : "Great start! An endurance class will help you build your base over time."}
-            </p>
-          </div>
+              {/* Next ride recommendation */}
+              <div className="mt-4 pt-3 border-t border-white/5">
+                <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">
+                  Next Ride
+                </p>
+                <p className="text-xs text-white/50 leading-relaxed">
+                  {avgEffort >= 800
+                    ? "You crushed it! Try a higher-intensity class to push your threshold further."
+                    : avgEffort >= 500
+                      ? "Solid effort. Aim for above 700 effort next ride for higher SPIN rewards."
+                      : "Great start! An endurance class will help you build your base over time."}
+                </p>
+              </div>
+            </div>
+          </details>
 
           {/* Storage/Walrus info — collapsed by default */}
           <StorageDetails
@@ -585,7 +570,7 @@ export function RideCompletionV2({
             {onRideAgain && (
               <button
                 onClick={onRideAgain}
-                className="flex-1 rounded-full border border-cyan-500/40 bg-cyan-500/10 py-3 text-sm font-semibold text-cyan-200 transition-all active:scale-95 hover:bg-cyan-500/20"
+                className="flex-1 rounded-full border border-amber-400/40 bg-amber-400/10 py-3 text-sm font-semibold text-amber-200 transition-all active:scale-95 hover:bg-amber-400/20"
               >
                 Ride Again
               </button>
@@ -607,7 +592,7 @@ export function RideCompletionV2({
           {onExportTCX && (
             <button
               onClick={onExportTCX}
-              className="w-full rounded-full border border-amber-400/30 bg-amber-400/10 py-2.5 text-xs font-medium text-indigo-300 transition-all active:scale-95 hover:bg-amber-400/20"
+              className="w-full rounded-full border border-amber-400/30 bg-amber-400/10 py-2.5 text-xs font-medium text-amber-300 transition-all active:scale-95 hover:bg-amber-400/20"
             >
               Export TCX
             </button>
@@ -711,7 +696,7 @@ function StorageDetails({
                 <button
                   key={star}
                   onClick={() => onSetRating(star)}
-                  className={`text-sm transition-colors ${rating >= star ? "text-indigo-400" : "text-white/10"}`}
+                  className={`text-sm transition-colors ${rating >= star ? "text-amber-400" : "text-white/10"}`}
                 >
                   ★
                 </button>

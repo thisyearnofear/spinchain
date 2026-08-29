@@ -129,7 +129,7 @@ export function CoachChannel({ className = "" }: { className?: string }) {
                     Coach
                   </span>
                   {isSpeaking && (
-                    <span className="text-[8px] font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-full">
+                    <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
                       Speaking
                     </span>
                   )}

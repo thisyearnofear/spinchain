@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useState } from "react";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
+import { INTENSITY_RAMP } from "@/app/lib/phase-theme";
 
 interface KeyboardShortcutOverlayProps {
   /** Whether to show the overlay */
@@ -92,6 +93,23 @@ function KeyboardShortcutOverlayInternal({ show, onDismiss }: KeyboardShortcutOv
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Intensity legend — the one color language for "how hard am I
+            going" (pedal cadence ring, effort signals all use this ramp). */}
+        <div className="mt-4 pt-3 border-t border-white/10">
+          <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-2">Intensity</p>
+          <div className="flex items-center justify-between gap-1">
+            {INTENSITY_RAMP.map((step) => (
+              <div key={step.key} className="flex flex-col items-center gap-1">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: step.color, boxShadow: `0 0 6px ${step.color}80` }}
+                />
+                <span className="text-[10px] font-bold text-white/50">{step.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
