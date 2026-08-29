@@ -3,6 +3,9 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useDeviceType } from '../../../lib/responsive';
 import { ANALYTICS_EVENTS, trackEvent } from '@/app/lib/analytics/events';
+import { useTelemetryStore, selectPower, selectHeartRate } from '@/app/stores/telemetry-store';
+import { useCoachingStore } from '@/app/stores/coaching-store';
+import { computePhaseTheme, phaseAccent, phaseLabel, type IntervalPhase } from '@/app/lib/phase-theme';
 
 interface PedalSimulatorProps {
     isActive: boolean;
@@ -17,6 +20,11 @@ interface PedalSimulatorProps {
      *  still update) but the on-screen widget is not rendered — used when the
      *  HUD is collapsed to minimal/zen mode for a clean riding scene. */
     visuallyHidden?: boolean;
+    /** When true (practice/simulator mode), the widget doubles as the
+     *  integrated ride bar: live Power/HR/phase chips are embedded so the
+     *  HUD's compact stack, tap-zone, and coach card don't stack on top of
+     *  the pedal controls at the bottom of the screen. */
+    showRideMetrics?: boolean;
     className?: string;
 }
 
@@ -38,11 +46,20 @@ function haptic(ms: number) {
     } catch { /* not supported */ }
 }
 
-export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = false, className = '' }: PedalSimulatorProps) {
+export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = false, showRideMetrics = false, className = '' }: PedalSimulatorProps) {
     const deviceType = useDeviceType();
     const [activeLeg, setActiveLeg] = useState<Leg>(null);
     const [showInstructions, setShowInstructions] = useState(true);
     const [cadence, setCadence] = useState(0);
+
+    // Integrated-bar chips (showRideMetrics). Subscribed before the
+    // visuallyHidden early return to keep hook order stable.
+    const ridePower = useTelemetryStore(selectPower);
+    const rideHeartRate = useTelemetryStore(selectHeartRate);
+    const ridePhase = useCoachingStore((s) => s.currentInterval?.phase ?? null);
+    const rideTheme = computePhaseTheme(ridePhase as IntervalPhase, 500);
+    const phaseAccentClasses = phaseAccent(ridePhase as IntervalPhase);
+    const phaseText = phaseLabel(ridePhase as IntervalPhase);
 
     const crankAngle = useRef(0);
     const [crankDeg, setCrankDeg] = useState(0);
@@ -274,6 +291,24 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                         </div>
                     </div>
 
+                    {/* Integrated ride metrics (practice mode) */}
+                    {showRideMetrics && (
+                        <div className="flex items-center justify-center gap-2 mb-3">
+                            <div className="flex items-center gap-1.5 rounded-full px-2.5 py-1 border border-white/10 bg-white/5">
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: rideTheme.color }} />
+                                <span className={`text-[9px] font-black uppercase tracking-widest ${phaseAccentClasses.text}`}>{phaseText}</span>
+                            </div>
+                            <div className="rounded-full px-2.5 py-1 border border-white/10 bg-white/5">
+                                <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">W </span>
+                                <span className="text-sm font-black tabular-nums text-yellow-300">{ridePower}</span>
+                            </div>
+                            <div className="rounded-full px-2.5 py-1 border border-white/10 bg-white/5">
+                                <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">BPM </span>
+                                <span className="text-sm font-black tabular-nums text-rose-300">{rideHeartRate}</span>
+                            </div>
+                        </div>
+                    )}
+
                     {showInstructions && (
                         <p className="text-center text-xs text-white/45 mb-2 animate-pulse">
                             Tap L &amp; R alternately to pedal 🚴
@@ -354,6 +389,28 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
 
                 {showInstructions && (
                     <p className="text-[11px] text-white/35 animate-pulse ml-1">← → or A D</p>
+                )}
+
+                {/* Integrated ride metrics (practice mode) */}
+                {showRideMetrics && (
+                    <>
+                        <div className="w-px h-9 bg-white/12" />
+
+                        <div className="flex items-center gap-1.5 rounded-full px-2.5 py-1 border border-white/10 bg-white/5">
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: rideTheme.color }} />
+                            <span className={`text-[9px] font-black uppercase tracking-widest ${phaseAccentClasses.text}`}>{phaseText}</span>
+                        </div>
+
+                        <div className="text-center min-w-[44px]">
+                            <p className="text-base font-black tabular-nums leading-none text-yellow-300">{ridePower}</p>
+                            <p className="text-[8px] uppercase tracking-widest text-white/30 mt-0.5">Watts</p>
+                        </div>
+
+                        <div className="text-center min-w-[44px]">
+                            <p className="text-base font-black tabular-nums leading-none text-rose-300">{rideHeartRate}</p>
+                            <p className="text-[8px] uppercase tracking-widest text-white/30 mt-0.5">BPM</p>
+                        </div>
+                    </>
                 )}
             </div>
         </div>

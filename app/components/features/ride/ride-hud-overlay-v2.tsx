@@ -52,6 +52,11 @@ interface RideHUDOverlayV2Props {
   isRiding: boolean;
   showCompletionScreen: boolean;
   flowTier?: number;
+  /** Practice/simulator mode: the PedalSimulator widget doubles as the
+   *  integrated bottom bar (phase + Power/HR chips), so this HUD's compact
+   *  stack, expanded panel, and tap-zone would overlap it. Suppress them;
+   *  ambient glow, coach overlay, and settlement stream still render. */
+  suppressBottomStack?: boolean;
 }
 
 // Module-scope stable animation config. Passing fresh keyframe arrays / transition
@@ -70,6 +75,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   isRiding,
   showCompletionScreen,
   flowTier = 0,
+  suppressBottomStack = false,
 }: RideHUDOverlayV2Props) {
   const power = useTelemetryStore(selectPower);
   const heartRate = useTelemetryStore(selectHeartRate);
@@ -265,7 +271,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
       </div>
 
       {/* ─── Compact HUD (single metric) ───────────────────────────── */}
-      {expanded ? null : (
+      {!suppressBottomStack && (expanded ? null : (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-3">
           {/* Phase badge */}
           <motion.div
@@ -404,11 +410,11 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
             ))}
           </div>
         </div>
-      )}
+      ))}
 
       {/* ─── Expanded HUD (tap to show everything) ─────────────────── */}
       <AnimatePresence>
-        {expanded && (
+        {!suppressBottomStack && expanded && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -500,7 +506,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
       </AnimatePresence>
 
       {/* ─── Tap zone to expand ────────────────────────────────────── */}
-      {!expanded && (
+      {!suppressBottomStack && !expanded && (
         <button
           onClick={() => setExpanded(true)}
           className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-auto h-8 w-32 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"

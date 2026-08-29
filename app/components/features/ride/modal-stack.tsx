@@ -237,6 +237,9 @@ interface ModalStackProps {
   /** When true, hides the on-screen pedal simulator (e.g. when the HUD is
    *  collapsed to minimal/zen mode so the riding scene stays clean). */
   hideSimulator?: boolean;
+  /** Practice mode: the PedalSimulator widget doubles as the integrated
+   *  ride bar — embeds live Power/HR/phase chips. */
+  showRideMetrics?: boolean;
   /** Called with metrics computed by the on-screen PedalSimulator so the
    *  ride's keyboard/on-screen activity actually feeds the telemetry store. */
   onSimulatorMetrics?: (metrics: {
@@ -272,6 +275,7 @@ export function ModalStack({
   useSimulator,
   isRiding,
   hideSimulator = false,
+  showRideMetrics = false,
   onSimulatorMetrics,
   onExitConfirm,
   onExitCancel,
@@ -383,6 +387,7 @@ export function ModalStack({
           isActive={isRiding}
           onMetricsUpdate={onSimulatorMetrics ?? (() => {})}
           visuallyHidden={hideSimulator}
+          showRideMetrics={showRideMetrics}
         />
       )}
     </>

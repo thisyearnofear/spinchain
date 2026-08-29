@@ -48,6 +48,10 @@ export class RideCoordinator {
 
   private config: RideStartConfig | null = null;
   private durationSeconds = 45 * 60;
+  // Class-seconds advanced per wall-clock second. Practice/demo rides
+  // compress the full class into a 30–60s window (see WEDGE.md's
+  // "core loop under 30 seconds" rule); real-device rides run at 1x.
+  private clockScale = 1;
   private unsubTick: (() => void) | null = null;
   private eventUnsubs: Array<() => void> = [];
   private rafRunning = false;
@@ -93,6 +97,11 @@ export class RideCoordinator {
     const routeCoordinates =
       config.classData?.route?.route?.coordinates ?? [];
     this.durationSeconds = (config.classData?.metadata?.duration ?? 45) * 60;
+
+    // Practice/demo rides play the whole class in ~45 wall-clock seconds
+    // regardless of the class's real duration (clamped so a short class
+    // never plays slower than real time).
+    this.clockScale = config.isPracticeMode ? Math.max(1, this.durationSeconds / 45) : 1;
 
     this.telemetry.start(routeCoordinates, this.durationSeconds);
 
@@ -155,11 +164,11 @@ export class RideCoordinator {
         });
       }
 
-      // Advance ride clock and progress for every ride. Keyboard sim and
-      // practice rides are time-based (the simulator hook handles time-
-      // scaled metrics but does NOT drive the ride clock), so they still
-      // need elapsed time and progress to advance normally.
-      const elapsed = useRideStore.getState().elapsedTime + 1;
+      // Advance ride clock and progress for every ride. The coordinator's
+      // 1Hz timer is the single ride-clock writer (ARCHITECTURE.md Rule 6);
+      // practice/demo rides advance by clockScale so the full class fits
+      // in a ~45s demo window.
+      const elapsed = useRideStore.getState().elapsedTime + this.clockScale;
       const progress = Math.min((elapsed / this.durationSeconds) * 100, 100);
       useRideStore.setState({ elapsedTime: elapsed, rideProgress: progress });
 

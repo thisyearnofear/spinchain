@@ -190,7 +190,8 @@ function BadComponent() {
 #### Rule 3: Telemetry Data Never Passes Through React State
 
 - BLE/Simulator → writes directly to `TelemetryEngine`'s internal refs
-- UI-relevant snapshots → committed to Zustand at throttled rate (2-4Hz)
+- UI-relevant snapshots → committed to Zustand at a gated rate (`shouldCommit`), **never synchronously per input event** (simulator keydowns included)
+- The ride page consumes committed state at ~1Hz + event-driven updates, never at commit rate: live power/HR reach the page via `flow-state.setInputs()` and `useTelemetryStore.subscribe` → ref, not whole-snapshot subscriptions
 - W'bal, recording, ghost comparison → happen in the engine, not in `useEffect`
 
 #### Rule 4: WebGL Is Decoupled From React Re-renders
@@ -202,6 +203,10 @@ function BadComponent() {
 #### Rule 5: The EventBus Is the Only Cross-Engine Communication Channel
 
 Engines never import other engines directly. Typed events only.
+
+#### Rule 6: The Coordinator's 1Hz Timer Is the Single Ride-Clock Writer
+
+`RideCoordinator`'s sample timer is the **only** component that advances `elapsedTime` / `rideProgress` in the ride store, for every ride mode (device, keyboard sim, practice). No hook or component may advance the ride clock itself — a second writer double-advances time and desyncs coaching intervals (this exact bug has shipped twice). Read the clock freely; write it only from the coordinator.
 
 ### Lessons Learned — The React #185 Postmortem
 

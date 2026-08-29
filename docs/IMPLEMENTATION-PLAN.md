@@ -68,7 +68,7 @@
 ### 2.3 Make The Demo Ride World Feel Alive ✅
 - **Commit**: `pending` — `app/hooks/ride/use-demo-effort.ts` + `app/rider/ride/[classId]/page.tsx`
 - **File**: New hook `useDemoEffort` that generates keyboard-driven cadence/power for practice mode
-- **What**: W/↑ = pedal harder, S/↓ = brake, idle = coast. Feeds metrics into `coordinator.ingestSimulatorMetrics()` at 10Hz.
+- **What**: W/↑ = pedal harder, S/↓ = brake, idle = coast. Feeds metrics into `coordinator.ingestSimulatorMetrics()` at 10Hz; the coordinator gates commits behind `shouldCommit` (no synchronous store write per keydown).
 - **Why**: Practice mode was excluded from the simulator (`shouldSimulate = isTrainingMode || isGuestMode`), so `flowTier` stayed at 0 and the reactive world never fired.
 - **Wired in**: `app/rider/ride/[classId]/page.tsx` line 401
 - **Test**: In demo mode, press W — world should visibly respond (particles, road glow, flow badge) within one frame.

@@ -458,7 +458,7 @@ git commit --no-verify
 
 ### Current State
 
-SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coaching (rule-based + LLM), ZK proof rewards, Walrus-anchored telemetry, on-chain class contracts, Supabase-backed persistence (pending provisioning), instructor-rider loop, and personalized onboarding flow. Codebase is clean (0 TS errors, 1 lint warning, 132 tests passing, CI green).
+SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coaching (rule-based + LLM), ZK proof rewards, Walrus-anchored telemetry, on-chain class contracts, Supabase-backed persistence (pending provisioning), instructor-rider loop, and personalized onboarding flow. Codebase is clean (0 TS errors, 20 pre-existing lint warnings in the ride page, 135 tests passing, CI green).
 
 **What's done**: Phases 0–3 complete, real ZK batch claims on Fuji, all 8 EVM contracts deployed + verified, Sui package v2 on testnet, Walrus persistence, ride history/analytics/badges, gym registry + calibration, ghost racing.
 

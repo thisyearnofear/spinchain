@@ -25,7 +25,7 @@ import { useCoachingStore, selectLastCoachMessage, selectIsSpeaking } from "@/ap
 import { useSensoryStore } from "@/app/stores/sensory-store";
 import { computePhaseTheme, type IntervalPhase } from "@/app/lib/phase-theme";
 
-export function CoachChannel() {
+export function CoachChannel({ className = "" }: { className?: string }) {
   const message = useCoachingStore(selectLastCoachMessage);
   const isSpeaking = useCoachingStore(selectIsSpeaking);
   const phase = useCoachingStore((s) => s.currentInterval?.phase ?? null);
@@ -59,7 +59,7 @@ export function CoachChannel() {
   const firstLine = message.length > 60 ? message.slice(0, 60) + "…" : message;
 
   return (
-    <div className="absolute bottom-28 left-1/2 -translate-x-1/2 w-full max-w-md px-4 pointer-events-auto">
+    <div className={`absolute bottom-28 left-1/2 -translate-x-1/2 w-full max-w-md px-4 pointer-events-auto ${className}`}>
       <AnimatePresence mode="popLayout">
         {latestMsg && (
           <motion.div

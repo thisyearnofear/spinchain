@@ -880,7 +880,14 @@ export default function LiveRidePage() {
       </SectionErrorBoundary>
 
       {/* ─── Coach channel (replaces full-screen overlay) ─────────── */}
-      {hudMode !== "minimal" && <CoachChannel />}
+      {/* Practice mode on mobile: raise it above the tall pedal-sheet bar. */}
+      {hudMode !== "minimal" && (
+        <CoachChannel
+          className={
+            isRiding && useSimulator && deviceType === "mobile" ? "bottom-[22rem]" : ""
+          }
+        />
+      )}
 
       {/* ─── Simplified reactive HUD (v2) ──────────────────────────── */}
       <SectionErrorBoundary title="ride HUD v2">
@@ -889,6 +896,7 @@ export default function LiveRidePage() {
           isRiding={isRiding}
           showCompletionScreen={showCompletionScreen}
           flowTier={flow.flowTier}
+          suppressBottomStack={isRiding && useSimulator}
         />
       </SectionErrorBoundary>
 
@@ -1003,6 +1011,7 @@ export default function LiveRidePage() {
         useSimulator={useSimulator}
         isRiding={isRiding}
         hideSimulator={hudMode === "minimal"}
+        showRideMetrics={useSimulator}
         onSimulatorMetrics={handleSimulatorMetrics}
 
         // Callbacks
