@@ -825,7 +825,7 @@ function RiderMarker({
         <Html position={[0, 4.5, 0]} center transform sprite distanceFactor={12} zIndexRange={[5, 0]} className="pointer-events-none">
           <div className="flex flex-col items-center gap-1 pointer-events-none">
             <div className="whitespace-nowrap rounded-full bg-black/70 px-2 py-1 text-[11px] font-bold text-white backdrop-blur-md border border-white/30 shadow-lg">
-              YOU
+              <span className="mr-1" aria-hidden>🚴</span>YOU
             </div>
             <div className="h-3 w-px bg-gradient-to-b from-white/60 to-transparent" />
           </div>

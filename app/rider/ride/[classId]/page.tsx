@@ -238,6 +238,7 @@ export default function LiveRidePage() {
   // ─── Panel State ───────────────────────────────────────────────
   const panelState = usePanelState(deviceType);
   const viewMode = useUIStore((s) => s.viewMode);
+  const toggleViewMode = useUIStore((s) => s.toggleViewMode);
   const hudMode = useUIStore((s) => s.hudMode);
   const setHudMode = useUIStore((s) => s.setHudMode);
   const toggleQuietHud = useCallback(
@@ -996,6 +997,19 @@ export default function LiveRidePage() {
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>
               Keys
+            </button>
+          )}
+          {/* 2D/3D view toggle — the v2 HUD dropped the old top-bar button,
+              and viewMode persists; riders stuck in 2D had no visible way
+              back to the immersive world. */}
+          {hudMode !== "minimal" && (
+            <button
+              onClick={toggleViewMode}
+              className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 backdrop-blur-xl px-3 py-1.5 text-[10px] font-bold text-white/60 hover:text-white transition-colors"
+              title={`Switch to ${viewMode === "immersive" ? "2D focus" : "immersive 3D"} (V)`}
+              aria-label={`Switch to ${viewMode === "immersive" ? "2D focus" : "immersive 3D"} view`}
+            >
+              {viewMode === "immersive" ? "2D" : "3D"}
             </button>
           )}
         </div>

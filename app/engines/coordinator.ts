@@ -52,6 +52,11 @@ export class RideCoordinator {
   // compress the full class into a 30–60s window (see WEDGE.md's
   // "core loop under 30 seconds" rule); real-device rides run at 1x.
   private clockScale = 1;
+  private isPracticeRide = false;
+  // Practice-only: class-seconds of route progress accumulated from effort.
+  // The coaching/interval clock stays time-based (like a real class); only
+  // position on the route responds to pedaling, so riders keep agency.
+  private progressElapsed = 0;
   private unsubTick: (() => void) | null = null;
   private eventUnsubs: Array<() => void> = [];
   private rafRunning = false;
@@ -102,6 +107,8 @@ export class RideCoordinator {
     // regardless of the class's real duration (clamped so a short class
     // never plays slower than real time).
     this.clockScale = config.isPracticeMode ? Math.max(1, this.durationSeconds / 45) : 1;
+    this.isPracticeRide = config.isPracticeMode;
+    this.progressElapsed = 0;
 
     this.telemetry.start(routeCoordinates, this.durationSeconds);
 
@@ -165,11 +172,30 @@ export class RideCoordinator {
       }
 
       // Advance ride clock and progress for every ride. The coordinator's
-      // 1Hz timer is the single ride-clock writer (ARCHITECTURE.md Rule 6);
-      // practice/demo rides advance by clockScale so the full class fits
-      // in a ~45s demo window.
-      const elapsed = useRideStore.getState().elapsedTime + this.clockScale;
-      const progress = Math.min((elapsed / this.durationSeconds) * 100, 100);
+      // 1Hz timer is the single ride-clock writer (ARCHITECTURE.md Rule 6).
+      // The coaching/interval clock is always time-based (like a real class);
+      // practice/demo rides additionally scale ROUTE progress by effort so
+      // the world moves when — and only when — the rider pedals.
+      const elapsed = Math.min(
+        useRideStore.getState().elapsedTime + this.clockScale,
+        this.durationSeconds,
+      );
+      let progress: number;
+      if (this.isPracticeRide) {
+        // PedalSimulator idle-settles at effort ~100, so <150 reads as
+        // "stopped": the world halts until the rider actually pedals.
+        // Linear map so the world responds as soon as effort climbs:
+        // ~350 (steady pedaling) ≈ 1x (≈45s finish), hard pedaling up to 1.6x.
+        const effort = snapshot.effort; // 0–1000
+        const factor = effort < 150 ? 0 : Math.min((effort - 150) / 200, 1.6);
+        this.progressElapsed = Math.min(
+          this.progressElapsed + this.clockScale * factor,
+          this.durationSeconds,
+        );
+        progress = Math.min((this.progressElapsed / this.durationSeconds) * 100, 100);
+      } else {
+        progress = Math.min((elapsed / this.durationSeconds) * 100, 100);
+      }
       useRideStore.setState({ elapsedTime: elapsed, rideProgress: progress });
 
       // Drive the interval/coaching clock for both device paths

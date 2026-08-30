@@ -86,10 +86,18 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
         const recentPedals = pedalTimestamps.current.filter(t => now - t < 10000);
         pedalTimestamps.current = recentPedals;
 
-        if (recentPedals.length < 2) {
+        // "Stopped" = no stroke in the last second. The 10s window below
+        // smooths cadence but would otherwise coast for up to 10s after the
+        // last pedal stroke — effort must feel like a live throttle.
+        const stopped =
+            recentPedals.length < 2 ||
+            now - recentPedals[recentPedals.length - 1] > 1000;
+
+        if (stopped) {
             baseMetrics.current.heartRate = Math.max(80, baseMetrics.current.heartRate - 2);
             baseMetrics.current.power = Math.max(0, baseMetrics.current.power - 5);
-            baseMetrics.current.effort = Math.max(100, baseMetrics.current.effort - 3);
+            // Fast decay (~150/s) so the world halts soon after pedaling stops.
+            baseMetrics.current.effort = Math.max(100, baseMetrics.current.effort - 75);
             latestCadence.current = 0;
             setCadence(0);
             return { heartRate: Math.round(baseMetrics.current.heartRate), power: Math.round(baseMetrics.current.power), cadence: 0, speed: 0, effort: Math.round(baseMetrics.current.effort) };
@@ -108,7 +116,9 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
         const targetHR = Math.min(180, 100 + clampedCadence * 0.6);
         baseMetrics.current.heartRate = baseMetrics.current.heartRate * 0.95 + targetHR * 0.05;
         const targetEffort = Math.round((baseMetrics.current.heartRate + baseMetrics.current.power) * 0.8);
-        baseMetrics.current.effort = baseMetrics.current.effort * 0.9 + targetEffort * 0.1;
+        // Fast blend (0.5/0.5) — the coordinator scales route progress by this
+        // value, so it must track pedaling within ~1s, not lag ~10s behind.
+        baseMetrics.current.effort = baseMetrics.current.effort * 0.5 + targetEffort * 0.5;
         const speed = (baseMetrics.current.power / 10) + 15;
 
         return { heartRate: Math.round(baseMetrics.current.heartRate), power: Math.round(baseMetrics.current.power), cadence: clampedCadence, speed: Math.round(speed * 10) / 10, effort: Math.round(baseMetrics.current.effort) };
@@ -282,11 +292,20 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                 <div className="relative bg-black/50 backdrop-blur-2xl border-t border-white/10 px-4 pt-3 pb-6">
                     {/* Ride progress hairline (practice mode) */}
                     {showRideMetrics && (
-                        <div className="absolute inset-x-0 top-0 h-0.5 bg-white/5 overflow-hidden">
-                            <div
-                                className="h-full rounded-full origin-left transition-[width] duration-500"
-                                style={{ width: `${rideProgressPct}%`, backgroundColor: rideTheme.color }}
-                            />
+                        <div className="absolute inset-x-0 top-0 h-0.5 bg-white/5">
+                            <div className="h-full overflow-hidden rounded-full">
+                                <div
+                                    className="h-full rounded-full origin-left transition-[width] duration-500"
+                                    style={{ width: `${rideProgressPct}%`, backgroundColor: rideTheme.color }}
+                                />
+                            </div>
+                            <span
+                                className="absolute -top-2 -translate-x-1/2 text-[11px] leading-none transition-[left] duration-500"
+                                style={{ left: `${rideProgressPct}%` }}
+                                aria-hidden
+                            >
+                                🚴
+                            </span>
                         </div>
                     )}
 
@@ -376,11 +395,20 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
             <div className="relative overflow-hidden flex items-center gap-4 px-5 py-3 rounded-2xl bg-black/50 backdrop-blur-2xl border border-white/12 shadow-2xl">
                 {/* Ride progress hairline (practice mode) */}
                 {showRideMetrics && (
-                    <div className="absolute inset-x-0 top-0 h-0.5 bg-white/5 overflow-hidden">
-                        <div
-                            className="h-full rounded-full origin-left transition-[width] duration-500"
-                            style={{ width: `${rideProgressPct}%`, backgroundColor: rideTheme.color }}
-                        />
+                    <div className="absolute inset-x-0 top-0 h-0.5 bg-white/5">
+                        <div className="h-full overflow-hidden rounded-full">
+                            <div
+                                className="h-full rounded-full origin-left transition-[width] duration-500"
+                                style={{ width: `${rideProgressPct}%`, backgroundColor: rideTheme.color }}
+                            />
+                        </div>
+                        <span
+                            className="absolute top-1 -translate-x-1/2 text-[11px] leading-none transition-[left] duration-500"
+                            style={{ left: `${rideProgressPct}%` }}
+                            aria-hidden
+                        >
+                            🚴
+                        </span>
                     </div>
                 )}
 
