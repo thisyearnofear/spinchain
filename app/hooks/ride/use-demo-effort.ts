@@ -32,7 +32,9 @@ export function useDemoEffort({
   const keysRef = useRef<Set<string>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const coordinatorRef = useRef(coordinator);
-  coordinatorRef.current = coordinator;
+  useEffect(() => {
+    coordinatorRef.current = coordinator;
+  }, [coordinator]);
 
   // ─── Key tracking ──────────────────────────────────────────────
   useEffect(() => {

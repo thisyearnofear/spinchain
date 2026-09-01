@@ -13,16 +13,15 @@
  * 4. Event flash (brief screen-wide flash on phase change / PR)
  */
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore, selectEffort, selectCadence } from "@/app/stores/telemetry-store";
 import { useCoachingStore, selectCurrentInterval } from "@/app/stores/coaching-store";
 import { useUIStore, selectViewMode } from "@/app/stores/ui-store";
-import { useSensoryStore, useSensoryEvent } from "@/app/stores/sensory-store";
+import { useSensoryEvent } from "@/app/stores/sensory-store";
 import {
   computePhaseTheme,
-  phaseAccent,
   type IntervalPhase,
 } from "@/app/lib/phase-theme";
 
@@ -35,9 +34,7 @@ export function EnhancedFlowBackground() {
   const phase = currentInterval?.phase ?? null;
   const sensoryEvent = useSensoryEvent();
 
-  // Skip if not riding or not in immersive mode
-  if (!isRiding || viewMode !== "immersive") return null;
-
+  // All hooks must run before any early return (react-hooks/rules-of-hooks).
   // Compute phase theme
   const theme = useMemo(
     () => computePhaseTheme(phase as IntervalPhase, effort),
@@ -54,13 +51,23 @@ export function EnhancedFlowBackground() {
     return Math.min(1, effort / 100);
   }, [phase, effort, cadence, currentInterval?.targetRpm]);
 
-  // Event flash
+  // Event flash — decays over 600ms after a sensory event. Uses state +
+  // effect to avoid impure Date.now() during render and to animate decay.
   const lastEventType = sensoryEvent?.type;
-  const eventFlashOpacity = useMemo(() => {
-    if (!lastEventType) return 0;
-    const elapsed = Date.now() - (sensoryEvent?.timestamp ?? 0);
-    if (elapsed > 600) return 0;
-    return (1 - elapsed / 600) * 0.3;
+  const [eventFlashOpacity, setEventFlashOpacity] = useState(0);
+  useEffect(() => {
+    if (!lastEventType || !sensoryEvent?.timestamp) {
+      setEventFlashOpacity(0);
+      return;
+    }
+    const elapsed = Date.now() - sensoryEvent.timestamp;
+    if (elapsed > 600) {
+      setEventFlashOpacity(0);
+      return;
+    }
+    setEventFlashOpacity((1 - elapsed / 600) * 0.3);
+    const t = setTimeout(() => setEventFlashOpacity(0), 600 - elapsed);
+    return () => clearTimeout(t);
   }, [lastEventType, sensoryEvent?.timestamp]);
 
   // Particle count scales with intensity
@@ -68,6 +75,9 @@ export function EnhancedFlowBackground() {
     () => Math.floor(8 + intensity * 24),
     [intensity],
   );
+
+  // Skip if not riding or not in immersive mode (after hooks)
+  if (!isRiding || viewMode !== "immersive") return null;
 
   // Grid lines appear at high intensity
   const showGrid = intensity > 0.7;
