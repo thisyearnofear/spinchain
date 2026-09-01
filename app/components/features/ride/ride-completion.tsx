@@ -3,6 +3,12 @@
 /**
  * RideCompletion - Post-ride summary and actions
  *
+ * @deprecated Superseded by `ride-completion-v2.tsx` — the live ride page
+ * (`app/rider/ride/[classId]/page.tsx`) renders RideCompletionV2. This file is
+ * kept only for its `RewardClaimStatus` type export (used by
+ * use-ride-lifecycle / use-ride-rewards / use-ride-persistence) and the barrel
+ * re-export in `index.ts`. Safe to delete once those imports are moved.
+ *
  * Core Principles:
  * - MODULAR: Self-contained completion screen
  * - ACCESSIBLE: Focus management for modal

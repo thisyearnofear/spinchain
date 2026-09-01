@@ -333,14 +333,14 @@ export default function RiderPage() {
                   </div>
                   <h3 className="text-lg font-bold text-white">{coach.name}</h3>
                   <p className="text-xs text-white/50 mb-2">{coach.role}</p>
-                  <p className="text-xs text-white/40 italic mb-3">
+                  <p className="text-xs text-white/60 italic mb-3">
                     {coach.specialty}
                   </p>
                   <div className="flex flex-wrap gap-1 mb-4">
                     {(("specialties" in coach && coach.specialties) ? coach.specialties : []).slice(0, 2).map((power: string) => (
                       <span
                         key={power}
-                        className="text-[9px] font-medium text-white/30 bg-white/5 px-2 py-0.5 rounded"
+                        className="text-[11px] font-medium text-white/70 bg-white/5 px-2 py-0.5 rounded"
                       >
                         {power}
                       </span>
@@ -353,7 +353,7 @@ export default function RiderPage() {
                         {coach.rating}
                       </span>
                     </div>
-                    <div className="text-[10px] font-bold text-white/40 uppercase tracking-tighter">
+                    <div className="text-[11px] font-bold text-white/70 uppercase tracking-tighter">
                       {coach.rides} Rides
                     </div>
                   </div>

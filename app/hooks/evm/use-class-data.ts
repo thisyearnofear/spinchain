@@ -93,6 +93,19 @@ export interface DemoRideOptions {
 }
 
 export function getDemoRideUrl(opts?: DemoRideOptions): string {
+  // Standard demo: a clean, shareable URL. /rider/ride/demo is a first-class
+  // practice route — usePracticeConfig falls back to GUEST_DEMO_CLASS defaults
+  // when the query params are absent.
+  const isStandardDemo =
+    !opts ||
+    (opts.name === undefined &&
+      opts.duration === undefined &&
+      opts.difficulty === undefined &&
+      opts.coachPersonality === undefined);
+  if (isStandardDemo) {
+    return "/rider/ride/demo";
+  }
+
   const name = opts?.name ?? GUEST_DEMO_CLASS.name;
   const duration = opts?.duration ?? GUEST_DEMO_CLASS.duration;
   const personality = opts?.coachPersonality ?? "zen";

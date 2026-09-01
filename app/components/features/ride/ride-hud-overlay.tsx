@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * RideHUDOverlay v1
+ *
+ * @deprecated Superseded by `ride-hud-overlay-v2.tsx` — the live ride page
+ * (`app/rider/ride/[classId]/page.tsx`) renders RideHUDOverlayV2 exclusively.
+ * Kept only for the barrel re-export in `index.ts`; safe to delete with it.
+ */
+
+
 import { memo } from "react";
 import { RideTopBar } from "./ride-top-bar";
 import { RideHUD } from "./ride-hud";

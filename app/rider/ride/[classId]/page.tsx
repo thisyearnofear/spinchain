@@ -10,11 +10,12 @@ import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useUIStore } from "@/app/stores/ui-store";
 import { useRideModalStore } from "@/app/stores/ride-modal-store";
 import { useAccount } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { usePanelState } from "../../../hooks/ui/use-panel-state";
 import { useRideTutorial } from "../../../components/features/ride/ride-tutorial";
 import { RideLoading, RideNotFound } from "../../../components/features/ride/ride-loading";
 import { RideVisualization } from "../../../components/features/ride/ride-visualization";
-import { RideHUDOverlay } from "../../../components/features/ride/ride-hud-overlay";
+// NOTE: RideHUDOverlay v1 was replaced by RideHUDOverlayV2 (see below) — do not reintroduce.
 import { useSwipeGesture } from "@/app/hooks/ride/use-swipe-gesture";
 import type { RideRecordPoint } from "../../../lib/analytics/ride-recorder";
 import type { SessionMilestone } from "@/app/lib/milestones";
@@ -196,6 +197,7 @@ export default function LiveRidePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const classId = params.classId as string;
+  const { openConnectModal } = useConnectModal();
 
   // ─── Data Loading ──────────────────────────────────────────────
   const { isPracticeMode, practiceConfig, practiceClassData } = usePracticeConfig(classId);
@@ -1040,6 +1042,7 @@ export default function LiveRidePage() {
           onExit={lifecycle.handleCompletionExit}
           onRideAgain={handleRideAgain}
           onClaimRewards={rewardsHook.handleClaimRewards}
+          onConnectWallet={() => openConnectModal?.()}
           onSpeakDebrief={(text) => void speak(text, "data")}
           rewardClaimStatus={rewardsHook.rewardClaimStatus}
           spinEarned={rewardsHook.rewards.formattedReward}

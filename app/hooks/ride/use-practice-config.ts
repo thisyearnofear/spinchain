@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   createPracticeClassMetadata,
   generateRouteData,
+  GUEST_DEMO_CLASS,
   type ClassWithRoute,
 } from "../evm/use-class-data";
 
@@ -28,13 +29,44 @@ export interface PracticeClassConfig {
 
 export function usePracticeConfig(classId: string) {
   const searchParams = useSearchParams();
-  const isPracticeMode = searchParams.get("mode") === "practice";
+  // /rider/ride/demo is a first-class practice URL — no ?mode= param needed.
+  const isGuestDemo = classId === "demo";
+  const isPracticeMode = isGuestDemo || searchParams.get("mode") === "practice";
 
   const practiceConfig: PracticeClassConfig | null = useMemo(() => {
     if (!isPracticeMode) return null;
     const name = searchParams.get("name");
     const date = searchParams.get("date");
     const instructor = searchParams.get("instructor");
+
+    // Guest demo fallback: /rider/ride/demo with no query params uses the
+    // canonical guest demo class. Custom demos still pass explicit params.
+    if (isGuestDemo && (!name || !date || !instructor)) {
+      return {
+        name: name || GUEST_DEMO_CLASS.name,
+        date: date || new Date().toISOString(),
+        capacity: Number(searchParams.get("capacity")) || GUEST_DEMO_CLASS.maxRiders,
+        basePrice: Number(searchParams.get("basePrice")) || 0,
+        maxPrice: Number(searchParams.get("maxPrice")) || 0,
+        curveType: "linear" as const,
+        rewardThreshold: Number(searchParams.get("rewardThreshold")) || 150,
+        rewardAmount: Number(searchParams.get("rewardAmount")) || 10,
+        aiEnabled: searchParams.get("aiEnabled") !== "false",
+        aiPersonality:
+          (searchParams.get("aiPersonality") as
+            | "zen"
+            | "drill-sergeant"
+            | "data") || "zen",
+        routeName: searchParams.get("routeName") || GUEST_DEMO_CLASS.name,
+        routeDistance: Number(searchParams.get("routeDistance")) || 15,
+        routeDuration:
+          Number(searchParams.get("routeDuration")) || GUEST_DEMO_CLASS.duration,
+        routeElevation:
+          Number(searchParams.get("routeElevation")) || GUEST_DEMO_CLASS.elevationGain,
+        instructor: instructor || GUEST_DEMO_CLASS.instructor,
+      };
+    }
+
     if (!name || !date || !instructor) return null;
 
     return {

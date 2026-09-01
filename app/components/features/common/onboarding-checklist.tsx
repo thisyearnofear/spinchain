@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, Circle, Wallet, Bluetooth, Timer, ArrowRight } from "lucide-react";
 import { useAccount } from "wagmi";
 import Link from "next/link";
@@ -55,16 +55,25 @@ function deriveCompletedSteps(existingSteps: string[], isConnected: boolean) {
 export function OnboardingChecklist() {
   const { isConnected } = useAccount();
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
-  const [isVisible, setIsVisible] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const prevCountRef = useRef(0);
 
   useEffect(() => {
     const syncChecklist = () => {
       const next = deriveCompletedSteps(readStoredSteps(), isConnected);
       setCompletedSteps(next);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      setIsVisible(next.length < 3);
+      // Success moment: completing the last step this session keeps the panel
+      // visible with a COMPLETED state; riders who return after finishing
+      // don't see it again.
+      if (next.length === 3 && prevCountRef.current < 3) {
+        setJustCompleted(true);
+      }
+      prevCountRef.current = next.length;
     };
 
+    prevCountRef.current = deriveCompletedSteps(readStoredSteps(), isConnected).length;
     syncChecklist();
     window.addEventListener("focus", syncChecklist);
 
@@ -85,7 +94,7 @@ export function OnboardingChecklist() {
       description: "Optional — connect a heart rate monitor for live effort tracking, or use the keyboard simulator.",
       icon: Bluetooth,
       isDone: completedSteps.includes("device"),
-      action: getDemoRideUrl() + "&setup=true",
+      action: `${getDemoRideUrl()}?setup=true`,
       actionLabel: "Pair device",
     },
     {
@@ -99,23 +108,27 @@ export function OnboardingChecklist() {
     },
   ];
 
-  const allDone = steps.every(s => s.isDone);
-  if (!isVisible && !allDone) return null;
-  if (allDone && isVisible) {
-    // Show a "Success" state briefly then hide on next refresh
-  }
+  const allDone = steps.every((s) => s.isDone);
+
+  // Hidden once complete, unless the rider completed it in this session —
+  // then we show the success state so finishing feels rewarded.
+  if (allDone && !justCompleted) return null;
+  if (dismissed) return null;
 
   return (
-    <div className="rounded-3xl border border-[color:var(--border)] bg-gradient-to-br from-purple-900/20 to-indigo-900/20 p-8 backdrop-blur-xl shadow-2xl">
+    <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 p-6 md:p-8 backdrop-blur-xl shadow-[0_20px_80px_rgba(0,0,0,0.15)]">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-white mb-1">Get started in 3 steps</h2>
-          <p className="text-sm text-white mt-1">
+          <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)] mb-1">
+            Get started in 3 steps
+          </h2>
+          <p className="text-sm text-[color:var(--muted)] mt-1">
             Everything is optional — you can start with just a demo ride.
           </p>
         </div>
         {allDone && (
-          <span className="rounded-full bg-gradient-to-r from-emerald-400 to-emerald-300 px-4 py-2 text-xs font-bold text-white shadow-lg">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--success)]/15 px-4 py-2 text-xs font-bold text-[color:var(--success)]">
+            <CheckCircle2 className="h-3.5 w-3.5" />
             COMPLETED
           </span>
         )}
@@ -123,53 +136,61 @@ export function OnboardingChecklist() {
 
       <div className="grid gap-6 md:grid-cols-3">
         {steps.map((step, i) => (
-          <div 
+          <div
             key={step.id}
             className={`relative group rounded-2xl border p-5 transition-all duration-300 ${
-              step.isDone 
-                ? "bg-gradient-to-br from-emerald-500/10 to-emerald-400/5 border-emerald-500/20 shadow-[0_8px_25px_rgba(0,255,85,0.1)]" 
-                : "bg-white/5 border-white/10 hover:border-white/20 hover:shadow-[0_8px_25px_rgba(255,255,255,0.1)]"
+              step.isDone
+                ? "bg-[color:var(--success)]/5 border-[color:var(--success)]/20"
+                : "bg-[color:var(--surface-strong)]/60 border-[color:var(--border)] hover:border-[color:var(--accent)]/40"
             }`}
           >
             <div className="flex items-start justify-between mb-4">
-              <div className={`rounded-xl p-2.5 ${step.isDone ? "bg-gradient-to-r from-emerald-400 to-emerald-300 text-white shadow-sm" : "bg-white/15 text-white/80"}`}>
+              <div
+                className={`rounded-xl p-2.5 ${
+                  step.isDone
+                    ? "bg-[color:var(--success)]/15 text-[color:var(--success)]"
+                    : "bg-[color:var(--accent)]/10 text-[color:var(--accent)]"
+                }`}
+              >
                 <step.icon className="h-5 w-5" />
               </div>
               {step.isDone ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-400 animate-pulse" />
+                <CheckCircle2 className="h-5 w-5 text-[color:var(--success)]" />
               ) : (
-                <Circle className="h-5 w-5 text-white/70 group-hover:text-white transition-colors" />
+                <Circle className="h-5 w-5 text-[color:var(--muted)] group-hover:text-[color:var(--foreground)] transition-colors" />
               )}
             </div>
 
-            <h3 className={`font-bold text-xl ${step.isDone ? "text-emerald-400" : "text-white"}`}>
+            <h3
+              className={`font-bold text-lg ${step.isDone ? "text-[color:var(--success)]" : "text-[color:var(--foreground)]"}`}
+            >
               {step.title}
             </h3>
-            <p className="text-sm text-white mt-2 leading-relaxed">
+            <p className="text-sm text-[color:var(--muted)] mt-2 leading-relaxed">
               {step.description}
             </p>
 
             {!step.isDone && step.action && (
-              <Link 
+              <Link
                 href={step.action}
-                className="mt-4 flex w-full items-center justify-between rounded-2xl bg-gradient-to-r from-white/20 to-white/10 px-4 py-3 text-sm font-medium text-white hover:from-white/30 hover:to-white/20 transition-all active:scale-95"
+                className="mt-4 flex w-full items-center justify-between rounded-2xl border border-[color:var(--accent)]/30 bg-[color:var(--accent)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--accent)] transition-colors hover:border-[color:var(--accent)]/60 hover:bg-[color:var(--accent)]/20 active:scale-[0.98]"
               >
-                <span className="text-white">{step.actionLabel}</span>
-                <ArrowRight className="h-4 w-4 text-white/90" />
+                <span>{step.actionLabel}</span>
+                <ArrowRight className="h-4 w-4" />
               </Link>
             )}
 
             {i < steps.length - 1 && (
-              <div className="hidden md:block absolute top-1/2 -right-3 h-px w-6 bg-white/10" />
+              <div className="hidden md:block absolute top-1/2 -right-3 h-px w-6 bg-[color:var(--border)]" />
             )}
           </div>
         ))}
       </div>
-      
+
       {allDone && (
-        <button 
-          onClick={() => setIsVisible(false)}
-          className="mt-8 w-full text-center text-sm text-white hover:text-white transition-colors hover:scale-105"
+        <button
+          onClick={() => setDismissed(true)}
+          className="mt-8 w-full text-center text-sm text-[color:var(--muted)] transition-colors hover:text-[color:var(--foreground)]"
         >
           Dismiss checklist
         </button>

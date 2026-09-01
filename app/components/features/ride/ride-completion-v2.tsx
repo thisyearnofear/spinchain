@@ -53,6 +53,10 @@ interface RideCompletionV2Props {
   onRideAgain?: () => void;
   onShare?: () => void;
   onClaimRewards?: () => void;
+  /** Opens the wallet connect modal. When provided and the wallet is
+   *  disconnected, the claim button becomes the conversion CTA
+   *  ("Connect Wallet to Claim · X SPIN") instead of a disabled stub. */
+  onConnectWallet?: () => void;
   onExportTCX?: () => void;
   /** Optional vocal replay of the coach debrief (TTS) — debrief text is
    *  passed back so the page owns the voice pipeline. */
@@ -93,6 +97,7 @@ export function RideCompletionV2({
   onRideAgain,
   onShare,
   onClaimRewards,
+  onConnectWallet,
   onExportTCX,
   onSpeakDebrief,
   rewardClaimStatus,
@@ -328,7 +333,7 @@ export function RideCompletionV2({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="mt-4 flex items-center gap-3 text-white/40"
+            className="mt-4 flex items-center gap-3 text-white/60"
           >
             <span className="text-xs">{formatTime(elapsedTime)}</span>
             <span>·</span>
@@ -393,7 +398,7 @@ export function RideCompletionV2({
                 >
                   {heroMilestone.title}
                 </p>
-                <p className="relative mt-1 text-[10px] uppercase tracking-[0.3em] text-white/40 font-bold">
+                <p className="relative mt-1 text-[10px] uppercase tracking-[0.3em] text-white/60 font-bold">
                   {MILESTONE_TIERS[heroMilestone.tier].label} milestone
                   <span className="normal-case tracking-normal font-normal"> · {heroMilestone.description}</span>
                 </p>
@@ -410,7 +415,7 @@ export function RideCompletionV2({
 
             {/* Coach's note + optional vocal replay */}
             <div className="relative pl-4 border-l-2 border-amber-400/40 mb-6">
-              <p className="text-[9px] uppercase tracking-widest text-white/30 font-bold mb-1">
+              <p className="text-[9px] uppercase tracking-widest text-white/60 font-bold mb-1">
                 {agentName}&apos;s Notes
               </p>
               <p className="text-xs leading-relaxed text-white/70 italic">
@@ -472,7 +477,7 @@ export function RideCompletionV2({
                         <span className="ml-0.5">{tierCounts[t]}</span>
                       </span>
                     ))}
-                    <span className={`text-white/30 transition-transform ${showMilestones ? "rotate-180" : ""}`}>▾</span>
+                    <span className={`text-white/60 transition-transform ${showMilestones ? "rotate-180" : ""}`}>▾</span>
                   </span>
                 </button>
 
@@ -501,7 +506,7 @@ export function RideCompletionV2({
                             <span className="text-xl">{MILESTONE_TIERS[milestone.tier].icon}</span>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-white">{milestone.title}</p>
-                              <p className="text-[10px] text-white/40 truncate">{milestone.description}</p>
+                              <p className="text-[10px] text-white/60 truncate">{milestone.description}</p>
                             </div>
                             <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: MILESTONE_TIERS[milestone.tier].color }}>
                               {MILESTONE_TIERS[milestone.tier].label}
@@ -543,7 +548,7 @@ export function RideCompletionV2({
               stats phase leads with one decision (SPIN + debrief + actions),
               not eight competing ones. */}
           <details className="group mb-4 rounded-xl border border-white/10 bg-white/[0.03]">
-            <summary className="flex cursor-pointer select-none items-center justify-between px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-white/40 transition-colors hover:text-white/60 [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer select-none items-center justify-between px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-white/60 transition-colors hover:text-white/60 [&::-webkit-details-marker]:hidden">
               <span>Comparison &amp; next ride</span>
               <span className="transition-transform group-open:rotate-180">▾</span>
             </summary>
@@ -560,7 +565,7 @@ export function RideCompletionV2({
 
               {/* Next ride recommendation */}
               <div className="mt-4 pt-3 border-t border-white/5">
-                <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">
+                <p className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-1">
                   Next Ride
                 </p>
                 <p className="text-xs text-white/50 leading-relaxed">
@@ -654,14 +659,19 @@ export function RideCompletionV2({
             </div>
           )}
 
-          {/* Claim rewards */}
-          {!isPracticeMode && onClaimRewards && (
+          {/* Claim / wallet conversion — shown for live classes AND for
+              practice/demo riders who finished without a wallet: seeing the
+              SPIN they earned but can't claim yet is the hook.
+              Connected practice riders see no button (claims are gated off
+              in practice mode) so we don't hand them a dead "Claim" click. */}
+          {((!isPracticeMode && onClaimRewards) || (!walletConnected && onConnectWallet)) && (
             <ClaimRewardsButton
               walletConnected={walletConnected}
               rewardClaimStatus={rewardClaimStatus}
               spinEarned={spinEarned}
               agentName={agentName}
-              onClick={onClaimRewards}
+              onClick={walletConnected ? onClaimRewards : onConnectWallet}
+              onConnectWallet={onConnectWallet}
             />
           )}
         </motion.div>
@@ -684,7 +694,7 @@ function InlineStat({
   return (
     <span className={`whitespace-nowrap text-xl font-black tabular-nums tracking-tight ${highlight ? "text-amber-300" : "text-white"}`}>
       {value}
-      {unit && <span className="ml-1 text-[10px] font-semibold uppercase tracking-wider text-white/30">{unit}</span>}
+      {unit && <span className="ml-1 text-[10px] font-semibold uppercase tracking-wider text-white/60">{unit}</span>}
     </span>
   );
 }
@@ -716,7 +726,7 @@ function StorageDetails({
     <div className="mt-4 border-t border-white/5 pt-3">
       <button
         onClick={() => setShowDetails(!showDetails)}
-        className="flex items-center gap-2 text-[10px] text-white/30 hover:text-white/50 transition-colors w-full"
+        className="flex items-center gap-2 text-[10px] text-white/60 hover:text-white/50 transition-colors w-full"
       >
         <svg className={`w-3 h-3 transition-transform ${showDetails ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -743,7 +753,7 @@ function StorageDetails({
 
             {/* Settlement status */}
             {settlementStatus && settlementStatus !== "skipped" && (
-              <div className="mt-2 flex items-center gap-2 text-[10px] text-white/40">
+              <div className="mt-2 flex items-center gap-2 text-[10px] text-white/60">
                 <span>Settlement: </span>
                 {settlementStatus === "confirmed" && <span className="text-emerald-400">Confirmed</span>}
                 {settlementStatus === "pending" && <span className="text-amber-400">Pending</span>}
@@ -753,7 +763,7 @@ function StorageDetails({
 
             {/* Coach rating */}
             <div className="mt-3 flex items-center gap-2">
-              <span className="text-[10px] text-white/30">Rate coaching:</span>
+              <span className="text-[10px] text-white/60">Rate coaching:</span>
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
@@ -777,6 +787,7 @@ function ClaimRewardsButton({
   spinEarned,
   agentName,
   onClick,
+  onConnectWallet,
 }: {
   walletConnected: boolean;
   rewardClaimStatus?: {
@@ -789,23 +800,42 @@ function ClaimRewardsButton({
   };
   spinEarned: string;
   agentName: string;
-  onClick: () => void;
+  onClick?: () => void;
+  onConnectWallet?: () => void;
 }) {
-  const claimButtonLabel = !walletConnected
-    ? "Connect Wallet to Claim"
-    : rewardClaimStatus?.phase === "requesting"
-      ? "Requesting Verification…"
-      : rewardClaimStatus?.phase === "claimed"
-        ? "✓ Rewards Claimed"
-        : rewardClaimStatus?.phase === "ready"
-          ? "Claim Verified Rewards"
-          : "Claim your reward";
+  const isWalletConversion = !walletConnected && !!onConnectWallet;
 
+  const claimButtonLabel = isWalletConversion
+    ? "Connect Wallet to Claim"
+    : !walletConnected
+      ? "Connect Wallet to Claim"
+      : rewardClaimStatus?.phase === "requesting"
+        ? "Requesting Verification…"
+        : rewardClaimStatus?.phase === "claimed"
+          ? "✓ Rewards Claimed"
+          : rewardClaimStatus?.phase === "ready"
+            ? "Claim Verified Rewards"
+            : "Claim your reward";
+
+  // Disabled only mid-claim or after claiming. A disconnected wallet with a
+  // connect handler available is an ACTIVE conversion CTA, not a dead button.
   const claimButtonDisabled =
-    !walletConnected ||
-    rewardClaimStatus?.phase === "requested" ||
-    rewardClaimStatus?.phase === "claiming" ||
-    rewardClaimStatus?.phase === "claimed";
+    !isWalletConversion &&
+    (!walletConnected ||
+      rewardClaimStatus?.phase === "requested" ||
+      rewardClaimStatus?.phase === "claiming" ||
+      rewardClaimStatus?.phase === "claimed");
+
+  if (isWalletConversion) {
+    return (
+      <button
+        onClick={onClick}
+        className="w-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 py-3 text-sm font-semibold text-black shadow-lg shadow-amber-500/40 transition-all active:scale-95"
+      >
+        {claimButtonLabel} · {spinEarned} SPIN
+      </button>
+    );
+  }
 
   return (
     <button

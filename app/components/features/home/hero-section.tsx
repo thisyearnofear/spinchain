@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import { AnimatedCard, Floating, MagneticButton } from "@/app/components/ui/animated-card";
+import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 import Link from "next/link";
 
 const quickStarts = [
@@ -37,7 +38,7 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
 
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
-            href="/rider/ride/demo?mode=practice&demo=true&auto=true&name=Accelerator+Pitch"
+            href={getDemoRideUrl({ name: "Accelerator Pitch" })}
             className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-[color:var(--accent)]/30 transition-[transform,box-shadow] duration-150 hover:shadow-xl hover:shadow-[color:var(--accent)]/40 active:scale-95"
           >
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
@@ -102,7 +103,7 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
       <div className="mt-2 grid w-full gap-4 md:gap-6 lg:grid-cols-2">
         <AnimatedCard glowColor="var(--accent)">
           <Link
-            href="/rider/ride/demo?mode=practice&demo=true&auto=true&name=Accelerator+Pitch"
+            href={getDemoRideUrl({ name: "Accelerator Pitch" })}
             className="group relative block h-full overflow-hidden p-6 md:p-8"
             aria-label="Start riding with a demo or class preview"
           >
