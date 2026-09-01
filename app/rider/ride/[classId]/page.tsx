@@ -248,10 +248,11 @@ export default function LiveRidePage() {
     try { return probeGpu(); } catch { return null; }
   }, []);
   const canRender3d = gpuProbe ? gpuProbe.recommendedMode === "tron-3d" : true;
-  const effectiveIsFocus = viewMode === "focus" || !canRender3d;
+  const effectiveIsFocus = viewMode === "focus";
   const handleToggleViewMode = useCallback(() => {
-    if (!canRender3d) return;
-    haptic.trigger("light");
+    // Allow override on low-end — VisualizationEngine will auto-degrade back
+    // to Focus if FPS stays <25 for 15s, so trying 3D is safe.
+    haptic.trigger(canRender3d ? "light" : "warning");
     toggleViewMode();
   }, [canRender3d, haptic, toggleViewMode]);
   const hudMode = useUIStore((s) => s.hudMode);
@@ -993,6 +994,29 @@ export default function LiveRidePage() {
             </p>
           </div>
 
+          {/* View switcher — obvious before ride (same state as mid-ride pill).
+              Segmented Focus/Immersive with live preview crossfade underneath. */}
+          <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl p-1">
+            <button
+              onClick={() => { if (!effectiveIsFocus) handleToggleViewMode(); }}
+              className={`rounded-full px-4 py-1.5 text-xs font-black transition-colors ${effectiveIsFocus ? "bg-white text-black shadow" : "text-white/60 hover:text-white"}`}
+              aria-pressed={effectiveIsFocus}
+              aria-label="Switch to 2D Focus view"
+            >
+              2D Focus
+            </button>
+            <button
+              onClick={() => { if (effectiveIsFocus) handleToggleViewMode(); }}
+              className={`rounded-full px-4 py-1.5 text-xs font-black transition-colors flex items-center gap-1.5 ${!effectiveIsFocus ? "bg-white text-black shadow" : "text-white/60 hover:text-white"}`}
+              aria-pressed={!effectiveIsFocus}
+              aria-label="Switch to immersive 3D view"
+            >
+              3D Immersive
+              {!canRender3d && <span className="text-[8px] font-bold uppercase tracking-widest opacity-60">Low GPU</span>}
+            </button>
+          </div>
+          <p className="pointer-events-none text-[10px] font-bold uppercase tracking-[0.3em] text-white/25">Press V to toggle • Preview updates instantly</p>
+
           <button
             onClick={() => setShowActivation(true)}
             className="pointer-events-auto group relative rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-10 py-4 text-base font-black text-white shadow-[0_0_60px_rgba(245,158,11,0.5)] hover:scale-105 active:scale-95 transition-transform"
@@ -1041,20 +1065,21 @@ export default function LiveRidePage() {
             </button>
           )}
           {/* 2D/3D view toggle — crossfades stacked renderers (RideVisualization
-              keeps both mounted after probe). Disabled when GPU can't do 3D. */}
+              keeps both mounted after probe). Always enabled; low-end gets
+              a warning haptic and auto-degrades back if FPS suffers. */}
           {hudMode !== "minimal" && (
             <button
               onClick={handleToggleViewMode}
-              disabled={!canRender3d}
               className={`flex items-center gap-1.5 rounded-full border backdrop-blur-xl px-3 py-1.5 text-[10px] font-bold transition-colors ${
-                !canRender3d
-                  ? "border-white/5 bg-black/40 text-white/25 cursor-not-allowed"
+                !canRender3d && effectiveIsFocus
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-200/70 hover:text-amber-100"
                   : "border-white/15 bg-black/60 text-white/60 hover:text-white"
               }`}
-              title={!canRender3d ? "3D unavailable on this device" : `Switch to ${effectiveIsFocus ? "immersive 3D" : "2D focus"} (V)`}
-              aria-label={!canRender3d ? "3D unavailable" : `Switch to ${effectiveIsFocus ? "immersive 3D" : "2D focus"} view`}
+              title={!canRender3d ? "Try immersive 3D anyway — will auto-switch back if slow (V)" : `Switch to ${effectiveIsFocus ? "immersive 3D" : "2D focus"} (V)`}
+              aria-label={`Switch to ${effectiveIsFocus ? "immersive 3D" : "2D focus"} view`}
             >
               {effectiveIsFocus ? "3D" : "2D"}
+              {!canRender3d && effectiveIsFocus && <span className="text-[8px] opacity-60">• Low GPU</span>}
             </button>
           )}
         </div>

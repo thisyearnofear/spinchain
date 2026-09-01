@@ -114,17 +114,17 @@ export function RideVisualization({
 
   const renderConfig = visualizationConfig ?? localRenderConfig;
 
+  // Respect the user's viewMode choice — allow forcing 3D even when the
+  // probe recommends focus. The engine will auto-degrade back to 2D if FPS
+  // stays <25, so the override is safe.
   const effectiveMode: RenderMode =
-    viewMode === "focus"
-      ? "focus-2d"
-      : renderConfig?.mode ?? "tron-3d";
+    viewMode === "focus" ? "focus-2d" : "tron-3d";
 
   const routeProgress = isRiding || rideProgress > 0 ? rideProgress / 100 : 0;
   const visualizerMode: "preview" | "ride" | "finished" =
     rideProgress >= 100 ? "finished" : isRiding || rideProgress > 0 ? "ride" : "preview";
 
   const isFocus = effectiveMode === "focus-2d";
-  const canRender3d = renderConfig?.canRender3d ?? true;
   // Keep both renderers mounted after initial probe for instant crossfade.
   // Before probe, render only the fallback (tron) to avoid double-mount flash.
   const shouldKeepAlive = !!renderConfig && hasPreloaded;
@@ -223,35 +223,34 @@ export function RideVisualization({
         />
       </motion.div>
 
-      {/* Tron (3D) — stacked, hidden but mounted when canRender3d. frameloop="demand" pauses when opacity 0. */}
-      {canRender3d ? (
-        <motion.div
-          className="absolute inset-0"
-          initial={false}
-          animate={{ opacity: isFocus ? 0 : 1 }}
-          transition={{ duration: 0.22, ease: "easeInOut" }}
-          style={{ pointerEvents: isFocus ? "none" : "auto" }}
-          aria-hidden={isFocus}
-        >
-          <TronRenderer
-            mode={visualizerMode}
-            progress={routeProgress}
-            routeElevationProfile={routeElevationProfile}
-            routeCoordinates={routeCoordinates}
-            currentRouteCoordinate={currentRouteCoordinate}
-            telemetry={telemetryForTron}
-            routeTheme={routeTheme}
-            storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
-            avatarId={searchParams.get("avatarId") || undefined}
-            equipmentId={searchParams.get("equipmentId") || undefined}
-            quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
-            className="h-full w-full"
-            userDisplayName={undefined}
-            intervalPhase={(currentInterval?.phase ?? undefined) as IntervalPhase | undefined}
-            flowTier={flowTier}
-          />
-        </motion.div>
-      ) : null}
+      {/* Tron (3D) — stacked, always mounted after probe (low-end still gets
+           low quality; auto-degrade will bail out if FPS poor). frameloop="demand" pauses when invisible. */}
+      <motion.div
+        className="absolute inset-0"
+        initial={false}
+        animate={{ opacity: isFocus ? 0 : 1 }}
+        transition={{ duration: 0.22, ease: "easeInOut" }}
+        style={{ pointerEvents: isFocus ? "none" : "auto" }}
+        aria-hidden={isFocus}
+      >
+        <TronRenderer
+          mode={visualizerMode}
+          progress={routeProgress}
+          routeElevationProfile={routeElevationProfile}
+          routeCoordinates={routeCoordinates}
+          currentRouteCoordinate={currentRouteCoordinate}
+          telemetry={telemetryForTron}
+          routeTheme={routeTheme}
+          storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
+          avatarId={searchParams.get("avatarId") || undefined}
+          equipmentId={searchParams.get("equipmentId") || undefined}
+          quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
+          className="h-full w-full"
+          userDisplayName={undefined}
+          intervalPhase={(currentInterval?.phase ?? undefined) as IntervalPhase | undefined}
+          flowTier={flowTier}
+        />
+      </motion.div>
     </div>
   );
 }

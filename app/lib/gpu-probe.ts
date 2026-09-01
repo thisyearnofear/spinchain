@@ -59,16 +59,19 @@ export function probeGpu(): GpuCapability {
   const vendor = classifyVendor(renderer);
 
   const maxTextureSize = ctx ? ctx.getParameter(ctx.MAX_TEXTURE_SIZE) : 0;
-  const cores = (typeof navigator !== "undefined" && navigator.hardwareConcurrency) || 4;
-  const memoryGb = (navigator as unknown as { deviceMemory?: number }).deviceMemory || 4;
+  const rawCores = typeof navigator !== "undefined" ? navigator.hardwareConcurrency : undefined;
+  const rawMemory = (navigator as unknown as { deviceMemory?: number })?.deviceMemory;
+  const cores = typeof rawCores === "number" ? rawCores : 0;
+  const memoryGb = typeof rawMemory === "number" ? rawMemory : 0;
 
-  // Determine low-end based on vendor, cores, memory
+  // Determine low-end — only count cores/memory when explicitly available;
+  // unknown devices should not be penalised (deviceMemory is Chromium-only).
   const isLowEnd =
     vendor === "intel-hd" ||
     vendor === "mali" ||
-    cores <= 4 ||
-    memoryGb <= 4 ||
-    maxTextureSize < 4096;
+    (typeof rawCores === "number" && rawCores <= 2) ||
+    (typeof rawMemory === "number" && rawMemory <= 4) ||
+    (maxTextureSize > 0 && maxTextureSize < 2048);
 
   const canPostProcess = !isLowEnd && webgl2 && maxTextureSize >= 8192;
 
