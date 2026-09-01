@@ -241,14 +241,13 @@ Commit `bb6be20` had a working-but-janky ride. Over the next **66 commits**, the
 
 ## 3. Visualization Renderer System
 
-### Renderer UX: Pre-Ride Selection
+### Renderer UX: Discoverable & Instant Switching (Pre-Ride + Mid-Ride)
 
-The renderer system is designed for **pre-ride selection**, not mid-ride switching:
+> **Updated 2026-09-01** — previously pre-ride only; now keep-alive crossfade. See `docs/SKILLS-PLAN.md` for tooling evaluation.
 
-1. **Instructor or route sets a default** — "Alpine Climb" uses Tron, "Coastal Ride" defaults to photogrammetry
-2. **Rider can override in settings** — "I always want the Tron aesthetic" or "Surprise me"
-3. **Auto-detection handles the rest** — "Photogrammetry" without compute shaders → falls back to Tron
-4. **Future**: mid-ride pause switch (engine disposes current renderer, mounts new one)
+**Pre-ride (primary, delightful):** `app/rider/ride/[classId]/page.tsx:980` shows a segmented `2D Focus | 3D Immersive` control above `Start Ride` + `Press V to toggle` hint. `RideVisualization` (`app/components/features/ride/ride-visualization.tsx:115`) keeps both `TronRenderer` and `FocusRenderer` mounted after `probeGpu()` and crossfades 220ms (`framer-motion`), both bundles preloaded on mount so the first toggle doesn't suspend. Same `routeElevationProfile` drives both — SVG elevation line morphs to 3D road horizon. User choice `ui-store.ts:viewMode` (`immersive`/`focus`, persisted `spinchain-ride-ui`) now **wins over the probe** — previously `effectiveMode` was hard-gated to `focus-2d` when `isLowEnd`; now it is `viewMode === "focus" ? "focus-2d" : "tron-3d"` and the probe only sets quality + `Low GPU` badge. Override is safe because `VisualizationEngine` auto-degrades back to Focus if FPS stays <25 ×3 samples (~15s).
+
+**Mid-ride (invisible, safe):** compact `2D`/`3D` pill at `top-4 right-4` `page.tsx:1043` (`hudMode !== "minimal"`, `V` via `use-ride-keyboard.ts:36` as escape, `warning` haptic on low-end). `Canvas frameloop="demand"` pauses when hidden; `EnhancedFlowBackground` fades opacity 220ms instead of popping. `page.tsx:265` subscribes to `visualization:degraded` and flips to Focus, while a lightweight rAF feeds `visualization.onFrame()` so degradation actually fires (previously half-wired).
 
 **Key insight**: The ride logic never changes regardless of the renderer. Telemetry, coaching, rewards, and social features all work identically whether the rider sees neon vectors, photorealistic splats, or AI dreamscapes.
 
@@ -313,9 +312,13 @@ class VisualizationEngine {
 ### GPU Probe Utility (`app/lib/gpu-probe.ts`)
 
 ```typescript
-// probeWebGLAvailable() — test WebGL with throwaway canvas (never mount R3F without this)
-// supportsComputeShaders() — required for SplatRenderer
-// supportsWebGPU() — required for AIGenRenderer
+// probeGpu() — synchronous WebGL probe + vendor classify (cached per session)
+// isLowEnd only when explicitly poor hardware:
+//   vendor === "mali"/"intel-hd" || (cores !== undefined && cores <= 2)
+//   || (memory !== undefined && memory <= 4) || maxTexture < 2048
+// Unknown deviceMemory/hardwareConcurrency (most browsers) no longer penalised.
+// recommendedMode: isLowEnd || (!webgl2 && maxTexture < 2048) ? "focus-2d" : "tron-3d"
+// getQualitySettings() — low: 50p/30fps no bloom, high: 500p/120fps bloom
 ```
 
 ### Renderer Selection Logic
@@ -324,13 +327,15 @@ class VisualizationEngine {
 Device loads ride page
        │
        ▼
-Probe WebGL availability
+probeGpu() cached → currentConfig { mode, canRender3d, quality, gpu, degraded }
        │
-       ├── WebGL available ──┬── User prefers "immersive" → Tron
-       │                     ├── User prefers "splat" → test compute → Splat or Tron
-       │                     └── User prefers "dreamscape" → test WebGPU → AI or Tron
-       │
-       └── WebGL unavailable → Focus Renderer (2D SVG, always works)
+       ├── User prefers immersive + canRender3d → Tron (high/low quality via isLowEnd)
+       ├── User prefers immersive + !canRender3d → still Tron (override, low quality, warning badge)
+       │                                          └─ auto-degrade to Focus if FPS <25 ×3 via rAF onFrame feed
+       ├── User prefers focus → Focus (2D SVG, always works)
+       └── WebGL unavailable → Focus (probe handles, no Canvas mount)
+Pre-ride: segmented control above Start Ride + V, live 220ms crossfade (both mounted after probe)
+Mid-ride: pill 2D/3D + V, keep-alive, frameloop="demand" pauses hidden renderer
 ```
 
 ---

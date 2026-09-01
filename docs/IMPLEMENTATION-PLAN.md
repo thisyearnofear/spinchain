@@ -157,6 +157,20 @@
 
 ---
 
+## Phase 6: Tooling & Visualization Polish ✅ SHIPPED 2026-09-01
+
+**Goal**: Make 2D/3D switching discoverable + delightful and lock in agent quality gates.
+
+### 6.1 Delightful 2D/3D Switching
+- **Commits**: `e6520a0` + `32c4dba` — `ride-visualization.tsx` + `page.tsx` + `gpu-probe.ts` + `enhanced-flow-background.tsx` + `visualization-engine.ts` wiring
+- **Before**: hard ternary unmount, `Suspense` spinner flash, `probeGpu` treated unknown `deviceMemory`/`cores` as low-end (every Chromium-less browser → `focus-2d`), pill only visible mid-ride and disabled on low-end, `EnhancedFlowBackground` popped via `return null`, `visualization:degraded` never fired (no `onFrame` feed)
+- **After**: keep-alive stacked (`motion` 220ms crossfade, both bundles preloaded on mount), `probeGpu` only counts `cores`/`memory` when explicitly available (`cores <=2`, `memory <=4`, `maxTexture <2048`), `effectiveMode = viewMode === "focus" ? "focus-2d" : "tron-3d"` so user override wins, pre-ride segmented `2D Focus | 3D Immersive` above `Start Ride` + `Press V` hint, mid-ride pill always enabled with `Low GPU` badge + `warning` haptic, `frameloop="demand"` pauses hidden renderer, `Background` fades opacity, rAF feeds `visualization.onFrame()` and `visualization:degraded` auto-flips to Focus at <25fps ×3
+
+### 6.2 Agent Skills Evaluation
+- **Doc**: `docs/SKILLS-PLAN.md` (review only, no installs executed)
+- **Verdict**: `react-doctor` 14.7k★ → **Install now** (deterministic lint + `scan http://localhost:3000` chrome trace + diff-only CI gate); `threejs-game-skills` 1.4k★ → **Evaluate selectively** (`aaa-graphics-builder` + `debug-profiler` + `qa-release` only); `webgpu-claude-skill` 1.2k★ → **Park** until `three/webgpu` migration
+- **Flagged prompts not run**: `npx skills add ...` / `./install.sh --codex` / `npx react-doctor@latest` / `npx react-doctor@latest ci install` / `npx react-doctor@latest scan` / `/skill install webgpu-threejs-tsl@...`
+
 ## What NOT To Build (Yet)
 
 These are explicitly deferred until the wedge is validated with real users:
