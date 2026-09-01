@@ -28,6 +28,7 @@ import {
 import { CoachChannel } from "../../../components/features/ride/coach-channel";
 import { EnhancedFlowBackground } from "../../../components/features/ride/enhanced-flow-background";
 import { RideHUDOverlayV2 } from "../../../components/features/ride/ride-hud-overlay-v2";
+import { probeGpu } from "@/app/lib/gpu-probe";
 import { RideTransitionOverlay } from "../../../components/features/ride/ride-transition-overlay";
 import { RideCompletionV2 } from "../../../components/features/ride/ride-completion-v2";
 import { ModalStack } from "../../../components/features/ride/modal-stack";
@@ -241,12 +242,51 @@ export default function LiveRidePage() {
   const panelState = usePanelState(deviceType);
   const viewMode = useUIStore((s) => s.viewMode);
   const toggleViewMode = useUIStore((s) => s.toggleViewMode);
+  const haptic = useHaptic();
+  const gpuProbe = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    try { return probeGpu(); } catch { return null; }
+  }, []);
+  const canRender3d = gpuProbe ? gpuProbe.recommendedMode === "tron-3d" : true;
+  const effectiveIsFocus = viewMode === "focus" || !canRender3d;
+  const handleToggleViewMode = useCallback(() => {
+    if (!canRender3d) return;
+    haptic.trigger("light");
+    toggleViewMode();
+  }, [canRender3d, haptic, toggleViewMode]);
   const hudMode = useUIStore((s) => s.hudMode);
   const setHudMode = useUIStore((s) => s.setHudMode);
   const toggleQuietHud = useCallback(
     () => setHudMode(hudMode === "minimal" ? "full" : "minimal"),
     [setHudMode, hudMode],
   );
+
+  // Auto-degrade to Focus when VisualizationEngine detects sustained low FPS.
+  useEffect(() => {
+    const bus = (coordinator as unknown as { bus?: { on: (e: string, h: (d: unknown) => void) => () => void } })?.bus;
+    if (!bus) return;
+    const unsub = bus.on("visualization:degraded", () => {
+      if (useUIStore.getState().viewMode === "immersive") {
+        useUIStore.getState().setViewMode("focus");
+      }
+    });
+    return unsub;
+  }, [coordinator]);
+
+  // Feed VisualizationEngine FPS sampler so degraded detection actually works.
+  // RouteVisualizer is frameloop="demand", so we drive onFrame from a lightweight rAF here.
+  useEffect(() => {
+    if (!isRiding || effectiveIsFocus) return;
+    const viz = (coordinator as unknown as { visualization?: { onFrame: () => void } })?.visualization;
+    if (!viz?.onFrame) return;
+    let raf = 0;
+    const loop = () => {
+      viz.onFrame();
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [isRiding, effectiveIsFocus, coordinator]);
 
   useEffect(() => {
     if (isRiding) panelState.startRideLayout();
@@ -348,7 +388,6 @@ export default function LiveRidePage() {
 
   // ─── Mobile Hooks ──────────────────────────────────────────────
   const { request: requestWakeLock, release: releaseWakeLock, isActive: wakeLockActive } = useWakeLock();
-  const haptic = useHaptic();
 
   useEffect(() => {
     if (isRiding && deviceType === "mobile") requestWakeLock();
@@ -1001,17 +1040,21 @@ export default function LiveRidePage() {
               Keys
             </button>
           )}
-          {/* 2D/3D view toggle — the v2 HUD dropped the old top-bar button,
-              and viewMode persists; riders stuck in 2D had no visible way
-              back to the immersive world. */}
+          {/* 2D/3D view toggle — crossfades stacked renderers (RideVisualization
+              keeps both mounted after probe). Disabled when GPU can't do 3D. */}
           {hudMode !== "minimal" && (
             <button
-              onClick={toggleViewMode}
-              className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 backdrop-blur-xl px-3 py-1.5 text-[10px] font-bold text-white/60 hover:text-white transition-colors"
-              title={`Switch to ${viewMode === "immersive" ? "2D focus" : "immersive 3D"} (V)`}
-              aria-label={`Switch to ${viewMode === "immersive" ? "2D focus" : "immersive 3D"} view`}
+              onClick={handleToggleViewMode}
+              disabled={!canRender3d}
+              className={`flex items-center gap-1.5 rounded-full border backdrop-blur-xl px-3 py-1.5 text-[10px] font-bold transition-colors ${
+                !canRender3d
+                  ? "border-white/5 bg-black/40 text-white/25 cursor-not-allowed"
+                  : "border-white/15 bg-black/60 text-white/60 hover:text-white"
+              }`}
+              title={!canRender3d ? "3D unavailable on this device" : `Switch to ${effectiveIsFocus ? "immersive 3D" : "2D focus"} (V)`}
+              aria-label={!canRender3d ? "3D unavailable" : `Switch to ${effectiveIsFocus ? "immersive 3D" : "2D focus"} view`}
             >
-              {viewMode === "immersive" ? "2D" : "3D"}
+              {effectiveIsFocus ? "3D" : "2D"}
             </button>
           )}
         </div>

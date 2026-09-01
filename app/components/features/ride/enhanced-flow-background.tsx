@@ -76,14 +76,22 @@ export function EnhancedFlowBackground() {
     [intensity],
   );
 
-  // Skip if not riding or not in immersive mode (after hooks)
-  if (!isRiding || viewMode !== "immersive") return null;
-
   // Grid lines appear at high intensity
   const showGrid = intensity > 0.7;
 
+  // Crossfade with visualization switch — keep mounted for 220ms after
+  // leaving immersive so the world doesn't pop. isRiding gate stays hard.
+  if (!isRiding) return null;
+
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden -z-20">
+    <motion.div
+      className="fixed inset-0 pointer-events-none overflow-hidden -z-20"
+      initial={false}
+      animate={{ opacity: viewMode === "immersive" ? 1 : 0 }}
+      transition={{ duration: 0.22, ease: "easeInOut" }}
+      style={{ pointerEvents: "none" }}
+      aria-hidden={viewMode !== "immersive"}
+    >
       {/* ─── Layer 1: Base gradient ──────────────────────────────── */}
       <motion.div
         className="absolute inset-0"
@@ -222,6 +230,6 @@ export function EnhancedFlowBackground() {
           }}
         />
       )}
-    </div>
+    </motion.div>
   );
 }

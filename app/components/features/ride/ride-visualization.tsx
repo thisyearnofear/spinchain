@@ -16,6 +16,7 @@ import type { VisualizationConfig, RenderMode } from "@/app/engines/types";
 import type { FlowStateTier } from "@/app/lib/flow-state";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { probeGpu, getQualitySettings } from "@/app/lib/gpu-probe";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
@@ -86,6 +87,7 @@ export function RideVisualization({
   const emptyStoryBeats = useMemo(() => [] as StoryBeat[], []);
 
   const [localRenderConfig, setLocalRenderConfig] = useState<VisualizationConfig | null>(null);
+  const [hasPreloaded, setHasPreloaded] = useState(false);
 
   useEffect(() => {
     const probe = probeGpu();
@@ -104,6 +106,10 @@ export function RideVisualization({
       degraded: false,
       lastDegradedAt: null,
     });
+    // Preload both renderer bundles so the first toggle doesn't suspend.
+    void import("@/app/components/features/route/route-visualizer");
+    void import("@/app/components/features/route/focus-route-visualizer");
+    setHasPreloaded(true);
   }, []);
 
   const renderConfig = visualizationConfig ?? localRenderConfig;
@@ -117,9 +123,77 @@ export function RideVisualization({
   const visualizerMode: "preview" | "ride" | "finished" =
     rideProgress >= 100 ? "finished" : isRiding || rideProgress > 0 ? "ride" : "preview";
 
+  const isFocus = effectiveMode === "focus-2d";
+  const canRender3d = renderConfig?.canRender3d ?? true;
+  // Keep both renderers mounted after initial probe for instant crossfade.
+  // Before probe, render only the fallback (tron) to avoid double-mount flash.
+  const shouldKeepAlive = !!renderConfig && hasPreloaded;
+
+  if (!shouldKeepAlive) {
+    return (
+      <div className="absolute inset-0">
+        {isFocus ? (
+          <FocusRenderer
+            elevationProfile={routeElevationProfile}
+            storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
+            progress={routeProgress}
+            currentPower={power}
+            recentPower={recentPowerHistory}
+            ftp={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
+            theme={routeTheme}
+            stats={rendererStats}
+            avatarId={searchParams.get("avatarId") || undefined}
+            equipmentId={searchParams.get("equipmentId") || undefined}
+            routeName={classData.metadata?.route?.name || classData.name}
+            routeStartCoordinate={routeCoordinates[0] ?? null}
+            currentCoordinate={currentRouteCoordinate}
+            intervalPhase={currentInterval?.phase ?? null}
+            className="h-full w-full"
+            panelState={panelState}
+            panelPositions={panelPositions}
+            onTogglePanel={onTogglePanel}
+            onSetPanelPosition={onSetPanelPosition}
+            onSnapPanel={onSnapPanel}
+            onTrackWidgetInteraction={onTrackWidgetInteraction}
+            useAccordion={deviceType === "mobile"}
+            onExpandOne={onExpandOne}
+            onHaptic={deviceType === "mobile" ? onHaptic : undefined}
+            showStreetView={!isPracticeMode}
+          />
+        ) : (
+          <TronRenderer
+            mode={visualizerMode}
+            progress={routeProgress}
+            routeElevationProfile={routeElevationProfile}
+            routeCoordinates={routeCoordinates}
+            currentRouteCoordinate={currentRouteCoordinate}
+            telemetry={telemetryForTron}
+            routeTheme={routeTheme}
+            storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
+            avatarId={searchParams.get("avatarId") || undefined}
+            equipmentId={searchParams.get("equipmentId") || undefined}
+            quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
+            className="h-full w-full"
+            userDisplayName={undefined}
+            intervalPhase={(currentInterval?.phase ?? undefined) as IntervalPhase | undefined}
+            flowTier={flowTier}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="absolute inset-0">
-      {effectiveMode === "focus-2d" ? (
+      {/* Focus (2D) — stacked, crossfades with 3D. Keep mounted for instant toggle. */}
+      <motion.div
+        className="absolute inset-0"
+        initial={false}
+        animate={{ opacity: isFocus ? 1 : 0 }}
+        transition={{ duration: 0.22, ease: "easeInOut" }}
+        style={{ pointerEvents: isFocus ? "auto" : "none" }}
+        aria-hidden={!isFocus}
+      >
         <FocusRenderer
           elevationProfile={routeElevationProfile}
           storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
@@ -147,26 +221,37 @@ export function RideVisualization({
           onHaptic={deviceType === "mobile" ? onHaptic : undefined}
           showStreetView={!isPracticeMode}
         />
-      ) : (
-        <TronRenderer
-          mode={visualizerMode}
-          progress={routeProgress}
-          routeElevationProfile={routeElevationProfile}
-          routeCoordinates={routeCoordinates}
-          currentRouteCoordinate={currentRouteCoordinate}
-          telemetry={telemetryForTron}
-          routeTheme={routeTheme}
-          storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
-          avatarId={searchParams.get("avatarId") || undefined}
-          equipmentId={searchParams.get("equipmentId") || undefined}
-          quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
-          className="h-full w-full"
-          userDisplayName={undefined}
-          intervalPhase={(currentInterval?.phase ?? undefined) as IntervalPhase | undefined}
-          flowTier={flowTier}
-        />
-      )}
+      </motion.div>
 
+      {/* Tron (3D) — stacked, hidden but mounted when canRender3d. frameloop="demand" pauses when opacity 0. */}
+      {canRender3d ? (
+        <motion.div
+          className="absolute inset-0"
+          initial={false}
+          animate={{ opacity: isFocus ? 0 : 1 }}
+          transition={{ duration: 0.22, ease: "easeInOut" }}
+          style={{ pointerEvents: isFocus ? "none" : "auto" }}
+          aria-hidden={isFocus}
+        >
+          <TronRenderer
+            mode={visualizerMode}
+            progress={routeProgress}
+            routeElevationProfile={routeElevationProfile}
+            routeCoordinates={routeCoordinates}
+            currentRouteCoordinate={currentRouteCoordinate}
+            telemetry={telemetryForTron}
+            routeTheme={routeTheme}
+            storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
+            avatarId={searchParams.get("avatarId") || undefined}
+            equipmentId={searchParams.get("equipmentId") || undefined}
+            quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
+            className="h-full w-full"
+            userDisplayName={undefined}
+            intervalPhase={(currentInterval?.phase ?? undefined) as IntervalPhase | undefined}
+            flowTier={flowTier}
+          />
+        </motion.div>
+      ) : null}
     </div>
   );
 }
