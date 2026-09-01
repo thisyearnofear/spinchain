@@ -11,11 +11,12 @@ export { RideHeader } from "./ride-header";
 export { RideHUD } from "./ride-hud";
 export { RideControls } from "./ride-controls";
 export { RideProgress } from "./ride-progress";
-export { RideCompletion } from "./ride-completion";
 export { RideTopBar } from "./ride-top-bar";
 export { RideBottomPanel } from "./ride-bottom-panel";
 export { RideTutorialOverlay, useRideTutorial } from "./ride-tutorial";
 export { RideLoading, RideNotFound } from "./ride-loading";
+// RewardClaimStatus moved to @/app/lib/rewards (was in ride-completion.tsx)
+export type { RewardClaimStatus } from "@/app/lib/rewards";
 
 // ─── Ride experience v2 (delight upgrades) ─────────────────────────
 export { RideActivationSequence } from "./ride-activation";

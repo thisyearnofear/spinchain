@@ -85,6 +85,10 @@ circuits/*/target/
 .agents/
 skills-lock.json
 
+# local tooling artifacts (not part of changeset)
+.impeccable/
+.kilo/
+
 # External repos
 /remix-glassmorphism-analytics-/
 

@@ -37,6 +37,7 @@ import { ShareCardButton } from "./share-card";
 import { RideComparison } from "./ride-comparison";
 import { getEffortTier } from "@/app/lib/analytics/ride-history";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
+import type { RewardClaimStatus } from "@/app/lib/rewards";
 
 /** Highest tier first — order used by the milestone summary chips. */
 const MILESTONE_TIER_ORDER: MilestoneTier[] = ["diamond", "platinum", "gold", "silver", "bronze"];
@@ -61,14 +62,7 @@ interface RideCompletionV2Props {
   /** Optional vocal replay of the coach debrief (TTS) — debrief text is
    *  passed back so the page owns the voice pipeline. */
   onSpeakDebrief?: (text: string) => void;
-  rewardClaimStatus?: {
-    mode: "zk" | "chainlink";
-    phase: string;
-    privacyScore: number;
-    privacyLevel: "high" | "medium" | "low";
-    verifiedScore?: number;
-    error: Error | null;
-  };
+  rewardClaimStatus?: RewardClaimStatus;
   spinEarned?: string;
   agentName?: string;
   agentPersonality?: "zen" | "drill-sergeant" | "data";

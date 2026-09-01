@@ -8,7 +8,7 @@ import { useChainlinkVerification } from "@/app/hooks/evm/use-chainlink-verifica
 import { useZKClaim } from "@/app/hooks/evm/use-zk-claim";
 import { REWARD_VERIFICATION } from "@/app/config";
 import { updateRideRewardState } from "@/app/lib/analytics/ride-history";
-import type { RewardClaimStatus } from "@/app/components/features/ride/ride-completion";
+import type { RewardClaimStatus } from "@/app/lib/rewards";
 import type { ClassWithRoute } from "@/app/hooks/evm/use-class-data";
 
 interface UseRideRewardsParams {
@@ -56,7 +56,9 @@ export function useRideRewards({
 
   // Yellow streaming is driven by this hook (wallet-signed channel), but the
   // in-ride HUD reads the rewards store — bridge the stream state across.
-  // zk-batch/sui-native accrual is written to the store by the coordinator.
+  // zk-batch/sui-native accrual is written to the store by the coordinator
+  // (rewards:tick); hook now also computes live zk estimate so CTA has value
+  // even without coordinator.
   useEffect(() => {
     if (rewardMode !== "yellow-stream") return;
     useRewardsStore.setState({
@@ -67,6 +69,18 @@ export function useRideRewards({
       formattedReward: rewards.formattedReward,
     });
   }, [rewardMode, rewards.isActive, rewards.streamState, rewards.clearNodeConnected, rewards.accumulatedReward, rewards.formattedReward]);
+
+  // Prefer the coordinator's live store value (rewards:tick) when available;
+  // the hook's zk-batch estimate is the fallback for standalone / test usage.
+  const storeFormatted = useRewardsStore((s) => s.formattedReward);
+  const storeAccumulated = useRewardsStore((s) => s.accumulatedReward);
+  const effectiveRewards = useMemo(() => {
+    const hasStoreValue = storeAccumulated !== BigInt(0) && storeFormatted !== "0" && storeFormatted !== "0.00";
+    if (hasStoreValue) {
+      return { ...rewards, accumulatedReward: storeAccumulated, formattedReward: storeFormatted };
+    }
+    return rewards;
+  }, [rewards, storeAccumulated, storeFormatted]);
 
   const rewardClaimStatus: RewardClaimStatus | undefined = useMemo(() => {
     if (isPracticeMode || isTrainingMode) return undefined;
@@ -115,7 +129,7 @@ export function useRideRewards({
   };
 
   return {
-    rewards,
+    rewards: effectiveRewards,
     rewardClaimStatus,
     useChainlinkRewards,
     chainlinkSuccess,

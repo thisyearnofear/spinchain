@@ -17,7 +17,7 @@ import { persistRideSummaryToWalrus } from "@/app/lib/walrus/ride-persistence";
 import { saveRideToSupabase } from "@/app/hooks/common/use-supabase-sync";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
-import type { RewardClaimStatus } from "@/app/components/features/ride/ride-completion";
+import type { RewardClaimStatus } from "@/app/lib/rewards";
 import type { ClassWithRoute } from "@/app/hooks/evm/use-class-data";
 import type { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 

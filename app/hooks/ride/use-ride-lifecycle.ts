@@ -12,7 +12,7 @@ import { useRiderProfile, mapCoachPersonalityToEngine } from "@/app/stores/rider
 import { formatAddress } from "@/app/lib/profile-service";
 import { useRideModalStore } from "@/app/stores/ride-modal-store";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
-import type { RewardClaimStatus } from "@/app/components/features/ride/ride-completion";
+import type { RewardClaimStatus } from "@/app/lib/rewards";
 import type { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 import type { WorkoutPlan } from "@/app/lib/workout-plan";
 import type { DeviceType, PerformanceTier } from "@/app/engines/types";

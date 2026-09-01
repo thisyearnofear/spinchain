@@ -91,7 +91,7 @@ export function usePracticeConfig(classId: string) {
       routeElevation: Number(searchParams.get("routeElevation")) || 300,
       instructor,
     };
-  }, [isPracticeMode, searchParams]);
+  }, [isPracticeMode, isGuestDemo, searchParams]);
 
   const practiceClassData: ClassWithRoute | null = useMemo(() => {
     if (!practiceConfig) return null;

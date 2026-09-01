@@ -12,7 +12,7 @@
 
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
 import { isAddress } from "viem";
 import { useYellowSettlement } from "@/app/hooks/evm/use-yellow-settlement";
@@ -30,6 +30,7 @@ import {
   formatReward,
   parseReward,
   calculateRewardFromScore,
+  calculateAccumulatedReward,
   // Yellow
   useYellowStreaming,
   getStreamingStatus,
@@ -132,6 +133,10 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   
   // Local state for batch accumulation (ZK mode)
   const [batchAccumulator, setBatchAccumulator] = useState<BatchAccumulator | null>(null);
+  // Live accrual estimate for zk-batch (same rate math as RewardsEngine so the
+  // in-ride HUD and completion CTA have a moving number before final ZK proof)
+  const [zkAccumulated, setZkAccumulated] = useState<bigint>(BigInt(0));
+  const lastZkTelemetryRef = useRef<TelemetryPoint | null>(null);
   
   // Updates history (Yellow mode)
   const [updates, setUpdates] = useState<SignedRewardUpdate[]>([]);
@@ -156,8 +161,10 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
       }
       
       case "zk-batch": {
-        // Initialize batch accumulator
+        // Initialize batch accumulator + reset live estimate
         setBatchAccumulator(createBatchAccumulator());
+        setZkAccumulated(BigInt(0));
+        lastZkTelemetryRef.current = null;
         break;
       }
       
@@ -193,6 +200,24 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
           telemetry.power || 0
         );
         setBatchAccumulator(newBatch);
+        // Live estimate mirroring RewardsEngine.recordZkEffort so standalone
+        // hook usage (and tests) see a moving number before finalize.
+        // Use functional update to avoid stale closure on zkAccumulated.
+        if (lastZkTelemetryRef.current) {
+          const prevTelemetry = lastZkTelemetryRef.current;
+          setZkAccumulated((prev) =>
+            calculateAccumulatedReward(
+              { heartRate: telemetry.heartRate, power: telemetry.power || 0 },
+              {
+                heartRate: prevTelemetry.heartRate,
+                power: prevTelemetry.power || 0,
+                timestamp: prevTelemetry.timestamp,
+              },
+              prev,
+            ),
+          );
+        }
+        lastZkTelemetryRef.current = { ...telemetry, timestamp: Date.now() };
         break;
       }
       
@@ -360,12 +385,13 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
       case "yellow-stream":
         return yellow.streamState.accumulated;
       case "zk-batch":
-        // ZK rewards are calculated at finalize time
-        return BigInt(0);
+        // Live estimate while riding; authoritative amount still comes from
+        // the ZK proof at finalize. Mirrors RewardsEngine.recordZkEffort.
+        return zkAccumulated;
       case "sui-native":
         return BigInt(0);
     }
-  }, [mode, yellow.streamState.accumulated]);
+  }, [mode, yellow.streamState.accumulated, zkAccumulated]);
 
   const formattedReward = useMemo(() => {
     return formatReward(accumulatedReward);

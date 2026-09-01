@@ -224,3 +224,23 @@ export interface RewardTickerProps {
   /** Token decimals */
   decimals: number;
 }
+
+// ============================================================================
+// Claim Status (used by completion screen + ride hooks)
+// ============================================================================
+
+export interface RewardClaimStatus {
+  mode: "zk" | "chainlink";
+  phase:
+    | "idle"
+    | "requesting"
+    | "requested"
+    | "ready"
+    | "claiming"
+    | "claimed"
+    | "error";
+  privacyScore: number;
+  privacyLevel: "high" | "medium" | "low";
+  verifiedScore?: number;
+  error: Error | null;
+}
