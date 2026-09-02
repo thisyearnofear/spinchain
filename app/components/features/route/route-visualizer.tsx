@@ -1289,7 +1289,24 @@ function Scene({
     }
 
     const curveProgress = mode === "preview" ? rawProgress : mapToCurveProgress(rawProgress);
-    renderProgressRef.current = curveProgress;
+    // Display-only 60fps lerp — keeps rider gliding between 1Hz store ticks.
+    // Store progress (rideProgress) remains the single writer per coordinator Rule 6;
+    // this ref is only for visuals. Snap when close or at finish to avoid lag.
+    if (mode === "preview") {
+      renderProgressRef.current = curveProgress;
+    } else {
+      const prefersReduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (prefersReduced) {
+        renderProgressRef.current = curveProgress;
+      } else {
+        const diff = Math.abs(curveProgress - renderProgressRef.current);
+        if (diff < 0.001 || curveProgress >= 0.999 || progress >= 1) {
+          renderProgressRef.current = curveProgress;
+        } else {
+          renderProgressRef.current = MathUtils.lerp(renderProgressRef.current, curveProgress, 0.08);
+        }
+      }
+    }
 
     // --- 2. Beat tracking (no state needed) ---
     storyBeats.forEach((beat, index) => {

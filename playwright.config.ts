@@ -7,7 +7,6 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   timeout: 60_000,
-  expect: { timeout: 10_000 },
   reporter: [["html", { open: "never" }], ["list"]],
   use: {
     baseURL: "http://127.0.0.1:3210",
@@ -31,6 +30,7 @@ export default defineConfig({
     timeout: 120_000,
   },
   expect: {
+    timeout: 10_000,
     toHaveScreenshot: {
       maxDiffPixelRatio: 0.02,
       threshold: 0.2,

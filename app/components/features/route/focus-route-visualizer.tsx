@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useCallback, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useId, useMemo, useCallback, useRef, useState, useEffect, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { StoryBeat } from "@/app/routes/builder/gpx-uploader";
 import { useViewport } from "@/app/lib/responsive";
 import { AVATARS, EQUIPMENT } from "../../../lib/selection-library";
@@ -186,6 +186,40 @@ export default function FocusRouteVisualizer({
   const leftMinimized = leftMode === "minimized";
   const rightMinimized = rightMode === "minimized";
 
+  // 60fps display-only lerp — keeps 2D rider gliding between 1Hz store ticks.
+  // Store progress (rideProgress) remains the single writer per coordinator Rule 6.
+  const smoothRef = useRef(progress);
+  const [smoothProgress, setSmoothProgress] = useState(progress);
+  useEffect(() => {
+    smoothRef.current = progress;
+    setSmoothProgress(progress);
+  }, [progress]);
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      const target = progress;
+      const diff = target - smoothRef.current;
+      if (Math.abs(diff) < 0.001 || target >= 0.999) {
+        if (smoothRef.current !== target) {
+          smoothRef.current = target;
+          setSmoothProgress(target);
+        }
+      } else {
+        const prefersReduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (prefersReduced) {
+          smoothRef.current = target;
+          setSmoothProgress(target);
+        } else {
+          smoothRef.current += diff * 0.08;
+          setSmoothProgress(smoothRef.current);
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [progress]);
+
   // Handler for accordion behavior - uses expandOne on mobile, toggle on desktop
   const handleToggle = useCallback((key: PanelKey) => {
     // Trigger haptic feedback on mobile when toggling panels
@@ -261,7 +295,7 @@ export default function FocusRouteVisualizer({
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = Math.max(1, max - min);
-  const clampedProgress = clamp(progress, 0, 1);
+  const clampedProgress = clamp(smoothProgress, 0, 1);
   const displayedPower = currentPower || stats.power || 0;
   const powerTrend = useMemo(() => {
     if (!recentPower || recentPower.length < 2) return 0;
