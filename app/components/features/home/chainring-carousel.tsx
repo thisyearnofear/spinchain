@@ -8,8 +8,10 @@ import Lottie from "lottie-react";
 
 gsap.registerPlugin(useGSAP);
 
-// Cycling Lotties — 4 distinct inline JSONs, no network, cheap.
-// Each is a pulsing shape with discipline color. Replace with real pedal/breath/mind Lotties later.
+import sprintExternal from "@/public/lotties/cycle.json";
+
+// Cycling Lotties — 4 distinct JSONs, no network after build, cheap.
+// Endurance/Recovery/Mind are inline pulses; Sprint uses high-quality MIT open-source cycle.json (saadpasta gist, 11KB, 720° wheel rotation).
 const makePulseLottie = (rgb: [number, number, number], shape: "circle" | "star" | "heart" | "wave" = "circle") => ({
   v: "5.7.4" as const,
   fr: 30,
@@ -144,7 +146,7 @@ const makePulseLottie = (rgb: [number, number, number], shape: "circle" | "star"
 });
 
 const enduranceLottie = makePulseLottie([0.2, 0.85, 0.55], "circle"); // emerald — steady ring
-const sprintLottie = makePulseLottie([0.96, 0.35, 0.2], "star"); // red-orange — sharp star
+const sprintLottie = sprintExternal as unknown as ReturnType<typeof makePulseLottie>; // MIT 488-bicycle-outline, 720° wheels
 const recoveryLottie = makePulseLottie([0.38, 0.71, 0.98], "heart"); // sky — heart
 const mindLottie = makePulseLottie([0.62, 0.52, 0.98], "wave"); // violet — breath wave
 
