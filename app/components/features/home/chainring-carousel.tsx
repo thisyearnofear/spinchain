@@ -134,6 +134,18 @@ export function ChainringCarousel() {
     isDragging.current = false;
   };
 
+  // Draft ripple for Mind — gentle wave on pointer move (like Maxima sea)
+  const [draftRipple, setDraftRipple] = useState<{ x: number; y: number; id: number } | null>(null);
+  const onWheelMouseMove = (e: React.MouseEvent) => {
+    if (activeRef.current !== 3) return; // only Mind
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const id = Date.now();
+    setDraftRipple({ x, y, id });
+    setTimeout(() => setDraftRipple(null), 800);
+  };
+
   // Keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -161,6 +173,7 @@ export function ChainringCarousel() {
           className="absolute inset-0 cursor-grab active:cursor-grabbing touch-none"
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
+          onMouseMove={onWheelMouseMove}
           style={{ transform: `rotate(${-active * 90}deg)` }}
           aria-label="Drag to rotate chainring"
           role="region"
@@ -210,6 +223,18 @@ export function ChainringCarousel() {
         >
           ›
         </button>
+
+        {/* Draft ripple — only for Mind, like Maxima sea */}
+        {draftRipple && (
+          <div
+            key={draftRipple.id}
+            className="absolute h-12 w-12 -ml-6 -mt-6 rounded-full border border-violet-400/40 pointer-events-none"
+            style={{ left: draftRipple.x, top: draftRipple.y }}
+            ref={(el) => {
+              if (el) gsap.fromTo(el, { scale: 0, opacity: 0.6 }, { scale: 2.2, opacity: 0, duration: 0.8, ease: "power2.out" });
+            }}
+          />
+        )}
       </div>
 
       {/* Active detail — route-free, carousel owns no page re-render */}
