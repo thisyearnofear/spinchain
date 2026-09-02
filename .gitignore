@@ -84,6 +84,25 @@ circuits/*/target/
 .commandcode/
 .agents/
 skills-lock.json
+# react-doctor agent skills (project-level mirrors for many agents — keep global install only)
+.claude/
+.adal/
+.augment/
+.continue/
+.factory/
+.forge/
+.goose/
+.kilocode/
+.kiro/
+.openhands/
+.rovodev/
+.trae/
+.vibe/
+.augmentcode/
+.devin/
+.cursor-plugin/
+.skills/
+skills/
 
 # local tooling artifacts (not part of changeset)
 .impeccable/
