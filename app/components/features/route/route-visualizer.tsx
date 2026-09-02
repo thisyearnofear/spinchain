@@ -2,6 +2,8 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useAdaptiveQuality } from "@/app/lib/responsive";
+import { useFlowCelebration } from "@/app/hooks/route/use-flow-celebration";
+import { useReactiveWorld } from "@/app/hooks/route/use-reactive-world";
 import {
   CatmullRomCurve3,
   Vector3,
@@ -1237,31 +1239,7 @@ function Scene({
   const smoothedShakeRef = useRef(new Vector3());
   const _shakeTargetVec = useRef(new Vector3());
 
-  // ─── Flow Tier Tracking ────────────────────────────────────────
-  const previousFlowTierRef = useRef<FlowStateTier | null>(null);
-  const [currentFlowEffect, setCurrentFlowEffect] = useState<{
-    tier: number;
-    startedAt: number;
-  } | null>(null);
-
-  // Detect flow tier changes
-  useEffect(() => {
-    if (flowTier && flowTier > (previousFlowTierRef.current ?? 0)) {
-      // Flow tier increased — trigger celebration
-      const celebration = {
-        tier: flowTier,
-        startedAt: performance.now(),
-      };
-      setCurrentFlowEffect(celebration);
-      // Auto-clear after 3 seconds — track timeout for cleanup
-      const t = setTimeout(() => {
-        setCurrentFlowEffect((prev) => (prev && prev.startedAt < performance.now() - 3000 ? null : prev));
-      }, 3000);
-      previousFlowTierRef.current = flowTier ?? 0;
-      return () => clearTimeout(t);
-    }
-    previousFlowTierRef.current = flowTier ?? 0;
-  }, [flowTier]);
+  const currentFlowEffect = useFlowCelebration(flowTier);
 
   // Mouse parallax — subtle camera offset based on pointer position
   const mouseParallaxRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
@@ -1270,43 +1248,14 @@ function Scene({
   // Get performance tier for adaptive quality - use quality.fps as proxy if available
   const performanceTier = quality?.fps === 30 ? "low" : quality?.fps === 45 ? "medium" : "high";
 
-  // ─── Flow State Visual Scaling ─────────────────────────────────
-  // Flow tier scales all reactive parameters proportionally.
-  // Tier 0 = baseline, Tier 4 = 2.2x visual intensity
-  const FLOW_SCALING = [1, 1.2, 1.5, 1.8, 2.2];
-  const flowScale = FLOW_SCALING[flowTier] ?? 1;
-
-  // ─── Flow Color Palette ────────────────────────────────────────
-  // Each flow tier has a distinct color that tints the entire world
-  const FLOW_COLORS = [
-    null, // Tier 0: no flow color
-    "#34d399", // Tier 1: Focused (green)
-    "#f59e0b", // Tier 2: Flow (amber)
-    "#f97316", // Tier 3: Super Flow (orange)
-    "#ef4444", // Tier 4: Mastery (red)
-  ];
-  const flowColor = FLOW_COLORS[flowTier] ?? null;
-  const showFlowEffects = flowTier >= 1;
-
-  // --- Compute reactive world parameters from effort + phase + flow ---
-  const reactive = useMemo(() => {
-    if (mode !== "ride") return null;
-    const base = computeReactiveParams(theme, stats, intervalPhase, progress);
-    // Apply flow state scaling
-    return {
-      ...base,
-      bloomIntensity: base.bloomIntensity * flowScale,
-      chromaticOffset: base.chromaticOffset * flowScale,
-      vignetteDarkness: Math.min(1, base.vignetteDarkness + flowTier * 0.05),
-      fogDensity: Math.max(15, base.fogDensity - flowTier * 5),
-      starsRotationSpeed: base.starsRotationSpeed * flowScale,
-      sparklesSpeed: base.sparkleSpeed * flowScale,
-      sparkleOpacity: Math.min(0.8, base.sparkleOpacity + flowTier * 0.05),
-      roadGlowIntensity: base.roadGlowIntensity * flowScale,
-      riderAuraScale: base.riderAuraScale * (1 + flowTier * 0.15),
-      riderLightIntensity: base.riderLightIntensity * flowScale,
-    };
-  }, [theme, stats, intervalPhase, progress, mode, flowTier, flowScale]);
+  const { reactive, flowScale, flowColor, showFlowEffects } = useReactiveWorld({
+    theme,
+    stats,
+    intervalPhase,
+    progress,
+    mode,
+    flowTier,
+  });
 
   // --- Progress tracking via refs (no React state updates inside useFrame) ---
   // Calling setState inside useFrame triggers a full React re-render every animation
