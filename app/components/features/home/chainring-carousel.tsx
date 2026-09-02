@@ -3,10 +3,14 @@
 import { useRef, useState, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
-// @ts-expect-error — lottie-react types use export = but runtime has default
-import Lottie from "lottie-react";
+import dynamic from "next/dynamic";
 
 gsap.registerPlugin(useGSAP);
+
+// lottie-react has no static default export for Turbopack — load client-only via dynamic
+const Lottie = dynamic(() => import("lottie-react").then((m) => (m as unknown as { default: typeof import("lottie-react").default }).default), {
+  ssr: false,
+}) as unknown as typeof import("lottie-react").default;
 
 import sprintExternal from "@/public/lotties/cycle.json";
 
