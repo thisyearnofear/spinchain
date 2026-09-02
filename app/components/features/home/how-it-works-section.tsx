@@ -7,6 +7,7 @@ import { FadeIn, StaggerContainer } from "@/app/components/ui/scroll-animations"
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { EffortAuraCanvas } from "@/app/components/ui/effort-aura-canvas";
 
 if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
 
@@ -104,13 +105,16 @@ export function HowItWorksSection() {
         ))}
       </StaggerContainer>
 
-      {/* Scroll-scrubbed route — the road fills as you read the steps */}
-      <div className="mt-10 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-xl p-4 md:p-6 overflow-hidden">
-        <div className="flex items-center justify-between mb-3">
+      {/* Scroll-scrubbed route — road fills as you read, effort aura via canvas mask */}
+      <div className="mt-10 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-xl p-4 md:p-6 overflow-hidden relative">
+        <div className="absolute inset-0 opacity-40">
+          <EffortAuraCanvas intensity={scrubProgress} />
+        </div>
+        <div className="relative flex items-center justify-between mb-3">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Your route, unfolding as you scroll</p>
           <span className="text-xs font-mono text-white/60">{Math.round(scrubProgress * 100)}%</span>
         </div>
-        <svg viewBox="0 0 400 80" className="w-full h-[80px]" preserveAspectRatio="none" aria-hidden="true">
+        <svg viewBox="0 0 400 80" className="w-full h-[80px] relative" preserveAspectRatio="none" aria-hidden="true">
           <path
             d="M 20 60 Q 100 20 200 40 T 380 30"
             fill="none"
