@@ -19,9 +19,9 @@ import { test, expect } from "@playwright/test";
  */
 
 const STATES = [
-  { name: "preview", url: "/rider/ride/demo?testState=preview&seed=123", fullPage: true },
-  { name: "active-play", url: "/rider/ride/demo?testState=active-play&seed=123", fullPage: true },
-  { name: "finished", url: "/rider/ride/demo?testState=finished&seed=123", fullPage: true },
+  { name: "preview", url: "/test-harness/route-visualizer?testState=preview&seed=123", fullPage: true },
+  { name: "active-play", url: "/test-harness/route-visualizer?testState=active-play&seed=123", fullPage: true },
+  { name: "finished", url: "/test-harness/route-visualizer?testState=finished&seed=123", fullPage: true },
 ] as const;
 
 async function gotoWithHarness(page: import("@playwright/test").Page, url: string) {
@@ -78,12 +78,12 @@ test("visual — active-play @ mobile", async ({ page }) => {
   // This test only runs in the mobile project (Pixel 5 viewport via playwright.config.ts)
   // When run on desktop project, it will still pass but use desktop viewport — the
   // config's second project ensures true mobile coverage.
-  await gotoWithHarness(page, "/rider/ride/demo?testState=active-play&seed=123");
+  await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123");
   await expect(page).toHaveScreenshot(`active-play-mobile.png`, { fullPage: false });
 });
 
 test("canvas is non-blank smoke", async ({ page }) => {
-  await gotoWithHarness(page, "/rider/ride/demo?testState=active-play&seed=123");
+  await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123");
   const canvasCount = await page.locator("canvas").count();
   expect(canvasCount).toBeGreaterThan(0);
 });
