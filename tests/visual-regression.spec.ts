@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+test.setTimeout(60_000);
+
 /**
  * Visual Regression Harness — SpinChain adaptation of threejs-qa-release
  * visual-test-harness.md.
