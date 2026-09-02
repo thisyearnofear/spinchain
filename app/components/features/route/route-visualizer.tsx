@@ -596,12 +596,12 @@ function HoloHUD({
   const groupRef = useRef<Group>(null);
   // Local throttled state for the HTML progress bar (~10fps is plenty for text)
   const [displayProgress, setDisplayProgress] = useState(0);
-  const hudFrameRef = useRef(0);
 
-  // Initialize displayProgress from ref after mount
+  // Throttle progress text via interval, not useFrame (r3f-no-state-in-use-frame).
   useEffect(() => {
     setDisplayProgress(progressRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const id = setInterval(() => setDisplayProgress(progressRef.current), 100);
+    return () => clearInterval(id);
   }, []);
 
   useFrame((state) => {
@@ -609,11 +609,6 @@ function HoloHUD({
     const breathe = Math.sin(state.clock.elapsedTime * 2.5) * 0.08;
     groupRef.current.position.y = 1.9 + breathe;
     groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.4) * 0.08;
-    // Throttle progress text update independently of parent render cycle
-    hudFrameRef.current++;
-    if (hudFrameRef.current % 6 === 0) {
-      setDisplayProgress(progressRef.current);
-    }
   });
 
   return (
@@ -1119,6 +1114,22 @@ function FrameRateLimiter({ fps }: { fps: number }) {
   return null;
 }
 
+function CanvasContextLossHandler() {
+  const { gl, invalidate } = useThree();
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const onLost = (e: Event) => e.preventDefault();
+    const onRestored = () => invalidate();
+    canvas.addEventListener("webglcontextlost", onLost, false);
+    canvas.addEventListener("webglcontextrestored", onRestored, false);
+    return () => {
+      canvas.removeEventListener("webglcontextlost", onLost, false);
+      canvas.removeEventListener("webglcontextrestored", onRestored, false);
+    };
+  }, [gl, invalidate]);
+  return null;
+}
+
 // ─── Flow Celebration ───────────────────────────────────────────────
 // Triggers celebration particles when flow tier increases
 
@@ -1242,10 +1253,12 @@ function Scene({
         startedAt: performance.now(),
       };
       setCurrentFlowEffect(celebration);
-      // Auto-clear after 3 seconds
-      setTimeout(() => {
+      // Auto-clear after 3 seconds — track timeout for cleanup
+      const t = setTimeout(() => {
         setCurrentFlowEffect((prev) => (prev && prev.startedAt < performance.now() - 3000 ? null : prev));
       }, 3000);
+      previousFlowTierRef.current = flowTier ?? 0;
+      return () => clearTimeout(t);
     }
     previousFlowTierRef.current = flowTier ?? 0;
   }, [flowTier]);
@@ -1304,14 +1317,14 @@ function Scene({
   const renderProgressRef = useRef(
     mode === "preview" ? START_OFFSET : mapToCurveProgress(progress),
   );
-  const frameCountRef = useRef(0);
   // displayProgress drives HTML overlays (BeatMarker labels, ghost positions).
-  // Throttled to ~10fps — smooth enough for text/UI, avoids constant re-renders.
+  // Throttled to ~10fps via interval to avoid setState in useFrame (r3f-no-state-in-use-frame).
   const [displayProgress, setDisplayProgress] = useState(0);
 
-  // Initialize displayProgress from ref after mount
   useEffect(() => {
     setDisplayProgress(renderProgressRef.current);
+    const id = setInterval(() => setDisplayProgress(renderProgressRef.current), 100);
+    return () => clearInterval(id);
   }, []);
 
   useFrame((state, delta) => {
@@ -1327,13 +1340,7 @@ function Scene({
     const curveProgress = mode === "preview" ? rawProgress : mapToCurveProgress(rawProgress);
     renderProgressRef.current = curveProgress;
 
-    // --- 2. Throttle React state to ~10fps for HTML overlay elements ---
-    frameCountRef.current++;
-    if (frameCountRef.current % 6 === 0) {
-      setDisplayProgress(curveProgress);
-    }
-
-    // --- 3. Beat tracking (no state needed) ---
+    // --- 2. Beat tracking (no state needed) ---
     storyBeats.forEach((beat, index) => {
       if (
         rawProgress >= beat.progress &&
@@ -1603,7 +1610,7 @@ export default function RouteVisualizer({
     if (quality) {
       // Manual override
       return {
-        pixelRatio: quality === "high" ? Math.min(window.devicePixelRatio, 2) : 1,
+        pixelRatio: quality === "high" ? Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 2) : 1,
         shadows: quality === "high",
         antialiasing: quality !== "low",
         particleCount: quality === "high" ? 500 : quality === "medium" ? 200 : 100,
@@ -1655,25 +1662,8 @@ export default function RouteVisualizer({
           dpr={effectiveQuality.pixelRatio}
           frameloop="demand"
           performance={{ min: 0.5 }}
-          onCreated={({ gl, invalidate }) => {
-            // WebGL context-loss recovery. Without this, a lost GPU context
-            // (tab backgrounding, GPU reset, device sleep) leaves a blank/frozen
-            // canvas. preventDefault() opts into browser-driven restoration, and
-            // invalidate() forces a redraw once the context is back (needed in
-            // "demand" frameloop, where the loop is otherwise idle).
-            const canvas = gl.domElement;
-            canvas.addEventListener(
-              "webglcontextlost",
-              (e) => e.preventDefault(),
-              false,
-            );
-            canvas.addEventListener(
-              "webglcontextrestored",
-              () => invalidate(),
-              false,
-            );
-          }}
         >
+          <CanvasContextLossHandler />
           {mode === "ride" && <FrameRateLimiter fps={effectiveQuality.fps} />}
           <Scene
             elevationProfile={elevationProfile}
