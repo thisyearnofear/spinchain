@@ -49,7 +49,7 @@
     "lucide-react": "^0.475.0",
     "matter-js": "0.20.0",
     "next": "16.1.6",
-    "postprocessing": "^6.38.3",
+    "postprocessing": "^6.39.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.4.0",
