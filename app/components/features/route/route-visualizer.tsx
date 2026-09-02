@@ -423,6 +423,7 @@ function PropManager({ theme = "neon", curve, stats, reactive = null }: { theme?
       const offset = side.multiplyScalar(i % 2 === 0 ? dist : -dist);
 
       points.push({
+        id: `${propConfig.type}-${i}`,
         position: [point.x + offset.x, point.y + offset.y + (propConfig.type === 'building' ? propConfig.scale[1] / 2 : 0), point.z + offset.z] as [number, number, number],
         rotation: [0, seededRandom(i + 2000) * Math.PI, 0] as [number, number, number],
         scale: [
@@ -439,8 +440,8 @@ function PropManager({ theme = "neon", curve, stats, reactive = null }: { theme?
 
   return (
     <group ref={meshGroupRef}>
-      {propPoints.map((p, i) => (
-        <mesh key={i} position={p.position} rotation={p.rotation} scale={p.scale}>
+      {propPoints.map((p) => (
+        <mesh key={p.id} position={p.position} rotation={p.rotation} scale={p.scale}>
           {propConfig.type === 'building' ? (
             <boxGeometry />
           ) : propConfig.type === 'tree' ? (
@@ -850,8 +851,9 @@ function SpeedLines({
   stats?: RiderStats;
 }) {
   const styles = THEMES[theme];
-  const [allLines] = useState<SpeedLineData[]>(() =>
-    Array.from({ length: 50 }).map(() => ({
+  const [allLines] = useState<(SpeedLineData & { id: string })[]>(() =>
+    Array.from({ length: 50 }).map((_, idx) => ({
+      id: `speedline-${idx}`,
       position: [
         (Math.random() - 0.5) * 40,
         Math.random() * 20,
@@ -866,9 +868,9 @@ function SpeedLines({
 
   return (
     <group>
-      {visibleLines.map((line, i) => (
+      {visibleLines.map((line) => (
         <LineInstance
-          key={i}
+          key={line.id}
           line={line}
           color={reactive ? reactive.speedLineColor : styles.lineColor}
           reactive={reactive}
@@ -1479,11 +1481,11 @@ function Scene({
 
         {/* Limit ghosts on low-end devices */}
         {ghosts.slice(0, quality?.particleCount && quality.particleCount < 200 ? 3 : 10).map((g, i) => (
-          <GhostRider key={i} index={i} curve={curve} progress={mapToCurveProgress(g)} theme={theme} />
+          <GhostRider key={`ghost-${g.toFixed(4)}`} index={i} curve={curve} progress={mapToCurveProgress(g)} theme={theme} />
         ))}
 
-        {storyBeats.map((beat, i) => (
-          <BeatMarker key={i} beat={beat} curve={curve} riderProgress={displayProgress} />
+        {storyBeats.map((beat) => (
+          <BeatMarker key={`${beat.type}-${beat.progress.toFixed(3)}-${beat.label}`} beat={beat} curve={curve} riderProgress={displayProgress} />
         ))}
 
         {styles.grid && (
