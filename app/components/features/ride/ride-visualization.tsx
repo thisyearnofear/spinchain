@@ -16,7 +16,7 @@ import type { VisualizationConfig, RenderMode } from "@/app/engines/types";
 import type { FlowStateTier } from "@/app/lib/flow-state";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { probeGpu, getQualitySettings } from "@/app/lib/gpu-probe";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
@@ -186,7 +186,7 @@ export function RideVisualization({
   return (
     <div className="absolute inset-0">
       {/* Focus (2D) — stacked, crossfades with 3D. Keep mounted for instant toggle. */}
-      <motion.div
+      <m.div
         className="absolute inset-0"
         initial={false}
         animate={{ opacity: isFocus ? 1 : 0 }}
@@ -221,11 +221,11 @@ export function RideVisualization({
           onHaptic={deviceType === "mobile" ? onHaptic : undefined}
           showStreetView={!isPracticeMode}
         />
-      </motion.div>
+      </m.div>
 
       {/* Tron (3D) — stacked, always mounted after probe (low-end still gets
            low quality; auto-degrade will bail out if FPS poor). frameloop="demand" pauses when invisible. */}
-      <motion.div
+      <m.div
         className="absolute inset-0"
         initial={false}
         animate={{ opacity: isFocus ? 0 : 1 }}
@@ -250,7 +250,7 @@ export function RideVisualization({
           intervalPhase={(currentInterval?.phase ?? undefined) as IntervalPhase | undefined}
           flowTier={flowTier}
         />
-      </motion.div>
+      </m.div>
     </div>
   );
 }

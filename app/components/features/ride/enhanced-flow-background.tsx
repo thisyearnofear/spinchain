@@ -14,7 +14,7 @@
  */
 
 import { useMemo, useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore, selectEffort, selectCadence } from "@/app/stores/telemetry-store";
 import { useCoachingStore, selectCurrentInterval } from "@/app/stores/coaching-store";
@@ -84,7 +84,7 @@ export function EnhancedFlowBackground() {
   if (!isRiding) return null;
 
   return (
-    <motion.div
+    <m.div
       className="fixed inset-0 pointer-events-none overflow-hidden -z-20"
       initial={false}
       animate={{ opacity: viewMode === "immersive" ? 1 : 0 }}
@@ -93,7 +93,7 @@ export function EnhancedFlowBackground() {
       aria-hidden={viewMode !== "immersive"}
     >
       {/* ─── Layer 1: Base gradient ──────────────────────────────── */}
-      <motion.div
+      <m.div
         className="absolute inset-0"
         style={{
           backgroundColor: theme.color,
@@ -120,7 +120,7 @@ export function EnhancedFlowBackground() {
         const isWarmPhase = ["sprint", "interval"].includes(phase ?? "");
 
         return (
-          <motion.div
+          <m.div
             key={i}
             className="absolute rounded-full"
             style={{
@@ -153,7 +153,7 @@ export function EnhancedFlowBackground() {
       {showGrid && (
         <div className="absolute inset-0">
           {Array.from({ length: 6 }).map((_, i) => (
-            <motion.div
+            <m.div
               key={i}
               className="absolute bg-white/2"
               style={{
@@ -174,7 +174,7 @@ export function EnhancedFlowBackground() {
             />
           ))}
           {Array.from({ length: 4 }).map((_, i) => (
-            <motion.div
+            <m.div
               key={`h-${i}`}
               className="absolute bg-white/2"
               style={{
@@ -200,7 +200,7 @@ export function EnhancedFlowBackground() {
       {/* ─── Layer 4: Event flash (phase change / PR) ────────────── */}
       <AnimatePresence>
         {eventFlashOpacity > 0 && (
-          <motion.div
+          <m.div
             className="absolute inset-0"
             initial={{ opacity: 0 }}
             animate={{ opacity: eventFlashOpacity }}
@@ -215,7 +215,7 @@ export function EnhancedFlowBackground() {
 
       {/* ─── Sprint edge glow ────────────────────────────────────── */}
       {phase === "sprint" && intensity > 0.6 && (
-        <motion.div
+        <m.div
           className="absolute inset-0"
           style={{
             boxShadow: `inset 0 0 100px 30px ${theme.color}40`,
@@ -230,6 +230,6 @@ export function EnhancedFlowBackground() {
           }}
         />
       )}
-    </motion.div>
+    </m.div>
   );
 }
