@@ -8,9 +8,9 @@ import dynamic from "next/dynamic";
 gsap.registerPlugin(useGSAP);
 
 // lottie-react has no static default export for Turbopack — load client-only via dynamic
-const Lottie = dynamic(() => import("lottie-react").then((m) => (m as unknown as { default: typeof import("lottie-react").default }).default), {
+const Lottie = dynamic(() => import("lottie-react").then((mod: unknown) => (mod as { default: unknown }).default ?? mod) as Promise<React.ComponentType<never>>, {
   ssr: false,
-}) as unknown as typeof import("lottie-react").default;
+}) as unknown as React.ComponentType<{ animationData: unknown; loop?: boolean; autoplay?: boolean; style?: React.CSSProperties }>;
 
 import sprintExternal from "@/public/lotties/cycle.json";
 
@@ -149,10 +149,27 @@ const makePulseLottie = (rgb: [number, number, number], shape: "circle" | "star"
   ],
 });
 
-const enduranceLottie = makePulseLottie([0.2, 0.85, 0.55], "circle"); // emerald — steady ring
+const enduranceLottie = makePulseLottie([0.2, 0.85, 0.55], "circle"); // emerald — steady ring (fallback if route fails)
 const sprintLottie = sprintExternal as unknown as ReturnType<typeof makePulseLottie>; // MIT 488-bicycle-outline, 720° wheels
 const recoveryLottie = makePulseLottie([0.38, 0.71, 0.98], "heart"); // sky — heart
 const mindLottie = makePulseLottie([0.62, 0.52, 0.98], "wave"); // violet — breath wave
+
+function EnduranceRouteMini() {
+  // Top-down route — same generation as test-harness, but tiny and deterministic
+  const path = "M 8 28 Q 22 8 36 18 T 72 14";
+  return (
+    <svg viewBox="0 0 80 40" className="h-full w-full" preserveAspectRatio="none" aria-hidden="true">
+      <path d={path} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="5" strokeLinecap="round" />
+      <path d={path} fill="none" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" strokeDasharray="100" strokeDashoffset="0" />
+      <circle r="2.5" fill="#10b981" stroke="white" strokeWidth="1">
+        <animateMotion dur="2.2s" repeatCount="indefinite" rotate="auto">
+          <mpath href="#harness-route" />
+        </animateMotion>
+      </circle>
+      <path id="harness-route" d={path} fill="none" stroke="none" />
+    </svg>
+  );
+}
 
 const PROGRAMS = [
   {
@@ -298,7 +315,11 @@ export function ChainringCarousel() {
                 >
                   <div className={`h-14 w-14 rounded-xl bg-gradient-to-br ${p.accent} p-[1px] mb-2`}>
                     <div className="h-full w-full rounded-[10px] bg-black flex items-center justify-center overflow-hidden">
-                      <Lottie animationData={p.lottie} loop autoplay style={{ width: 48, height: 48 }} />
+                      {p.id === "endurance" ? (
+                        <EnduranceRouteMini />
+                      ) : (
+                        <Lottie animationData={p.lottie} loop autoplay style={{ width: 48, height: 48 }} />
+                      )}
                     </div>
                   </div>
                   <p className={`text-xs font-black uppercase tracking-widest ${isActive ? "text-black" : "text-white"}`}>{p.label}</p>

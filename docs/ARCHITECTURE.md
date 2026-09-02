@@ -854,7 +854,7 @@ app/lib/
 
 ---
 
-*Last updated: 2026-08-17*
+*Last updated: 2026-09-01 — added keep-alive 2D/3D crossfade, test harness, and Sylva/Maxima brand techniques (chainring wheel, Matter chain, morph CTA, scroll-scrubbed route, stickers, draft ripple, EffortAuraCanvas).*
 *This document supersedes all earlier architectural notes. When in doubt, follow the rules in Section 2 and the wedge discipline in [WEDGE.md](./WEDGE.md).*
 
 **Single source of truth** for how the entire ride looks and feels based on the current interval phase and effort level.

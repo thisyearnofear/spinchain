@@ -1,6 +1,8 @@
-# Agent Skills Evaluation — 2026-09-01
+# Agent Skills Evaluation — 2026-09-01 (Updated 2026-09-01 PM)
 
-> Review only — three skills reviewed via repository inspection. No skills loaded/saved, no install prompts executed. Flagged commands below are for reference only.
+> Review only at first — then installed per plan. Flagged commands below were initially not run, then executed as documented.
+
+**Status 2026-09-01 PM:** `react-doctor@0.9.13` installed (`pnpm add -D react-doctor` + `react-doctor.yml` CI, `pnpm doctor`), threejs selective (`threejs-aaa-graphics-builder` + `debug-profiler` + `qa-release` to `~/.agents/skills`, added `@playwright/test` + `playwright.config.ts` + `tests/visual-regression.spec.ts` + `app/lib/test-hooks.ts` + `app/test-harness/route-visualizer`), `webgpu` still parked. Brand harness (Sylva + Maxima) shipped as `chainring-carousel` + `chain-tension` + `morph-cta` + `how-it-works` scroll-scrub + `effort-aura-canvas`.
 
 ## Verdict (Rank by ROI for SpinChain)
 

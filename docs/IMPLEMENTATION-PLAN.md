@@ -171,6 +171,18 @@
 - **Verdict**: `react-doctor` 14.7k★ → **Install now** (deterministic lint + `scan http://localhost:3000` chrome trace + diff-only CI gate); `threejs-game-skills` 1.4k★ → **Evaluate selectively** (`aaa-graphics-builder` + `debug-profiler` + `qa-release` only); `webgpu-claude-skill` 1.2k★ → **Park** until `three/webgpu` migration
 - **Flagged prompts not run**: `npx skills add ...` / `./install.sh --codex` / `npx react-doctor@latest` / `npx react-doctor@latest ci install` / `npx react-doctor@latest scan` / `/skill install webgpu-threejs-tsl@...`
 
+## Phase 7: Brand Embodiment (Sylva + Maxima Techniques) ✅ SHIPPED 2026-09-01
+
+**Goal**: Make the site feel like cycling/health, not SaaS.
+
+- **Lenis + GSAP ticker** (`smooth-scroll.tsx` already wired, `layout.tsx`) — cadence `scrub:1.2`
+- **Chainring wheel** (`chainring-carousel.tsx`): 4×90° rotated divs in wrapper (Maxima), GSAP `rotation`, Lottie per discipline (Endurance top-down route via `generateRouteData` mini SVG, Sprint MIT `cycle.json` 720°, Recovery heart, Mind wave), draft ripple on Mind `onMouseMove`
+- **Matter.js chain** (`chain-tension.tsx`): `"CHAIN"` hangs from 2×6-segment ropes, `MouseConstraint` drag — tension metaphor, mounted in `training-studio.tsx`
+- **Morph CTA** (`morph-cta.tsx`): `borderRadius 16→999 spring 400/12` square→wheel, replaces static gradient
+- **Scroll-scrubbed route** (`how-it-works-section.tsx`): `ScrollTrigger scrub 1.2` draws SVG road + `EffortAuraCanvas` (`globalCompositeOperation source-in` dot pattern + radial mask) as you read 1-2-3
+- **Stickers** (`how-it-works-section.tsx`): `🚴⚡️🧘` cycle on step click `elastic.out(1.2,0.8)`
+- **Lotties**: 4 distinct, 11KB Sprint MIT + 3 inline pulses, all loopable 60f, `next/dynamic` ssr:false for Turbopack
+
 ## What NOT To Build (Yet)
 
 These are explicitly deferred until the wedge is validated with real users:
