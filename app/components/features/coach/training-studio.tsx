@@ -14,6 +14,7 @@ import {
   Layout,
 } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
+import { ChainTension } from "./chain-tension";
 import { WalrusClient } from "@/app/lib/walrus/client";
 import { synthesizeWorkoutPlan } from "@/app/lib/ai/autonomous-synthesis";
 import { WorkoutPlan } from "@/app/lib/workout-plan";
@@ -162,6 +163,7 @@ export function TrainingStudio() {
 
   return (
     <div className="space-y-6">
+      <ChainTension />
       {/* Mode Switcher */}
       <div className="flex p-1 bg-black/20 rounded-xl border border-white/5 w-fit">
         <button

@@ -4,6 +4,8 @@ import { m } from "framer-motion";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import { AnimatedCard, Floating, MagneticButton } from "@/app/components/ui/animated-card";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
+import { ChainringCarousel } from "./chainring-carousel";
+import { MorphCTA } from "@/app/components/ui/morph-cta";
 import Link from "next/link";
 
 const quickStarts = [
@@ -37,16 +39,15 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
         </p>
 
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            href={getDemoRideUrl({ name: "Accelerator Pitch" })}
-            className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-[color:var(--accent)]/30 transition-[transform,box-shadow] duration-150 hover:shadow-xl hover:shadow-[color:var(--accent)]/40 active:scale-95"
-          >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
-              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </span>
-            Try a Demo Ride
+          <Link href={getDemoRideUrl({ name: "Accelerator Pitch" })} className="contents">
+            <MorphCTA>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
+                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </span>
+              Try a Demo Ride
+            </MorphCTA>
           </Link>
 
           <Link
@@ -68,6 +69,8 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
             </button>
           )}
         </div>
+
+        <ChainringCarousel />
       </div>
 
       <div
