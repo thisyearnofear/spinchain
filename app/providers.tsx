@@ -37,6 +37,7 @@ function getQueryClient() {
 
 import { backgroundManager } from './lib/mobile-bridge/background';
 import { flushAnalytics } from './lib/analytics/events';
+import { TestHooksProvider } from './lib/test-hooks';
 
 // ... (existing code)
 
@@ -159,9 +160,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         {/* Respect OS "reduce motion" for every framer-motion animation in the app */}
         <MotionConfig reducedMotion="user">
           <ToastProvider>
-            <InnerProviders>
-              {children}
-            </InnerProviders>
+            <TestHooksProvider>
+              <InnerProviders>
+                {children}
+              </InnerProviders>
+            </TestHooksProvider>
           </ToastProvider>
         </MotionConfig>
       </LazyMotion>
