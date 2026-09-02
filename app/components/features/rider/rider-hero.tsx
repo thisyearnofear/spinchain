@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Bike, Zap, TrendingUp, Users } from "lucide-react";
 import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import { useClasses } from "@/app/hooks/evm/use-class-data";
@@ -29,13 +29,13 @@ export function RiderHero({ initialGreeting }: { initialGreeting?: string }) {
     <section className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 backdrop-blur">
       {/* Animated gradient mesh */}
       <div className="absolute inset-0 pointer-events-none">
-        <motion.div
+        <m.div
           className="absolute -top-1/2 -left-1/4 w-[60%] h-[120%] rounded-full blur-[100px]"
           style={{ background: "radial-gradient(circle, var(--accent) 0%, transparent 70%)" }}
           animate={{ opacity: [0.08, 0.15, 0.08], x: [0, 30, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
-        <motion.div
+        <m.div
           className="absolute -bottom-1/2 -right-1/4 w-[60%] h-[120%] rounded-full blur-[100px]"
           style={{ background: "radial-gradient(circle, var(--accent-strong) 0%, transparent 70%)" }}
           animate={{ opacity: [0.06, 0.12, 0.06], x: [0, -20, 0] }}
@@ -47,7 +47,7 @@ export function RiderHero({ initialGreeting }: { initialGreeting?: string }) {
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
           {/* Left: Copy */}
           <div className="flex-1 max-w-2xl">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...modalTransition, duration: 0.4 }}
@@ -57,18 +57,18 @@ export function RiderHero({ initialGreeting }: { initialGreeting?: string }) {
               <span className="text-[10px] font-black uppercase tracking-widest text-[color:var(--accent)]">
                 On-chain cycling
               </span>
-            </motion.div>
+            </m.div>
 
-            <motion.h1
+            <m.h1
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...modalTransition, duration: 0.4, delay: 0.05 }}
               className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter text-[color:var(--foreground)] leading-[1.05]"
             >
               {greeting}
-            </motion.h1>
+            </m.h1>
 
-            <motion.p
+            <m.p
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...modalTransition, duration: 0.4, delay: 0.1 }}
@@ -76,9 +76,9 @@ export function RiderHero({ initialGreeting }: { initialGreeting?: string }) {
             >
               Immersive cycling classes with AI coaching, real-time telemetry,
               and crypto rewards. Powered by Sui &amp; Walrus.
-            </motion.p>
+            </m.p>
 
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...modalTransition, duration: 0.4, delay: 0.15 }}
@@ -98,18 +98,18 @@ export function RiderHero({ initialGreeting }: { initialGreeting?: string }) {
                 <Zap className="w-4 h-4" />
                 Host a Class
               </a>
-            </motion.div>
+            </m.div>
           </div>
 
           {/* Right: Live stats */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ ...modalTransition, duration: 0.4, delay: 0.2 }}
             className="grid grid-cols-2 gap-3 w-full lg:w-auto"
           >
             {stats.map((stat, i) => (
-              <motion.div
+              <m.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -123,9 +123,9 @@ export function RiderHero({ initialGreeting }: { initialGreeting?: string }) {
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--muted)] mt-0.5">
                   {stat.label}
                 </p>
-              </motion.div>
+              </m.div>
             ))}
-          </motion.div>
+          </m.div>
         </div>
       </div>
     </section>

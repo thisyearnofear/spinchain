@@ -4,7 +4,7 @@
 
 import { useMemo } from "react";
 import { useBleData } from "../../../hooks/ble/use-ble-data";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Bluetooth,
   BluetoothConnected,
@@ -93,7 +93,7 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
             <div className="relative">
               <StatusIcon className={`h-6 w-6 ${statusInfo.color}`} />
               {isScanning && (
-                <motion.div
+                <m.div
                   className="absolute inset-0 rounded-full border-2 border-blue-500"
                   animate={{ scale: [1, 1.5, 1] }}
                   transition={{ repeat: Infinity, duration: 1.5 }}
@@ -184,7 +184,7 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
         </div>
 
         {isConnected && metrics && (
-          <motion.div className="grid grid-cols-2 gap-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <m.div className="grid grid-cols-2 gap-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <MetricCard
               icon={<Power className="h-4 w-4 text-blue-500" />}
               label="Power"
@@ -198,7 +198,7 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
               value={`${Math.round(metrics.heartRate)} BPM`}
               trend={metrics.heartRate > 160 ? "high" : metrics.heartRate > 120 ? "medium" : "low"}
             />
-          </motion.div>
+          </m.div>
         )}
 
         {error && (

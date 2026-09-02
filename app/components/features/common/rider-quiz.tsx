@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { CoachyMascot, type CoachyMood } from "@/app/components/ui/coachy-mascot";
 import {
   useRiderProfile,
@@ -205,7 +205,7 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
 
     return (
       <QuizShell onSkip={handleSkip} stepId={step.id} theme={theme}>
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
@@ -246,7 +246,7 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
           >
             Start your first ride →
           </button>
-        </motion.div>
+        </m.div>
       </QuizShell>
     );
   }
@@ -254,7 +254,7 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
   return (
     <QuizShell onSkip={handleSkip} stepId={step.id} theme={theme}>
       <AnimatePresence mode="wait" custom={direction}>
-        <motion.div
+        <m.div
           key={step.id}
           custom={direction}
           initial={{ opacity: 0, x: 60 * direction }}
@@ -277,7 +277,7 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
             {step.options.map((opt, i) => {
               const isSelected = answers[step.id] === opt.value;
               return (
-                <motion.button
+                <m.button
                   key={opt.value}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -301,7 +301,7 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
                     )}
                   </div>
                   {isSelected && (
-                    <motion.span
+                    <m.span
                       initial={{ scale: 0, rotate: -90 }}
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ type: "spring", stiffness: 400, damping: 20 }}
@@ -309,13 +309,13 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
                       style={{ color: theme.accent }}
                     >
                       ✓
-                    </motion.span>
+                    </m.span>
                   )}
-                </motion.button>
+                </m.button>
               );
             })}
           </div>
-        </motion.div>
+        </m.div>
       </AnimatePresence>
     </QuizShell>
   );
@@ -330,7 +330,7 @@ interface QuizShellProps {
 
 function QuizShell({ children, onSkip, stepId, theme }: QuizShellProps) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -343,7 +343,7 @@ function QuizShell({ children, onSkip, stepId, theme }: QuizShellProps) {
       }}
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
+        <m.div
           key={stepId}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -366,7 +366,7 @@ function QuizShell({ children, onSkip, stepId, theme }: QuizShellProps) {
 
         {children}
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 

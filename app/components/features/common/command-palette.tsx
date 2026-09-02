@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Mic, X, ChevronRight } from "lucide-react";
 import { modalTransition } from "@/app/lib/motion";
 
@@ -75,14 +75,14 @@ export function CommandPalette({
 
   return (
     <AnimatePresence>
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         onClick={onClose}
       >
-        <motion.div
+        <m.div
           initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.96, opacity: 0 }}
@@ -116,7 +116,7 @@ export function CommandPalette({
 
             {/* Last command feedback */}
             {lastCommand && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-4 p-3 bg-indigo-500/20 rounded-lg border border-indigo-500/30"
@@ -125,13 +125,13 @@ export function CommandPalette({
                   Heard: <span className="font-semibold text-white">&quot;{lastCommand}&quot;</span>
                 </p>
                 <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
-                  <motion.div
+                  <m.div
                     className="h-full bg-indigo-400"
                     initial={{ width: 0 }}
                     animate={{ width: `${confidence * 100}%` }}
                   />
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </div>
 
@@ -190,8 +190,8 @@ export function CommandPalette({
               Tip: Speak clearly and wait for the beep before giving a command
             </p>
           </div>
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
     </AnimatePresence>
   );
 }
@@ -205,7 +205,7 @@ export function CommandPaletteTrigger({
   isListening?: boolean;
 }) {
   return (
-    <motion.button
+    <m.button
       onClick={onClick}
       className={`
         flex items-center gap-2 px-3 py-2 rounded-full
@@ -222,7 +222,7 @@ export function CommandPaletteTrigger({
       <span className="text-xs font-medium">
         {isListening ? "Listening..." : "Voice Commands"}
       </span>
-    </motion.button>
+    </m.button>
   );
 }
 

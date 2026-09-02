@@ -21,7 +21,7 @@ import {
   Wind,
   MessageSquare,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useAgentReasoner } from "../hooks/ai/use-agent-reasoner";
 import {
   useProfile,
@@ -529,13 +529,13 @@ export function CoachProfile({
                 </div>
 
                 {isSpeaking && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     className="mt-3"
                   >
                     <AudioWaveform isActive intensity={0.7} size="sm" />
-                  </motion.div>
+                  </m.div>
                 )}
               </div>
             )}

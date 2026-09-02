@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 interface TooltipProps {
   children: React.ReactNode;
@@ -81,7 +81,7 @@ export function Tooltip({
       
       <AnimatePresence>
         {isVisible && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
@@ -94,7 +94,7 @@ export function Tooltip({
               {/* Arrow */}
               <div className={`absolute w-0 h-0 border-4 border-transparent ${arrowClasses[position]}`} />
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

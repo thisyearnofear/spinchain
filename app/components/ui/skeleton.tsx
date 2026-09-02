@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { cn } from "@/app/lib/utils";
 
 interface SkeletonProps {
@@ -50,7 +50,7 @@ export function Skeleton({
   return (
     <div className={cn("relative overflow-hidden", className)} style={style}>
       <div className={cn(baseStyles, variants[variant], "w-full h-full")} />
-      <motion.div
+      <m.div
         className="absolute inset-0 -translate-x-full"
         style={{
           background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)",
@@ -149,7 +149,7 @@ export function RouteCardSkeleton() {
  */
 export function ClassCardSkeleton() {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5"
@@ -178,7 +178,7 @@ export function ClassCardSkeleton() {
         <Skeleton className="h-10 flex-1 rounded-full" />
         <Skeleton className="h-10 w-24 rounded-full" />
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 

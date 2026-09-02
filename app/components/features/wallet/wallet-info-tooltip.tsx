@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Info, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { tooltipTransition } from "@/app/lib/motion";
 
 interface WalletInfoTooltipProps {
@@ -49,7 +49,7 @@ export function WalletInfoTooltip({ variant = "evm" }: WalletInfoTooltipProps) {
 
       <AnimatePresence>
         {open && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
@@ -76,7 +76,7 @@ export function WalletInfoTooltip({ variant = "evm" }: WalletInfoTooltipProps) {
             <p className="text-xs leading-relaxed text-[color:var(--muted)]">
               {content.body}
             </p>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

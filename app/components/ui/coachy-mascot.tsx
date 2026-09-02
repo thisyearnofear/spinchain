@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 export type CoachyMood = "welcoming" | "cheering" | "coaching" | "celebrating" | "thinking" | "resting";
 
@@ -48,7 +48,7 @@ export function CoachyMascot({ mood = "welcoming", size = 80, className = "", an
         style={{ background: colors.glow }}
       />
 
-      <motion.div
+      <m.div
         animate={animate ? {
           y: [0, -4, 0],
           rotate: [0, mood === "cheering" ? 3 : 0, 0],
@@ -105,7 +105,7 @@ export function CoachyMascot({ mood = "welcoming", size = 80, className = "", an
             <ellipse cx="50" cy="64" rx="6" ry="4" fill="white" />
           )}
           {mouthState === "speaking" && (
-            <motion.ellipse
+            <m.ellipse
               cx="50" cy="64" rx="4" ry="3" fill="white"
               animate={animate ? { ry: [3, 5, 3] } : undefined}
               transition={{ duration: 0.4, repeat: Infinity }}
@@ -128,7 +128,7 @@ export function CoachyMascot({ mood = "welcoming", size = 80, className = "", an
             </>
           )}
         </svg>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Database, Download, Trash2, Cloud, HardDrive, Shield, CheckCircle2, AlertCircle, Loader2, Settings2 } from "lucide-react";
 import { getRideHistory, STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
 import { useRiderProfile, toProfilePayload } from "@/app/stores/rider-profile-store";
@@ -228,7 +228,7 @@ export function DataOwnershipDashboard() {
           {/* Delete */}
           <AnimatePresence mode="wait">
             {!confirmDelete ? (
-              <motion.button
+              <m.button
                 key="delete"
                 initial={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -237,9 +237,9 @@ export function DataOwnershipDashboard() {
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Delete All Data
-              </motion.button>
+              </m.button>
             ) : (
-              <motion.div
+              <m.div
                 key="confirm"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -260,7 +260,7 @@ export function DataOwnershipDashboard() {
                 >
                   Cancel
                 </button>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, memo, useMemo, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { YellowRewardTicker } from "@/app/components/features/common/yellow-reward-ticker";
 import { useTelemetryStore, selectHeartRate, selectPower, selectCadence, selectSpeed, selectEffort, selectCurrentGear, selectGearRatio } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
@@ -707,7 +707,7 @@ function MobileCompactHUD({
     >
       <AnimatePresence>
         {expanded && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
@@ -721,7 +721,7 @@ function MobileCompactHUD({
                 compact
               />
             )}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -828,14 +828,14 @@ function MobileCompactHUD({
 
       <AnimatePresence>
         {isRiding && agentInsight && expanded && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             className="mt-4 pointer-events-auto"
           >
             {agentInsight}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

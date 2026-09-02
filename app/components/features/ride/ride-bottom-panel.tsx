@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { RideControls } from "./ride-controls";
 import type { WorkoutPlan, IntervalPhase } from "@/app/lib/workout-plan";
 import type {
@@ -187,7 +187,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
         <AnimatePresence mode="wait">
           {/* ─── Pre-ride: Setup + Start ─── */}
           {phase === "preRide" && (
-            <motion.div
+            <m.div
               key="pre-ride"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -209,12 +209,12 @@ export const RideBottomPanel = memo(function RideBottomPanel({
                 panelState={panelState}
                 onTogglePanel={onTogglePanel}
               />
-            </motion.div>
+            </m.div>
           )}
 
           {/* ─── Starting: Loading state ─── */}
           {phase === "starting" && (
-            <motion.div
+            <m.div
               key="starting"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -230,12 +230,12 @@ export const RideBottomPanel = memo(function RideBottomPanel({
                 </svg>
                 <span className="text-sm font-medium">Starting ride…</span>
               </div>
-            </motion.div>
+            </m.div>
           )}
 
           {/* ─── Active ride: Tray with stats + controls ─── */}
           {phase === "active" && (
-            <motion.div
+            <m.div
               key="active"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -359,12 +359,12 @@ export const RideBottomPanel = memo(function RideBottomPanel({
                   Speaking
                 </div>
               )}
-            </motion.div>
+            </m.div>
           )}
 
           {/* ─── Paused: Resume prompt ─── */}
           {phase === "paused" && (
-            <motion.div
+            <m.div
               key="paused"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -397,7 +397,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
                   Exit
                 </button>
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </div>
@@ -522,7 +522,7 @@ function AgentFeedback({
           <div className="relative">
             <span className="text-sm">🧠</span>
             {reasonerState === "thinking" && (
-              <motion.div
+              <m.div
                 layoutId="brain-thinking"
                 className="absolute inset-0 bg-indigo-500/30 rounded-full"
                 animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0.6, 0.3] }}

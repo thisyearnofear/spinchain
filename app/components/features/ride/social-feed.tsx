@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Zap, Trophy, MessageSquare, Hand } from "lucide-react";
 
 interface SocialEvent {
@@ -23,7 +23,7 @@ export function RiderSocialFeed({
       <div className="flex flex-col gap-3">
         <AnimatePresence mode="popLayout">
           {events.map((event) => (
-            <motion.div
+            <m.div
               key={event.id}
               initial={{ opacity: 0, x: 20, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -61,7 +61,7 @@ export function RiderSocialFeed({
                   </p>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           ))}
         </AnimatePresence>
       </div>

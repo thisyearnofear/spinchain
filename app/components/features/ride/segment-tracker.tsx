@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 /**
  * SegmentTracker — Tracks and displays time per route segment.
@@ -167,7 +167,7 @@ export function SegmentTracker({
       {/* Current segment highlight */}
       <AnimatePresence mode="wait">
         {currentSegment && (
-          <motion.div
+          <m.div
             key={currentSegment.label}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -181,7 +181,7 @@ export function SegmentTracker({
             <span className="text-[10px] text-white/30 ml-auto">
               Intensity {currentSegment.intensity}/10
             </span>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 

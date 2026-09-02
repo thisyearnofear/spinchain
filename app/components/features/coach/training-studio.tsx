@@ -13,7 +13,7 @@ import {
   Clock,
   Layout,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { WalrusClient } from "@/app/lib/walrus/client";
 import { synthesizeWorkoutPlan } from "@/app/lib/ai/autonomous-synthesis";
 import { WorkoutPlan } from "@/app/lib/workout-plan";
@@ -219,7 +219,7 @@ export function TrainingStudio() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <AnimatePresence>
               {anchors.map((anchor) => (
-                <motion.div
+                <m.div
                   key={anchor.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -261,7 +261,7 @@ export function TrainingStudio() {
                       }
                     />
                   </div>
-                </motion.div>
+                </m.div>
               ))}
             </AnimatePresence>
           </div>

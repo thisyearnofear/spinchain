@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { tabsTransition } from "@/app/lib/motion";
 
 interface InstructorMode {
@@ -143,7 +143,7 @@ export function InstructorModeSelector() {
 
       {/* Mode Card */}
       <AnimatePresence mode="wait">
-        <motion.div
+        <m.div
           key={activeMode}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -152,7 +152,7 @@ export function InstructorModeSelector() {
           className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]"
         >
           {/* Animated gradient background */}
-          <motion.div
+          <m.div
             className={`absolute inset-0 bg-gradient-to-br ${currentMode.color} opacity-5`}
             animate={{
               opacity: isHovered ? 0.1 : 0.05
@@ -163,7 +163,7 @@ export function InstructorModeSelector() {
           {/* Floating particles effect */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {particleData.map((particle, i) => (
-              <motion.div
+              <m.div
                 key={i}
                 className={`absolute w-2 h-2 rounded-full bg-gradient-to-r ${currentMode.color} opacity-30`}
                 initial={{
@@ -188,7 +188,7 @@ export function InstructorModeSelector() {
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               {/* Left: Content */}
               <div>
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 }}
@@ -198,34 +198,34 @@ export function InstructorModeSelector() {
                   <span className="text-sm font-medium text-[color:var(--muted)]">
                     {currentMode.subtitle}
                   </span>
-                </motion.div>
+                </m.div>
 
-                <motion.h3
+                <m.h3
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
                   className="text-3xl lg:text-4xl font-bold text-[color:var(--foreground)] mb-4"
                 >
                   {currentMode.title}
-                </motion.h3>
+                </m.h3>
 
-                <motion.p
+                <m.p
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                   className="text-lg text-[color:var(--muted)] mb-6"
                 >
                   {currentMode.description}
-                </motion.p>
+                </m.p>
 
-                <motion.ul
+                <m.ul
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.25 }}
                   className="space-y-3 mb-8"
                 >
                   {currentMode.features.map((feature, i) => (
-                    <motion.li
+                    <m.li
                       key={feature}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -234,11 +234,11 @@ export function InstructorModeSelector() {
                     >
                       <span className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${currentMode.color}`} />
                       {feature}
-                    </motion.li>
+                    </m.li>
                   ))}
-                </motion.ul>
+                </m.ul>
 
-                <motion.a
+                <m.a
                   href={currentMode.href}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -251,11 +251,11 @@ export function InstructorModeSelector() {
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
-                </motion.a>
+                </m.a>
               </div>
 
               {/* Right: Visual */}
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2 }}
@@ -291,7 +291,7 @@ export function InstructorModeSelector() {
                 </div>
 
                 {/* Animated ring */}
-                <motion.div
+                <m.div
                   className={`absolute inset-4 rounded-xl border-2 border-dashed border-gradient-to-r ${currentMode.color} opacity-30`}
                   animate={{ rotate: 360 }}
                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -300,7 +300,7 @@ export function InstructorModeSelector() {
 
                 {/* Status indicator */}
                 <div className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[color:var(--surface)] border border-[color:var(--border)]">
-                  <motion.span
+                  <m.span
                     className={`w-2 h-2 rounded-full bg-gradient-to-r ${currentMode.color}`}
                     animate={{ scale: [1, 1.2, 1] }}
                     transition={{ duration: 2, repeat: Infinity }}
@@ -309,14 +309,14 @@ export function InstructorModeSelector() {
                     {currentMode.statusLabel}
                   </span>
                 </div>
-              </motion.div>
+              </m.div>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       </AnimatePresence>
 
       {/* Comparison hint */}
-      <motion.p
+      <m.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
@@ -326,7 +326,7 @@ export function InstructorModeSelector() {
         <a href="/instructor" className="text-[color:var(--accent)] hover:underline">
           Compare both options →
         </a>
-      </motion.p>
+      </m.p>
     </div>
   );
 }

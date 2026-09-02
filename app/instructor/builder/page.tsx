@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import { modalTransition } from "@/app/lib/motion";
 import {
@@ -380,13 +380,13 @@ export default function InstructorBuilderPage() {
       {/* Onboarding Overlay */}
       <AnimatePresence>
         {showOnboarding && (
-          <motion.div 
+          <m.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
           >
-            <motion.div 
+            <m.div 
               initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={modalTransition}
@@ -417,8 +417,8 @@ export default function InstructorBuilderPage() {
               >
                 Let&apos;s Build!
               </button>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
 

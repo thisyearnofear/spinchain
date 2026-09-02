@@ -37,7 +37,7 @@
  */
 
 import { useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useRideModalStore } from "@/app/stores/ride-modal-store";
 import { NoBikeModal } from "./no-bike-modal";
 import { ExitConfirmModal } from "./exit-confirm-modal";
@@ -359,7 +359,7 @@ export function ModalStack({
       {/* 7. LOADING OVERLAY — show while saving */}
       <AnimatePresence>
         {isExitingRide && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -375,7 +375,7 @@ export function ModalStack({
                 </p>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -401,7 +401,7 @@ function MilestoneOverlay({ title, subtitle }: {
   subtitle: string;
 }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.96, filter: "blur(8px)" }}
@@ -412,12 +412,12 @@ function MilestoneOverlay({ title, subtitle }: {
         <div className="absolute inset-0 bg-amber-500/40 blur-[120px] animate-pulse rounded-full scale-150" />
         <div className="relative bg-black/80 backdrop-blur-3xl border-2 border-amber-400/50 rounded-[3rem] px-12 py-10 text-center shadow-[0_0_100px_rgba(245,158,11,0.4)]">
           <div className="inline-block mb-4">
-            <motion.div
+            <m.div
               animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
               transition={{ duration: 0.5, repeat: 2 }}
             >
               <span className="text-4xl">✨</span>
-            </motion.div>
+            </m.div>
           </div>
           <h2 className="text-5xl font-black text-white tracking-tighter mb-2 italic uppercase">
             {title}
@@ -427,6 +427,6 @@ function MilestoneOverlay({ title, subtitle }: {
           </p>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }

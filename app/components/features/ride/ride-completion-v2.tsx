@@ -26,7 +26,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { modalTransition } from "@/app/lib/motion";
 import { formatTime } from "@/app/lib/formatters";
 import { useCoachingStore } from "@/app/stores/coaching-store";
@@ -226,7 +226,7 @@ export function RideCompletionV2({
   }, [isPracticeMode, telemetrySource]);
 
   return (
-    <motion.div
+    <m.div
       ref={containerRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -245,21 +245,21 @@ export function RideCompletionV2({
 
       {/* ─── Phase 1: CELEBRATION ────────────────────────────────── */}
       {completionPhase === "celebration" && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ ...modalTransition, delay: 0.1 }}
           className="relative w-full max-w-md flex flex-col items-center text-center"
         >
           {/* Celebration particles */}
-          <motion.div
+          <m.div
             className="absolute inset-0 overflow-hidden pointer-events-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
             {celebrationParticles.map((p, i) => (
-              <motion.div
+              <m.div
                 key={i}
                 className="absolute rounded-full"
                 style={{
@@ -285,10 +285,10 @@ export function RideCompletionV2({
                 }}
               />
             ))}
-          </motion.div>
+          </m.div>
 
           {/* Done text */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
@@ -296,20 +296,20 @@ export function RideCompletionV2({
             <p className="text-[10px] uppercase tracking-[0.4em] text-amber-300/60 mb-2">
               Session Complete
             </p>
-            <motion.h2
+            <m.h2
               className="text-5xl font-black text-white tracking-tighter"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 20 }}
             >
               DONE
-            </motion.h2>
-          </motion.div>
+            </m.h2>
+          </m.div>
 
           {/* PR celebration */}
           <AnimatePresence>
             {prBeaten && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, y: 10, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -318,12 +318,12 @@ export function RideCompletionV2({
               >
                 <Trophy className="w-4 h-4 text-amber-400" />
                 <span className="text-sm font-bold text-amber-300">New Personal Record!</span>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
 
           {/* Duration + Phase */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
@@ -332,10 +332,10 @@ export function RideCompletionV2({
             <span className="text-xs">{formatTime(elapsedTime)}</span>
             <span>·</span>
             <span className="text-xs">{telemetrySource === "live-bike" ? "Live" : telemetrySource === "simulator" ? "Simulator" : "Estimated"}</span>
-          </motion.div>
+          </m.div>
 
           {/* Agent debrief */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7, duration: 0.5 }}
@@ -346,8 +346,8 @@ export function RideCompletionV2({
                 &ldquo;{getAgentDebrief()}&rdquo;
               </p>
             </div>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
 
       {/* ─── Phase 2: STATS ────────────────────────────────────────
@@ -355,7 +355,7 @@ export function RideCompletionV2({
           everything else a tap away. The column scrolls so nothing is
           ever unreachable (the action bar floats over the bottom). */}
       {completionPhase === "stats" && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
@@ -368,7 +368,7 @@ export function RideCompletionV2({
           <div className="flex-1 overflow-y-auto px-1 pt-6 pb-52 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {/* Hero — the ride's single best moment (peak-end rule) */}
             {heroMilestone && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: "spring", stiffness: 260, damping: 22 }}
@@ -378,14 +378,14 @@ export function RideCompletionV2({
                   className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full blur-3xl pointer-events-none"
                   style={{ backgroundColor: MILESTONE_TIERS[heroMilestone.tier].bgColor }}
                 />
-                <motion.div
+                <m.div
                   initial={{ scale: 0, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 16 }}
                   className="relative text-5xl leading-none mb-2"
                 >
                   {MILESTONE_TIERS[heroMilestone.tier].icon}
-                </motion.div>
+                </m.div>
                 <p
                   className="relative text-2xl font-black tracking-tight"
                   style={{ color: MILESTONE_TIERS[heroMilestone.tier].color }}
@@ -396,7 +396,7 @@ export function RideCompletionV2({
                   {MILESTONE_TIERS[heroMilestone.tier].label} milestone
                   <span className="normal-case tracking-normal font-normal"> · {heroMilestone.description}</span>
                 </p>
-              </motion.div>
+              </m.div>
             )}
 
             {/* PR celebration */}
@@ -477,7 +477,7 @@ export function RideCompletionV2({
 
                 <AnimatePresence initial={false}>
                   {showMilestones && (
-                    <motion.div
+                    <m.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
@@ -486,7 +486,7 @@ export function RideCompletionV2({
                     >
                       <div className="mt-2 max-h-52 space-y-1.5 overflow-y-auto pr-1 [scrollbar-width:thin]">
                         {sortedMilestones.map((milestone, idx) => (
-                          <motion.div
+                          <m.div
                             key={milestone.id}
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -505,10 +505,10 @@ export function RideCompletionV2({
                             <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: MILESTONE_TIERS[milestone.tier].color }}>
                               {MILESTONE_TIERS[milestone.tier].label}
                             </span>
-                          </motion.div>
+                          </m.div>
                         ))}
                       </div>
-                    </motion.div>
+                    </m.div>
                   )}
                 </AnimatePresence>
               </div>
@@ -587,14 +587,14 @@ export function RideCompletionV2({
             }}
           />
           </div>
-        </motion.div>
+        </m.div>
       )}
 
       {/* ─── Phase 3: ACTIONS (persistent bottom bar) ──────────────
           pointer-events pass through the wrapper so the stats column can
           scroll beneath the bar; each control re-enables its own events. */}
       {completionPhase !== "celebration" && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -668,9 +668,9 @@ export function RideCompletionV2({
               onConnectWallet={onConnectWallet}
             />
           )}
-        </motion.div>
+        </m.div>
       )}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -730,7 +730,7 @@ function StorageDetails({
 
       <AnimatePresence>
         {showDetails && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -768,7 +768,7 @@ function StorageDetails({
                 </button>
               ))}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

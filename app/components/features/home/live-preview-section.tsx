@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { MetricTile, Tag } from "@/app/components/ui/ui";
 import { FadeIn, ScaleIn, Parallax } from "@/app/components/ui/scroll-animations";
 import { EnergyPulse } from "@/app/components/ui/animated-card";
@@ -65,13 +65,13 @@ export function LivePreviewSection() {
                 <div className="space-y-1">
                   <p className="text-xs md:text-sm text-[color:var(--muted)]">Effort zone</p>
                   <p className="text-base md:text-lg font-semibold text-[color:var(--foreground)]">HR 148 • 32 min</p>
-                  <motion.p
+                  <m.p
                     className="text-xs text-[color:var(--success)]"
                     animate={{ opacity: [1, 0.5, 1] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   >
                     12 SPIN earned so far
-                  </motion.p>
+                  </m.p>
                 </div>
               </div>
 

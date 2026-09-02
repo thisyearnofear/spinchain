@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { modalTransition } from "@/app/lib/motion";
@@ -25,7 +25,7 @@ export function EmptyState({
   className = "",
 }: EmptyStateProps) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={modalTransition}
@@ -60,6 +60,6 @@ export function EmptyState({
           </button>
         )
       )}
-    </motion.div>
+    </m.div>
   );
 }

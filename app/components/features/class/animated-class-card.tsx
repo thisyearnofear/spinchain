@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { m, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { EnergyPulse } from "../../../components/ui/animated-card";
 
 interface RouteInfo {
@@ -108,7 +108,7 @@ function MiniRoutePreview({
         </defs>
         
         {/* Elevation line */}
-        <motion.path
+        <m.path
           d={pathD}
           fill="none"
           stroke={`url(#pathGradient-${theme})`}
@@ -121,7 +121,7 @@ function MiniRoutePreview({
         
         {/* Animated rider dot */}
         {isHovered && (
-          <motion.circle
+          <m.circle
             r="3"
             fill="#ffffff"
             initial={{ offsetDistance: "0%" }}
@@ -207,7 +207,7 @@ export function AnimatedClassCard({
       .join(" ");
 
   return (
-    <motion.div
+    <m.div
       ref={cardRef}
       className="relative"
       style={{ perspective: 1000 }}
@@ -215,7 +215,7 @@ export function AnimatedClassCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={handleMouseLeave}
     >
-      <motion.div
+      <m.div
         className="relative rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] overflow-hidden"
         style={{
           rotateX,
@@ -229,7 +229,7 @@ export function AnimatedClassCard({
         transition={{ duration: 0.2 }}
       >
         {/* Glow effect on hover */}
-        <motion.div
+        <m.div
           className="absolute inset-0 opacity-0 pointer-events-none"
           animate={{ opacity: isHovered ? 1 : 0 }}
           style={{
@@ -334,7 +334,7 @@ export function AnimatedClassCard({
               <span>{Math.round(fillPercentage)}%</span>
             </div>
             <div className="h-1.5 rounded-full bg-[color:var(--surface-strong)] overflow-hidden">
-              <motion.div
+              <m.div
                 className="h-full rounded-full"
                 style={{ background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})`, transformOrigin: "left", scaleX: fillPercentage / 100 }}
                 initial={{ transform: "scaleX(0)" }}
@@ -346,15 +346,15 @@ export function AnimatedClassCard({
 
           {/* Actions */}
           <div className="flex gap-2">
-            <motion.button
+            <m.button
               onClick={onPreview}
               className="flex-1 py-2.5 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-strong)] text-sm font-medium text-[color:var(--foreground)]"
               whileHover={{ scale: 1.02, borderColor: colors.primary }}
               whileTap={{ scale: 0.98 }}
             >
               Preview
-            </motion.button>
-            <motion.button
+            </m.button>
+            <m.button
               onClick={onJoin}
               className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white"
               style={{ 
@@ -365,10 +365,10 @@ export function AnimatedClassCard({
               whileTap={{ scale: 0.98 }}
             >
               {isConnected ? "Join" : "Start Riding"}
-            </motion.button>
+            </m.button>
           </div>
         </div>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }

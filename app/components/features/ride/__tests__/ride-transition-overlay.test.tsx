@@ -32,7 +32,11 @@ vi.mock("framer-motion", async () => {
   });
   return {
     motion,
+    m: motion,
     AnimatePresence: ({ children }: { children?: React.ReactNode }) => children ?? null,
+    LazyMotion: ({ children }: { children?: React.ReactNode }) => children ?? null,
+    domAnimation: {},
+    MotionConfig: ({ children }: { children?: React.ReactNode }) => children ?? null,
   };
 });
 

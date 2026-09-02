@@ -15,7 +15,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 import { isClearNodeConnected } from "@/app/lib/rewards/yellow/clearnode";
 import { useNetworkStatus } from "@/app/hooks/use-network-status";
@@ -109,13 +109,13 @@ export function YellowStatusIndicator({
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <motion.span
+          <m.span
             animate={status === "connected" ? { scale: [1, 1.2, 1] } : {}}
             transition={{ duration: 1, repeat: Infinity }}
             className={`${config.color} text-sm`}
           >
             {config.icon}
-          </motion.span>
+          </m.span>
           <span className={`text-sm font-semibold ${config.color}`}>
             {config.label}
           </span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowUp, ArrowDown, Minus, TrendingUp } from "lucide-react";
 import { getRideHistory, estimateZones } from "@/app/lib/analytics/ride-history";
 import { formatTime } from "@/app/lib/formatters";
@@ -243,7 +243,7 @@ export function SegmentBreakdown({
             </span>
             <div className="flex-1 flex items-center gap-2">
               <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
-                <motion.div
+                <m.div
                   initial={{ width: 0 }}
                   animate={{ width: `${seg.pct * 100}%` }}
                   transition={{ duration: 0.6, ease: "easeOut" }}

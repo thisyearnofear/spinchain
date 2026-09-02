@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX, Mic, MicOff } from "lucide-react";
 
 interface VoiceToggleProps {
@@ -53,7 +53,7 @@ export function VoiceToggle({
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {/* Main voice toggle */}
-      <motion.button
+      <m.button
         onClick={handleToggle}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -79,7 +79,7 @@ export function VoiceToggle({
       >
         <AnimatePresence mode="wait">
           {isEnabled ? (
-            <motion.div
+            <m.div
               key="on"
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
@@ -87,9 +87,9 @@ export function VoiceToggle({
               transition={{ duration: 0.2 }}
             >
               <Volume2 size={ICON_SIZES[size]} />
-            </motion.div>
+            </m.div>
           ) : (
-            <motion.div
+            <m.div
               key="off"
               initial={{ scale: 0, rotate: 180 }}
               animate={{ scale: 1, rotate: 0 }}
@@ -97,14 +97,14 @@ export function VoiceToggle({
               transition={{ duration: 0.2 }}
             >
               <VolumeX size={ICON_SIZES[size]} />
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
         {/* Tooltip */}
         <AnimatePresence>
           {isHovered && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
@@ -113,14 +113,14 @@ export function VoiceToggle({
               <span className="text-[10px] uppercase tracking-wider text-white/60 bg-black/80 px-2 py-1 rounded">
                 {isEnabled ? "Voice On" : "Voice Off"}
               </span>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
-      </motion.button>
+      </m.button>
 
       {/* Microphone toggle (optional) */}
       {showMic && onListenToggle && (
-        <motion.button
+        <m.button
           onClick={onListenToggle}
           className={`
             ${SIZE_CLASSES[size]}
@@ -136,26 +136,26 @@ export function VoiceToggle({
         >
           <AnimatePresence mode="wait">
             {isListening ? (
-              <motion.div
+              <m.div
                 key="listening"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 exit={{ scale: 0 }}
               >
                 <Mic size={ICON_SIZES[size]} />
-              </motion.div>
+              </m.div>
             ) : (
-              <motion.div
+              <m.div
                 key="muted"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 exit={{ scale: 0 }}
               >
                 <MicOff size={ICON_SIZES[size]} />
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
-        </motion.button>
+        </m.button>
       )}
 
       {/* Status label */}

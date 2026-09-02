@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { FadeIn } from "@/app/components/ui/scroll-animations";
 
 const proofPillars = [
@@ -36,7 +36,7 @@ export function SocialProofSection() {
 
         <div className="grid gap-4 text-left md:grid-cols-3">
           {proofPillars.map((pillar, index) => (
-            <motion.div
+            <m.div
               key={pillar.title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -46,7 +46,7 @@ export function SocialProofSection() {
             >
               <p className="text-sm font-semibold text-[color:var(--foreground)] md:text-base">{pillar.title}</p>
               <p className="mt-2 text-sm leading-relaxed text-[color:var(--muted)]">{pillar.description}</p>
-            </motion.div>
+            </m.div>
           ))}
         </div>
       </section>

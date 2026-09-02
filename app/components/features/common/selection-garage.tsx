@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AVATARS, EQUIPMENT, WORLDS, RIDE_TEMPLATES, type AvatarAsset, type EquipmentAsset, type WorldAsset, type RideTemplate } from "@/app/lib/selection-library";
 import { GlassCard, SectionHeader, Tag } from "@/app/components/ui/ui";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 interface SelectionGarageProps {
   onSelectionChange: (selection: {
@@ -87,7 +87,7 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
         <div className="space-y-4">
           <AnimatePresence mode="wait">
             {activeTab === "templates" && (
-              <motion.div
+              <m.div
                 key="templates-grid"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -114,11 +114,11 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
                     </div>
                   </button>
                 ))}
-              </motion.div>
+              </m.div>
             )}
 
             {activeTab === "avatar" && (
-              <motion.div
+              <m.div
                 key="avatar-grid"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -136,11 +136,11 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
                     }}
                   />
                 ))}
-              </motion.div>
+              </m.div>
             )}
 
             {activeTab === "equipment" && (
-              <motion.div
+              <m.div
                 key="equipment-grid"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -158,11 +158,11 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
                     }}
                   />
                 ))}
-              </motion.div>
+              </m.div>
             )}
 
             {activeTab === "world" && (
-              <motion.div
+              <m.div
                 key="world-grid"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -180,7 +180,7 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
                     }}
                   />
                 ))}
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>
@@ -265,7 +265,7 @@ function LoadoutBadge({ icon, label }: { icon: React.ReactNode; label: string })
 
 function AssetCard({ asset, isSelected, onClick }: { asset: AvatarAsset | EquipmentAsset | WorldAsset; isSelected: boolean; onClick: () => void }) {
   return (
-    <motion.button
+    <m.button
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
@@ -289,14 +289,14 @@ function AssetCard({ asset, isSelected, onClick }: { asset: AvatarAsset | Equipm
         </div>
       </div>
       {isSelected && (
-        <motion.div 
+        <m.div 
           layoutId="selected-indicator"
           className="absolute right-3 top-3"
         >
           <div className="h-2 w-2 rounded-full bg-indigo-500 shadow-[0_0_10px_#6366f1]" />
-        </motion.div>
+        </m.div>
       )}
-    </motion.button>
+    </m.button>
   );
 }
 

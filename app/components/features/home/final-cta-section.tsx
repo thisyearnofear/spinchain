@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import Link from "next/link";
 import { FadeIn } from "@/app/components/ui/scroll-animations";
 import { MagneticButton } from "@/app/components/ui/animated-card";
@@ -10,7 +10,7 @@ export function FinalCTASection() {
     <FadeIn>
       <section className="rounded-3xl border border-[color:var(--border)] bg-gradient-to-br from-[color:var(--surface)] to-[color:var(--surface-strong)] p-6 md:p-8 lg:p-12 text-center relative overflow-hidden" aria-label="Get started call to action">
         {/* Animated background */}
-        <motion.div
+        <m.div
           className="absolute inset-0 bg-gradient-to-r from-[color:var(--accent)]/5 via-transparent to-[color:var(--accent-strong)]/5"
           animate={{
             x: ["-100%", "100%"],

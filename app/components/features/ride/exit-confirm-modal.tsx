@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { modalTransition, modalExitTransition } from "@/app/lib/motion";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 
@@ -16,7 +16,7 @@ function ExitConfirmModalInternal({ open, onConfirm, onCancel }: ExitConfirmModa
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -24,7 +24,7 @@ function ExitConfirmModalInternal({ open, onConfirm, onCancel }: ExitConfirmModa
             style={{ zIndex: Z_LAYERS.modals }}
             onClick={onCancel}
           />
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96, ...modalExitTransition }}
@@ -61,7 +61,7 @@ function ExitConfirmModalInternal({ open, onConfirm, onCancel }: ExitConfirmModa
                 </button>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

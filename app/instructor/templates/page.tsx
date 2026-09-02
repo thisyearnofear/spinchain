@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import { GlassCard } from "@/app/components/ui/ui";
 import { EmptyState } from "@/app/components/features/common/empty-state";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { modalTransition } from "@/app/lib/motion";
 import {
   Search,
@@ -291,7 +291,7 @@ export default function TemplateMarketplacePage() {
               const isSaved = savedTemplates.has(template.id);
 
               return (
-                <motion.div
+                <m.div
                   key={template.id}
                   layout
                   initial={{ opacity: 0, scale: 0.96 }}
@@ -391,7 +391,7 @@ export default function TemplateMarketplacePage() {
                       </button>
                     </div>
                   </GlassCard>
-                </motion.div>
+                </m.div>
               );
             })}
           </AnimatePresence>

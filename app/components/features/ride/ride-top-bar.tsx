@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import { useRideStore, selectRidePhase } from "@/app/stores/ride-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
@@ -80,7 +80,7 @@ export const RideTopBar = memo(function RideTopBar({
         <div className="flex-1 min-w-0">
           <AnimatePresence mode="wait">
             {isActive ? (
-              <motion.div
+              <m.div
                 key="active"
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -95,9 +95,9 @@ export const RideTopBar = memo(function RideTopBar({
                   <span className={`h-1.5 w-1.5 rounded-full ${telemetryColor}`} />
                   {telemetryLabel}
                 </span>
-              </motion.div>
+              </m.div>
             ) : (
-              <motion.div
+              <m.div
                 key="pre-ride"
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -120,7 +120,7 @@ export const RideTopBar = memo(function RideTopBar({
                     {instructor}
                   </p>
                 )}
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>

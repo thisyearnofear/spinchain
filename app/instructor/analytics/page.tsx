@@ -9,7 +9,7 @@ import { useInstructorAnalytics } from "../../hooks/evm/use-instructor-analytics
 import { InstructorRoster } from "../../components/features/instructor/instructor-roster";
 import { InstructorInsightsPanel } from "../../components/features/instructor/instructor-insights-panel";
 import { GymManager } from "../../components/features/gym/gym-manager";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { modalTransition } from "@/app/lib/motion";
 import { 
   Activity, 
@@ -166,7 +166,7 @@ export default function InstructorAnalyticsPage() {
 
         {/* Key Metrics Grid - Enhanced with Sparklines */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...modalTransition, delay: 0 }}
@@ -180,9 +180,9 @@ export default function InstructorAnalyticsPage() {
               sparklineColor="rgb(110, 231, 183)"
               delay={100}
             />
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...modalTransition, delay: 0.05 }}
@@ -196,9 +196,9 @@ export default function InstructorAnalyticsPage() {
               sparklineColor="rgb(96, 165, 250)"
               delay={200}
             />
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...modalTransition, delay: 0.1 }}
@@ -212,9 +212,9 @@ export default function InstructorAnalyticsPage() {
               sparklineColor="rgb(192, 132, 252)"
               delay={300}
             />
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...modalTransition, delay: 0.15 }}
@@ -228,7 +228,7 @@ export default function InstructorAnalyticsPage() {
               sparklineColor="rgb(251, 191, 36)"
               delay={400}
             />
-          </motion.div>
+          </m.div>
         </div>
 
         {/* Revenue Breakdown */}
@@ -349,7 +349,7 @@ export default function InstructorAnalyticsPage() {
               </thead>
               <tbody>
                 {analytics.classes.slice(0, 10).map((cls, i) => (
-                  <motion.tr
+                  <m.tr
                     key={cls.classAddress}
                     initial={{ opacity: 0, transform: "translateX(-20px)" }}
                     animate={{ opacity: 1, transform: "translateX(0)" }}
@@ -384,7 +384,7 @@ export default function InstructorAnalyticsPage() {
                     <td className="py-4 px-4 text-right text-sm font-semibold text-[color:var(--foreground)]">
                       {formatCurrency(cls.instructorRevenue)}
                     </td>
-                  </motion.tr>
+                  </m.tr>
                 ))}
               </tbody>
             </table>

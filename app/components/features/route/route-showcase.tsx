@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { m, useScroll, useTransform } from "framer-motion";
 import { AnimatedCard, EnergyPulse } from "../../../components/ui/animated-card";
 
 interface Route {
@@ -115,7 +115,7 @@ function RouteCard({ route, index }: { route: Route; index: number }) {
   const isEven = index % 2 === 0;
 
   return (
-    <motion.div
+    <m.div
       ref={cardRef}
       style={{ opacity, scale }}
       className={`grid lg:grid-cols-2 gap-8 items-center ${isEven ? "" : "lg:grid-flow-dense"}`}
@@ -125,7 +125,7 @@ function RouteCard({ route, index }: { route: Route; index: number }) {
         <AnimatedCard className="h-full" glowColor="var(--accent)">
           <div className="relative h-full overflow-hidden">
             {/* Parallax Image */}
-            <motion.div 
+            <m.div 
               className="absolute inset-0"
               style={{ y: imageY }}
             >
@@ -135,7 +135,7 @@ function RouteCard({ route, index }: { route: Route; index: number }) {
                 alt={route.name}
                 className="w-full h-[120%] object-cover"
               />
-            </motion.div>
+            </m.div>
             
             {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -203,17 +203,17 @@ function RouteCard({ route, index }: { route: Route; index: number }) {
               </p>
             </div>
           </div>
-          <motion.a
+          <m.a
             href={`/rider/ride/${route.id}`}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className="px-6 py-2.5 rounded-full bg-[color:var(--accent)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
           >
             Join Class
-          </motion.a>
+          </m.a>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -232,7 +232,7 @@ export function RouteShowcase() {
     <section ref={containerRef} className="relative">
       {/* Fixed Progress Bar */}
       <div className="fixed top-0 left-0 right-0 h-1 bg-[color:var(--surface-strong)] z-50">
-        <motion.div 
+        <m.div 
           className="h-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)]"
           style={{ width: progressWidth }}
         />
@@ -240,15 +240,15 @@ export function RouteShowcase() {
 
       {/* Header */}
       <div className="text-center mb-20">
-        <motion.span
+        <m.span
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="inline-block px-4 py-1.5 rounded-full bg-[color:var(--accent)]/10 text-[color:var(--accent)] text-sm font-medium mb-4"
         >
           Featured Routes
-        </motion.span>
-        <motion.h2
+        </m.span>
+        <m.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -256,8 +256,8 @@ export function RouteShowcase() {
           className="text-4xl lg:text-5xl font-bold text-[color:var(--foreground)] mb-4"
         >
           Worlds to Explore
-        </motion.h2>
-        <motion.p
+        </m.h2>
+        <m.p
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -266,7 +266,7 @@ export function RouteShowcase() {
         >
           From scenic mountain climbs to high-energy city rides—find a class 
           that matches your mood and fitness level.
-        </motion.p>
+        </m.p>
       </div>
 
       {/* Routes */}
@@ -277,7 +277,7 @@ export function RouteShowcase() {
       </div>
 
       {/* View All CTA */}
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -292,7 +292,7 @@ export function RouteShowcase() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
           </svg>
         </a>
-      </motion.div>
+      </m.div>
     </section>
   );
 }

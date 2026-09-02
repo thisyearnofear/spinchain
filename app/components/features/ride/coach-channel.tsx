@@ -20,7 +20,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useCoachingStore, selectLastCoachMessage, selectIsSpeaking } from "@/app/stores/coaching-store";
 import { useSensoryStore } from "@/app/stores/sensory-store";
 import { computePhaseTheme, type IntervalPhase } from "@/app/lib/phase-theme";
@@ -62,7 +62,7 @@ export function CoachChannel({ className = "" }: { className?: string }) {
     <div className={`absolute bottom-28 left-1/2 -translate-x-1/2 w-full max-w-md px-4 pointer-events-auto ${className}`}>
       <AnimatePresence mode="popLayout">
         {latestMsg && (
-          <motion.div
+          <m.div
             key={latestMsg === message ? "latest" : "other"}
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -81,7 +81,7 @@ export function CoachChannel({ className = "" }: { className?: string }) {
             />
 
             {/* Card */}
-            <motion.button
+            <m.button
               onClick={() => setExpanded(!expanded)}
               className="relative w-full rounded-2xl border bg-black/85 backdrop-blur-xl overflow-hidden"
               style={{
@@ -97,7 +97,7 @@ export function CoachChannel({ className = "" }: { className?: string }) {
               whileTap={{ scale: 0.98 }}
             >
               {/* Accent bar at top */}
-              <motion.div
+              <m.div
                 className="h-0.5 w-full"
                 style={{ backgroundColor: theme.color }}
                 animate={{
@@ -112,7 +112,7 @@ export function CoachChannel({ className = "" }: { className?: string }) {
               <div className="px-4 py-3">
                 {/* Header */}
                 <div className="flex items-center gap-2 mb-2">
-                  <motion.div
+                  <m.div
                     className="w-2 h-2 rounded-full"
                     style={{
                       backgroundColor: theme.color,
@@ -137,7 +137,7 @@ export function CoachChannel({ className = "" }: { className?: string }) {
 
                 {expanded ? (
                   /* Expanded: full message */
-                  <motion.p
+                  <m.p
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
@@ -148,7 +148,7 @@ export function CoachChannel({ className = "" }: { className?: string }) {
                     }}
                   >
                     {message}
-                  </motion.p>
+                  </m.p>
                 ) : (
                   /* Compact: first line only */
                   <p className="text-sm text-white/70 pl-4 border-l-2">
@@ -178,8 +178,8 @@ export function CoachChannel({ className = "" }: { className?: string }) {
                   </div>
                 )}
               </div>
-            </motion.button>
-          </motion.div>
+            </m.button>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

@@ -27,7 +27,7 @@
  */
 
 import { memo, useMemo, useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore, selectEffort, selectPower, selectHeartRate, selectCadence, selectGhostState, selectMultiGhostState } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
@@ -229,7 +229,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
           when phase changes or intensity crosses a 0.1 step — not every commit. */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         {/* Base phase color */}
-        <motion.div
+        <m.div
           className="absolute inset-0"
           style={{
             background: `radial-gradient(ellipse at 50% 50%, ${ambient.bg} 0%, transparent 70%)`,
@@ -244,7 +244,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
 
         {/* Intensity-based radial pulse */}
         {ambient.intensity > 0.5 && (
-          <motion.div
+          <m.div
             className="absolute inset-0"
             style={{
               background: `radial-gradient(circle at 50% 50%, ${ambient.glow} 0%, transparent 50%)`,
@@ -259,7 +259,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
 
         {/* Sprint edge flash */}
         {ambient.screenPulseOpacity > 0 && (
-          <motion.div
+          <m.div
             className="absolute inset-0"
             style={{
               boxShadow: `inset 0 0 80px 20px ${ambient.color}${Math.round(ambient.screenPulseOpacity * 255).toString(16).padStart(2, "0")}`,
@@ -273,7 +273,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
         {ambient.intensity > 0.6 && !expanded && (
           <div className="absolute inset-0">
             {particles.slice(0, Math.floor(ambient.intensity * 12)).map((p, i) => (
-              <motion.div
+              <m.div
                 key={i}
                 className="absolute rounded-full"
                 style={{
@@ -304,7 +304,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
       {/* ─── Flow tier rise celebration (plays even in practice mode) ─ */}
       <AnimatePresence>
         {tierCelebration !== null && (
-          <motion.div
+          <m.div
             className="fixed inset-0 z-[60] pointer-events-none flex items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 0.4, 0] }}
@@ -314,7 +314,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
               background: `radial-gradient(circle at 50% 55%, ${FLOW_COLORS[tierCelebration]}55 0%, transparent 60%)`,
             }}
           >
-            <motion.div
+            <m.div
               className="rounded-3xl border backdrop-blur-xl px-10 py-6 text-center"
               initial={{ scale: 0.6, opacity: 0 }}
               animate={{ scale: [0.6, 1.15, 1], opacity: [0, 1, 1, 0] }}
@@ -334,8 +334,8 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
               <p className="mt-1.5 text-[10px] font-black uppercase tracking-[0.3em] text-white/50">
                 Flow tier up
               </p>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -343,7 +343,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
       {!suppressBottomStack && (expanded ? null : (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-3">
           {/* Phase badge */}
-          <motion.div
+          <m.div
             className="flex items-center gap-2 rounded-full px-4 py-1.5 border backdrop-blur-xl"
             style={{
               borderColor: `${theme.color}30`,
@@ -353,7 +353,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
               boxShadow: ambient.intensity > 0.5 ? `0 0 30px ${theme.color}20` : "none",
             }}
           >
-            <motion.div
+            <m.div
               className="w-1.5 h-1.5 rounded-full"
               style={{ backgroundColor: theme.color }}
               animate={{ scale: [...PULSE_KEYFRAMES] }}
@@ -362,7 +362,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
               {phaseText}
             </span>
-          </motion.div>
+          </m.div>
 
           {/* Ride progress hairline + clock — "how long is left" is the
               rider's #1 question; the hairline answers it at a glance and
@@ -370,7 +370,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
           {isRiding && (
             <>
               <div className="h-0.5 w-28 rounded-full bg-white/10 overflow-hidden">
-                <motion.div
+                <m.div
                   className="h-full rounded-full origin-left"
                   style={{ backgroundColor: theme.color }}
                   initial={false}
@@ -388,7 +388,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
           {/* Flow state badge — only shows when rider enters flow */}
           <AnimatePresence>
             {showFlowBadge && (
-              <motion.div
+              <m.div
                 className="flex items-center gap-2 rounded-full px-3 py-1 border backdrop-blur-xl"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -415,12 +415,12 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                 <span className="text-[9px] font-black uppercase tracking-[0.25em]" style={{ color: FLOW_COLORS[flowTier] }}>
                   {FLOW_LABELS[flowTier]}
                 </span>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
 
           {/* Primary metric — big, central, breathing */}
-          <motion.div
+          <m.div
             className="relative rounded-[2rem] border bg-black/80 backdrop-blur-2xl px-8 py-6 min-w-[200px]"
             style={{
               borderColor: `${theme.color}20`,
@@ -460,7 +460,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
             {/* Intensity bar at bottom */}
             {theme.intensity > 0.3 && (
               <div className="absolute bottom-2 left-8 right-8 h-0.5 bg-white/5 rounded-full overflow-hidden">
-                <motion.div
+                <m.div
                   className="h-full rounded-full"
                   style={{ backgroundColor: theme.color }}
                   animate={{ scaleX: theme.intensity }}
@@ -468,13 +468,13 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                 />
               </div>
             )}
-          </motion.div>
+          </m.div>
 
           {/* Ghost badge + secondaries */}
           <div className="flex items-center gap-3">
             {/* Ghost */}
             {ghostBadge && (
-              <motion.div
+              <m.div
                 className="flex flex-col items-center rounded-xl border bg-black/60 backdrop-blur px-3 py-1.5"
                 style={{ borderColor: ghostBadge.isAhead ? "rgba(16,185,129,0.3)" : "rgba(244,63,94,0.3)" }}
               >
@@ -482,7 +482,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                 <span className={`text-sm font-black tabular-nums ${ghostBadge.color}`}>
                   {ghostBadge.isAhead ? "+" : "-"}{ghostBadge.time.toFixed(1)}s
                 </span>
-              </motion.div>
+              </m.div>
             )}
 
             {/* Secondary metrics (horizontal row) */}
@@ -508,7 +508,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
       {/* ─── Expanded HUD (tap to show everything) ─────────────────── */}
       <AnimatePresence>
         {!suppressBottomStack && expanded && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
@@ -523,7 +523,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
               {/* Phase header */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <motion.div
+                  <m.div
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: theme.color }}
                     animate={{ scale: [1, 1.4, 1] }}
@@ -594,7 +594,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                 </div>
               )}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 

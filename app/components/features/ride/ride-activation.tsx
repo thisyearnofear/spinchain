@@ -25,7 +25,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useSensoryStore } from "@/app/stores/sensory-store";
 import { useRideStore } from "@/app/stores/ride-store";
 import { computePhaseTheme, phaseLabel, type IntervalPhase } from "@/app/lib/phase-theme";
@@ -143,14 +143,14 @@ export function RideActivationSequence({
     >
       {/* ─── Ambient particles during route reveal ─────────────────── */}
       {phase === "route-reveal" && !reducedMotion && (
-        <motion.div
+        <m.div
           className="absolute inset-0 overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.5 }}
         >
           {Array.from({ length: 20 }).map((_, i) => (
-            <motion.div
+            <m.div
               key={i}
               className="absolute rounded-full"
               style={{
@@ -174,13 +174,13 @@ export function RideActivationSequence({
               }}
             />
           ))}
-        </motion.div>
+        </m.div>
       )}
 
       {/* ─── Phase 1: Route reveal ─────────────────────────────────── */}
       <AnimatePresence mode="wait">
         {phase === "route-reveal" && (
-          <motion.div
+          <m.div
             key="reveal"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -189,7 +189,7 @@ export function RideActivationSequence({
             className="flex flex-col items-center gap-4 pointer-events-auto"
           >
             {/* Class name */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.5, duration: 0.6 }}
@@ -197,16 +197,16 @@ export function RideActivationSequence({
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 mb-2">
                 Preparing your ride
               </p>
-            </motion.div>
+            </m.div>
 
             {/* Phase indicator orb */}
-            <motion.div
+            <m.div
               className="relative"
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.8, duration: 0.8, type: "spring" }}
             >
-              <motion.div
+              <m.div
                 className="w-24 h-24 rounded-full blur-2xl"
                 style={{ backgroundColor: theme.color, opacity: 0.3 }}
                 animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
@@ -219,17 +219,17 @@ export function RideActivationSequence({
                   boxShadow: `0 0 40px ${theme.color}30`,
                 }}
               />
-            </motion.div>
+            </m.div>
 
             {/* Current phase label */}
             {intervalPhase && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.2 }}
                 className="flex items-center gap-2"
               >
-                <motion.div
+                <m.div
                   className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: theme.color }}
                   animate={{ scale: [1, 1.3, 1] }}
@@ -238,16 +238,16 @@ export function RideActivationSequence({
                 <p className="text-sm font-bold text-white/70 tracking-wide">
                   {phaseLabel(intervalPhase)} session
                 </p>
-              </motion.div>
+              </m.div>
             )}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
       {/* ─── Phase 2: Countdown ────────────────────────────────────── */}
       {phase === "countdown" && countdownNumber !== null && (
         <div className="relative pointer-events-auto">
-          <motion.div
+          <m.div
             key={countdownNumber}
             initial={{ opacity: 0, scale: 0.3 }}
             animate={{
@@ -275,28 +275,28 @@ export function RideActivationSequence({
 
             {/* Label (only on final tick) */}
             {countdownNumber === 1 && (
-              <motion.p
+              <m.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
                 className="text-xs font-black uppercase tracking-[0.4em] text-white/40 mt-2"
               >
                 Focus
-              </motion.p>
+              </m.p>
             )}
-          </motion.div>
+          </m.div>
         </div>
       )}
 
       {/* ─── Phase 3: GO ───────────────────────────────────────────── */}
       {phase === "go" && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-col items-center pointer-events-auto"
         >
-          <motion.p
+          <m.p
             className="text-7xl font-black tracking-tighter"
             style={{
               color: accentColor,
@@ -309,14 +309,14 @@ export function RideActivationSequence({
             }}
           >
             GO
-          </motion.p>
-        </motion.div>
+          </m.p>
+        </m.div>
       )}
 
       {/* ─── Skip button (appears after delay) ─────────────────────── */}
       <AnimatePresence>
         {showSkip && phase !== "go" && (
-          <motion.button
+          <m.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -324,13 +324,13 @@ export function RideActivationSequence({
             className="absolute bottom-16 pointer-events-auto rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-white/40 hover:text-white/70 transition-colors"
           >
             Skip countdown
-          </motion.button>
+          </m.button>
         )}
       </AnimatePresence>
 
       {/* ─── Reduced motion: instant skip ──────────────────────────── */}
       {reducedMotion && (
-        <motion.button
+        <m.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
@@ -338,7 +338,7 @@ export function RideActivationSequence({
           className="absolute bottom-16 pointer-events-auto rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-white/40 hover:text-white/70 transition-colors"
         >
           Skip to ride
-        </motion.button>
+        </m.button>
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 interface MiniRouteVisualizerProps {
   theme?: "neon" | "alpine" | "mars" | "ocean";
@@ -48,7 +48,7 @@ export function MiniRouteSVG({ theme = "neon", className = "" }: MiniRouteVisual
         <rect width="200" height="60" fill={`url(#grid-${theme})`} />
         
         {/* Elevation profile */}
-        <motion.path
+        <m.path
           d="M0,40 Q25,20 50,35 T100,25 T150,40 T200,20"
           fill="none"
           stroke={`url(#gradient-${theme})`}
@@ -60,7 +60,7 @@ export function MiniRouteSVG({ theme = "neon", className = "" }: MiniRouteVisual
         />
         
         {/* Animated dot */}
-        <motion.circle
+        <m.circle
           r="4"
           fill="#ffffff"
           filter="url(#glow)"

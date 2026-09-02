@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Tag } from "@/app/components/ui/ui";
 import { FadeIn, StaggerContainer } from "@/app/components/ui/scroll-animations";
 
@@ -39,12 +39,12 @@ export function HowItWorksSection() {
             key={item.step}
             className="group rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-5 md:p-6 text-center hover:border-[color:var(--accent)]/30 transition-colors"
           >
-            <motion.span
+            <m.span
               className="inline-flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-[color:var(--accent)]/10 text-[color:var(--accent)] font-semibold mb-3 md:mb-4"
               whileHover={{ scale: 1.1, rotate: 5 }}
             >
               {item.step}
-            </motion.span>
+            </m.span>
             <h3 className="text-base md:text-lg font-semibold text-[color:var(--foreground)] mb-2">
               {item.title}
             </h3>

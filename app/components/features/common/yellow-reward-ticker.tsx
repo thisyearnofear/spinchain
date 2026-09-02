@@ -13,7 +13,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import type { RewardStreamState, RewardMode } from "../../../lib/rewards";
 import { formatReward, getStreamingStatus, calculateStreamingRate } from "../../../lib/rewards";
 
@@ -116,14 +116,14 @@ function CompactTicker({ amount, symbol, status, className }: CompactTickerProps
 
       {/* Amount */}
       <div className="flex items-baseline gap-1.5">
-        <motion.span
+        <m.span
           key={amount}
           initial={{ opacity: 0.5, y: -5, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           className="text-xl font-black text-white tracking-tighter"
         >
           {amount}
-        </motion.span>
+        </m.span>
         <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{symbol}</span>
       </div>
 
@@ -210,7 +210,7 @@ function FullTicker({
       {/* Main amount */}
       <div className="flex items-baseline gap-2.5 mb-2 relative z-10">
         <AnimatePresence mode="wait">
-          <motion.span
+          <m.span
             key={amount}
             initial={{ opacity: 0.5, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -219,7 +219,7 @@ function FullTicker({
             className="text-4xl font-black text-white tracking-tighter drop-shadow-lg"
           >
             {amount}
-          </motion.span>
+          </m.span>
         </AnimatePresence>
         <span className="text-sm font-bold text-yellow-500/80 uppercase tracking-widest">{symbol}</span>
       </div>
@@ -235,7 +235,7 @@ function FullTicker({
       {/* Tactical Progress Visualizer */}
       <div className="relative h-1 w-full bg-white/5 rounded-full overflow-hidden mb-3">
         <div className="absolute inset-0 bg-yellow-500/5" />
-        <motion.div
+        <m.div
           className="h-full bg-gradient-to-r from-yellow-600 via-amber-400 to-yellow-300 relative"
           initial={{ width: "0%" }}
           animate={{ width: `${Math.min((updateCount % 8) * 12.5, 100)}%` }}
@@ -243,7 +243,7 @@ function FullTicker({
         >
           {/* Animated glow on progress head */}
           <div className="absolute right-0 top-0 h-full w-4 bg-white/40 blur-sm" />
-        </motion.div>
+        </m.div>
       </div>
 
       {/* Footer / Meta Info */}

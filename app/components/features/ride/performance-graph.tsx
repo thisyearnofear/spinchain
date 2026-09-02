@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 interface PerformanceGraphProps {
   data: number[];
@@ -76,7 +76,7 @@ export function PerformanceGraph({
         </defs>
 
         {/* Area fill */}
-        <motion.polyline
+        <m.polyline
           fill={`url(#grad-${label})`}
           points={`${points} 200,60 0,60`}
           initial={{ opacity: 0 }}
@@ -84,7 +84,7 @@ export function PerformanceGraph({
         />
 
         {/* Line */}
-        <motion.polyline
+        <m.polyline
           fill="none"
           stroke="currentColor"
           strokeWidth="2"

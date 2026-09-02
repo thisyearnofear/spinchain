@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 interface Props {
   children: ReactNode;
@@ -51,20 +51,20 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="min-h-screen flex items-center justify-center p-6 bg-[color:var(--background)]"
         >
           <div className="max-w-md w-full text-center">
-            <motion.div
+            <m.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.1, type: "spring" }}
               className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-500/10 flex items-center justify-center"
             >
               <span className="text-4xl">⚠️</span>
-            </motion.div>
+            </m.div>
             
             <h2 className="text-2xl font-bold text-[color:var(--foreground)] mb-2">
               Something went wrong
@@ -96,7 +96,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </button>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       );
     }
 

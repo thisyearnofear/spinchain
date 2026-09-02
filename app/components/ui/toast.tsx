@@ -4,7 +4,7 @@
 // CLEAN: Context + Hook pattern, clear separation of concerns
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, AlertCircle, Info, X, Loader2 } from 'lucide-react';
 import { dropdownTransition } from '@/app/lib/motion';
 
@@ -105,7 +105,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 // Individual toast item
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, x: 40, scale: 0.95 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 40, scale: 0.95 }}
@@ -139,7 +139,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       >
         <X className="w-4 h-4" />
       </button>
-    </motion.div>
+    </m.div>
   );
 }
 

@@ -14,7 +14,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { modalTransition } from "@/app/lib/motion";
@@ -56,7 +56,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
       {isOpen && (
         <>
           {/* Backdrop */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -65,7 +65,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
           />
 
           {/* Modal */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
@@ -79,7 +79,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                 {isOpen && (
                   <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     {confettiPositions.map((confetti) => (
-                      <motion.div
+                      <m.div
                         key={confetti.index}
                         className="absolute w-2 h-2 rounded-full"
                         style={{
@@ -102,7 +102,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                   </div>
                 )}
 
-                <motion.div
+                <m.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2, type: "spring" }}
@@ -112,7 +112,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                   <div className="relative w-full h-full rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-white/20 flex items-center justify-center text-3xl sm:text-4xl shadow-xl">
                     🧠
                   </div>
-                </motion.div>
+                </m.div>
                 
                 <p className="text-[10px] uppercase tracking-[0.3em] text-indigo-400 font-bold mb-1">
                   Performance Debrief
@@ -287,7 +287,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                 </div>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

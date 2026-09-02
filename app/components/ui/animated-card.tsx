@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { m, useMotionValue, useSpring, useTransform } from "framer-motion";
 
 interface AnimatedCardProps {
   children: React.ReactNode;
@@ -45,7 +45,7 @@ export function AnimatedCard({
   };
 
   return (
-    <motion.div
+    <m.div
       ref={ref}
       className={`relative ${className}`}
       style={{
@@ -56,7 +56,7 @@ export function AnimatedCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={handleMouseLeave}
     >
-      <motion.div
+      <m.div
         style={{
           rotateX,
           rotateY,
@@ -65,7 +65,7 @@ export function AnimatedCard({
         className="relative h-full"
       >
         {/* Glow effect */}
-        <motion.div
+        <m.div
           className="absolute -inset-px rounded-3xl opacity-0 transition-opacity"
           style={{
             background: `radial-gradient(600px circle at ${x.get() * 100 + 50}% ${y.get() * 100 + 50}%, ${glowColor}20, transparent 40%)`,
@@ -77,8 +77,8 @@ export function AnimatedCard({
         <div className="relative h-full rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] overflow-hidden">
           {children}
         </div>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }
 
@@ -118,7 +118,7 @@ interface FloatingProps {
 
 export function Floating({ children, className = "", delay = 0 }: FloatingProps) {
   return (
-    <motion.div
+    <m.div
       className={className}
       animate={{
         y: [0, -10, 0],
@@ -131,7 +131,7 @@ export function Floating({ children, className = "", delay = 0 }: FloatingProps)
       }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -146,9 +146,9 @@ export function StaggerText({ text, className = "", delay = 0 }: StaggerTextProp
   const words = text.split(" ");
 
   return (
-    <motion.span className={className}>
+    <m.span className={className}>
       {words.map((word, i) => (
-        <motion.span
+        <m.span
           key={i}
           className="inline-block mr-[0.25em]"
           initial={{ opacity: 0, y: 20 }}
@@ -160,9 +160,9 @@ export function StaggerText({ text, className = "", delay = 0 }: StaggerTextProp
           }}
         >
           {word}
-        </motion.span>
+        </m.span>
       ))}
-    </motion.span>
+    </m.span>
   );
 }
 
@@ -197,7 +197,7 @@ export function MagneticButton({ children, className = "", onClick }: MagneticBu
   };
 
   return (
-    <motion.button
+    <m.button
       ref={ref}
       className={className}
       style={{ x: xSpring, y: ySpring }}
@@ -208,6 +208,6 @@ export function MagneticButton({ children, className = "", onClick }: MagneticBu
       whileTap={{ scale: 0.98 }}
     >
       {children}
-    </motion.button>
+    </m.button>
   );
 }

@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 interface AudioWaveformProps {
   isActive: boolean;
@@ -81,7 +81,7 @@ export function AudioWaveform({
       style={{ height: config.height }}
     >
       {renderedBars.map((height, i) => (
-        <motion.div
+        <m.div
           key={i}
           className="rounded-full"
           style={{
@@ -117,7 +117,7 @@ export function AudioIndicator({
   return (
     <div className={`flex items-center gap-0.5 ${className}`}>
       {[0, 1, 2].map((i) => (
-        <motion.div
+        <m.div
           key={i}
           className="w-1 rounded-full"
           style={{ backgroundColor: color }}

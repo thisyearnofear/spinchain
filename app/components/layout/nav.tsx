@@ -12,7 +12,7 @@ import { useUIClickSound } from "@/app/hooks/use-ui-click-sound";
 import { useProfile, getDisplayName, formatAddress } from "@/app/hooks/common/use-profile";
 import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import { useRiderProfile } from "@/app/stores/rider-profile-store";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { dropdownTransition } from "@/app/lib/motion";
 
 function useSuiWalletVisible(): boolean {
@@ -98,7 +98,7 @@ function SettingsDropdown({ isInstructorMode, onModeToggle }: { isInstructorMode
 
       <AnimatePresence>
         {isOpen && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.99 }}
@@ -120,7 +120,7 @@ function SettingsDropdown({ isInstructorMode, onModeToggle }: { isInstructorMode
                 <AIProviderSettings />
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
@@ -329,7 +329,7 @@ export function PrimaryNav() {
 
       <AnimatePresence mode="wait">
         {isMobileMenuOpen && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -359,7 +359,7 @@ export function PrimaryNav() {
                 <SettingsDropdown isInstructorMode={isInstructorMode} onModeToggle={handleModeToggle} />
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </nav>

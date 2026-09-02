@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import { AnimatedCard, Floating, MagneticButton } from "@/app/components/ui/animated-card";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
@@ -77,7 +77,7 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
       >
         <div className="flex flex-wrap justify-center gap-6 md:gap-10">
           {quickStarts.map((item, index) => (
-            <motion.div
+            <m.div
               key={item.label}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -85,17 +85,17 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
               className="flex items-center gap-3"
             >
               <div className="text-center">
-                <motion.p
+                <m.p
                   className="text-xl font-bold text-[color:var(--foreground)] md:text-2xl"
                   animate={{ scale: [1, 1.02, 1] }}
                   transition={{ duration: 2, repeat: Infinity, delay: index * 0.3 }}
                 >
                   {item.value}
-                </motion.p>
+                </m.p>
                 <p className="text-xs uppercase tracking-wider text-[color:var(--muted)]">{item.label}</p>
                 <p className="mt-0.5 text-[10px] font-medium text-[color:var(--accent)]">{item.subtitle}</p>
               </div>
-            </motion.div>
+            </m.div>
           ))}
         </div>
       </div>

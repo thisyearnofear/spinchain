@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Zap, TrendingUp, Flame } from "lucide-react";
 import { getPRs, getRideHistory } from "@/app/lib/analytics/ride-history";
 
@@ -80,26 +80,26 @@ export function PrPacingIndicator({
     <>
       <AnimatePresence>
         {showFlash && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.1 }}
             className="fixed inset-0 z-[200] pointer-events-none flex items-center justify-center"
           >
-            <motion.div
+            <m.div
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 0.5, repeat: 2 }}
               className="text-6xl font-black text-emerald-400 tracking-tighter drop-shadow-[0_0_30px_rgba(16,185,129,0.8)]"
             >
               NEW PR!
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
 
       <div className="flex items-center gap-2">
         {effortLabel && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             className={`flex items-center gap-1.5 rounded-full border bg-black/60 px-3 py-1 backdrop-blur ${
@@ -110,10 +110,10 @@ export function PrPacingIndicator({
             <span className={`text-[10px] font-black uppercase tracking-widest ${effortLabel.color}`}>
               {effortLabel.text}
             </span>
-          </motion.div>
+          </m.div>
         )}
         {powerLabel && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             className={`flex items-center gap-1.5 rounded-full border bg-black/60 px-3 py-1 backdrop-blur ${
@@ -124,7 +124,7 @@ export function PrPacingIndicator({
             <span className={`text-[10px] font-black uppercase tracking-widest ${powerLabel.color}`}>
               {powerLabel.text}
             </span>
-          </motion.div>
+          </m.div>
         )}
       </div>
     </>

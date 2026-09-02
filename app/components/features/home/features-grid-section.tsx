@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { SurfaceCard } from "@/app/components/ui/ui";
 import { FadeIn } from "@/app/components/ui/scroll-animations";
 
@@ -30,7 +30,7 @@ export function FeaturesGridSection() {
         >
           <div className="mt-5 md:mt-6 grid gap-2 md:gap-3">
             {riderFeatures.map((item, i) => (
-              <motion.div
+              <m.div
                 key={item}
                 initial={{ opacity: 0, x: -10 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -38,12 +38,12 @@ export function FeaturesGridSection() {
                 viewport={{ once: true }}
                 className="flex items-center gap-3 text-xs md:text-sm text-[color:var(--foreground)]/80"
               >
-                <motion.span
+                <m.span
                   className="h-2 w-2 rounded-full bg-[color:var(--accent)]"
                   whileHover={{ scale: 1.5 }}
                 />
                 {item}
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </SurfaceCard>
@@ -58,7 +58,7 @@ export function FeaturesGridSection() {
         >
           <div className="mt-5 md:mt-6 grid gap-2 md:gap-3">
             {instructorFeatures.map((item, i) => (
-              <motion.div
+              <m.div
                 key={item}
                 initial={{ opacity: 0, x: -10 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -66,12 +66,12 @@ export function FeaturesGridSection() {
                 viewport={{ once: true }}
                 className="flex items-center gap-3 text-xs md:text-sm text-[color:var(--foreground)]/80"
               >
-                <motion.span
+                <m.span
                   className="h-2 w-2 rounded-full bg-[color:var(--accent)]"
                   whileHover={{ scale: 1.5 }}
                 />
                 {item}
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </SurfaceCard>

@@ -22,7 +22,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useSensoryStore } from "@/app/stores/sensory-store";
 
@@ -208,7 +208,7 @@ function LoadingTransition({
   reducedMotion: boolean;
 }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -218,12 +218,12 @@ function LoadingTransition({
       <div className="flex flex-col items-center gap-6 max-w-sm px-6">
         {/* Spinning orbit ring */}
         <div className="relative w-20 h-20">
-          <motion.div
+          <m.div
             className="absolute inset-0 rounded-full border-2 border-white/10"
             animate={{ rotate: 360 }}
             transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
           />
-          <motion.div
+          <m.div
             className="absolute inset-2 rounded-full border-2 border-transparent border-t-amber-400"
             animate={{ rotate: -360 }}
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -237,7 +237,7 @@ function LoadingTransition({
 
         {/* Progress bar */}
         <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-          <motion.div
+          <m.div
             className="h-full bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full"
             initial={{ width: "0%" }}
             animate={{ width: `${Math.min(100, (progress / total) * 100)}%` }}
@@ -254,7 +254,7 @@ function LoadingTransition({
           </button>
         )}
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -322,7 +322,7 @@ function ActivationTransition({
   }, [countdown, reducedMotion]);
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -331,7 +331,7 @@ function ActivationTransition({
     >
       {/* Background pulse */}
       <div className="absolute inset-0 overflow-hidden">
-        <motion.div
+        <m.div
           className="absolute inset-0"
           animate={{
             background: phase
@@ -345,7 +345,7 @@ function ActivationTransition({
       {/* Countdown number → GO launch beat */}
       <AnimatePresence mode="wait">
         {visible && countdown > 0 && (
-          <motion.div
+          <m.div
             key={countdown}
             initial={{ opacity: 0, scale: 0.5, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -356,7 +356,7 @@ function ActivationTransition({
             }}
             className="flex flex-col items-center"
           >
-            <motion.p
+            <m.p
               className="text-8xl font-black tracking-tighter"
               style={{
                 color: phase ? phaseColor(phase) : "#fbbf24",
@@ -364,14 +364,14 @@ function ActivationTransition({
               }}
             >
               {countdown}
-            </motion.p>
+            </m.p>
             <p className="text-xs font-black uppercase tracking-[0.4em] text-white/40 mt-2">
               {countdown === 3 ? "Ready" : countdown === 2 ? "Set" : "Focus"}
             </p>
-          </motion.div>
+          </m.div>
         )}
         {visible && countdown === 0 && goPhase && (
-          <motion.div
+          <m.div
             key="go"
             initial={{ opacity: 0, scale: 0.4 }}
             animate={{ opacity: [0, 1, 1], scale: [0.4, 1.25, 1] }}
@@ -379,7 +379,7 @@ function ActivationTransition({
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="flex flex-col items-center"
           >
-            <motion.p
+            <m.p
               className="text-9xl font-black tracking-tighter"
               style={{
                 color: phase ? phaseColor(phase) : "#fbbf24",
@@ -387,18 +387,18 @@ function ActivationTransition({
               }}
             >
               GO
-            </motion.p>
+            </m.p>
             <p className="text-xs font-black uppercase tracking-[0.4em] text-white/50 mt-2">
               Start pedaling
             </p>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
       {/* Skip button */}
       <AnimatePresence>
         {skipEnabled && visible && (
-          <motion.button
+          <m.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -406,10 +406,10 @@ function ActivationTransition({
             className="absolute bottom-16 pointer-events-auto rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-white/40 hover:text-white/70 transition-colors"
           >
             Skip →
-          </motion.button>
+          </m.button>
         )}
       </AnimatePresence>
-    </motion.div>
+    </m.div>
   );
 }
 

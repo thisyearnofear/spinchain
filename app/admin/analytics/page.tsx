@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { SurfaceCard, Tag, MetricTileEnhanced } from '../../components/ui/ui';
 import { Activity, Users, Clock, Hash, RefreshCw, Filter } from 'lucide-react';
 
@@ -155,7 +155,7 @@ export default function AnalyticsDashboard() {
 
         {summary && trendData && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
@@ -169,9 +169,9 @@ export default function AnalyticsDashboard() {
                 sparklineColor="rgb(167, 139, 250)"
                 delay={100}
               />
-            </motion.div>
+            </m.div>
 
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
@@ -185,9 +185,9 @@ export default function AnalyticsDashboard() {
                 sparklineColor="rgb(96, 165, 250)"
                 delay={200}
               />
-            </motion.div>
+            </m.div>
 
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -201,9 +201,9 @@ export default function AnalyticsDashboard() {
                 sparklineColor="rgb(110, 231, 183)"
                 delay={300}
               />
-            </motion.div>
+            </m.div>
 
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
@@ -217,7 +217,7 @@ export default function AnalyticsDashboard() {
                 sparklineColor="rgb(251, 191, 36)"
                 delay={400}
               />
-            </motion.div>
+            </m.div>
           </div>
         )}
 
@@ -252,7 +252,7 @@ export default function AnalyticsDashboard() {
               </div>
               
               {filterEvent && (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-4 flex items-center gap-2"
@@ -267,7 +267,7 @@ export default function AnalyticsDashboard() {
                   >
                     Clear filter
                   </button>
-                </motion.div>
+                </m.div>
               )}
             </div>
           </SurfaceCard>
@@ -333,7 +333,7 @@ export default function AnalyticsDashboard() {
                   </thead>
                   <tbody className="divide-y divide-[color:var(--border)]">
                     {events.map((event, idx) => (
-                      <motion.tr
+                      <m.tr
                         key={`${event.sessionId}-${event.timestamp}-${idx}`}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -364,7 +364,7 @@ export default function AnalyticsDashboard() {
                             <span className="text-[color:var(--muted)]/50">-</span>
                           )}
                         </td>
-                      </motion.tr>
+                      </m.tr>
                     ))}
                   </tbody>
                 </table>
