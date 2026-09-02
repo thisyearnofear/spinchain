@@ -8,54 +8,145 @@ import Lottie from "lottie-react";
 
 gsap.registerPlugin(useGSAP);
 
-// Placeholder Lotties — replace with real cycling animations (pedal stroke, breath, etc.)
-// Minimal inline Lottie JSON that draws a pulsing circle — cheap, no network.
-const placeholderLottie = {
-  v: "5.7.4",
+// Cycling Lotties — 4 distinct inline JSONs, no network, cheap.
+// Each is a pulsing shape with discipline color. Replace with real pedal/breath/mind Lotties later.
+const makePulseLottie = (rgb: [number, number, number], shape: "circle" | "star" | "heart" | "wave" = "circle") => ({
+  v: "5.7.4" as const,
   fr: 30,
   ip: 0,
   op: 60,
   w: 100,
   h: 100,
-  nm: "Pulse",
+  nm: `Pulse-${shape}`,
   ddd: 0,
-  assets: [],
+  assets: [] as never[],
   layers: [
     {
       ddd: 0,
       ind: 1,
       ty: 4,
-      nm: "Circle",
+      nm: shape,
       sr: 1,
       ks: {
-        o: { a: 1, k: [{ t: 0, s: [40] }, { t: 30, s: [90] }, { t: 60, s: [40] }], ix: 11 },
+        o: { a: 1, k: [{ t: 0, s: [45] }, { t: 30, s: [95] }, { t: 60, s: [45] }] as unknown as never, ix: 11 },
         r: { a: 0, k: 0, ix: 10 },
         p: { a: 0, k: [50, 50, 0], ix: 2 },
         a: { a: 0, k: [0, 0, 0], ix: 1 },
-        s: { a: 1, k: [{ t: 0, s: [80, 80, 100] }, { t: 30, s: [100, 100, 100] }, { t: 60, s: [80, 80, 100] }], ix: 6 },
+        s: { a: 1, k: [{ t: 0, s: [85, 85, 100] }, { t: 30, s: [105, 105, 100] }, { t: 60, s: [85, 85, 100] }] as unknown as never, ix: 6 },
       },
       ao: 0,
-      shapes: [
-        {
-          ty: "el",
-          p: { a: 0, k: [0, 0], ix: 3 },
-          s: { a: 0, k: [60, 60], ix: 2 },
-          nm: "Ellipse Path 1",
-        },
-        {
-          ty: "fl",
-          c: { a: 0, k: [0.42, 0.49, 1, 1], ix: 4 },
-          o: { a: 0, k: 100, ix: 5 },
-          r: 1,
-          nm: "Fill 1",
-        },
-      ],
+      shapes:
+        shape === "star"
+          ? [
+              {
+                ty: "sr" as const,
+                p: { a: 0, k: [0, 0], ix: 3 },
+                ir: { a: 0, k: 12, ix: 6 } as never,
+                is: { a: 0, k: 80, ix: 7 } as never,
+                or: { a: 0, k: 28, ix: 8 } as never,
+                os: { a: 0, k: 0, ix: 9 } as never,
+                r: { a: 0, k: 0, ix: 10 } as never,
+                pt: { a: 0, k: 5, ix: 11 } as never,
+                nm: "Star 1",
+              },
+              { ty: "fl" as const, c: { a: 0, k: [...rgb, 1] as unknown as never, ix: 4 }, o: { a: 0, k: 100, ix: 5 }, r: 1, nm: "Fill 1" },
+            ]
+          : shape === "heart"
+            ? [
+                {
+                  ty: "sh" as const,
+                  ks: {
+                    a: 0,
+                    k: {
+                      i: [
+                        [0, -12],
+                        [12, 0],
+                        [0, 12],
+                        [-12, 0],
+                      ],
+                      o: [
+                        [12, 0],
+                        [0, 12],
+                        [-12, 0],
+                        [0, -12],
+                      ],
+                      v: [
+                        [0, -14],
+                        [18, -6],
+                        [0, 18],
+                        [-18, -6],
+                      ],
+                      c: true,
+                    } as unknown as never,
+                    ix: 2,
+                  } as never,
+                  nm: "Heart 1",
+                },
+                { ty: "fl" as const, c: { a: 0, k: [...rgb, 1] as unknown as never, ix: 4 }, o: { a: 0, k: 100, ix: 5 }, r: 1, nm: "Fill 1" },
+              ]
+            : shape === "wave"
+              ? [
+                  {
+                    ty: "sh" as const,
+                    ks: {
+                      a: 0,
+                      k: {
+                        i: [
+                          [0, 0],
+                          [8, -8],
+                          [8, 8],
+                          [8, -8],
+                          [0, 0],
+                        ],
+                        o: [
+                          [8, 8],
+                          [8, -8],
+                          [8, 8],
+                          [0, 0],
+                          [0, 0],
+                        ],
+                        v: [
+                          [-28, 0],
+                          [-14, -8],
+                          [0, 0],
+                          [14, 8],
+                          [28, 0],
+                        ],
+                        c: false,
+                      } as unknown as never,
+                      ix: 2,
+                    } as never,
+                  } as never,
+                  {
+                    ty: "st" as const,
+                    c: { a: 0, k: [...rgb, 1] as unknown as never, ix: 3 },
+                    o: { a: 0, k: 100, ix: 4 },
+                    w: { a: 0, k: 6, ix: 5 } as never,
+                    lc: 2 as never,
+                    lj: 2 as never,
+                    nm: "Stroke 1",
+                  },
+                ]
+              : [
+                  {
+                    ty: "el" as const,
+                    p: { a: 0, k: [0, 0], ix: 3 },
+                    s: { a: 0, k: [62, 62], ix: 2 },
+                    nm: "Ellipse 1",
+                  },
+                  { ty: "fl" as const, c: { a: 0, k: [...rgb, 1] as unknown as never, ix: 4 }, o: { a: 0, k: 100, ix: 5 }, r: 1, nm: "Fill 1" },
+                ],
       ip: 0,
       op: 60,
       st: 0,
     },
   ],
-};
+});
+
+const enduranceLottie = makePulseLottie([0.2, 0.85, 0.55], "circle"); // emerald — steady ring
+const sprintLottie = makePulseLottie([0.96, 0.35, 0.2], "star"); // red-orange — sharp star
+const recoveryLottie = makePulseLottie([0.38, 0.71, 0.98], "heart"); // sky — heart
+const mindLottie = makePulseLottie([0.62, 0.52, 0.98], "wave"); // violet — breath wave
 
 const PROGRAMS = [
   {
@@ -65,6 +156,7 @@ const PROGRAMS = [
     bg: "bg-emerald-500/10",
     description: "Long, steady — build your engine.",
     interaction: "Mountain leans into your cursor → handlebar tilt",
+    lottie: enduranceLottie,
   },
   {
     id: "sprint",
@@ -73,6 +165,7 @@ const PROGRAMS = [
     bg: "bg-red-500/10",
     description: "Short, sharp — chase the line.",
     interaction: "Tap the balloon → breath pops",
+    lottie: sprintLottie,
   },
   {
     id: "recovery",
@@ -81,6 +174,7 @@ const PROGRAMS = [
     bg: "bg-sky-500/10",
     description: "Easy spin — let the body catch up.",
     interaction: "Masked aura follows you",
+    lottie: recoveryLottie,
   },
   {
     id: "interval",
@@ -89,6 +183,7 @@ const PROGRAMS = [
     bg: "bg-violet-500/10",
     description: "Cadence + breath, together.",
     interaction: "Move across the sea → draft ripples",
+    lottie: mindLottie,
   },
 ] as const;
 
@@ -197,7 +292,7 @@ export function ChainringCarousel() {
                 >
                   <div className={`h-14 w-14 rounded-xl bg-gradient-to-br ${p.accent} p-[1px] mb-2`}>
                     <div className="h-full w-full rounded-[10px] bg-black flex items-center justify-center overflow-hidden">
-                      <Lottie animationData={placeholderLottie} loop autoplay style={{ width: 48, height: 48 }} />
+                      <Lottie animationData={p.lottie} loop autoplay style={{ width: 48, height: 48 }} />
                     </div>
                   </div>
                   <p className={`text-xs font-black uppercase tracking-widest ${isActive ? "text-black" : "text-white"}`}>{p.label}</p>
