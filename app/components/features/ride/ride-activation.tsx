@@ -24,7 +24,7 @@
  * - Respects reduced-motion preference
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { useSensoryStore } from "@/app/stores/sensory-store";
 import { useRideStore } from "@/app/stores/ride-store";
@@ -134,6 +134,20 @@ export function RideActivationSequence({
 
   const showSkip = elapsed > 2000;
 
+  const ambientParticles = useMemo(
+    () =>
+      Array.from({ length: 20 }).map(() => ({
+        size: 2 + Math.random() * 4,
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        opacity: 0.3 + Math.random() * 0.3,
+        y: -(30 + Math.random() * 40),
+        duration: 2 + Math.random() * 3,
+        delay: Math.random() * 2,
+      })),
+    [],
+  );
+
   return (
     <div
       className={`fixed inset-0 z-50 flex flex-col items-center justify-center pointer-events-none ${className}`}
@@ -149,27 +163,27 @@ export function RideActivationSequence({
           animate={{ opacity: 1 }}
           transition={{ duration: 1.5 }}
         >
-          {Array.from({ length: 20 }).map((_, i) => (
+          {ambientParticles.map((particle, i) => (
             <m.div
               key={i}
               className="absolute rounded-full"
               style={{
-                width: 2 + Math.random() * 4,
-                height: 2 + Math.random() * 4,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                width: particle.size,
+                height: particle.size,
+                left: particle.left,
+                top: particle.top,
                 backgroundColor: theme.particle,
-                opacity: 0.3 + Math.random() * 0.3,
+                opacity: particle.opacity,
               }}
               animate={{
-                y: [0, -30 - Math.random() * 40],
+                y: [0, particle.y],
                 opacity: [0, 0.6, 0],
                 scale: [0.5, 1.2, 0.8],
               }}
               transition={{
-                duration: 2 + Math.random() * 3,
+                duration: particle.duration,
                 repeat: Infinity,
-                delay: Math.random() * 2,
+                delay: particle.delay,
                 ease: "easeOut",
               }}
             />

@@ -201,8 +201,12 @@ export const RideTopBar = memo(function RideTopBar({
                       className="w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs text-white/70 hover:bg-white/10 transition-all"
                     >
                       <span className="flex items-center gap-1.5">
-                        <span>🎯</span>
-                        <span>Training Mode</span>
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                        <circle cx="12" cy="12" r="6" strokeWidth="2" />
+                        <circle cx="12" cy="12" r="2" fill="currentColor" />
+                      </svg>
+                      <span>Training Mode</span>
                       </span>
                       <span className={`text-[10px] font-bold ${useSimulator ? "text-amber-400" : "text-white/30"}`}>
                         {useSimulator ? "ON" : "OFF"}

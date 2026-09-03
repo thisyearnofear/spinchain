@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "@rainbow-me/rainbowkit/styles.css";
 import { Providers } from "./providers";
 import { SmoothScrollProvider } from "@/app/components/ui/smooth-scroll";
 import { ErrorBoundary } from "@/app/components/layout/error-boundary";
 
-const spaceGrotesk = Space_Grotesk({
+const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-geist-sans",
   display: "swap",
@@ -21,9 +21,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SpinChain — Your Workout, Rewarded",
+  title: "SpinChain — Indoor Cycling That Reacts to You",
   description:
-    "Join immersive indoor cycling classes. Earn SPIN tokens for hitting your effort goals. Your data stays private.",
+    "Immersive indoor cycling where the 3D world transforms with your effort. Ride alone or with friends. Your data stays yours.",
 
   appleWebApp: {
     capable: true,
@@ -72,7 +72,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} antialiased`}>
+      <body className={`${outfit.variable} ${jetbrainsMono.variable} antialiased`}>
         <ErrorBoundary>
           <Providers>
             <SmoothScrollProvider>{children}</SmoothScrollProvider>

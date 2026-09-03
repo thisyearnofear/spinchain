@@ -20,7 +20,7 @@ import { GamificationBar } from "../components/features/common/gamification-bar"
 import { PrimaryCTA } from "../components/features/common/primary-cta";
 import { useMilestones } from "../lib/milestones";
 import { useToast } from "../components/ui/toast";
-import { Bike, CalendarClock, ChevronDown, ChevronUp } from "lucide-react";
+import { Bike, CalendarClock, ChevronDown, ChevronUp, User } from "lucide-react";
 import type { SavedRoute } from "../lib/route-library";
 
 export default function RiderPage() {
@@ -28,7 +28,7 @@ export default function RiderPage() {
   const { isConnected } = useAccount();
   const { classes, isLoading, error } = useClasses();
   const { instructors } = useInstructors();
-  const { streak, totalRides, bestMaxPower, totalFlowMinutes } = useMilestones();
+  const { streak, totalRides, totalFlowMinutes } = useMilestones();
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
   const [filterUpcoming, setFilterUpcoming] = useState(true);
   const [showClasses, setShowClasses] = useState(false);
@@ -38,7 +38,7 @@ export default function RiderPage() {
   const heroGreeting = totalRides === 0
     ? "Ready to ride?"
     : streak > 0
-      ? `Good to see you — ${streak} day streak 🔥`
+      ? `Good to see you — ${streak} day streak`
       : totalFlowMinutes > 30
         ? `You've logged ${totalFlowMinutes}m in flow — time to build on that?`
         : "Ready for your ride?";
@@ -106,7 +106,7 @@ export default function RiderPage() {
     {
       name: "Coach Atlas",
       role: "Endurance Specialist",
-      icon: "🏔️",
+      icon: "",
       color: "from-blue-500 to-cyan-500",
       rating: "4.9",
       rides: "1.2k",
@@ -117,7 +117,7 @@ export default function RiderPage() {
     {
       name: "Dr. Spin",
       role: "High-Intensity Lead",
-      icon: "⚡",
+      icon: "",
       color: "from-amber-500 to-orange-500",
       rating: "5.0",
       rides: "850",
@@ -128,7 +128,7 @@ export default function RiderPage() {
     {
       name: "Zen Master",
       role: "Mindful Recovery",
-      icon: "🧘",
+      icon: "",
       color: "from-emerald-500 to-teal-500",
       rating: "4.8",
       rides: "2.1k",
@@ -329,7 +329,9 @@ export default function RiderPage() {
                 />
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-3xl">{coach.icon}</span>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-[color:var(--foreground)]">
+                      <User className="h-5 w-5" />
+                    </span>
                   </div>
                   <h3 className="text-lg font-bold text-white">{coach.name}</h3>
                   <p className="text-xs text-white/50 mb-2">{coach.role}</p>
@@ -367,7 +369,9 @@ export default function RiderPage() {
         {!isConnected && (
           <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 backdrop-blur">
             <div className="flex items-center gap-3">
-              <span className="text-lg">👤</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-400">
+                <User className="h-4 w-4" />
+              </span>
               <div className="flex items-center gap-2 text-sm">
                 <span className="font-medium text-amber-700 dark:text-amber-300">
                   Browsing as guest

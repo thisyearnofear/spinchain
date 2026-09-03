@@ -55,7 +55,7 @@ export function SurfaceCard({
 }: CardProps) {
   return (
     <div
-      className={`relative rounded-3xl border border-white/10 bg-black/40 p-8 backdrop-blur-2xl shadow-2xl overflow-hidden group transition-all duration-500 hover:border-white/20 ${className}`}
+      className={`relative rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-8 shadow-lg overflow-hidden group transition-all duration-500 hover:border-[color:var(--border-strong)] ${className}`}
     >
       {/* Subtle inner highlight */}
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" />
@@ -93,7 +93,7 @@ type MetricProps = {
 
 export function MetricTile({ label, value, detail }: MetricProps) {
   return (
-    <div className="relative rounded-2xl border border-white/10 bg-black/40 p-5 px-6 group transition-all duration-300 hover:border-white/20">
+    <div className="relative rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-5 px-6 group transition-all duration-300 hover:border-[color:var(--border-strong)]">
       <div className="flex items-center justify-between mb-3">
         <p className="text-[10px] uppercase tracking-[0.25em] font-black text-[color:var(--muted)]">
           {label}

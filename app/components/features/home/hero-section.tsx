@@ -1,18 +1,12 @@
 "use client";
 
-import { m } from "framer-motion";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import { AnimatedCard, Floating, MagneticButton } from "@/app/components/ui/animated-card";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 import { ChainringCarousel } from "./chainring-carousel";
 import { MorphCTA } from "@/app/components/ui/morph-cta";
 import Link from "next/link";
-
-const quickStarts = [
-  { label: "Start free", value: "5-minute demo", subtitle: "No commitment required" },
-  { label: "For riders", value: "Live classes", subtitle: "Preview routes and rewards" },
-  { label: "For instructors", value: "Class builder", subtitle: "Draft before going deeper" },
-];
+import { Play, ArrowRight } from "lucide-react";
 
 interface HeroSectionProps {
   onOpenGuide?: () => void;
@@ -20,44 +14,30 @@ interface HeroSectionProps {
 
 export function HeroSection({ onOpenGuide }: HeroSectionProps) {
   return (
-    <header className="flex flex-col items-start justify-between gap-6 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-6 py-6 shadow-[0_20px_80px_rgba(0,0,0,0.15)] backdrop-blur md:gap-8 md:px-8 md:py-8">
+    <header className="flex flex-col items-start justify-between gap-6 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-6 shadow-[0_20px_80px_rgba(0,0,0,0.15)] md:gap-8 md:px-8 md:py-8">
       <PrimaryNav />
 
       <div className="relative w-full overflow-hidden border-y border-[color:var(--border)] py-8 text-center md:py-12">
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 bg-[color:var(--accent)]/5 blur-[120px]" />
 
         <h1 className="mb-5 text-3xl font-black leading-tight text-[color:var(--foreground)] drop-shadow-2xl sm:text-4xl md:mb-6 md:text-5xl lg:text-6xl">
-          Indoor cycling that feels
+          Indoor cycling that
           <br />
-          <span className="bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] bg-clip-text text-transparent">
-            worth coming back for.
-          </span>
+          reacts to your effort.
         </h1>
 
         <p className="mx-auto max-w-2xl px-4 text-base font-medium leading-relaxed text-[color:var(--muted)] md:text-lg lg:text-xl">
-          Jump into immersive cycling classes with 3D routes and live AI coaching. Try a free demo — no wallet or signup needed.
+          Pedal harder. The road glows hotter. The fog thickens. The world
+          transforms with every watt. Try a free demo — no wallet or signup
+          needed.
         </p>
 
-        <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Link href={getDemoRideUrl({ name: "Accelerator Pitch" })} className="contents">
             <MorphCTA>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
-                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </span>
+              <Play className="h-4 w-4 fill-current" />
               Try a Demo Ride
             </MorphCTA>
-          </Link>
-
-          <Link
-            href="/rider"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-[color:var(--border)] px-6 py-3 text-sm font-semibold text-[color:var(--foreground)] transition-colors hover:border-[color:var(--accent)]/50"
-          >
-            Browse classes
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
           </Link>
 
           {onOpenGuide && (
@@ -73,46 +53,35 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
         <ChainringCarousel />
       </div>
 
-      <div
-        className="w-full rounded-b-2xl bg-[color:var(--surface)]/50 py-5 backdrop-blur-sm md:py-6"
-        role="region"
-        aria-label="Quick start highlights"
-      >
-        <div className="flex flex-wrap justify-center gap-6 md:gap-10">
-          {quickStarts.map((item, index) => (
-            <m.div
-              key={item.label}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + index * 0.1 }}
-              className="flex items-center gap-3"
-            >
-              <div className="text-center">
-                <m.p
-                  className="text-xl font-bold text-[color:var(--foreground)] md:text-2xl"
-                  animate={{ scale: [1, 1.02, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: index * 0.3 }}
-                >
-                  {item.value}
-                </m.p>
-                <p className="text-xs uppercase tracking-wider text-[color:var(--muted)]">{item.label}</p>
-                <p className="mt-0.5 text-[10px] font-medium text-[color:var(--accent)]">{item.subtitle}</p>
-              </div>
-            </m.div>
+      <div className="w-full rounded-b-2xl py-5 md:py-6" role="region" aria-label="Quick start highlights">
+        <div className="flex flex-wrap justify-center gap-8 md:gap-12">
+          {[
+            { label: "No wallet", value: "Demo ride" },
+            { label: "No signup", value: "Instant start" },
+            { label: "Effort-driven", value: "Reactive 3D world" },
+          ].map((item) => (
+            <div key={item.label} className="text-center">
+              <p className="text-lg font-bold text-[color:var(--foreground)] md:text-xl">
+                {item.value}
+              </p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[color:var(--muted)]">
+                {item.label}
+              </p>
+            </div>
           ))}
         </div>
       </div>
 
-      <div className="mt-2 grid w-full gap-4 md:gap-6 lg:grid-cols-2">
+      <div className="mt-2 grid w-full gap-4 md:grid-cols-2 md:gap-6">
         <AnimatedCard glowColor="var(--accent)">
           <Link
             href={getDemoRideUrl({ name: "Accelerator Pitch" })}
             className="group relative block h-full overflow-hidden p-6 md:p-8"
-            aria-label="Start riding with a demo or class preview"
+            aria-label="Start riding with a demo"
           >
             <div className="absolute right-0 top-0 h-32 w-32 rounded-bl-full bg-gradient-to-br from-[color:var(--accent)]/20 to-transparent" />
             <Floating delay={0}>
-              <span className="mb-4 block text-4xl md:text-5xl" aria-hidden="true">🚴</span>
+              <Play className="mb-4 block h-10 w-10 text-[color:var(--accent)] md:h-12 md:w-12" />
             </Floating>
             <h2 className="mb-2 text-xl font-semibold text-[color:var(--foreground)] md:text-2xl">
               Ride a class
@@ -122,34 +91,30 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
             </p>
             <MagneticButton className="pointer-events-none inline-flex items-center gap-2 font-medium text-[color:var(--accent)] transition-colors group-hover:text-[color:var(--accent-strong)]">
               Start with a demo
-              <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </MagneticButton>
           </Link>
         </AnimatedCard>
 
         <AnimatedCard glowColor="var(--accent-strong)">
           <a
-            href="#instructor-modes"
+            href="/instructor"
             className="group relative block h-full overflow-hidden p-6 md:p-8"
-            aria-label="Preview instructor tools and teaching modes"
+            aria-label="Preview instructor tools"
           >
             <div className="absolute right-0 top-0 h-32 w-32 rounded-bl-full bg-gradient-to-br from-[color:var(--accent-strong)]/20 to-transparent" />
             <Floating delay={0.5}>
-              <span className="mb-4 block text-4xl md:text-5xl" aria-hidden="true">🎓</span>
+              <ArrowRight className="mb-4 block h-10 w-10 rotate-45 text-[color:var(--accent-strong)] md:h-12 md:w-12" />
             </Floating>
             <h2 className="mb-2 text-xl font-semibold text-[color:var(--foreground)] md:text-2xl">
               Teach on SpinChain
             </h2>
             <p className="mb-5 text-sm text-[color:var(--muted)] md:mb-6 md:text-base">
-              Build classes with AI-assisted coaching, immersive routes, and on-chain ticket sales. Start drafting without a wallet.
+              Build classes with AI-assisted coaching and immersive routes. Draft before you commit.
             </p>
             <MagneticButton className="inline-flex items-center gap-2 font-medium text-[color:var(--accent)] transition-colors group-hover:text-[color:var(--accent-strong)]">
               Preview teaching paths
-              <svg className="h-4 w-4 transition-transform group-hover:translate-y-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-y-1" />
             </MagneticButton>
           </a>
         </AnimatedCard>

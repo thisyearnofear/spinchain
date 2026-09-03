@@ -20,7 +20,6 @@ import {
 
 import {
   Cloud,
-  ExternalLink,
   ShieldCheck,
   Wallet,
   Coins,
@@ -29,7 +28,6 @@ import {
 } from "lucide-react";
 import { getWalrusFeed, retrieveRideSummaryFromWalrus, type WalrusFeedEntry } from "../../lib/walrus/ride-persistence";
 import { useSupabaseSync } from "../../hooks/common/use-supabase-sync";
-import { WALRUS_AGGREGATOR_URL } from "../../lib/walrus/types";
 import { useAccount } from "wagmi";
 import Link from "next/link";
 import {
@@ -156,7 +154,7 @@ function JourneyContent() {
           <StatCard label="Best Effort" value={`${prs.bestEffort}/1000`} />
         </div>
 
-        {/* Sui Wallet Health & SPIN Management */}
+        {/* Rewards Summary */}
         <div className="rounded-[2.5rem] border border-yellow-500/20 bg-yellow-500/5 p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <Wallet className="w-32 h-32 text-yellow-500 rotate-12" />
@@ -169,10 +167,10 @@ function JourneyContent() {
               </div>
               <div className="flex flex-col">
                 <h3 className="text-xl font-black text-white tracking-tight">
-                  Sui Wallet Health
+                  Rewards
                 </h3>
                 <p className="text-xs text-yellow-500/60 font-bold uppercase tracking-widest">
-                  Protocol Assets
+                  From your rides
                 </p>
               </div>
             </div>
@@ -180,7 +178,7 @@ function JourneyContent() {
             <div className="grid gap-4 md:grid-cols-3">
               <div className="p-5 rounded-3xl bg-black/40 border border-white/5">
                 <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] block mb-2">
-                  Total SPIN Earned
+                  Total Earned
                 </span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black text-white tracking-tighter">
@@ -191,13 +189,13 @@ function JourneyContent() {
                   </span>
                 </div>
                 <p className="mt-4 text-[10px] text-white/40 font-medium">
-                  Claim SPIN from each ride&apos;s summary screen right after you finish — it isn&apos;t automatic yet.
+                  Claim your rewards from each ride&apos;s summary screen right after you finish.
                 </p>
               </div>
 
               <div className="p-5 rounded-3xl bg-black/40 border border-white/5">
                 <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] block mb-2">
-                  Protocol Tier
+                  Effort Tier
                 </span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black tracking-tighter
@@ -304,18 +302,8 @@ function JourneyContent() {
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
             <h3 className="text-lg font-bold text-white">Class Leaderboard</h3>
             <p className="mt-1 text-xs text-white/50">
-              {leaderboard?.source === "remote"
-                ? "Off-chain indexed class rankings, periodically anchored on-chain for verification."
-                : "Showing local fallback while waiting for relay/index sync."}
+              Rankings are compiled from verified ride effort scores.
             </p>
-            {leaderboard?.commitment.epoch ? (
-              <p className="mt-1 text-[11px] text-white/50">
-                Commitment epoch #{leaderboard.commitment.epoch}
-                {leaderboard.commitment.txHash
-                  ? ` • ${leaderboard.commitment.txHash.slice(0, 8)}...`
-                  : ""}
-              </p>
-            ) : null}
             <div className="mt-4 space-y-2">
               {(leaderboard?.entries.length ?? 0) === 0 ? (
                 <p className="text-sm text-white/60">
@@ -346,10 +334,10 @@ function JourneyContent() {
             <div className="flex flex-col gap-1">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Cloud className="w-5 h-5 text-indigo-400" />
-                Decentralized Walrus Feed
+                Saved Sessions
               </h3>
               <p className="text-xs text-white/40 italic">
-                Permanently anchored session summaries.
+                Your completed ride summaries.
               </p>
             </div>
             <ShieldCheck className="w-5 h-5 text-emerald-400 opacity-50" />
@@ -358,7 +346,7 @@ function JourneyContent() {
           <div className="space-y-3">
             {walrusFeed.length === 0 ? (
               <p className="text-sm text-white/50 italic">
-                No sessions anchored to Walrus yet. Complete a ride to persist your first summary.
+                No saved sessions yet. Complete a ride to save your first summary.
               </p>
             ) : (
               walrusFeed.map((item) => (
@@ -370,10 +358,8 @@ function JourneyContent() {
                     <span className="text-sm font-bold text-white/90">
                       {item.className}
                     </span>
-                    <span className="text-[10px] font-mono text-white/30 uppercase tracking-tighter">
-                      {item.blobId.length > 20
-                        ? `${item.blobId.slice(0, 10)}…${item.blobId.slice(-8)}`
-                        : item.blobId}
+                    <span className="text-[10px] text-white/40">
+                      Saved ride summary
                     </span>
                   </div>
                   <div className="flex items-center gap-4">
@@ -381,15 +367,8 @@ function JourneyContent() {
                       {new Date(item.completedAt).toLocaleDateString()}
                     </span>
                     <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-                      anchored
+                      saved
                     </span>
-                    <a
-                      href={`${WALRUS_AGGREGATOR_URL}/v1/${item.blobId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="w-4 h-4 text-white/20 group-hover:text-indigo-400 transition-colors cursor-pointer" />
-                    </a>
                   </div>
                 </div>
               ))

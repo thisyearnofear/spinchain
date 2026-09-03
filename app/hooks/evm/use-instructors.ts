@@ -18,19 +18,19 @@ export interface InstructorProfile {
 
 const PERSONALITY_MAP: Record<string, { icon: string, color: string, role: string, powers: string[] }> = {
   "zen": {
-    icon: "🧘",
+    icon: "",
     color: "from-emerald-500 to-teal-500",
     role: "Mindful Recovery",
     powers: ["Heart Rate Coherence", "Breathwork Guiding", "Low-Impact Optimization"]
   },
   "drill-sergeant": {
-    icon: "⚡",
+    icon: "",
     color: "from-amber-500 to-orange-500",
     role: "High-Intensity Lead",
     powers: ["Real-time Resistance", "Sprint Analytics", "Interval Engineering"]
   },
   "data": {
-    icon: "📊",
+    icon: "",
     color: "from-blue-500 to-cyan-500",
     role: "Endurance Specialist",
     powers: ["W'bal Optimization", "FTP Tracking", "Zone-based Pacing"]

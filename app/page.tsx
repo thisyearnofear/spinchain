@@ -10,16 +10,14 @@ import {
 import { STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
 import { useRiderProfile } from "@/app/stores/rider-profile-store";
 import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
-import { InstructorModeSelector } from "@/app/components/features/class/instructor-mode-selector";
+
 import { FadeIn } from "@/app/components/ui/scroll-animations";
-import { Tag } from "@/app/components/ui/ui";
 import { RouteShowcase } from "@/app/components/features/route/route-showcase";
 import { HeroSection } from "@/app/components/features/home/hero-section";
 import { PersonalizedHero } from "@/app/components/features/home/personalized-hero";
 import { HowItWorksSection } from "@/app/components/features/home/how-it-works-section";
 import { LivePreviewSection } from "@/app/components/features/home/live-preview-section";
 import { FeaturesGridSection } from "@/app/components/features/home/features-grid-section";
-import { SocialProofSection } from "@/app/components/features/home/social-proof-section";
 import { FinalCTASection } from "@/app/components/features/home/final-cta-section";
 
 function HomeContent() {
@@ -99,28 +97,10 @@ function HomeContent() {
           {hasProfile ? <PersonalizedHero /> : <HeroSection onOpenGuide={() => setShowQuiz(true)} />}
         </FadeIn>
 
-        {/* Instructor Mode Selector */}
-        <section id="instructor-modes">
-          <FadeIn direction="up">
-            <div className="text-center mb-8">
-              <Tag>Two Ways to Teach</Tag>
-              <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--foreground)] mt-4">
-                Choose Your Path
-              </h2>
-              <p className="text-sm md:text-base text-[color:var(--muted)] mt-2 max-w-xl mx-auto">
-                Whether you prefer hands-on creativity or autonomous AI coaching,
-                SpinChain supports your teaching style.
-              </p>
-            </div>
-          </FadeIn>
-          <InstructorModeSelector />
-        </section>
-
         <HowItWorksSection />
         {!isReturningRider && <LivePreviewSection />}
         <RouteShowcase />
         {!isReturningRider && <FeaturesGridSection />}
-        {!isReturningRider && <SocialProofSection />}
         {!isReturningRider && <FinalCTASection />}
       </main>
     </div>

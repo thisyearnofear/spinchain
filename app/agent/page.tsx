@@ -2,9 +2,8 @@
 
 import { useMemo, Suspense } from "react";
 import Link from "next/link";
-import { HookVisualizer } from "./hook-visualizer";
 import { CoachProfile } from "./coach-profile";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BarChart3, Users } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
 export default function AgentPage() {
@@ -36,19 +35,17 @@ function AgentPageContent() {
 
   return (
     <main className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)] selection:bg-[color:var(--accent)]/30">
-      {/* Background Gradients — uses design-system tokens */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 h-96 w-96 rounded-full bg-[color:var(--accent)]/8 blur-[128px]" />
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <div className="absolute left-1/4 top-0 h-96 w-96 rounded-full bg-[color:var(--accent)]/8 blur-[128px]" />
         <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-[color:var(--accent-strong)]/5 blur-[128px]" />
       </div>
 
       <div className="relative z-10 flex min-h-screen flex-col">
-        {/* Header */}
         <header className="border-b border-[color:var(--border)] bg-[color:var(--surface)]/60 backdrop-blur-md">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
             <Link
               href="/"
-              className="flex items-center gap-2 text-sm font-medium text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-[color:var(--muted)] transition-colors hover:text-[color:var(--foreground)]"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Home
@@ -63,50 +60,38 @@ function AgentPageContent() {
 
         <div className="mx-auto w-full max-w-7xl px-6 py-12 lg:px-8">
           <div className="mb-12">
-            <div className="inline-flex items-center rounded-full border border-[color:var(--accent)]/30 bg-[color:var(--accent)]/10 px-3 py-1 text-xs font-medium text-[color:var(--accent)] mb-4">
-              Dual-Engine Architecture
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl text-[color:var(--foreground)]">
-              Agentic Finance
-              <span className="block text-lg font-medium tracking-normal text-[color:var(--accent)] mt-2">
-                Sui Powered AI Instructor Studio
+            <h1 className="text-4xl font-bold tracking-tight text-[color:var(--foreground)] sm:text-6xl">
+              Build a coach riders remember.
+              <span className="mt-2 block text-lg font-medium tracking-normal text-[color:var(--accent)]">
+                Tune personality, pacing, and presence — then let it guide every ride.
               </span>
             </h1>
             <p className="mt-4 max-w-2xl text-lg text-[color:var(--muted)]">
-              Deploy autonomous agents that manage your classes, adjust
-              difficulty in real-time, and optimize revenue using Uniswap v4
-              hooks.
+              Create an AI coaching persona that adapts to each rider in real time,
+              delivers the right cue at the right moment, and scales your teaching
+              without losing your voice.
             </p>
           </div>
 
           <div className="grid gap-12 lg:grid-cols-2">
-            {/* Left Column: Sui / Performance */}
             <section className="space-y-6">
               <div className="flex items-center gap-3 border-b border-[color:var(--border)] pb-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="h-5 w-5"
-                  >
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                  </svg>
+                  <Users className="h-5 w-5" />
                 </div>
                 <div>
                   <h2 className="text-sm font-bold uppercase tracking-widest text-blue-400">
-                    Performance Layer
+                    Coaching Persona
                   </h2>
                   <p className="text-[10px] text-[color:var(--muted)]">
-                    Sui Network
+                    How riders experience your coach
                   </p>
                 </div>
               </div>
               <p className="text-sm text-[color:var(--muted)]">
-                The physical manifestation of your agent. It lives on the
-                high-throughput Sui blockchain to process biometric telemetry at
-                10Hz and adjust class difficulty instantly.
+                Choose a voice — encouraging, analytical, or relentless — and set
+                the heart-rate and power guardrails that keep riders safe while
+                pushing their limits.
               </p>
               <CoachProfile
                 name={coachConfig.name}
@@ -114,35 +99,30 @@ function AgentPageContent() {
               />
             </section>
 
-            {/* Right Column: EVM / Finance */}
             <section className="space-y-6">
               <div className="flex items-center gap-3 border-b border-[color:var(--border)] pb-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/20 text-pink-400">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="h-5 w-5"
-                  >
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
+                  <BarChart3 className="h-5 w-5" />
                 </div>
                 <div>
                   <h2 className="text-sm font-bold uppercase tracking-widest text-pink-400">
-                    Settlement Layer
+                    Class Economics
                   </h2>
                   <p className="text-[10px] text-[color:var(--muted)]">
-                    AVALANCHE C-CHAIN
+                    Demand-based pricing for instructors
                   </p>
                 </div>
               </div>
               <p className="text-sm text-[color:var(--muted)]">
-                The financial brain. It manages high-value assets (NFT Tickets,
-                $SPIN) and uses Uniswap v4 Hooks to dynamically price inventory
-                based on real-time demand.
+                As a class fills up, the price adjusts automatically — higher when
+                seats are scarce, lower to fill the last few spots. Riders get fair
+                pricing; you get predictable revenue.
               </p>
-              <HookVisualizer />
+              <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6">
+                <p className="text-sm text-[color:var(--muted)]">
+                  Pricing simulator coming soon.
+                </p>
+              </div>
             </section>
           </div>
         </div>

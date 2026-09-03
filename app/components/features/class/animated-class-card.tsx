@@ -352,7 +352,7 @@ export function AnimatedClassCard({
               whileHover={{ scale: 1.02, borderColor: colors.primary }}
               whileTap={{ scale: 0.98 }}
             >
-              Preview
+              Details
             </m.button>
             <m.button
               onClick={onJoin}

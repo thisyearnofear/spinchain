@@ -14,6 +14,7 @@ import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import { useRiderProfile } from "@/app/stores/rider-profile-store";
 import { m, AnimatePresence } from "framer-motion";
 import { dropdownTransition } from "@/app/lib/motion";
+import { Bike, Flame, GraduationCap } from "lucide-react";
 
 function useSuiWalletVisible(): boolean {
   const pathname = usePathname();
@@ -163,8 +164,9 @@ function RiderIdentityChip() {
         {displayName}
       </span>
       {streak.daily > 0 && (
-        <span className="text-[10px] font-bold text-orange-400 shrink-0" title={`${streak.daily}-day streak`}>
-          🔥{streak.daily}
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[color:var(--accent)] shrink-0" title={`${streak.daily}-day streak`}>
+          <Flame className="h-3 w-3" />
+          {streak.daily}
         </span>
       )}
     </Link>
@@ -294,19 +296,15 @@ export function PrimaryNav() {
     <nav className="flex w-full flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
       <div className="flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group" aria-label="SpinChain Home">
-          <span className={`grid h-11 w-11 place-items-center rounded-2xl text-xl font-semibold text-white shadow-lg transition-transform group-hover:scale-105 ${
-            isInstructorMode 
-              ? "bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] shadow-indigo-500/20" 
-              : "bg-[linear-gradient(135deg,#6ef3c6,#3b82f6)] shadow-emerald-500/20"
-          }`}>
-            {isInstructorMode ? "🎓" : "🚴"}
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[color:var(--accent)] text-white shadow-lg shadow-[color:var(--accent)]/20 transition-transform group-hover:scale-105">
+            {isInstructorMode ? <GraduationCap className="h-6 w-6" /> : <Bike className="h-6 w-6" />}
           </span>
           <div>
             <p className="text-lg font-black text-[color:var(--foreground)] tracking-tighter">
               SpinChain
             </p>
-            <p className={`text-[9px] font-bold uppercase tracking-[0.2em] -mt-1 ${isInstructorMode ? "text-indigo-400" : "text-emerald-400"}`}>
-              {isInstructorMode ? "Instructor Console" : "Rider Experience"}
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] -mt-1 text-[color:var(--muted)]">
+              {isInstructorMode ? "Instructor" : "Rider"}
             </p>
           </div>
         </Link>

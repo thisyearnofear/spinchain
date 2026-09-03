@@ -45,7 +45,7 @@ export function PrimaryCTA({
   return (
     <div className="flex justify-center">
       <Link
-        href={`/rider/ride/${nextClassName ?? ""}`}
+        href={nextClassName ? `/rider/ride/${encodeURIComponent(nextClassName)}` : getDemoRideUrl()}
         className="group inline-flex items-center gap-3 rounded-full bg-[var(--accent)] px-10 py-5 text-lg font-bold text-white shadow-lg shadow-[var(--accent)]/30 transition-[transform,box-shadow] duration-150 hover:scale-105 hover:shadow-xl hover:shadow-[var(--accent)]/40 active:scale-95"
       >
         <svg
@@ -67,7 +67,7 @@ export function PrimaryCTA({
             d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        {nextClassName ? `Ride: ${nextClassName}` : "Your Next Class"}
+        {nextClassName ? `Ride: ${nextClassName}` : "Try a Demo Ride"}
       </Link>
     </div>
   );

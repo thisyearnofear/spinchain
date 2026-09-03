@@ -1,14 +1,8 @@
 /**
  * Demo Complete Modal
- * 
- * Gentle offboarding for guest users after demo ride
- * Guides them toward platform participation without being pushy
- * 
- * Core Principles:
- * - CELEBRATE: Acknowledge their effort
- * - EDUCATE: Show what they could earn
- * - GUIDE: Clear next steps without being pushy
- * - RESPECT: Easy exit to browse as guest
+ *
+ * Gentle offboarding for guest users after demo ride.
+ * Celebrates the effort first, then offers clear next steps.
  */
 
 "use client";
@@ -18,6 +12,7 @@ import { m, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { modalTransition } from "@/app/lib/motion";
+import { Clock, Zap, Heart, Flame, Bike, Wallet, Trophy } from "lucide-react";
 
 export interface DemoCompleteModalProps {
   isOpen: boolean;
@@ -38,7 +33,6 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
   const [confettiPositions] = useState(() =>
     Array.from({ length: 20 }, (_, i) => ({
       index: i,
-      color: ["#6d7cff", "#6ef3c6", "#fbbf24", "#f87171"][i % 4],
       left: Math.random() * 100,
       xOffset: (Math.random() - 0.5) * 200,
       duration: 2 + Math.random() * 2,
@@ -60,7 +54,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+            className="fixed inset-0 z-50 bg-black/80"
             onClick={onClose}
           />
 
@@ -70,20 +64,19 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={modalTransition}
-            className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="w-full max-w-lg bg-[color:var(--surface)] rounded-3xl border border-[color:var(--border)] shadow-2xl overflow-hidden">
-              {/* Header with gradient */}
-              <div className="relative bg-gradient-to-br from-[color:var(--accent)]/20 to-[color:var(--accent-strong)]/20 p-6 text-center">
+            <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-2xl">
+              {/* Header */}
+              <div className="relative p-6 text-center">
                 {/* Confetti effect */}
                 {isOpen && (
-                  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                  <div className="pointer-events-none absolute inset-0 overflow-hidden">
                     {confettiPositions.map((confetti) => (
                       <m.div
                         key={confetti.index}
-                        className="absolute w-2 h-2 rounded-full"
+                        className="absolute h-2 w-2 rounded-full bg-[color:var(--accent)]"
                         style={{
-                          background: confetti.color,
                           left: `${confetti.left}%`,
                           top: "-10%",
                         }}
@@ -106,181 +99,109 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2, type: "spring" }}
-                  className="relative mx-auto w-16 h-16 sm:w-20 sm:h-20 mb-4"
+                  className="relative mx-auto mb-4 h-16 w-16 sm:h-20 sm:w-20"
                 >
-                  <div className="absolute inset-0 bg-indigo-500 rounded-full animate-pulse opacity-20" />
-                  <div className="relative w-full h-full rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-white/20 flex items-center justify-center text-3xl sm:text-4xl shadow-xl">
-                    🧠
+                  <div className="absolute inset-0 animate-pulse rounded-full bg-[color:var(--accent)] opacity-20" />
+                  <div className="relative flex h-full w-full items-center justify-center rounded-full border-2 border-white/20 bg-[color:var(--accent)] text-white shadow-xl">
+                    <Trophy className="h-8 w-8 sm:h-10 sm:w-10" />
                   </div>
                 </m.div>
-                
-                <p className="text-[10px] uppercase tracking-[0.3em] text-indigo-400 font-bold mb-1">
-                  Performance Debrief
+
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.3em] text-[color:var(--accent)]">
+                  Demo Complete
                 </p>
-                <h2 className="text-2xl font-bold text-[color:var(--foreground)] mb-1">
-                  Message from Coach Atlas
+                <h2 className="mb-1 text-2xl font-bold text-[color:var(--foreground)]">
+                  Great ride.
                 </h2>
                 <p className="text-sm text-[color:var(--muted)]">
                   Session summary • {formatTime(stats.duration)}
                 </p>
               </div>
 
-              {/* Agent Narrative */}
+              {/* Coach narrative */}
               <div className="px-5 pt-2">
-                <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4 text-left shadow-inner">
-                  <p className="text-xs sm:text-sm leading-relaxed text-[color:var(--foreground)] italic opacity-90">
-                    &ldquo;Solid effort today. Your average power of {Math.round(stats.effortScore * 0.25 + 150)}W and sustained {stats.avgHeartRate} BPM heart rate shows efficient aerobic conditioning. I&apos;ve analyzed your telemetry stream on Sui and computed a verified effort score of {stats.effortScore}/1000. Recommending SPIN reward distribution.&rdquo;
+                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-4 text-left">
+                  <p className="text-xs italic leading-relaxed text-[color:var(--foreground)] opacity-90 sm:text-sm">
+                    &ldquo;Solid effort today. Your power and heart rate stayed in a strong aerobic range. Effort score: {stats.effortScore}/1000. Keep this up and the world will keep reacting.&rdquo;
                   </p>
                 </div>
               </div>
 
               {/* Stats Grid */}
               <div className="p-5 pt-4">
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="mb-4 grid grid-cols-2 gap-3">
                   <StatCard
                     label="Duration"
                     value={formatTime(stats.duration)}
-                    icon="⏱️"
+                    icon={<Clock className="h-4 w-4" />}
                   />
                   <StatCard
                     label="Effort Score"
                     value={`${stats.effortScore}/1000`}
-                    icon="⚡"
+                    icon={<Zap className="h-4 w-4" />}
                     highlight
                   />
                   <StatCard
                     label="Avg Heart Rate"
                     value={`${stats.avgHeartRate} BPM`}
-                    icon="❤️"
+                    icon={<Heart className="h-4 w-4" />}
                   />
                   <StatCard
                     label="Max Heart Rate"
                     value={`${stats.maxHeartRate} BPM`}
-                    icon="🔥"
+                    icon={<Flame className="h-4 w-4" />}
                   />
                 </div>
 
-                {/* Agent Validation Status */}
-                <div className="mb-4 rounded-xl border border-indigo-500/20 bg-black/30 p-3 text-left text-[10px] sm:text-xs">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-[color:var(--foreground)] flex items-center gap-1.5">
-                      <span className="text-sm">🧠</span>
-                      Coach Validation
-                    </span>
-                    <span className="rounded-full px-2 py-0.5 text-[8px] font-bold bg-emerald-500/20 text-emerald-400">
-                      PRIVATE VERIFICATION COMPLETE
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-1.5 text-[color:var(--muted)]">
-                    <p className="flex items-center gap-2">
-                      <span className="h-1 w-1 rounded-full bg-emerald-400" />
-                      Verifying effort data (Privacy Preserved)
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <span className="h-1 w-1 rounded-full bg-emerald-400" />
-                      Effort score privately verified
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <span className="h-1 w-1 rounded-full bg-amber-400 animate-pulse" />
-                      Ready to claim rewards
-                    </p>
-                  </div>
-                </div>
-
-                {/* Earnings Preview */}
-                <div className="rounded-xl bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border border-yellow-500/20 p-3 mb-4">
+                {/* Earnings */}
+                <div className="mb-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-[color:var(--muted)] mb-0.5">
+                      <p className="mb-0.5 text-xs text-[color:var(--muted)]">
                         {isConnected && stats.rewardsWereActive && parseFloat(stats.spinEarned) > 0
                           ? "You earned"
                           : "You would have earned"}
                       </p>
-
-                      <p className="text-2xl font-bold text-yellow-400">
+                      <p className="text-2xl font-bold text-[color:var(--accent)]">
                         {stats.spinEarned} <span className="text-base">SPIN</span>
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-[color:var(--muted)]">Value</p>
-                      <p className="text-base font-semibold text-[color:var(--foreground)]">
-                        ~${(parseFloat(stats.spinEarned) * 0.2).toFixed(2)}
-                      </p>
-                    </div>
                   </div>
-                  
-                  {/* Yellow vs ZK Mode Info */}
-                  <div className="mt-3 pt-3 border-t border-yellow-500/20">
-                    <p className="text-[10px] text-yellow-300/80 mb-2">
-                      ⚡ Powered by <span className="font-semibold">Live Performance</span> technology
+                  {(!isConnected || !stats.rewardsWereActive) && (
+                    <p className="mt-3 text-[10px] text-[color:var(--muted)]">
+                      Connect a wallet after your first real ride to start earning.
                     </p>
-                    <div className="grid grid-cols-2 gap-2 text-[10px]">
-                      <div className="bg-yellow-500/5 rounded p-1.5">
-                        <span className="text-yellow-400 font-semibold">Live Mode</span>
-                        <p className="text-zinc-400 mt-0.5">Real-time streaming • Instant rewards</p>
-                      </div>
-                      <div className="bg-indigo-500/5 rounded p-1.5">
-                        <span className="text-indigo-400 font-semibold">Standard Mode</span>
-                        <p className="text-zinc-400 mt-0.5">Privacy-first • Verified results</p>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
-
-                {/* Platform Stats - Hidden until real data is available */}
-                {/* 
-                <div className="rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-3 mb-4">
-                  <p className="text-[10px] uppercase tracking-wider text-indigo-300 font-semibold mb-2">
-                    📊 Platform Statistics
-                  </p>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div>
-                      <p className="text-lg font-bold text-indigo-400">10.2K</p>
-                      <p className="text-[10px] text-zinc-400">Total Riders</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-indigo-400">48.7K</p>
-                      <p className="text-[10px] text-zinc-400">Classes</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-yellow-400">$2.4M</p>
-                      <p className="text-[10px] text-zinc-400">Rewards</p>
-                    </div>
-                  </div>
-                </div>
-                */}
 
                 {/* Benefits */}
-                <div className="space-y-2 mb-4">
-                  <BenefitRow icon="🚴" text="Book live classes with top instructors" />
-                  <BenefitRow icon="💰" text="Earn SPIN tokens for every workout" />
-                  <BenefitRow icon="🔒" text="Private Health Data: Local proofs protect you" />
-                  <BenefitRow icon="⚡" text="Live: Real-time rewards via state channels" />
-                  <BenefitRow icon="🌐" text="Cross-chain: Avalanche + Sui dual engine" />
+                <div className="mb-4 space-y-2">
+                  <BenefitRow icon={<Bike className="h-4 w-4" />} text="Book live and on-demand classes" />
+                  <BenefitRow icon={<Trophy className="h-4 w-4" />} text="Earn rewards for hitting effort goals" />
+                  <BenefitRow icon={<Wallet className="h-4 w-4" />} text="Your data stays private until you choose to share" />
                 </div>
 
                 {/* CTAs */}
                 <div className="space-y-2">
                   <Link
                     href="/rider"
-                    className="flex items-center justify-center gap-2 w-full py-2.5 px-6 rounded-xl bg-[color:var(--accent)] text-white font-semibold hover:opacity-90 transition-opacity text-sm"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
                   >
-                    <span>🚴</span>
-                    Browse Live Classes
+                    <Bike className="h-4 w-4" />
+                    Browse Classes
                   </Link>
 
                   <Link
                     href="/?showConnect=true"
-                    className="flex items-center justify-center gap-2 w-full py-2.5 px-6 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] text-[color:var(--foreground)] font-semibold hover:bg-[color:var(--surface-elevated)] transition-colors text-sm"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-6 py-2.5 text-sm font-semibold text-[color:var(--foreground)] transition-colors hover:bg-[color:var(--surface-elevated)]"
                   >
-                    <span>💼</span>
+                    <Wallet className="h-4 w-4" />
                     Connect Wallet to Save Rides
                   </Link>
 
                   <button
                     onClick={onClose}
-                    className="w-full py-2 text-xs text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+                    className="w-full py-2 text-xs text-[color:var(--muted)] transition-colors hover:text-[color:var(--foreground)]"
                   >
                     Continue browsing as guest →
                   </button>
@@ -294,10 +215,6 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
   );
 }
 
-// ============================================================================
-// Sub-components
-// ============================================================================
-
 function StatCard({
   label,
   value,
@@ -306,30 +223,29 @@ function StatCard({
 }: {
   label: string;
   value: string;
-  icon: string;
+  icon: React.ReactNode;
   highlight?: boolean;
 }) {
   return (
     <div
-      className={`rounded-lg p-2.5 text-center ${highlight
-        ? "bg-[color:var(--accent)]/10 border border-[color:var(--accent)]/20"
-        : "bg-[color:var(--surface-strong)]"
-        }`}
+      className={`rounded-lg p-2.5 text-center ${
+        highlight
+          ? "border border-[color:var(--accent)]/20 bg-[color:var(--accent)]/10"
+          : "bg-[color:var(--surface-strong)]"
+      }`}
     >
-      <span className="text-lg mb-0.5 block">{icon}</span>
+      <span className="mb-0.5 flex justify-center text-[color:var(--accent)]">{icon}</span>
       <p className="text-base font-bold text-[color:var(--foreground)]">{value}</p>
       <p className="text-xs text-[color:var(--muted)]">{label}</p>
     </div>
   );
 }
 
-function BenefitRow({ icon, text }: { icon: string; text: string }) {
+function BenefitRow({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="text-base">{icon}</span>
+      <span className="text-[color:var(--accent)]">{icon}</span>
       <span className="text-[color:var(--foreground)]">{text}</span>
     </div>
   );
 }
-
-export default DemoCompleteModal;
