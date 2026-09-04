@@ -64,6 +64,8 @@ export function useRideMilestones({
   const lastOverlayAtRef = useRef(0);
   const firstFlowCelebratedRef = useRef(false);
   const firstHardPedalCelebratedRef = useRef(false);
+  // Shared gate so first-flow and first-hard-pedal don't both buzz/chime.
+  const firstDopamineCelebratedRef = useRef(false);
   const setShowMilestone = useRideModalStore((s) => s.setShowMilestone);
 
   const showOverlay = useCallback(
@@ -95,6 +97,7 @@ export function useRideMilestones({
     lastOverlayAtRef.current = 0;
     firstFlowCelebratedRef.current = false;
     firstHardPedalCelebratedRef.current = false;
+    firstDopamineCelebratedRef.current = false;
     setRideMilestones([]);
   }, []);
 
@@ -155,9 +158,11 @@ export function useRideMilestones({
   // First dopamine: flow tier >= 1 (Focused+)
   useEffect(() => {
     if (!isRiding || firstFlowCelebratedRef.current) return;
+    if (firstDopamineCelebratedRef.current) return;
     if (flow.flowTier < 1) return;
 
     firstFlowCelebratedRef.current = true;
+    firstDopamineCelebratedRef.current = true;
     shownMilestoneIdsRef.current.add("first-flow");
 
     const prefersReduced =
@@ -202,9 +207,12 @@ export function useRideMilestones({
       firstHardPedalCelebratedRef.current = true;
       shownMilestoneIdsRef.current.add("first-hard-pedal");
 
-      // If first-flow already owns the cooldown, skip overlay to avoid spam.
+      // If another first-dopamine moment already fired, don't double buzz/chime.
+      if (firstDopamineCelebratedRef.current) return;
+      firstDopamineCelebratedRef.current = true;
+
       showOverlay("⚡ HARD EFFORT", "First strong pedal — world unlocked", {
-        force: !firstFlowCelebratedRef.current,
+        force: true,
         durationMs: prefersReduced ? 800 : 1600,
       });
 
@@ -226,6 +234,7 @@ export function useRideMilestones({
       prevRideMinuteRef.current = 0;
       firstFlowCelebratedRef.current = false;
       firstHardPedalCelebratedRef.current = false;
+      firstDopamineCelebratedRef.current = false;
       lastOverlayAtRef.current = 0;
       return;
     }

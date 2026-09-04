@@ -60,6 +60,17 @@ export default function LiveRidePage() {
   const classId = params.classId as string;
   const { openConnectModal } = useConnectModal();
 
+  // ─── Reduced motion preference ─────────────────────────────────
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReducedMotion(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   // ─── Data Loading ──────────────────────────────────────────────
   const { isPracticeMode, practiceConfig, practiceClassData } = usePracticeConfig(classId);
   const { classData: fetchedClassData, isLoading } = useClass(classId as `0x${string}`);
@@ -362,6 +373,7 @@ export default function LiveRidePage() {
     showCompletionScreen,
     telemetryAverages,
     flow,
+    reducedMotion,
   });
   useEffect(() => {
     if (completedRideId) {
@@ -413,17 +425,7 @@ export default function LiveRidePage() {
   // ─── Activation sequence state ──────────────────────────────────
   const [showActivation, setShowActivation] = useState(false);
   const [activationComplete, setActivationComplete] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
   const didAutoStartRef = useRef(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setReducedMotion(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
 
   // Practice/demo: one countdown → pedal. Bypass the Start screen (or honor ?auto=true).
   const wantsAutoStart =
