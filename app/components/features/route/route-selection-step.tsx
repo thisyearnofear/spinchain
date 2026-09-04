@@ -322,9 +322,9 @@ export function RouteSelectionStep({
               </svg>
             </div>
             <div>
-              <p className="text-sm font-black text-blue-400 uppercase tracking-widest mb-1">Decentralized Storage Node</p>
+              <p className="text-sm font-black text-blue-400 uppercase tracking-widest mb-1">Route Backup</p>
               <p className="text-xs text-blue-400/60 leading-relaxed font-medium">
-                Upon deployment, this route is permanently committed to Walrus Protocol, ensuring immutable access for all riders.
+                After you publish, this route is saved securely so every rider can access the same track.
               </p>
             </div>
           </div>
@@ -345,7 +345,7 @@ export function RouteSelectionStep({
           </div>
           <h2 className="text-4xl font-black text-white tracking-tighter mb-4">Choose Your Track</h2>
           <p className="text-white/50 font-medium max-w-lg mx-auto leading-relaxed">
-            Generate a unique procedural world with AI or select a verified route from your decentralized library.
+            Generate a unique procedural world with AI or select a verified route from your library.
           </p>
         </div>
 

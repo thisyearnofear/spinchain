@@ -85,7 +85,7 @@ export function useWorkoutPlan(initialPlanId?: string): UseWorkoutPlanReturn {
       setWalrusBlobId(blobId);
       return blobId;
     } catch (err) {
-      const e = err instanceof Error ? err : new Error('Walrus save failed');
+      const e = err instanceof Error ? err : new Error('Cloud save failed');
       setError(e);
       return null;
     } finally {
@@ -99,13 +99,13 @@ export function useWorkoutPlan(initialPlanId?: string): UseWorkoutPlanReturn {
     try {
       const client = getWalrusClient();
       const result = await client.retrieveJSON<WorkoutPlan>(blobId);
-      if (!result.success) throw new Error('Walrus retrieve failed');
+      if (!result.success) throw new Error('Cloud retrieve failed');
       const loaded: WorkoutPlan = (result as { success: true; data: WorkoutPlan }).data;
       setPlan(loaded);
       setWalrusBlobId(blobId);
       return loaded;
     } catch (err) {
-      const e = err instanceof Error ? err : new Error('Walrus load failed');
+      const e = err instanceof Error ? err : new Error('Cloud load failed');
       setError(e);
       return null;
     } finally {

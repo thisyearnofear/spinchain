@@ -202,7 +202,7 @@ function FullTicker({
         <div className="flex items-center gap-2 py-0.5 px-2 rounded-full bg-yellow-500/10 border border-yellow-500/20">
           <span className="h-1 w-1 rounded-full bg-yellow-400 animate-pulse" />
           <span className="text-[9px] font-bold text-yellow-400/90 uppercase tracking-tighter">
-            Yellow State Channel (Live)
+            Live Rewards
           </span>
         </div>
       </div>
@@ -249,10 +249,10 @@ function FullTicker({
       {/* Footer / Meta Info */}
       <div className="flex items-center justify-between text-[9px] font-bold text-white/20 uppercase tracking-widest relative z-10">
         <div className="flex items-center gap-1.5">
-          <span className="opacity-50">Packet Hash:</span>
-          <span className="text-white/40 font-mono">0x{Math.floor(updateCount * 1337).toString(16).padStart(4, '0')}</span>
+          <span className="opacity-50">Updates:</span>
+          <span className="text-white/40 font-mono">{updateCount}</span>
         </div>
-        <span>State Channel Active</span>
+        <span>Streaming Active</span>
       </div>
     </div>
   );
