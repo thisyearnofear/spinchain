@@ -95,13 +95,12 @@ describe("RideTransitionOverlay activation countdown", () => {
     const onDone = vi.fn();
     renderWithUnstableCallbacks(onDone, vi.fn());
 
-    // 4 interval ticks at 700ms bring the countdown to 0 (3→2, 2→1, 1→0 on
-    // successive ticks). Countdown 0 plays the GO launch beat: the handoff
-    // timer (950ms) is scheduled while React flushes that state update at
-    // the end of act(), so it must be advanced in a second step.
-    act(() => void vi.advanceTimersByTime(2800));
+    // 3 interval ticks at 700ms bring the countdown to 0 (3→2, 2→1, 1→0).
+    // Handoff fires immediately on GO so pedals/isActive work without a
+    // second post-activation delay.
+    act(() => void vi.advanceTimersByTime(2000));
     expect(onDone).not.toHaveBeenCalled();
-    act(() => void vi.advanceTimersByTime(1000));
+    act(() => void vi.advanceTimersByTime(200));
 
     expect(onDone).toHaveBeenCalledTimes(1);
   });

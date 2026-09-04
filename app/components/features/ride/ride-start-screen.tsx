@@ -33,7 +33,7 @@ export function RideStartScreen({
         </h2>
         <p className="mt-1.5 text-xs text-white/50">
           {instructor ? `${instructor} · ` : ""}
-          {duration} min
+          {isPracticeMode ? "~1 min demo" : `${duration} min`}
         </p>
       </div>
 
@@ -65,7 +65,7 @@ export function RideStartScreen({
       >
         Start Ride
         <span className="block text-[10px] font-bold uppercase tracking-[0.3em] text-white/60 mt-0.5">
-          Keyboard: ← → to pedal
+          Keyboard: ← → / A D
         </span>
       </button>
     </div>

@@ -71,7 +71,7 @@ react-doctor ci upgrade
 ## Why This Order
 
 - **Revenue/loop first** per `WEDGE.md` — react-doctor protects the loop (effort → visual transformation → dopamine) by catching React #185 regressions without changing product scope.
-- **Graphics second** — threejs skills polish the world only after the loop is stable (Phase 2.3 `useDemoEffort` world reactivity).
+- **Graphics second** — threejs skills polish the world only after the loop is stable (Phase 2.3 PedalSimulator → world reactivity).
 - **WebGPU last** — future renderer (`splat`/`ai-gen` in `ARCHITECTURE.md §3`) deferred until SpinChain commits to `WebGPURenderer`; premature adoption adds bundle/compat cost.
 
 ## References

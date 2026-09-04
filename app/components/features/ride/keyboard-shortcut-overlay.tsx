@@ -42,8 +42,8 @@ function KeyboardShortcutOverlayInternal({ show, onDismiss }: KeyboardShortcutOv
     {
       title: "Pedal",
       keys: [
-        { key: "← / →", label: "Left / right leg" },
-        { key: "↑ / ↓", label: "Pedal (auto-alternate)" },
+        { key: "← → / A D", label: "Left / right leg" },
+        { key: "↑ / ↓ / W S", label: "Pedal (auto-alternate)" },
       ],
     },
     {

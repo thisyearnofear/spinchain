@@ -50,7 +50,6 @@ interface UseRideLifecycleParams {
   coordinatorRef: React.MutableRefObject<ReturnType<typeof useRideCoordinator> | null>;
   isRidingRef: React.MutableRefObject<boolean>;
   trackedCompletionRef: React.MutableRefObject<boolean>;
-  playCountdown: (seconds: number) => void;
   playSound: (type: unknown) => void;
   stopAudio: () => void;
   speak: (text: string, emotion?: unknown) => void;
@@ -104,21 +103,13 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
   }, [suiExecuteTransaction, suiClient]);
 
   const { persistRide } = useRidePersistence();
-  const startTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Cleanup pending start timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
-    };
-  }, []);
 
   const startRide = useCallback(async () => {
     const {
       bleConnected, useSimulator, classId, isPracticeMode, isTrainingMode,
       rewards, coordinator, classData, deviceType, performanceTier,
       walletConnected, address, rewardMode, agentName, workoutPlan,
-      playCountdown, speak, isRidingRef, trackedCompletionRef,
+      speak, isRidingRef, trackedCompletionRef,
     } = paramsRef.current;
 
     // Guard against double-start
@@ -132,10 +123,14 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
     }
     trackEvent(ANALYTICS_EVENTS.RIDE_STARTED, { classId, source: bleConnected ? "live-bike" : "simulator", practiceMode: isPracticeMode });
     useRideStore.setState({ isStarting: true });
-    playCountdown(3);
 
+    // ActivationTransition (or Skip) is the single ~3s ceremony. Do NOT
+    // playCountdown(3) + wait another 3000ms here — isActive / pedals must
+    // work on GO. Countdown audio is started when the overlay opens (page).
+
+    // Fire-and-forget: do not await before isActive — pedals must work on GO.
     if (!isTrainingMode) {
-      try { await rewards.startEarning(); } catch { /* non-blocking */ }
+      void rewards.startEarning().catch(() => {});
     }
 
     coordinator.startRide({
@@ -165,34 +160,31 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
     const { rideProgress, elapsedTime } = useRideStore.getState();
     const isResuming = rideProgress > 0 || elapsedTime > 0;
 
-    if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
-    startTimeoutRef.current = setTimeout(() => {
-      isRidingRef.current = true;
-      useRideStore.setState({ isActive: true, isStarting: false });
-      if (!isResuming) {
-        useRideStore.setState({ rideProgress: 0, elapsedTime: 0 });
-        useTelemetryStore.getState().reset();
-        trackedCompletionRef.current = false;
-      }
+    isRidingRef.current = true;
+    useRideStore.setState({ isActive: true, isStarting: false });
+    if (!isResuming) {
+      useRideStore.setState({ rideProgress: 0, elapsedTime: 0 });
+      useTelemetryStore.getState().reset();
+      trackedCompletionRef.current = false;
+    }
 
-      // Personalized coach greeting
-      const rides = getRideHistory();
-      const streakStats = getStreakStats(rides);
-      const rideCount = rides.length;
-      const greetingName = address
-        ? formatAddress(address)
-        : "Rider";
+    // Personalized coach greeting
+    const rides = getRideHistory();
+    const streakStats = getStreakStats(rides);
+    const rideCount = rides.length;
+    const greetingName = address
+      ? formatAddress(address)
+      : "Rider";
 
-      let greeting: string;
-      if (rideCount === 0) {
-        greeting = `Welcome ${greetingName}, let's get started!`;
-      } else if (streakStats.daily > 0) {
-        greeting = `Welcome back ${greetingName}. Day ${streakStats.daily} of your streak — let's keep it alive!`;
-      } else {
-        greeting = `Welcome back ${greetingName}. Let's ride!`;
-      }
-      speak(greeting, "intense");
-    }, 3000);
+    let greeting: string;
+    if (rideCount === 0) {
+      greeting = `Welcome ${greetingName}, let's get started!`;
+    } else if (streakStats.daily > 0) {
+      greeting = `Welcome back ${greetingName}. Day ${streakStats.daily} of your streak — let's keep it alive!`;
+    } else {
+      greeting = `Welcome back ${greetingName}. Let's ride!`;
+    }
+    speak(greeting, "intense");
   }, [modalStore]);
 
   const pauseRide = useCallback(() => {
