@@ -99,7 +99,7 @@ export function RideCompletionV2({
   telemetrySource,
   onExit,
   onRideAgain,
-  onShare,
+  _onShare,
   onClaimRewards,
   onConnectWallet,
   onExportTCX,
