@@ -228,6 +228,15 @@ describe("RideTransitionOverlay activation countdown", () => {
 
   it("maps route themes to existing public thumbnail assets", () => {
     expect(routeThumbnailForTheme("alpine")).toBe(
+      "/images/routes/route-forest.jpg",
+    );
+    expect(routeThumbnailForTheme("mars")).toBe(
+      "/images/routes/route-group.jpg",
+    );
+    expect(routeThumbnailForTheme("anime")).toBe(
+      "/images/routes/route-coastal.jpg",
+    );
+    expect(routeThumbnailForTheme("rainbow")).toBe(
       "/images/routes/route-mountain.jpg",
     );
     expect(routeThumbnailForTheme("neon")).toBe(

@@ -292,6 +292,7 @@ function ActivationTransition({
   const [countdown, setCountdown] = useState(3);
   const [visible, setVisible] = useState(true);
   const [goPhase, setGoPhase] = useState(false);
+  const [imgFailed, setImgFailed] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Same reason as the parent: the countdown interval must not restart when
@@ -400,10 +401,10 @@ function ActivationTransition({
       className="fixed inset-0 z-[140] flex items-center justify-center pointer-events-none"
       data-activation-ceremony="true"
       data-reduced-motion={reducedMotion ? "true" : "false"}
-      data-has-thumbnail={routeThumbnailUrl ? "true" : "false"}
+      data-has-thumbnail={routeThumbnailUrl && !imgFailed ? "true" : "false"}
     >
       {/* Route thumbnail under / behind countdown (subtle parallax when motion OK) */}
-      {routeThumbnailUrl ? (
+      {routeThumbnailUrl && !imgFailed ? (
         <div
           className="absolute inset-0 overflow-hidden"
           data-testid="activation-route-thumbnail"
@@ -411,6 +412,7 @@ function ActivationTransition({
           <m.img
             src={routeThumbnailUrl}
             alt={routeLabel ? `${routeLabel} route preview` : "Route preview"}
+            onError={() => setImgFailed(true)}
             className="absolute inset-0 h-[118%] w-full object-cover"
             initial={
               reducedMotion
@@ -595,18 +597,16 @@ function phaseColor(phase?: string): string {
 }
 
 /** Map class route theme → existing public route thumbnail assets. */
-export function routeThumbnailForTheme(
-  theme?: string | null,
-): string {
+export function routeThumbnailForTheme(theme?: string | null): string {
   switch ((theme ?? "").toLowerCase()) {
     case "alpine":
-      return "/images/routes/route-mountain.jpg";
-    case "mars":
-      return "/images/routes/route-coastal.jpg";
-    case "anime":
       return "/images/routes/route-forest.jpg";
-    case "rainbow":
+    case "mars":
       return "/images/routes/route-group.jpg";
+    case "anime":
+      return "/images/routes/route-coastal.jpg";
+    case "rainbow":
+      return "/images/routes/route-mountain.jpg";
     case "neon":
     default:
       return "/images/routes/route-city.jpg";
