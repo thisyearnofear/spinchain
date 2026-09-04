@@ -55,7 +55,7 @@ export function RiderHero({ initialGreeting }: { initialGreeting?: string }) {
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--accent)] animate-pulse" />
               <span className="text-[10px] font-black uppercase tracking-widest text-[color:var(--accent)]">
-                On-chain cycling
+                Immersive cycling
               </span>
             </m.div>
 
@@ -75,28 +75,28 @@ export function RiderHero({ initialGreeting }: { initialGreeting?: string }) {
               className="mt-5 text-base sm:text-lg text-[color:var(--muted)] max-w-lg leading-relaxed"
             >
               Immersive cycling classes with AI coaching, real-time telemetry,
-              and crypto rewards. Powered by Sui &amp; Walrus.
+              and rewards that celebrate your effort.
             </m.p>
 
             <m.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...modalTransition, duration: 0.4, delay: 0.15 }}
-              className="mt-8 flex flex-wrap gap-3"
+              className="mt-8 flex flex-wrap items-center gap-4 text-sm"
             >
               <a
                 href="/rider#classes"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[color:var(--accent)] text-white font-semibold text-sm transition-[transform,opacity] duration-150 active:scale-95 hover:opacity-90 shadow-lg shadow-[color:var(--accent)]/20"
+                className="inline-flex items-center gap-1.5 text-[color:var(--muted)] font-medium transition-colors hover:text-[color:var(--foreground)]"
               >
-                <Bike className="w-4 h-4" />
-                Browse Classes
+                <Bike className="w-3.5 h-3.5" />
+                Browse classes
               </a>
               <a
                 href="/instructor"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[color:var(--border)] bg-[color:var(--surface-strong)] text-[color:var(--foreground)] font-semibold text-sm transition-[transform,background-color] duration-150 active:scale-95 hover:bg-[color:var(--surface-elevated)]"
+                className="inline-flex items-center gap-1.5 text-[color:var(--muted)]/80 font-medium transition-colors hover:text-[color:var(--foreground)]"
               >
-                <Zap className="w-4 h-4" />
-                Host a Class
+                <Zap className="w-3.5 h-3.5" />
+                Host a class
               </a>
             </m.div>
           </div>

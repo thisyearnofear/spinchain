@@ -69,7 +69,7 @@ export function ShareCardButton({
 
     ctx.fillStyle = "rgba(255,255,255,0.3)";
     ctx.font = "10px sans-serif";
-    ctx.fillText("On-chain cycling", 24, 42);
+    ctx.fillText("Your ride, celebrated", 24, 42);
 
     // Effort score — hero number
     ctx.textAlign = "center";
@@ -128,7 +128,7 @@ export function ShareCardButton({
     ctx.font = "bold 14px sans-serif";
     ctx.fillText(agentName, W - 24, 288);
 
-    // Walrus badge
+    // Soft saved badge (rider language — no infra names)
     if (walrusBlobId) {
       ctx.textAlign = "center";
       ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
@@ -137,14 +137,14 @@ export function ShareCardButton({
       ctx.strokeRect(W / 2 - 80, 305, 160, 24);
       ctx.fillStyle = "#10b981";
       ctx.font = "bold 9px sans-serif";
-      ctx.fillText("✓ Anchored on Walrus", W / 2, 321);
+      ctx.fillText("Ride data saved ✓", W / 2, 321);
     }
 
-    // Footer
+    // Footer — soft share framing
     ctx.fillStyle = "rgba(255,255,255,0.2)";
     ctx.font = "9px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("Verified on-chain • Powered by Sui, Walrus & Avalanche", W / 2, H - 16);
+    ctx.fillText("Share your ride • spinchain.xyz", W / 2, H - 16);
 
     const url = canvas.toDataURL("image/png");
     setDataUrl(url);
@@ -160,7 +160,7 @@ export function ShareCardButton({
   };
 
   const copyShareLink = () => {
-    const text = `🚴 Just scored ${effortScore}/1000 effort on SpinChain! ${avgPower}W avg power, ${formatTime(durationSec)} session. Earned ${spinEarned} SPIN. Verified on-chain.`;
+    const text = `🚴 Just scored ${effortScore}/1000 effort on SpinChain! ${avgPower}W avg power, ${formatTime(durationSec)} session. Earned ${spinEarned} SPIN. Ride data saved ✓`;
     navigator.clipboard.writeText(text);
   };
 

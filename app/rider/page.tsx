@@ -10,7 +10,6 @@ import {
   getDemoRideUrl,
 } from "../hooks/evm/use-class-data";
 import { useInstructors } from "../hooks/evm/use-instructors";
-import Link from "next/link";
 import { RoutePreviewCard } from "../components/features/route/route-preview-card";
 import { ConnectWallet } from "../components/features/wallet/connect-wallet";
 import { AnimatedClassCard } from "../components/features/class/animated-class-card";
@@ -111,7 +110,7 @@ export default function RiderPage() {
       rating: "4.9",
       rides: "1.2k",
       specialty: "Alpine routes & sustained climbs",
-      specialties: ["W'bal optimization", "FTP tracking", "Zone-based pacing"],
+      specialties: ["Sustained climbs", "Endurance pacing", "Alpine routes"],
       href: "/agent?coach=atlas",
     },
     {
@@ -122,7 +121,7 @@ export default function RiderPage() {
       rating: "5.0",
       rides: "850",
       specialty: "HIIT intervals & sprints",
-      specialties: ["Real-time resistance", "Sprint analytics", "Interval engineering"],
+      specialties: ["Explosive sprints", "HIIT intervals", "Push days"],
       href: "/agent?coach=drspin",
     },
     {
@@ -133,7 +132,7 @@ export default function RiderPage() {
       rating: "4.8",
       rides: "2.1k",
       specialty: "Flow state & recovery rides",
-      specialties: ["HRV adaptation", "Recovery scoring", "Breath sync"],
+      specialties: ["Recovery rides", "Breath & flow", "Easy spins"],
       href: "/agent?coach=zenmaster",
     },
   ];
@@ -365,32 +364,23 @@ export default function RiderPage() {
           </div>
         </section>
 
-        {/* Guest Mode Banner — only shown when disconnected */}
+        {/* Guest Mode Banner — wallet secondary, below fold; primary demo CTA is PrimaryCTA above */}
         {!isConnected && (
-          <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 backdrop-blur">
+          <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur">
             <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-400">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-white/50">
                 <User className="h-4 w-4" />
               </span>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="font-medium text-amber-700 dark:text-amber-300">
-                  Browsing as guest
+              <div className="text-sm">
+                <span className="font-medium text-[color:var(--muted)]">
+                  Riding as guest
                 </span>
-                <span className="text-amber-600/60 dark:text-amber-400/60">
-                  ·
-                </span>
-                <span className="text-amber-600/80 dark:text-amber-400/80 hidden sm:inline">
-                  Try a free demo ride — no wallet needed
+                <span className="text-[color:var(--muted)]/70 hidden sm:inline">
+                  {" "}· connect later to keep rewards
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Link
-                href={getDemoRideUrl()}
-                className="text-xs font-medium px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-500/30 transition"
-              >
-                Try Demo
-              </Link>
+            <div className="opacity-80 scale-90 origin-right">
               <ConnectWallet />
             </div>
           </div>

@@ -371,7 +371,7 @@ export function ModalStack({
               <div className="text-center">
                 <p className="text-sm font-bold text-white">Saving your ride</p>
                 <p className="text-xs text-white/50 mt-1">
-                  Uploading to Walrus & anchoring on Sui…
+                  Ride data saved — locking it in…
                 </p>
               </div>
             </div>
