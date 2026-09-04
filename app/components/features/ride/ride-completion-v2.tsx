@@ -29,6 +29,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { modalTransition } from "@/app/lib/motion";
 import { formatTime } from "@/app/lib/formatters";
+import { toPracticeWallElapsed } from "@/app/lib/practice-demo";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useSensoryStore } from "@/app/stores/sensory-store";
 import { Star, CheckCircle2, ShieldCheck, Trophy, Flame, Volume2 } from "lucide-react";
@@ -46,6 +47,10 @@ interface RideCompletionV2Props {
   isPracticeMode: boolean;
   walletConnected: boolean;
   elapsedTime: number;
+  /** Class duration in seconds — used to convert compressed demo elapsed → wall clock. */
+  classDurationSec?: number;
+  /** Peak flow tier reached this ride — shown on practice completion. */
+  flowTier?: number;
   avgHeartRate: number;
   avgPower: number;
   avgEffort: number;
@@ -79,10 +84,15 @@ interface RideCompletionV2Props {
 
 type CompletionPhase = "celebration" | "stats" | "actions";
 
+const FLOW_LABELS = ["", "Focused", "Flow", "Super Flow", "Mastery"];
+const FLOW_COLORS = ["", "#34d399", "#f59e0b", "#f97316", "#ef4444"];
+
 export function RideCompletionV2({
   isPracticeMode,
   walletConnected,
   elapsedTime,
+  classDurationSec = 45 * 60,
+  flowTier = 0,
   avgHeartRate,
   avgPower,
   avgEffort,
@@ -185,6 +195,12 @@ export function RideCompletionV2({
     setCurrentStreak(milestonesAndStreaks.getCurrentStreak());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Practice/demo: show wall-clock duration, not the compressed class clock
+  // (which would read as a full 30-min session after a ~45s demo).
+  const displayElapsed = isPracticeMode
+    ? toPracticeWallElapsed(elapsedTime, classDurationSec)
+    : elapsedTime;
+
   // Agent debrief
   const getAgentDebrief = useCallback(() => {
     const tierInfo = getEffortTier(avgEffort);
@@ -202,11 +218,11 @@ export function RideCompletionV2({
     }
 
     if (agentPersonality === "zen") {
-      return `A mindful ${formatTime(elapsedTime)} session. Your body sustained ${avgPower}W with a steady rhythm. ${effortTier === "elite" ? "Today you found your flow state." : "Each ride deepens your practice."} I've noted this for your journey.`;
+      return `A mindful ${formatTime(displayElapsed)} session. Your body sustained ${avgPower}W with a steady rhythm. ${effortTier === "elite" ? "Today you found your flow state." : "Each ride deepens your practice."} I've noted this for your journey.`;
     }
 
-    return `Session analysis: ${formatTime(elapsedTime)} duration, ${avgPower}W avg power, ${avgHeartRate} BPM avg HR. ${hrEfficiency ? `Efficiency ratio: ${hrEfficiency}. ` : ""}Effort score ${avgEffort}/1000 (${effortTier}). ${effortTier === "elite" ? "Performance logged — recommending threshold increase." : `Target: push above ${avgEffort < 500 ? 500 : 800} next ride for higher SPIN yield.`}`;
-  }, [agentPersonality, avgPower, avgHeartRate, avgEffort, elapsedTime]);
+    return `Session analysis: ${formatTime(displayElapsed)} duration, ${avgPower}W avg power, ${avgHeartRate} BPM avg HR. ${hrEfficiency ? `Efficiency ratio: ${hrEfficiency}. ` : ""}Effort score ${avgEffort}/1000 (${effortTier}). ${effortTier === "elite" ? "Performance logged — recommending threshold increase." : `Target: push above ${avgEffort < 500 ? 500 : 800} next ride for higher SPIN yield.`}`;
+  }, [agentPersonality, avgPower, avgHeartRate, avgEffort, displayElapsed]);
 
   // Auto-advance to stats after celebration
   useEffect(() => {
@@ -294,7 +310,7 @@ export function RideCompletionV2({
             transition={{ delay: 0.2, duration: 0.5 }}
           >
             <p className="text-[10px] uppercase tracking-[0.4em] text-amber-300/60 mb-2">
-              Session Complete
+              {isPracticeMode ? "Demo Complete" : "Session Complete"}
             </p>
             <m.h2
               className="text-5xl font-black text-white tracking-tighter"
@@ -329,9 +345,9 @@ export function RideCompletionV2({
             transition={{ delay: 0.5 }}
             className="mt-4 flex items-center gap-3 text-white/60"
           >
-            <span className="text-xs">{formatTime(elapsedTime)}</span>
+            <span className="text-xs">{formatTime(displayElapsed)}{isPracticeMode ? " demo" : ""}</span>
             <span>·</span>
-            <span className="text-xs">{telemetrySource === "live-bike" ? "Live" : telemetrySource === "simulator" ? "Simulator" : "Estimated"}</span>
+            <span className="text-xs">{isPracticeMode ? "Demo" : telemetrySource === "live-bike" ? "Live" : telemetrySource === "simulator" ? "Simulator" : "Estimated"}</span>
           </m.div>
 
           {/* Agent debrief */}
@@ -399,6 +415,22 @@ export function RideCompletionV2({
               </m.div>
             )}
 
+            {/* Flow peak — practice completion leads with flow + milestones */}
+            {flowTier >= 1 && (
+              <div className="mb-4 flex items-center justify-center">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest"
+                  style={{
+                    borderColor: `${FLOW_COLORS[flowTier]}40`,
+                    backgroundColor: `${FLOW_COLORS[flowTier]}14`,
+                    color: FLOW_COLORS[flowTier],
+                  }}
+                >
+                  {FLOW_LABELS[flowTier]} flow
+                </span>
+              </div>
+            )}
+
             {/* PR celebration */}
             {prBeaten && !heroMilestone && (
               <div className="mb-6 flex items-center justify-center gap-2">
@@ -436,7 +468,7 @@ export function RideCompletionV2({
                 <span aria-hidden>·</span>
                 <InlineStat value={avgEffort} unit="/1000" highlight />
                 <span aria-hidden>·</span>
-                <InlineStat value={formatTime(elapsedTime)} unit="" />
+                <InlineStat value={formatTime(displayElapsed)} unit={isPracticeMode ? "demo" : ""} />
               </div>
               {(maxPower > avgPower || maxHeartRate > avgHeartRate) && (
                 <p className="mt-1.5 text-[11px] text-white/35 tabular-nums">
@@ -538,9 +570,9 @@ export function RideCompletionV2({
               </div>
             )}
 
-          {/* Comparison + next-ride advice — collapsed by default so the
-              stats phase leads with one decision (SPIN + debrief + actions),
-              not eight competing ones. */}
+          {/* Comparison + next-ride advice — live classes only. Practice
+              completion leads with flow / milestones / share instead. */}
+          {!isPracticeMode && (
           <details className="group mb-4 rounded-xl border border-white/10 bg-white/[0.03]">
             <summary className="flex cursor-pointer select-none items-center justify-between px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-white/60 transition-colors hover:text-white/60 [&::-webkit-details-marker]:hidden">
               <span>Comparison &amp; next ride</span>
@@ -572,20 +604,23 @@ export function RideCompletionV2({
               </div>
             </div>
           </details>
+          )}
 
-          {/* Storage/Walrus info — collapsed by default */}
-          <StorageDetails
-            walrusAnchorInfo={walrusAnchorInfo}
-            syncStatus={walrusAnchorInfo ? "anchored" : "pending"}
-            settlementStatus={settlementStatus}
-            agentName={agentName}
-            rating={rating}
-            isSubmitted={isSubmitted}
-            onSetRating={setRating}
-            onSubmitRating={() => {
-              setIsSubmitted(true);
-            }}
-          />
+          {/* Infra details — live classes only (practice stays rider-facing) */}
+          {!isPracticeMode && (
+            <StorageDetails
+              walrusAnchorInfo={walrusAnchorInfo}
+              syncStatus={walrusAnchorInfo ? "anchored" : "pending"}
+              settlementStatus={settlementStatus}
+              agentName={agentName}
+              rating={rating}
+              isSubmitted={isSubmitted}
+              onSetRating={setRating}
+              onSubmitRating={() => {
+                setIsSubmitted(true);
+              }}
+            />
+          )}
           </div>
         </m.div>
       )}
@@ -600,73 +635,91 @@ export function RideCompletionV2({
           transition={{ delay: 0.2 }}
           className="absolute bottom-4 left-4 right-4 flex flex-col gap-2 pointer-events-none [&>*]:pointer-events-auto"
         >
-          {/* Primary actions */}
+          {/* Primary actions — practice: Ride Again + Done; live: history + again */}
           <div className="flex gap-2">
-            {primaryAction === "view_history" ? (
-              <button
-                onClick={onExit}
-                className="flex-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/40 transition-all active:scale-95"
-              >
-                View History
-              </button>
+            {isPracticeMode ? (
+              <>
+                {onRideAgain && (
+                  <button
+                    onClick={onRideAgain}
+                    className="flex-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 py-3 text-sm font-semibold text-black shadow-lg shadow-amber-500/40 transition-all active:scale-95"
+                  >
+                    Ride Again
+                  </button>
+                )}
+                <button
+                  onClick={onExit}
+                  className="flex-1 rounded-full border border-white/20 bg-white/10 py-3 text-sm font-semibold text-white transition-all active:scale-95 hover:bg-white/20"
+                >
+                  Done
+                </button>
+              </>
             ) : (
-              <button
-                onClick={onExit}
-                className="flex-1 rounded-full border border-white/20 bg-white/10 py-3 text-sm font-semibold text-white transition-all active:scale-95 hover:bg-white/20"
-              >
-                View History
-              </button>
+              <>
+                <button
+                  onClick={onExit}
+                  className={
+                    primaryAction === "view_history"
+                      ? "flex-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/40 transition-all active:scale-95"
+                      : "flex-1 rounded-full border border-white/20 bg-white/10 py-3 text-sm font-semibold text-white transition-all active:scale-95 hover:bg-white/20"
+                  }
+                >
+                  View History
+                </button>
+                {onRideAgain && (
+                  <button
+                    onClick={onRideAgain}
+                    className="flex-1 rounded-full border border-amber-400/40 bg-amber-400/10 py-3 text-sm font-semibold text-amber-200 transition-all active:scale-95 hover:bg-amber-400/20"
+                  >
+                    Ride Again
+                  </button>
+                )}
+              </>
             )}
+          </div>
 
-            {onRideAgain && (
+          {/* Share — always available; practice completion leads with it. */}
+          <div className="flex items-center justify-center gap-2">
+            <ShareCardButton
+              effortScore={avgEffort}
+              avgPower={avgPower}
+              avgHeartRate={avgHeartRate}
+              durationSec={displayElapsed}
+              spinEarned={isPracticeMode ? "0" : spinEarned}
+              agentName={agentName}
+              walrusBlobId={!isPracticeMode ? walrusAnchorInfo?.blobId : undefined}
+            />
+            {onExportTCX && !isPracticeMode && (
               <button
-                onClick={onRideAgain}
-                className="flex-1 rounded-full border border-amber-400/40 bg-amber-400/10 py-3 text-sm font-semibold text-amber-200 transition-all active:scale-95 hover:bg-amber-400/20"
+                onClick={onExportTCX}
+                className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-300 transition-all active:scale-95 hover:bg-amber-400/20"
               >
-                Ride Again
+                Export TCX
               </button>
             )}
           </div>
 
-          {/* Share + export — secondary row, promoted out of the content column */}
-          {(onShare || onExportTCX) && (
-            <div className="flex items-center justify-center gap-2">
-              {onShare && (
-                <ShareCardButton
-                  effortScore={avgEffort}
-                  avgPower={avgPower}
-                  avgHeartRate={avgHeartRate}
-                  durationSec={elapsedTime}
-                  spinEarned={spinEarned}
-                  agentName={agentName}
-                  walrusBlobId={walrusAnchorInfo?.blobId}
-                />
-              )}
-              {onExportTCX && (
-                <button
-                  onClick={onExportTCX}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-300 transition-all active:scale-95 hover:bg-amber-400/20"
-                >
-                  Export TCX
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Claim / wallet conversion — shown for live classes AND for
-              practice/demo riders who finished without a wallet: seeing the
-              SPIN they earned but can't claim yet is the hook.
-              Connected practice riders see no button (claims are gated off
-              in practice mode) so we don't hand them a dead "Claim" click. */}
-          {((!isPracticeMode && onClaimRewards) || (!walletConnected && onConnectWallet)) && (
-            <ClaimRewardsButton
-              walletConnected={walletConnected}
-              rewardClaimStatus={rewardClaimStatus}
-              spinEarned={spinEarned}
-              agentName={agentName}
-              onClick={walletConnected ? onClaimRewards : onConnectWallet}
-              onConnectWallet={onConnectWallet}
-            />
+          {/* Practice: soft wallet invite (not claim/infra chrome).
+              Live: claim / wallet conversion as before. */}
+          {isPracticeMode && !walletConnected && onConnectWallet ? (
+            <button
+              onClick={onConnectWallet}
+              className="w-full rounded-full border border-white/15 bg-white/5 py-2.5 text-xs font-semibold text-white/70 transition-all active:scale-95 hover:bg-white/10 hover:text-white"
+            >
+              Keep your rides — connect when you&apos;re ready
+            </button>
+          ) : (
+            !isPracticeMode &&
+            ((onClaimRewards) || (!walletConnected && onConnectWallet)) && (
+              <ClaimRewardsButton
+                walletConnected={walletConnected}
+                rewardClaimStatus={rewardClaimStatus}
+                spinEarned={spinEarned}
+                agentName={agentName}
+                onClick={walletConnected ? onClaimRewards : onConnectWallet}
+                onConnectWallet={onConnectWallet}
+              />
+            )
           )}
         </m.div>
       )}

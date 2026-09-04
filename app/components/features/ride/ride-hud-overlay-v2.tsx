@@ -46,6 +46,11 @@ import { SettlementStream } from "./settlement-stream";
 import { SpinDripChip } from "./spin-drip-chip";
 import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
 import type { GhostState } from "@/app/lib/analytics/ghost-service";
+import {
+  PRACTICE_WALL_DURATION_SEC,
+  formatPracticeClock,
+  toPracticeWallElapsed,
+} from "@/app/lib/practice-demo";
 
 interface RideHUDOverlayV2Props {
   hudMode: "full" | "compact" | "minimal";
@@ -58,8 +63,12 @@ interface RideHUDOverlayV2Props {
    *  ambient glow, coach overlay, and settlement stream still render. */
   suppressBottomStack?: boolean;
   /** Total class duration in seconds — renders "elapsed / total" under the
-   *  phase badge so the rider always knows how long they've been riding. */
+   *  phase badge so the rider always knows how long they've been riding.
+   *  In practice/demo mode the HUD ignores this for the denominator and
+   *  shows wall clock + % complete instead (Demo framing). */
   rideDurationSec?: number;
+  /** Practice/demo: frame the clock as a short Demo, not a 30-min class. */
+  isPracticeMode?: boolean;
 }
 
 // Module-scope stable animation config. Passing fresh keyframe arrays / transition
@@ -91,6 +100,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   flowTier = 0,
   suppressBottomStack = false,
   rideDurationSec,
+  isPracticeMode = false,
 }: RideHUDOverlayV2Props) {
   const power = useTelemetryStore(selectPower);
   const heartRate = useTelemetryStore(selectHeartRate);
@@ -364,9 +374,10 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
             </span>
           </m.div>
 
-          {/* Ride progress hairline + clock — "how long is left" is the
-              rider's #1 question; the hairline answers it at a glance and
-              the clock gives the number. */}
+          {/* Ride progress hairline + clock.
+              Practice/demo: Demo framing with wall clock + % complete so the
+              HUD never reads like a full 30-min class. Live classes keep
+              elapsed / total class duration. */}
           {isRiding && (
             <>
               <div className="h-0.5 w-28 rounded-full bg-white/10 overflow-hidden">
@@ -378,10 +389,28 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                   transition={{ type: "tween", duration: 0.5 }}
                 />
               </div>
-              <p className="text-[10px] font-bold tabular-nums text-white/40">
-                {formatClock(rideElapsed)}
-                {rideDurationSec ? ` / ${formatClock(rideDurationSec)}` : ""}
-              </p>
+              {isPracticeMode ? (
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.25em] text-amber-300">
+                    Demo
+                  </span>
+                  <p className="text-[10px] font-bold tabular-nums text-white/50">
+                    {formatPracticeClock(
+                      toPracticeWallElapsed(
+                        rideElapsed,
+                        rideDurationSec ?? 45 * 60,
+                      ),
+                    )}
+                    <span className="text-white/30"> / {formatPracticeClock(PRACTICE_WALL_DURATION_SEC)}</span>
+                    <span className="ml-1.5 text-white/40">{Math.round(rideProgress)}%</span>
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[10px] font-bold tabular-nums text-white/40">
+                  {formatClock(rideElapsed)}
+                  {rideDurationSec ? ` / ${formatClock(rideDurationSec)}` : ""}
+                </p>
+              )}
             </>
           )}
 
