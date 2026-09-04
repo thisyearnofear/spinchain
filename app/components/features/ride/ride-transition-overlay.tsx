@@ -21,10 +21,14 @@
  * - Reduced motion respected
  */
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { m, AnimatePresence } from "framer-motion";
-import { useRideStore } from "@/app/stores/ride-store";
 import { useSensoryStore } from "@/app/stores/sensory-store";
+import { haptic } from "@/app/hooks/use-haptic";
+import {
+  playCountdownTickSfx,
+  playGoStingerSfx,
+} from "@/app/lib/ceremony-sfx";
 
 export type RideTransitionState =
   | "none"
@@ -285,6 +289,12 @@ function ActivationTransition({
     onDoneRef.current = onDone;
   });
 
+  // Dedup sensory fire across Strict Mode / re-renders (one cue per tick value).
+  const lastSensoryTickRef = useRef<number | "go" | null>(null);
+  const setCountdownPhase = useSensoryStore((s) => s.setCountdownPhase);
+  const resetCountdown = useSensoryStore((s) => s.resetCountdown);
+  const setLatestEvent = useSensoryStore((s) => s.setLatestEvent);
+
   // Countdown logic. The updater must stay pure (React dev double-invokes
   // updaters, which would fire side effects twice); completion is handled in
   // its own effect watching `countdown`.
@@ -304,6 +314,40 @@ function ActivationTransition({
     // onDone is read via ref (see above) — deliberately not a dep.
   }, [reducedMotion]);
 
+  // Sensory sync on each visible tick + GO: haptic + local SFX + store event.
+  // Local Web Audio (not ElevenLabs playCountdown) keeps ticks aligned to the
+  // 700ms visual interval and avoids a second delayed ceremony in lifecycle.
+  useEffect(() => {
+    if (reducedMotion) return;
+
+    if (countdown > 0) {
+      if (lastSensoryTickRef.current === countdown) return;
+      lastSensoryTickRef.current = countdown;
+      const phase =
+        countdown === 3 ? "three" : countdown === 2 ? "two" : "one";
+      setCountdownPhase(phase);
+      setLatestEvent({
+        type: "countdown-tick",
+        timestamp: Date.now(),
+      });
+      // 3/2 medium; 1 heavy — builds into the GO stinger.
+      haptic(countdown === 1 ? "heavy" : "medium");
+      playCountdownTickSfx(countdown as 1 | 2 | 3);
+      return;
+    }
+
+    // countdown === 0 → GO
+    if (lastSensoryTickRef.current === "go") return;
+    lastSensoryTickRef.current = "go";
+    setCountdownPhase("go");
+    setLatestEvent({
+      type: "countdown-go",
+      timestamp: Date.now(),
+    });
+    haptic("heavy");
+    playGoStingerSfx();
+  }, [countdown, reducedMotion, setCountdownPhase, setLatestEvent]);
+
   // Countdown finished: stop the interval, show GO, and hand off immediately
   // so isActive / pedals work on GO (parent keeps the overlay mounted briefly
   // for the launch flash). No second ceremony after this.
@@ -315,11 +359,12 @@ function ActivationTransition({
     const fadeTimer = setTimeout(() => {
       setGoPhase(false);
       setVisible(false);
+      resetCountdown();
     }, reducedMotion ? 100 : 650);
     return () => {
       clearTimeout(fadeTimer);
     };
-  }, [countdown, reducedMotion]);
+  }, [countdown, reducedMotion, resetCountdown]);
 
   return (
     <m.div

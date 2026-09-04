@@ -249,7 +249,6 @@ export default function LiveRidePage() {
 
   // ─── Audio (via coordinator) ───────────────────────────────────
   const playSound = useCallback((type: unknown) => coordinatorRef.current.playSound?.(type as never)?.catch?.(() => {}), []);
-  const playCountdown = useCallback((seconds: number) => coordinatorRef.current.playCountdown?.(seconds), []);
   const stopAudio = useCallback(() => coordinatorRef.current.stopAudio?.(), []);
   const speak = useCallback((text: string, emotion?: unknown) => coordinatorRef.current.speak?.(text, emotion as never)?.catch?.(() => {}), []);
   // Stable identity so ModalStack can be memoized and doesn't re-render per page render.
@@ -450,11 +449,9 @@ export default function LiveRidePage() {
     activationComplete,
   ]);
 
-  // Sync countdown audio with the live ActivationTransition ceremony (not a second delay).
-  useEffect(() => {
-    if (!showActivation || reducedMotion) return;
-    playCountdown(3);
-  }, [showActivation, reducedMotion, playCountdown]);
+  // Countdown haptic + SFX live inside ActivationTransition (tick-aligned).
+  // Do NOT call playCountdown(3) here — that used a 1s ElevenLabs loop that
+  // fought the 700ms visual ticks and risked duplicate ceremony audio.
 
   // The page re-renders continuously (useFlowState ticks every 100ms,
   // sensory-sync, etc.), and `lifecycle` is a fresh object each render. If the

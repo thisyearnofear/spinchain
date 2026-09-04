@@ -40,7 +40,41 @@ vi.mock("framer-motion", async () => {
   };
 });
 
+const hapticMock = vi.fn();
+vi.mock("@/app/hooks/use-haptic", () => ({
+  haptic: (...args: unknown[]) => hapticMock(...args),
+  useHaptic: () => ({ trigger: hapticMock }),
+}));
+
+const tickSfxMock = vi.fn();
+const goSfxMock = vi.fn();
+vi.mock("@/app/lib/ceremony-sfx", () => ({
+  playCountdownTickSfx: (...args: unknown[]) => tickSfxMock(...args),
+  playGoStingerSfx: (...args: unknown[]) => goSfxMock(...args),
+  playFirstHitSfx: vi.fn(),
+}));
+
+vi.mock("@/app/stores/sensory-store", () => {
+  const setCountdownPhase = vi.fn();
+  const resetCountdown = vi.fn();
+  const setLatestEvent = vi.fn();
+  const store = {
+    setCountdownPhase,
+    resetCountdown,
+    setLatestEvent,
+    countdownPhase: "none",
+    latestEvent: null,
+  };
+  const useSensoryStore = Object.assign(
+    (selector?: (s: typeof store) => unknown) =>
+      typeof selector === "function" ? selector(store) : store,
+    { getState: () => store },
+  );
+  return { useSensoryStore };
+});
+
 import { RideTransitionOverlay } from "../ride-transition-overlay";
+
 
 function renderWithUnstableCallbacks(onDone: () => void, onSkip: () => void) {
   // Mimics the ride page: re-renders every 100ms and passes brand-new
@@ -121,5 +155,29 @@ describe("RideTransitionOverlay activation countdown", () => {
       );
     });
     expect(onSkip).toHaveBeenCalledTimes(1);
+  });
+
+  it("fires haptic + countdown SFX on each tick and a GO stinger on complete", () => {
+    hapticMock.mockClear();
+    tickSfxMock.mockClear();
+    goSfxMock.mockClear();
+
+    const onDone = vi.fn();
+    renderWithUnstableCallbacks(onDone, vi.fn());
+
+    // Initial "3" tick fires on mount
+    expect(tickSfxMock).toHaveBeenCalledWith(3);
+    expect(hapticMock).toHaveBeenCalledWith("medium");
+
+    act(() => void vi.advanceTimersByTime(700));
+    expect(tickSfxMock).toHaveBeenCalledWith(2);
+
+    act(() => void vi.advanceTimersByTime(700));
+    expect(tickSfxMock).toHaveBeenCalledWith(1);
+    expect(hapticMock).toHaveBeenCalledWith("heavy");
+
+    act(() => void vi.advanceTimersByTime(700));
+    expect(goSfxMock).toHaveBeenCalledTimes(1);
+    expect(onDone).toHaveBeenCalledTimes(1);
   });
 });

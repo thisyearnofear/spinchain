@@ -6,6 +6,12 @@ import { useRideModalStore } from "@/app/stores/ride-modal-store";
 import { milestonesAndStreaks, type SessionMilestone } from "@/app/lib/milestones";
 import { experienceManager } from "@/app/lib/experience-level";
 import { STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
+import { haptic } from "@/app/hooks/use-haptic";
+import { playFirstHitSfx } from "@/app/lib/ceremony-sfx";
+import {
+  MILESTONE_COOLDOWN_MS,
+  shouldShowMinuteMilestone,
+} from "@/app/lib/milestone-throttle";
 import type { useFlowState } from "@/app/lib/flow-state";
 
 interface TelemetryAverages {
@@ -14,12 +20,24 @@ interface TelemetryAverages {
   avgEffort?: number;
 }
 
+
+/** Cadence / power that counts as a "hard pedal" for first-hit dopamine. */
+const HARD_PEDAL_CADENCE = 90;
+const HARD_PEDAL_POWER = 200;
+
+
+
 /**
  * useRideMilestones
  *
  * Owns peak telemetry tracking, ride-completion milestone recording, and
  * real-time milestone popups. Keeps refs off React state so the page doesn't
  * re-render every second for max-value updates.
+ *
+ * First dopamine (compressed demo): celebrate the first flow-tier hit and/or
+ * first hard pedal immediately — not only minute-boundary duration badges.
+ * Minute-boundary overlays are wall-clock throttled so practice's accelerated
+ * clock (class-minute ≈ 1.5s wall) cannot spam.
  */
 export function useRideMilestones({
   isRiding,
@@ -27,12 +45,14 @@ export function useRideMilestones({
   showCompletionScreen,
   telemetryAverages,
   flow,
+  reducedMotion = false,
 }: {
   isRiding: boolean;
   elapsedTime: number;
   showCompletionScreen: boolean;
   telemetryAverages: TelemetryAverages;
   flow: ReturnType<typeof useFlowState>;
+  reducedMotion?: boolean;
 }) {
   const maxPowerRef = useRef(0);
   const maxHRRef = useRef(0);
@@ -41,7 +61,30 @@ export function useRideMilestones({
 
   const shownMilestoneIdsRef = useRef<Set<string>>(new Set());
   const prevRideMinuteRef = useRef(0);
+  const lastOverlayAtRef = useRef(0);
+  const firstFlowCelebratedRef = useRef(false);
+  const firstHardPedalCelebratedRef = useRef(false);
   const setShowMilestone = useRideModalStore((s) => s.setShowMilestone);
+
+  const showOverlay = useCallback(
+    (title: string, subtitle: string, opts?: { force?: boolean; durationMs?: number }) => {
+      const now = Date.now();
+      const prefersReduced =
+        reducedMotion ||
+        (typeof window !== "undefined" &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+      if (!opts?.force && now - lastOverlayAtRef.current < MILESTONE_COOLDOWN_MS) {
+        return null as ReturnType<typeof setTimeout> | null;
+      }
+      lastOverlayAtRef.current = now;
+      setShowMilestone({ title, subtitle });
+      return setTimeout(
+        () => setShowMilestone(null),
+        opts?.durationMs ?? (prefersReduced ? 900 : 2000),
+      );
+    },
+    [setShowMilestone, reducedMotion],
+  );
 
   const reset = useCallback(() => {
     maxPowerRef.current = 0;
@@ -49,6 +92,9 @@ export function useRideMilestones({
     peakEffortRef.current = 0;
     shownMilestoneIdsRef.current = new Set();
     prevRideMinuteRef.current = 0;
+    lastOverlayAtRef.current = 0;
+    firstFlowCelebratedRef.current = false;
+    firstHardPedalCelebratedRef.current = false;
     setRideMilestones([]);
   }, []);
 
@@ -106,17 +152,96 @@ export function useRideMilestones({
     }
   }, [showCompletionScreen, recordMilestonesOnCompletion]);
 
-  // Real-time milestone detection at each minute boundary.
+  // First dopamine: flow tier >= 1 (Focused+)
+  useEffect(() => {
+    if (!isRiding || firstFlowCelebratedRef.current) return;
+    if (flow.flowTier < 1) return;
+
+    firstFlowCelebratedRef.current = true;
+    shownMilestoneIdsRef.current.add("first-flow");
+
+    const prefersReduced =
+      reducedMotion ||
+      (typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+    const label = flow.flowTier >= 2 ? "IN FLOW" : "FOCUSED";
+    const timeout = showOverlay(`✨ ${label}`, "First flow moment — keep it going", {
+      force: true,
+      durationMs: prefersReduced ? 800 : 1800,
+    });
+
+    if (!prefersReduced) {
+      haptic("success");
+      playFirstHitSfx();
+    } else {
+      haptic("light");
+    }
+
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [isRiding, flow.flowTier, showOverlay, reducedMotion]);
+
+  // First dopamine: hard pedal
+  useEffect(() => {
+    if (!isRiding || firstHardPedalCelebratedRef.current) return;
+
+    const prefersReduced =
+      reducedMotion ||
+      (typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+    const id = setInterval(() => {
+      if (firstHardPedalCelebratedRef.current) return;
+      const s = useTelemetryStore.getState().snapshot;
+      const hard =
+        s.cadence >= HARD_PEDAL_CADENCE || s.power >= HARD_PEDAL_POWER;
+      if (!hard) return;
+
+      firstHardPedalCelebratedRef.current = true;
+      shownMilestoneIdsRef.current.add("first-hard-pedal");
+
+      // If first-flow already owns the cooldown, skip overlay to avoid spam.
+      showOverlay("⚡ HARD EFFORT", "First strong pedal — world unlocked", {
+        force: !firstFlowCelebratedRef.current,
+        durationMs: prefersReduced ? 800 : 1600,
+      });
+
+      if (!prefersReduced) {
+        haptic("success");
+        playFirstHitSfx();
+      } else {
+        haptic("light");
+      }
+    }, 250);
+
+    return () => clearInterval(id);
+  }, [isRiding, showOverlay, reducedMotion]);
+
+  // Real-time milestone detection at each minute boundary (throttled).
   useEffect(() => {
     if (!isRiding) {
       shownMilestoneIdsRef.current = new Set();
       prevRideMinuteRef.current = 0;
+      firstFlowCelebratedRef.current = false;
+      firstHardPedalCelebratedRef.current = false;
+      lastOverlayAtRef.current = 0;
       return;
     }
 
     const currentMinute = Math.floor(elapsedTime / 60);
     if (currentMinute <= prevRideMinuteRef.current || currentMinute <= 0) return;
     prevRideMinuteRef.current = currentMinute;
+
+    // Wall-clock throttle — practice advances ~1 class-minute per 1.5s wall.
+    if (
+      !shouldShowMinuteMilestone({
+        lastOverlayAt: lastOverlayAtRef.current,
+      })
+    ) {
+      return;
+    }
 
     const milestoneCheck = milestonesAndStreaks.detectAndRecordMilestones({
       duration: elapsedTime / 60,
@@ -151,14 +276,15 @@ export function useRideMilestones({
             ? "●"
             : "●";
 
-    setShowMilestone({
-      title: `${tierIcon} ${milestone.title}`,
-      subtitle: milestone.description,
-    });
+    const timeout = showOverlay(
+      `${tierIcon} ${milestone.title}`,
+      milestone.description,
+    );
 
-    const timeout = setTimeout(() => setShowMilestone(null), 2000);
-    return () => clearTimeout(timeout);
-  }, [elapsedTime, isRiding, telemetryAverages, flow, setShowMilestone]);
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [elapsedTime, isRiding, telemetryAverages, flow, showOverlay]);
 
   return {
     maxPowerRef,
