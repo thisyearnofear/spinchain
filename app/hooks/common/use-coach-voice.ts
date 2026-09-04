@@ -46,6 +46,7 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
   
   const currentLayerId = useRef<string | null>(null);
   const mixerRef = useRef(getAudioMixer());
+  const lastConfigRetry = useRef(0);
 
   // Initialize mixer and check configuration on mount
   useEffect(() => {
@@ -85,8 +86,20 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
     emotion?: 'calm' | 'focused' | 'intense' | 'celebratory'
   ) => {
     if (!isConfigured) {
-      console.warn('ElevenLabs not configured');
-      return;
+      // Lazily re-check (throttled to once per 15s) so a temporarily
+      // unavailable server self-heals without remounting the hook.
+      const now = Date.now();
+      if (now - lastConfigRetry.current < 15_000) {
+        console.warn('ElevenLabs not configured');
+        return;
+      }
+      lastConfigRetry.current = now;
+      const configured = await checkElevenLabsConfigured();
+      setIsConfigured(configured);
+      if (!configured) {
+        console.warn('ElevenLabs not configured');
+        return;
+      }
     }
 
     // Stop any current speech

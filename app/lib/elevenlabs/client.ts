@@ -155,14 +155,29 @@ export function isElevenLabsConfigured(): boolean {
 }
 
 /**
- * Async check if ElevenLabs is actually configured on the server
+ * Async check if ElevenLabs is actually configured on the server.
+ * Result is cached briefly (60s) and the request times out quickly so a
+ * wedged server can never hang ride startup on this check.
  */
+const CONFIG_TTL_MS = 60_000;
+let configCache: { value: boolean; at: number } | null = null;
+
 export async function checkElevenLabsConfigured(): Promise<boolean> {
+  if (configCache && Date.now() - configCache.at < CONFIG_TTL_MS) {
+    return configCache.value;
+  }
   try {
-    const response = await fetch(ELEVENLABS_CONFIG.ttsRoute, { method: 'GET' });
+    const response = await fetch(ELEVENLABS_CONFIG.ttsRoute, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5_000),
+    });
     const data = await response.json();
-    return data.status === 'ready';
+    const value = data.status === 'ready';
+    configCache = { value, at: Date.now() };
+    return value;
   } catch {
+    // Don't cache failures for the full TTL — allow a sooner retry
+    configCache = { value: false, at: Date.now() - (CONFIG_TTL_MS - 15_000) };
     return false;
   }
 }

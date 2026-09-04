@@ -75,6 +75,8 @@ export class AudioEngine {
   /** Unsubscribe functions for EventBus listeners */
   private unsubCoachMessage: (() => void) | null = null;
   private unsubIntervalChanged: (() => void) | null = null;
+  /** Last failed isConfigured re-check (ms epoch) — throttles retry attempts */
+  private lastConfigRetry = 0;
 
   constructor(
     bus: EventBus,
@@ -156,7 +158,22 @@ export class AudioEngine {
     text: string,
     emotion?: "calm" | "focused" | "intense" | "celebratory",
   ): Promise<void> {
-    if (!this.isConfigured || this.disposed) return;
+    if (this.disposed) return;
+
+    // If a previous config check failed (e.g. server briefly unavailable),
+    // lazily re-check (throttled to once per 15s) so audio self-heals
+    // mid-ride without needing a page reload.
+    if (!this.isConfigured) {
+      const now = Date.now();
+      if (now - this.lastConfigRetry < 15_000) return;
+      this.lastConfigRetry = now;
+      try {
+        this.isConfigured = await checkElevenLabsConfigured();
+      } catch {
+        return;
+      }
+      if (!this.isConfigured) return;
+    }
 
     // Stop any current speech
     this.stopVoice();
