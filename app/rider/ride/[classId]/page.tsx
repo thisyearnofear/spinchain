@@ -301,7 +301,7 @@ export default function LiveRidePage() {
 
   // Demo/practice mode: keyboard → cadence/power → reactive world is handled by
   // the PedalSimulator (wired to coordinator.ingestSimulatorMetrics via ModalStack).
-  // It is the single keyboard→stats source so stats don't flicker between two models.
+  // It is the single keyboard→stats source (use-demo-effort was an unused W/S orphan).
 
   const lifecycle = useRideLifecycle({
     classId,
@@ -330,7 +330,6 @@ export default function LiveRidePage() {
     coordinatorRef,
     isRidingRef: simulatorHook.isRidingRef,
     trackedCompletionRef: analyticsHook.trackedCompletionRef,
-    playCountdown,
     playSound,
     stopAudio,
     speak,
@@ -415,13 +414,47 @@ export default function LiveRidePage() {
   // ─── Activation sequence state ──────────────────────────────────
   const [showActivation, setShowActivation] = useState(false);
   const [activationComplete, setActivationComplete] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const didAutoStartRef = useRef(false);
 
   useEffect(() => {
-    if (isRiding && !activationComplete) {
-      // Start activation sequence right before ride begins
-      setShowActivation(true);
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReducedMotion(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  // Practice/demo: one countdown → pedal. Bypass the Start screen (or honor ?auto=true).
+  const wantsAutoStart =
+    isPracticeMode || searchParams.get("auto") === "true";
+
+  useEffect(() => {
+    if (didAutoStartRef.current) return;
+    if (!classData) return;
+    if (!wantsAutoStart) return;
+    if (isRiding || isStarting || isPaused || showCompletionScreen || showActivation || activationComplete) {
+      return;
     }
-  }, [isRiding, activationComplete]);
+    didAutoStartRef.current = true;
+    setShowActivation(true);
+  }, [
+    classData,
+    wantsAutoStart,
+    isRiding,
+    isStarting,
+    isPaused,
+    showCompletionScreen,
+    showActivation,
+    activationComplete,
+  ]);
+
+  // Sync countdown audio with the live ActivationTransition ceremony (not a second delay).
+  useEffect(() => {
+    if (!showActivation || reducedMotion) return;
+    playCountdown(3);
+  }, [showActivation, reducedMotion, playCountdown]);
 
   // The page re-renders continuously (useFlowState ticks every 100ms,
   // sensory-sync, etc.), and `lifecycle` is a fresh object each render. If the
@@ -435,9 +468,10 @@ export default function LiveRidePage() {
   });
 
   const handleActivationComplete = useCallback(() => {
-    setShowActivation(false);
     setActivationComplete(true);
     lifecycleRef.current.startRide();
+    // Keep ActivationTransition mounted briefly so the GO flash can finish.
+    window.setTimeout(() => setShowActivation(false), 700);
   }, []);
 
   const handleActivationSkip = useCallback(() => {
@@ -621,7 +655,7 @@ export default function LiveRidePage() {
         hasData={!!classData}
         loadProgress={Math.min(1, (Date.now() - loadStartedAt) / 5000)}
         loadTotal={5000}
-        reducedMotion={false}
+        reducedMotion={reducedMotion}
       />
 
       {/* ─── Completion celebration (v2) ───────────────────────────── */}

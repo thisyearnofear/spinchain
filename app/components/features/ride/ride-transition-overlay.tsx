@@ -304,20 +304,20 @@ function ActivationTransition({
     // onDone is read via ref (see above) — deliberately not a dep.
   }, [reducedMotion]);
 
-  // Countdown finished: stop the interval, play the GO launch beat (a real
-  // launch moment instead of landing on "0"), then hand off to riding.
+  // Countdown finished: stop the interval, show GO, and hand off immediately
+  // so isActive / pedals work on GO (parent keeps the overlay mounted briefly
+  // for the launch flash). No second ceremony after this.
   useEffect(() => {
     if (countdown !== 0) return;
     if (timerRef.current) clearInterval(timerRef.current);
     setGoPhase(true);
+    onDoneRef.current();
     const fadeTimer = setTimeout(() => {
       setGoPhase(false);
       setVisible(false);
     }, reducedMotion ? 100 : 650);
-    const doneTimer = setTimeout(() => onDoneRef.current(), reducedMotion ? 150 : 950);
     return () => {
       clearTimeout(fadeTimer);
-      clearTimeout(doneTimer);
     };
   }, [countdown, reducedMotion]);
 
