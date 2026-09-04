@@ -178,10 +178,10 @@ buildCustomPlan("My Plan", [
         <p className="mt-3 text-xs text-red-400">⚠ {error.message}</p>
       )}
 
-      {/* Walrus save confirmation */}
+      {/* Save confirmation */}
       {walrusBlobId && (
         <p className="mt-2 text-xs text-emerald-400 truncate">
-          ✓ Saved to Walrus: {walrusBlobId}
+          ✓ Plan saved securely
         </p>
       )}
 
@@ -192,7 +192,7 @@ buildCustomPlan("My Plan", [
           disabled={!plan || isSaving}
           className="rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-sm text-white font-semibold transition-all hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {isSaving ? "Saving…" : "💾 Save to Walrus"}
+          {isSaving ? "Saving…" : "💾 Save Plan"}
         </button>
         <button
           onClick={handleConfirm}

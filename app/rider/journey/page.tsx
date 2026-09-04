@@ -394,7 +394,7 @@ function JourneyContent() {
                 </div>
                 <p className="text-sm font-bold text-white/80">No rides yet</p>
                 <p className="text-xs text-white/40 mt-1 max-w-xs">
-                  Complete your first class to start building your journey history with telemetry, badges, and rewards.
+                  Complete your first class to start building your journey history with stats, badges, and rewards.
                 </p>
                 <Link
                   href="/rider"

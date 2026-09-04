@@ -152,7 +152,7 @@ export function TrainingStudio() {
         setLastSync(Date.now());
         console.log("Style Anchors persisted to Walrus:", result.blobId);
       } else {
-        throw new Error(result.error || "Walrus storage failed");
+        throw new Error(result.error || "Cloud save failed");
       }
     } catch (error) {
       console.error("Failed to sync to Walrus:", error);
@@ -272,8 +272,8 @@ export function TrainingStudio() {
             {walrusBlobId && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
                 <Cloud className="w-3 h-3 text-indigo-400" />
-                <span className="text-[9px] font-mono text-indigo-300/60 truncate">
-                  Walrus ID: {walrusBlobId}
+                <span className="text-[9px] text-indigo-300/60 truncate">
+                  Style anchors saved
                 </span>
               </div>
             )}
@@ -292,7 +292,7 @@ export function TrainingStudio() {
                 className="gap-2 min-w-[160px]"
                 onClick={handleSync}
                 isLoading={isSyncing}
-                loadingText="Syncing to Walrus..."
+                loadingText="Syncing to Agent Brain..."
               >
                 <Sparkles className="w-4 h-4" />
                 Sync to Agent Brain

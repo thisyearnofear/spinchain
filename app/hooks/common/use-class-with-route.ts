@@ -91,7 +91,7 @@ export function useClassWithRoute() {
       });
 
       if (!uploadResult.success || !uploadResult.blobId) {
-        throw new Error(uploadResult.error || "Failed to upload route to Walrus");
+        throw new Error(uploadResult.error || "Failed to upload route");
       }
 
       pendingWalrusBlobIdRef.current = uploadResult.blobId;
@@ -156,9 +156,9 @@ export function useClassWithRoute() {
 export function getDeploymentStepText(step: DeploymentStep): string {
   const steps: Record<DeploymentStep, string> = {
     idle: "Ready to deploy",
-    "uploading-route": "Uploading route to Walrus...",
+    "uploading-route": "Uploading route...",
     "creating-metadata": "Creating class metadata...",
-    "deploying-contract": "Deploying contract to Avalanche...",
+    "deploying-contract": "Publishing class...",
     complete: "Route uploaded and class deployed",
     error: "Deployment failed",
   };

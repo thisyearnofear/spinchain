@@ -33,7 +33,7 @@ const config = {
   },
 };
 
-export function TxStatus({ status, hash, error, chainName = 'Avalanche' }: TxStatusProps) {
+export function TxStatus({ status, hash, error, chainName = 'the network' }: TxStatusProps) {
   if (status === 'idle') return null;
   
   const cfg = config[status];

@@ -152,17 +152,17 @@ export function DataOwnershipDashboard() {
             </div>
           </div>
 
-          {/* Walrus storage */}
+          {/* Cross-device backup */}
           <div className="p-5 rounded-3xl bg-black/40 border border-white/5">
             <div className="flex items-center gap-2 mb-3">
               <Cloud className="w-4 h-4 text-emerald-400/60" />
               <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">
-                Walrus Decentralized
+                Cloud Backup
               </span>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-white/50">Rides anchored</span>
+                <span className="text-xs text-white/50">Rides saved</span>
                 <span className="text-sm font-bold text-emerald-400">{walrusRidesCount}</span>
               </div>
               <div className="flex items-center justify-between">
@@ -184,18 +184,13 @@ export function DataOwnershipDashboard() {
                   Last synced: {new Date(profileSync.lastSyncedAt).toLocaleDateString()}
                 </p>
               )}
-              {profileBlobId && (
-                <p className="text-[8px] font-mono text-white/20 truncate">
-                  Blob: {profileBlobId}
-                </p>
-              )}
             </div>
           </div>
         </div>
 
         {/* Actions */}
         <div className="flex flex-wrap gap-3">
-          {/* Sync profile to Walrus */}
+          {/* Sync profile across devices */}
           {address && profile.isComplete() && profileSync.syncStatus !== "synced" && (
             <button
               onClick={handleSyncProfile}
@@ -207,7 +202,7 @@ export function DataOwnershipDashboard() {
               ) : (
                 <Cloud className="w-3.5 h-3.5" />
               )}
-              Sync Profile to Walrus
+              Sync Profile Across Devices
             </button>
           )}
 
@@ -283,8 +278,8 @@ export function DataOwnershipDashboard() {
         <div className="mt-4 flex items-start gap-2 text-[10px] text-white/30">
           <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
           <p>
-            Local data is stored in your browser. Walrus data is decentralized and persists across devices.
-            Exporting gives you a JSON backup of everything. Deleting clears local data only — Walrus blobs remain on-chain until they expire.
+            Local data stays in this browser. Cloud backup keeps your profile and rides available on other devices.
+            Exporting downloads a JSON backup. Deleting clears data on this device only — cloud backups remain until they expire.
           </p>
         </div>
       </div>

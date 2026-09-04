@@ -17,8 +17,8 @@ const CONTENT = {
   },
   sui: {
     title: "Why a second wallet?",
-    body: "SpinChain uses two networks. This Sui wallet handles real-time ride telemetry (heart rate, power, speed) and session tracking at high speed. Your other wallet handles ticket sales and SPIN token rewards on Avalanche.",
-    label: "Ride Telemetry",
+    body: "Your rewards wallet handles tickets and SPIN payouts. This session wallet keeps your live ride data — heart rate, power, and speed — flowing smoothly during class. Connect it when you want full session tracking.",
+    label: "Live Session",
   },
 };
 
