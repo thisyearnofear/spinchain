@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
-import { useRideModalStore } from "@/app/stores/ride-modal-store";
+import { useCoachingStore } from "@/app/stores/coaching-store";
 import { milestonesAndStreaks, type SessionMilestone } from "@/app/lib/milestones";
 import { experienceManager } from "@/app/lib/experience-level";
 import { STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
@@ -66,22 +66,22 @@ export function useRideMilestones({
   const firstHardPedalCelebratedRef = useRef(false);
   // Shared gate so first-flow and first-hard-pedal don't both buzz/chime.
   const firstDopamineCelebratedRef = useRef(false);
-  const setShowMilestone = useRideModalStore((s) => s.setShowMilestone);
+  /** Milestones surface through the coach channel (bottom card) instead of a
+   *  screen-blocking overlay. The cooldown still throttles how often they fire. */
+  const showMilestoneInCoachChannel = useCallback((title: string, subtitle: string) => {
+    useCoachingStore.getState().setLastCoachMessage(`${title} — ${subtitle}`);
+  }, []);
 
   const showOverlay = useCallback(
     (title: string, subtitle: string, opts?: { force?: boolean; durationMs?: number }) => {
       const now = Date.now();
       if (!opts?.force && now - lastOverlayAtRef.current < MILESTONE_COOLDOWN_MS) {
-        return null as ReturnType<typeof setTimeout> | null;
+        return;
       }
       lastOverlayAtRef.current = now;
-      setShowMilestone({ title, subtitle });
-      return setTimeout(
-        () => setShowMilestone(null),
-        opts?.durationMs ?? (reducedMotion ? 900 : 2000),
-      );
+      showMilestoneInCoachChannel(title, subtitle);
     },
-    [setShowMilestone, reducedMotion],
+    [showMilestoneInCoachChannel],
   );
 
   const reset = useCallback(() => {
@@ -162,9 +162,8 @@ export function useRideMilestones({
     shownMilestoneIdsRef.current.add("first-flow");
 
     const label = flow.flowTier >= 2 ? "IN FLOW" : "FOCUSED";
-    const timeout = showOverlay(`✨ ${label}`, "First flow moment — keep it going", {
+    showOverlay(`✨ ${label}`, "First flow moment — keep it going", {
       force: true,
-      durationMs: reducedMotion ? 800 : 1800,
     });
 
     if (!reducedMotion) {
@@ -173,10 +172,6 @@ export function useRideMilestones({
     } else {
       haptic("light");
     }
-
-    return () => {
-      if (timeout) clearTimeout(timeout);
-    };
   }, [isRiding, flow.flowTier, showOverlay, reducedMotion]);
 
   // First dopamine: hard pedal
@@ -199,7 +194,6 @@ export function useRideMilestones({
 
       showOverlay("⚡ HARD EFFORT", "First strong pedal — world unlocked", {
         force: true,
-        durationMs: reducedMotion ? 800 : 1600,
       });
 
       if (!reducedMotion) {
@@ -271,14 +265,7 @@ export function useRideMilestones({
             ? "●"
             : "●";
 
-    const timeout = showOverlay(
-      `${tierIcon} ${milestone.title}`,
-      milestone.description,
-    );
-
-    return () => {
-      if (timeout) clearTimeout(timeout);
-    };
+    showOverlay(`${tierIcon} ${milestone.title}`, milestone.description);
   }, [elapsedTime, isRiding, telemetryAverages, flow, showOverlay]);
 
   return {

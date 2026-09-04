@@ -13,11 +13,6 @@ interface DemoStats {
   rewardsWereActive: boolean;
 }
 
-interface MilestoneInfo {
-  title: string;
-  subtitle: string;
-}
-
 interface WalrusAnchorInfo {
   blobId: string;
   txDigest?: string;
@@ -31,7 +26,6 @@ interface RideModalState {
   showTutorial: boolean;
   tutorialStep: number;
   tutorialSteps: TutorialStepDef[];
-  showMilestone: MilestoneInfo | null;
   completionSyncStatus: RideSyncStatus;
   completionSettlementStatus: "pending" | "confirmed" | "failed" | "skipped" | undefined;
   completionPrimaryAction: "view_history" | "ride_again";
@@ -48,7 +42,6 @@ interface RideModalState {
   setShowTutorial: (v: boolean) => void;
   setTutorialStep: (step: number) => void;
   setTutorialSteps: (steps: TutorialStepDef[]) => void;
-  setShowMilestone: (m: MilestoneInfo | null) => void;
   setCompletionSyncStatus: (status: RideSyncStatus) => void;
   setCompletionSettlementStatus: (status: "pending" | "confirmed" | "failed" | "skipped" | undefined) => void;
   setCompletionPrimaryAction: (action: "view_history" | "ride_again") => void;
@@ -76,7 +69,6 @@ export const useRideModalStore = create<RideModalState>((set) => ({
   showTutorial: false,
   tutorialStep: 0,
   tutorialSteps: [],
-  showMilestone: null,
   completionSyncStatus: "local_only",
   completionSettlementStatus: undefined,
   completionPrimaryAction: "view_history",
@@ -93,7 +85,6 @@ export const useRideModalStore = create<RideModalState>((set) => ({
   setShowTutorial: (v) => set({ showTutorial: v }),
   setTutorialStep: (step) => set({ tutorialStep: step }),
   setTutorialSteps: (steps) => set({ tutorialSteps: steps }),
-  setShowMilestone: (m) => set({ showMilestone: m }),
   setCompletionSyncStatus: (status) => set({ completionSyncStatus: status }),
   setCompletionSettlementStatus: (status) => set({ completionSettlementStatus: status }),
   setCompletionPrimaryAction: (action) => set({ completionPrimaryAction: action }),

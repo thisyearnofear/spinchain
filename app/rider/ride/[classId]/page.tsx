@@ -491,7 +491,6 @@ export default function LiveRidePage() {
     const modals = useRideModalStore.getState();
     modals.setShowCompletionScreen(false);
     modals.setWalrusAnchorInfo(null);
-    modals.setShowMilestone(null);
     useRideStore.setState({ rideProgress: 0, elapsedTime: 0, isActive: false, isPaused: false, isStarting: false });
     useTelemetryStore.getState().reset();
     milestones.reset();
@@ -542,7 +541,6 @@ export default function LiveRidePage() {
   const showTutorialModal = useRideModalStore((s) => s.showTutorial);
   const tutorialStep = useRideModalStore((s) => s.tutorialStep);
   const tutorialSteps = useRideModalStore((s) => s.tutorialSteps);
-  const showMilestone = useRideModalStore((s) => s.showMilestone);
   const showDemoModal = useRideModalStore((s) => s.showDemoModal);
   const demoStats = useRideModalStore((s) => s.demoStats);
   const isExitingRide = useRideModalStore((s) => s.isExitingRide);
@@ -710,7 +708,6 @@ export default function LiveRidePage() {
         tutorial={showTutorialModal}
         tutorialStep={tutorialStep}
         tutorialSteps={tutorialSteps}
-        milestone={showMilestone}
         keyboardHints={showKeyboardHints}
         demoModal={showDemoModal}
         demoStats={demoStats}

@@ -54,7 +54,6 @@ export type ModalType =
   | "keyboard-hints"   // TRANSIENT — auto-dismiss
   | "tutorial"         // INFORMATIONAL — dismissable
   | "demo-complete"    // INFORMATIONAL — dismissable
-  | "milestone"        // TRANSIENT — brief celebration
   | "loading";         // CRITICAL — show while saving
 
 export interface ModalSlot {
@@ -85,8 +84,6 @@ export function useModalStack() {
   const tutorialStep = useRideModalStore((s) => s.tutorialStep);
   const tutorialSteps = useRideModalStore((s) => s.tutorialSteps);
   const setTutorialStep = useRideModalStore((s) => s.setTutorialStep);
-  const showMilestone = useRideModalStore((s) => s.showMilestone);
-  const setShowMilestone = useRideModalStore((s) => s.setShowMilestone);
   const showKeyboardHints = useRideModalStore((s) => s.showKeyboardHints);
   const setShowKeyboardHints = useRideModalStore((s) => s.setShowKeyboardHints);
   const showDemoModal = useRideModalStore((s) => s.showDemoModal);
@@ -116,14 +113,11 @@ export function useModalStack() {
       case "demo-complete":
         setShowDemoModal(true);
         break;
-      case "milestone":
-        setShowMilestone(props.milestone as { title: string; subtitle: string } | null);
-        break;
     }
   }, [
     exitConfirm, showNoBike, showTutorial,
     setShowExitConfirm, setShowNoBike, setShowTutorial,
-    setShowDemoModal, setShowMilestone, setShowKeyboardHints,
+    setShowDemoModal, setShowKeyboardHints,
   ]);
 
   // ─── Dismiss a modal ─────────────────────────────────────────
@@ -141,9 +135,6 @@ export function useModalStack() {
       case "demo-complete":
         setShowDemoModal(false);
         break;
-      case "milestone":
-        setShowMilestone(null);
-        break;
       // Keyboard hints auto-dismiss via their own timer
       case "keyboard-hints":
         setShowKeyboardHints(false);
@@ -151,13 +142,13 @@ export function useModalStack() {
     }
   }, [
     setShowExitConfirm, setShowNoBike, setShowTutorial,
-    setShowDemoModal, setShowMilestone, setShowKeyboardHints,
+    setShowDemoModal, setShowKeyboardHints,
   ]);
 
   // ─── Active modal resolver ────────────────────────────────────
   // Returns the highest-priority modal that's currently visible
   const activeModal = (): ModalSlot | null => {
-    // Priority order: exit-confirm > tutorial > milestone > no-bike > keyboard-hints > demo
+    // Priority order: exit-confirm > tutorial > no-bike > keyboard-hints > demo
     if (exitConfirm) return {
       type: "exit-confirm",
       priority: 100,
@@ -169,13 +160,6 @@ export function useModalStack() {
       priority: 90,
       dismissable: true,
       backdropClosable: true,
-    };
-    if (showMilestone) return {
-      type: "milestone",
-      priority: 80,
-      dismissable: true,
-      backdropClosable: false,
-      autoDismissMs: 2000,
     };
     if (showNoBike) return {
       type: "no-bike",
@@ -209,8 +193,6 @@ export function useModalStack() {
     tutorialStep,
     tutorialSteps,
     setTutorialStep,
-    showMilestone,
-    setShowMilestone,
     showKeyboardHints,
     showDemoModal,
     demoStats,
@@ -227,7 +209,6 @@ interface ModalStackProps {
   tutorial: boolean;
   tutorialStep: number;
   tutorialSteps: any[];
-  milestone: { title: string; subtitle: string } | null;
   keyboardHints: boolean;
   demoModal: boolean;
   demoStats: any;
@@ -267,7 +248,6 @@ export function ModalStack({
   tutorial,
   tutorialStep,
   tutorialSteps,
-  milestone,
   keyboardHints,
   demoModal,
   demoStats,
@@ -299,21 +279,11 @@ export function ModalStack({
   }, [keyboardHints, isRiding, onKeyboardDismiss]);
 
   // ─── Render only the highest-priority visible modal ────────────
-  // Priority: milestone > exit-confirm > tutorial > milestone > no-bike > keyboard-hints > demo
+  // Priority: exit-confirm > tutorial > no-bike > keyboard-hints > demo
 
   return (
     <>
-      {/* 1. MILESTONE — highest priority, brief celebration */}
-      <AnimatePresence>
-        {milestone && (
-          <MilestoneOverlay
-            title={milestone.title}
-            subtitle={milestone.subtitle}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* 2. EXIT CONFIRM — user must decide */}
+      {/* 1. EXIT CONFIRM — user must decide */}
       <ExitConfirmModal
         open={exitConfirm}
         onConfirm={onExitConfirm}
@@ -391,56 +361,5 @@ export function ModalStack({
         />
       )}
     </>
-  );
-}
-
-// ─── Sub-components ──────────────────────────────────────────────
-
-function MilestoneOverlay({ title, subtitle }: {
-  title: string;
-  subtitle: string;
-}) {
-  const reducedMotion =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  return (
-    <m.div
-      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
-      animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-      exit={
-        reducedMotion
-          ? { opacity: 0 }
-          : { opacity: 0, scale: 0.96, filter: "blur(8px)" }
-      }
-      transition={{ duration: reducedMotion ? 0.12 : 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed inset-0 flex items-center justify-center z-[100] pointer-events-none"
-    >
-      <div className="relative">
-        {!reducedMotion && (
-          <div className="absolute inset-0 bg-amber-500/40 blur-[120px] animate-pulse rounded-full scale-150" />
-        )}
-        <div className="relative bg-black/80 backdrop-blur-3xl border-2 border-amber-400/50 rounded-[3rem] px-12 py-10 text-center shadow-[0_0_100px_rgba(245,158,11,0.4)]">
-          <div className="inline-block mb-4">
-            {reducedMotion ? (
-              <span className="text-4xl">✨</span>
-            ) : (
-              <m.div
-                animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
-                transition={{ duration: 0.5, repeat: 2 }}
-              >
-                <span className="text-4xl">✨</span>
-              </m.div>
-            )}
-          </div>
-          <h2 className="text-5xl font-black text-white tracking-tighter mb-2 italic uppercase">
-            {title}
-          </h2>
-          <p className="text-amber-300 font-bold text-lg uppercase tracking-widest opacity-80">
-            {subtitle}
-          </p>
-        </div>
-      </div>
-    </m.div>
   );
 }

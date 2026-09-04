@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useHaptic } from "@/app/hooks/use-haptic";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
-import { useRideModalStore } from "@/app/stores/ride-modal-store";
+import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 
 interface UseRideAnalyticsParams {
@@ -29,7 +29,6 @@ export function useRideAnalytics({
   const trackedCompletionRef = useRef(false);
   const trackedLiveTelemetryRef = useRef(false);
   const trackedMilestoneRef = useRef(false);
-  const modalStore = useRideModalStore;
   const haptic = useHaptic();
 
   useEffect(() => {
@@ -57,14 +56,16 @@ export function useRideAnalytics({
       const effort = useTelemetryStore.getState().snapshot.effort;
       if (effort > 900) {
         trackedMilestoneRef.current = true;
-        modalStore.getState().setShowMilestone({ title: "ELITE EFFORT", subtitle: "You just crossed 900 effort points!" });
+        // Surface through the coach channel — no screen-blocking milestone modal.
+        useCoachingStore.getState().setLastCoachMessage(
+          "ELITE EFFORT — You just crossed 900 effort points!",
+        );
         haptic.success();
         playSound("achievement");
-        setTimeout(() => modalStore.getState().setShowMilestone(null), 5000);
       }
     }, 1000);
     return () => clearInterval(id);
-  }, [isRiding, haptic, playSound, modalStore]);
+  }, [isRiding, haptic, playSound]);
 
   const trackLiveTelemetry = () => {
     if (!trackedLiveTelemetryRef.current) {

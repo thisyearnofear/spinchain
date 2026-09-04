@@ -27,7 +27,6 @@ interface UIState {
   showNoBikeModal: boolean;
   showKeyboardHints: boolean;
   showDemoModal: boolean;
-  showMilestone: { title: string; subtitle: string } | null;
   connectionHint: string | null;
   bleConnected: boolean;
   useSimulator: boolean;
@@ -50,7 +49,6 @@ interface UIActions {
   setShowNoBikeModal: (show: boolean) => void;
   setShowKeyboardHints: (show: boolean) => void;
   setShowDemoModal: (show: boolean) => void;
-  setShowMilestone: (milestone: { title: string; subtitle: string } | null) => void;
   setConnectionHint: (hint: string | null) => void;
   setBleConnected: (connected: boolean) => void;
   setUseSimulator: (use: boolean) => void;
@@ -72,7 +70,6 @@ const initialState: UIState = {
   showNoBikeModal: false,
   showKeyboardHints: false,
   showDemoModal: false,
-  showMilestone: null,
   connectionHint: null,
   bleConnected: false,
   useSimulator: false,
@@ -115,7 +112,6 @@ export const useUIStore = create<UIState & UIActions>()(
       setShowNoBikeModal: (show) => set({ showNoBikeModal: show }),
       setShowKeyboardHints: (show) => set({ showKeyboardHints: show }),
       setShowDemoModal: (show) => set({ showDemoModal: show }),
-      setShowMilestone: (milestone) => set({ showMilestone: milestone }),
       setConnectionHint: (hint) => set({ connectionHint: hint }),
       setBleConnected: (connected) => set({ bleConnected: connected }),
       setUseSimulator: (use) => set({ useSimulator: use }),
