@@ -71,10 +71,6 @@ export function useRideMilestones({
   const showOverlay = useCallback(
     (title: string, subtitle: string, opts?: { force?: boolean; durationMs?: number }) => {
       const now = Date.now();
-      const prefersReduced =
-        reducedMotion ||
-        (typeof window !== "undefined" &&
-          window.matchMedia("(prefers-reduced-motion: reduce)").matches);
       if (!opts?.force && now - lastOverlayAtRef.current < MILESTONE_COOLDOWN_MS) {
         return null as ReturnType<typeof setTimeout> | null;
       }
@@ -82,7 +78,7 @@ export function useRideMilestones({
       setShowMilestone({ title, subtitle });
       return setTimeout(
         () => setShowMilestone(null),
-        opts?.durationMs ?? (prefersReduced ? 900 : 2000),
+        opts?.durationMs ?? (reducedMotion ? 900 : 2000),
       );
     },
     [setShowMilestone, reducedMotion],
@@ -165,18 +161,13 @@ export function useRideMilestones({
     firstDopamineCelebratedRef.current = true;
     shownMilestoneIdsRef.current.add("first-flow");
 
-    const prefersReduced =
-      reducedMotion ||
-      (typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-
     const label = flow.flowTier >= 2 ? "IN FLOW" : "FOCUSED";
     const timeout = showOverlay(`✨ ${label}`, "First flow moment — keep it going", {
       force: true,
-      durationMs: prefersReduced ? 800 : 1800,
+      durationMs: reducedMotion ? 800 : 1800,
     });
 
-    if (!prefersReduced) {
+    if (!reducedMotion) {
       haptic("success");
       playFirstHitSfx();
     } else {
@@ -191,11 +182,6 @@ export function useRideMilestones({
   // First dopamine: hard pedal
   useEffect(() => {
     if (!isRiding || firstHardPedalCelebratedRef.current) return;
-
-    const prefersReduced =
-      reducedMotion ||
-      (typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
     const id = setInterval(() => {
       if (firstHardPedalCelebratedRef.current) return;
@@ -213,10 +199,10 @@ export function useRideMilestones({
 
       showOverlay("⚡ HARD EFFORT", "First strong pedal — world unlocked", {
         force: true,
-        durationMs: prefersReduced ? 800 : 1600,
+        durationMs: reducedMotion ? 800 : 1600,
       });
 
-      if (!prefersReduced) {
+      if (!reducedMotion) {
         haptic("success");
         playFirstHitSfx();
       } else {

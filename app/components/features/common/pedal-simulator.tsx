@@ -9,6 +9,7 @@ import { useRideStore } from '@/app/stores/ride-store';
 import { computePhaseTheme, phaseAccent, phaseLabel, cadenceToIntensity, type IntervalPhase } from '@/app/lib/phase-theme';
 import { SpinDripChip } from '@/app/components/features/ride/spin-drip-chip';
 import { useUIStore } from '@/app/stores/ui-store';
+import { useSensoryStore } from '@/app/stores/sensory-store';
 import {
   formatPracticeClock,
   toPracticeWallElapsed,
@@ -86,22 +87,39 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
     const didTrackTouchOnlyGate = useRef(false);
     const keyActivity = useRef({ strokes: 0, windowStart: 0 });
     const repeatThrottle = useRef<Record<string, number>>({});
+    // keydown → first-commit latency instrumentation (Change 4)
+    const firstStrokeAt = useRef<number | null>(null);
+    // Throttle for immediate per-stroke metric computation (Change 2):
+    // ~11Hz ceiling matches the downstream 10Hz commit throttle.
+    const lastImmediateCompute = useRef(0);
+    // Last calculateMetrics timestamp — dt source for rate-independent blends.
+    const lastComputeAt = useRef(0);
     const onMetricsUpdateRef = useRef(onMetricsUpdate);
     // Keep ref updated with latest callback - intentional pattern
      
     // eslint-disable-next-line react-hooks/refs
     onMetricsUpdateRef.current = onMetricsUpdate;
 
-    const calculateMetrics = useCallback(() => {
+    const calculateMetrics = useCallback((updateState = true) => {
         const now = Date.now();
+        // dt-aware smoothing: calculateMetrics now runs at 2Hz (interval) up to
+        // ~11Hz (per-stroke), so fixed per-call coefficients would converge at
+        // a tap-rate-dependent speed. Use alpha = 1 - exp(-dt / tau) —
+        // rate-independent, tuned in milliseconds. dt capped so a long idle
+        // gap doesn't produce a giant step.
+        const dt = Math.min(2000, Math.max(1, now - (lastComputeAt.current || now - 500)));
+        lastComputeAt.current = now;
         const recentPedals = pedalTimestamps.current.filter(t => now - t < 10000);
         pedalTimestamps.current = recentPedals;
 
         // "Stopped" = no stroke in the last second. The 10s window below
         // smooths cadence but would otherwise coast for up to 10s after the
         // last pedal stroke — effort must feel like a live throttle.
+        // A single stroke is NOT stopped: we assume a provisional nominal
+        // cadence (60rpm) so the first keystroke produces a live world
+        // response instead of a discarded sample.
         const stopped =
-            recentPedals.length < 2 ||
+            recentPedals.length < 1 ||
             now - recentPedals[recentPedals.length - 1] > 1000;
 
         if (stopped) {
@@ -110,30 +128,66 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
             // Fast decay (~150/s) so the world halts soon after pedaling stops.
             baseMetrics.current.effort = Math.max(100, baseMetrics.current.effort - 75);
             latestCadence.current = 0;
-            setCadence(0);
+            // Abandon any pending latency measurement — the commit that
+            // follows will carry cadence 0, so the clock would only go stale.
+            firstStrokeAt.current = null;
+            if (updateState) setCadence(0);
             return { heartRate: Math.round(baseMetrics.current.heartRate), power: Math.round(baseMetrics.current.power), cadence: 0, speed: 0, effort: Math.round(baseMetrics.current.effort) };
         }
 
         const intervals: number[] = [];
         for (let i = 1; i < recentPedals.length; i++) intervals.push(recentPedals[i] - recentPedals[i - 1]);
         const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-        const clampedCadence = Math.min(Math.max(Math.round(60000 / avgInterval), 0), 140);
+        // With one timestamp there is no interval to average — assume a
+        // nominal 60rpm so the first stroke already drives the world.
+        const clampedCadence = recentPedals.length < 2
+            ? 60
+            : Math.min(Math.max(Math.round(60000 / avgInterval), 0), 140);
 
         latestCadence.current = clampedCadence;
-        setCadence(clampedCadence);
+        // Widget UI (cadence ring, leg highlight) re-renders on the 500ms
+        // interval only — the per-stroke fast path updates the ref the crank
+        // rAF loop reads, avoiding a PedalSimulator re-render per keystroke.
+        if (updateState) setCadence(clampedCadence);
 
         const targetPower = Math.round(clampedCadence * 2.5 + Math.random() * 20);
-        baseMetrics.current.power = baseMetrics.current.power * 0.7 + targetPower * 0.3;
+        // Asymmetric smoothing (fast attack / slow release) expressed as time
+        // constants. taus are the dt-equivalents of the original 500ms-tick
+        // coefficients (release) and of the 1.5s-to-80% attack target.
+        // Each metric picks its own side by comparing against its own target
+        // — a single shared `rising` flag would flip with targetPower's
+        // random jitter and make HR alternate between taus call-to-call.
+        const blend = (cur: number, target: number, tauAttack: number, tauRelease: number) =>
+            cur + (target - cur) * (1 - Math.exp(-dt / (target > cur ? tauAttack : tauRelease)));
+        baseMetrics.current.power = blend(baseMetrics.current.power, targetPower, 980, 1400);
         const targetHR = Math.min(180, 100 + clampedCadence * 0.6);
-        baseMetrics.current.heartRate = baseMetrics.current.heartRate * 0.95 + targetHR * 0.05;
+        baseMetrics.current.heartRate = blend(baseMetrics.current.heartRate, targetHR, 2240, 9750);
         const targetEffort = Math.round((baseMetrics.current.heartRate + baseMetrics.current.power) * 0.8);
-        // Fast blend (0.5/0.5) — the coordinator scales route progress by this
-        // value, so it must track pedaling within ~1s, not lag ~10s behind.
-        baseMetrics.current.effort = baseMetrics.current.effort * 0.5 + targetEffort * 0.5;
+        // Effort drives route progress (see comment below) — fastest attack.
+        baseMetrics.current.effort = blend(baseMetrics.current.effort, targetEffort, 460, 720);
         const speed = (baseMetrics.current.power / 10) + 15;
 
         return { heartRate: Math.round(baseMetrics.current.heartRate), power: Math.round(baseMetrics.current.power), cadence: clampedCadence, speed: Math.round(speed * 10) / 10, effort: Math.round(baseMetrics.current.effort) };
     }, []);
+
+    // Latency instrumentation (Change 4): the clock must span keystroke →
+    // store commit with cadence > 0 — which passes through the coordinator's
+    // ~100ms shouldCommit gate — so it ends in a telemetry-store subscription,
+    // NOT in calculateMetrics (which runs synchronously on the keystroke and
+    // would structurally log ~0ms).
+    useEffect(() => {
+        if (!isActive) return;
+        const unsub = useTelemetryStore.subscribe((state) => {
+            const committedCadence = state.snapshot?.cadence ?? 0;
+            if (committedCadence > 0 && firstStrokeAt.current !== null) {
+                trackEvent(ANALYTICS_EVENTS.SIMULATOR_INPUT_LATENCY, {
+                    ms: Math.round(performance.now() - firstStrokeAt.current),
+                });
+                firstStrokeAt.current = null;
+            }
+        });
+        return unsub;
+    }, [isActive]);
 
     // Animate crank rotation (skip when visually hidden — no on-screen widget)
     useEffect(() => {
@@ -154,11 +208,33 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
     const recordPedalStroke = useCallback((leg: 'left' | 'right') => {
         lastPedalLeg.current = leg;
         pedalTimestamps.current.push(Date.now());
+        // First stroke after a stop: start the latency clock (performance.now
+        // — same clock as the measurement endpoint in calculateMetrics).
+        if (latestCadence.current === 0 && firstStrokeAt.current === null) {
+            firstStrokeAt.current = performance.now();
+        }
+        // Per-stroke impulse cue (Change 1): bumped even when the widget is
+        // visually hidden, so the world responds within one frame via
+        // useFrame readers instead of waiting for the 500ms metrics interval.
+        // Uses the monotonic strokeSeq counter, NOT latestEvent — that slot
+        // has React subscribers (HUD overlay, flow background) and carries
+        // low-frequency cues that per-stroke events must not clobber.
+        useSensoryStore.getState().bumpStrokeSeq();
+        // Immediate metric computation (throttled) so the first commit with
+        // cadence > 0 lands < 100ms after the keystroke instead of 0–500ms.
+        // updateState=false: no setCadence on the fast path (the 500ms
+        // interval owns widget re-renders); the store commit flows through
+        // onMetricsUpdate regardless.
+        const nowPerf = performance.now();
+        if (nowPerf - lastImmediateCompute.current > 90) {
+            lastImmediateCompute.current = nowPerf;
+            onMetricsUpdateRef.current(calculateMetrics(false));
+        }
         haptic(25);
         setActiveLeg(leg);
         setTimeout(() => setActiveLeg(null), 150);
         if (showInstructions) setShowInstructions(false);
-    }, [showInstructions]);
+    }, [showInstructions, calculateMetrics]);
 
     // Keyboard controls - enable on desktop and tablet, disable on pure touch mobile
     useEffect(() => {
@@ -245,6 +321,10 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
     // Metrics loop — use ref for callback to avoid restarting the interval on every parent re-render
     useEffect(() => {
         if (!isActive) { if (metricsInterval.current) clearInterval(metricsInterval.current); return; }
+        // Fresh ride: reset the blend clock so the first tick doesn't blend
+        // against a stale dt (the 2s cap makes this benign, just cleaner).
+        lastComputeAt.current = 0;
+        lastImmediateCompute.current = 0;
         metricsInterval.current = setInterval(() => { onMetricsUpdateRef.current(calculateMetrics()); }, 500);
         return () => { if (metricsInterval.current) clearInterval(metricsInterval.current); };
     }, [isActive, calculateMetrics]);

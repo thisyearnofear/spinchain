@@ -4,6 +4,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useAdaptiveQuality } from "@/app/lib/responsive";
 import { useFlowCelebration } from "@/app/hooks/route/use-flow-celebration";
 import { useReactiveWorld } from "@/app/hooks/route/use-reactive-world";
+import { useSensoryStore } from "@/app/stores/sensory-store";
 import {
   CatmullRomCurve3,
   Vector3,
@@ -156,10 +157,27 @@ function Road({
 }) {
   const meshRef = useRef<Mesh>(null);
   const styles = THEMES[theme];
+  // Per-stroke glow kick: consumes PedalSimulator's strokeSeq counter
+  // via getState() (no React subscription, no re-render) so the first
+  // keystroke lights the road within one frame, independent of the 10Hz
+  // commit. Monotonic counter, so two strokes in the same millisecond
+  // (Left + Right) each produce a kick.
+  const glowKick = useRef(0);
+  const lastStrokeSeq = useRef(0);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!meshRef.current) return;
     const material = meshRef.current.material as MeshStandardMaterial;
+
+    // Consume stroke impulses: one kick per new sequence value. Decay is
+    // delta-based (≈100ms time constant, matching the original 0.88/frame
+    // at 60fps) so the kick looks the same at 30/60/120Hz.
+    const seq = useSensoryStore.getState().strokeSeq;
+    if (seq !== lastStrokeSeq.current) {
+      lastStrokeSeq.current = seq;
+      glowKick.current = Math.min(1, glowKick.current + 0.35);
+    }
+    glowKick.current *= Math.exp(-delta / 0.1);
 
     // Dynamic emissive pulsing based on cadence
     const pulse = 0.5 + Math.sin(state.clock.elapsedTime * (stats.cadence / 20)) * 0.5;
@@ -179,6 +197,11 @@ function Road({
         emissiveIntensity *= 1.2;
       }
     }
+
+    // Per-stroke kick applied AFTER the reactive override — reactive
+    // (non-null in ride mode) replaces emissiveIntensity wholesale, so a
+    // kick added before it would never show during a ride.
+    emissiveIntensity += glowKick.current * 1.2;
 
     material.emissiveIntensity = emissiveIntensity;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -290,23 +313,47 @@ function RoadMarkings({
   const dashRef = useRef<THREE.Mesh>(null);
   const edgeRef = useRef<THREE.Mesh>(null);
 
-  useFrame((state) => {
-    // Reactive line glow during high effort
+  // Per-stroke kick (same strokeSeq channel as Road) — markings are the
+  // brighter surface, so they carry most of the visible impulse.
+  const glowKick = useRef(0);
+  const lastStrokeSeq = useRef(0);
+
+  useFrame((state, delta) => {
+    // Consume stroke impulses before the material updates below. Decay is
+    // delta-based (≈100ms time constant) — frame-rate independent.
+    const seq = useSensoryStore.getState().strokeSeq;
+    if (seq !== lastStrokeSeq.current) {
+      lastStrokeSeq.current = seq;
+      glowKick.current = Math.min(1, glowKick.current + 0.35);
+    }
+    glowKick.current *= Math.exp(-delta / 0.1);
+
+    const dashMat = dashRef.current?.material as THREE.MeshStandardMaterial | THREE.MeshBasicMaterial;
+    const edgeMat = edgeRef.current?.material as THREE.MeshStandardMaterial | THREE.MeshBasicMaterial;
+
+    // Base intensities are rebuilt from scratch every frame — reactive when
+    // riding, the static JSX props otherwise — so the kick below can never
+    // ratchet frame over frame.
+    let dashIntensity: number;
+    let edgeIntensity: number;
     if (reactive) {
-      const dashMat = dashRef.current?.material as THREE.MeshStandardMaterial | THREE.MeshBasicMaterial;
-      const edgeMat = edgeRef.current?.material as THREE.MeshStandardMaterial | THREE.MeshBasicMaterial;
-      if (dashMat && 'emissiveIntensity' in dashMat) {
-        dashMat.emissiveIntensity = reactive.roadGlowIntensity * 3;
-      }
-      if (edgeMat && 'emissiveIntensity' in edgeMat) {
-        edgeMat.emissiveIntensity = reactive.roadGlowIntensity * 6;
-      }
+      dashIntensity = reactive.roadGlowIntensity * 3;
+      edgeIntensity = reactive.roadGlowIntensity * 6;
       // Pulse edge glow during sprints
       if (state.clock.elapsedTime % 0.4 < 0.2) {
-        if (edgeMat && 'emissiveIntensity' in edgeMat) {
-          (edgeMat as THREE.MeshStandardMaterial).emissiveIntensity *= 1.3;
-        }
+        edgeIntensity *= 1.3;
       }
+    } else {
+      dashIntensity = styles.roadEmissiveIntensity * 5;
+      edgeIntensity = styles.roadEmissiveIntensity * 10;
+    }
+
+    // Per-stroke kick (see Road) — assigned, never accumulated.
+    if (dashMat && 'emissiveIntensity' in dashMat) {
+      dashMat.emissiveIntensity = dashIntensity + glowKick.current * 2;
+    }
+    if (edgeMat && 'emissiveIntensity' in edgeMat) {
+      edgeMat.emissiveIntensity = edgeIntensity + glowKick.current * 4;
     }
   });
 
