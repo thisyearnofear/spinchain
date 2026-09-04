@@ -8,6 +8,11 @@ import { useCoachingStore } from '@/app/stores/coaching-store';
 import { useRideStore } from '@/app/stores/ride-store';
 import { computePhaseTheme, phaseAccent, phaseLabel, cadenceToIntensity, type IntervalPhase } from '@/app/lib/phase-theme';
 import { SpinDripChip } from '@/app/components/features/ride/spin-drip-chip';
+import { useUIStore } from '@/app/stores/ui-store';
+import {
+  formatPracticeClock,
+  toPracticeWallElapsed,
+} from '@/app/lib/practice-demo';
 
 /** MM:SS clock formatting for the practice-bar time chip. */
 function formatClock(sec: number): string {
@@ -59,6 +64,12 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
     const ridePhase = useCoachingStore((s) => s.currentInterval?.phase ?? null);
     const rideElapsed = useRideStore((s) => s.elapsedTime);
     const rideProgressPct = useRideStore((s) => s.rideProgress);
+    const session = useRideStore((s) => s.session);
+    const isPracticeMode = useUIStore((s) => s.isPracticeMode) || !!session?.isPractice;
+    const classDurationSec = (session?.duration ?? 45) * 60;
+    const demoWallElapsed = isPracticeMode
+        ? toPracticeWallElapsed(rideElapsed, classDurationSec)
+        : rideElapsed;
     const rideTheme = computePhaseTheme(ridePhase as IntervalPhase, 500);
     const phaseAccentClasses = phaseAccent(ridePhase as IntervalPhase);
     const phaseText = phaseLabel(ridePhase as IntervalPhase);
@@ -330,9 +341,23 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                                 <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: rideTheme.color }} />
                                 <span className={`text-[9px] font-black uppercase tracking-widest ${phaseAccentClasses.text}`}>{phaseText}</span>
                             </div>
-                            <div className="rounded-full px-2.5 py-1 border border-white/10 bg-white/5">
-                                <span className="text-[10px] font-black tabular-nums text-white/70">{formatClock(rideElapsed)}</span>
-                            </div>
+                            {isPracticeMode ? (
+                                <>
+                                    <div className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-amber-300">Demo</span>
+                                    </div>
+                                    <div className="rounded-full px-2.5 py-1 border border-white/10 bg-white/5">
+                                        <span className="text-[10px] font-black tabular-nums text-white/70">
+                                            {formatPracticeClock(demoWallElapsed)}
+                                            <span className="text-white/35"> · {Math.round(rideProgressPct)}%</span>
+                                        </span>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="rounded-full px-2.5 py-1 border border-white/10 bg-white/5">
+                                    <span className="text-[10px] font-black tabular-nums text-white/70">{formatClock(rideElapsed)}</span>
+                                </div>
+                            )}
                             <div className="rounded-full px-2.5 py-1 border border-white/10 bg-white/5">
                                 <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">W </span>
                                 <span className="text-sm font-black tabular-nums text-yellow-300">{ridePower}</span>
@@ -465,10 +490,26 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                             <p className="text-[10px] uppercase tracking-widest text-white/30 mt-0.5">BPM</p>
                         </div>
 
-                        <div className="text-center min-w-[44px]">
-                            <p className="text-base font-black tabular-nums leading-none text-white/80">{formatClock(rideElapsed)}</p>
-                            <p className="text-[10px] uppercase tracking-widest text-white/30 mt-0.5">Time</p>
-                        </div>
+                        {isPracticeMode ? (
+                            <>
+                                <div className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-1">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-300">Demo</span>
+                                </div>
+                                <div className="text-center min-w-[52px]">
+                                    <p className="text-base font-black tabular-nums leading-none text-white/80">
+                                        {formatPracticeClock(demoWallElapsed)}
+                                    </p>
+                                    <p className="text-[10px] uppercase tracking-widest text-white/30 mt-0.5">
+                                        {Math.round(rideProgressPct)}%
+                                    </p>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-center min-w-[44px]">
+                                <p className="text-base font-black tabular-nums leading-none text-white/80">{formatClock(rideElapsed)}</p>
+                                <p className="text-[10px] uppercase tracking-widest text-white/30 mt-0.5">Time</p>
+                            </div>
+                        )}
 
                         {/* Live SPIN accrual — reward loop visible in practice mode */}
                         <SpinDripChip />

@@ -25,6 +25,7 @@ import { VisualizationEngine } from "./visualization-engine";
 import { SuiEngine } from "./sui-engine";
 import { getLocalOracle } from "@/app/lib/zk/oracle";
 import type { RideStartConfig, TelemetrySnapshot } from "./types";
+import { PRACTICE_WALL_DURATION_SEC } from "@/app/lib/practice-demo";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
@@ -103,10 +104,12 @@ export class RideCoordinator {
       config.classData?.route?.route?.coordinates ?? [];
     this.durationSeconds = (config.classData?.metadata?.duration ?? 45) * 60;
 
-    // Practice/demo rides play the whole class in ~45 wall-clock seconds
-    // regardless of the class's real duration (clamped so a short class
-    // never plays slower than real time).
-    this.clockScale = config.isPracticeMode ? Math.max(1, this.durationSeconds / 45) : 1;
+    // Practice/demo rides play the whole class in ~PRACTICE_WALL_DURATION_SEC
+    // wall-clock seconds regardless of the class's real duration (clamped so
+    // a short class never plays slower than real time).
+    this.clockScale = config.isPracticeMode
+      ? Math.max(1, this.durationSeconds / PRACTICE_WALL_DURATION_SEC)
+      : 1;
     this.isPracticeRide = config.isPracticeMode;
     this.progressElapsed = 0;
 

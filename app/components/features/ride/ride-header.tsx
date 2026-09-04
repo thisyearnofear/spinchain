@@ -47,7 +47,7 @@ export function RideHeader({
             {isPracticeMode && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" aria-hidden="true" />
-                Practice
+                Demo
               </span>
             )}
           </div>

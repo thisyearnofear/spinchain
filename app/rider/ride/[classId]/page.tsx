@@ -618,6 +618,7 @@ export default function LiveRidePage() {
           flowTier={flow.flowTier}
           suppressBottomStack={isRiding && useSimulator}
           rideDurationSec={(classData?.metadata?.duration ?? 45) * 60}
+          isPracticeMode={isPracticeMode}
         />
       </SectionErrorBoundary>
 
@@ -663,6 +664,8 @@ export default function LiveRidePage() {
           isPracticeMode={isPracticeMode}
           walletConnected={walletConnected}
           elapsedTime={elapsedTime}
+          classDurationSec={(classData?.metadata?.duration ?? 45) * 60}
+          flowTier={flow.flowTier}
           avgHeartRate={completionStats?.avgHr ?? telemetryAverages.avgHr}
           avgPower={completionStats?.avgPower ?? telemetryAverages.avgPower}
           avgEffort={completionStats?.avgEffort ?? telemetryAverages.avgEffort}
@@ -675,7 +678,7 @@ export default function LiveRidePage() {
           rewardClaimStatus={rewardsHook.rewardClaimStatus}
           spinEarned={rewardsHook.rewards.formattedReward}
           agentName={agentName}
-          agentPersonality={aiPersonality as "zen" | "drill-sergeant" | "data"}  
+          agentPersonality={aiPersonality as "zen" | "drill-sergeant" | "data"}
           walrusAnchorInfo={null}
           classId={classId}
           completedRideId={completedRideId ?? undefined}
