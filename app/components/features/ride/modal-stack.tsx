@@ -400,24 +400,38 @@ function MilestoneOverlay({ title, subtitle }: {
   title: string;
   subtitle: string;
 }) {
+  const reducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   return (
     <m.div
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96, filter: "blur(8px)" }}
-      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
+      animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+      exit={
+        reducedMotion
+          ? { opacity: 0 }
+          : { opacity: 0, scale: 0.96, filter: "blur(8px)" }
+      }
+      transition={{ duration: reducedMotion ? 0.12 : 0.25, ease: [0.22, 1, 0.36, 1] }}
       className="fixed inset-0 flex items-center justify-center z-[100] pointer-events-none"
     >
       <div className="relative">
-        <div className="absolute inset-0 bg-amber-500/40 blur-[120px] animate-pulse rounded-full scale-150" />
+        {!reducedMotion && (
+          <div className="absolute inset-0 bg-amber-500/40 blur-[120px] animate-pulse rounded-full scale-150" />
+        )}
         <div className="relative bg-black/80 backdrop-blur-3xl border-2 border-amber-400/50 rounded-[3rem] px-12 py-10 text-center shadow-[0_0_100px_rgba(245,158,11,0.4)]">
           <div className="inline-block mb-4">
-            <m.div
-              animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
-              transition={{ duration: 0.5, repeat: 2 }}
-            >
+            {reducedMotion ? (
               <span className="text-4xl">✨</span>
-            </m.div>
+            ) : (
+              <m.div
+                animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
+                transition={{ duration: 0.5, repeat: 2 }}
+              >
+                <span className="text-4xl">✨</span>
+              </m.div>
+            )}
           </div>
           <h2 className="text-5xl font-black text-white tracking-tighter mb-2 italic uppercase">
             {title}
