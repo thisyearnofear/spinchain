@@ -408,7 +408,6 @@ function ActivationTransition({
           className="absolute inset-0 overflow-hidden"
           data-testid="activation-route-thumbnail"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <m.img
             src={routeThumbnailUrl}
             alt={routeLabel ? `${routeLabel} route preview` : "Route preview"}
