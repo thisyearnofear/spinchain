@@ -25,7 +25,10 @@ import {
 import { CoachChannel } from "../../../components/features/ride/coach-channel";
 import { RideHUDOverlayV2 } from "../../../components/features/ride/ride-hud-overlay-v2";
 import { probeGpu } from "@/app/lib/gpu-probe";
-import { RideTransitionOverlay } from "../../../components/features/ride/ride-transition-overlay";
+import {
+  RideTransitionOverlay,
+  routeThumbnailForTheme,
+} from "../../../components/features/ride/ride-transition-overlay";
 import { RideCompletionV2 } from "../../../components/features/ride/ride-completion-v2";
 import { ModalStack } from "../../../components/features/ride/modal-stack";
 import { RideStartScreen } from "../../../components/features/ride/ride-start-screen";
@@ -652,6 +655,15 @@ export default function LiveRidePage() {
         onActivationComplete={handleActivationComplete}
         onSkipActivation={handleActivationSkip}
         activationPhase={currentInterval?.phase ?? undefined}
+        routeThumbnailUrl={routeThumbnailForTheme(
+          classData?.metadata?.route?.theme,
+        )}
+        routeLabel={
+          classData?.metadata?.route?.name ??
+          classData?.metadata?.name ??
+          classData?.name ??
+          null
+        }
         hasData={!!classData}
         loadProgress={Math.min(1, (Date.now() - loadStartedAt) / 5000)}
         loadTotal={5000}
