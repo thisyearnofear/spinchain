@@ -7,14 +7,14 @@ const LOADING_TIPS = [
   "Warm-up tip: keep cadence steady for better early effort scoring.",
   "Stay in control zones first, then push for sprint windows.",
   "No wallet connected? You can still ride in practice mode.",
-  "Your AI coach adapts to your effort in real-time via Walrus-stored prompts.",
-  "ZK proofs verify your effort without revealing raw biometric data.",
+  "Your AI coach adapts to your effort in real time.",
+  "Your effort is verified privately — raw biometrics stay yours.",
 ];
 
 const LOADING_STEPS = [
   { icon: RouteIcon, label: "Loading route data", desc: "Fetching course coordinates & elevation" },
-  { icon: Brain, label: "Initializing AI coach", desc: "Loading Walrus-stored system prompt" },
-  { icon: Coins, label: "Setting up rewards", desc: "Configuring on-chain incentive pipeline" },
+  { icon: Brain, label: "Initializing AI coach", desc: "Tuning coaching style to this ride" },
+  { icon: Coins, label: "Setting up rewards", desc: "Getting ready to celebrate your effort" },
   { icon: Bike, label: "Calibrating telemetry", desc: "Preparing 10Hz sensor pipeline" },
 ];
 
