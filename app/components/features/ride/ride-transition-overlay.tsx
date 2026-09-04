@@ -49,6 +49,10 @@ interface RideTransitionOverlayProps {
   onSkipActivation: () => void;
   /** Activation component props */
   activationPhase?: string;
+  /** Optional route thumbnail shown behind the countdown (parallax when motion OK) */
+  routeThumbnailUrl?: string | null;
+  /** Optional route / class label under the thumbnail reveal */
+  routeLabel?: string | null;
   /** Whether to show loading at all (can skip if data preloaded) */
   hasData: boolean;
   /** Loading time remaining (ms) */
@@ -77,6 +81,8 @@ export function RideTransitionOverlay({
   onActivationComplete,
   onSkipActivation,
   activationPhase,
+  routeThumbnailUrl,
+  routeLabel,
   hasData,
   loadProgress,
   loadTotal,
@@ -185,6 +191,8 @@ export function RideTransitionOverlay({
         {internalState === "activation" && (
           <ActivationTransition
             phase={activationPhase}
+            routeThumbnailUrl={routeThumbnailUrl}
+            routeLabel={routeLabel}
             onSkip={onSkipActivation}
             skipEnabled={skipEnabled}
             onDone={onActivationComplete}
@@ -266,12 +274,16 @@ function LoadingTransition({
 
 function ActivationTransition({
   phase,
+  routeThumbnailUrl,
+  routeLabel,
   onSkip,
   skipEnabled,
   onDone,
   reducedMotion,
 }: {
   phase?: string;
+  routeThumbnailUrl?: string | null;
+  routeLabel?: string | null;
   onSkip: () => void;
   skipEnabled: boolean;
   onDone: () => void;
@@ -295,24 +307,36 @@ function ActivationTransition({
   const resetCountdown = useSensoryStore((s) => s.resetCountdown);
   const setLatestEvent = useSensoryStore((s) => s.setLatestEvent);
 
+  const accent = phase ? phaseColor(phase) : "#fbbf24";
+
   // Countdown logic. The updater must stay pure (React dev double-invokes
   // updaters, which would fire side effects twice); completion is handled in
   // its own effect watching `countdown`.
+  // prefers-reduced-motion: skip ticks/parallax — brief GO fade + immediate handoff.
   useEffect(() => {
     if (reducedMotion) {
+      setCountdown(0);
+      setGoPhase(true);
       onDoneRef.current();
-      return;
+      const fadeTimer = setTimeout(() => {
+        setGoPhase(false);
+        setVisible(false);
+        resetCountdown();
+      }, 180);
+      return () => {
+        clearTimeout(fadeTimer);
+      };
     }
 
     timerRef.current = setInterval(() => {
       setCountdown((prev) => Math.max(0, prev - 1));
-    }, reducedMotion ? 200 : 700);
+    }, 700);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
     // onDone is read via ref (see above) — deliberately not a dep.
-  }, [reducedMotion]);
+  }, [reducedMotion, resetCountdown]);
 
   // Sensory sync on each visible tick + GO: haptic + local SFX + store event.
   // Local Web Audio (not ElevenLabs playCountdown) keeps ticks aligned to the
@@ -323,9 +347,9 @@ function ActivationTransition({
     if (countdown > 0) {
       if (lastSensoryTickRef.current === countdown) return;
       lastSensoryTickRef.current = countdown;
-      const phase =
+      const tickPhase =
         countdown === 3 ? "three" : countdown === 2 ? "two" : "one";
-      setCountdownPhase(phase);
+      setCountdownPhase(tickPhase);
       setLatestEvent({
         type: "countdown-tick",
         timestamp: Date.now(),
@@ -353,6 +377,7 @@ function ActivationTransition({
   // for the launch flash). No second ceremony after this.
   useEffect(() => {
     if (countdown !== 0) return;
+    if (reducedMotion) return; // reduced-motion path owns fade + handoff
     if (timerRef.current) clearInterval(timerRef.current);
     setGoPhase(true);
     onDoneRef.current();
@@ -360,7 +385,7 @@ function ActivationTransition({
       setGoPhase(false);
       setVisible(false);
       resetCountdown();
-    }, reducedMotion ? 100 : 650);
+    }, 650);
     return () => {
       clearTimeout(fadeTimer);
     };
@@ -369,86 +394,184 @@ function ActivationTransition({
   return (
     <m.div
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      animate={{ opacity: visible ? 1 : 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: reducedMotion ? 0.15 : 0.4 }}
       className="fixed inset-0 z-[140] flex items-center justify-center pointer-events-none"
+      data-activation-ceremony="true"
+      data-reduced-motion={reducedMotion ? "true" : "false"}
+      data-has-thumbnail={routeThumbnailUrl ? "true" : "false"}
     >
-      {/* Background pulse */}
-      <div className="absolute inset-0 overflow-hidden">
+      {/* Route thumbnail under / behind countdown (subtle parallax when motion OK) */}
+      {routeThumbnailUrl ? (
+        <div
+          className="absolute inset-0 overflow-hidden"
+          data-testid="activation-route-thumbnail"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <m.img
+            src={routeThumbnailUrl}
+            alt={routeLabel ? `${routeLabel} route preview` : "Route preview"}
+            className="absolute inset-0 h-[118%] w-full object-cover"
+            initial={
+              reducedMotion
+                ? { opacity: 0.32, scale: 1, y: "0%" }
+                : { opacity: 0, scale: 1.12, y: "6%" }
+            }
+            animate={
+              reducedMotion
+                ? { opacity: goPhase ? 0.12 : 0.32, scale: 1, y: "0%" }
+                : {
+                    opacity: goPhase ? 0.1 : 0.48,
+                    scale: goPhase ? 1.22 : [1.1, 1.16],
+                    y: goPhase ? "0%" : ["5%", "-2%"],
+                  }
+            }
+            transition={
+              reducedMotion
+                ? { duration: 0.2 }
+                : goPhase
+                  ? { duration: 0.65, ease: [0.22, 1, 0.36, 1] }
+                  : {
+                      opacity: { duration: 0.7 },
+                      scale: {
+                        duration: 4.5,
+                        ease: "linear",
+                        repeat: Infinity,
+                        repeatType: "mirror",
+                      },
+                      y: {
+                        duration: 4.5,
+                        ease: "linear",
+                        repeat: Infinity,
+                        repeatType: "mirror",
+                      },
+                    }
+            }
+            draggable={false}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/55 to-black/85" />
+        </div>
+      ) : (
+        <div className="absolute inset-0 overflow-hidden">
+          <m.div
+            className="absolute inset-0"
+            animate={{
+              background: phase
+                ? `radial-gradient(circle at 50% 50%, ${accent}15 0%, transparent 70%)`
+                : "radial-gradient(circle at 50% 50%, rgba(99,102,241,0.1) 0%, transparent 70%)",
+            }}
+            transition={{ duration: 1 }}
+          />
+        </div>
+      )}
+
+      {/* Soft phase wash above thumbnail */}
+      <m.div
+        className="absolute inset-0"
+        animate={{
+          background: `radial-gradient(circle at 50% 42%, ${accent}${goPhase ? "33" : "18"} 0%, transparent 62%)`,
+        }}
+        transition={{ duration: reducedMotion ? 0.15 : 0.55 }}
+      />
+
+      {/* GO flash — dissolves into the live 3D world (parent unmounts ~700ms) */}
+      {goPhase && (
         <m.div
+          key="go-flash"
           className="absolute inset-0"
-          animate={{
-            background: phase
-              ? `radial-gradient(circle at 50% 50%, ${phaseColor(phase)}15 0%, transparent 70%)`
-              : "radial-gradient(circle at 50% 50%, rgba(99,102,241,0.1) 0%, transparent 70%)",
+          data-testid="activation-go-flash"
+          initial={{ opacity: reducedMotion ? 0.35 : 0.7 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: reducedMotion ? 0.18 : 0.65, ease: [0.22, 1, 0.36, 1] }}
+          style={{
+            background: `radial-gradient(circle at 50% 45%, ${accent}cc 0%, ${accent}33 28%, transparent 62%)`,
           }}
-          transition={{ duration: 1 }}
         />
-      </div>
+      )}
 
       {/* Countdown number → GO launch beat */}
       <AnimatePresence mode="wait">
-        {visible && countdown > 0 && (
+        {visible && countdown > 0 && !reducedMotion && (
           <m.div
             key={countdown}
             initial={{ opacity: 0, scale: 0.5, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
+            animate={{ opacity: 1, scale: [0.92, 1.08, 1], y: 0 }}
             exit={{ opacity: 0, scale: 1.5, y: -20 }}
             transition={{
-              duration: reducedMotion ? 0.1 : 0.35,
+              duration: 0.55,
               ease: [0.22, 1, 0.36, 1],
+              times: [0, 0.45, 1],
             }}
-            className="flex flex-col items-center"
+            className="relative z-10 flex flex-col items-center"
+            data-testid="activation-countdown-pulse"
           >
             <m.p
               className="text-8xl font-black tracking-tighter"
-              style={{
-                color: phase ? phaseColor(phase) : "#fbbf24",
-                textShadow: `0 0 60px ${phase ? phaseColor(phase) : "#fbbf24"}40`,
+              animate={{
+                textShadow: [
+                  `0 0 40px ${accent}30`,
+                  `0 0 70px ${accent}70`,
+                  `0 0 50px ${accent}40`,
+                ],
               }}
+              transition={{ duration: 0.7, ease: "easeInOut" }}
+              style={{ color: accent }}
             >
               {countdown}
             </m.p>
             <p className="text-xs font-black uppercase tracking-[0.4em] text-white/40 mt-2">
               {countdown === 3 ? "Ready" : countdown === 2 ? "Set" : "Focus"}
             </p>
+            {routeLabel && countdown === 3 && (
+              <p className="mt-3 max-w-[16rem] truncate text-center text-[10px] font-bold uppercase tracking-[0.28em] text-white/35">
+                {routeLabel}
+              </p>
+            )}
           </m.div>
         )}
-        {visible && countdown === 0 && goPhase && (
+        {visible && (countdown === 0 || reducedMotion) && goPhase && (
           <m.div
             key="go"
-            initial={{ opacity: 0, scale: 0.4 }}
-            animate={{ opacity: [0, 1, 1], scale: [0.4, 1.25, 1] }}
+            initial={{ opacity: 0, scale: reducedMotion ? 0.92 : 0.4 }}
+            animate={{
+              opacity: reducedMotion ? [0, 1, 0.85] : [0, 1, 1],
+              scale: reducedMotion ? [0.92, 1, 1] : [0.4, 1.25, 1],
+            }}
             exit={{ opacity: 0, scale: 1.6 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col items-center"
+            transition={{
+              duration: reducedMotion ? 0.18 : 0.5,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="relative z-10 flex flex-col items-center"
           >
             <m.p
               className="text-9xl font-black tracking-tighter"
               style={{
-                color: phase ? phaseColor(phase) : "#fbbf24",
-                textShadow: `0 0 80px ${phase ? phaseColor(phase) : "#fbbf24"}60`,
+                color: accent,
+                textShadow: `0 0 80px ${accent}60`,
               }}
             >
               GO
             </m.p>
-            <p className="text-xs font-black uppercase tracking-[0.4em] text-white/50 mt-2">
-              Start pedaling
-            </p>
+            {!reducedMotion && (
+              <p className="text-xs font-black uppercase tracking-[0.4em] text-white/50 mt-2">
+                Start pedaling
+              </p>
+            )}
           </m.div>
         )}
       </AnimatePresence>
 
       {/* Skip button */}
       <AnimatePresence>
-        {skipEnabled && visible && (
+        {skipEnabled && visible && !goPhase && (
           <m.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onSkip}
-            className="absolute bottom-16 pointer-events-auto rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-white/40 hover:text-white/70 transition-colors"
+            className="absolute bottom-16 z-10 pointer-events-auto rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-white/40 hover:text-white/70 transition-colors"
           >
             Skip →
           </m.button>
@@ -470,4 +593,23 @@ function phaseColor(phase?: string): string {
     cooldown: "#818cf8",
   };
   return map[phase] ?? "#fbbf24";
+}
+
+/** Map class route theme → existing public route thumbnail assets. */
+export function routeThumbnailForTheme(
+  theme?: string | null,
+): string {
+  switch ((theme ?? "").toLowerCase()) {
+    case "alpine":
+      return "/images/routes/route-mountain.jpg";
+    case "mars":
+      return "/images/routes/route-coastal.jpg";
+    case "anime":
+      return "/images/routes/route-forest.jpg";
+    case "rainbow":
+      return "/images/routes/route-group.jpg";
+    case "neon":
+    default:
+      return "/images/routes/route-city.jpg";
+  }
 }

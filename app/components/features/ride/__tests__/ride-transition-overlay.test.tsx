@@ -73,10 +73,18 @@ vi.mock("@/app/stores/sensory-store", () => {
   return { useSensoryStore };
 });
 
-import { RideTransitionOverlay } from "../ride-transition-overlay";
+import { RideTransitionOverlay, routeThumbnailForTheme } from "../ride-transition-overlay";
 
 
-function renderWithUnstableCallbacks(onDone: () => void, onSkip: () => void) {
+function renderWithUnstableCallbacks(
+  onDone: () => void,
+  onSkip: () => void,
+  extras: {
+    reducedMotion?: boolean;
+    routeThumbnailUrl?: string | null;
+    routeLabel?: string | null;
+  } = {},
+) {
   // Mimics the ride page: re-renders every 100ms and passes brand-new
   // callback identities each time (the pre-fix condition).
   function UnstableParent() {
@@ -93,7 +101,9 @@ function renderWithUnstableCallbacks(onDone: () => void, onSkip: () => void) {
         hasData={true}
         loadProgress={1}
         loadTotal={1}
-        reducedMotion={false}
+        reducedMotion={extras.reducedMotion ?? false}
+        routeThumbnailUrl={extras.routeThumbnailUrl}
+        routeLabel={extras.routeLabel}
       />
     );
   }
@@ -179,5 +189,52 @@ describe("RideTransitionOverlay activation countdown", () => {
     act(() => void vi.advanceTimersByTime(700));
     expect(goSfxMock).toHaveBeenCalledTimes(1);
     expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the route thumbnail behind the countdown when provided", () => {
+    renderWithUnstableCallbacks(vi.fn(), vi.fn(), {
+      routeThumbnailUrl: "/images/routes/route-city.jpg",
+      routeLabel: "Neon Grid Sprint",
+    });
+
+    const thumb = screen.getByTestId("activation-route-thumbnail");
+    expect(thumb).toBeTruthy();
+    expect(screen.getByAltText(/Neon Grid Sprint route preview/)).toBeTruthy();
+    expect(screen.getByTestId("activation-countdown-pulse")).toBeTruthy();
+    expect(screen.getByText("Neon Grid Sprint")).toBeTruthy();
+  });
+
+  it("prefers-reduced-motion: simple GO fade, immediate handoff, no tick SFX/parallax pulse", () => {
+    hapticMock.mockClear();
+    tickSfxMock.mockClear();
+    goSfxMock.mockClear();
+
+    const onDone = vi.fn();
+    renderWithUnstableCallbacks(onDone, vi.fn(), {
+      reducedMotion: true,
+      routeThumbnailUrl: "/images/routes/route-mountain.jpg",
+    });
+
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(tickSfxMock).not.toHaveBeenCalled();
+    expect(goSfxMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("activation-countdown-pulse")).toBeNull();
+    expect(screen.getByText("GO")).toBeTruthy();
+    expect(screen.getByTestId("activation-go-flash")).toBeTruthy();
+    expect(
+      document.querySelector('[data-reduced-motion="true"]'),
+    ).toBeTruthy();
+  });
+
+  it("maps route themes to existing public thumbnail assets", () => {
+    expect(routeThumbnailForTheme("alpine")).toBe(
+      "/images/routes/route-mountain.jpg",
+    );
+    expect(routeThumbnailForTheme("neon")).toBe(
+      "/images/routes/route-city.jpg",
+    );
+    expect(routeThumbnailForTheme(undefined)).toBe(
+      "/images/routes/route-city.jpg",
+    );
   });
 });

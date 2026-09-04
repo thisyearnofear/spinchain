@@ -56,14 +56,15 @@
   - Skip quiz (show it after first ride)
   - Auto-start activation sequence
 
-### 2.2 Polish The Activation Sequence
-- **File**: `app/components/features/ride/ride-activation.tsx`
-- **What**: The activation sequence already exists (3s reveal, 3-2-1 countdown, GO). Make it feel like a real ceremony:
-  - Route thumbnail appears with parallax during reveal
-  - Countdown numbers pulse with haptic sync
-  - GO flash transitions smoothly into the 3D world
+### 2.2 Polish The Activation Sequence ✅
+- **Live path**: `ActivationTransition` in `ride-transition-overlay.tsx` (not orphan `ride-activation.tsx`)
+- **What**: Ceremony polish on the live overlay:
+  - Route thumbnail behind countdown with subtle parallax during reveal (`routeThumbnailForTheme` + existing `/images/routes/*`)
+  - Countdown numbers pulse; GO flash dissolves into the 3D world
+  - Haptic/SFX ticks + GO stinger retained; prefers-reduced-motion → simple fade, no parallax
+  - No double countdown / no pedal delay after GO
 - **Why**: First impressions compound. A weak activation undercuts the visual magic that follows.
-- **Not in scope**: New mechanics. Polish existing ones.
+- **Not in scope**: New mechanics. Polish existing ones. Do not redo Phase 6/7 viz keep-alive / world-reactivity math.
 
 ### 2.3 Make The Demo Ride World Feel Alive ✅
 - **Live path**: `PedalSimulator` (`← → / A D`, also ↑↓/WS auto-alternate) → `coordinator.ingestSimulatorMetrics` via ModalStack. Single keyboard→stats source.
