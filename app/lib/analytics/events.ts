@@ -25,6 +25,7 @@ export const ANALYTICS_EVENTS = {
   SIMULATOR_KEYBOARD_HINT_VIEWED: 'simulator_keyboard_hint_viewed',
   SIMULATOR_INPUT_ACTIVITY: 'simulator_input_activity',
   SIMULATOR_INPUT_SKIPPED_TOUCH_ONLY: 'simulator_input_skipped_touch_only',
+  SIMULATOR_INPUT_LATENCY: 'simulator_input_latency_ms',
   RIDE_SYNC_SUCCESS: 'ride_sync_success',
 } as const;
 

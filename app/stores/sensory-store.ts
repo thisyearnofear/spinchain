@@ -34,20 +34,28 @@ interface SensoryState {
   latestEvent: SensoryEvent | null;
   countdownPhase: "none" | "three" | "two" | "one" | "go";
   countdownStartTime: number;
+  /** Monotonic per-pedal-stroke counter. High-frequency impulses (≤11Hz)
+   *  deliberately bypass latestEvent: that slot has React subscribers and
+   *  carries low-frequency cues (phase-change, pr-beat) that strokes must
+   *  not clobber. Consumers read this via getState() in useFrame. */
+  strokeSeq: number;
 }
 
 interface SensoryActions {
   setLatestEvent: (event: SensoryEvent) => void;
   setCountdownPhase: (phase: SensoryState["countdownPhase"]) => void;
   resetCountdown: () => void;
+  bumpStrokeSeq: () => void;
 }
 
 export const useSensoryStore = create<SensoryState & SensoryActions>()((set) => ({
   latestEvent: null,
   countdownPhase: "none",
   countdownStartTime: 0,
+  strokeSeq: 0,
 
   setLatestEvent: (event) => set({ latestEvent: event }),
+  bumpStrokeSeq: () => set((s) => ({ strokeSeq: s.strokeSeq + 1 })),
   setCountdownPhase: (phase) => set({
     countdownPhase: phase,
     countdownStartTime: phase !== "none" ? Date.now() : 0,
