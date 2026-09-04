@@ -102,6 +102,7 @@ export function RideAiTelemetryBridge({
     enabled: isRiding,
     personality: "data",
     systemPromptCid: aiMeta?.systemPromptCid,
+    getBus: () => coordinatorRef.current?.getCoordinator()?.bus ?? null,
   });
 
   // ─── Push live telemetry to server for instructor view (throttled) ───

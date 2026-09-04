@@ -6,6 +6,7 @@ import type { CoachingContext, CoachingResponse } from "@/app/lib/ai-types";
 import { useTelemetryStore, selectTelemetrySnapshot } from "@/app/stores/telemetry-store";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
+import type { EventBus } from "@/app/engines/event-bus";
 
 const LLM_COACHING_INTERVAL_MS = 60_000; // 60 seconds
 
@@ -35,11 +36,14 @@ export function useLLMCoaching({
   systemPromptCid,
   targetHeartRate = 150,
   personality = "data",
+  getBus,
 }: {
   enabled: boolean;
   systemPromptCid?: string;
   targetHeartRate?: number;
   personality?: "zen" | "drill-sergeant" | "data";
+  /** Returns the ride's EventBus so LLM lines are voiced by the AudioEngine */
+  getBus?: () => EventBus | null | undefined;
 }) {
   const snapshot = useTelemetryStore(selectTelemetrySnapshot);
   const rideProgress = useRideStore((s) => s.rideProgress);
@@ -75,6 +79,10 @@ export function useLLMCoaching({
       setLastCoachMessage(response.message);
       conversationRef.current.push({ role: "coach", message: response.message });
 
+      // Voice the LLM line through the ride's audio path (EventBus →
+      // AudioEngine speak → cache / edge LRU / ElevenLabs / system fallback)
+      getBus?.()?.emit("coaching:message", { text: response.message, source: "llm" });
+
       // Keep conversation history bounded
       if (conversationRef.current.length > 20) {
         conversationRef.current = conversationRef.current.slice(-10);
@@ -98,6 +106,7 @@ export function useLLMCoaching({
     currentInterval,
     setLastCoachMessage,
     setIsSpeaking,
+    getBus,
   ]);
 
   useEffect(() => {

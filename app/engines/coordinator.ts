@@ -232,6 +232,21 @@ export class RideCoordinator {
       console.warn("[Coordinator] AudioEngine start failed:", err),
     );
 
+    // Prewarm the TTS caches for this ride's scripted cues (interval
+    // coachCues, story beat labels) during the warmup phase so interval
+    // transitions speak with zero perceived latency. Fire-and-forget.
+    const cueTexts = [
+      ...(config.coachingConfig.workoutPlan?.intervals ?? [])
+        .map((interval) => interval.coachCue)
+        .filter((cue): cue is string => Boolean(cue && cue.trim().length > 0)),
+      ...(config.classData?.route?.route?.storyBeats ?? [])
+        .map((beat) => beat?.label)
+        .filter((label): label is string => Boolean(label && label.trim().length > 0)),
+    ];
+    if (cueTexts.length > 0) {
+      void this.audio.prewarm(cueTexts);
+    }
+
     // Start Local Oracle for on-device proof generation
     this.oracle.startSession({
       classId: config.classId,

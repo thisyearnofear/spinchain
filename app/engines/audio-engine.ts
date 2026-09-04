@@ -35,6 +35,8 @@ export interface AudioEngineConfig {
   autoSpeakCoach?: boolean;
   /** Whether to auto-play interval:changed sounds */
   autoPlayIntervalSounds?: boolean;
+  /** Fall back to the browser's built-in speechSynthesis when ElevenLabs is unavailable */
+  systemFallback?: boolean;
 }
 
 const DEFAULTS: Required<AudioEngineConfig> = {
@@ -42,6 +44,7 @@ const DEFAULTS: Required<AudioEngineConfig> = {
   intensity: 0.5,
   autoSpeakCoach: true,
   autoPlayIntervalSounds: true,
+  systemFallback: true,
 };
 
 const AUDIO_CACHE_NAME = "elevenlabs-audio-v1";
@@ -172,7 +175,10 @@ export class AudioEngine {
       } catch {
         return;
       }
-      if (!this.isConfigured) return;
+      if (!this.isConfigured) {
+        if (this.config.systemFallback) this.speakWithSystemVoice(text, emotion);
+        return;
+      }
     }
 
     // Stop any current speech
@@ -243,7 +249,91 @@ export class AudioEngine {
       console.warn("[AudioEngine] TTS failed:", err);
       this.isSpeaking = false;
       this.emitSpeakingState();
+      // Degraded tier: never leave the coach silent if synthesis failed
+      if (this.config.systemFallback) this.speakWithSystemVoice(text, emotion);
     }
+  }
+
+  /**
+   * System-voice fallback using the browser's built-in speechSynthesis.
+   * Free, instant, zero network — used when ElevenLabs is unconfigured or
+   * synthesis fails, so the coach is never silent. Lower fidelity by design.
+   */
+  private speakWithSystemVoice(
+    text: string,
+    emotion?: "calm" | "focused" | "intense" | "celebratory",
+  ): void {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      const profiles = {
+        calm: { rate: 0.9, pitch: 0.9 },
+        focused: { rate: 1.0, pitch: 1.0 },
+        intense: { rate: 1.15, pitch: 1.1 },
+        celebratory: { rate: 1.1, pitch: 1.2 },
+      } as const;
+      const profile = profiles[emotion ?? "focused"] ?? profiles.focused;
+      utterance.rate = profile.rate;
+      utterance.pitch = profile.pitch;
+      utterance.volume = 0.9;
+      utterance.onstart = () => {
+        this.isSpeaking = true;
+        this.emitSpeakingState();
+      };
+      utterance.onend = () => {
+        this.isSpeaking = false;
+        this.emitSpeakingState();
+      };
+      utterance.onerror = () => {
+        this.isSpeaking = false;
+        this.emitSpeakingState();
+      };
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      // System TTS unavailable — stay silent
+    }
+  }
+
+  /**
+   * Prewarm the TTS caches for the ride's scripted cues (interval coachCues,
+   * story beat labels) before they're needed. Synthesizes each unique phrase
+   * once (populating the server LRU) and persists the audio into the client
+   * Cache API, so interval transitions speak with zero perceived latency.
+   * Fire-and-forget; failures are silently skipped.
+   */
+  async prewarm(texts: string[]): Promise<void> {
+    if (this.disposed || !this.isConfigured) return;
+    const unique = [...new Set(texts.filter((t) => t && t.trim().length > 0))].slice(0, 12);
+    const voice = COACH_VOICES[this.config.personality];
+    const voiceSettings = this.getVoiceSettings("focused");
+    const cachePrefix = `audio:tts:${this.config.personality}:${Math.round(this.config.intensity * 10) / 10}:focused:`;
+    const cache = await caches.open(AUDIO_CACHE_NAME).catch(() => null);
+
+    const queue = [...unique];
+    const worker = async (): Promise<void> => {
+      while (queue.length > 0 && !this.disposed) {
+        const text = queue.shift();
+        if (!text) return;
+        try {
+          const cacheKey = `${cachePrefix}${text}`;
+          if (cache && (await cache.match(cacheKey))) continue;
+          const buffer = await generateSpeech({
+            text,
+            voice_id: voice.id,
+            voice_settings: voiceSettings,
+          });
+          if (cache) {
+            await cache
+              .put(cacheKey, new Response(buffer.slice(0), { headers: { "Content-Type": "audio/mpeg" } }))
+              .catch(() => {});
+          }
+        } catch {
+          // Skip failed cues — they'll synthesize on demand instead
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: 2 }, worker));
   }
 
   /** Stop current voice playback */
@@ -251,6 +341,10 @@ export class AudioEngine {
     if (this.currentVoiceLayerId) {
       this.mixer.stopLayer(this.currentVoiceLayerId);
       this.currentVoiceLayerId = null;
+    }
+    // Also cancel any system-voice fallback playback
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
     }
     this.isSpeaking = false;
     this.emitSpeakingState();
