@@ -30,8 +30,11 @@ if [ -n "$staged" ]; then
       continue
     fi
 
-    # Check for 64-char hex (Ethereum private keys)
-    if echo "$content" | grep -E '0x[0-9a-fA-F]{64}' >/dev/null 2>&1; then
+    # Check for 64-char hex (Ethereum private keys).
+    # NEXT_PUBLIC_* values ship in the client bundle — public by design
+    # (e.g. on-chain package/object IDs), never secrets. All-zeros values
+    # are placeholders.
+    if echo "$content" | grep -E '0x[0-9a-fA-F]{64}' | grep -v 'NEXT_PUBLIC_' | grep -vqE '0x0{64}'; then
       echo "⚠️  POTENTIAL SECRET in $file: 0x... (64-char hex)"
       secrets_found=1
     fi
