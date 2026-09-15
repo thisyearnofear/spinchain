@@ -1,5 +1,5 @@
 <Rive version="1" kind="fragment">
-    <Artboard defaultStateMachineId="0:7" styleId="0:5" width="200" height="120" name="FlowBadge" id="0:2">
+    <Artboard defaultStateMachineId="0:7" viewModelId="0:80" styleId="0:5" width="200" height="120" name="FlowBadge" id="0:2">
         <LayoutComponentStyle name="Artboard Style" id="0:5"/>
 
         <!-- Milestone burst top-right. -->
@@ -45,48 +45,46 @@
         </Node>
 
         <StateMachine name="Badge" id="0:7">
-            <StateMachineNumber name="flowTier" id="0:90"/>
-            <StateMachineNumber name="streak" id="0:91"/>
-            <StateMachineTrigger name="milestone" id="0:92"/>
-            <StateMachineTrigger name="levelUp" id="0:93"/>
-
             <StateMachineLayer name="Main" id="0:8">
-                <AnyState x="560" y="-140">
-                    <StateTransition stateToId="0:19" duration="260" interpolationType="linear">
-                        <TransitionNumberCondition inputId="0:90" opValue="greaterThan" value="3.5"/>
-                    </StateTransition>
-                    <StateTransition stateToId="0:18" duration="260" interpolationType="linear">
-                        <TransitionNumberCondition inputId="0:90" opValue="greaterThan" value="2.5"/>
-                    </StateTransition>
-                    <StateTransition stateToId="0:17" duration="260" interpolationType="linear">
-                        <TransitionNumberCondition inputId="0:90" opValue="greaterThan" value="1.5"/>
-                    </StateTransition>
-                    <StateTransition stateToId="0:16" duration="260" interpolationType="linear">
-                        <TransitionNumberCondition inputId="0:90" opValue="greaterThan" value="0.5"/>
-                    </StateTransition>
-                    <StateTransition stateToId="0:12" duration="260" interpolationType="linear">
-                        <TransitionNumberCondition inputId="0:90" opValue="lessThanOrEqual" value="0.5"/>
-                    </StateTransition>
-                </AnyState>
+                <AnyState x="560" y="-140"/>
                 <ExitState x="720" y="-140"/>
                 <EntryState>
                     <StateTransition stateToId="0:12"/>
                 </EntryState>
 
-                <AnimationState x="100" y="0" animationId="0:60" id="0:12"/>
-                <AnimationState x="260" y="0" animationId="0:61" id="0:16"/>
-                <AnimationState x="420" y="0" animationId="0:62" id="0:17"/>
-                <AnimationState x="580" y="0" animationId="0:63" id="0:18"/>
-                <AnimationState x="740" y="0" animationId="0:64" id="0:19"/>
+                <BlendState1DViewModel x="160" y="0" id="0:12">
+                    <BindablePropertyNumber>
+                        <DataBindContext sourcePathIds="0:80-0:81" propertyKey="636"/>
+                    </BindablePropertyNumber>
+                    <BlendAnimation1D animationId="0:60" value="0"/>
+                    <BlendAnimation1D animationId="0:61" value="1"/>
+                    <BlendAnimation1D animationId="0:62" value="2"/>
+                    <BlendAnimation1D animationId="0:63" value="3"/>
+                    <BlendAnimation1D animationId="0:64" value="4"/>
+                </BlendState1DViewModel>
             </StateMachineLayer>
 
             <StateMachineLayer name="FX" id="0:9">
                 <AnyState x="560" y="120">
                     <StateTransition stateToId="0:35" duration="150" interpolationType="linear">
-                        <TransitionTriggerCondition inputId="0:92"/>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyTrigger>
+                                    <DataBindContext sourcePathIds="0:80-0:83" propertyKey="686"/>
+                                </BindablePropertyTrigger>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
                     </StateTransition>
                     <StateTransition stateToId="0:35" duration="150" interpolationType="linear">
-                        <TransitionTriggerCondition inputId="0:93"/>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyTrigger>
+                                    <DataBindContext sourcePathIds="0:80-0:84" propertyKey="686"/>
+                                </BindablePropertyTrigger>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
                     </StateTransition>
                 </AnyState>
                 <ExitState x="720" y="120"/>
@@ -240,4 +238,15 @@
             </KeyedObject>
         </LinearAnimation>
     </Artboard>
+
+    <ViewModel defaultInstanceId="0:85" name="Badge" id="0:80">
+        <ViewModelPropertyNumber name="flowTier" id="0:81"/>
+        <ViewModelPropertyNumber name="streak" id="0:82"/>
+        <ViewModelPropertyTrigger name="milestone" id="0:83"/>
+        <ViewModelPropertyTrigger name="levelUp" id="0:84"/>
+        <ViewModelInstance exports="true" name="Default" id="0:85">
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:81"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:82"/>
+        </ViewModelInstance>
+    </ViewModel>
 </Rive>

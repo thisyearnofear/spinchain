@@ -8,26 +8,33 @@
  * coach speaking state, reward streaming, and PR moments — all sourced from
  * the existing stores the ride already writes to.
  *
- * ─── Rive editor contract ───────────────────────────────────────────
- * Build a character in the Rive editor with a state machine named `Ride`
- * exposing these inputs:
+ * ─── Rive view-model contract ─────────────────────────────────────
+ * Artboard `Rider`, state machine `Ride`, view model `Ride` exposing:
  *
- *   isRiding    : bool    — true while a ride is active
+ *   isRiding    : boolean — true while a ride is active
  *   cadence     : number  — live RPM (0–200); drives pedal speed
  *   effort      : number  — normalized intensity 0–1; drives lean / strain
- *   isSprint    : bool    — true during sprint intervals
- *   isRecovery  : bool    — true during recovery / cooldown intervals
- *   isSpeaking  : bool    — true while the AI coach is speaking
+ *   isSprint    : boolean — true during sprint intervals
+ *   isRecovery  : boolean — true during recovery / cooldown intervals
+ *   isSpeaking  : boolean — true while the AI coach is speaking
  *   rewardPulse : trigger — fire on each reward stream tick / claim
  *   prPulse     : trigger — fire when the rider beats their power PR
  *
- * Export to /public/rive/rider.riv. Until that file exists, this component
- * renders a lightweight CSS fallback so the HUD never breaks.
+ * Source: rive/rider/scene.rml → public/rive/rider.riv. Until that file
+ * exists, this component renders a lightweight CSS fallback so the HUD
+ * never breaks.
  * ─────────────────────────────────────────────────────────────────────
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useRive } from "@rive-app/react-canvas";
+import {
+  useRive,
+  useViewModel,
+  useViewModelInstance,
+  useViewModelInstanceBoolean,
+  useViewModelInstanceNumber,
+  useViewModelInstanceTrigger,
+} from "@rive-app/react-canvas";
 import { useTelemetryStore, selectCadence, selectEffort } from "@/app/stores/telemetry-store";
 import { useCoachingStore, selectPrBeaten } from "@/app/stores/coaching-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
@@ -72,50 +79,62 @@ export function RiveRider({ size = 160, className = "" }: RiveRiderProps) {
     src: RIVE_SRC,
     stateMachines: STATE_MACHINE,
     autoplay: true,
+    autoBind: true,
   });
+  const viewModel = useViewModel(rive);
+  const viewModelInstance = useViewModelInstance(viewModel, { rive });
 
-  // ─── Drive numeric / boolean inputs ────────────────────────────
+  const { setValue: setIsRiding } = useViewModelInstanceBoolean("isRiding", viewModelInstance);
+  const { setValue: setCadence } = useViewModelInstanceNumber("cadence", viewModelInstance);
+  const { setValue: setEffort } = useViewModelInstanceNumber("effort", viewModelInstance);
+  const { setValue: setIsSprint } = useViewModelInstanceBoolean("isSprint", viewModelInstance);
+  const { setValue: setIsRecovery } = useViewModelInstanceBoolean("isRecovery", viewModelInstance);
+  const { setValue: setIsSpeaking } = useViewModelInstanceBoolean("isSpeaking", viewModelInstance);
+  const { trigger: fireRewardPulse } = useViewModelInstanceTrigger("rewardPulse", viewModelInstance);
+  const { trigger: firePrPulse } = useViewModelInstanceTrigger("prPulse", viewModelInstance);
+
+  // ─── Drive view-model properties ───────────────────────────────
   const isSprint = intervalPhase === "sprint";
   const isRecovery = intervalPhase === "recovery" || intervalPhase === "cooldown";
   const normalizedEffort = Math.max(0, Math.min(1, effort / 1000));
 
   useEffect(() => {
-    if (!rive) return;
-    const inputs = rive.stateMachineInputs(STATE_MACHINE);
-    if (!inputs) return;
-    const set = (name: string, value: number | boolean) => {
-      const input = inputs.find((i) => i.name === name);
-      if (input) input.value = value as never;
-    };
-    set("isRiding", isRiding);
-    set("cadence", cadence ?? 0);
-    set("effort", normalizedEffort);
-    set("isSprint", isSprint);
-    set("isRecovery", isRecovery);
-    set("isSpeaking", isSpeaking);
-  }, [rive, isRiding, cadence, normalizedEffort, isSprint, isRecovery, isSpeaking]);
+    setIsRiding?.(isRiding);
+  }, [setIsRiding, isRiding]);
+  useEffect(() => {
+    setCadence?.(cadence ?? 0);
+  }, [setCadence, cadence]);
+  useEffect(() => {
+    setEffort?.(normalizedEffort);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setEffort, normalizedEffort]);
+  useEffect(() => {
+    setIsSprint?.(isSprint);
+  }, [setIsSprint, isSprint]);
+  useEffect(() => {
+    setIsRecovery?.(isRecovery);
+  }, [setIsRecovery, isRecovery]);
+  useEffect(() => {
+    setIsSpeaking?.(isSpeaking);
+  }, [setIsSpeaking, isSpeaking]);
 
   // ─── Fire rewardPulse trigger on each new reward tick ──────────
   const lastRewardRef = useRef(accumulatedReward);
   useEffect(() => {
-    if (!rive || !rewardsActive) return;
+    if (!rewardsActive) return;
     if (accumulatedReward === lastRewardRef.current) return;
     lastRewardRef.current = accumulatedReward;
-    const inputs = rive.stateMachineInputs(STATE_MACHINE);
-    const trigger = inputs?.find((i) => i.name === "rewardPulse");
-    if (trigger && typeof trigger.fire === "function") trigger.fire();
-  }, [rive, rewardsActive, accumulatedReward, streamState]);
+    fireRewardPulse?.();
+  }, [rewardsActive, accumulatedReward, streamState, fireRewardPulse]);
 
   // ─── Fire prPulse trigger when power PR is beaten ──────────────
   // prBeaten is the single source of truth (app/hooks/ride/use-pr-pursuit),
   // computed from a live running average against the rider's average-power
   // PR — not instantaneous power, which would false-positive on any spike.
   useEffect(() => {
-    if (!rive || !prBeaten) return;
-    const inputs = rive.stateMachineInputs(STATE_MACHINE);
-    const trigger = inputs?.find((i) => i.name === "prPulse");
-    if (trigger && typeof trigger.fire === "function") trigger.fire();
-  }, [rive, prBeaten]);
+    if (!prBeaten) return;
+    firePrPulse?.();
+  }, [prBeaten, firePrPulse]);
 
   // ─── Render ────────────────────────────────────────────────────
   if (assetReady === null) return null; // probing

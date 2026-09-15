@@ -7,7 +7,7 @@
  * milestone progress, or XP badge within the first viewport. This badge is
  * that signal — Rive medallion + tier pips, HTML overlay for numbers.
  *
- * State machine `Badge` inputs:
+ * Artboard `FlowBadge`, state machine `Badge`, view model `Badge`:
  *   flowTier  : number  — 0-4 (calm/focused/flow/super/mastery)
  *   streak    : number  — current ride streak (reserved for future binds)
  *   milestone : trigger — fire on milestone reach
@@ -17,7 +17,13 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useRive } from "@rive-app/react-canvas";
+import {
+  useRive,
+  useViewModel,
+  useViewModelInstance,
+  useViewModelInstanceNumber,
+  useViewModelInstanceTrigger,
+} from "@rive-app/react-canvas";
 
 const RIVE_SRC = "/rive/flow-badge.riv";
 const STATE_MACHINE = "Badge";
@@ -61,43 +67,36 @@ export function RiveFlowBadge({
     src: RIVE_SRC,
     stateMachines: STATE_MACHINE,
     autoplay: true,
+    autoBind: true,
   });
+  const viewModel = useViewModel(rive);
+  const viewModelInstance = useViewModelInstance(viewModel, { rive });
+
+  const { setValue: setFlowTier } = useViewModelInstanceNumber("flowTier", viewModelInstance);
+  const { setValue: setStreak } = useViewModelInstanceNumber("streak", viewModelInstance);
+  const { trigger: fireMilestone } = useViewModelInstanceTrigger("milestone", viewModelInstance);
+  const { trigger: fireLevelUp } = useViewModelInstanceTrigger("levelUp", viewModelInstance);
 
   useEffect(() => {
-    if (!rive) return;
-    const inputs = rive.stateMachineInputs(STATE_MACHINE);
-    if (!inputs) return;
-    const set = (name: string, value: number) => {
-      const input = inputs.find((i) => i.name === name);
-      if (input) input.value = value as never;
-    };
-    set("flowTier", Math.max(0, Math.min(4, flowTier)));
-    set("streak", Math.max(0, streak));
-  }, [rive, flowTier, streak]);
-
-  const fire = (name: string) => {
-    const trigger = rive
-      ?.stateMachineInputs(STATE_MACHINE)
-      ?.find((i) => i.name === name);
-    if (trigger && typeof (trigger as { fire?: () => void }).fire === "function")
-      (trigger as unknown as { fire: () => void }).fire();
-  };
+    setFlowTier?.(Math.max(0, Math.min(4, flowTier)));
+  }, [setFlowTier, flowTier]);
+  useEffect(() => {
+    setStreak?.(Math.max(0, streak));
+  }, [setStreak, streak]);
 
   const lastMilestoneRef = useRef(milestoneKey);
   useEffect(() => {
-    if (!rive || milestoneKey === lastMilestoneRef.current) return;
+    if (milestoneKey === lastMilestoneRef.current) return;
     lastMilestoneRef.current = milestoneKey;
-    fire("milestone");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rive, milestoneKey]);
+    fireMilestone?.();
+  }, [milestoneKey, fireMilestone]);
 
   const lastLevelUpRef = useRef(levelUpKey);
   useEffect(() => {
-    if (!rive || levelUpKey === lastLevelUpRef.current) return;
+    if (levelUpKey === lastLevelUpRef.current) return;
     lastLevelUpRef.current = levelUpKey;
-    fire("levelUp");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rive, levelUpKey]);
+    fireLevelUp?.();
+  }, [levelUpKey, fireLevelUp]);
 
   if (assetReady === null) return null;
   if (assetReady === false || !RiveComponent) {

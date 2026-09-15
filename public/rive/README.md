@@ -1,21 +1,35 @@
-# Rive Rider Avatar
+# SpinChain Rive assets (CLI-built)
 
-This folder holds the Rive asset for the live ride HUD rider avatar:
-`rider.riv`.
+Sources live in `rive/<name>/scene.rml`; shipped files here are built with
+`pnpm rive:build` (verify: `pnpm rive:verify`). All state machines are driven
+by **view-model properties** (legacy `StateMachine*` inputs are deprecated and
+not used). Wrappers use `autoBind: true` + the `useViewModel*` hooks from
+`@rive-app/react-canvas`.
 
-The React wrapper lives at
-`app/components/features/ride/rive-rider.tsx` and is mounted inside
-`app/components/features/ride/ride-hud.tsx` (desktop immersive view).
+| Asset | State machine / view model | Properties |
+|---|---|---|
+| `rider.riv` | `Ride` / `Ride` | `isRiding`, `cadence`, `effort` (0–1), `isSprint`, `isRecovery`, `isSpeaking` (booleans/numbers), `rewardPulse`, `prPulse` (triggers) |
+| `effort-aura.riv` | `Aura` / `Aura` | `intensity` (0–1), `isSprint`, `flowPulse` |
+| `coach-orb.riv` | `Coach` / `Coach` | `emotion` (0 calm…3 celebratory), `isSpeaking`, `celebrate` |
+| `flow-badge.riv` | `Badge` / `Badge` | `flowTier` (0–4), `streak`, `milestone`, `levelUp` |
 
-Until `rider.riv` is exported here, the HUD renders a lightweight CSS
-fallback orb so the app stays shippable.
+The React wrappers live in `app/components/features/ride/rive-*.tsx`:
 
-## Rive editor contract
+- `RiveRider` (mounted in `ride-hud.tsx`, desktop immersive view)
+- `RiveEffortAura` (background layer behind the HUD)
+- `RiveCoachOrb` (beside `CoachAvatar` in coach cards)
+- `RiveFlowBadge` (hero + dashboard gamification signal)
+
+Until a `.riv` exists here, each wrapper renders a graceful fallback (or
+nothing, for the aura) so the app stays shippable.
+
+## Rive editor contract (rider)
 
 Build a character in the Rive editor with a **state machine named `Ride`**
-exposing these inputs. The wrapper drives them from live ride state.
+bound to a view model with the properties above. The wrapper drives them
+from live ride state.
 
-| Input         | Type     | Source                  | Drives                                  |
+| Property      | Type     | Source                  | Drives                                  |
 |---------------|----------|-------------------------|-----------------------------------------|
 | `isRiding`    | bool     | ride store `isActive`   | active vs idle posture                  |
 | `cadence`     | number   | telemetry `cadence`     | pedal speed (0–200 RPM)                 |
@@ -29,9 +43,9 @@ exposing these inputs. The wrapper drives them from live ride state.
 ## Export checklist
 
 1. Rig the character (bones, mesh) in Rive.
-2. Create state machine `Ride` with the inputs above.
-3. Wire inputs to animations (blend trees / timelines).
-4. Export `.riv` → save as `rider.riv` in this folder.
+2. Create state machine `Ride` bound to a `Ride` view model with the properties above.
+3. Wire properties to animations (blend trees / timelines).
+4. Export `.riv` → save as `rider.riv` in this folder (or author `rive/rider/scene.rml` and run `pnpm rive:build`).
 5. Reload the live ride page — the avatar replaces the fallback orb.
 
 ## Submission notes (Rive Interactive Character Challenge)

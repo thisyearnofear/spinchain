@@ -1,5 +1,5 @@
 <Rive version="1" kind="fragment">
-    <Artboard defaultStateMachineId="0:7" styleId="0:5" width="160" height="160" name="CoachOrb" id="0:2">
+    <Artboard defaultStateMachineId="0:7" viewModelId="0:80" styleId="0:5" width="160" height="160" name="CoachOrb" id="0:2">
         <LayoutComponentStyle name="Artboard Style" id="0:5"/>
 
         <!-- Celebratory spark top-right. -->
@@ -24,46 +24,59 @@
         </Node>
 
         <StateMachine name="Coach" id="0:7">
-            <StateMachineNumber name="emotion" id="0:40"/>
-            <StateMachineBool name="isSpeaking" id="0:41"/>
-            <StateMachineTrigger name="celebrate" id="0:42"/>
-
             <StateMachineLayer name="Mood" id="0:8">
                 <AnyState x="560" y="-140">
                     <StateTransition stateToId="0:15" duration="260" interpolationType="linear">
-                        <TransitionNumberCondition inputId="0:40" opValue="greaterThan" value="2.5"/>
-                    </StateTransition>
-                    <StateTransition stateToId="0:15" duration="260" interpolationType="linear">
-                        <TransitionTriggerCondition inputId="0:42"/>
-                    </StateTransition>
-                    <StateTransition stateToId="0:14" duration="260" interpolationType="linear">
-                        <TransitionNumberCondition inputId="0:40" opValue="greaterThan" value="1.5"/>
-                    </StateTransition>
-                    <StateTransition stateToId="0:13" duration="260" interpolationType="linear">
-                        <TransitionNumberCondition inputId="0:40" opValue="greaterThan" value="0.5"/>
-                    </StateTransition>
-                    <StateTransition stateToId="0:12" duration="260" interpolationType="linear">
-                        <TransitionNumberCondition inputId="0:40" opValue="lessThanOrEqual" value="0.5"/>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyTrigger>
+                                    <DataBindContext sourcePathIds="0:80-0:83" propertyKey="686"/>
+                                </BindablePropertyTrigger>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
                     </StateTransition>
                 </AnyState>
                 <ExitState x="720" y="-140"/>
                 <EntryState>
-                    <StateTransition stateToId="0:13"/>
+                    <StateTransition stateToId="0:12"/>
                 </EntryState>
 
-                <AnimationState x="160" y="0" animationId="0:60" id="0:12"/>
-                <AnimationState x="340" y="0" animationId="0:61" id="0:13"/>
-                <AnimationState x="520" y="0" animationId="0:62" id="0:14"/>
-                <AnimationState x="700" y="0" animationId="0:63" id="0:15"/>
+                <BlendState1DViewModel x="160" y="0" id="0:12">
+                    <BindablePropertyNumber>
+                        <DataBindContext sourcePathIds="0:80-0:81" propertyKey="636"/>
+                    </BindablePropertyNumber>
+                    <BlendAnimation1D animationId="0:60" value="0"/>
+                    <BlendAnimation1D animationId="0:61" value="1"/>
+                    <BlendAnimation1D animationId="0:62" value="2"/>
+                    <BlendAnimation1D animationId="0:63" value="3"/>
+                </BlendState1DViewModel>
+                <AnimationState x="700" y="0" animationId="0:63" id="0:15">
+                    <StateTransition stateToId="0:12" duration="300" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>
+                </AnimationState>
             </StateMachineLayer>
 
             <StateMachineLayer name="Talk" id="0:9">
                 <AnyState x="560" y="120">
                     <StateTransition stateToId="0:17" duration="180" interpolationType="linear">
-                        <TransitionBoolCondition inputId="0:41" opValue="equal"/>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:82" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
                     </StateTransition>
                     <StateTransition stateToId="0:16" duration="180" interpolationType="linear">
-                        <TransitionBoolCondition inputId="0:41" opValue="notEqual"/>
+                        <TransitionViewModelCondition opValue="notEqual">
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:82" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
                     </StateTransition>
                 </AnyState>
                 <ExitState x="720" y="120"/>
@@ -183,4 +196,14 @@
             </KeyedObject>
         </LinearAnimation>
     </Artboard>
+
+    <ViewModel defaultInstanceId="0:84" name="Coach" id="0:80">
+        <ViewModelPropertyNumber name="emotion" id="0:81"/>
+        <ViewModelPropertyBoolean name="isSpeaking" id="0:82"/>
+        <ViewModelPropertyTrigger name="celebrate" id="0:83"/>
+        <ViewModelInstance exports="true" name="Default" id="0:84">
+            <ViewModelInstanceNumber propertyValue="1" viewModelPropertyId="0:81"/>
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:82"/>
+        </ViewModelInstance>
+    </ViewModel>
 </Rive>

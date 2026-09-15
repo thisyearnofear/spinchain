@@ -3,9 +3,9 @@
 /**
  * RiveEffortAura — Rive-powered effort glow that replaces the canvas gradient.
  *
- * State machine `Aura` inputs:
+ * Artboard `EffortAura`, state machine `Aura`, view model `Aura`:
  *   intensity : number  — 0-1 normalized effort; drives Calm/Warm/Hot
- *   isSprint  : bool    — forces Hot posture during sprint intervals
+ *   isSprint  : boolean — forces Hot posture during sprint intervals
  *   flowPulse : trigger — fire on flow-tier up / milestone
  *
  * Source: rive/effort-aura/scene.rml → public/rive/effort-aura.riv
@@ -13,7 +13,14 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useRive } from "@rive-app/react-canvas";
+import {
+  useRive,
+  useViewModel,
+  useViewModelInstance,
+  useViewModelInstanceBoolean,
+  useViewModelInstanceNumber,
+  useViewModelInstanceTrigger,
+} from "@rive-app/react-canvas";
 import { useTelemetryStore, selectEffort } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 
@@ -57,27 +64,28 @@ export function RiveEffortAura({
     src: RIVE_SRC,
     stateMachines: STATE_MACHINE,
     autoplay: true,
+    autoBind: true,
   });
+  const viewModel = useViewModel(rive);
+  const viewModelInstance = useViewModelInstance(viewModel, { rive });
+
+  const { setValue: setIntensity } = useViewModelInstanceNumber("intensity", viewModelInstance);
+  const { setValue: setIsSprint } = useViewModelInstanceBoolean("isSprint", viewModelInstance);
+  const { trigger: fireFlowPulse } = useViewModelInstanceTrigger("flowPulse", viewModelInstance);
 
   useEffect(() => {
-    if (!rive) return;
-    const inputs = rive.stateMachineInputs(STATE_MACHINE);
-    if (!inputs) return;
-    inputs.find((i) => i.name === "intensity")!.value = intensity as never;
-    const sprint = inputs.find((i) => i.name === "isSprint");
-    if (sprint) sprint.value = isSprint as never;
-  }, [rive, intensity, isSprint]);
+    setIntensity?.(intensity);
+  }, [setIntensity, intensity]);
+  useEffect(() => {
+    setIsSprint?.(isSprint);
+  }, [setIsSprint, isSprint]);
 
   const lastPulseRef = useRef(pulseKey);
   useEffect(() => {
-    if (!rive || pulseKey === lastPulseRef.current) return;
+    if (pulseKey === lastPulseRef.current) return;
     lastPulseRef.current = pulseKey;
-    const trigger = rive
-      .stateMachineInputs(STATE_MACHINE)
-      ?.find((i) => i.name === "flowPulse");
-    if (trigger && typeof (trigger as { fire?: () => void }).fire === "function")
-      (trigger as unknown as { fire: () => void }).fire();
-  }, [rive, pulseKey]);
+    fireFlowPulse?.();
+  }, [pulseKey, fireFlowPulse]);
 
   if (assetReady === null) return null;
   if (assetReady === false || !RiveComponent) return null;

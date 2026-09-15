@@ -1,5 +1,5 @@
 <Rive version="1" kind="fragment">
-    <Artboard defaultStateMachineId="0:7" styleId="0:5" width="160" height="160" name="Rider" id="0:2">
+    <Artboard defaultStateMachineId="0:7" viewModelId="0:80" styleId="0:5" width="160" height="160" name="Rider" id="0:2">
         <LayoutComponentStyle name="Artboard Style" id="0:5"/>
 
         <!-- Draw order is front-to-back: first declared paints on top. -->
@@ -18,17 +18,41 @@
 
         <!-- Rider assembly. -->
         <Node x="80" y="92" name="Cyclist" id="0:20">
+            <Shape x="6" y="-33" name="Mouth" id="0:34" opacity="0">
+                <Rectangle width="10" height="4" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="E6FFFFFF" name="Color"/></Fill>
+            </Shape>
+            <Shape x="0" y="-46" name="Helmet" id="0:27">
+                <Ellipse width="22" height="14" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF6D7CFF" name="Color"/></Fill>
+            </Shape>
             <Shape x="0" y="-34" name="Head" id="0:26">
                 <Ellipse width="18" height="18" originX="0.5" originY="0.5" name="Path"/>
                 <Fill name="Fill"><SolidColor colorValue="FFF1F5F9" name="Color"/></Fill>
+            </Shape>
+            <Shape x="-16" y="-12" name="Saddle" id="0:28">
+                <Rectangle width="14" height="5" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
+            </Shape>
+            <Shape x="26" y="-10" name="Handlebar" id="0:29">
+                <Rectangle width="5" height="12" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
             </Shape>
             <Shape name="Body" id="0:22">
                 <Rectangle width="56" height="14" cornerRadiusTL="7" originX="0.5" originY="0.5" name="Path"/>
                 <Fill name="Fill"><SolidColor colorValue="FFFBBF24" name="Color"/></Fill>
             </Shape>
+            <Shape x="-28" y="22" name="RearHub" id="0:32">
+                <Ellipse width="10" height="10" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF94A3B8" name="Color"/></Fill>
+            </Shape>
             <Shape x="-28" y="22" name="RearWheel" id="0:23">
                 <Ellipse width="44" height="44" originX="0.5" originY="0.5" name="Path"/>
                 <Stroke thickness="6" name="Stroke"><SolidColor colorValue="FF334155" name="Color"/></Stroke>
+            </Shape>
+            <Shape x="28" y="22" name="FrontHub" id="0:33">
+                <Ellipse width="10" height="10" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF94A3B8" name="Color"/></Fill>
             </Shape>
             <Shape x="28" y="22" name="FrontWheel" id="0:24">
                 <Ellipse width="44" height="44" originX="0.5" originY="0.5" name="Path"/>
@@ -37,27 +61,50 @@
         </Node>
 
         <StateMachine name="Ride" id="0:7">
-            <StateMachineBool name="isRiding" id="0:40"/>
-            <StateMachineNumber name="cadence" id="0:41"/>
-            <StateMachineNumber name="effort" id="0:42"/>
-            <StateMachineBool name="isSprint" id="0:43"/>
-            <StateMachineBool name="isRecovery" id="0:44"/>
-            <StateMachineBool name="isSpeaking" id="0:45"/>
-            <StateMachineTrigger name="rewardPulse" id="0:46"/>
-            <StateMachineTrigger name="prPulse" id="0:47"/>
-
             <StateMachineLayer name="Main" id="0:8">
                 <AnyState x="560" y="-140">
                     <StateTransition stateToId="0:14" duration="220" interpolationType="linear">
-                        <TransitionBoolCondition inputId="0:43" opValue="equal"/>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:84" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="0:15" duration="320" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:85" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
                     </StateTransition>
                     <StateTransition stateToId="0:13" duration="280" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
-                        <TransitionBoolCondition inputId="0:40" opValue="equal"/>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:81" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
                     </StateTransition>
                     <StateTransition stateToId="0:12" duration="280" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
-                        <TransitionBoolCondition inputId="0:40" opValue="notEqual"/>
+                        <TransitionViewModelCondition opValue="notEqual">
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:81" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
                     </StateTransition>
                 </AnyState>
                 <ExitState x="720" y="-140"/>
@@ -68,15 +115,30 @@
                 <AnimationState x="160" y="0" animationId="0:60" id="0:12"/>
                 <AnimationState x="340" y="0" animationId="0:61" id="0:13"/>
                 <AnimationState x="520" y="0" animationId="0:62" id="0:14"/>
+                <AnimationState x="700" y="0" animationId="0:65" id="0:15"/>
             </StateMachineLayer>
 
             <StateMachineLayer name="FX" id="0:9">
                 <AnyState x="560" y="120">
                     <StateTransition stateToId="0:17" duration="150" interpolationType="linear">
-                        <TransitionTriggerCondition inputId="0:46"/>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyTrigger>
+                                    <DataBindContext sourcePathIds="0:80-0:87" propertyKey="686"/>
+                                </BindablePropertyTrigger>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
                     </StateTransition>
                     <StateTransition stateToId="0:17" duration="150" interpolationType="linear">
-                        <TransitionTriggerCondition inputId="0:47"/>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyTrigger>
+                                    <DataBindContext sourcePathIds="0:80-0:88" propertyKey="686"/>
+                                </BindablePropertyTrigger>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
                     </StateTransition>
                 </AnyState>
                 <ExitState x="720" y="120"/>
@@ -89,12 +151,44 @@
                     <StateTransition stateToId="0:16" duration="300" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>
                 </AnimationState>
             </StateMachineLayer>
+
+            <StateMachineLayer name="Speak" id="0:10">
+                <AnyState x="560" y="260">
+                    <StateTransition stateToId="0:19" duration="180" interpolationType="linear">
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:86" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="0:18" duration="180" interpolationType="linear">
+                        <TransitionViewModelCondition opValue="notEqual">
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:86" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="720" y="260"/>
+                <EntryState>
+                    <StateTransition stateToId="0:18"/>
+                </EntryState>
+
+                <AnimationState x="160" y="260" animationId="0:66" id="0:18"/>
+                <AnimationState x="340" y="260" animationId="0:67" id="0:19"/>
+            </StateMachineLayer>
         </StateMachine>
 
-        <!-- Idle: upright, flame + burst hidden. -->
+        <!-- Idle: upright, flame + burst hidden. Keys are absolute. -->
         <LinearAnimation duration="1" name="Idle" id="0:60">
             <KeyedObject objectId="0:20">
-                <KeyedProperty propertyKey="14"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="14"><KeyFrameDouble value="92" frame="0" interpolationType="hold"/></KeyedProperty>
                 <KeyedProperty propertyKey="15"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:31">
@@ -107,15 +201,15 @@
             </KeyedObject>
         </LinearAnimation>
 
-        <!-- Riding: 60-frame pedal bob + wheel spin. -->
+        <!-- Riding: 60-frame pedal bob + wheel spin. Node y is absolute (authored 92). -->
         <LinearAnimation duration="60" name="Riding" id="0:61">
             <KeyedObject objectId="0:20">
                 <KeyedProperty propertyKey="14">
-                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
-                    <KeyFrameDouble value="-4" frame="15" interpolationType="linear"/>
-                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
-                    <KeyFrameDouble value="-4" frame="45" interpolationType="linear"/>
-                    <KeyFrameDouble value="0" frame="60" interpolationType="linear"/>
+                    <KeyFrameDouble value="92" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="88" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="92" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="88" frame="45" interpolationType="linear"/>
+                    <KeyFrameDouble value="92" frame="60" interpolationType="linear"/>
                 </KeyedProperty>
                 <KeyedProperty propertyKey="15">
                     <KeyFrameDouble value="0.06" frame="0" interpolationType="hold"/>
@@ -138,15 +232,15 @@
             </KeyedObject>
         </LinearAnimation>
 
-        <!-- Sprint: leaned forward, flame fully on. -->
+        <!-- Sprint: leaned forward, flame fully on. Node y is absolute (authored 92). -->
         <LinearAnimation duration="60" name="Sprint" id="0:62">
             <KeyedObject objectId="0:20">
                 <KeyedProperty propertyKey="14">
-                    <KeyFrameDouble value="-2" frame="0" interpolationType="linear"/>
-                    <KeyFrameDouble value="-6" frame="15" interpolationType="linear"/>
-                    <KeyFrameDouble value="-2" frame="30" interpolationType="linear"/>
-                    <KeyFrameDouble value="-6" frame="45" interpolationType="linear"/>
-                    <KeyFrameDouble value="-2" frame="60" interpolationType="linear"/>
+                    <KeyFrameDouble value="90" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="86" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="90" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="86" frame="45" interpolationType="linear"/>
+                    <KeyFrameDouble value="90" frame="60" interpolationType="linear"/>
                 </KeyedProperty>
                 <KeyedProperty propertyKey="15">
                     <KeyFrameDouble value="0.18" frame="0" interpolationType="hold"/>
@@ -171,6 +265,35 @@
                     <KeyFrameDouble value="1.3" frame="30" interpolationType="linear"/>
                     <KeyFrameDouble value="1" frame="60" interpolationType="linear"/>
                 </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- Recovery: sat back up, deep breath, flame out. Node y is absolute (authored 92). -->
+        <LinearAnimation duration="60" name="Recovery" id="0:65">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="14">
+                    <KeyFrameDouble value="94" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="96" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="94" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-0.06" frame="0" interpolationType="hold"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:23">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="3.1415927" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:24">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="3.1415927" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:31">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
             </KeyedObject>
         </LinearAnimation>
 
@@ -206,5 +329,45 @@
                 <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
             </KeyedObject>
         </LinearAnimation>
+
+        <!-- Mute: mouth hidden. -->
+        <LinearAnimation duration="1" name="Mute" id="0:66">
+            <KeyedObject objectId="0:34">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- Chatting: mouth visible with bounce while coach speaks. -->
+        <LinearAnimation duration="30" name="Chatting" id="0:67">
+            <KeyedObject objectId="0:34">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.7" frame="7" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.8" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.5" frame="22" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
     </Artboard>
+
+    <ViewModel defaultInstanceId="0:89" name="Ride" id="0:80">
+        <ViewModelPropertyBoolean name="isRiding" id="0:81"/>
+        <ViewModelPropertyNumber name="cadence" id="0:82"/>
+        <ViewModelPropertyNumber name="effort" id="0:83"/>
+        <ViewModelPropertyBoolean name="isSprint" id="0:84"/>
+        <ViewModelPropertyBoolean name="isRecovery" id="0:85"/>
+        <ViewModelPropertyBoolean name="isSpeaking" id="0:86"/>
+        <ViewModelPropertyTrigger name="rewardPulse" id="0:87"/>
+        <ViewModelPropertyTrigger name="prPulse" id="0:88"/>
+        <ViewModelInstance exports="true" name="Default" id="0:89">
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:81"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:82"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:83"/>
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:84"/>
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:85"/>
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:86"/>
+        </ViewModelInstance>
+    </ViewModel>
 </Rive>

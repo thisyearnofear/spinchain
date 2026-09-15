@@ -3,9 +3,9 @@
 /**
  * RiveCoachOrb — Rive-powered AI coach presence.
  *
- * State machine `Coach` inputs:
- *   emotion     : number — 0 calm, 1 focused, 2 intense, 3 celebratory
- *   isSpeaking  : bool   — mouth bounce + halo breathe while coach talks
+ * Artboard `CoachOrb`, state machine `Coach`, view model `Coach`:
+ *   emotion     : number  — 0 calm, 1 focused, 2 intense, 3 celebratory
+ *   isSpeaking  : boolean — mouth bounce + halo breathe while coach talks
  *   celebrate   : trigger — fire on PR / milestone celebration
  *
  * Source: rive/coach-orb/scene.rml → public/rive/coach-orb.riv
@@ -13,7 +13,14 @@
  */
 
 import { useEffect, useState } from "react";
-import { useRive } from "@rive-app/react-canvas";
+import {
+  useRive,
+  useViewModel,
+  useViewModelInstance,
+  useViewModelInstanceBoolean,
+  useViewModelInstanceNumber,
+  useViewModelInstanceTrigger,
+} from "@rive-app/react-canvas";
 
 const RIVE_SRC = "/rive/coach-orb.riv";
 const STATE_MACHINE = "Coach";
@@ -57,29 +64,27 @@ export function RiveCoachOrb({
     src: RIVE_SRC,
     stateMachines: STATE_MACHINE,
     autoplay: true,
+    autoBind: true,
   });
+  const viewModel = useViewModel(rive);
+  const viewModelInstance = useViewModelInstance(viewModel, { rive });
+
+  const { setValue: setEmotion } = useViewModelInstanceNumber("emotion", viewModelInstance);
+  const { setValue: setIsSpeaking } = useViewModelInstanceBoolean("isSpeaking", viewModelInstance);
+  const { trigger: fireCelebrate } = useViewModelInstanceTrigger("celebrate", viewModelInstance);
 
   useEffect(() => {
-    if (!rive) return;
-    const inputs = rive.stateMachineInputs(STATE_MACHINE);
-    if (!inputs) return;
-    const set = (name: string, value: number | boolean) => {
-      const input = inputs.find((i) => i.name === name);
-      if (input) input.value = value as never;
-    };
-    set("emotion", EMOTION_TO_NUMBER[emotion]);
-    set("isSpeaking", isSpeaking);
-  }, [rive, emotion, isSpeaking]);
+    setEmotion?.(EMOTION_TO_NUMBER[emotion]);
+  }, [setEmotion, emotion]);
+  useEffect(() => {
+    setIsSpeaking?.(isSpeaking);
+  }, [setIsSpeaking, isSpeaking]);
 
   // Auto-fire celebrate when entering celebratory emotion.
   useEffect(() => {
-    if (!rive || emotion !== "celebratory") return;
-    const trigger = rive
-      .stateMachineInputs(STATE_MACHINE)
-      ?.find((i) => i.name === "celebrate");
-    if (trigger && typeof (trigger as { fire?: () => void }).fire === "function")
-      (trigger as unknown as { fire: () => void }).fire();
-  }, [rive, emotion]);
+    if (emotion !== "celebratory") return;
+    fireCelebrate?.();
+  }, [emotion, fireCelebrate]);
 
   if (assetReady === null) return null;
   if (assetReady === false || !RiveComponent) return <>{fallback}</>;

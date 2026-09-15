@@ -54,3 +54,50 @@ jobs:
 
       - name: Test
         run: pnpm exec vitest run
+
+  rive:
+    name: Rive verify + goldens
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Rive CLI
+        run: curl -fsSL https://releases.rive.app/cli/install.sh | sh
+
+      # Offline, no login needed: --verify/--once/--screenshot/--data-dump
+      # never touch the network. Mirrors `pnpm rive:verify` without node.
+      - name: Verify all Rive projects
+        run: |
+          export PATH="$HOME/.rive/bin:$PATH"
+          rive rive/rider --verify
+          rive rive/effort-aura --verify
+          rive rive/coach-orb --verify
+          rive rive/flow-badge --verify
+
+      # Headless drive check: proves the view-model properties the wrappers
+      # set are addressable and flip the state machines.
+      - name: Drive view models headless
+        run: |
+          export PATH="$HOME/.rive/bin:$PATH"
+          rive rive/rider --data="isRiding=true" --data-dump=- | grep -q '"changed": true'
+          rive rive/effort-aura --data="intensity=0.9" --data-dump=- | grep -q '"changed": true'
+          rive rive/coach-orb --data="emotion=2" --data-dump=- | grep -q '"changed": true'
+          rive rive/flow-badge --data="flowTier=3" --data-dump=- | grep -q '"changed": true'
+
+      - name: Render screenshot goldens
+        run: |
+          export PATH="$HOME/.rive/bin:$PATH"
+          mkdir -p rive-goldens
+          rive rive/rider --screenshot=rive-goldens/rider.png
+          rive rive/effort-aura --screenshot=rive-goldens/effort-aura.png
+          rive rive/coach-orb --screenshot=rive-goldens/coach-orb.png --advance=15
+          rive rive/flow-badge --screenshot=rive-goldens/flow-badge.png
+
+      - name: Upload goldens
+        uses: actions/upload-artifact@v4
+        with:
+          name: rive-goldens
+          path: rive-goldens/
+          retention-days: 14
