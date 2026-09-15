@@ -849,7 +849,7 @@ app/lib/
 ├── gpu-probe.ts            # GPU capability detection
 ├── route-library.ts        # Route storage
 ├── route-generation.ts     # Route generation
-└── profile-service.ts      # Rider profiles
+└── profile-service.ts      # Rider profiles (Web3.bio primary + ENSData fallback; ENS only, mainnet)
 ```
 
 ---
