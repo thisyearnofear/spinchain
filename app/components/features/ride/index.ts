@@ -18,6 +18,12 @@ export { RideLoading, RideNotFound } from "./ride-loading";
 // RewardClaimStatus moved to @/app/lib/rewards (was in ride-completion.tsx)
 export type { RewardClaimStatus } from "@/app/lib/rewards";
 
+// ─── Rive trio (CLI-built, public/rive/*.riv) ──────────────────────
+export { RiveRider } from "./rive-rider";
+export { RiveEffortAura } from "./rive-effort-aura";
+export { RiveCoachOrb } from "./rive-coach-orb";
+export { RiveFlowBadge } from "./rive-flow-badge";
+
 // ─── Ride experience v2 (delight upgrades) ─────────────────────────
 export { RideActivationSequence } from "./ride-activation";
 export { RideHUDOverlayV2 } from "./ride-hud-overlay-v2";

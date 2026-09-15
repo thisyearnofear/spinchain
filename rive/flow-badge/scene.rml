@@ -1,0 +1,243 @@
+<Rive version="1" kind="fragment">
+    <Artboard defaultStateMachineId="0:7" styleId="0:5" width="200" height="120" name="FlowBadge" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5"/>
+
+        <!-- Milestone burst top-right. -->
+        <Shape x="164" y="26" rotation="0.7853982" name="Burst" id="0:33" opacity="0" scaleX="0" scaleY="0">
+            <Rectangle width="16" height="16" cornerRadiusTL="4" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFBBF24" name="Color"/></Fill>
+        </Shape>
+
+        <!-- Medallion left. -->
+        <Node x="52" y="60" name="Medal" id="0:20">
+            <Shape name="Core" id="0:22">
+                <Ellipse width="64" height="64" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF38BDF8" name="Color" id="0:25"/></Fill>
+            </Shape>
+            <Shape name="Ring" id="0:23">
+                <Ellipse width="80" height="80" originX="0.5" originY="0.5" name="Path"/>
+                <Stroke thickness="5" name="Stroke"><SolidColor colorValue="FF38BDF8" name="Color" id="0:26"/></Stroke>
+            </Shape>
+        </Node>
+
+        <!-- 5 tier pips, left-to-right. -->
+        <Node x="112" y="60" name="Pips" id="0:30">
+            <Shape x="0" y="0" name="Pip1" id="0:50" opacity="1">
+                <Ellipse width="10" height="10" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF38BDF8" name="Color" id="0:55"/></Fill>
+            </Shape>
+            <Shape x="18" y="0" name="Pip2" id="0:51" opacity="0.25">
+                <Ellipse width="10" height="10" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF34D399" name="Color" id="0:56"/></Fill>
+            </Shape>
+            <Shape x="36" y="0" name="Pip3" id="0:52" opacity="0.25">
+                <Ellipse width="10" height="10" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FFF59E0B" name="Color" id="0:57"/></Fill>
+            </Shape>
+            <Shape x="54" y="0" name="Pip4" id="0:53" opacity="0.25">
+                <Ellipse width="10" height="10" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FFF97316" name="Color" id="0:58"/></Fill>
+            </Shape>
+            <Shape x="72" y="0" name="Pip5" id="0:54" opacity="0.25">
+                <Ellipse width="10" height="10" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FFEF4444" name="Color" id="0:59"/></Fill>
+            </Shape>
+        </Node>
+
+        <StateMachine name="Badge" id="0:7">
+            <StateMachineNumber name="flowTier" id="0:90"/>
+            <StateMachineNumber name="streak" id="0:91"/>
+            <StateMachineTrigger name="milestone" id="0:92"/>
+            <StateMachineTrigger name="levelUp" id="0:93"/>
+
+            <StateMachineLayer name="Main" id="0:8">
+                <AnyState x="560" y="-140">
+                    <StateTransition stateToId="0:19" duration="260" interpolationType="linear">
+                        <TransitionNumberCondition inputId="0:90" opValue="greaterThan" value="3.5"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:18" duration="260" interpolationType="linear">
+                        <TransitionNumberCondition inputId="0:90" opValue="greaterThan" value="2.5"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:17" duration="260" interpolationType="linear">
+                        <TransitionNumberCondition inputId="0:90" opValue="greaterThan" value="1.5"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:16" duration="260" interpolationType="linear">
+                        <TransitionNumberCondition inputId="0:90" opValue="greaterThan" value="0.5"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:12" duration="260" interpolationType="linear">
+                        <TransitionNumberCondition inputId="0:90" opValue="lessThanOrEqual" value="0.5"/>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="720" y="-140"/>
+                <EntryState>
+                    <StateTransition stateToId="0:12"/>
+                </EntryState>
+
+                <AnimationState x="100" y="0" animationId="0:60" id="0:12"/>
+                <AnimationState x="260" y="0" animationId="0:61" id="0:16"/>
+                <AnimationState x="420" y="0" animationId="0:62" id="0:17"/>
+                <AnimationState x="580" y="0" animationId="0:63" id="0:18"/>
+                <AnimationState x="740" y="0" animationId="0:64" id="0:19"/>
+            </StateMachineLayer>
+
+            <StateMachineLayer name="FX" id="0:9">
+                <AnyState x="560" y="120">
+                    <StateTransition stateToId="0:35" duration="150" interpolationType="linear">
+                        <TransitionTriggerCondition inputId="0:92"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:35" duration="150" interpolationType="linear">
+                        <TransitionTriggerCondition inputId="0:93"/>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="720" y="120"/>
+                <EntryState>
+                    <StateTransition stateToId="0:34"/>
+                </EntryState>
+
+                <AnimationState x="160" y="120" animationId="0:66" id="0:34"/>
+                <AnimationState x="340" y="120" animationId="0:65" id="0:35">
+                    <StateTransition stateToId="0:34" duration="350" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Tier 0 Calm #38BDF8, 1 pip lit. -->
+        <LinearAnimation duration="1" name="Tier0" id="0:60">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:25">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FF38BDF8" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:26">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FF38BDF8" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:50"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:51"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0.25" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:52"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0.25" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:53"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0.25" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:54"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0.25" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+
+        <!-- Tier 1 Focused #34D399, 2 pips. -->
+        <LinearAnimation duration="1" name="Tier1" id="0:61">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1.03" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1.03" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:25">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FF34D399" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:26">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FF34D399" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:50"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:51"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:52"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0.25" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:53"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0.25" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:54"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0.25" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+
+        <!-- Tier 2 Flow #F59E0B, 3 pips. -->
+        <LinearAnimation duration="1" name="Tier2" id="0:62">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1.06" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1.06" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:25">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FFF59E0B" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:26">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FFF59E0B" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:50"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:51"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:52"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:53"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0.25" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:54"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0.25" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+
+        <!-- Tier 3 Super #F97316, 4 pips. -->
+        <LinearAnimation duration="1" name="Tier3" id="0:63">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1.1" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1.1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:25">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FFF97316" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:26">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FFF97316" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:50"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:51"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:52"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:53"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:54"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0.25" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+
+        <!-- Tier 4 Mastery #EF4444, all 5 pips. -->
+        <LinearAnimation duration="1" name="Tier4" id="0:64">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1.14" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1.14" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:25">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FFEF4444" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:26">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FFEF4444" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:50"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:51"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:52"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:53"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:54"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+
+        <!-- Milestone pop. -->
+        <LinearAnimation duration="30" name="Pop" id="0:65">
+            <KeyedObject objectId="0:33">
+                <KeyedProperty propertyKey="16">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.3" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="17">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.3" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="18">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.15" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="17">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.15" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <LinearAnimation duration="1" name="FxIdle" id="0:66">
+            <KeyedObject objectId="0:33">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

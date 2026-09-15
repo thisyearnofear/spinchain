@@ -1,0 +1,210 @@
+<Rive version="1" kind="fragment">
+    <Artboard defaultStateMachineId="0:7" styleId="0:5" width="160" height="160" name="Rider" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5"/>
+
+        <!-- Draw order is front-to-back: first declared paints on top. -->
+
+        <!-- Celebrate burst: pops on rewardPulse / prPulse. -->
+        <Shape x="80" y="34" rotation="0.7853982" name="Burst" id="0:30" opacity="0" scaleX="0" scaleY="0">
+            <Rectangle width="16" height="16" cornerRadiusTL="4" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFBBF24" name="Color"/></Fill>
+        </Shape>
+
+        <!-- Sprint flame trailing behind. -->
+        <Shape x="44" y="96" name="Flame" id="0:31" opacity="0">
+            <Ellipse width="26" height="14" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFB7185" name="Color"/></Fill>
+        </Shape>
+
+        <!-- Rider assembly. -->
+        <Node x="80" y="92" name="Cyclist" id="0:20">
+            <Shape x="0" y="-34" name="Head" id="0:26">
+                <Ellipse width="18" height="18" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FFF1F5F9" name="Color"/></Fill>
+            </Shape>
+            <Shape name="Body" id="0:22">
+                <Rectangle width="56" height="14" cornerRadiusTL="7" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FFFBBF24" name="Color"/></Fill>
+            </Shape>
+            <Shape x="-28" y="22" name="RearWheel" id="0:23">
+                <Ellipse width="44" height="44" originX="0.5" originY="0.5" name="Path"/>
+                <Stroke thickness="6" name="Stroke"><SolidColor colorValue="FF334155" name="Color"/></Stroke>
+            </Shape>
+            <Shape x="28" y="22" name="FrontWheel" id="0:24">
+                <Ellipse width="44" height="44" originX="0.5" originY="0.5" name="Path"/>
+                <Stroke thickness="6" name="Stroke"><SolidColor colorValue="FF334155" name="Color"/></Stroke>
+            </Shape>
+        </Node>
+
+        <StateMachine name="Ride" id="0:7">
+            <StateMachineBool name="isRiding" id="0:40"/>
+            <StateMachineNumber name="cadence" id="0:41"/>
+            <StateMachineNumber name="effort" id="0:42"/>
+            <StateMachineBool name="isSprint" id="0:43"/>
+            <StateMachineBool name="isRecovery" id="0:44"/>
+            <StateMachineBool name="isSpeaking" id="0:45"/>
+            <StateMachineTrigger name="rewardPulse" id="0:46"/>
+            <StateMachineTrigger name="prPulse" id="0:47"/>
+
+            <StateMachineLayer name="Main" id="0:8">
+                <AnyState x="560" y="-140">
+                    <StateTransition stateToId="0:14" duration="220" interpolationType="linear">
+                        <TransitionBoolCondition inputId="0:43" opValue="equal"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:13" duration="280" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionBoolCondition inputId="0:40" opValue="equal"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:12" duration="280" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionBoolCondition inputId="0:40" opValue="notEqual"/>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="720" y="-140"/>
+                <EntryState>
+                    <StateTransition stateToId="0:12"/>
+                </EntryState>
+
+                <AnimationState x="160" y="0" animationId="0:60" id="0:12"/>
+                <AnimationState x="340" y="0" animationId="0:61" id="0:13"/>
+                <AnimationState x="520" y="0" animationId="0:62" id="0:14"/>
+            </StateMachineLayer>
+
+            <StateMachineLayer name="FX" id="0:9">
+                <AnyState x="560" y="120">
+                    <StateTransition stateToId="0:17" duration="150" interpolationType="linear">
+                        <TransitionTriggerCondition inputId="0:46"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:17" duration="150" interpolationType="linear">
+                        <TransitionTriggerCondition inputId="0:47"/>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="720" y="120"/>
+                <EntryState>
+                    <StateTransition stateToId="0:16"/>
+                </EntryState>
+
+                <AnimationState x="160" y="120" animationId="0:64" id="0:16"/>
+                <AnimationState x="340" y="120" animationId="0:63" id="0:17">
+                    <StateTransition stateToId="0:16" duration="300" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Idle: upright, flame + burst hidden. -->
+        <LinearAnimation duration="1" name="Idle" id="0:60">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="14"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:31">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:30">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- Riding: 60-frame pedal bob + wheel spin. -->
+        <LinearAnimation duration="60" name="Riding" id="0:61">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="14">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-4" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="-4" frame="45" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0.06" frame="0" interpolationType="hold"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:23">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="6.2831855" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:24">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="6.2831855" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:31">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0.25" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- Sprint: leaned forward, flame fully on. -->
+        <LinearAnimation duration="60" name="Sprint" id="0:62">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="14">
+                    <KeyFrameDouble value="-2" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-6" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="-2" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="-6" frame="45" interpolationType="linear"/>
+                    <KeyFrameDouble value="-2" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0.18" frame="0" interpolationType="hold"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:23">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="12.566371" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:24">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="12.566371" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:31">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="16">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.3" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- Celebrate: burst pops in and out. -->
+        <LinearAnimation duration="30" name="Celebrate" id="0:63">
+            <KeyedObject objectId="0:30">
+                <KeyedProperty propertyKey="16">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.2" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="17">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.2" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="18">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- FX idle: burst parked at zero. -->
+        <LinearAnimation duration="1" name="FxIdle" id="0:64">
+            <KeyedObject objectId="0:30">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

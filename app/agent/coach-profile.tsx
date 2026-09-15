@@ -30,6 +30,7 @@ import {
 } from "../hooks/common/use-profile";
 import { useCoachVoice, useWorkoutAudio } from "../hooks/ai/elevenlabs";
 import { CoachAvatar } from "../components/features/coach/avatar";
+import { RiveCoachOrb } from "../components/features/ride/rive-coach-orb";
 import { VoiceToggle } from "../components/ui/voice-toggle";
 import { AudioWaveform, AudioIndicator } from "../components/ui/audio-waveform";
 import { useTelemetryStore, selectTelemetrySnapshot } from "../stores/telemetry-store";
@@ -303,6 +304,11 @@ export function CoachProfile({
             isSpeaking={isSpeaking}
             size="lg"
             avatarUrl={getAvatarUrl(instructorProfile)}
+          />
+          <RiveCoachOrb
+            emotion={isSpeaking ? "intense" : "focused"}
+            isSpeaking={isSpeaking}
+            size={72}
           />
           <div>
             <h4 className="text-xl font-bold text-white">

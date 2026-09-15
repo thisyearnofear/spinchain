@@ -1,0 +1,186 @@
+<Rive version="1" kind="fragment">
+    <Artboard defaultStateMachineId="0:7" styleId="0:5" width="160" height="160" name="CoachOrb" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5"/>
+
+        <!-- Celebratory spark top-right. -->
+        <Shape x="122" y="38" rotation="0.7853982" name="Spark" id="0:32" opacity="0" scaleX="0" scaleY="0">
+            <Rectangle width="14" height="14" cornerRadiusTL="3" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFBBF24" name="Color"/></Fill>
+        </Shape>
+
+        <Node x="80" y="84" name="Coach" id="0:20">
+            <Shape y="18" name="Mouth" id="0:27">
+                <Rectangle width="26" height="6" cornerRadiusTL="3" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="E6FFFFFF" name="Color"/></Fill>
+            </Shape>
+            <Shape name="Core" id="0:22">
+                <Ellipse width="84" height="84" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF6D7CFF" name="Color" id="0:25"/></Fill>
+            </Shape>
+            <Shape name="Halo" id="0:23">
+                <Ellipse width="116" height="116" originX="0.5" originY="0.5" name="Path"/>
+                <Stroke thickness="5" name="Stroke"><SolidColor colorValue="FF6D7CFF" name="Color" id="0:26"/></Stroke>
+            </Shape>
+        </Node>
+
+        <StateMachine name="Coach" id="0:7">
+            <StateMachineNumber name="emotion" id="0:40"/>
+            <StateMachineBool name="isSpeaking" id="0:41"/>
+            <StateMachineTrigger name="celebrate" id="0:42"/>
+
+            <StateMachineLayer name="Mood" id="0:8">
+                <AnyState x="560" y="-140">
+                    <StateTransition stateToId="0:15" duration="260" interpolationType="linear">
+                        <TransitionNumberCondition inputId="0:40" opValue="greaterThan" value="2.5"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:15" duration="260" interpolationType="linear">
+                        <TransitionTriggerCondition inputId="0:42"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:14" duration="260" interpolationType="linear">
+                        <TransitionNumberCondition inputId="0:40" opValue="greaterThan" value="1.5"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:13" duration="260" interpolationType="linear">
+                        <TransitionNumberCondition inputId="0:40" opValue="greaterThan" value="0.5"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:12" duration="260" interpolationType="linear">
+                        <TransitionNumberCondition inputId="0:40" opValue="lessThanOrEqual" value="0.5"/>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="720" y="-140"/>
+                <EntryState>
+                    <StateTransition stateToId="0:13"/>
+                </EntryState>
+
+                <AnimationState x="160" y="0" animationId="0:60" id="0:12"/>
+                <AnimationState x="340" y="0" animationId="0:61" id="0:13"/>
+                <AnimationState x="520" y="0" animationId="0:62" id="0:14"/>
+                <AnimationState x="700" y="0" animationId="0:63" id="0:15"/>
+            </StateMachineLayer>
+
+            <StateMachineLayer name="Talk" id="0:9">
+                <AnyState x="560" y="120">
+                    <StateTransition stateToId="0:17" duration="180" interpolationType="linear">
+                        <TransitionBoolCondition inputId="0:41" opValue="equal"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:16" duration="180" interpolationType="linear">
+                        <TransitionBoolCondition inputId="0:41" opValue="notEqual"/>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="720" y="120"/>
+                <EntryState>
+                    <StateTransition stateToId="0:16"/>
+                </EntryState>
+
+                <AnimationState x="160" y="120" animationId="0:65" id="0:16"/>
+                <AnimationState x="340" y="120" animationId="0:64" id="0:17"/>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- 0 calm: dim slate halo. -->
+        <LinearAnimation duration="1" name="Calm" id="0:60">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="0.94" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="0.94" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:25">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FF64748B" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:26">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FF64748B" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:32">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- 1 focused: brand indigo. -->
+        <LinearAnimation duration="1" name="Focused" id="0:61">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:25">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FF6D7CFF" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:26">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FF6D7CFF" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:32">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- 2 intense: hot rose, slightly larger. -->
+        <LinearAnimation duration="1" name="Intense" id="0:62">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1.08" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1.08" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:25">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FFFB7185" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:26">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FFFB7185" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:32">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- 3 celebratory: gold + spark. -->
+        <LinearAnimation duration="1" name="Celebratory" id="0:63">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1.12" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1.12" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:25">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FFFBBF24" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:26">
+                <KeyedProperty propertyKey="37"><KeyFrameColor value="FFFBBF24" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:32">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- Talking: mouth bounce + halo breathe, 30f loop. -->
+        <LinearAnimation duration="30" name="Talking" id="0:64">
+            <KeyedObject objectId="0:27">
+                <KeyedProperty propertyKey="17">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.8" frame="7" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.7" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.6" frame="22" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.04" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="17">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.04" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <LinearAnimation duration="1" name="Quiet" id="0:65">
+            <KeyedObject objectId="0:27">
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

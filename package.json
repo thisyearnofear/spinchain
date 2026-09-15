@@ -13,6 +13,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "rive:build": "rive rive/rider --once --quiet && rive rive/effort-aura --once --quiet && rive rive/coach-orb --once --quiet && rive rive/flow-badge --once --quiet && cp rive/rider/build/rider.riv rive/effort-aura/build/effort-aura.riv rive/coach-orb/build/coach-orb.riv rive/flow-badge/build/flow-badge.riv public/rive/",
+    "rive:verify": "rive rive/rider --verify && rive rive/effort-aura --verify && rive rive/coach-orb --verify && rive rive/flow-badge --verify",
     "doctor": "npx react-doctor@latest"
   },
   "dependencies": {

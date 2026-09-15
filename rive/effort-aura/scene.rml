@@ -1,0 +1,162 @@
+<Rive version="1" kind="fragment">
+    <Artboard defaultStateMachineId="0:7" styleId="0:5" width="400" height="400" name="EffortAura" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5"/>
+
+        <!-- Draw order front-to-back: burst first (on top), core last. -->
+
+        <Shape x="200" y="120" rotation="0.7853982" name="FlowBurst" id="0:32" opacity="0" scaleX="0" scaleY="0">
+            <Rectangle width="22" height="22" cornerRadiusTL="5" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFBBF24" name="Color"/></Fill>
+        </Shape>
+
+        <Node x="200" y="200" name="Aura" id="0:20">
+            <Shape name="HotRing" id="0:31" opacity="0">
+                <Ellipse width="170" height="170" originX="0.5" originY="0.5" name="Path"/>
+                <Stroke thickness="10" name="Stroke"><SolidColor colorValue="FFFB7185" name="Color"/></Stroke>
+            </Shape>
+            <Shape name="Mid" id="0:23" opacity="0.6">
+                <Ellipse width="220" height="220" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="997C5CFF" name="Color"/></Fill>
+            </Shape>
+            <Shape name="Core" id="0:22">
+                <Ellipse width="120" height="120" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF6D7CFF" name="Color"/></Fill>
+            </Shape>
+            <Shape name="Outer" id="0:24" opacity="0.35">
+                <Ellipse width="320" height="320" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="336D7CFF" name="Color"/></Fill>
+            </Shape>
+        </Node>
+
+        <StateMachine name="Aura" id="0:7">
+            <StateMachineNumber name="intensity" id="0:40"/>
+            <StateMachineBool name="isSprint" id="0:41"/>
+            <StateMachineTrigger name="flowPulse" id="0:42"/>
+
+            <StateMachineLayer name="Main" id="0:8">
+                <AnyState x="560" y="-140">
+                    <StateTransition stateToId="0:14" duration="300" interpolationType="linear">
+                        <TransitionBoolCondition inputId="0:41" opValue="equal"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:14" duration="300" interpolationType="linear">
+                        <TransitionNumberCondition inputId="0:40" opValue="greaterThan" value="0.66"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:13" duration="300" interpolationType="linear">
+                        <TransitionNumberCondition inputId="0:40" opValue="greaterThan" value="0.33"/>
+                    </StateTransition>
+                    <StateTransition stateToId="0:12" duration="300" interpolationType="linear">
+                        <TransitionNumberCondition inputId="0:40" opValue="lessThanOrEqual" value="0.33"/>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="720" y="-140"/>
+                <EntryState>
+                    <StateTransition stateToId="0:12"/>
+                </EntryState>
+
+                <AnimationState x="160" y="0" animationId="0:60" id="0:12"/>
+                <AnimationState x="340" y="0" animationId="0:61" id="0:13"/>
+                <AnimationState x="520" y="0" animationId="0:62" id="0:14"/>
+            </StateMachineLayer>
+
+            <StateMachineLayer name="FX" id="0:9">
+                <AnyState x="560" y="120">
+                    <StateTransition stateToId="0:17" duration="150" interpolationType="linear">
+                        <TransitionTriggerCondition inputId="0:42"/>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="720" y="120"/>
+                <EntryState>
+                    <StateTransition stateToId="0:16"/>
+                </EntryState>
+
+                <AnimationState x="160" y="120" animationId="0:64" id="0:16"/>
+                <AnimationState x="340" y="120" animationId="0:63" id="0:17">
+                    <StateTransition stateToId="0:16" duration="350" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Calm: small dim core, no hot ring. -->
+        <LinearAnimation duration="1" name="Calm" id="0:60">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="0.85" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="0.85" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:22">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0.8" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:23">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0.45" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:31">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- Warm: mid glow. -->
+        <LinearAnimation duration="1" name="Warm" id="0:61">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:22">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:23">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0.65" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:31">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0.35" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- Hot: full bloom + hot ring on. -->
+        <LinearAnimation duration="1" name="Hot" id="0:62">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1.18" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1.18" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:22">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:23">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0.9" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:31">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- Flow pulse: burst pops. -->
+        <LinearAnimation duration="30" name="FlowPop" id="0:63">
+            <KeyedObject objectId="0:32">
+                <KeyedProperty propertyKey="16">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.3" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="17">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.3" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="18">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <LinearAnimation duration="1" name="FxIdle" id="0:64">
+            <KeyedObject objectId="0:32">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

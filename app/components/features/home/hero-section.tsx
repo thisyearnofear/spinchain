@@ -5,6 +5,8 @@ import { AnimatedCard, Floating, MagneticButton } from "@/app/components/ui/anim
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 import { ChainringCarousel } from "./chainring-carousel";
 import { MorphCTA } from "@/app/components/ui/morph-cta";
+import { RiveFlowBadge } from "@/app/components/features/ride/rive-flow-badge";
+import { useExperience } from "@/app/lib/experience-level";
 import Link from "next/link";
 import { Play, ArrowRight } from "lucide-react";
 
@@ -13,12 +15,24 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ onOpenGuide }: HeroSectionProps) {
+  const { totalRides, currentTier } = useExperience();
+  const flowTier = totalRides > 0 ? Math.min(4, currentTier + 1) : 0;
+  const badgeLabel =
+    totalRides > 0 ? `🔥 ${totalRides} ride${totalRides === 1 ? "" : "s"}` : "Start your streak";
   return (
     <header className="flex flex-col items-start justify-between gap-6 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-6 shadow-[0_20px_80px_rgba(0,0,0,0.15)] md:gap-8 md:px-8 md:py-8">
       <PrimaryNav />
 
       <div className="relative w-full overflow-hidden border-y border-[color:var(--border)] py-8 text-center md:py-12">
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 bg-[color:var(--accent)]/5 blur-[120px]" />
+
+        <div className="mb-5 flex justify-center">
+          <RiveFlowBadge
+            flowTier={flowTier}
+            streak={totalRides}
+            label={badgeLabel}
+          />
+        </div>
 
         <h1 className="mb-5 text-3xl font-black leading-tight text-[color:var(--foreground)] drop-shadow-2xl sm:text-4xl md:mb-6 md:text-5xl lg:text-6xl">
           Indoor cycling that

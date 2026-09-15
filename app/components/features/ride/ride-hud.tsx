@@ -12,6 +12,7 @@ import { useIntervalAudioCues } from "@/app/hooks/ride/use-interval-audio";
 import { PrPacingIndicator } from "@/app/components/features/ride/pr-pacing-indicator";
 import { SegmentTracker } from "@/app/components/features/ride/segment-tracker";
 import { RiveRider } from "@/app/components/features/ride/rive-rider";
+import { RiveEffortAura } from "@/app/components/features/ride/rive-effort-aura";
 import type { IntervalPhase } from "@/app/lib/workout-plan";
 import type { GhostState } from "@/app/lib/analytics/ghost-service";
 import type { RewardStreamState } from "@/app/hooks/rewards/use-rewards";
@@ -373,6 +374,7 @@ export function RideHUD() {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6 pt-24 pb-24">
+      <RiveEffortAura />
       {flowStateVisualizer}
       <div className="flex flex-col gap-6">
         {rewardsActive && rewardsStreamState && (
