@@ -80,7 +80,7 @@
     "@types/web-bluetooth": "^0.0.21",
     "draco3d": "1.5.7",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.3.5",
     "jsdom": "30.0.1",
     "react-doctor": "0.9.13",
     "sharp": "0.35.4",
