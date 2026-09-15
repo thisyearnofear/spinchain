@@ -2,7 +2,7 @@
 
 > **Status**: ACTIVE — all feature decisions reference this document.
 > **Last reviewed**: 2026-08-17
-> **See also**: [IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md) for concrete tasks, [ARCHITECTURE.md](./ARCHITECTURE.md) for the background layer, [OPERATIONS.md](./OPERATIONS.md) for setup and deployment.
+> **See also**: [IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md) for concrete tasks, [ARCHITECTURE.md](./ARCHITECTURE.md) for the background layer, [CHARACTER-SYSTEM.md](./CHARACTER-SYSTEM.md) for the character/world/coach vision, [OPERATIONS.md](./OPERATIONS.md) for setup and deployment.
 
 ---
 

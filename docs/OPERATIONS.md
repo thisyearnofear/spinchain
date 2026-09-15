@@ -481,7 +481,7 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 - [ ] **Browser-level E2E tests** — wallet connect → class join → ride → ZK proof → claim; Supabase auth (nonce → sign → JWT); API routes
 - [ ] **Testnet soft-launch validation** — real users through the full loop on Fuji + Sui testnet
 - [ ] Chainlink CRE — blocked on Early Access approval (ZK path is independent, not a blocker)
-- [ ] Rive rider asset — export `rider.riv` per `public/rive/README.md`
+- [x] Rive rider asset — CLI-built from `rive/rider/scene.rml` via `pnpm rive:build` (contract: `public/rive/README.md`)
 - [ ] Load testing — pending testnet deployment
 - [ ] Security audit — pre-mainnet
 
