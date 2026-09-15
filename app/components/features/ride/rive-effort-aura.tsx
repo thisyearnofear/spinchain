@@ -9,10 +9,14 @@
  *   flowPulse : trigger — fire on flow-tier up / milestone
  *
  * Source: rive/effort-aura/scene.rml → public/rive/effort-aura.riv
- * Until that file exists, renders nothing (transparent) so layouts never break.
+ * Renders transparent until the .riv is ready so layouts never break.
+ *
+ * When `intensity`/`isSprint` props are omitted, live store values are used
+ * via imperative subscriptions (no React re-renders at telemetry rate).
  */
 
-import { useEffect, useRef, useState } from "react";
+import "./rive-runtime";
+import { useEffect, useRef } from "react";
 import {
   useRive,
   useViewModel,
@@ -36,30 +40,14 @@ export interface RiveEffortAuraProps {
   className?: string;
 }
 
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+
 export function RiveEffortAura({
   intensity: intensityProp,
   isSprint: isSprintProp,
   pulseKey = 0,
   className = "",
 }: RiveEffortAuraProps) {
-  const liveEffort = useTelemetryStore(selectEffort);
-  const intervalPhase = useCoachingStore((s) => s.currentInterval?.phase ?? null);
-
-  const intensity =
-    intensityProp ?? Math.max(0, Math.min(1, (liveEffort ?? 0) / 1000));
-  const isSprint = isSprintProp ?? intervalPhase === "sprint";
-
-  const [assetReady, setAssetReady] = useState<boolean | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    fetch(RIVE_SRC, { method: "HEAD" })
-      .then((r) => !cancelled && setAssetReady(r.ok))
-      .catch(() => !cancelled && setAssetReady(false));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const { rive, RiveComponent } = useRive({
     src: RIVE_SRC,
     stateMachines: STATE_MACHINE,
@@ -73,12 +61,43 @@ export function RiveEffortAura({
   const { setValue: setIsSprint } = useViewModelInstanceBoolean("isSprint", viewModelInstance);
   const { trigger: fireFlowPulse } = useViewModelInstanceTrigger("flowPulse", viewModelInstance);
 
+  const driversRef = useRef({ setIntensity, setIsSprint, fireFlowPulse });
   useEffect(() => {
-    setIntensity?.(intensity);
-  }, [setIntensity, intensity]);
+    driversRef.current = { setIntensity, setIsSprint, fireFlowPulse };
+  });
+
+  // ─── Live store drive (only for props not explicitly provided) ────
+  const useLiveIntensity = intensityProp === undefined;
+  const useLiveSprint = isSprintProp === undefined;
   useEffect(() => {
-    setIsSprint?.(isSprint);
-  }, [setIsSprint, isSprint]);
+    if (!useLiveIntensity && !useLiveSprint) return;
+    const apply = () => {
+      if (useLiveIntensity) {
+        driversRef.current.setIntensity?.(
+          clamp01((selectEffort(useTelemetryStore.getState()) ?? 0) / 1000),
+        );
+      }
+      if (useLiveSprint) {
+        const phase = useCoachingStore.getState().currentInterval?.phase ?? null;
+        driversRef.current.setIsSprint?.(phase === "sprint");
+      }
+    };
+    apply();
+    const unsubTelemetry = useTelemetryStore.subscribe(apply);
+    const unsubCoaching = useCoachingStore.subscribe(apply);
+    return () => {
+      unsubTelemetry();
+      unsubCoaching();
+    };
+  }, [useLiveIntensity, useLiveSprint]);
+
+  // ─── Prop-driven updates ──────────────────────────────────────────
+  useEffect(() => {
+    if (intensityProp !== undefined) setIntensity?.(clamp01(intensityProp));
+  }, [setIntensity, intensityProp]);
+  useEffect(() => {
+    if (isSprintProp !== undefined) setIsSprint?.(isSprintProp);
+  }, [setIsSprint, isSprintProp]);
 
   const lastPulseRef = useRef(pulseKey);
   useEffect(() => {
@@ -86,9 +105,6 @@ export function RiveEffortAura({
     lastPulseRef.current = pulseKey;
     fireFlowPulse?.();
   }, [pulseKey, fireFlowPulse]);
-
-  if (assetReady === null) return null;
-  if (assetReady === false || !RiveComponent) return null;
 
   return (
     <div

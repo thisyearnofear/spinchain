@@ -8,17 +8,22 @@ not used). Wrappers use `autoBind: true` + the `useViewModel*` hooks from
 
 | Asset | State machine / view model | Properties |
 |---|---|---|
-| `rider.riv` | `Ride` / `Ride` | `isRiding`, `cadence`, `effort` (0–1), `isSprint`, `isRecovery`, `isSpeaking` (booleans/numbers), `rewardPulse`, `prPulse` (triggers) |
+| `rider.riv` | `Ride` / `Ride` | `isRiding`, `cadence`, `effort` (0–1), `isSprint`, `isRecovery`, `isSpeaking`, `isReady`, `isFatigued` (booleans/numbers), `rewardPulse`, `prPulse`, `finishPulse` (triggers) |
 | `effort-aura.riv` | `Aura` / `Aura` | `intensity` (0–1), `isSprint`, `flowPulse` |
 | `coach-orb.riv` | `Coach` / `Coach` | `emotion` (0 calm…3 celebratory), `isSpeaking`, `celebrate` |
 | `flow-badge.riv` | `Badge` / `Badge` | `flowTier` (0–4), `streak`, `milestone`, `levelUp` |
 
 The React wrappers live in `app/components/features/ride/rive-*.tsx`:
 
-- `RiveRider` (mounted in `ride-hud.tsx`, desktop immersive view)
+- `RiveRider` (mounted bottom-left in `ride-hud-overlay-v2.tsx` — the live ride HUD; also in the `ride-completion-v2.tsx` celebration and the `/rider` hero greeting)
 - `RiveEffortAura` (background layer behind the HUD)
-- `RiveCoachOrb` (beside `CoachAvatar` in coach cards)
+- `RiveCoachOrb` (coach profile `/agent`, and beside the coach debrief in `ride-completion-v2.tsx`)
 - `RiveFlowBadge` (hero + dashboard gamification signal)
+
+All wrappers are lazy-loaded via `next/dynamic` at their mount sites, and the
+WASM runtime is self-hosted (`rive.wasm` here, copied by
+`scripts/copy-rive-wasm.mjs` on postinstall, wired via
+`rive-runtime.ts` → `RuntimeLoader.setWasmUrl`).
 
 Until a `.riv` exists here, each wrapper renders a graceful fallback (or
 nothing, for the aura) so the app stays shippable.
@@ -32,13 +37,16 @@ from live ride state.
 | Property      | Type     | Source                  | Drives                                  |
 |---------------|----------|-------------------------|-----------------------------------------|
 | `isRiding`    | bool     | ride store `isActive`   | active vs idle posture                  |
-| `cadence`     | number   | telemetry `cadence`     | pedal speed (0–200 RPM)                 |
-| `effort`      | number   | telemetry `effort`      | normalized 0–1 lean / strain            |
+| `cadence`     | number   | telemetry `cadence`     | pedal loop tier (Easy ≤70, Tempo 71–95, Fast ≥96 RPM) |
+| `effort`      | number   | telemetry `effort`      | normalized 0–1 → torso lean bind (0–0.18 rad) |
 | `isSprint`    | bool     | interval phase `sprint` | sprint pose, forward lean               |
 | `isRecovery`  | bool     | interval phase recovery | relaxed posture, deep breath            |
 | `isSpeaking`  | bool     | coaching `isSpeaking`   | mouth / gesture while coach talks       |
-| `rewardPulse` | trigger  | rewards stream tick     | celebration burst on reward accrual     |
+| `isReady`     | bool     | `ready` prop (pre-ride) | eager bounce while parked               |
+| `isFatigued`  | bool     | `fatigued` prop (7-day load) | heavy sag while parked             |
+| `rewardPulse` | trigger  | rewards stream tick     | small burst on reward accrual           |
 | `prPulse`     | trigger  | power PR beaten         | big celebration on personal record      |
+| `finishPulse` | trigger  | ride finished           | small burst — every finish celebrates   |
 
 ## Export checklist
 

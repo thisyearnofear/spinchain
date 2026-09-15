@@ -28,6 +28,14 @@
 
 import { memo, useMemo, useState, useRef, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
+
+// Lazy-load the Rive rider: keeps the Rive JS runtime + WASM bootstrap out of
+// the ride page's initial chunk; the character pops in once ready.
+const RiveRider = dynamic(
+  () => import("./rive-rider").then((m) => m.RiveRider),
+  { ssr: false },
+);
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore, selectEffort, selectPower, selectHeartRate, selectCadence, selectGhostState, selectMultiGhostState } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
@@ -348,6 +356,14 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
           </m.div>
         )}
       </AnimatePresence>
+
+      {/* ─── Live rider avatar (Rive) ───────────────────────────────
+          The rider's on-bike self: pedals at the rider's cadence, leans
+          with effort, celebrates PRs/rewards. Anchored bottom-left, clear
+          of the centered bottom stack; scaled down on small screens. */}
+      <div className="pointer-events-none fixed bottom-28 left-4 z-40 origin-bottom-left scale-75 md:bottom-24 md:left-6 md:scale-100">
+        <RiveRider size={140} />
+      </div>
 
       {/* ─── Compact HUD (single metric) ───────────────────────────── */}
       {!suppressBottomStack && (expanded ? null : (

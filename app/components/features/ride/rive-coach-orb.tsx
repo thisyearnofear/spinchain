@@ -9,10 +9,11 @@
  *   celebrate   : trigger — fire on PR / milestone celebration
  *
  * Source: rive/coach-orb/scene.rml → public/rive/coach-orb.riv
- * Falls back to children (initials) until the .riv exists.
+ * Falls back to children (initials) until the .riv is ready.
  */
 
-import { useEffect, useState } from "react";
+import "./rive-runtime";
+import { useEffect } from "react";
 import {
   useRive,
   useViewModel,
@@ -49,17 +50,6 @@ export function RiveCoachOrb({
   className = "",
   fallback = null,
 }: RiveCoachOrbProps) {
-  const [assetReady, setAssetReady] = useState<boolean | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    fetch(RIVE_SRC, { method: "HEAD" })
-      .then((r) => !cancelled && setAssetReady(r.ok))
-      .catch(() => !cancelled && setAssetReady(false));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const { rive, RiveComponent } = useRive({
     src: RIVE_SRC,
     stateMachines: STATE_MACHINE,
@@ -86,9 +76,8 @@ export function RiveCoachOrb({
     fireCelebrate?.();
   }, [emotion, fireCelebrate]);
 
-  if (assetReady === null) return null;
-  if (assetReady === false || !RiveComponent) return <>{fallback}</>;
-
+  // RiveComponent must always mount (it owns the canvas the runtime loads
+  // into); the fallback overlays it until the .riv is ready.
   return (
     <div
       className={`relative pointer-events-none ${className}`}
@@ -100,6 +89,7 @@ export function RiveCoachOrb({
         style={{ width: size, height: size }}
         className="pointer-events-none select-none"
       />
+      {!rive && <div className="absolute inset-0">{fallback}</div>}
     </div>
   );
 }

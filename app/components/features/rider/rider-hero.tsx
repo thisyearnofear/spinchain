@@ -1,13 +1,30 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { m } from "framer-motion";
 import { Bike, Zap, TrendingUp, Users } from "lucide-react";
 import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import { useClasses } from "@/app/hooks/evm/use-class-data";
 import { useInstructors } from "@/app/hooks/evm/use-instructors";
 import { modalTransition } from "@/app/lib/motion";
+import type { WeeklyLoad } from "@/app/lib/analytics/training-load";
 
-export function RiderHero({ initialGreeting }: { initialGreeting?: string }) {
+// The rider's character greets them on the front door (docs/CHARACTER-SYSTEM.md
+// — Act 1). Store-driven: with no ride active it shows the pre-ride posture —
+// eager when fresh, heavy when the week's load says recovery.
+const RiveRider = dynamic(
+  () => import("@/app/components/features/ride/rive-rider").then((mod) => mod.RiveRider),
+  { ssr: false },
+);
+
+export function RiderHero({
+  initialGreeting,
+  weeklyLoad,
+}: {
+  initialGreeting?: string;
+  weeklyLoad?: WeeklyLoad;
+}) {
+  const fatigued = weeklyLoad?.fatigued ?? false;
   const { prs } = useRiderStats();
   const { classes } = useClasses();
   const { instructors } = useInstructors();
@@ -59,14 +76,24 @@ export function RiderHero({ initialGreeting }: { initialGreeting?: string }) {
               </span>
             </m.div>
 
-            <m.h1
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...modalTransition, duration: 0.4, delay: 0.05 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter text-[color:var(--foreground)] leading-[1.05]"
-            >
-              {greeting}
-            </m.h1>
+            <div className="flex items-center gap-4 sm:gap-6">
+              <m.div
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ ...modalTransition, duration: 0.4, delay: 0.05 }}
+                className="shrink-0"
+              >
+                <RiveRider size={96} ready={!fatigued} fatigued={fatigued} />
+              </m.div>
+              <m.h1
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...modalTransition, duration: 0.4, delay: 0.05 }}
+                className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter text-[color:var(--foreground)] leading-[1.05]"
+              >
+                {greeting}
+              </m.h1>
+            </div>
 
             <m.p
               initial={{ opacity: 0, y: 12 }}
@@ -74,8 +101,28 @@ export function RiderHero({ initialGreeting }: { initialGreeting?: string }) {
               transition={{ ...modalTransition, duration: 0.4, delay: 0.1 }}
               className="mt-5 text-base sm:text-lg text-[color:var(--muted)] max-w-lg leading-relaxed"
             >
-              Immersive cycling classes with AI coaching, real-time telemetry,
-              and rewards that celebrate your effort.
+              {fatigued && weeklyLoad ? (
+                /* Recovery-respecting: the character is proud of rest, not
+                   just intensity (docs/CHARACTER-SYSTEM.md health principles). */
+                <>
+                  {weeklyLoad.minutesLast7d} minutes in the legs over 7 days — an easy
+                  spin today makes you faster tomorrow.{" "}
+                  <span className="font-bold text-[color:var(--foreground)]">Recovery is training.</span>
+                </>
+              ) : prs.bestPower > 0 ? (
+                /* Returning rider: greet with memory, not marketing
+                   (docs/CHARACTER-SYSTEM.md — Act 1). */
+                <>
+                  Your PR on the board:{" "}
+                  <span className="font-bold text-[color:var(--foreground)]">{prs.bestPower}W average power</span>.
+                  Today we chase it — or build the base beneath it.
+                </>
+              ) : (
+                <>
+                  Immersive cycling classes with AI coaching, real-time telemetry,
+                  and rewards that celebrate your effort.
+                </>
+              )}
             </m.p>
 
             <m.div

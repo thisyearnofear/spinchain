@@ -5,10 +5,20 @@ import { AnimatedCard, Floating, MagneticButton } from "@/app/components/ui/anim
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 import { ChainringCarousel } from "./chainring-carousel";
 import { MorphCTA } from "@/app/components/ui/morph-cta";
-import { RiveFlowBadge } from "@/app/components/features/ride/rive-flow-badge";
 import { useExperience } from "@/app/lib/experience-level";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Play, ArrowRight } from "lucide-react";
+
+// Lazy-load: keeps the Rive JS runtime (~335 KB) + WASM bootstrap out of the
+// landing page's initial bundle.
+const RiveFlowBadge = dynamic(
+  () => import("@/app/components/features/ride/rive-flow-badge").then((m) => m.RiveFlowBadge),
+  {
+    ssr: false,
+    loading: () => <div style={{ width: 200, height: 120 }} aria-hidden="true" />,
+  },
+);
 
 interface HeroSectionProps {
   onOpenGuide?: () => void;

@@ -26,6 +26,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { m, AnimatePresence } from "framer-motion";
 import { modalTransition } from "@/app/lib/motion";
 import { formatTime } from "@/app/lib/formatters";
@@ -39,6 +40,21 @@ import { RideComparison } from "./ride-comparison";
 import { getEffortTier } from "@/app/lib/analytics/ride-history";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import type { RewardClaimStatus } from "@/app/lib/rewards";
+
+// The rider's character joins the celebration (docs/CHARACTER-SYSTEM.md —
+// Act 3). Store-driven: it idles after the ride and fires its PR
+// celebration automatically when coaching-store.prBeaten is set.
+const RiveRider = dynamic(
+  () => import("./rive-rider").then((mod) => mod.RiveRider),
+  { ssr: false },
+);
+
+// The coach's presence beside their debrief — the voice of the cast
+// (docs/CHARACTER-SYSTEM.md). Mouth animates when the TTS replay speaks.
+const RiveCoachOrb = dynamic(
+  () => import("./rive-coach-orb").then((mod) => mod.RiveCoachOrb),
+  { ssr: false },
+);
 
 /** Highest tier first — order used by the milestone summary chips. */
 const MILESTONE_TIER_ORDER: MilestoneTier[] = ["diamond", "platinum", "gold", "silver", "bronze"];
@@ -177,6 +193,8 @@ export function RideCompletionV2({
 
   // Check if PR was beaten (from store)
   const storePrBeaten = useCoachingStore((s) => s.prBeaten);
+  // Coach TTS speaking state — animates the orb's mouth during debrief replay.
+  const coachSpeaking = useCoachingStore((s) => s.isSpeaking);
   useEffect(() => {
     if (storePrBeaten) {
       setPrBeaten(true);
@@ -301,6 +319,18 @@ export function RideCompletionV2({
                 }}
               />
             ))}
+          </m.div>
+
+          {/* The rider's character shares the peak moment — every finish
+              gets the small celebration; a beaten PR gets the big one via
+              the coaching store. */}
+          <m.div
+            initial={{ opacity: 0, scale: 0.6, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 0.15, type: "spring", stiffness: 260, damping: 18 }}
+            className="mb-1"
+          >
+            <RiveRider size={132} celebrateFinishOnMount />
           </m.div>
 
           {/* Done text */}
@@ -439,11 +469,20 @@ export function RideCompletionV2({
               </div>
             )}
 
-            {/* Coach's note + optional vocal replay */}
+            {/* Coach's note + optional vocal replay — the coach's orb
+                speaks the debrief; the rider's body stays in Act 3's
+                celebration above. Cast roles stay distinct. */}
             <div className="relative pl-4 border-l-2 border-amber-400/40 mb-6">
-              <p className="text-[9px] uppercase tracking-widest text-white/60 font-bold mb-1">
-                {agentName}&apos;s Notes
-              </p>
+              <div className="flex items-center gap-2 mb-1">
+                <RiveCoachOrb
+                  size={36}
+                  emotion={prBeaten ? "celebratory" : "calm"}
+                  isSpeaking={coachSpeaking}
+                />
+                <p className="text-[9px] uppercase tracking-widest text-white/60 font-bold">
+                  {agentName}&apos;s Notes
+                </p>
+              </div>
               <p className="text-xs leading-relaxed text-white/70 italic">
                 &ldquo;{getAgentDebrief()}&rdquo;
               </p>

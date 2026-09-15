@@ -18,6 +18,8 @@ import { RiderHero } from "../components/features/rider/rider-hero";
 import { GamificationBar } from "../components/features/common/gamification-bar";
 import { PrimaryCTA } from "../components/features/common/primary-cta";
 import { useMilestones } from "../lib/milestones";
+import { useRiderStats } from "../hooks/common/use-rider-stats";
+import { getWeeklyLoad } from "../lib/analytics/training-load";
 import { useToast } from "../components/ui/toast";
 import { Bike, CalendarClock, ChevronDown, ChevronUp, User } from "lucide-react";
 import type { SavedRoute } from "../lib/route-library";
@@ -28,19 +30,27 @@ export default function RiderPage() {
   const { classes, isLoading, error } = useClasses();
   const { instructors } = useInstructors();
   const { streak, totalRides, totalFlowMinutes } = useMilestones();
+  const { rides } = useRiderStats();
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
   const [filterUpcoming, setFilterUpcoming] = useState(true);
   const [showClasses, setShowClasses] = useState(false);
   const toast = useToast();
 
-  // Hero greeting based on gamification state
-  const heroGreeting = totalRides === 0
-    ? "Ready to ride?"
-    : streak > 0
-      ? `Good to see you — ${streak} day streak`
-      : totalFlowMinutes > 30
-        ? `You've logged ${totalFlowMinutes}m in flow — time to build on that?`
-        : "Ready for your ride?";
+  // Honest 7-day training load — when the rider has stacked hard rides, the
+  // coach's greeting leads with recovery instead of hype
+  // (docs/CHARACTER-SYSTEM.md health principles).
+  const weeklyLoad = getWeeklyLoad(rides);
+
+  // Hero greeting based on gamification state + training load
+  const heroGreeting = weeklyLoad.fatigued
+    ? `${weeklyLoad.hardRidesLast7d} hard rides this week — today we spin easy`
+    : totalRides === 0
+      ? "Ready to ride?"
+      : streak > 0
+        ? `Good to see you — ${streak} day streak`
+        : totalFlowMinutes > 30
+          ? `You've logged ${totalFlowMinutes}m in flow — time to build on that?`
+          : "Ready for your ride?";
 
   useEffect(() => {
     if (error) toast.error("Couldn't load classes", error);
@@ -151,7 +161,7 @@ export default function RiderPage() {
         <GamificationBar />
 
         {/* 2. Hero — personalized greeting */}
-        <RiderHero initialGreeting={heroGreeting} />
+        <RiderHero initialGreeting={heroGreeting} weeklyLoad={weeklyLoad} />
 
         {/* 3. ONE Primary CTA — the dominant action */}
         <PrimaryCTA isConnected={isConnected} nextClassName={nextClassName} />

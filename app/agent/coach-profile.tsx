@@ -26,12 +26,16 @@ import { useAgentReasoner } from "../hooks/ai/use-agent-reasoner";
 import {
   useProfile,
   getDisplayName,
-  getAvatarUrl,
 } from "../hooks/common/use-profile";
 import { useCoachVoice, useWorkoutAudio } from "../hooks/ai/elevenlabs";
-import { CoachAvatar } from "../components/features/coach/avatar";
-import { RiveCoachOrb } from "../components/features/ride/rive-coach-orb";
+import dynamic from "next/dynamic";
 import { VoiceToggle } from "../components/ui/voice-toggle";
+
+// Lazy-load: keeps the Rive JS runtime out of this page's initial bundle.
+const RiveCoachOrb = dynamic(
+  () => import("../components/features/ride/rive-coach-orb").then((m) => m.RiveCoachOrb),
+  { ssr: false },
+);
 import { AudioWaveform, AudioIndicator } from "../components/ui/audio-waveform";
 import { useTelemetryStore, selectTelemetrySnapshot } from "../stores/telemetry-store";
 import { useRideStore } from "../stores/ride-store";
@@ -298,13 +302,6 @@ export function CoachProfile({
         </div>
 
         <div className="mt-6 flex items-center gap-4">
-          <CoachAvatar
-            name={config.name}
-            emotion={isSpeaking ? "intense" : "focused"}
-            isSpeaking={isSpeaking}
-            size="lg"
-            avatarUrl={getAvatarUrl(instructorProfile)}
-          />
           <RiveCoachOrb
             emotion={isSpeaking ? "intense" : "focused"}
             isSpeaking={isSpeaking}

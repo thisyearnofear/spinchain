@@ -8,7 +8,6 @@
  */
 
 export { RideHeader } from "./ride-header";
-export { RideHUD } from "./ride-hud";
 export { RideControls } from "./ride-controls";
 export { RideProgress } from "./ride-progress";
 export { RideTopBar } from "./ride-top-bar";
@@ -36,6 +35,3 @@ export { ModalStack } from "./modal-stack";
 // ─── Sensory sync ──────────────────────────────────────────────────
 export { useSensorySync } from "@/app/hooks/ride/use-sensory-sync";
 export { useSwipeGesture } from "@/app/hooks/ride/use-swipe-gesture";
-
-// Re-export types for convenience
-export type { TelemetryData } from "./ride-hud";

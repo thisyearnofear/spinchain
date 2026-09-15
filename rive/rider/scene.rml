@@ -2,68 +2,201 @@
     <Artboard defaultStateMachineId="0:7" viewModelId="0:80" styleId="0:5" width="160" height="160" name="Rider" id="0:2">
         <LayoutComponentStyle name="Artboard Style" id="0:5"/>
 
-        <!-- Draw order is front-to-back: first declared paints on top. -->
+        <!--
+          Rider v2 — an actual cyclist, not a blob.
+          Side profile facing +x: articulated pedaling legs (hip/knee two-segment,
+          keyed from an 8-pose IK solve of the crank circle), frame tubes, cranks
+          with pedals, gradient jersey + helmet.
 
-        <!-- Celebrate burst: pops on rewardPulse / prPulse. -->
-        <Shape x="80" y="34" rotation="0.7853982" name="Burst" id="0:30" opacity="0" scaleX="0" scaleY="0">
+          Reactivity:
+          - cadence  → Main-layer number conditions pick Easy/Tempo/Fast pedal loops
+          - effort   → data-bound to TorsoLean rotation via EffortToLean mapper
+          - isSprint / isRecovery / isRiding → posture states
+          - isSpeaking → Speak layer (mouth) · rewardPulse / prPulse → FX layer (burst)
+
+          Draw order is front-to-back: first declared paints on top.
+        -->
+
+        <!-- Celebrate burst: pops on rewardPulse / prPulse (FX layer). -->
+        <Shape x="80" y="30" rotation="0.7853982" name="Burst" id="0:30" opacity="0" scaleX="0" scaleY="0">
             <Rectangle width="16" height="16" cornerRadiusTL="4" originX="0.5" originY="0.5" name="Path"/>
             <Fill name="Fill"><SolidColor colorValue="FFFBBF24" name="Color"/></Fill>
         </Shape>
 
-        <!-- Sprint flame trailing behind. -->
-        <Shape x="44" y="96" name="Flame" id="0:31" opacity="0">
+        <!-- ─── Rider body (bobbed as a unit) ─────────────────────── -->
+        <Node x="0" y="0" name="RiderBody" id="0:20">
+
+            <!-- Front leg: two segments keyed through the pedal cycle. -->
+            <Node x="62" y="76" name="HipF" id="0:40">
+                <Shape x="0" y="0" name="ThighF">
+                    <Rectangle width="8" height="26" cornerRadiusTL="3" originX="0.5" originY="0" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="FF334155" name="Color"/></Fill>
+                </Shape>
+                <Node x="0" y="26" name="KneeF" id="0:41">
+                    <Shape x="0" y="0" name="CalfF">
+                        <Rectangle width="6" height="28" cornerRadiusTL="3" originX="0.5" originY="0" name="Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFE2E8F0" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="1" y="26" name="ShoeF">
+                        <Rectangle width="10" height="5" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
+                    </Shape>
+                </Node>
+            </Node>
+
+            <!-- Torso assembly: Lean (data-bound to effort) ∘ Pose (keyed per state). -->
+            <Node x="62" y="76" name="TorsoLean" id="0:35">
+                <DataBindContext sourcePathIds="0:80-0:83" propertyKey="15" converterId="0:90"/>
+                <Node x="0" y="0" rotation="2.3166" name="TorsoPose" id="0:36">
+                    <Shape x="0" y="0" name="Torso" id="0:22">
+                        <Rectangle width="12" height="35" cornerRadiusTL="6" originX="0.5" originY="0" name="Path"/>
+                        <Fill name="Fill">
+                            <LinearGradient startX="0" startY="0" endX="0" endY="35" name="Gradient">
+                                <GradientStop colorValue="FFFBBF24" position="0"/>
+                                <GradientStop colorValue="FFF59E0B" position="1"/>
+                            </LinearGradient>
+                        </Fill>
+                    </Shape>
+                    <!-- Arm: shoulder → handlebar. -->
+                    <Node x="0" y="35" rotation="-1.7473" name="ArmNode" id="0:38">
+                        <Shape x="0" y="0" name="Sleeve">
+                            <Rectangle width="7" height="14" cornerRadiusTL="3" originX="0.5" originY="0" name="Path"/>
+                            <Fill name="Fill"><SolidColor colorValue="FFF59E0B" name="Color"/></Fill>
+                        </Shape>
+                        <Node x="0" y="13" rotation="-0.15" name="ForearmNode" id="0:39">
+                            <Shape x="0" y="0" name="Forearm">
+                                <Rectangle width="6" height="19" cornerRadiusTL="3" originX="0.5" originY="0" name="Path"/>
+                                <Fill name="Fill"><SolidColor colorValue="FFF1F5F9" name="Color"/></Fill>
+                            </Shape>
+                        </Node>
+                    </Node>
+                    <!-- Head + helmet at the shoulder end, facing +x. -->
+                    <Node x="0" y="36" name="HeadNode" id="0:37">
+                        <Shape x="7" y="2" name="Mouth" id="0:34" opacity="0">
+                            <Rectangle width="8" height="4" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+                            <Fill name="Fill"><SolidColor colorValue="E61E293B" name="Color"/></Fill>
+                        </Shape>
+                        <Shape x="0" y="-6" name="Helmet" id="0:27">
+                            <Ellipse width="21" height="13" originX="0.5" originY="0.5" name="Path"/>
+                            <Fill name="Fill">
+                                <LinearGradient startX="0" startY="-6" endX="0" endY="6" name="Gradient">
+                                    <GradientStop colorValue="FF8B9DFF" position="0"/>
+                                    <GradientStop colorValue="FF4F46E5" position="1"/>
+                                </LinearGradient>
+                            </Fill>
+                        </Shape>
+                        <Shape x="1" y="0" name="Head" id="0:26">
+                            <Ellipse width="18" height="18" originX="0.5" originY="0.5" name="Path"/>
+                            <Fill name="Fill"><SolidColor colorValue="FFF1F5F9" name="Color"/></Fill>
+                        </Shape>
+                    </Node>
+                </Node>
+            </Node>
+
+            <!-- Rear leg: same rig, half a crank revolution behind, darker. -->
+            <Node x="62" y="76" name="HipR" id="0:42">
+                <Shape x="0" y="0" name="ThighR">
+                    <Rectangle width="7" height="26" cornerRadiusTL="3" originX="0.5" originY="0" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="FF1F2937" name="Color"/></Fill>
+                </Shape>
+                <Node x="0" y="26" name="KneeR" id="0:43">
+                    <Shape x="0" y="0" name="CalfR">
+                        <Rectangle width="6" height="28" cornerRadiusTL="3" originX="0.5" originY="0" name="Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFCBD5E1" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="1" y="26" name="ShoeR">
+                        <Rectangle width="10" height="5" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF0F172A" name="Color"/></Fill>
+                    </Shape>
+                </Node>
+            </Node>
+        </Node>
+
+        <!-- Sprint flame trailing behind the rear wheel. -->
+        <Shape x="28" y="108" name="Flame" id="0:31" opacity="0">
             <Ellipse width="26" height="14" originX="0.5" originY="0.5" name="Path"/>
             <Fill name="Fill"><SolidColor colorValue="FFFB7185" name="Color"/></Fill>
         </Shape>
 
-        <!-- Rider assembly. -->
-        <Node x="80" y="92" name="Cyclist" id="0:20">
-            <Shape x="6" y="-33" name="Mouth" id="0:34" opacity="0">
-                <Rectangle width="10" height="4" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
-                <Fill name="Fill"><SolidColor colorValue="E6FFFFFF" name="Color"/></Fill>
+        <!-- Cranks: rotation keyed through the cycle; pedals ride the arms. -->
+        <Node x="76" y="116" rotation="-1.5708" name="CrankF" id="0:44">
+            <Shape x="0" y="5" name="CrankArmF">
+                <Rectangle width="4" height="10" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF475569" name="Color"/></Fill>
             </Shape>
-            <Shape x="0" y="-46" name="Helmet" id="0:27">
-                <Ellipse width="22" height="14" originX="0.5" originY="0.5" name="Path"/>
-                <Fill name="Fill"><SolidColor colorValue="FF6D7CFF" name="Color"/></Fill>
-            </Shape>
-            <Shape x="0" y="-34" name="Head" id="0:26">
-                <Ellipse width="18" height="18" originX="0.5" originY="0.5" name="Path"/>
-                <Fill name="Fill"><SolidColor colorValue="FFF1F5F9" name="Color"/></Fill>
-            </Shape>
-            <Shape x="-16" y="-12" name="Saddle" id="0:28">
-                <Rectangle width="14" height="5" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+            <Shape x="0" y="10" name="PedalF">
+                <Ellipse width="7" height="5" originX="0.5" originY="0.5" name="Path"/>
                 <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
-            </Shape>
-            <Shape x="26" y="-10" name="Handlebar" id="0:29">
-                <Rectangle width="5" height="12" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
-                <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
-            </Shape>
-            <Shape name="Body" id="0:22">
-                <Rectangle width="56" height="14" cornerRadiusTL="7" originX="0.5" originY="0.5" name="Path"/>
-                <Fill name="Fill"><SolidColor colorValue="FFFBBF24" name="Color"/></Fill>
-            </Shape>
-            <Shape x="-28" y="22" name="RearHub" id="0:32">
-                <Ellipse width="10" height="10" originX="0.5" originY="0.5" name="Path"/>
-                <Fill name="Fill"><SolidColor colorValue="FF94A3B8" name="Color"/></Fill>
-            </Shape>
-            <Shape x="-28" y="22" name="RearWheel" id="0:23">
-                <Ellipse width="44" height="44" originX="0.5" originY="0.5" name="Path"/>
-                <Stroke thickness="6" name="Stroke"><SolidColor colorValue="FF334155" name="Color"/></Stroke>
-            </Shape>
-            <Shape x="28" y="22" name="FrontHub" id="0:33">
-                <Ellipse width="10" height="10" originX="0.5" originY="0.5" name="Path"/>
-                <Fill name="Fill"><SolidColor colorValue="FF94A3B8" name="Color"/></Fill>
-            </Shape>
-            <Shape x="28" y="22" name="FrontWheel" id="0:24">
-                <Ellipse width="44" height="44" originX="0.5" originY="0.5" name="Path"/>
-                <Stroke thickness="6" name="Stroke"><SolidColor colorValue="FF334155" name="Color"/></Stroke>
             </Shape>
         </Node>
+        <Node x="76" y="116" rotation="1.5708" name="CrankR" id="0:45">
+            <Shape x="0" y="5" name="CrankArmR">
+                <Rectangle width="4" height="10" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF475569" name="Color"/></Fill>
+            </Shape>
+            <Shape x="0" y="10" name="PedalR">
+                <Ellipse width="7" height="5" originX="0.5" originY="0.5" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
+            </Shape>
+        </Node>
+
+        <!-- Cockpit + frame. -->
+        <Shape x="61" y="82" name="Saddle" id="0:28">
+            <Rectangle width="16" height="5" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
+        </Shape>
+        <Shape x="103" y="75" name="Hood">
+            <Rectangle width="7" height="4" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
+        </Shape>
+        <Shape x="106" y="80" name="Handlebar" id="0:29">
+            <Rectangle width="5" height="12" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
+        </Shape>
+        <Shape x="68.5" y="100.5" rotation="-2.6906" name="SeatTube">
+            <Rectangle width="4" height="34" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
+        </Shape>
+        <Shape x="82.5" y="83.5" rotation="1.6405" name="TopTube">
+            <Rectangle width="4" height="43" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
+        </Shape>
+        <Shape x="92" y="103" rotation="2.2505" name="DownTube">
+            <Rectangle width="4" height="41" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
+        </Shape>
+        <Shape x="112" y="104" rotation="0.2783" name="Fork">
+            <Rectangle width="4" height="29" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
+        </Shape>
+        <Shape x="64" y="117" rotation="-1.4877" name="Chainstay">
+            <Rectangle width="4" height="24" cornerRadiusTL="2" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FF1E293B" name="Color"/></Fill>
+        </Shape>
+
+        <!-- Wheels + hubs. -->
+        <Shape x="52" y="118" name="RearHub" id="0:32">
+            <Ellipse width="9" height="9" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FF94A3B8" name="Color"/></Fill>
+        </Shape>
+        <Shape x="52" y="118" name="RearWheel" id="0:23">
+            <Ellipse width="44" height="44" originX="0.5" originY="0.5" name="Path"/>
+            <Stroke thickness="6" name="Stroke"><SolidColor colorValue="FF334155" name="Color"/></Stroke>
+        </Shape>
+        <Shape x="116" y="118" name="FrontHub" id="0:33">
+            <Ellipse width="9" height="9" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FF94A3B8" name="Color"/></Fill>
+        </Shape>
+        <Shape x="116" y="118" name="FrontWheel" id="0:24">
+            <Ellipse width="44" height="44" originX="0.5" originY="0.5" name="Path"/>
+            <Stroke thickness="6" name="Stroke"><SolidColor colorValue="FF334155" name="Color"/></Stroke>
+        </Shape>
 
         <StateMachine name="Ride" id="0:7">
             <StateMachineLayer name="Main" id="0:8">
                 <AnyState x="560" y="-140">
-                    <StateTransition stateToId="0:14" duration="220" interpolationType="linear">
+                    <!-- 1. Sprint posture wins over everything. -->
+                    <StateTransition stateToId="0:51" duration="220" interpolationType="linear">
                         <TransitionViewModelCondition>
                             <TransitionPropertyViewModelComparator>
                                 <BindablePropertyBoolean>
@@ -73,7 +206,8 @@
                             <TransitionValueBooleanComparator value="true"/>
                         </TransitionViewModelCondition>
                     </StateTransition>
-                    <StateTransition stateToId="0:15" duration="320" interpolationType="cubic">
+                    <!-- 2. Recovery / cooldown. -->
+                    <StateTransition stateToId="0:52" duration="320" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                         <TransitionViewModelCondition>
                             <TransitionPropertyViewModelComparator>
@@ -82,6 +216,78 @@
                                 </BindablePropertyBoolean>
                             </TransitionPropertyViewModelComparator>
                             <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <!-- 3. Pre-ride contexts (not riding): fatigued slump or eager ready. -->
+                    <StateTransition stateToId="0:54" duration="400" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:92" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                        <TransitionViewModelCondition opValue="notEqual">
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:81" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="0:53" duration="280" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:91" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                        <TransitionViewModelCondition opValue="notEqual">
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:81" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <!-- 5. Not riding → parked. -->
+                    <StateTransition stateToId="0:12" duration="280" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition opValue="notEqual">
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:80-0:81" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <!-- 4-6. Cadence tiers: pedal loop speed follows live RPM. -->
+                    <StateTransition stateToId="0:15" duration="250" interpolationType="linear">
+                        <TransitionViewModelCondition opValue="greaterThanOrEqual">
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyNumber>
+                                    <DataBindContext sourcePathIds="0:80-0:82" propertyKey="636"/>
+                                </BindablePropertyNumber>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="96"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="0:14" duration="250" interpolationType="linear">
+                        <TransitionViewModelCondition opValue="greaterThanOrEqual">
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyNumber>
+                                    <DataBindContext sourcePathIds="0:80-0:82" propertyKey="636"/>
+                                </BindablePropertyNumber>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="71"/>
                         </TransitionViewModelCondition>
                     </StateTransition>
                     <StateTransition stateToId="0:13" duration="280" interpolationType="cubic">
@@ -95,19 +301,8 @@
                             <TransitionValueBooleanComparator value="true"/>
                         </TransitionViewModelCondition>
                     </StateTransition>
-                    <StateTransition stateToId="0:12" duration="280" interpolationType="cubic">
-                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
-                        <TransitionViewModelCondition opValue="notEqual">
-                            <TransitionPropertyViewModelComparator>
-                                <BindablePropertyBoolean>
-                                    <DataBindContext sourcePathIds="0:80-0:81" propertyKey="634"/>
-                                </BindablePropertyBoolean>
-                            </TransitionPropertyViewModelComparator>
-                            <TransitionValueBooleanComparator value="true"/>
-                        </TransitionViewModelCondition>
-                    </StateTransition>
                 </AnyState>
-                <ExitState x="720" y="-140"/>
+                <ExitState x="900" y="-140"/>
                 <EntryState>
                     <StateTransition stateToId="0:12"/>
                 </EntryState>
@@ -116,11 +311,16 @@
                 <AnimationState x="340" y="0" animationId="0:61" id="0:13"/>
                 <AnimationState x="520" y="0" animationId="0:62" id="0:14"/>
                 <AnimationState x="700" y="0" animationId="0:65" id="0:15"/>
+                <AnimationState x="160" y="160" animationId="0:68" id="0:51"/>
+                <AnimationState x="340" y="160" animationId="0:69" id="0:52"/>
+                <AnimationState x="520" y="160" animationId="0:94" id="0:53"/>
+                <AnimationState x="700" y="160" animationId="0:95" id="0:54"/>
             </StateMachineLayer>
 
             <StateMachineLayer name="FX" id="0:9">
                 <AnyState x="560" y="120">
-                    <StateTransition stateToId="0:17" duration="150" interpolationType="linear">
+                    <!-- Reward ticks / ride finishes → small burst. -->
+                    <StateTransition stateToId="0:55" duration="150" interpolationType="linear">
                         <TransitionViewModelCondition>
                             <TransitionPropertyViewModelComparator>
                                 <BindablePropertyTrigger>
@@ -130,11 +330,22 @@
                             <TransitionValueTriggerComparator/>
                         </TransitionViewModelCondition>
                     </StateTransition>
+                    <!-- PR beaten → big burst. -->
                     <StateTransition stateToId="0:17" duration="150" interpolationType="linear">
                         <TransitionViewModelCondition>
                             <TransitionPropertyViewModelComparator>
                                 <BindablePropertyTrigger>
                                     <DataBindContext sourcePathIds="0:80-0:88" propertyKey="686"/>
+                                </BindablePropertyTrigger>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="0:55" duration="150" interpolationType="linear">
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyTrigger>
+                                    <DataBindContext sourcePathIds="0:80-0:93" propertyKey="686"/>
                                 </BindablePropertyTrigger>
                             </TransitionPropertyViewModelComparator>
                             <TransitionValueTriggerComparator/>
@@ -148,6 +359,9 @@
 
                 <AnimationState x="160" y="120" animationId="0:64" id="0:16"/>
                 <AnimationState x="340" y="120" animationId="0:63" id="0:17">
+                    <StateTransition stateToId="0:16" duration="300" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>
+                </AnimationState>
+                <AnimationState x="520" y="120" animationId="0:96" id="0:55">
                     <StateTransition stateToId="0:16" duration="300" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>
                 </AnimationState>
             </StateMachineLayer>
@@ -185,111 +399,472 @@
             </StateMachineLayer>
         </StateMachine>
 
-        <!-- Idle: upright, flame + burst hidden. Keys are absolute. -->
+        <!--
+          Pedal-cycle key tables (front leg at crank angle θ, rear at θ+180°),
+          from an 8-pose two-bone IK solve of hip(62,76) → crank circle
+          c(76,116) r=10, thigh 26 / calf 28:
+          θ:      0      45     90     135    180    225    270    315
+          thigh:  1.090  0.734  0.562  0.659  0.865  1.153  1.396  1.366
+          calf:  -1.057 -0.602 -0.557 -0.986 -1.463 -1.798 -1.823 -1.524
+          Crank node rotation = θ − π/2 (arm drawn pointing +y).
+        -->
+
+        <!-- Idle: parked, pedals level, flame out. Keys are absolute. -->
         <LinearAnimation duration="1" name="Idle" id="0:60">
             <KeyedObject objectId="0:20">
-                <KeyedProperty propertyKey="14"><KeyFrameDouble value="92" frame="0" interpolationType="hold"/></KeyedProperty>
-                <KeyedProperty propertyKey="15"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="14"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:36">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="2.3166" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:40">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="1.090" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:41">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="-1.057" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:42">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="0.865" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:43">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="-1.463" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:44">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="-1.5708" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:45">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="1.5708" frame="0" interpolationType="hold"/></KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:31">
                 <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
             </KeyedObject>
-            <KeyedObject objectId="0:30">
-                <KeyedProperty propertyKey="16"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
-                <KeyedProperty propertyKey="17"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
-                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
-            </KeyedObject>
         </LinearAnimation>
 
-        <!-- Riding: 60-frame pedal bob + wheel spin. Node y is absolute (authored 92). -->
-        <LinearAnimation duration="60" name="Riding" id="0:61">
+        <!-- PedalEasy (≤70 rpm): 64-frame rev ≈ 56 RPM at 60 fps. -->
+        <LinearAnimation duration="64" loopValue="loop" name="PedalEasy" id="0:61">
             <KeyedObject objectId="0:20">
                 <KeyedProperty propertyKey="14">
-                    <KeyFrameDouble value="92" frame="0" interpolationType="linear"/>
-                    <KeyFrameDouble value="88" frame="15" interpolationType="linear"/>
-                    <KeyFrameDouble value="92" frame="30" interpolationType="linear"/>
-                    <KeyFrameDouble value="88" frame="45" interpolationType="linear"/>
-                    <KeyFrameDouble value="92" frame="60" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.5" frame="16" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="32" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.5" frame="48" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="64" interpolationType="linear"/>
                 </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:36">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="2.30" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:40">
                 <KeyedProperty propertyKey="15">
-                    <KeyFrameDouble value="0.06" frame="0" interpolationType="hold"/>
+                    <KeyFrameDouble value="1.090" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.734" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.562" frame="16" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.659" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.865" frame="32" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.153" frame="40" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.396" frame="48" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.366" frame="56" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.090" frame="64" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:41">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-1.057" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.602" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.557" frame="16" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.986" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.463" frame="32" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.798" frame="40" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.823" frame="48" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.524" frame="56" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.057" frame="64" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:42">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0.865" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.153" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.396" frame="16" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.366" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.090" frame="32" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.734" frame="40" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.562" frame="48" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.659" frame="56" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.865" frame="64" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:43">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-1.463" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.798" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.823" frame="16" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.524" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.057" frame="32" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.602" frame="40" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.557" frame="48" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.986" frame="56" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.463" frame="64" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:44">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-1.5708" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="4.7124" frame="64" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:45">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="1.5708" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="7.8540" frame="64" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:23">
                 <KeyedProperty propertyKey="15">
                     <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
-                    <KeyFrameDouble value="6.2831855" frame="60" interpolationType="linear"/>
+                    <KeyFrameDouble value="4.7124" frame="64" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:24">
                 <KeyedProperty propertyKey="15">
                     <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
-                    <KeyFrameDouble value="6.2831855" frame="60" interpolationType="linear"/>
+                    <KeyFrameDouble value="4.7124" frame="64" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:31">
-                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0.25" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0.15" frame="0" interpolationType="hold"/></KeyedProperty>
             </KeyedObject>
         </LinearAnimation>
 
-        <!-- Sprint: leaned forward, flame fully on. Node y is absolute (authored 92). -->
-        <LinearAnimation duration="60" name="Sprint" id="0:62">
+        <!-- PedalTempo (71–95 rpm): 48-frame rev ≈ 75 RPM. -->
+        <LinearAnimation duration="48" loopValue="loop" name="PedalTempo" id="0:62">
             <KeyedObject objectId="0:20">
                 <KeyedProperty propertyKey="14">
-                    <KeyFrameDouble value="90" frame="0" interpolationType="linear"/>
-                    <KeyFrameDouble value="86" frame="15" interpolationType="linear"/>
-                    <KeyFrameDouble value="90" frame="30" interpolationType="linear"/>
-                    <KeyFrameDouble value="86" frame="45" interpolationType="linear"/>
-                    <KeyFrameDouble value="90" frame="60" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-2" frame="12" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="-2" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="48" interpolationType="linear"/>
                 </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:36">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="2.3166" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:40">
                 <KeyedProperty propertyKey="15">
-                    <KeyFrameDouble value="0.18" frame="0" interpolationType="hold"/>
+                    <KeyFrameDouble value="1.090" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.734" frame="6" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.562" frame="12" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.659" frame="18" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.865" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.153" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.396" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.366" frame="42" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.090" frame="48" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:41">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-1.057" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.602" frame="6" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.557" frame="12" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.986" frame="18" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.463" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.798" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.823" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.524" frame="42" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.057" frame="48" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:42">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0.865" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.153" frame="6" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.396" frame="12" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.366" frame="18" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.090" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.734" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.562" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.659" frame="42" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.865" frame="48" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:43">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-1.463" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.798" frame="6" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.823" frame="12" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.524" frame="18" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.057" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.602" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.557" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.986" frame="42" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.463" frame="48" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:44">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-1.5708" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="4.7124" frame="48" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:45">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="1.5708" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="7.8540" frame="48" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:23">
                 <KeyedProperty propertyKey="15">
                     <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
-                    <KeyFrameDouble value="12.566371" frame="60" interpolationType="linear"/>
+                    <KeyFrameDouble value="6.2832" frame="48" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:24">
                 <KeyedProperty propertyKey="15">
                     <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
-                    <KeyFrameDouble value="12.566371" frame="60" interpolationType="linear"/>
+                    <KeyFrameDouble value="6.2832" frame="48" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:31">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0.3" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- PedalFast (≥96 rpm): 40-frame rev ≈ 90 RPM. -->
+        <LinearAnimation duration="40" loopValue="loop" name="PedalFast" id="0:65">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="14">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-3" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="-3" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:36">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="2.40" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:40">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="1.090" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.734" frame="5" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.562" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.659" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.865" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.153" frame="25" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.396" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.366" frame="35" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.090" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:41">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-1.057" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.602" frame="5" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.557" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.986" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.463" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.798" frame="25" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.823" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.524" frame="35" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.057" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:42">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0.865" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.153" frame="5" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.396" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.366" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.090" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.734" frame="25" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.562" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.659" frame="35" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.865" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:43">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-1.463" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.798" frame="5" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.823" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.524" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.057" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.602" frame="25" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.557" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.986" frame="35" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.463" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:44">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-1.5708" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="4.7124" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:45">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="1.5708" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="7.8540" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:23">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="9.4248" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:24">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="9.4248" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:31">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0.6" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- Sprint: fastest cycle, deepest lean, flame pulsing. -->
+        <LinearAnimation duration="40" loopValue="loop" name="Sprint" id="0:68">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="14">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-3.5" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="-3.5" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:36">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="2.50" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:40">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="1.090" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.734" frame="5" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.562" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.659" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.865" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.153" frame="25" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.396" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.366" frame="35" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.090" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:41">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-1.057" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.602" frame="5" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.557" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.986" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.463" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.798" frame="25" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.823" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.524" frame="35" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.057" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:42">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0.865" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.153" frame="5" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.396" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.366" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.090" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.734" frame="25" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.562" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.659" frame="35" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.865" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:43">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-1.463" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.798" frame="5" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.823" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.524" frame="15" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.057" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.602" frame="25" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.557" frame="30" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.986" frame="35" interpolationType="linear"/>
+                    <KeyFrameDouble value="-1.463" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:44">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="-1.5708" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="4.7124" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:45">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="1.5708" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="7.8540" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:23">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="12.5664" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:24">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="12.5664" frame="40" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:31">
                 <KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
                 <KeyedProperty propertyKey="16">
                     <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
-                    <KeyFrameDouble value="1.3" frame="30" interpolationType="linear"/>
-                    <KeyFrameDouble value="1" frame="60" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.3" frame="20" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="40" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
         </LinearAnimation>
 
-        <!-- Recovery: sat back up, deep breath, flame out. Node y is absolute (authored 92). -->
-        <LinearAnimation duration="60" name="Recovery" id="0:65">
+        <!-- Recovery: pedals parked, slow breathing sag, sat back up. -->
+        <LinearAnimation duration="96" loopValue="loop" name="Recovery" id="0:69">
             <KeyedObject objectId="0:20">
                 <KeyedProperty propertyKey="14">
-                    <KeyFrameDouble value="94" frame="0" interpolationType="linear"/>
-                    <KeyFrameDouble value="96" frame="30" interpolationType="linear"/>
-                    <KeyFrameDouble value="94" frame="60" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.2" frame="48" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="96" interpolationType="linear"/>
                 </KeyedProperty>
-                <KeyedProperty propertyKey="15">
-                    <KeyFrameDouble value="-0.06" frame="0" interpolationType="hold"/>
-                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:36">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="2.20" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:40">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="1.090" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:41">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="-1.057" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:42">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="0.865" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:43">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="-1.463" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:44">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="-1.5708" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:45">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="1.5708" frame="0" interpolationType="hold"/></KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:23">
                 <KeyedProperty propertyKey="15">
                     <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
-                    <KeyFrameDouble value="3.1415927" frame="60" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.5708" frame="96" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:24">
                 <KeyedProperty propertyKey="15">
                     <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
-                    <KeyFrameDouble value="3.1415927" frame="60" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.5708" frame="96" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:31">
@@ -297,7 +872,7 @@
             </KeyedObject>
         </LinearAnimation>
 
-        <!-- Celebrate: burst pops in and out. -->
+        <!-- Celebrate: burst pops in and out (FX layer). -->
         <LinearAnimation duration="30" name="Celebrate" id="0:63">
             <KeyedObject objectId="0:30">
                 <KeyedProperty propertyKey="16">
@@ -321,6 +896,100 @@
             </KeyedObject>
         </LinearAnimation>
 
+        <!-- Ready: pre-ride greeting — pedals parked, eager upright bounce. -->
+        <LinearAnimation duration="48" loopValue="loop" name="Ready" id="0:94">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="14">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"/>
+                    <KeyFrameDouble value="-3" frame="24" interpolationType="cubic"/>
+                    <KeyFrameDouble value="0" frame="48" interpolationType="cubic"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:36">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="2.28" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:40">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="1.090" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:41">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="-1.057" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:42">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="0.865" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:43">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="-1.463" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:44">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="-1.5708" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:45">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="1.5708" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:31">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- Fatigued: honest high-load days — slow heavy sag, hunched torso. -->
+        <LinearAnimation duration="120" loopValue="loop" name="Fatigued" id="0:95">
+            <KeyedObject objectId="0:20">
+                <KeyedProperty propertyKey="14">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"/>
+                    <KeyFrameDouble value="2" frame="60" interpolationType="cubic"/>
+                    <KeyFrameDouble value="0" frame="120" interpolationType="cubic"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:36">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="2.42" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:40">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="1.090" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:41">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="-1.057" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:42">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="0.865" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:43">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="-1.463" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:44">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="-1.5708" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:45">
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="1.5708" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:31">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- CelebrateSmall: reward ticks + ride finishes (PR keeps the big one). -->
+        <LinearAnimation duration="20" name="CelebrateSmall" id="0:96">
+            <KeyedObject objectId="0:30">
+                <KeyedProperty propertyKey="16">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.7" frame="6" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.6" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="20" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="17">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.7" frame="6" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.6" frame="10" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="20" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="18">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.9" frame="6" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.9" frame="14" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="20" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
         <!-- FX idle: burst parked at zero. -->
         <LinearAnimation duration="1" name="FxIdle" id="0:64">
             <KeyedObject objectId="0:30">
@@ -338,7 +1007,7 @@
         </LinearAnimation>
 
         <!-- Chatting: mouth visible with bounce while coach speaks. -->
-        <LinearAnimation duration="30" name="Chatting" id="0:67">
+        <LinearAnimation duration="30" loopValue="loop" name="Chatting" id="0:67">
             <KeyedObject objectId="0:34">
                 <KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
                 <KeyedProperty propertyKey="17">
@@ -352,6 +1021,9 @@
         </LinearAnimation>
     </Artboard>
 
+    <!-- effort 0–1 → extra torso lean 0–0.18 rad -->
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="0" maxOutput="0.18" clampLower="true" clampUpper="true" name="EffortToLean" id="0:90"/>
+
     <ViewModel defaultInstanceId="0:89" name="Ride" id="0:80">
         <ViewModelPropertyBoolean name="isRiding" id="0:81"/>
         <ViewModelPropertyNumber name="cadence" id="0:82"/>
@@ -361,6 +1033,9 @@
         <ViewModelPropertyBoolean name="isSpeaking" id="0:86"/>
         <ViewModelPropertyTrigger name="rewardPulse" id="0:87"/>
         <ViewModelPropertyTrigger name="prPulse" id="0:88"/>
+        <ViewModelPropertyBoolean name="isReady" id="0:91"/>
+        <ViewModelPropertyBoolean name="isFatigued" id="0:92"/>
+        <ViewModelPropertyTrigger name="finishPulse" id="0:93"/>
         <ViewModelInstance exports="true" name="Default" id="0:89">
             <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:81"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:82"/>
@@ -368,6 +1043,8 @@
             <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:84"/>
             <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:85"/>
             <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:86"/>
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:91"/>
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:92"/>
         </ViewModelInstance>
     </ViewModel>
 </Rive>

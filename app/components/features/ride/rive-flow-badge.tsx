@@ -16,7 +16,8 @@
  * Source: rive/flow-badge/scene.rml → public/rive/flow-badge.riv
  */
 
-import { useEffect, useRef, useState } from "react";
+import "./rive-runtime";
+import { useEffect, useRef } from "react";
 import {
   useRive,
   useViewModel,
@@ -52,17 +53,6 @@ export function RiveFlowBadge({
   height = 120,
   className = "",
 }: RiveFlowBadgeProps) {
-  const [assetReady, setAssetReady] = useState<boolean | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    fetch(RIVE_SRC, { method: "HEAD" })
-      .then((r) => !cancelled && setAssetReady(r.ok))
-      .catch(() => !cancelled && setAssetReady(false));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const { rive, RiveComponent } = useRive({
     src: RIVE_SRC,
     stateMachines: STATE_MACHINE,
@@ -98,15 +88,8 @@ export function RiveFlowBadge({
     fireLevelUp?.();
   }, [levelUpKey, fireLevelUp]);
 
-  if (assetReady === null) return null;
-  if (assetReady === false || !RiveComponent) {
-    return label ? (
-      <div className={className} aria-label={label} role="img">
-        <span className="text-sm font-bold">{label}</span>
-      </div>
-    ) : null;
-  }
-
+  // RiveComponent must always mount (it owns the canvas the runtime loads
+  // into); while the .riv streams in, the label still renders on its own.
   return (
     <div
       className={`relative ${className}`}
