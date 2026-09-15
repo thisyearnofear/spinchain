@@ -172,6 +172,7 @@ export function RideVisualization({
             storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
             avatarId={searchParams.get("avatarId") || undefined}
             equipmentId={searchParams.get("equipmentId") || undefined}
+            worldId={searchParams.get("worldId") || undefined}
             quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
             className="h-full w-full"
             userDisplayName={undefined}

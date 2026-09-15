@@ -1,0 +1,13 @@
+{
+  "modelId": "ks7ap3ehqw73a4z928g4jpmskd8efcv0",
+  "animations": {
+    "idle": { "type": "model_animation_clip", "id": "w97d6ayv3taz3cxwvzps1xxvph8ee5bd", "clip": "Chair_Sit_Idle_M", "file": "rider-idle.glb" },
+    "recovery": { "type": "model_animation_clip", "id": "w97fxcmy6zkhw2pkd2pvmrbqp98ee9vh", "clip": "Catching_Breath", "file": "rider-recovery.glb" },
+    "celebrate": { "type": "model_animation_clip", "id": "w97245awyneqnkxfa71mmgm16x8ef76g", "clip": "Seated_Fist_Pump", "file": "rider-celebrate.glb" }
+  },
+  "batches": ["w5737jp1fvxyhek3ktem9tvwqn8eehcd", "w579wnp8q1fmd4rcgbqerw9e898eeps6"],
+  "note": "Mint's curated animation catalog has no cycling/pedaling clip (verified via /v1/animation-options). Closest seated clips are mapped to ride states in RiderMarker.",
+  "preset": "n/a",
+  "prompt": "Athletic cyclist, aerodynamic road-cycling kit, seated riding pose",
+  "generatedAt": "2026-09-15T16:05:11.188Z"
+}

@@ -24,6 +24,7 @@ export interface TronRendererProps {
   storyBeats: StoryBeat[];
   avatarId?: string;
   equipmentId?: string;
+  worldId?: string;
   quality?: "low" | "medium" | "high";
   className?: string;
   userDisplayName?: string;
@@ -65,6 +66,7 @@ export const TronRenderer = memo(function TronRenderer(props: TronRendererProps)
         storyBeats={props.storyBeats}
         avatarId={props.avatarId}
         equipmentId={props.equipmentId}
+        worldId={props.worldId}
         quality={props.quality}
         className={props.className}
         userDisplayName={props.userDisplayName}

@@ -1,3 +1,6 @@
+import generatedAvatars from "./generated-avatars.json";
+import generatedWorlds from "./generated-worlds.json";
+
 export interface AvatarAsset {
   id: string;
   name: string;
@@ -5,6 +8,12 @@ export interface AvatarAsset {
   modelUrl: string; // GLB/GLTF URL
   thumbnail: string;
   description: string;
+  /** Named per-state clip GLBs (Mint exports one clip per GLB, all sharing
+   *  the same rig). When present the route world renders this avatar with
+   *  AnimatedModel and crossfades clips by ride state. */
+  clips?: { name: string; url: string }[];
+  /** True for pipeline-generated local assets (Mint), false for CDN stock. */
+  generated?: boolean;
 }
 
 export interface EquipmentAsset {
@@ -21,9 +30,16 @@ export interface WorldAsset {
   name: string;
   theme: "neon" | "alpine" | "mars" | "anime" | "rainbow";
   skyboxUrl?: string;
+  /** Equirectangular panorama (World Labs pipeline) rendered as the scene
+   *  background — the mobile-safe generated-world tier. */
+  panoUrl?: string;
+  /** HQ textured mesh GLB (World Labs pipeline) — high-tier devices only. */
+  meshUrl?: string;
   fogColor: string;
   ambientColor: string;
   description: string;
+  /** True for pipeline-generated local assets, false for hand-authored. */
+  generated?: boolean;
 }
 
 export const AVATARS: AvatarAsset[] = [
@@ -58,7 +74,11 @@ export const AVATARS: AvatarAsset[] = [
     modelUrl: "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/ghost/model.glb",
     thumbnail: "/images/avatars/ghost.png",
     description: "He doesn't have legs, but he's got great cadence.",
-  }
+  },
+  // Pipeline-generated local avatars (scripts/mint/generate-rider.mjs writes
+  // app/lib/generated-avatars.json). Empty until the pipeline has run, so the
+  // garage never offers an avatar whose GLB doesn't exist yet.
+  ...(generatedAvatars.avatars as AvatarAsset[]),
 ];
 
 export const EQUIPMENT: EquipmentAsset[] = [
@@ -128,7 +148,10 @@ export const WORLDS: WorldAsset[] = [
     fogColor: "#451a1a",
     ambientColor: "#fbbf24",
     description: "Endurance training on the surface of the red planet.",
-  }
+  },
+  // Pipeline-generated worlds (scripts/worldlabs/generate-world.mjs writes
+  // app/lib/generated-worlds.json). Empty until the pipeline has run.
+  ...(generatedWorlds.worlds as WorldAsset[]),
 ];
 
 export interface RideTemplate {

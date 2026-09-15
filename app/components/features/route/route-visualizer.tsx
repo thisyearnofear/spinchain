@@ -45,13 +45,18 @@ import {
 } from "@react-three/drei";
 import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-theme";
 import { computeReactiveParams, type ReactiveParams } from "./world-reactivity";
+import { useCoachingStore, selectPrBeaten } from "@/app/stores/coaching-store";
+import { useRideStore } from "@/app/stores/ride-store";
+import { resolveCharacterState, AVATAR_CLIP_BY_STATE } from "@/app/lib/character-state";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
 import type { FlowStateTier } from "@/app/lib/flow-state";
 import type { ContextPalette } from "@/app/lib/context-palette";
 export type { VisualizerTheme } from "./visualizer-theme";
 
 // Import Selection types
-import { AVATARS, EQUIPMENT, type AvatarAsset, type EquipmentAsset } from "../../../lib/selection-library";
+import { AVATARS, EQUIPMENT, WORLDS, type AvatarAsset, type EquipmentAsset } from "../../../lib/selection-library";
+import { AnimatedModel } from "./animated-model";
+import { WorldSkybox } from "./world-skybox";
 
 // Import StoryBeat types from gpx-uploader for consistency
 import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../../../routes/builder/gpx-uploader";
@@ -732,6 +737,7 @@ function RiderMarker({
   equipment,
   showYouLabel = false,
   reactive = null,
+  intervalPhase = null,
 }: {
   curve: CatmullRomCurve3;
   progressRef: MutableRefObject<number>;
@@ -741,12 +747,34 @@ function RiderMarker({
   equipment?: EquipmentAsset;
   showYouLabel?: boolean;
   reactive?: ReactiveParams | null;
+  intervalPhase?: IntervalPhase | null;
 }) {
   const groupRef = useRef<Group>(null);
   const styles = THEMES[theme];
 
   const auraRef = useRef<Mesh>(null);
   const lightRef = useRef<PointLight>(null);
+
+  // PR celebration: prBeaten is sticky once set (app/hooks/ride/use-pr-pursuit),
+  // so edge-trigger a ~4.5s celebrate window rather than pose-locking the rider.
+  const prBeaten = useCoachingStore(selectPrBeaten);
+  const [celebrating, setCelebrating] = useState(false);
+  useEffect(() => {
+    if (!prBeaten) return;
+    setCelebrating(true);
+    const timeout = setTimeout(() => setCelebrating(false), 4500);
+    return () => clearTimeout(timeout);
+  }, [prBeaten]);
+
+  // Clip selection for pipeline-generated riders (Mint) — one shared
+  // vocabulary for the whole product (app/lib/character-state.ts).
+  const isRiding = useRideStore((s) => s.isActive);
+  const characterState = resolveCharacterState({
+    isRiding,
+    intervalPhase,
+    celebrating,
+  });
+  const activeClip = AVATAR_CLIP_BY_STATE[characterState];
 
   useFrame((state) => {
     if (!groupRef.current) return;
@@ -814,7 +842,19 @@ function RiderMarker({
           {/* Avatar and Equipment Models */}
           {avatar && (
             <group position={[0, equipment?.type === "bike" ? 0.8 : 0, 0]}>
-              <Model url={avatar.modelUrl} scale={1.5} rotation={[0, Math.PI, 0]} />
+              {avatar.clips && avatar.clips.length > 0 ? (
+                /* Pipeline-generated rider (Mint): skeletal clips crossfade
+                   by ride state (idle / recovery / PR celebration). */
+                <AnimatedModel
+                  url={avatar.modelUrl}
+                  clips={avatar.clips}
+                  activeClip={activeClip}
+                  scale={1.5}
+                  rotation={[0, Math.PI, 0]}
+                />
+              ) : (
+                <Model url={avatar.modelUrl} scale={1.5} rotation={[0, Math.PI, 0]} />
+              )}
             </group>
           )}
 
@@ -1259,6 +1299,7 @@ function Scene({
   intervalPhase = null,
   flowTier = 0,
   contextPalette,
+  panoUrl,
 }: {
   elevationProfile: number[];
   theme?: VisualizerTheme;
@@ -1269,6 +1310,7 @@ function Scene({
   stats?: RiderStats;
   avatar?: AvatarAsset;
   equipment?: EquipmentAsset;
+  panoUrl?: string;
   quality?: {
     pixelRatio: number;
     shadows: boolean;
@@ -1466,6 +1508,10 @@ function Scene({
       />
       <fog attach="fog" args={[reactive ? reactive.fogColor : styles.fog, reactive ? reactive.fogDensity : 40, 250]} />
 
+      {/* Generated-world panorama (World Labs pipeline) — one static
+          equirect texture; the mobile-safe tier. */}
+      {panoUrl && <WorldSkybox url={panoUrl} />}
+
       <Environment preset={styles.envPreset} />
 
       {/* Dynamic atmospheric effects - disabled on low tier for performance */}
@@ -1541,6 +1587,7 @@ function Scene({
           equipment={equipment}
           showYouLabel={mode === "ride"}
           reactive={reactive}
+          intervalPhase={intervalPhase}
         />
 
         {/* Limit ghosts on low-end devices */}
@@ -1596,6 +1643,7 @@ export default function RouteVisualizer({
   className = "",
   avatarId,
   equipmentId,
+  worldId,
   quality,
   userDisplayName,
   intervalPhase = null,
@@ -1612,6 +1660,7 @@ export default function RouteVisualizer({
   className?: string;
   avatarId?: string;
   equipmentId?: string;
+  worldId?: string;
   quality?: "low" | "medium" | "high";
   userDisplayName?: string;
   intervalPhase?: IntervalPhase;
@@ -1640,6 +1689,7 @@ export default function RouteVisualizer({
 
   const avatar = useMemo(() => AVATARS.find(a => a.id === avatarId), [avatarId]);
   const equipment = useMemo(() => EQUIPMENT.find(e => e.id === equipmentId), [equipmentId]);
+  const world = useMemo(() => WORLDS.find(w => w.id === worldId), [worldId]);
 
   // Compute reactive sky gradient for world reactivity
   const reactiveParams = useMemo(() => {
@@ -1695,6 +1745,7 @@ export default function RouteVisualizer({
             intervalPhase={intervalPhase}
             flowTier={flowTier}
             contextPalette={contextPalette}
+            panoUrl={world?.panoUrl}
           />
         </Canvas>
       </Suspense>

@@ -1,0 +1,36 @@
+{
+  "avatars": [
+    {
+      "id": "mint-rider",
+      "name": "Nova",
+      "type": "humanoid",
+      "modelUrl": "/characters/rider.glb",
+      "clips": [
+        {
+          "name": "idle",
+          "url": "/characters/rider-idle.glb"
+        },
+        {
+          "name": "recovery",
+          "url": "/characters/rider-recovery.glb"
+        },
+        {
+          "name": "celebrate",
+          "url": "/characters/rider-celebrate.glb"
+        }
+      ],
+      "thumbnail": "/characters/rider.webp",
+      "description": "Mint-generated rider with state-driven clips: seated idle while riding, catching breath in recovery, fist pump on PR. (Mint's catalog has no pedaling clip yet.)",
+      "generated": true
+    },
+    {
+      "id": "mint-volt",
+      "name": "Volt",
+      "type": "robot",
+      "modelUrl": "/characters/volt.glb",
+      "thumbnail": "/characters/volt.webp",
+      "description": "Mint-generated robot rider — matte graphite with luminous teal energy accents. First earned-unlock archetype.",
+      "generated": true
+    }
+  ]
+}

@@ -15,7 +15,11 @@
     "test": "vitest run",
     "rive:build": "rive rive/rider --once --quiet && rive rive/effort-aura --once --quiet && rive rive/coach-orb --once --quiet && rive rive/flow-badge --once --quiet && cp rive/rider/build/rider.riv rive/effort-aura/build/effort-aura.riv rive/coach-orb/build/coach-orb.riv rive/flow-badge/build/flow-badge.riv public/rive/",
     "rive:verify": "rive rive/rider --verify && rive rive/effort-aura --verify && rive rive/coach-orb --verify && rive rive/flow-badge --verify",
-    "doctor": "npx react-doctor@latest"
+    "postinstall": "node scripts/copy-rive-wasm.mjs",
+    "mint:rider": "node scripts/mint/generate-rider.mjs",
+    "worldlabs:world": "node scripts/worldlabs/generate-world.mjs",
+    "doctor": "npx react-doctor@latest",
+    "characters:optimize": "node scripts/optimize-characters.mjs"
   },
   "dependencies": {
     "@aztec/bb.js": "5.0.0-rc.1",
@@ -61,6 +65,10 @@
     "zustand": "5.0.11"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "4.5.0",
+    "@gltf-transform/core": "4.5.0",
+    "@gltf-transform/extensions": "4.5.0",
+    "@gltf-transform/functions": "4.5.0",
     "@playwright/test": "1.62.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/react": "16.3.3",
@@ -70,10 +78,12 @@
     "@types/react-dom": "^19",
     "@types/three": "^0.182.0",
     "@types/web-bluetooth": "^0.0.21",
+    "draco3d": "1.5.7",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "jsdom": "30.0.1",
     "react-doctor": "0.9.13",
+    "sharp": "0.35.4",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "4.1.8"
