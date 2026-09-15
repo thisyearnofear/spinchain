@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { m } from "framer-motion";
 
 export function MorphCTA({
@@ -19,7 +20,9 @@ export function MorphCTA({
 
   const inner = (
     <m.div
-      className="relative inline-flex overflow-hidden bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] shadow-lg shadow-[color:var(--accent)]/30"
+      // Darkened orange endpoints: white bold text on var(--accent) (#f97316)
+      // is ~2.9:1 — below WCAG AA. #c2410c → #b45309 keeps both ends ≥5:1.
+      className="relative inline-flex overflow-hidden bg-gradient-to-r from-[#c2410c] to-[#b45309] shadow-lg shadow-[color:var(--accent)]/30"
       initial={{ borderRadius: 16 }}
       whileHover={{ borderRadius: 999, scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
@@ -31,9 +34,9 @@ export function MorphCTA({
 
   if (href) {
     return (
-      <a href={href} onClick={onClick} className="inline-block">
+      <Link href={href} onClick={onClick} className="inline-block">
         {inner}
-      </a>
+      </Link>
     );
   }
   return (

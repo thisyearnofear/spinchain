@@ -1,27 +1,11 @@
 "use client";
 
 import { Parallax } from "@/app/components/ui/scroll-animations";
-import { Activity, Heart, Zap } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Activity, Heart, Pause, Play, Zap } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
-// Sprint → Ignition animated preview — a self-contained canvas that shows
-// the reactive world responding to effort. Mirrors what the rider sees:
-// calm road → sprint pressure builds → ignition reward pulse.
-function SprintIgnitionPreview() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animRef = useRef<number>(0);
-  const phaseRef = useRef(0); // 0=rest, 1=sprint, 2=ignition
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let t = 0;
-    const draw = () => {
-      const w = canvas.width;
-      const h = canvas.height;
+// Renders one frame of the sprint → ignition world at time t / phase p.
+function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, phase: number) {
       ctx.clearRect(0, 0, w, h);
 
       // Background: dark road extending to horizon
@@ -33,7 +17,7 @@ function SprintIgnitionPreview() {
       ctx.fillRect(0, 0, w, h);
 
       // Horizon glow — intensifies with phase
-      const intensity = 0.15 + phaseRef.current * 0.45;
+      const intensity = 0.15 + phase * 0.45;
       const glowGrad = ctx.createRadialGradient(w / 2, h * 0.35, 0, w / 2, h * 0.35, w * 0.7);
       glowGrad.addColorStop(0, `rgba(249, 115, 22, ${intensity})`);
       glowGrad.addColorStop(0.5, `rgba(239, 68, 68, ${intensity * 0.4})`);
@@ -52,13 +36,13 @@ function SprintIgnitionPreview() {
       ctx.closePath();
 
       const roadGrad = ctx.createLinearGradient(0, roadTop.y, 0, roadBot.y);
-      roadGrad.addColorStop(0, `rgba(30, 20, 40, ${0.7 + phaseRef.current * 0.3})`);
+      roadGrad.addColorStop(0, `rgba(30, 20, 40, ${0.7 + phase * 0.3})`);
       roadGrad.addColorStop(1, `rgba(15, 10, 20, 1)`);
       ctx.fillStyle = roadGrad;
       ctx.fill();
 
       // Road edge glow — accent color pulses with sprint
-      const edgeAlpha = 0.2 + phaseRef.current * 0.5 + Math.sin(t * 3) * 0.08;
+      const edgeAlpha = 0.2 + phase * 0.5 + Math.sin(t * 3) * 0.08;
       ctx.strokeStyle = `rgba(249, 115, 22, ${edgeAlpha})`;
       ctx.lineWidth = 1.5;
       ctx.stroke();
@@ -71,7 +55,7 @@ function SprintIgnitionPreview() {
         const xScale = progress;
         const dashW = (roadBot.x2 - roadBot.x1) * xScale * 0.4;
         const dashX = w / 2 - dashW / 2;
-        ctx.fillStyle = `rgba(249, 115, 22, ${progress * 0.5 * (0.3 + phaseRef.current * 0.7)})`;
+        ctx.fillStyle = `rgba(249, 115, 22, ${progress * 0.5 * (0.3 + phase * 0.7)})`;
         ctx.fillRect(dashX, y - 1, dashW, 2);
       }
 
@@ -79,20 +63,20 @@ function SprintIgnitionPreview() {
       const fogCount = 3;
       for (let i = 0; i < fogCount; i++) {
         const fogY = h * 0.45 + i * 30;
-        const fogAlpha = (0.06 + phaseRef.current * 0.12) * (0.5 + 0.5 * Math.sin(t * 0.8 + i * 2));
+        const fogAlpha = (0.06 + phase * 0.12) * (0.5 + 0.5 * Math.sin(t * 0.8 + i * 2));
         ctx.fillStyle = `rgba(100, 80, 140, ${fogAlpha})`;
         ctx.fillRect(0, fogY, w, 20 + i * 10);
       }
 
       // Sprint sparks: small glowing dots near the road edges during sprint/ignition
-      if (phaseRef.current >= 1) {
+      if (phase >= 1) {
         const sparkCount = 6;
         for (let i = 0; i < sparkCount; i++) {
           const sparkPhase = ((i / sparkCount) + t * 0.6) % 1;
           const sparkY = h * 0.5 + sparkPhase * (h * 0.3);
           const sparkX = w / 2 + (Math.sin(i * 1.7 + t) * w * 0.25);
-          const sparkR = 2 + phaseRef.current * 2;
-          const sparkAlpha = sparkPhase * (phaseRef.current === 2 ? 0.9 : 0.5);
+          const sparkR = 2 + phase * 2;
+          const sparkAlpha = sparkPhase * (phase === 2 ? 0.9 : 0.5);
           const sparkGrad = ctx.createRadialGradient(sparkX, sparkY, 0, sparkX, sparkY, sparkR * 3);
           sparkGrad.addColorStop(0, `rgba(251, 191, 36, ${sparkAlpha})`);
           sparkGrad.addColorStop(1, "transparent");
@@ -102,7 +86,7 @@ function SprintIgnitionPreview() {
       }
 
       // Ignition burst: radial flash during ignition phase
-      if (phaseRef.current === 2) {
+      if (phase === 2) {
         const burstProgress = (t * 0.5) % 1;
         const burstR = burstProgress * w * 0.8;
         const burstAlpha = (1 - burstProgress) * 0.6;
@@ -119,22 +103,52 @@ function SprintIgnitionPreview() {
       ctx.fillRect(w * 0.05, h * 0.05, 90, 28);
       ctx.fillStyle = "#fb923c";
       ctx.font = "bold 14px monospace";
-      ctx.fillText(`${Math.floor(85 + phaseRef.current * 95)}W`, w * 0.05 + 8, h * 0.05 + 19);
+      ctx.fillText(`${Math.floor(85 + phase * 95)}W`, w * 0.05 + 8, h * 0.05 + 19);
 
       ctx.fillStyle = "rgba(0,0,0,0.5)";
       ctx.fillRect(w * 0.05, h * 0.05 + 32, 90, 22);
       ctx.fillStyle = "#f87171";
       ctx.font = "11px monospace";
-      ctx.fillText(`${Math.floor(140 + phaseRef.current * 40)} BPM`, w * 0.05 + 8, h * 0.05 + 47);
+      ctx.fillText(`${Math.floor(140 + phase * 40)} BPM`, w * 0.05 + 8, h * 0.05 + 47);
 
       // Phase label
-      const phaseLabel = phaseRef.current < 0.5 ? "WARMUP" : phaseRef.current < 1.5 ? "SPRINT" : "IGNITION";
-      const phaseColor = phaseRef.current < 0.5 ? "#6b7280" : phaseRef.current < 1.5 ? "#fb923c" : "#fbbf24";
+      const phaseLabel = phase < 0.5 ? "WARMUP" : phase < 1.5 ? "SPRINT" : "IGNITION";
+      const phaseColor = phase < 0.5 ? "#6b7280" : phase < 1.5 ? "#fb923c" : "#fbbf24";
       ctx.fillStyle = phaseColor;
       ctx.font = "bold 11px monospace";
       ctx.letterSpacing = "2px";
       ctx.fillText(phaseLabel, w * 0.05 + 8, h * 0.88);
 
+}
+
+// Sprint → Ignition animated preview — a self-contained canvas that shows
+// the reactive world responding to effort. Mirrors what the rider sees:
+// calm road → sprint pressure builds → ignition reward pulse.
+// WCAG 2.2.2: offers a pause control; prefers-reduced-motion gets a static frame.
+function SprintIgnitionPreview() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animRef = useRef<number>(0);
+  const phaseRef = useRef(0); // 0=rest, 1=sprint, 2=ignition
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduced || paused) {
+      // Static mid-sprint frame — no loop, no phase cycling.
+      phaseRef.current = 1;
+      drawFrame(ctx, canvas.width, canvas.height, 2.5, phaseRef.current);
+      return;
+    }
+
+    let t = 0;
+    const draw = () => {
+      drawFrame(ctx, canvas.width, canvas.height, t, phaseRef.current);
       t += 0.016;
       animRef.current = requestAnimationFrame(draw);
     };
@@ -158,16 +172,27 @@ function SprintIgnitionPreview() {
       cancelAnimationFrame(animRef.current);
       clearInterval(tick);
     };
-  }, []);
+  }, [paused]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={480}
-      height={280}
-      className="w-full h-full rounded-xl"
-      aria-label="Animated preview of the reactive sprint-to-ignition ride world"
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        width={480}
+        height={280}
+        className="w-full h-full rounded-xl"
+        aria-label="Animated preview of the reactive sprint-to-ignition ride world"
+      />
+      <button
+        type="button"
+        onClick={() => setPaused((p) => !p)}
+        aria-pressed={paused}
+        aria-label={paused ? "Play preview animation" : "Pause preview animation"}
+        className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white/80 backdrop-blur transition-colors hover:text-white"
+      >
+        {paused ? <Play className="h-4 w-4 fill-current" /> : <Pause className="h-4 w-4 fill-current" />}
+      </button>
+    </>
   );
 }
 

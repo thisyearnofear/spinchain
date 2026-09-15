@@ -5,7 +5,6 @@ import { PrimaryNav } from "@/app/components/layout/nav";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 import { MorphCTA } from "@/app/components/ui/morph-cta";
 import { useExperience } from "@/app/lib/experience-level";
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Play } from "lucide-react";
 
@@ -50,7 +49,8 @@ interface HeroSectionProps {
 
 export function HeroSection({ onOpenGuide }: HeroSectionProps) {
   const { totalRides, currentTier } = useExperience();
-  const flowTier = totalRides > 0 ? Math.min(4, currentTier + 1) : 0;
+  // Honest signal: show the rider's current tier, not an aspirational +1.
+  const flowTier = Math.min(4, currentTier);
 
   return (
     <header className="flex flex-col items-start justify-between gap-6 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-6 shadow-[0_20px_80px_rgba(0,0,0,0.15)] md:gap-8 md:px-8 md:py-8">
@@ -60,25 +60,32 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 bg-[color:var(--accent)]/5 blur-[120px]" />
 
         {/* Flow badge — separate from the character, keeps tier signal */}
-        <div className="mb-5 flex justify-center">
+        <div className="mb-5 flex flex-col items-center justify-center gap-1">
           <RiveFlowBadge
             flowTier={flowTier}
-            streak={totalRides}
             label={totalRides > 0 ? `🔥 ${totalRides} ride${totalRides === 1 ? "" : "s"}` : undefined}
           />
+          {totalRides === 0 && (
+            <p className="text-xs text-[color:var(--muted)]">
+              Ride once to ignite your flow tier
+            </p>
+          )}
         </div>
 
         {/* Character + heading — RiveRider beside H1 for first-time visitors */}
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6 md:mb-6">
-          {/* RiveRider: eager bounce in ready state for first-timers */}
+          {/* Nova (RiveRider): eager bounce in ready state for first-timers */}
           {totalRides === 0 && (
             <div className="shrink-0 mx-auto sm:mx-0">
               <RiveRider size={80} ready fatigued={false} />
+              <p className="mt-1 text-center text-xs font-medium text-[color:var(--muted)]">
+                Nova · your rider
+              </p>
             </div>
           )}
           <div className="flex-1">
             <h1 className="text-3xl font-black leading-tight text-[color:var(--foreground)] drop-shadow-2xl sm:text-4xl md:text-5xl lg:text-6xl">
-              Indoor cycling that
+              Indoor cycling that{" "}
               <br />
               reacts to your effort.
             </h1>
@@ -93,12 +100,10 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <Link href={getDemoRideUrl({ name: "Demo Ride" })} className="contents">
-            <MorphCTA>
-              <Play className="h-4 w-4 fill-current" />
-              Try a Demo Ride
-            </MorphCTA>
-          </Link>
+          <MorphCTA href={getDemoRideUrl({ name: "Demo Ride" })}>
+            <Play className="h-4 w-4 fill-current" />
+            Try a Demo Ride
+          </MorphCTA>
 
           {onOpenGuide && (
             <button

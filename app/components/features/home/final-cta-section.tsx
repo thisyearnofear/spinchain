@@ -20,7 +20,7 @@ export function FinalCTASection() {
           </p>
           <Link
             href={getDemoRideUrl({ name: "Demo Ride" })}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--accent)] px-8 py-3 font-bold text-white shadow-lg shadow-[color:var(--accent)]/30 transition-[transform,box-shadow] duration-150 hover:scale-105 hover:shadow-xl hover:shadow-[color:var(--accent)]/40 active:scale-95 md:px-10 md:py-4"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#c2410c] px-8 py-3 font-bold text-white shadow-lg shadow-[color:var(--accent)]/30 transition-[transform,box-shadow] duration-150 hover:scale-105 hover:shadow-xl hover:shadow-[color:var(--accent)]/40 active:scale-95 md:px-10 md:py-4"
           >
             <Play className="h-4 w-4 fill-current" />
             Try a Demo Ride

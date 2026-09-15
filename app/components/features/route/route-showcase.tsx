@@ -163,7 +163,7 @@ function RouteCard({ route, index }: { route: typeof DEMO_CLASSES[0]; index: num
           </div>
           <Link
             href={getDemoRideUrl({ name: route.name })}
-            className="px-6 py-2.5 rounded-full bg-[color:var(--accent)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+            className="px-6 py-2.5 rounded-full bg-[#c2410c] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
           >
             Try it free
           </Link>

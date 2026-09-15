@@ -35,6 +35,11 @@ export function HowItWorksSection() {
   useGSAP(
     () => {
       if (!rootRef.current) return;
+      // Reduced motion: no scroll-jacked scrub — show the completed state.
+      if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+        setScrubProgress(1);
+        return;
+      }
       let raf: number | null = null;
       let latestProgress = 0;
 

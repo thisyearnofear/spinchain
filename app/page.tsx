@@ -97,8 +97,8 @@ function HomeContent() {
           {hasProfile ? <PersonalizedHero /> : <HeroSection onOpenGuide={() => setShowQuiz(true)} />}
         </FadeIn>
 
-        <HowItWorksSection />
         {!isReturningRider && <LivePreviewSection />}
+        <HowItWorksSection />
         <RouteShowcase />
         {!isReturningRider && <FeaturesGridSection />}
         {!isReturningRider && <FinalCTASection />}
