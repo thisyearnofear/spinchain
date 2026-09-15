@@ -243,5 +243,5 @@ export function mapCoachPersonalityToEngine(p: CoachPersonality | null): "zen" |
 export function getRecommendedRideName(difficulty: "easy" | "moderate" | "hard"): string {
   if (difficulty === "easy") return "Gentle Start";
   if (difficulty === "hard") return "Alpine Challenge";
-  return "Accelerator Pitch";
+  return "Interval Builder";
 }

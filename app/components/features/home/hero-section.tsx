@@ -1,14 +1,13 @@
 "use client";
 
 import { PrimaryNav } from "@/app/components/layout/nav";
-import { AnimatedCard, Floating, MagneticButton } from "@/app/components/ui/animated-card";
+
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
-import { ChainringCarousel } from "./chainring-carousel";
 import { MorphCTA } from "@/app/components/ui/morph-cta";
 import { useExperience } from "@/app/lib/experience-level";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Play, ArrowRight } from "lucide-react";
+import { Play } from "lucide-react";
 
 // Lazy-load: keeps the Rive JS runtime (~335 KB) + WASM bootstrap out of the
 // landing page's initial bundle.
@@ -20,6 +19,31 @@ const RiveFlowBadge = dynamic(
   },
 );
 
+// The Rive rider in ready state greets first-time visitors beside the H1,
+// mirroring the rider-hero pattern — Act 1 starts at the front door.
+const RiveRider = dynamic(
+  () => import("@/app/components/features/ride/rive-rider").then((m) => m.RiveRider),
+  { ssr: false },
+);
+
+// Cast voice — first-time visitors get an eager greeting from the coach.
+// Returning riders get a streak acknowledgement instead.
+const COACH_GREETINGS = [
+  "Let's find your gear.",
+  "The road's ready when you are.",
+  "One pedal stroke at a time.",
+  "Your effort writes the route.",
+];
+
+function CoachGreeting({ rides }: { rides: number }) {
+  const idx = rides % COACH_GREETINGS.length;
+  return (
+    <p className="mt-2 text-sm italic text-[color:var(--muted)]">
+      {COACH_GREETINGS[idx]}
+    </p>
+  );
+}
+
 interface HeroSectionProps {
   onOpenGuide?: () => void;
 }
@@ -27,8 +51,7 @@ interface HeroSectionProps {
 export function HeroSection({ onOpenGuide }: HeroSectionProps) {
   const { totalRides, currentTier } = useExperience();
   const flowTier = totalRides > 0 ? Math.min(4, currentTier + 1) : 0;
-  const badgeLabel =
-    totalRides > 0 ? `🔥 ${totalRides} ride${totalRides === 1 ? "" : "s"}` : "Start your streak";
+
   return (
     <header className="flex flex-col items-start justify-between gap-6 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-6 shadow-[0_20px_80px_rgba(0,0,0,0.15)] md:gap-8 md:px-8 md:py-8">
       <PrimaryNav />
@@ -36,19 +59,32 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
       <div className="relative w-full overflow-hidden border-y border-[color:var(--border)] py-8 text-center md:py-12">
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 bg-[color:var(--accent)]/5 blur-[120px]" />
 
+        {/* Flow badge — separate from the character, keeps tier signal */}
         <div className="mb-5 flex justify-center">
           <RiveFlowBadge
             flowTier={flowTier}
             streak={totalRides}
-            label={badgeLabel}
+            label={totalRides > 0 ? `🔥 ${totalRides} ride${totalRides === 1 ? "" : "s"}` : undefined}
           />
         </div>
 
-        <h1 className="mb-5 text-3xl font-black leading-tight text-[color:var(--foreground)] drop-shadow-2xl sm:text-4xl md:mb-6 md:text-5xl lg:text-6xl">
-          Indoor cycling that
-          <br />
-          reacts to your effort.
-        </h1>
+        {/* Character + heading — RiveRider beside H1 for first-time visitors */}
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6 md:mb-6">
+          {/* RiveRider: eager bounce in ready state for first-timers */}
+          {totalRides === 0 && (
+            <div className="shrink-0 mx-auto sm:mx-0">
+              <RiveRider size={80} ready fatigued={false} />
+            </div>
+          )}
+          <div className="flex-1">
+            <h1 className="text-3xl font-black leading-tight text-[color:var(--foreground)] drop-shadow-2xl sm:text-4xl md:text-5xl lg:text-6xl">
+              Indoor cycling that
+              <br />
+              reacts to your effort.
+            </h1>
+            {totalRides === 0 && <CoachGreeting rides={0} />}
+          </div>
+        </div>
 
         <p className="mx-auto max-w-2xl px-4 text-base font-medium leading-relaxed text-[color:var(--muted)] md:text-lg lg:text-xl">
           Pedal harder. The road glows hotter. The fog thickens. The world
@@ -57,7 +93,7 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <Link href={getDemoRideUrl({ name: "Accelerator Pitch" })} className="contents">
+          <Link href={getDemoRideUrl({ name: "Demo Ride" })} className="contents">
             <MorphCTA>
               <Play className="h-4 w-4 fill-current" />
               Try a Demo Ride
@@ -69,12 +105,11 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
               onClick={onOpenGuide}
               className="text-sm font-medium text-[color:var(--muted)] transition-colors hover:text-[color:var(--foreground)]"
             >
-              Take the quick tour
+              Set up my profile
             </button>
           )}
         </div>
 
-        <ChainringCarousel />
       </div>
 
       <div className="w-full rounded-b-2xl py-5 md:py-6" role="region" aria-label="Quick start highlights">
@@ -94,54 +129,6 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="mt-2 grid w-full gap-4 md:grid-cols-2 md:gap-6">
-        <AnimatedCard glowColor="var(--accent)">
-          <Link
-            href={getDemoRideUrl({ name: "Accelerator Pitch" })}
-            className="group relative block h-full overflow-hidden p-6 md:p-8"
-            aria-label="Start riding with a demo"
-          >
-            <div className="absolute right-0 top-0 h-32 w-32 rounded-bl-full bg-gradient-to-br from-[color:var(--accent)]/20 to-transparent" />
-            <Floating delay={0}>
-              <Play className="mb-4 block h-10 w-10 text-[color:var(--accent)] md:h-12 md:w-12" />
-            </Floating>
-            <h2 className="mb-2 text-xl font-semibold text-[color:var(--foreground)] md:text-2xl">
-              Ride a class
-            </h2>
-            <p className="mb-5 text-sm text-[color:var(--muted)] md:mb-6 md:text-base">
-              Start with the free demo, explore upcoming sessions, and connect your setup when you are ready.
-            </p>
-            <MagneticButton className="pointer-events-none inline-flex items-center gap-2 font-medium text-[color:var(--accent)] transition-colors group-hover:text-[color:var(--accent-strong)]">
-              Start with a demo
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </MagneticButton>
-          </Link>
-        </AnimatedCard>
-
-        <AnimatedCard glowColor="var(--accent-strong)">
-          <a
-            href="/instructor"
-            className="group relative block h-full overflow-hidden p-6 md:p-8"
-            aria-label="Preview instructor tools"
-          >
-            <div className="absolute right-0 top-0 h-32 w-32 rounded-bl-full bg-gradient-to-br from-[color:var(--accent-strong)]/20 to-transparent" />
-            <Floating delay={0.5}>
-              <ArrowRight className="mb-4 block h-10 w-10 rotate-45 text-[color:var(--accent-strong)] md:h-12 md:w-12" />
-            </Floating>
-            <h2 className="mb-2 text-xl font-semibold text-[color:var(--foreground)] md:text-2xl">
-              Teach on SpinChain
-            </h2>
-            <p className="mb-5 text-sm text-[color:var(--muted)] md:mb-6 md:text-base">
-              Build classes with AI-assisted coaching and immersive routes. Draft before you commit.
-            </p>
-            <MagneticButton className="inline-flex items-center gap-2 font-medium text-[color:var(--accent)] transition-colors group-hover:text-[color:var(--accent-strong)]">
-              Preview teaching paths
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-y-1" />
-            </MagneticButton>
-          </a>
-        </AnimatedCard>
       </div>
     </header>
   );

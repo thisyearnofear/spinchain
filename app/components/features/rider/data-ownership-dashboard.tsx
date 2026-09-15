@@ -70,9 +70,9 @@ export function DataOwnershipDashboard() {
     setTimeout(() => {
       setDeleting(false);
       setConfirmDelete(false);
-      window.location.href = "/?reset=true";
+      router.push("/?reset=true");
     }, 500);
-  }, []);
+  }, [router]);
 
   const handleSyncProfile = useCallback(async () => {
     if (!address || !profile.isComplete()) return;

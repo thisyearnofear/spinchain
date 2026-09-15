@@ -29,6 +29,7 @@ export function FadeIn({
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
     const directions = {
       up: { y: 40, x: 0 },
@@ -87,6 +88,7 @@ export function StaggerContainer({
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
     const children = element.children;
     
@@ -136,6 +138,7 @@ export function Parallax({
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
     const animation = gsap.to(element, {
       y: () => speed * 100,
@@ -179,6 +182,7 @@ export function ScaleIn({
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
     gsap.set(element, { opacity: 0, scale: 0.9 });
 
@@ -227,6 +231,7 @@ export function TextReveal({
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
     // Split text into words using DOM manipulation instead of innerHTML
     // to prevent potential XSS if children contains user-controlled data

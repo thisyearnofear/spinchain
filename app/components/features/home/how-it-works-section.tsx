@@ -95,10 +95,10 @@ export function HowItWorksSection() {
           <EffortAuraCanvas intensity={scrubProgress} />
         </div>
         <div className="relative mb-3 flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70">
             Your effort shapes the road
           </p>
-          <span className="font-mono text-xs text-white/60">{Math.round(scrubProgress * 100)}%</span>
+          <span className="font-mono text-xs text-white/80">{Math.round(scrubProgress * 100)}%</span>
         </div>
         <svg viewBox="0 0 400 80" className="relative h-[80px] w-full" preserveAspectRatio="none" aria-hidden="true">
           <path

@@ -2,26 +2,46 @@
 
 import { useRef } from "react";
 import { m, useScroll, useTransform } from "framer-motion";
-import { AnimatedCard, EnergyPulse } from "../../../components/ui/animated-card";
+import { AnimatedCard } from "@/app/components/ui/animated-card";
+import { useClasses } from "@/app/hooks/evm/use-class-data";
+import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
+import Link from "next/link";
 
-interface Route {
-  id: string;
-  name: string;
-  description: string;
-  image: string;
-  difficulty: "Easy" | "Medium" | "Hard" | "Extreme";
-  duration: string;
-  distance: string;
-  elevation: string;
-  theme: "forest" | "city" | "coastal" | "mountain" | "group";
-  instructor: string;
-  liveRiders: number;
-  nextClass: string;
+const DIFFICULTY_THRESHOLDS = [
+  { label: "Easy", maxElevation: 150, maxDuration: 40 },
+  { label: "Medium", maxElevation: 400, maxDuration: 60 },
+  { label: "Hard", maxElevation: 800, maxDuration: 90 },
+  { label: "Extreme", maxElevation: Infinity, maxDuration: Infinity },
+];
+
+function deriveDifficulty(elevationM: number, durationMin: number): string {
+  for (const t of DIFFICULTY_THRESHOLDS) {
+    if (elevationM <= t.maxElevation && durationMin <= t.maxDuration) return t.label;
+  }
+  return "Extreme";
 }
 
-const routes: Route[] = [
+const DIFFICULTY_COLORS: Record<string, string> = {
+  Easy: "bg-green-500/20 text-green-400 border-green-500/30",
+  Medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+  Hard: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  Extreme: "bg-red-500/20 text-red-400 border-red-500/30",
+};
+
+const THEME_IMAGES: Record<string, string> = {
+  mountain: "/images/routes/route-mountain.jpg",
+  neon: "/images/routes/route-city.jpg",
+  alpine: "/images/routes/route-mountain.jpg",
+  mars: "/images/routes/route-forest.jpg",
+  city: "/images/routes/route-city.jpg",
+  coastal: "/images/routes/route-coastal.jpg",
+  forest: "/images/routes/route-forest.jpg",
+  group: "/images/routes/route-group.jpg",
+};
+
+// Demo content shown when no on-chain classes exist
+const DEMO_CLASSES = [
   {
-    id: "1",
     name: "Alpine Dawn",
     description: "Climb through misty mountain passes as the sun breaks through. A test of endurance with breathtaking views.",
     image: "/images/routes/route-mountain.jpg",
@@ -29,13 +49,10 @@ const routes: Route[] = [
     duration: "45 min",
     distance: "18 km",
     elevation: "+420m",
-    theme: "mountain",
-    instructor: "Sarah Chen",
-    liveRiders: 24,
-    nextClass: "In 2 hours",
+    theme: "mountain" as const,
+    instructor: "SpinChain Coaching",
   },
   {
-    id: "2",
     name: "Neon Grid Sprint",
     description: "High-intensity intervals through a cyberpunk cityscape. Sync your effort to the beat.",
     image: "/images/routes/route-city.jpg",
@@ -43,13 +60,10 @@ const routes: Route[] = [
     duration: "30 min",
     distance: "12 km",
     elevation: "+80m",
-    theme: "city",
-      instructor: "AI Coach",
-    liveRiders: 156,
-    nextClass: "Live now",
+    theme: "city" as const,
+    instructor: "SpinChain Coaching",
   },
   {
-    id: "3",
     name: "Coastal Cruise",
     description: "Gentle rolling hills along the ocean. Perfect for recovery or beginners.",
     image: "/images/routes/route-coastal.jpg",
@@ -57,98 +71,43 @@ const routes: Route[] = [
     duration: "60 min",
     distance: "25 km",
     elevation: "+150m",
-    theme: "coastal",
-    instructor: "Marcus Webb",
-    liveRiders: 8,
-    nextClass: "Tomorrow 8am",
-  },
-  {
-    id: "4",
-    name: "Redwood Challenge",
-    description: "Deep forest trails with technical climbs. Lose yourself in nature while finding your limits.",
-    image: "/images/routes/route-forest.jpg",
-    difficulty: "Extreme",
-    duration: "90 min",
-    distance: "35 km",
-    elevation: "+800m",
-    theme: "forest",
-      instructor: "AI Coach Pro",
-    liveRiders: 42,
-    nextClass: "In 4 hours",
-  },
-  {
-    id: "5",
-    name: "Peloton Power",
-    description: "Group ride simulation with drafting mechanics. Ride together, even when apart.",
-    image: "/images/routes/route-group.jpg",
-    difficulty: "Medium",
-    duration: "45 min",
-    distance: "20 km",
-    elevation: "+200m",
-    theme: "group",
-    instructor: "Team SpinChain",
-    liveRiders: 89,
-    nextClass: "Every hour",
+    theme: "coastal" as const,
+    instructor: "SpinChain Coaching",
   },
 ];
 
-const difficultyColors = {
-  Easy: "bg-green-500/20 text-green-400 border-green-500/30",
-  Medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  Hard: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  Extreme: "bg-red-500/20 text-red-400 border-red-500/30",
-};
-
-function RouteCard({ route, index }: { route: Route; index: number }) {
+function RouteCard({ route, index }: { route: typeof DEMO_CLASSES[0]; index: number }) {
   const cardRef = useRef<HTMLDivElement>(null);
-  
   const { scrollYProgress } = useScroll({
     target: cardRef,
-    offset: ["start end", "end start"]
+    offset: ["start end", "end start"],
   });
 
-  // Parallax effect for the image
   const imageY = useTransform(scrollYProgress, [0, 1], ["-10%", "10%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.9, 1, 1, 0.9]);
-
   const isEven = index % 2 === 0;
 
   return (
     <m.div
       ref={cardRef}
       style={{ opacity, scale }}
-      className={`grid lg:grid-cols-2 gap-8 items-center ${isEven ? "" : "lg:grid-flow-dense"}`}
+      className={`relative grid lg:grid-cols-2 gap-8 items-center ${isEven ? "" : "lg:grid-flow-dense"}`}
     >
       {/* Image Side */}
       <div className={`relative aspect-[16/10] rounded-3xl overflow-hidden ${isEven ? "" : "lg:col-start-2"}`}>
         <AnimatedCard className="h-full" glowColor="var(--accent)">
           <div className="relative h-full overflow-hidden">
-            {/* Parallax Image */}
-            <m.div 
-              className="absolute inset-0"
-              style={{ y: imageY }}
-            >
+            <m.div className="absolute inset-0" style={{ y: imageY }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={route.image}
                 alt={route.name}
                 className="w-full h-[120%] object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).src = "/images/routes/route-mountain.jpg"; }}
               />
             </m.div>
-            
-            {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            
-            {/* Live Badge */}
-            {route.liveRiders > 10 && (
-              <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur border border-white/10">
-                <EnergyPulse size="sm" />
-                <span className="text-xs font-medium text-white">{route.liveRiders} riding now</span>
-              </div>
-            )}
-
-            {/* Theme Tag */}
             <div className="absolute bottom-4 left-4">
               <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur text-xs text-white/80 border border-white/10 capitalize">
                 {route.theme}
@@ -161,10 +120,9 @@ function RouteCard({ route, index }: { route: Route; index: number }) {
       {/* Content Side */}
       <div className={`space-y-6 ${isEven ? "" : "lg:col-start-1 lg:row-start-1"}`}>
         <div className="flex items-center gap-3">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${difficultyColors[route.difficulty]}`}>
+          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${DIFFICULTY_COLORS[route.difficulty]}`}>
             {route.difficulty}
           </span>
-          <span className="text-sm text-[color:var(--muted)]">{route.nextClass}</span>
         </div>
 
         <div>
@@ -192,25 +150,23 @@ function RouteCard({ route, index }: { route: Route; index: number }) {
           </div>
         </div>
 
-        {/* Instructor */}
+        {/* Instructor + CTA */}
         <div className="flex items-center justify-between p-4 rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[color:var(--accent)] to-[color:var(--accent-strong)]" />
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[color:var(--accent)] to-[color:var(--accent-strong)] flex items-center justify-center text-white text-sm font-bold">
+              {route.instructor.charAt(0)}
+            </div>
             <div>
               <p className="text-sm font-medium text-[color:var(--foreground)]">{route.instructor}</p>
-              <p className="text-xs text-[color:var(--muted)]">
-                {route.instructor.startsWith("AI") ? "AI Training Partner" : route.instructor === "Team SpinChain" ? "Group Class" : "Human Instructor"}
-              </p>
+              <p className="text-xs text-[color:var(--muted)]">SpinChain Coach</p>
             </div>
           </div>
-          <m.a
-            href={`/rider/ride/${route.id}`}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <Link
+            href={getDemoRideUrl({ name: route.name })}
             className="px-6 py-2.5 rounded-full bg-[color:var(--accent)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
           >
-            Join Class
-          </m.a>
+            Try it free
+          </Link>
         </div>
       </div>
     </m.div>
@@ -218,21 +174,24 @@ function RouteCard({ route, index }: { route: Route; index: number }) {
 }
 
 export function RouteShowcase() {
+  const { classes: liveClasses } = useClasses();
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end end"]
+    offset: ["start start", "end end"],
   });
 
-  // Progress bar animation
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+
+  // Use live on-chain classes when available; fall back to demo classes
+  const isDemoMode = liveClasses.length === 0;
 
   return (
     <section ref={containerRef} className="relative">
       {/* Fixed Progress Bar */}
       <div className="fixed top-0 left-0 right-0 h-1 bg-[color:var(--surface-strong)] z-50">
-        <m.div 
+        <m.div
           className="h-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)]"
           style={{ width: progressWidth }}
         />
@@ -246,7 +205,7 @@ export function RouteShowcase() {
           viewport={{ once: true }}
           className="inline-block px-4 py-1.5 rounded-full bg-[color:var(--accent)]/10 text-[color:var(--accent)] text-sm font-medium mb-4"
         >
-          Featured Routes
+          {isDemoMode ? "Sample Rides" : "Live Classes"}
         </m.span>
         <m.h2
           initial={{ opacity: 0, y: 20 }}
@@ -264,16 +223,38 @@ export function RouteShowcase() {
           transition={{ delay: 0.2 }}
           className="text-lg text-[color:var(--muted)] max-w-2xl mx-auto"
         >
-          From scenic mountain climbs to high-energy city rides—find a class 
-          that matches your mood and fitness level.
+          {isDemoMode
+            ? "Try any of these routes free — no wallet or signup needed."
+            : "Join live classes powered by real on-chain coaching."}
         </m.p>
       </div>
 
       {/* Routes */}
       <div className="space-y-32">
-        {routes.map((route, index) => (
-          <RouteCard key={route.id} route={route} index={index} />
-        ))}
+        {isDemoMode
+          ? DEMO_CLASSES.map((route, index) => (
+              <RouteCard key={route.name} route={route} index={index} />
+            ))
+          : liveClasses.map((cls, index) => {
+              const meta = cls.metadata;
+              const clsRoute = meta?.route;
+              const difficulty = deriveDifficulty(
+                Number(clsRoute?.elevationGain ?? 0),
+                Number(clsRoute?.duration ?? meta?.duration ?? 30)
+              );
+              const displayRoute = {
+                name: cls.name,
+                description: meta?.description ?? "A SpinChain class ride.",
+                image: THEME_IMAGES[clsRoute?.theme ?? "mountain"] ?? "/images/routes/route-mountain.jpg",
+                difficulty,
+                duration: `${clsRoute?.duration ?? meta?.duration ?? 30} min`,
+                distance: `${clsRoute?.distance ?? 15} km`,
+                elevation: `+${clsRoute?.elevationGain ?? 0}m`,
+                theme: (clsRoute?.theme ?? "mountain") as typeof DEMO_CLASSES[0]["theme"],
+                instructor: meta?.instructor ?? "SpinChain Coaching",
+              };
+              return <RouteCard key={cls.address} route={displayRoute} index={index} />;
+            })}
       </div>
 
       {/* View All CTA */}
@@ -283,15 +264,15 @@ export function RouteShowcase() {
         viewport={{ once: true }}
         className="text-center mt-32"
       >
-        <a
+        <Link
           href="/routes"
           className="inline-flex items-center gap-2 px-8 py-4 rounded-full border-2 border-[color:var(--accent)] text-[color:var(--accent)] font-semibold hover:bg-[color:var(--accent)] hover:text-white transition-all"
         >
           Explore All Routes
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
           </svg>
-        </a>
+        </Link>
       </m.div>
     </section>
   );

@@ -74,7 +74,7 @@ function HomeContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[color:var(--background)] overflow-x-hidden">
+    <div className="relative min-h-screen bg-[color:var(--background)] overflow-x-hidden">
       {showQuiz && (
         <RiderQuiz
           onComplete={handleQuizComplete}

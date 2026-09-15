@@ -19,7 +19,7 @@ export function FinalCTASection() {
             Start with the free demo. No wallet, no signup, no friction — just a bike, a keyboard, and a world that moves with you.
           </p>
           <Link
-            href={getDemoRideUrl({ name: "Accelerator Pitch" })}
+            href={getDemoRideUrl({ name: "Demo Ride" })}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--accent)] px-8 py-3 font-bold text-white shadow-lg shadow-[color:var(--accent)]/30 transition-[transform,box-shadow] duration-150 hover:scale-105 hover:shadow-xl hover:shadow-[color:var(--accent)]/40 active:scale-95 md:px-10 md:py-4"
           >
             <Play className="h-4 w-4 fill-current" />

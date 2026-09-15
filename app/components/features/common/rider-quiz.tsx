@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
 import { CoachyMascot, type CoachyMood } from "@/app/components/ui/coachy-mascot";
@@ -329,8 +329,60 @@ interface QuizShellProps {
 }
 
 function QuizShell({ children, onSkip, stepId, theme }: QuizShellProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  // Escape key — close the quiz
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onSkip();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onSkip]);
+
+  // Focus trap — save current focus, restore on close
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const first = focusable?.[0] ?? null;
+    first?.focus();
+
+    const trap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const focusableNow = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusableNow?.length) return;
+      const firstNow = focusableNow[0];
+      const lastNow = focusableNow[focusableNow.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === firstNow) { e.preventDefault(); lastNow.focus(); }
+      } else {
+        if (document.activeElement === lastNow) { e.preventDefault(); firstNow.focus(); }
+      }
+    };
+    window.addEventListener("keydown", trap);
+    return () => {
+      window.removeEventListener("keydown", trap);
+      previousFocusRef.current?.focus();
+    };
+  }, []);
+
+  // Browser back button — close quiz without full navigation
+  useEffect(() => {
+    const handler = () => onSkip();
+    window.addEventListener("popstate", handler);
+    // Push a history entry so the first back closes the quiz, not the page
+    window.history.pushState(null, "", window.location.href);
+    return () => window.removeEventListener("popstate", handler);
+  }, [onSkip]);
+
   return (
     <m.div
+      ref={dialogRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -338,6 +390,7 @@ function QuizShell({ children, onSkip, stepId, theme }: QuizShellProps) {
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
+      aria-label="Fitness quiz"
       style={{
         background: `radial-gradient(ellipse at 50% 30%, ${theme.glow} 0%, transparent 60%), var(--background)`,
       }}

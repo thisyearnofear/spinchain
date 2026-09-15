@@ -82,6 +82,10 @@
 
 /* Smooth theme transitions — scoped to html only, not wildcard */
 html {
+  /* framer-motion's useScroll measures target offsets against
+     document.scrollingElement (this element) and dev-warns when it is
+     position: static — give it a harmless positioning context. */
+  position: relative;
   transition: background-color 200ms var(--ease-out), color 200ms var(--ease-out);
 }
 
