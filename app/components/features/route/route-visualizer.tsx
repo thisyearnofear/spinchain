@@ -54,7 +54,7 @@ import type { ContextPalette } from "@/app/lib/context-palette";
 export type { VisualizerTheme } from "./visualizer-theme";
 
 // Import Selection types
-import { AVATARS, EQUIPMENT, WORLDS, type AvatarAsset, type EquipmentAsset } from "../../../lib/selection-library";
+import { EQUIPMENT, WORLDS, resolveAvatar, type AvatarAsset, type EquipmentAsset } from "../../../lib/selection-library";
 import { AnimatedModel } from "./animated-model";
 import { WorldSkybox } from "./world-skybox";
 
@@ -860,10 +860,10 @@ function RiderMarker({
 
           {equipment ? (
             <Model url={equipment.modelUrl} scale={equipment.type === "vehicle" ? 2 : 1.2} />
-          ) : (
-            /* Stylized cyclist fallback */
+          ) : avatar ? null : (
+            /* Last-resort marker when no avatar GLB resolved — Nova is the
+               default, so this only fires if the character library is empty. */
             <group rotation={[Math.PI / 2, 0, 0]}>
-              {/* Body */}
               <mesh position={[0, 0, 0.2]}>
                 <capsuleGeometry args={[0.45, 1.0, 8, 16]} />
                 <meshStandardMaterial
@@ -873,7 +873,6 @@ function RiderMarker({
                   toneMapped={false}
                 />
               </mesh>
-              {/* Head */}
               <mesh position={[0, 0, 1.2]}>
                 <sphereGeometry args={[0.35, 16, 16]} />
                 <meshStandardMaterial
@@ -1687,7 +1686,7 @@ export default function RouteVisualizer({
 
   const styles = THEMES[theme];
 
-  const avatar = useMemo(() => AVATARS.find(a => a.id === avatarId), [avatarId]);
+  const avatar = useMemo(() => resolveAvatar(avatarId), [avatarId]);
   const equipment = useMemo(() => EQUIPMENT.find(e => e.id === equipmentId), [equipmentId]);
   const world = useMemo(() => WORLDS.find(w => w.id === worldId), [worldId]);
 

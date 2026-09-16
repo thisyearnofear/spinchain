@@ -42,6 +42,10 @@ export interface WorldAsset {
   generated?: boolean;
 }
 
+/** First-party rider (Mint). Used whenever a ride has no avatarId — demo,
+ *  practice, and any class that never went through the garage. */
+export const DEFAULT_AVATAR_ID = "mint-rider";
+
 export const AVATARS: AvatarAsset[] = [
   {
     id: "default-human",
@@ -80,6 +84,14 @@ export const AVATARS: AvatarAsset[] = [
   // garage never offers an avatar whose GLB doesn't exist yet.
   ...(generatedAvatars.avatars as AvatarAsset[]),
 ];
+
+export function resolveAvatar(avatarId?: string | null): AvatarAsset | undefined {
+  if (avatarId) {
+    const match = AVATARS.find((a) => a.id === avatarId);
+    if (match) return match;
+  }
+  return AVATARS.find((a) => a.id === DEFAULT_AVATAR_ID) ?? AVATARS[0];
+}
 
 export const EQUIPMENT: EquipmentAsset[] = [
   {

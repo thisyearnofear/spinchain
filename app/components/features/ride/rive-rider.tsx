@@ -206,10 +206,9 @@ export function RiveRider({ size = 160, className = "", ready = false, fatigued 
       aria-label="Live rider avatar"
       role="img"
     >
-      <RiveComponent
-        style={{ width: size, height: size }}
-        className="pointer-events-none select-none"
-      />
+      {/* className on RiveComponent suppresses its inline style — sizing
+          has to live in the class list or the canvas stays 0×0. */}
+      <RiveComponent className="pointer-events-none h-full w-full select-none" />
       {!rive && <RiveRiderFallback size={size} />}
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { PrimaryNav } from "@/app/components/layout/nav";
-import { CoachyMascot } from "@/app/components/ui/coachy-mascot";
+import dynamic from "next/dynamic";
 import {
   useRiderProfile,
   COACH_LABELS,
@@ -15,6 +15,11 @@ import { useRiderName } from "@/app/hooks/common/use-profile";
 import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import Link from "next/link";
 import { Flame, Trophy, Bike, Zap } from "lucide-react";
+
+const RiveRider = dynamic(
+  () => import("@/app/components/features/ride/rive-rider").then((m) => m.RiveRider),
+  { ssr: false },
+);
 
 export function PersonalizedHero() {
   const profile = useRiderProfile();
@@ -47,7 +52,7 @@ export function PersonalizedHero() {
 
         <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex items-center gap-4">
-            <CoachyMascot mood={isFirstTime ? "cheering" : "welcoming"} size={72} />
+            <RiveRider size={72} ready />
             <div className="text-left">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--accent)] mb-1">
                 {greeting}

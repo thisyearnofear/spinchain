@@ -97,10 +97,9 @@ export function RiveFlowBadge({
       aria-label={label ?? `Flow tier ${flowTier}`}
       role="img"
     >
-      <RiveComponent
-        style={{ width, height }}
-        className="pointer-events-none select-none"
-      />
+      {/* className on RiveComponent suppresses its inline style — sizing
+          has to live in the class list or the canvas stays 0×0. */}
+      <RiveComponent className="pointer-events-none h-full w-full select-none" />
       {label && (
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-bold text-white drop-shadow">
           {label}

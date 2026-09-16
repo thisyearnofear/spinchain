@@ -85,10 +85,9 @@ export function RiveCoachOrb({
       aria-label={`Coach (${emotion})`}
       role="img"
     >
-      <RiveComponent
-        style={{ width: size, height: size }}
-        className="pointer-events-none select-none"
-      />
+      {/* className on RiveComponent suppresses its inline style — sizing
+          has to live in the class list or the canvas stays 0×0. */}
+      <RiveComponent className="pointer-events-none h-full w-full select-none" />
       {!rive && <div className="absolute inset-0">{fallback}</div>}
     </div>
   );

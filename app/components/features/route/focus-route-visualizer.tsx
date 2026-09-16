@@ -3,7 +3,8 @@
 import { useId, useMemo, useCallback, useRef, useState, useEffect, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { StoryBeat } from "@/app/routes/builder/gpx-uploader";
 import { useViewport } from "@/app/lib/responsive";
-import { AVATARS, EQUIPMENT } from "../../../lib/selection-library";
+import dynamic from "next/dynamic";
+import { EQUIPMENT, resolveAvatar } from "../../../lib/selection-library";
 import type { IntervalPhase } from "../../../lib/workout-plan";
 import type { RiderStats } from "./route-visualizer";
 import { StreetViewPreview } from "./street-view-preview";
@@ -11,6 +12,11 @@ import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-
 import { CollapseToggle } from "@/app/components/features/common/collapse-toggle";
 import type { PanelState, PanelKey, PanelPositions, DesktopPanelKey } from "@/app/hooks/ui/use-panel-state";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
+
+const RiveRider = dynamic(
+  () => import("@/app/components/features/ride/rive-rider").then((m) => m.RiveRider),
+  { ssr: false },
+);
 
 type RouteCoordinate = {
   lat: number;
@@ -177,7 +183,7 @@ export default function FocusRouteVisualizer({
   const viewport = useViewport();
   const gradientId = useId().replace(/:/g, "");
   const styles = THEMES[theme];
-  const avatar = useMemo(() => AVATARS.find((item) => item.id === avatarId), [avatarId]);
+  const avatar = useMemo(() => resolveAvatar(avatarId), [avatarId]);
   const equipment = useMemo(() => EQUIPMENT.find((item) => item.id === equipmentId), [equipmentId]);
   const leftMode = panelState?.focusLeft ?? "expanded";
   const rightMode = panelState?.focusRight ?? "expanded";
@@ -666,14 +672,22 @@ export default function FocusRouteVisualizer({
             filter={`url(#${gradientId}-glow)`}
             className="focus-pulse"
           />
-          <g transform="translate(-16 -16)">
-            <rect x="0" y="8" width="32" height="16" rx="8" fill="rgba(15,23,42,0.9)" stroke={styles.riderColor} strokeWidth="1.5" />
-            <path d="M6 16 L12 8 L20 8 L26 16" fill="none" stroke={currentZone.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="10" cy="22" r="5" fill="none" stroke={styles.riderColor} strokeWidth="1.5" />
-            <circle cx="22" cy="22" r="5" fill="none" stroke={styles.riderColor} strokeWidth="1.5" />
-          </g>
         </g>
       </svg>
+
+      {/* Nova on the 2D path — the SVG bike glyph was unreadable at this
+          scale and practice rides never passed an avatarId. HTML overlay
+          tracks the same viewBox coords (preserveAspectRatio=none). */}
+      <div
+        className="pointer-events-none absolute"
+        style={{
+          left: `${(riderPosition.x / width) * 100}%`,
+          top: `${(riderPosition.y / height) * 100}%`,
+          transform: `translate(-50%, -90%) rotate(${riderPosition.rotation}deg)`,
+        }}
+      >
+        <RiveRider size={88} />
+      </div>
 
       {/* Left Panel - Route Info - Hidden on mobile when collapsed */}
       <div
