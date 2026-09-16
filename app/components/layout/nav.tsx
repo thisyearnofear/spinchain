@@ -268,10 +268,15 @@ function MobileNavLink({ href, children, onClick, active }: { href: string; chil
 
 export function PrimaryNav() {
   const pathname = usePathname();
+  const { isConnected } = useAccount();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const showSuiWallet = useSuiWalletVisible();
-  
+
   const isInstructorMode = pathname?.startsWith("/instructor") || pathname?.startsWith("/agent");
+  // First-visit landing pitches "no wallet needed" — don't contradict it
+  // with a Connect Wallet cluster in the same header. Keep the control on
+  // every other surface, and on `/` once a wallet is actually connected.
+  const showWalletCta = pathname !== "/" || isConnected;
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
@@ -319,7 +324,7 @@ export function PrimaryNav() {
 
         <div className="flex items-center gap-2">
           <RiderIdentityChip />
-          <ConnectWallet />
+          {showWalletCta && <ConnectWallet />}
           {showSuiWallet && <SuiWalletButton />}
           <SettingsDropdown isInstructorMode={isInstructorMode} onModeToggle={handleModeToggle} />
         </div>
@@ -337,7 +342,7 @@ export function PrimaryNav() {
             <div className="flex flex-col gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
               <div className="flex items-center justify-between mb-2">
                 <RiderIdentityChip />
-                <ConnectWallet />
+                {showWalletCta && <ConnectWallet />}
               </div>
               
               <div className="grid grid-cols-2 gap-2">

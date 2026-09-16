@@ -113,10 +113,24 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [direction, setDirection] = useState(1);
   const setProfile = useRiderProfile((s) => s.setProfile);
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearAdvance = () => {
+    if (advanceTimerRef.current !== null) {
+      clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setMounted(true));
     return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => () => {
+    if (advanceTimerRef.current !== null) {
+      clearTimeout(advanceTimerRef.current);
+    }
   }, []);
 
   useEffect(() => {
@@ -170,8 +184,28 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
       localStorage.setItem(RIDER_QUIZ_KEY, "true");
     } else {
       setDirection(1);
-      setTimeout(() => setCurrentStep(currentStep + 1), 280);
+      clearAdvance();
+      advanceTimerRef.current = setTimeout(() => {
+        advanceTimerRef.current = null;
+        setCurrentStep((s) => s + 1);
+      }, 280);
     }
+  };
+
+  const handleBack = () => {
+    clearAdvance();
+    setDirection(-1);
+    // Summary screen still sits on the last step — drop that answer so
+    // the options reappear instead of skipping a whole question.
+    if (isLastStep && answers[step.id]) {
+      setAnswers((prev) => {
+        const next = { ...prev };
+        delete next[step.id];
+        return next;
+      });
+      return;
+    }
+    setCurrentStep((s) => Math.max(0, s - 1));
   };
 
   const handleSkip = () => {
@@ -204,7 +238,7 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
     };
 
     return (
-      <QuizShell onSkip={handleSkip} stepId={step.id} theme={theme}>
+      <QuizShell onSkip={handleSkip} onBack={handleBack} stepId={step.id} theme={theme}>
         <m.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -252,7 +286,12 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
   }
 
   return (
-    <QuizShell onSkip={handleSkip} stepId={step.id} theme={theme}>
+    <QuizShell
+      onSkip={handleSkip}
+      onBack={currentStep > 0 ? handleBack : undefined}
+      stepId={step.id}
+      theme={theme}
+    >
       <AnimatePresence mode="wait" custom={direction}>
         <m.div
           key={step.id}
@@ -324,11 +363,12 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
 interface QuizShellProps {
   children: React.ReactNode;
   onSkip: () => void;
+  onBack?: () => void;
   stepId: string;
   theme: { glow: string; accent: string; gradient: string };
 }
 
-function QuizShell({ children, onSkip, stepId, theme }: QuizShellProps) {
+function QuizShell({ children, onSkip, onBack, stepId, theme }: QuizShellProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -406,15 +446,30 @@ function QuizShell({ children, onSkip, stepId, theme }: QuizShellProps) {
       </div>
 
       <div className="relative w-full max-w-md px-2 py-8 md:py-12 max-h-[92vh] overflow-y-auto">
-        <div className="absolute top-0 right-2 flex items-center gap-2">
-          <span className="text-[10px] font-medium text-[color:var(--muted)] hidden sm:inline">Personalize your experience</span>
-          <button
-            onClick={onSkip}
-            className="text-xs font-medium text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors px-3 py-1.5 rounded-full border border-[color:var(--border)] hover:border-[color:var(--border-strong)]"
-            aria-label="Skip quiz"
-          >
-            Maybe later
-          </button>
+        <div className="absolute top-0 inset-x-2 flex items-center justify-between gap-2">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="text-xs font-medium text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors px-3 py-1.5 rounded-full border border-[color:var(--border)] hover:border-[color:var(--border-strong)]"
+              aria-label="Previous question"
+            >
+              Back
+            </button>
+          ) : (
+            <span />
+          )}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-medium text-[color:var(--muted)] hidden sm:inline">Personalize your experience</span>
+            <button
+              type="button"
+              onClick={onSkip}
+              className="text-xs font-medium text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors px-3 py-1.5 rounded-full border border-[color:var(--border)] hover:border-[color:var(--border-strong)]"
+              aria-label="Skip quiz"
+            >
+              Maybe later
+            </button>
+          </div>
         </div>
 
         {children}

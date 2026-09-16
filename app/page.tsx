@@ -55,7 +55,11 @@ function HomeContent() {
         return () => window.cancelAnimationFrame(frame);
       }
     }
+  }, [searchParams, hasProfile]);
 
+  // Own effect: quiz boot paths used to return before attaching this listener,
+  // so the follow-cursor glow died after the quiz closed.
+  useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       const el = gradientRef.current;
       if (!el) return;
@@ -67,7 +71,7 @@ function HomeContent() {
 
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [searchParams, hasProfile]);
+  }, []);
 
   const handleQuizComplete = () => {
     setShowQuiz(false);
