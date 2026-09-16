@@ -161,12 +161,15 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
     const isResuming = rideProgress > 0 || elapsedTime > 0;
 
     isRidingRef.current = true;
-    useRideStore.setState({ isActive: true, isStarting: false });
+    useRideStore.setState({ isActive: true, isStarting: false, isPaused: false });
     if (!isResuming) {
       useRideStore.setState({ rideProgress: 0, elapsedTime: 0 });
       useTelemetryStore.getState().reset();
       trackedCompletionRef.current = false;
     }
+
+    // Resume (tab return / remount) should not replay the start greeting.
+    if (isResuming) return;
 
     // Personalized coach greeting
     const rides = getRideHistory();

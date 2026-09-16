@@ -290,6 +290,7 @@ export default function LiveRidePage() {
     isGuestMode,
     isPracticeMode,
   });
+  const isRidingRef = simulatorHook.isRidingRef;
 
   const analyticsHook = useRideAnalytics({
     classId,
@@ -412,13 +413,24 @@ export default function LiveRidePage() {
   }, [bleConnected, useSimulator, lifecycle, toast]);
 
   // ─── Visibility Pause (save CPU when tab hidden) ──────────────
-  // Go through the real pause flow so the coordinator halts and the rider
-  // comes back to the paused screen with a Resume button — not a dead ride.
+  // Go through the real pause flow so the coordinator halts. Practice/demo
+  // auto-resumes on return so the pedal bar and keyboard hints come back
+  // without a Resume screen the page previously never rendered. Other rides
+  // stay paused until the rider hits Resume.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handleVisibility = () => {
-      if (document.hidden && useRideStore.getState().isActive) {
+      const ride = useRideStore.getState();
+      if (document.hidden && ride.isActive) {
         lifecycle.pauseRide();
+        return;
+      }
+      if (
+        !document.hidden &&
+        ride.isPaused &&
+        useUIStore.getState().isPracticeMode
+      ) {
+        lifecycle.resumeRide();
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
@@ -481,6 +493,33 @@ export default function LiveRidePage() {
     setActivationComplete(true);
     lifecycleRef.current.startRide();
   }, []);
+
+  // Leaving the ride page disposes the coordinator. Coming back with
+  // isActive/isPaused still set in memory used to show the world (and the
+  // character) with no pedal bar, no keyboard hints, and no Resume — both
+  // of those UIs key off isRiding. Restart the session without a second
+  // countdown so the keyboard controls return.
+  const handleResumeRide = useCallback(() => {
+    if (coordinator.getCoordinator()) {
+      lifecycleRef.current.resumeRide();
+      return;
+    }
+    // The coordinator was disposed on unmount. Reset the in-memory riding
+    // state so startRide's double-start guard doesn't block re-creation.
+    isRidingRef.current = false;
+    useRideStore.setState({ isActive: false, isPaused: false, isStarting: false });
+    setActivationComplete(true);
+    setShowActivation(false);
+    lifecycleRef.current.startRide();
+  }, [coordinator, isRidingRef]);
+
+  useEffect(() => {
+    if (!isPracticeMode || !classData || showCompletionScreen) return;
+    if (coordinator.getCoordinator()) return;
+    const ride = useRideStore.getState();
+    if (!ride.isActive && !ride.isPaused) return;
+    handleResumeRide();
+  }, [isPracticeMode, classData, showCompletionScreen, coordinator, handleResumeRide]);
 
   // "Ride Again" must actually ride again: close the completion screen,
   // reset the ride clock + telemetry + celebration refs so startRide treats
@@ -633,6 +672,40 @@ export default function LiveRidePage() {
           onToggleViewMode={handleToggleViewMode}
           onStart={() => setShowActivation(true)}
         />
+      )}
+
+      {/* ─── Paused — visibility-hide used to drop isActive with no Resume UI,
+          which hid PedalSimulator + keyboard hints while the character stayed. */}
+      {isPaused && !isRiding && !showCompletionScreen && !showActivation && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 backdrop-blur-sm pointer-events-auto">
+          <div className="flex flex-col items-center gap-5 rounded-3xl border border-white/12 bg-zinc-950/90 px-8 py-7 shadow-2xl">
+            <div className="text-center">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 mb-1">Paused</p>
+              <p className="text-3xl font-bold tabular-nums text-white">
+                {`${Math.floor(elapsedTime / 60).toString().padStart(2, "0")}:${Math.floor(elapsedTime % 60).toString().padStart(2, "0")}`}
+              </p>
+              <p className="mt-1 text-xs text-white/40">{Math.round(rideProgress)}% complete</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleResumeRide}
+                className="rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-amber-500/40 transition-all active:scale-95"
+                aria-label="Resume ride"
+              >
+                Resume
+              </button>
+              <button
+                type="button"
+                onClick={() => lifecycle.exitRide()}
+                className="rounded-full bg-white/10 px-4 py-3 text-sm font-medium text-white/70 hover:bg-white/20 transition-all active:scale-95"
+                aria-label="Exit ride"
+              >
+                Exit
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ─── Ride controls cluster (visible, always available) ──────── */}
