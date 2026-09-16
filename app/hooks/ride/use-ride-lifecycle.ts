@@ -22,6 +22,8 @@ interface UseRideLifecycleParams {
   classId: string;
   classData: ClassWithRoute | null;
   practiceConfig: { name?: string; instructor?: string } | null;
+  /** Wall-clock seconds for the compressed practice ride (default 45). */
+  practiceWallDurationSec?: number;
   isPracticeMode: boolean;
   isTrainingMode: boolean;
   bleConnected: boolean;
@@ -109,7 +111,7 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
       bleConnected, useSimulator, classId, isPracticeMode, isTrainingMode,
       rewards, coordinator, classData, deviceType, performanceTier,
       walletConnected, address, rewardMode, agentName, workoutPlan,
-      speak, isRidingRef, trackedCompletionRef,
+      speak, isRidingRef, trackedCompletionRef, practiceWallDurationSec,
     } = paramsRef.current;
 
     // Guard against double-start
@@ -155,6 +157,7 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
         aiActive: isPracticeMode || Boolean(classData?.metadata?.ai?.enabled),
       },
       ghostBlobId: classData?.metadata?.route?.walrusBlobId,
+      practiceWallDurationSec,
     }).catch((err: unknown) => console.warn("[Ride] Coordinator start failed:", err));
 
     const { rideProgress, elapsedTime } = useRideStore.getState();

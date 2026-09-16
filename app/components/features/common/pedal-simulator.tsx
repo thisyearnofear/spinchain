@@ -40,6 +40,8 @@ interface PedalSimulatorProps {
      *  the pedal controls at the bottom of the screen. */
     showRideMetrics?: boolean;
     className?: string;
+    /** Optional callback to end the ride (shows a small "End" button). */
+    onEndRide?: () => void;
 }
 
 type Leg = 'left' | 'right' | null;
@@ -52,7 +54,7 @@ function haptic(ms: number) {
     } catch { /* not supported */ }
 }
 
-export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = false, showRideMetrics = false, className = '' }: PedalSimulatorProps) {
+export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = false, showRideMetrics = false, className = '', onEndRide }: PedalSimulatorProps) {
     const deviceType = useDeviceType();
     const [activeLeg, setActiveLeg] = useState<Leg>(null);
     const [showInstructions, setShowInstructions] = useState(true);
@@ -489,6 +491,17 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                             <span className="block text-sm mt-1 opacity-60">R</span>
                         </button>
                     </div>
+
+                    {onEndRide && (
+                        <button
+                            type="button"
+                            onClick={onEndRide}
+                            className="mt-3 w-full rounded-full border border-white/20 bg-white/5 py-2 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-colors hover:bg-white/10 hover:text-white active:scale-95"
+                            aria-label="End ride"
+                        >
+                            End Ride
+                        </button>
+                    )}
                 </div>
             </div>
         );
@@ -593,6 +606,20 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
 
                         {/* Live SPIN accrual — reward loop visible in practice mode */}
                         <SpinDripChip />
+                    </>
+                )}
+
+                {onEndRide && (
+                    <>
+                        <div className="w-px h-9 bg-white/12" />
+                        <button
+                            type="button"
+                            onClick={onEndRide}
+                            className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-colors hover:bg-white/10 hover:text-white active:scale-95"
+                            aria-label="End ride"
+                        >
+                            End
+                        </button>
                     </>
                 )}
             </div>

@@ -230,6 +230,8 @@ interface ModalStackProps {
     speed: number;
     effort: number;
   }) => void;
+  /** Optional callback to end the ride from the PedalSimulator bar. */
+  onEndRide?: () => void;
 
   // Callbacks
   onExitConfirm: () => void;
@@ -257,6 +259,7 @@ export function ModalStack({
   hideSimulator = false,
   showRideMetrics = false,
   onSimulatorMetrics,
+  onEndRide,
   onExitConfirm,
   onExitCancel,
   onNoBikeSimulator,
@@ -358,6 +361,7 @@ export function ModalStack({
           onMetricsUpdate={onSimulatorMetrics ?? (() => {})}
           visuallyHidden={hideSimulator}
           showRideMetrics={showRideMetrics}
+          onEndRide={onEndRide}
         />
       )}
     </>

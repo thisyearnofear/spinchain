@@ -221,6 +221,7 @@ export default function LiveRidePage() {
   const agentName = classData?.instructor || "Coach";
   const aiPersonality = classData?.metadata?.ai?.personality;
   const [rewardMode] = useState<RewardMode>("zk-batch");
+  const [practiceDurationSec, setPracticeDurationSec] = useState(45);
 
   // ─── Route Derived Data ────────────────────────────────────────
   const routeCoordinates = useMemo(
@@ -348,6 +349,7 @@ export default function LiveRidePage() {
     stopAudio,
     speak,
     setUseSimulator,
+    practiceWallDurationSec: isPracticeMode ? practiceDurationSec : undefined,
   });
 
   // Snapshot completion-time stats once, when the overlay opens. Previously these
@@ -443,8 +445,7 @@ export default function LiveRidePage() {
   const didAutoStartRef = useRef(false);
 
   // Practice/demo: one countdown → pedal. Bypass the Start screen (or honor ?auto=true).
-  const wantsAutoStart =
-    isPracticeMode || searchParams.get("auto") === "true";
+  const wantsAutoStart = searchParams.get("auto") === "true";
 
   useEffect(() => {
     if (didAutoStartRef.current) return;
@@ -494,6 +495,28 @@ export default function LiveRidePage() {
     lifecycleRef.current.startRide();
   }, []);
 
+  // Start button on the pre-ride screen. Practice visitors who have ridden
+  // before skip the 3-2-1 countdown entirely (flag in localStorage); first
+  // timers still get the ceremony so they can read the GO cue.
+  const PRACTICE_VISITED_KEY = "spinchain:practice-visited";
+  const handleStartFromScreen = useCallback(() => {
+    if (
+      isPracticeMode &&
+      typeof window !== "undefined" &&
+      localStorage.getItem(PRACTICE_VISITED_KEY)
+    ) {
+      localStorage.setItem(PRACTICE_VISITED_KEY, "true");
+      setActivationComplete(true);
+      setShowActivation(false);
+      lifecycleRef.current.startRide();
+      return;
+    }
+    if (isPracticeMode && typeof window !== "undefined") {
+      localStorage.setItem(PRACTICE_VISITED_KEY, "true");
+    }
+    setShowActivation(true);
+  }, [isPracticeMode]);
+
   // Leaving the ride page disposes the coordinator. Coming back with
   // isActive/isPaused still set in memory used to show the world (and the
   // character) with no pedal bar, no keyboard hints, and no Resume — both
@@ -518,8 +541,9 @@ export default function LiveRidePage() {
     if (coordinator.getCoordinator()) return;
     const ride = useRideStore.getState();
     if (!ride.isActive && !ride.isPaused) return;
+    toast.info("Resuming your ride…");
     handleResumeRide();
-  }, [isPracticeMode, classData, showCompletionScreen, coordinator, handleResumeRide]);
+  }, [isPracticeMode, classData, showCompletionScreen, coordinator, handleResumeRide, toast]);
 
   // "Ride Again" must actually ride again: close the completion screen,
   // reset the ride clock + telemetry + celebration refs so startRide treats
@@ -543,12 +567,14 @@ export default function LiveRidePage() {
 
   const showKeyboardHints = useRideModalStore((s) => s.showKeyboardHints);
 
-  // Show keyboard controls hint when a simulator/practice ride starts
+  // Show keyboard controls hint when a simulator/practice ride starts.
+  // On mobile the PedalSimulator shows touch buttons instead, so keyboard
+  // hints are irrelevant and suppressed.
   useEffect(() => {
-    if (isRiding && useSimulator) {
+    if (isRiding && useSimulator && deviceType !== "mobile") {
       useRideModalStore.getState().setShowKeyboardHints(true);
     }
-  }, [isRiding, useSimulator]);
+  }, [isRiding, useSimulator, deviceType]);
 
   // ─── Swipe gesture support (mobile) ─────────────────────────────
   const swipe = useSwipeGesture({
@@ -670,7 +696,9 @@ export default function LiveRidePage() {
           effectiveIsFocus={effectiveIsFocus}
           canRender3d={canRender3d}
           onToggleViewMode={handleToggleViewMode}
-          onStart={() => setShowActivation(true)}
+          onStart={handleStartFromScreen}
+          practiceDurationSec={practiceDurationSec}
+          onPracticeDurationChange={setPracticeDurationSec}
         />
       )}
 
@@ -790,6 +818,7 @@ export default function LiveRidePage() {
         hideSimulator={hudMode === "minimal"}
         showRideMetrics={useSimulator}
         onSimulatorMetrics={handleSimulatorMetrics}
+        onEndRide={() => lifecycle.exitRide()}
 
         // Callbacks
         onExitConfirm={() => {

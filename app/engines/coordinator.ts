@@ -106,9 +106,11 @@ export class RideCoordinator {
 
     // Practice/demo rides play the whole class in ~PRACTICE_WALL_DURATION_SEC
     // wall-clock seconds regardless of the class's real duration (clamped so
-    // a short class never plays slower than real time).
+    // a short class never plays slower than real time). A custom wall-clock
+    // duration can be supplied via config.practiceWallDurationSec.
+    const wallDuration = config.practiceWallDurationSec ?? PRACTICE_WALL_DURATION_SEC;
     this.clockScale = config.isPracticeMode
-      ? Math.max(1, this.durationSeconds / PRACTICE_WALL_DURATION_SEC)
+      ? Math.max(1, this.durationSeconds / wallDuration)
       : 1;
     this.isPracticeRide = config.isPracticeMode;
     this.progressElapsed = 0;

@@ -9,6 +9,9 @@ interface RideStartScreenProps {
   canRender3d: boolean;
   onToggleViewMode: () => void;
   onStart: () => void;
+  /** Practice-mode duration selector */
+  practiceDurationSec?: number;
+  onPracticeDurationChange?: (sec: number) => void;
 }
 
 export function RideStartScreen({
@@ -18,6 +21,8 @@ export function RideStartScreen({
   canRender3d,
   onToggleViewMode,
   onStart,
+  practiceDurationSec = 45,
+  onPracticeDurationChange,
 }: RideStartScreenProps) {
   const duration = classData.metadata?.duration ?? 45;
   const instructor = classData.metadata?.instructor;
@@ -33,9 +38,29 @@ export function RideStartScreen({
         </h2>
         <p className="mt-1.5 text-xs text-white/50">
           {instructor ? `${instructor} · ` : ""}
-          {isPracticeMode ? "~1 min demo" : `${duration} min`}
+          {isPracticeMode ? `${practiceDurationSec}s demo` : `${duration} min`}
         </p>
       </div>
+
+      {/* Practice duration selector */}
+      {isPracticeMode && onPracticeDurationChange && (
+        <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl p-1">
+          {[45, 120, 300].map((sec) => (
+            <button
+              key={sec}
+              onClick={() => onPracticeDurationChange(sec)}
+              className={`rounded-full px-4 py-1.5 text-xs font-black transition-colors ${
+                practiceDurationSec === sec
+                  ? "bg-amber-400 text-black shadow"
+                  : "text-white/60 hover:text-white"
+              }`}
+              aria-pressed={practiceDurationSec === sec}
+            >
+              {sec === 45 ? "45 s" : sec === 120 ? "2 min" : "5 min"}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl p-1">
         <button

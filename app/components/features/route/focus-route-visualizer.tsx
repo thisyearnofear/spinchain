@@ -684,9 +684,10 @@ export default function FocusRouteVisualizer({
           left: `${(riderPosition.x / width) * 100}%`,
           top: `${(riderPosition.y / height) * 100}%`,
           transform: `translate(-50%, -90%) rotate(${riderPosition.rotation}deg)`,
+          filter: "drop-shadow(0 0 10px rgba(251,191,36,0.35))",
         }}
       >
-        <RiveRider size={88} />
+        <RiveRider size={104} />
       </div>
 
       {/* Left Panel - Route Info - Hidden on mobile when collapsed */}

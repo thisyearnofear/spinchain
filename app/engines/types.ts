@@ -206,4 +206,7 @@ export interface RideStartConfig {
   rewardMode: RewardMode;
   coachingConfig: CoachingConfig;
   ghostBlobId?: string;
+  /** Practice/demo: wall-clock length of the compressed ride in seconds.
+   *  Defaults to PRACTICE_WALL_DURATION_SEC (45) when omitted. */
+  practiceWallDurationSec?: number;
 }

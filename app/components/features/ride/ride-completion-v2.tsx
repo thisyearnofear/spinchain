@@ -259,6 +259,61 @@ export function RideCompletionV2({
     }
   }, [isPracticeMode, telemetrySource]);
 
+  // ─── Streamlined practice completion ─────────────────────────────
+  if (isPracticeMode) {
+    return (
+      <m.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="absolute inset-0 z-10 flex items-center justify-center pointer-events-auto p-4 overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="completion-title"
+        tabIndex={-1}
+        style={{
+          background: "radial-gradient(ellipse at 50% 30%, rgba(251,191,36,0.10) 0%, rgba(7,9,15,0.98) 60%), #07090f",
+        }}
+      >
+        <div className="relative w-full max-w-sm flex flex-col items-center text-center gap-4">
+          <RiveRider size={112} celebrateFinishOnMount />
+          <p className="text-[10px] uppercase tracking-[0.35em] text-amber-300/70 font-black">
+            Practice Complete
+          </p>
+          <h2 id="completion-title" className="text-3xl font-black text-white tracking-tight">
+            Nice ride!
+          </h2>
+          <p className="text-sm text-white/60">
+            {formatTime(displayElapsed)} &middot; {peakEffort}/1000 effort
+            {maxPower > avgPower ? ` \u00b7 Peak ${maxPower}W` : ""}
+          </p>
+          <div className="w-full flex flex-col gap-2 mt-2">
+            <a
+              href="/rider/journey"
+              className="block w-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 py-3 text-sm font-bold text-black shadow-lg shadow-amber-500/30 text-center transition-transform active:scale-95 hover:scale-[1.02]"
+            >
+              Try a Full Class
+            </a>
+            {onRideAgain && (
+              <button
+                onClick={onRideAgain}
+                className="w-full rounded-full border border-white/20 bg-white/5 py-3 text-sm font-semibold text-white transition-all active:scale-95 hover:bg-white/10"
+              >
+                Ride Again
+              </button>
+            )}
+            <button
+              onClick={onExit}
+              className="w-full rounded-full border border-white/10 py-2.5 text-xs font-semibold text-white/50 transition-all active:scale-95 hover:text-white hover:bg-white/5"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </m.div>
+    );
+  }
+
   return (
     <m.div
       ref={containerRef}
