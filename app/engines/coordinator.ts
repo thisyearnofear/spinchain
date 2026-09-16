@@ -430,10 +430,13 @@ export class RideCoordinator {
   }
 
   private bridgeSnapshotToStore(snapshot: ReturnType<TelemetryEngine["commit"]>): void {
+    const idx = this.coaching.currentIntervalIndex;
+    const phase =
+      this.coaching.coachingConfig.workoutPlan?.intervals?.[idx]?.phase ?? "";
     this.coaching.onTelemetry(
       snapshot.cadence,
-      this.coaching.currentIntervalIndex,
-      "",
+      idx,
+      phase,
     );
 
     // Write snapshot — components use granular selectors (s.snapshot.heartRate)
