@@ -55,6 +55,7 @@ import { useRideMilestones } from "@/app/hooks/ride/use-ride-milestones";
 import { useRideMusicFlow } from "@/app/hooks/ride/use-ride-music-flow";
 import { usePrPursuit } from "@/app/hooks/ride/use-pr-pursuit";
 import { RideAiTelemetryBridge } from "@/app/components/features/ride/ride-ai-telemetry-bridge";
+import { useRiderName } from "@/app/hooks/common/use-profile";
 
 export default function LiveRidePage() {
   const params = useParams();
@@ -247,6 +248,7 @@ export default function LiveRidePage() {
 
   // ─── Wallet / Guest / Training Mode ────────────────────────────
   const { isConnected: walletConnected, address } = useAccount();
+  const riderDisplayName = useRiderName();
   const isGuestMode = typeof window !== "undefined" && localStorage.getItem("spin-guest-mode") === "true" && !walletConnected;
   const isTrainingMode = useSimulator && !isPracticeMode && walletConnected;
 
@@ -328,6 +330,7 @@ export default function LiveRidePage() {
     useSimulator,
     walletConnected,
     address,
+    riderDisplayName,
     rewardMode,
     agentName,
     workoutPlan,

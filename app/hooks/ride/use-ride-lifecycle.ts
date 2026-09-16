@@ -30,6 +30,9 @@ interface UseRideLifecycleParams {
   useSimulator: boolean;
   walletConnected: boolean;
   address?: string;
+  /** Resolved rider display name (ENS / Web3 profile). Falls back to
+   *  truncated address when null. Resolved by the page via useRiderName(). */
+  riderDisplayName?: string | null;
   rewardMode: RewardMode;
   agentName: string;
   workoutPlan: WorkoutPlan | null;
@@ -111,7 +114,7 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
       bleConnected, useSimulator, classId, isPracticeMode, isTrainingMode,
       rewards, coordinator, classData, deviceType, performanceTier,
       walletConnected, address, rewardMode, agentName, workoutPlan,
-      speak, isRidingRef, trackedCompletionRef, practiceWallDurationSec,
+      speak, isRidingRef, trackedCompletionRef, practiceWallDurationSec, riderDisplayName,
     } = paramsRef.current;
 
     // Guard against double-start
@@ -178,9 +181,8 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
     const rides = getRideHistory();
     const streakStats = getStreakStats(rides);
     const rideCount = rides.length;
-    const greetingName = address
-      ? formatAddress(address)
-      : "Rider";
+    const greetingName = riderDisplayName
+      || (address ? formatAddress(address) : "Rider");
 
     let greeting: string;
     if (rideCount === 0) {
