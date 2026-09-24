@@ -1,0 +1,7 @@
+allowBuilds:
+  bufferutil: false
+  keccak: false
+  msgpackr-extract: false
+  sharp: false
+  unrs-resolver: false
+  utf-8-validate: false
