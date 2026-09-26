@@ -139,6 +139,16 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
       void rewards.startEarning().catch(() => {});
     }
 
+    // Resume only a genuine interruption of THIS class (tab reload or
+    // remount mid-ride). Persisted clock state from a ride that already
+    // ended — or from a different class — must not carry over, or the new
+    // ride starts at the old ride's final time and skips every cue.
+    // Must be read BEFORE coordinator.startRide: start() synchronously
+    // overwrites the persisted session with the new ride's identity, so
+    // reading after the call would make the cross-class check vacuous.
+    const { session, elapsedTime } = useRideStore.getState();
+    const isResuming = isResumableRide(session, elapsedTime, classId);
+
     coordinator.startRide({
       classId,
       classData: classData ? {
@@ -163,13 +173,6 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
       ghostBlobId: classData?.metadata?.route?.walrusBlobId,
       practiceWallDurationSec,
     }).catch((err: unknown) => console.warn("[Ride] Coordinator start failed:", err));
-
-    // Resume only a genuine interruption of THIS class (tab reload or
-    // remount mid-ride). Persisted clock state from a ride that already
-    // ended — or from a different class — must not carry over, or the new
-    // ride starts at the old ride's final time and skips every cue.
-    const { session, elapsedTime } = useRideStore.getState();
-    const isResuming = isResumableRide(session, elapsedTime, classId);
 
     isRidingRef.current = true;
     useRideStore.setState({ isActive: true, isStarting: false, isPaused: false });
