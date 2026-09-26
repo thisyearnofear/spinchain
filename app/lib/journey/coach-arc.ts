@@ -44,6 +44,14 @@ export interface CoachArc {
 
 const DAY_MS = 86_400_000;
 
+/**
+ * History (written on every exit) and coach memory (effort rides only —
+ * persistCoachMemory skips zero-effort aborts) can disagree about what the
+ * last ride was. Celebrate only when both point at the same ride, or the
+ * PR copy would describe a ride the rider doesn't recognize.
+ */
+const SAME_RIDE_TOLERANCE_MS = 60_000;
+
 function daysBetween(a: number, b: number): number {
   return Math.floor(Math.abs(b - a) / DAY_MS);
 }
@@ -64,7 +72,11 @@ export function composeCoachArc({
   const rideCount = rides.length;
   const lastRideAt = rides[0]?.completedAt ?? null;
   const load = getWeeklyLoad(rides, now);
-  const isPR = lastRideWasPR(memory);
+  const isPR =
+    lastRideWasPR(memory) &&
+    lastRideAt !== null &&
+    memory?.lastRideAt != null &&
+    Math.abs(memory.lastRideAt - lastRideAt) < SAME_RIDE_TOLERANCE_MS;
 
   const state = resolveBetweenRideState({
     rideCount,
@@ -113,7 +125,7 @@ export function composeCoachArc({
       message = {
         zen: "Your last ride is still settling in. If you ride today, keep it gentle — easy miles count too.",
         "drill-sergeant": "Back again? Good. Keep today smooth — we build on yesterday's work, not through it.",
-        data: `Last ride was about ${hours} hours ago. An easy spin today aids recovery more than another hard effort.`,
+        data: `Last ride was about ${hours} hour${hours === 1 ? "" : "s"} ago. An easy spin today aids recovery more than another hard effort.`,
       }[personality];
       break;
     case "ready":
@@ -128,7 +140,7 @@ export function composeCoachArc({
         message = {
           zen: "Rested and ready. When you ride today, ride with attention.",
           "drill-sergeant": "You're rested — that means no excuses left. Let's ride!",
-          data: `It's been ${days} days since your last ride. A session today keeps the momentum.`,
+          data: `It's been ${days} day${days === 1 ? "" : "s"} since your last ride. A session today keeps the momentum.`,
         }[personality];
       }
       break;

@@ -111,6 +111,35 @@ describe("composeCoachArc", () => {
     expect(arc.message).not.toContain("best");
   });
 
+  it("does not celebrate when history's last ride is not the memory PR ride", () => {
+    // Zero-effort aborts land in history but not in coach memory
+    // (persistCoachMemory skips them), so the two sources can point at
+    // different "last rides" — the PR copy must not describe the abort.
+    const memory = {
+      ...createInitialMemory("guest", "Coach Demo:zen"),
+      rides: 3,
+      lastRideAt: NOW - DAY * 0.5,
+      lastRide: { avgPower: 212, durationSec: 1800, completed: true },
+      bestAvgPower: 212,
+    };
+    const arc = composeCoachArc({
+      rides: [ride(0.1, 0, 0), ride(0.5, 700, 212), ride(2)],
+      memory,
+      personality: "zen",
+      coachName: "Coach Demo",
+      now: NOW,
+    });
+    expect(arc.state).not.toBe("celebrate");
+    expect(arc.message).not.toContain("new best");
+  });
+
+  it("pluralizes singular hours and days in the data voice", () => {
+    const recent = composeCoachArc({ rides: [ride(1 / 24)], memory: null, personality: "data", coachName: "Coach Demo", now: NOW });
+    expect(recent.message).toContain("about 1 hour ago");
+    const rested = composeCoachArc({ rides: [ride(1.6)], memory: null, personality: "data", coachName: "Coach Demo", now: NOW });
+    expect(rested.message).toContain("It's been 1 day since");
+  });
+
   it("celebrates recovery as training when the load model flags fatigue", () => {
     const rides = [ride(0.4, 700), ride(1.5, 800), ride(3, 750)];
     const arc = composeCoachArc({ rides, memory: null, personality: "data", coachName: "Coach Demo", now: NOW });
