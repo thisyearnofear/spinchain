@@ -20,6 +20,10 @@ export default function TestHarnessRouteVisualizerPage() {
   const state = searchParams.get("testState") || searchParams.get("state") || "preview";
   const seed = Number(searchParams.get("seed") || "123");
   const theme = (searchParams.get("theme") as VisualizerTheme) || "neon";
+  const quality =
+    (searchParams.get("quality") as "low" | "medium" | "high" | null) || "high";
+  // paused=1 freezes the R3F loop so Playwright can diff a stable frame
+  const paused = searchParams.get("paused") === "1" || searchParams.get("paused") === "true";
 
   // Deterministic route — same for all harness states so diffs are only visual state, not route
   const { route, elevationProfile } = useMemo(() => {
@@ -87,9 +91,10 @@ export default function TestHarnessRouteVisualizerPage() {
         stats={stats}
         storyBeats={route.route.storyBeats ?? []}
         className="h-full w-full"
-        quality="high"
+        quality={quality}
         flowTier={state.startsWith("active-play") ? 2 : 0}
         intervalPhase={state.startsWith("active-play") ? "interval" : null}
+        paused={paused}
       />
       {/* Harness label — hidden for screenshots via data-hide-debug-ui */}
       <div className="absolute top-2 left-2 rounded bg-black/60 px-2 py-1 text-[10px] font-mono text-white/60 pointer-events-none">

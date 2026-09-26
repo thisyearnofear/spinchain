@@ -126,12 +126,12 @@ describe("CoachingEngine", () => {
       // Simulate low cadence over time (using fake timers)
       const startTime = Date.now();
       vi.setSystemTime(startTime);
-      engine.onTelemetry(85, 1, "sprint");
+      engine.onTelemetry({ cadence: 85, power: 0, heartRate: 0, wBalPercentage: 0 }, 1, "sprint");
 
       // Advance 8 seconds
       vi.advanceTimersByTime(8000);
       vi.setSystemTime(startTime + 8000);
-      engine.onTelemetry(85, 1, "sprint");
+      engine.onTelemetry({ cadence: 85, power: 0, heartRate: 0, wBalPercentage: 0 }, 1, "sprint");
 
       expect(handler).toHaveBeenCalledWith(
         expect.objectContaining({ text: "Cadence at 85 RPM — target is 100. Let's close that gap." }),
@@ -154,22 +154,22 @@ describe("CoachingEngine", () => {
       // Low cadence for 5s
       const startTime = Date.now();
       vi.setSystemTime(startTime);
-      engine.onTelemetry(85, 1, "sprint");
+      engine.onTelemetry({ cadence: 85, power: 0, heartRate: 0, wBalPercentage: 0 }, 1, "sprint");
 
       vi.advanceTimersByTime(5000);
       vi.setSystemTime(startTime + 5000);
       // Returns to target cadence — should reset drift counter
-      engine.onTelemetry(110, 1, "sprint");
+      engine.onTelemetry({ cadence: 110, power: 0, heartRate: 0, wBalPercentage: 0 }, 1, "sprint");
       expect(handler).not.toHaveBeenCalled();
 
       // Another 8s of low cadence should trigger the nudge
       vi.advanceTimersByTime(5000);
       vi.setSystemTime(startTime + 10000);
-      engine.onTelemetry(85, 1, "sprint");
+      engine.onTelemetry({ cadence: 85, power: 0, heartRate: 0, wBalPercentage: 0 }, 1, "sprint");
 
       vi.advanceTimersByTime(3000);
       vi.setSystemTime(startTime + 13000);
-      engine.onTelemetry(85, 1, "sprint");
+      engine.onTelemetry({ cadence: 85, power: 0, heartRate: 0, wBalPercentage: 0 }, 1, "sprint");
 
       expect(handler).toHaveBeenCalledTimes(1);
 
@@ -209,6 +209,225 @@ describe("CoachingEngine", () => {
       engine.onTick(19, 0.11); // Same beat
 
       expect(handler).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("effort-reactive cues", () => {
+    function createPowerPlan() {
+      return {
+        id: "power-plan",
+        name: "Power Test",
+        intervals: [
+          { phase: "warmup" as const, durationSeconds: 60, targetRpm: [70, 80] as [number, number], coachCue: "Warm up" },
+          { phase: "interval" as const, durationSeconds: 300, targetRpm: [90, 100] as [number, number], targetPower: [200, 250] as [number, number], coachCue: "Hold the number" },
+          { phase: "recovery" as const, durationSeconds: 60, targetRpm: [65, 75] as [number, number], coachCue: "Recover" },
+        ],
+        totalDuration: 420,
+        difficulty: "moderate" as const,
+        tags: ["test"],
+        description: "Power test workout",
+      };
+    }
+
+    const at = (power: number, wBalPercentage = 1) =>
+      ({ cadence: 95, power, heartRate: 150, wBalPercentage });
+
+    it("emits a pacing cue after 15s sustained below the power band", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      vi.useFakeTimers();
+      engine.start({ workoutPlan: createPowerPlan() });
+      engine.onTick(60, 0.15); // interval index 1, emits coach cue
+      handler.mockClear();
+
+      const t0 = Date.now();
+      engine.onTelemetry(at(100), 1, "interval");
+      vi.setSystemTime(t0 + 15_000);
+      engine.onTelemetry(at(100), 1, "interval");
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({ source: "pacing:focused" }),
+      );
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({ text: "Holding 100W against a 200–250W target — bring it up gradually." }),
+      );
+      vi.useRealTimers();
+    });
+
+    it("emits a pacing cue after 15s sustained above the power band", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      vi.useFakeTimers();
+      engine.start({ workoutPlan: createPowerPlan() });
+      engine.onTick(60, 0.15);
+      handler.mockClear();
+
+      const t0 = Date.now();
+      engine.onTelemetry(at(300), 1, "interval");
+      vi.setSystemTime(t0 + 15_000);
+      engine.onTelemetry(at(300), 1, "interval");
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({ source: "pacing:calm" }),
+      );
+      vi.useRealTimers();
+    });
+
+    it("does not repeat a pacing cue within the same interval", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      vi.useFakeTimers();
+      engine.start({ workoutPlan: createPowerPlan() });
+      engine.onTick(60, 0.15);
+      handler.mockClear();
+
+      const t0 = Date.now();
+      engine.onTelemetry(at(100), 1, "interval");
+      vi.setSystemTime(t0 + 15_000);
+      engine.onTelemetry(at(100), 1, "interval");
+      // 40 more seconds below target (past the 20s cue gap) — still no repeat
+      vi.setSystemTime(t0 + 55_000);
+      engine.onTelemetry(at(100), 1, "interval");
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
+    });
+
+    it("encourages after 45s holding the band during a work phase", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      vi.useFakeTimers();
+      engine.start({ workoutPlan: createPowerPlan() });
+      engine.onTick(60, 0.15);
+      handler.mockClear();
+
+      const t0 = Date.now();
+      engine.onTelemetry(at(225), 1, "interval");
+      vi.setSystemTime(t0 + 45_000);
+      engine.onTelemetry(at(225), 1, "interval");
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({ source: "encourage:celebratory" }),
+      );
+      vi.useRealTimers();
+    });
+
+    it("suggests easing off when anaerobic reserve runs low in a work phase", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      vi.useFakeTimers();
+      engine.start({ workoutPlan: createPowerPlan() });
+      engine.onTick(60, 0.15);
+      handler.mockClear();
+
+      const t0 = Date.now();
+      engine.onTelemetry(at(225), 1, "interval");
+      vi.setSystemTime(t0 + 1_000);
+      engine.onTelemetry(at(225, 0.1), 1, "interval");
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: "difficulty:ease",
+          text: "Anaerobic reserve under 20% — soften the effort now so you can finish strong.",
+        }),
+      );
+      vi.useRealTimers();
+    });
+
+    it("stays quiet during recovery phases", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      vi.useFakeTimers();
+      engine.start({ workoutPlan: createPowerPlan() });
+      engine.onTick(360, 0.9); // recovery index 2, emits coach cue
+      handler.mockClear();
+
+      const t0 = Date.now();
+      engine.onTelemetry(at(50, 0.1), 2, "recovery");
+      vi.setSystemTime(t0 + 60_000);
+      engine.onTelemetry(at(50, 0.1), 2, "recovery");
+
+      expect(handler).not.toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+  });
+
+  describe("memory greeting", () => {
+    const memory = {
+      version: 1 as const,
+      riderId: "0xabc",
+      coachId: "Coach:data",
+      rides: 3,
+      lastRideAt: Date.now() - 86_400_000,
+      lastRide: { avgPower: 182, durationSec: 2700, completed: true },
+      bestAvgPower: 182,
+      notes: [],
+    };
+
+    it("greets from cross-session memory a few seconds into the ride", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      engine.start({ workoutPlan: createPlan(), memory });
+      engine.onTick(0, 0); // too early — no greeting yet
+      engine.onTick(9, 0.02);
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: "memory:calm",
+          text: "Ride 4 on record — last ride you averaged 182 watts. Let's see what today holds.",
+        }),
+      );
+    });
+
+    it("greets only once per ride", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      engine.start({ workoutPlan: createPlan(), memory });
+      engine.onTick(9, 0.02);
+      engine.onTick(30, 0.1);
+      engine.onTick(60, 0.2);
+
+      const greetings = handler.mock.calls.filter(
+        ([data]) => (data as { source: string }).source === "memory:calm",
+      );
+      expect(greetings).toHaveLength(1);
+    });
+
+    it("still greets when the ride clock carries over a previous ride's time", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      // Pause/resume persistence can rehydrate elapsedTime with the last
+      // ride's final clock value; the greeting window is ride-relative.
+      engine.start({ workoutPlan: createPlan(), memory });
+      engine.onTick(1800, 1);
+      engine.onTick(1840, 1);
+
+      const greetings = handler.mock.calls.filter(
+        ([data]) => (data as { source: string }).source === "memory:calm",
+      );
+      expect(greetings).toHaveLength(1);
+    });
+
+    it("never greets without memory (no faked familiarity)", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      engine.start({ workoutPlan: createPlan() });
+      engine.onTick(9, 0.02);
+
+      const greetings = handler.mock.calls.filter(
+        ([data]) => (data as { source: string }).source === "memory:calm",
+      );
+      expect(greetings).toHaveLength(0);
     });
   });
 

@@ -124,16 +124,14 @@ export class AudioEngine {
     }
 
     if (this.config.autoPlayIntervalSounds) {
+      // All coaching SFX flow through coaching:sound (interval transitions,
+      // countdowns, story beats) — CoachingEngine is the single emitter.
       this.unsubIntervalChanged = this.bus.on(
-        "interval:changed",
-        ({ phase }) => {
+        "coaching:sound",
+        ({ type }) => {
           if (this.disposed) return;
-          if (phase === "sprint") {
-            this.playSound("sprint");
-          } else if (phase === "recovery" || phase === "cooldown") {
-            this.playSound("recover");
-          } else if (phase === "warmup") {
-            this.playSound("start");
+          if (type in WORKOUT_SOUNDS) {
+            this.playSound(type as WorkoutSoundType).catch(() => {});
           }
         },
       );

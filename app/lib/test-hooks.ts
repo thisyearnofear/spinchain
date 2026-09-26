@@ -47,7 +47,17 @@ let installed = false;
 export function installTestHooks(): void {
   if (typeof window === "undefined") return;
   if (installed) return;
-  if (process.env.NODE_ENV === "production") return;
+  // In production builds, only install on explicit test-harness URLs so
+  // Playwright can run deterministic screenshots against `pnpm start`
+  // (dev mode loses the WebGL context under software rendering).
+  if (process.env.NODE_ENV === "production") {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get("testState") && !params.get("state")) return;
+    } catch {
+      return;
+    }
+  }
 
   installed = true;
 
