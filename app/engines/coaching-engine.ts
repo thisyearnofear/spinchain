@@ -39,7 +39,7 @@ export interface CoachingMetrics {
   cadence: number;
   power: number;
   heartRate: number;
-  /** Skiba W'bal as a 0–1 fraction of remaining anaerobic capacity. */
+  /** Skiba W'bal as a percentage (0-100%) of remaining anaerobic capacity. */
   wBalPercentage: number;
 }
 
@@ -196,6 +196,11 @@ export class CoachingEngine {
 
     // Interval transition
     this.lastIntervalIndex = currentIndex;
+    // Fresh interval, fresh slate: off-target time under the previous
+    // band must not carry into this one
+    this.powerLowMs = 0;
+    this.powerHighMs = 0;
+    this.onTargetMs = 0;
     const interval = plan.intervals[currentIndex];
     if (!interval) return;
 
@@ -303,7 +308,8 @@ export class CoachingEngine {
       return;
     }
 
-    const delta = now - this.lastCadenceCheckMs;
+    // Clamp so a paused ride can't dump its wall-clock gap into the drift counter
+    const delta = Math.min(now - this.lastCadenceCheckMs, 2_000);
     this.lastCadenceCheckMs = now;
 
     if (cadence < minRpm - 10) {
@@ -313,7 +319,7 @@ export class CoachingEngine {
     }
 
     const driftKey = `${intervalIndex}-${intervalPhase}`;
-    if (this.cadenceDriftMs >= 8000 && this.lastDriftNudgeKey !== driftKey) {
+    if (this.cadenceDriftMs >= 8000 && this.lastDriftNudgeKey !== driftKey && !this.cueThrottled(now)) {
       this.lastDriftNudgeKey = driftKey;
       this.cadenceDriftMs = 0;
 
@@ -325,10 +331,7 @@ export class CoachingEngine {
             ? `Cadence at ${cadence} RPM — target is ${minRpm}. Let's close that gap.`
             : "Pick up the pace!";
 
-      this.bus.emit("coaching:message", {
-        text: nudge,
-        source: "cadence:intense",
-      });
+      this.emitCue(nudge, "cadence:intense", now);
     }
   }
 
@@ -368,7 +371,8 @@ export class CoachingEngine {
       this.lastMetricsCheckMs = now;
       return;
     }
-    const delta = now - this.lastMetricsCheckMs;
+    // Clamp so a paused ride can't dump its wall-clock gap into the sustained counters
+    const delta = Math.min(now - this.lastMetricsCheckMs, 2_000);
     this.lastMetricsCheckMs = now;
 
     const isWorkPhase = intervalPhase === "interval" || intervalPhase === "sprint";
@@ -450,7 +454,7 @@ export class CoachingEngine {
         isWorkPhase &&
         !this.pushMoreSuggested &&
         metrics.power > max * 1.2 &&
-        metrics.wBalPercentage > 0.6 &&
+        metrics.wBalPercentage > 60 &&
         this.powerHighMs >= 15_000 &&
         !this.cueThrottled(now)
       ) {
@@ -469,7 +473,7 @@ export class CoachingEngine {
     }
 
     // ── Adaptive difficulty: protect the anaerobic tank ──
-    if (isWorkPhase && metrics.wBalPercentage > 0 && metrics.wBalPercentage < 0.2) {
+    if (isWorkPhase && metrics.wBalPercentage > 0 && metrics.wBalPercentage < 20) {
       const key = `${intervalIndex}-${intervalPhase}`;
       if (this.lastEaseOffKey !== key && !this.cueThrottled(now)) {
         this.lastEaseOffKey = key;

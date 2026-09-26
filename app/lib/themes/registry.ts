@@ -62,6 +62,12 @@ const themes = new Map<string, ThemeDefinition>(Object.entries(BUILTIN));
 
 const PROP_TYPES = new Set(["building", "tree", "rock", "blossom", "crystal"]);
 
+// drei v10 <Environment> presets — anything else throws during render.
+const ENV_PRESETS = new Set([
+  "apartment", "city", "dawn", "forest", "lobby",
+  "night", "park", "studio", "sunset", "warehouse",
+]);
+
 function isHexColor(v: unknown): boolean {
   return typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v);
 }
@@ -89,7 +95,7 @@ export function parseThemeDefinition(raw: unknown): ThemeDefinition | null {
 
   if (typeof d.panelColor !== "string") return null;
   if (typeof d.worldLabel !== "string" || d.worldLabel.length === 0) return null;
-  if (typeof d.envPreset !== "string") return null;
+  if (typeof d.envPreset !== "string" || !ENV_PRESETS.has(d.envPreset)) return null;
   if (typeof d.atmosphere !== "string") return null;
   if (typeof d.grid !== "boolean" || typeof d.stars !== "boolean") return null;
 

@@ -126,3 +126,5 @@ contracts/evm/lib/
 contracts/evm/node_modules/
 contracts/evm/broadcast/
 .env*
+!.env.example
+!.env*.template

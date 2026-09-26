@@ -1,9 +1,27 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+const retrieveJSON = vi.fn();
+vi.mock("../client", () => ({
+  getWalrusClient: () => ({ retrieveJSON }),
+}));
+
 import {
   createInitialMemory,
   parseCoachMemory,
   updateMemoryAfterRide,
+  loadCoachMemory,
+  type CoachMemory,
 } from "../coach-memory";
+
+// node env: stub browser storage used by the persistence path
+const store = new Map<string, string>();
+(globalThis as Record<string, unknown>).window = globalThis;
+(globalThis as Record<string, unknown>).localStorage = {
+  getItem: (k: string) => store.get(k) ?? null,
+  setItem: (k: string, v: string) => void store.set(k, v),
+  removeItem: (k: string) => void store.delete(k),
+  clear: () => store.clear(),
+};
 
 describe("createInitialMemory", () => {
   it("creates a valid empty memory", () => {
@@ -40,6 +58,56 @@ describe("parseCoachMemory", () => {
     expect(parseCoachMemory({ ...base, rides: -1 })).toBeNull();
     expect(parseCoachMemory({ ...base, notes: ["ok", 42] })).toBeNull();
     expect(parseCoachMemory({ ...base, lastRide: { avgPower: "high" } })).toBeNull();
+  });
+});
+
+describe("loadCoachMemory cache merge", () => {
+  const RIDER = "0xabc";
+  const COACH = "Coach:zen";
+  const pointerKey = `spinchain:coach-memory:${RIDER}:${COACH}`;
+  const cacheKey = `${pointerKey}:cache`;
+
+  function memoryWithRides(n: number): CoachMemory {
+    let m = createInitialMemory(RIDER, COACH);
+    for (let i = 0; i < n; i++) {
+      m = updateMemoryAfterRide(m, { avgPower: 100 + i, durationSec: 60, completed: true });
+    }
+    return m;
+  }
+
+  function seedCache(memory: CoachMemory, pendingSync: boolean): void {
+    localStorage.setItem(cacheKey, JSON.stringify({ memory, pendingSync, updatedAt: Date.now() }));
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    retrieveJSON.mockReset();
+    localStorage.setItem(pointerKey, "blob-1");
+  });
+
+  it("keeps a newer pendingSync cache when the fetched blob is older", async () => {
+    const newer = memoryWithRides(3);
+    seedCache(newer, true);
+    retrieveJSON.mockResolvedValue({ success: true, data: memoryWithRides(2) });
+
+    const loaded = await loadCoachMemory(RIDER, COACH);
+    expect(loaded?.rides).toBe(3);
+
+    const cached = JSON.parse(localStorage.getItem(cacheKey)!);
+    expect(cached.memory.rides).toBe(3);
+    expect(cached.pendingSync).toBe(true);
+  });
+
+  it("overwrites cache when the fetched blob is newer", async () => {
+    seedCache(memoryWithRides(2), false);
+    retrieveJSON.mockResolvedValue({ success: true, data: memoryWithRides(5) });
+
+    const loaded = await loadCoachMemory(RIDER, COACH);
+    expect(loaded?.rides).toBe(5);
+
+    const cached = JSON.parse(localStorage.getItem(cacheKey)!);
+    expect(cached.memory.rides).toBe(5);
+    expect(cached.pendingSync).toBe(false);
   });
 });
 

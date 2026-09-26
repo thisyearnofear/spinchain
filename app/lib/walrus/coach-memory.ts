@@ -118,15 +118,28 @@ function cacheKey(riderId: string, coachId: string): string {
   return `${pointerKey(riderId, coachId)}:cache`;
 }
 
-function readCache(riderId: string, coachId: string): CoachMemory | null {
+function readCacheEntry(
+  riderId: string,
+  coachId: string,
+): { memory: CoachMemory; pendingSync: boolean; updatedAt: number } | null {
   try {
     const raw = localStorage.getItem(cacheKey(riderId, coachId));
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { memory?: unknown };
-    return parseCoachMemory(parsed.memory ?? null);
+    const parsed = JSON.parse(raw) as { memory?: unknown; pendingSync?: unknown; updatedAt?: unknown };
+    const memory = parseCoachMemory(parsed.memory ?? null);
+    if (!memory) return null;
+    return {
+      memory,
+      pendingSync: parsed.pendingSync === true,
+      updatedAt: typeof parsed.updatedAt === "number" ? parsed.updatedAt : 0,
+    };
   } catch {
     return null;
   }
+}
+
+function readCache(riderId: string, coachId: string): CoachMemory | null {
+  return readCacheEntry(riderId, coachId)?.memory ?? null;
 }
 
 function writeCache(riderId: string, coachId: string, memory: CoachMemory, pendingSync: boolean): void {
@@ -173,6 +186,13 @@ export async function loadCoachMemory(
     if (result && result.success) {
       const memory = parseCoachMemory(result.data);
       if (memory) {
+        // Merge rule: a cached entry that is pendingSync or ahead on rides
+        // holds rides Walrus never saw (written during an outage) — keep it
+        // so the next saveCoachMemory builds on it and retries the sync.
+        const cached = readCacheEntry(riderId, coachId);
+        if (cached && (cached.pendingSync || cached.memory.rides > memory.rides)) {
+          return cached.memory;
+        }
         writeCache(riderId, coachId, memory, false);
         return memory;
       }
