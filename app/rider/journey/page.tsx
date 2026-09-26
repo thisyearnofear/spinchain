@@ -40,7 +40,11 @@ import { DataOwnershipDashboard } from "../../components/features/rider/data-own
 import { RiderHomeworkCard } from "../../components/features/rider/rider-homework-card";
 import { RideAnalysisCard } from "../../components/features/rider/ride-analysis-card";
 import { TrainingPlanCard } from "../../components/features/rider/training-plan-card";
+import { CoachArcCard } from "../../components/features/rider/coach-arc-card";
 import { useProfileSyncEffect } from "../../hooks/common/use-profile-sync";
+import { composeCoachArc } from "../../lib/journey/coach-arc";
+import { listCachedCoachMemories } from "../../lib/walrus/coach-memory";
+import { useRiderProfile, mapCoachPersonalityToEngine } from "../../stores/rider-profile-store";
 
 function JourneyContent() {
   const searchParams = useSearchParams();
@@ -59,6 +63,26 @@ function JourneyContent() {
   const prs = useMemo(() => getPRs(rides), [rides]);
   const badges = useMemo(() => getBadges(rides), [rides]);
   const latestClassId = rides[0]?.classId ?? "";
+
+  const coachPersonality = useRiderProfile((s) => s.coachPersonality);
+  // The between-ride act: the coach speaks to the rider's arc from real
+  // history + memory. Local cache only (Walrus blobs are unlistable).
+  const coachArc = useMemo(() => {
+    const memory = listCachedCoachMemories(address ?? "guest")[0] ?? null;
+    // A remembered coach keeps their own voice (coachId "Name:personality");
+    // the rider's profile preference only applies when nothing is remembered.
+    const remembered = memory?.coachId.split(":")[1];
+    const personality =
+      remembered === "zen" || remembered === "drill-sergeant" || remembered === "data"
+        ? remembered
+        : mapCoachPersonalityToEngine(coachPersonality);
+    return composeCoachArc({
+      rides,
+      memory,
+      personality,
+      coachName: memory ? memory.coachId.split(":")[0] : "Your coach",
+    });
+  }, [rides, address, coachPersonality]);
 
   // Derive protocol tier from real effort data
   const { tierLabel, tierColor, tierDescription } = useMemo(() => {
@@ -153,6 +177,9 @@ function JourneyContent() {
           />
           <StatCard label="Best Effort" value={`${prs.bestEffort}/1000`} />
         </div>
+
+        {/* Between-ride coach arc */}
+        <CoachArcCard arc={coachArc} />
 
         {/* Rewards Summary */}
         <div className="rounded-[2.5rem] border border-yellow-500/20 bg-yellow-500/5 p-8 relative overflow-hidden">

@@ -142,6 +142,33 @@ function readCache(riderId: string, coachId: string): CoachMemory | null {
   return readCacheEntry(riderId, coachId)?.memory ?? null;
 }
 
+/**
+ * All locally cached coach memories for a rider (every coach they've
+ * ridden with), most recently active first. Between-ride surfaces (the
+ * journey page) use this to speak to the rider's arc without knowing
+ * which coach they'll ride with next. Local cache only — Walrus blobs
+ * are content-addressed and unlistable without an index; the on-chain /
+ * Supabase pointer (flagged in the module docstring) is the multi-device
+ * answer. Never throws; browser-only.
+ */
+export function listCachedCoachMemories(riderId: string): CoachMemory[] {
+  if (typeof window === "undefined") return [];
+  const prefix = `spinchain:coach-memory:${riderId}:`;
+  const memories: CoachMemory[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(prefix) || !key.endsWith(":cache")) continue;
+      const coachId = key.slice(prefix.length, -":cache".length);
+      const memory = readCache(riderId, coachId);
+      if (memory) memories.push(memory);
+    }
+  } catch {
+    // blocked storage — return what we have
+  }
+  return memories.sort((a, b) => (b.lastRideAt ?? 0) - (a.lastRideAt ?? 0));
+}
+
 function writeCache(riderId: string, coachId: string, memory: CoachMemory, pendingSync: boolean): void {
   try {
     localStorage.setItem(
