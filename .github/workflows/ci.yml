@@ -64,7 +64,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install Rive CLI
-        run: curl -fsSL https://releases.rive.app/cli/install.sh | sh
+        run: curl -fsSL https://releases.rive.app/cli/install.sh | bash
 
       # Offline, no login needed: --verify/--once/--screenshot/--data-dump
       # never touch the network. Mirrors `pnpm rive:verify` without node.
