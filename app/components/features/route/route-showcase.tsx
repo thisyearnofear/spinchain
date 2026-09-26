@@ -51,12 +51,12 @@ const DEMO_CLASSES = [
     instructor: "SpinChain Coaching",
   },
   {
-    name: "Coastal Cruise",
-    description: "Gentle rolling hills along the ocean. Perfect for recovery or beginners.",
+    name: "Valley Cruise",
+    description: "Gentle rolling hills through a hand-painted pastel valley. Perfect for recovery or beginners.",
     difficulty: "Easy",
     duration: "60 min",
     elevation: "+150m",
-    theme: "coastal" as const,
+    theme: "anime" as const,
     instructor: "SpinChain Coaching",
   },
 ];
@@ -199,7 +199,7 @@ export function RouteShowcase() {
           transition={{ delay: 0.1 }}
           className="text-4xl lg:text-5xl font-bold text-[color:var(--foreground)] mb-4"
         >
-          Worlds to Explore
+          Rides to Explore
         </m.h2>
         <m.p
           initial={{ opacity: 0, y: 20 }}
