@@ -21,9 +21,6 @@ const WORLD_MOODS: Record<VisualizerTheme, string> = {
 const WORLD_KEYS = Object.keys(VISUALIZER_THEMES) as VisualizerTheme[];
 
 export function WorldsSection() {
-  // getDemoRideUrl has no theme param, so every tile enters the plain demo.
-  const demoUrl = getDemoRideUrl();
-
   return (
     <FadeIn>
       <section aria-label="Ride worlds">
@@ -46,7 +43,7 @@ export function WorldsSection() {
             return (
               <Link
                 key={key}
-                href={demoUrl}
+                href={getDemoRideUrl({ theme: key, name: theme.worldLabel })}
                 className="group relative block h-44 w-40 shrink-0 snap-start overflow-hidden rounded-2xl border border-[color:var(--border)] transition-transform duration-150 hover:-translate-y-1 md:h-52 md:w-auto"
                 style={{
                   background: `linear-gradient(to bottom, ${theme.skyTop}, ${theme.skyBottom})`,

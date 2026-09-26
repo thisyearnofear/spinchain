@@ -8,6 +8,15 @@ import {
   GUEST_DEMO_CLASS,
   type ClassWithRoute,
 } from "../evm/use-class-data";
+import {
+  VISUALIZER_THEMES,
+  type VisualizerTheme,
+} from "@/app/components/features/route/visualizer-theme";
+
+/** Unknown theme params fall back to the neon default instead of reaching the engine. */
+function parseThemeParam(raw: string | null): VisualizerTheme | undefined {
+  return raw && raw in VISUALIZER_THEMES ? (raw as VisualizerTheme) : undefined;
+}
 
 export interface PracticeClassConfig {
   name: string;
@@ -65,7 +74,7 @@ export function usePracticeConfig(classId: string) {
           Number(searchParams.get("routeDuration")) || GUEST_DEMO_CLASS.duration,
         routeElevation:
           Number(searchParams.get("routeElevation")) || GUEST_DEMO_CLASS.elevationGain,
-        theme: searchParams.get("theme") || undefined,
+        theme: parseThemeParam(searchParams.get("theme")),
         instructor: instructor || GUEST_DEMO_CLASS.instructor,
       };
     }
@@ -92,7 +101,7 @@ export function usePracticeConfig(classId: string) {
       routeDistance: Number(searchParams.get("routeDistance")) || 20,
       routeDuration: Number(searchParams.get("routeDuration")) || 45,
       routeElevation: Number(searchParams.get("routeElevation")) || 300,
-      theme: searchParams.get("theme") || undefined,
+      theme: parseThemeParam(searchParams.get("theme")),
       instructor,
     };
   }, [isPracticeMode, isGuestDemo, searchParams]);

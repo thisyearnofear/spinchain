@@ -12,6 +12,7 @@ import { CLASS_FACTORY_ABI, CLASS_FACTORY_ADDRESS, SPIN_CLASS_ABI } from "@/app/
 import { parseClassMetadata, type EnhancedClassMetadata } from "@/app/lib/contracts";
 import { retrieveRouteFromWalrus, getCachedRoute, cacheRouteLocally, type WalrusRouteData } from "@/app/lib/route-storage";
 import { DEMO_MODE } from "@/app/config";
+import { VISUALIZER_THEMES, type VisualizerTheme } from "@/app/components/features/route/visualizer-theme";
 import type { StoryBeat, StoryBeatType } from "@/app/routes/builder/gpx-uploader";
 import type { PublicClient } from "viem";
 
@@ -90,18 +91,26 @@ export interface DemoRideOptions {
   duration?: number;
   difficulty?: "easy" | "moderate" | "hard";
   coachPersonality?: "zen" | "drill-sergeant" | "data";
+  /** Visualizer world for the demo ride. Invalid keys are ignored. */
+  theme?: VisualizerTheme;
+}
+
+function isVisualizerTheme(value: unknown): value is VisualizerTheme {
+  return typeof value === "string" && value in VISUALIZER_THEMES;
 }
 
 export function getDemoRideUrl(opts?: DemoRideOptions): string {
   // Standard demo: a clean, shareable URL. /rider/ride/demo is a first-class
   // practice route — usePracticeConfig falls back to GUEST_DEMO_CLASS defaults
   // when the query params are absent.
+  const theme = isVisualizerTheme(opts?.theme) ? opts.theme : undefined;
   const isStandardDemo =
     !opts ||
     (opts.name === undefined &&
       opts.duration === undefined &&
       opts.difficulty === undefined &&
-      opts.coachPersonality === undefined);
+      opts.coachPersonality === undefined &&
+      theme === undefined);
   if (isStandardDemo) {
     return "/rider/ride/demo";
   }
@@ -128,6 +137,7 @@ export function getDemoRideUrl(opts?: DemoRideOptions): string {
     routeDuration: duration.toString(),
     routeElevation: GUEST_DEMO_CLASS.elevationGain.toString(),
   });
+  if (theme) params.set("theme", theme);
   return `/rider/ride/demo?${params.toString()}`;
 }
 
