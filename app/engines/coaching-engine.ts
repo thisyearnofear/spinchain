@@ -517,9 +517,14 @@ export class CoachingEngine {
       ? `last ride you averaged ${Math.round(last.avgPower)} watts`
       : null;
 
+    // Zen speaks in sentences, so its mid-line clause starts uppercase.
+    const lastBitSentence = lastBit
+      ? lastBit[0].toUpperCase() + lastBit.slice(1)
+      : null;
+
     const text = this.say({
-      zen: lastBit
-        ? `Welcome back — ride ${rideNo}. ${lastBit}. Today, just ride with attention.`
+      zen: lastBitSentence
+        ? `Welcome back — ride ${rideNo}. ${lastBitSentence}. Today, just ride with attention.`
         : `Welcome back — ride ${rideNo}. Settle in and breathe.`,
       "drill-sergeant": lastBit
         ? `Ride ${rideNo}! Last time: ${Math.round(last?.avgPower ?? 0)} watts average. Beat it!`

@@ -11,6 +11,7 @@ import { useRidePersistence } from "./use-ride-persistence";
 import { useRiderProfile, mapCoachPersonalityToEngine } from "@/app/stores/rider-profile-store";
 import { formatAddress } from "@/app/lib/profile-service";
 import { useRideModalStore } from "@/app/stores/ride-modal-store";
+import { isResumableRide } from "@/app/lib/ride-resume";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 import type { RewardClaimStatus } from "@/app/lib/rewards";
 import type { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
@@ -163,8 +164,12 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
       practiceWallDurationSec,
     }).catch((err: unknown) => console.warn("[Ride] Coordinator start failed:", err));
 
-    const { rideProgress, elapsedTime } = useRideStore.getState();
-    const isResuming = rideProgress > 0 || elapsedTime > 0;
+    // Resume only a genuine interruption of THIS class (tab reload or
+    // remount mid-ride). Persisted clock state from a ride that already
+    // ended — or from a different class — must not carry over, or the new
+    // ride starts at the old ride's final time and skips every cue.
+    const { session, elapsedTime } = useRideStore.getState();
+    const isResuming = isResumableRide(session, elapsedTime, classId);
 
     isRidingRef.current = true;
     useRideStore.setState({ isActive: true, isStarting: false, isPaused: false });
@@ -264,8 +269,17 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
       modalStore.getState().setCompletionPrimaryAction(result.primaryAction);
       void processRideSyncQueue();
 
-      // Stop the ride UI and show completion screen for all modes
-      useRideStore.setState({ isActive: false });
+      // Stop the ride UI and show completion screen for all modes.
+      // Clear the persisted session/clock too: a ride that ended properly
+      // is not resumable, and leaving the residue behind made the NEXT
+      // ride (any class) inherit this one's final clock time.
+      // Completion stats were already captured into the modal store above.
+      useRideStore.setState({
+        isActive: false,
+        session: null,
+        elapsedTime: 0,
+        rideProgress: 0,
+      });
       modalStore.getState().setIsExitingRide(false);
 
       if (isPracticeMode) {
