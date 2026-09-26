@@ -297,3 +297,66 @@ create policy "Authenticated users can read live telemetry"
 create policy "Riders can delete own live telemetry"
   on live_telemetry for delete
   using (rider_address = auth.jwt() ->> 'address');
+
+-- ============================================================================
+-- Visualizer Themes (data-driven environments; added 2026-09-24, Phase 1)
+-- NOTE: provisioned out-of-band — this definition reconciles the drift.
+-- ============================================================================
+create table if not exists visualizer_themes (
+  name text primary key,
+  label text,
+  definition jsonb not null,
+  enabled boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table visualizer_themes enable row level security;
+
+-- Anyone can read enabled themes (writes go through the dashboard)
+create policy "Anyone can read enabled themes"
+  on visualizer_themes for select
+  using (enabled = true);
+
+-- ============================================================================
+-- Classes (durable store for composed classes; added 2026-09-26, Phase 3+)
+-- The class object is the shared contract between the agentic composer and
+-- the instructor builder. plan holds the full WorkoutPlan JSON; metadata
+-- holds the EnhancedClassMetadata snapshot for inspection.
+-- ============================================================================
+create table if not exists classes (
+  id text primary key,
+  created_at timestamptz not null default now(),
+  source text not null default 'agentic',
+  author text not null default 'guest',
+  name text not null,
+  description text,
+  goal text,
+  personality text,
+  coach_name text,
+  theme_name text,
+  duration_minutes integer,
+  plan jsonb not null,
+  route jsonb,
+  metadata jsonb
+);
+
+alter table classes enable row level security;
+
+-- Prototype stage: classes are shareable definitions, guests can create and
+-- read them. Harden to author-scoped writes (auth.jwt() ->> 'address')
+-- before real users.
+create policy "Anyone can read classes"
+  on classes for select
+  using (true);
+
+create policy "Anyone can create a class"
+  on classes for insert
+  with check (true);
+
+-- saveClassRemote upserts; without an UPDATE policy a conflict takes the
+-- denied UPDATE path and the durable copy silently goes stale.
+create policy "Anyone can update a class"
+  on classes for update
+  using (true);
+
+create index if not exists classes_created_at_idx on classes (created_at desc);

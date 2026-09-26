@@ -42,6 +42,7 @@ import {
   PHASE_TO_THEME,
 } from "../../../lib/workout-plan";
 import { resolveRideWorkoutPlan } from "@/app/lib/agent/resolve-ride-plan";
+import { loadClassPlanRemote } from "@/app/lib/classes/class-store";
 import { SectionErrorBoundary } from "../../../components/layout/error-boundary";
 import { useRideKeyboard } from "@/app/hooks/ride/use-ride-keyboard";
 import { useRideAnalytics } from "@/app/hooks/ride/use-ride-analytics";
@@ -220,7 +221,7 @@ export default function LiveRidePage() {
   // ─── Workout Plan ──────────────────────────────────────────────
   // The plan travels with the class: an explicit ?plan=<presetId> param,
   // a coach-built class stored for this classId, or the default preset.
-  const [workoutPlan] = useState<WorkoutPlan | null>(() =>
+  const [initialPlan] = useState(() =>
     resolveRideWorkoutPlan(
       classId,
       typeof window === "undefined"
@@ -228,6 +229,24 @@ export default function LiveRidePage() {
         : new URLSearchParams(window.location.search),
     ),
   );
+  const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(initialPlan.plan);
+
+  // Durable fallback: when nothing local matched, try the Supabase
+  // classes table (a class composed on another device/browser). If the
+  // record lands before the ride starts, its plan rides.
+  useEffect(() => {
+    if (initialPlan.source !== "default") return;
+    let cancelled = false;
+    void loadClassPlanRemote(classId).then((remotePlan) => {
+      if (cancelled || !remotePlan) return;
+      if (useRideStore.getState().isActive) return; // ride already started
+      setWorkoutPlan(remotePlan);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [classId, initialPlan.source]);
+
   const agentName = classData?.instructor || "Coach";
   const aiPersonality = classData?.metadata?.ai?.personality;
   const [rewardMode] = useState<RewardMode>("zk-batch");

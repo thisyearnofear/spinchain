@@ -14,6 +14,7 @@ import {
   type CoachPersonality,
 } from "@/app/lib/agent/class-composer";
 import { saveAgentClass } from "@/app/lib/agent/agent-class-store";
+import { saveClassRemote } from "@/app/lib/classes/class-store";
 import { getTheme, getThemeNames } from "@/app/lib/themes/registry";
 import { saveInstructorClassDraftFormData } from "@/app/hooks/instructor/use-class-draft";
 
@@ -95,6 +96,27 @@ export default function CoachBuiltClassPage() {
       coachName: composed.coachName,
       themeName: composed.themeName,
       plan: composed.plan,
+    });
+    // Durable copy (Supabase classes table) so the class survives browsers
+    // and devices. Best-effort: localStorage above remains the instant path.
+    void saveClassRemote({
+      id: classId,
+      source: "agentic",
+      author: "guest",
+      name: composed.name,
+      description: composed.description,
+      goal: composed.goal,
+      personality: composed.personality,
+      coachName: composed.coachName,
+      themeName: composed.themeName,
+      durationMinutes,
+      plan: composed.plan,
+      route: {
+        name: composed.route.name,
+        distance: composed.route.distance,
+        duration: composed.route.duration,
+        elevationGain: composed.route.elevationGain,
+      },
     });
     const params = new URLSearchParams({
       mode: "practice",
