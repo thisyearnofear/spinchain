@@ -353,4 +353,10 @@ create policy "Anyone can create a class"
   on classes for insert
   with check (true);
 
+-- saveClassRemote upserts; without an UPDATE policy a conflict takes the
+-- denied UPDATE path and the durable copy silently goes stale.
+create policy "Anyone can update a class"
+  on classes for update
+  using (true);
+
 create index if not exists classes_created_at_idx on classes (created_at desc);
