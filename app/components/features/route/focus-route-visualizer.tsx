@@ -8,7 +8,8 @@ import { EQUIPMENT, resolveAvatar } from "../../../lib/selection-library";
 import type { IntervalPhase } from "../../../lib/workout-plan";
 import type { RiderStats } from "./route-visualizer";
 import { StreetViewPreview } from "./street-view-preview";
-import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-theme";
+import { getTheme } from "@/app/lib/themes/registry";
+import type { VisualizerTheme } from "./visualizer-theme";
 import { CollapseToggle } from "@/app/components/features/common/collapse-toggle";
 import type { PanelState, PanelKey, PanelPositions, DesktopPanelKey } from "@/app/hooks/ui/use-panel-state";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
@@ -182,7 +183,7 @@ export default function FocusRouteVisualizer({
   const dragStateRef = useRef<{ key: DesktopPanelKey; startX: number; startY: number; pointerX: number; pointerY: number } | null>(null);
   const viewport = useViewport();
   const gradientId = useId().replace(/:/g, "");
-  const styles = THEMES[theme];
+  const styles = getTheme(theme);
   const avatar = useMemo(() => resolveAvatar(avatarId), [avatarId]);
   const equipment = useMemo(() => EQUIPMENT.find((item) => item.id === equipmentId), [equipmentId]);
   const leftMode = panelState?.focusLeft ?? "expanded";
