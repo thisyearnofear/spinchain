@@ -2,6 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { m, AnimatePresence } from "framer-motion";
+import {
+  ClipboardList,
+  Coins,
+  GraduationCap,
+  HardHat,
+  Lightbulb,
+  Palette,
+  Rocket,
+  Target,
+  Trophy,
+} from "lucide-react";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import { modalTransition } from "@/app/lib/motion";
 import {
@@ -393,7 +404,7 @@ export default function InstructorBuilderPage() {
               className="max-w-md w-full bg-[#12141c] border border-white/10 rounded-3xl p-8 shadow-2xl"
             >
               <div className="h-16 w-16 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-6">
-                <span className="text-3xl">🏗️</span>
+                <HardHat className="h-8 w-8 text-indigo-400" aria-hidden="true" />
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">Welcome, Instructor!</h2>
               <p className="text-white/60 mb-8 leading-relaxed">
@@ -516,7 +527,7 @@ export default function InstructorBuilderPage() {
                   <div className="absolute -inset-1 bg-indigo-500/10 blur-xl opacity-50"></div>
                   <div className="relative flex items-center gap-4">
                     <div className="h-12 w-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                      <span className="text-2xl">💡</span>
+                      <Lightbulb className="h-6 w-6 text-indigo-400" aria-hidden="true" />
                     </div>
                     <p className="text-sm text-indigo-200 font-medium">{onboardingTips[0]}</p>
                   </div>
@@ -534,7 +545,7 @@ export default function InstructorBuilderPage() {
                 <div className="relative space-y-6">
                   <div className="flex items-center gap-3 mb-8">
                     <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                      <span className="text-lg">📋</span>
+                      <ClipboardList className="h-5 w-5 text-blue-400" aria-hidden="true" />
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-400">Step 1</p>
@@ -610,7 +621,7 @@ export default function InstructorBuilderPage() {
                   <div className="absolute -inset-1 bg-pink-500/10 blur-xl opacity-50"></div>
                   <div className="relative flex items-center gap-4">
                     <div className="h-12 w-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
-                      <span className="text-2xl">🎨</span>
+                      <Palette className="h-6 w-6 text-pink-400" aria-hidden="true" />
                     </div>
                     <p className="text-sm text-pink-200 font-medium">{onboardingTips[2]}</p>
                   </div>
@@ -639,7 +650,7 @@ export default function InstructorBuilderPage() {
                 <div className="relative space-y-6">
                   <div className="flex items-center gap-3 mb-8">
                     <div className="h-10 w-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-                      <span className="text-lg">💰</span>
+                      <Coins className="h-5 w-5 text-green-400" aria-hidden="true" />
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-green-400">Step 3</p>
@@ -708,7 +719,7 @@ export default function InstructorBuilderPage() {
                 <div className="relative space-y-6">
                   <div className="flex items-center gap-3 mb-8">
                     <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                      <span className="text-lg">🎯</span>
+                      <Target className="h-5 w-5 text-amber-400" aria-hidden="true" />
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-amber-400">Step 4</p>
@@ -752,7 +763,7 @@ export default function InstructorBuilderPage() {
                     <div className="relative flex items-center justify-between">
                       <div className="flex gap-4">
                         <div className="h-12 w-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-                          <span className="text-xl">🏆</span>
+                          <Trophy className="h-5 w-5 text-cyan-400" aria-hidden="true" />
                         </div>
                         <div>
                           <h4 className="font-black text-white uppercase tracking-wider text-sm">Enable Live Leaderboard</h4>
@@ -777,7 +788,7 @@ export default function InstructorBuilderPage() {
                 <div className="relative space-y-6">
                   <div className="flex items-center gap-3 mb-8">
                     <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-                      <span className="text-lg">🚀</span>
+                      <Rocket className="h-5 w-5 text-purple-400" aria-hidden="true" />
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-400">Step 5</p>
@@ -857,7 +868,7 @@ export default function InstructorBuilderPage() {
                   
                   <div className="flex items-center gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
                     <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-lg">🎓</span>
+                      <GraduationCap className="h-5 w-5 text-amber-400" aria-hidden="true" />
                     </div>
                     <div className="flex-1">
                       <p className="font-bold text-amber-200">Try Before You Deploy</p>

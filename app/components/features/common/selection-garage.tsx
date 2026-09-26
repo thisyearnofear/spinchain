@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AVATARS, EQUIPMENT, WORLDS, RIDE_TEMPLATES, type AvatarAsset, type EquipmentAsset, type WorldAsset, type RideTemplate } from "@/app/lib/selection-library";
 import { GlassCard, SectionHeader, Tag } from "@/app/components/ui/ui";
 import { m, AnimatePresence } from "framer-motion";
+import { Bike, Globe, Sparkles, User } from "lucide-react";
 
 interface SelectionGarageProps {
   onSelectionChange: (selection: {
@@ -62,10 +63,10 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
       {/* Tabs */}
       <div className="mt-6 flex gap-2 border-b border-white/10 pb-4 overflow-x-auto scrollbar-hide">
         {[
-          { id: "templates", label: "Presets", icon: "✨" },
-          { id: "avatar", label: "Avatar", icon: "👤" },
-          { id: "equipment", label: "Equipment", icon: "🚴" },
-          { id: "world", label: "World", icon: "🌍" },
+          { id: "templates", label: "Presets", icon: Sparkles },
+          { id: "avatar", label: "Avatar", icon: User },
+          { id: "equipment", label: "Equipment", icon: Bike },
+          { id: "world", label: "World", icon: Globe },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -76,7 +77,7 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
                 : "text-white/40 hover:bg-white/5 hover:text-white"
             }`}
           >
-            <span>{tab.icon}</span>
+            <tab.icon className="h-4 w-4" aria-hidden="true" />
             {tab.label}
           </button>
         ))}

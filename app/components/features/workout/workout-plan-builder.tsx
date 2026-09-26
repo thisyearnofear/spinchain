@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import { BarChart3, Save, Timer, Wrench } from "lucide-react";
 import { useWorkoutPlan } from "@/app/hooks/common/use-workout-plan";
 import { type WorkoutPlan, type IntervalPhase } from "@/app/lib/workout-plan";
 import { formatTime } from "@/app/lib/formatters";
@@ -117,8 +118,8 @@ export function WorkoutPlanBuilder({ onPlanSelected, onClose }: WorkoutPlanBuild
                 </span>
               </div>
               <div className="flex items-center gap-3 text-xs text-white/50">
-                <span>⏱ {formatTime(preset.totalDuration)}</span>
-                <span>📊 {preset.intervals.length} intervals</span>
+                <span className="flex items-center gap-1"><Timer className="h-3 w-3" aria-hidden="true" /> {formatTime(preset.totalDuration)}</span>
+                <span className="flex items-center gap-1"><BarChart3 className="h-3 w-3" aria-hidden="true" /> {preset.intervals.length} intervals</span>
                 {preset.tags.map(tag => (
                   <span key={tag} className="rounded-full bg-white/10 px-2 py-0.5">{tag}</span>
                 ))}
@@ -142,7 +143,7 @@ export function WorkoutPlanBuilder({ onPlanSelected, onClose }: WorkoutPlanBuild
       {/* Custom Tab */}
       {activeTab === "custom" && (
         <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center text-white/50 text-sm">
-          <p className="mb-2">🛠 Custom interval builder</p>
+          <p className="mb-2 flex items-center justify-center gap-1.5"><Wrench className="h-4 w-4" aria-hidden="true" /> Custom interval builder</p>
           <p className="text-xs">Select a preset and modify it, or use the API:</p>
           <pre className="mt-2 text-left text-[10px] bg-black/30 rounded-lg p-3 text-emerald-300 overflow-x-auto">{`const { buildCustomPlan } = useWorkoutPlan();
 buildCustomPlan("My Plan", [
@@ -192,7 +193,7 @@ buildCustomPlan("My Plan", [
           disabled={!plan || isSaving}
           className="rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-sm text-white font-semibold transition-all hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {isSaving ? "Saving…" : "💾 Save Plan"}
+          {isSaving ? "Saving…" : <span className="inline-flex items-center gap-1.5"><Save className="h-4 w-4" aria-hidden="true" /> Save Plan</span>}
         </button>
         <button
           onClick={handleConfirm}

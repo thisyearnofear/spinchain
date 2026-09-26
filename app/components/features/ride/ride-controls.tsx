@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Bike, Gamepad2, Target } from "lucide-react";
 import { DeviceSelector } from "@/app/components/features/ble/device-selector";
 import { CollapseToggle } from "@/app/components/features/common/collapse-toggle";
 import { PRESET_WORKOUTS, type WorkoutPlan } from "@/app/lib/workout-plan";
@@ -100,10 +101,10 @@ export function RideControls({
           }}
           disabled={isStartDisabled}
           title={disabledStartReason ?? undefined}
-          className={`relative rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white transition-[transform,background-color,box-shadow] duration-150 active:scale-95 touch-manipulation min-h-[56px] ${
+          className={`relative rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold transition-[transform,background-color,box-shadow] duration-150 active:scale-95 touch-manipulation min-h-[56px] ${
             isStartDisabled
-              ? "bg-white/15 border border-white/20 shadow-none cursor-not-allowed"
-              : "bg-gradient-to-r from-amber-400 to-yellow-500 shadow-lg shadow-amber-500/40"
+              ? "bg-white/15 border border-white/20 text-white shadow-none cursor-not-allowed"
+              : "bg-[color:var(--accent)] text-black shadow-lg shadow-[color:var(--accent)]/40 hover:bg-[color:var(--accent-strong)]"
           }`}
           aria-label="Start ride"
           aria-describedby={disabledStartReason ? "start-ride-hint" : undefined}
@@ -303,8 +304,12 @@ function InputModeSelector({
       >
         <div className="flex items-center gap-2">
           <span className="text-[10px] uppercase tracking-wider text-white/50">Input Mode</span>
-          <span className="text-xs">
-            {useSimulator ? (isTrainingMode ? '🎯 Training (No Bike)' : '🎮 Try Without Bike') : '🚴 Real Bike (Bluetooth)'}
+          <span className="inline-flex items-center gap-1.5 text-xs">
+            {useSimulator
+              ? (isTrainingMode
+                  ? <><Target className="h-3.5 w-3.5" aria-hidden="true" /> Training (No Bike)</>
+                  : <><Gamepad2 className="h-3.5 w-3.5" aria-hidden="true" /> Try Without Bike</>)
+              : <><Bike className="h-3.5 w-3.5" aria-hidden="true" /> Real Bike (Bluetooth)</>}
           </span>
         </div>
         <CollapseToggle
@@ -337,7 +342,9 @@ function InputModeSelector({
           }`}
           aria-pressed={!useSimulator}
         >
-          🚴 Real Bike (Bluetooth)
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <Bike className="h-3.5 w-3.5" aria-hidden="true" /> Real Bike (Bluetooth)
+          </span>
         </button>
         <button
           onClick={() => {
@@ -349,7 +356,11 @@ function InputModeSelector({
           }`}
           aria-pressed={useSimulator}
         >
-          {isTrainingMode ? '🎯 Training (No Bike)' : '🎮 Try Without Bike'}
+          <span className="inline-flex items-center justify-center gap-1.5">
+            {isTrainingMode
+              ? <><Target className="h-3.5 w-3.5" aria-hidden="true" /> Training (No Bike)</>
+              : <><Gamepad2 className="h-3.5 w-3.5" aria-hidden="true" /> Try Without Bike</>}
+          </span>
         </button>
       </div>
       {showOnboardingHint && (

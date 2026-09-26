@@ -11,10 +11,12 @@ import { InstructorInsightsPanel } from "../../components/features/instructor/in
 import { GymManager } from "../../components/features/gym/gym-manager";
 import { m } from "framer-motion";
 import { modalTransition } from "@/app/lib/motion";
-import { 
-  Activity, 
+import {
+  Activity,
+  BarChart3,
   Download,
-  ArrowRight
+  ArrowRight,
+  TrendingUp
 } from "lucide-react";
 import Link from "next/link";
 
@@ -68,7 +70,7 @@ export default function InstructorAnalyticsPage() {
           <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 backdrop-blur">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-start gap-4">
-                <span className="text-2xl">📊</span>
+                <BarChart3 className="h-6 w-6 shrink-0 text-amber-500" aria-hidden="true" />
                 <div>
                   <h3 className="text-lg font-semibold text-amber-600 dark:text-amber-400 mb-1">
                     Connect your wallet to view analytics
@@ -83,7 +85,7 @@ export default function InstructorAnalyticsPage() {
           </div>
 
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-8 text-center">
-            <span className="mb-4 block text-4xl">📈</span>
+            <TrendingUp className="mx-auto mb-4 block h-10 w-10 text-[color:var(--accent)]" aria-hidden="true" />
             <h2 className="text-xl font-semibold text-[color:var(--foreground)] mb-2">
               No classes yet
             </h2>

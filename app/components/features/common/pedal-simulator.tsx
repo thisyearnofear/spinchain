@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useRef, useState } from 'react';
+import { Bike } from 'lucide-react';
 import { useDeviceType } from '../../../lib/responsive';
 import { ANALYTICS_EVENTS, trackEvent } from '@/app/lib/analytics/events';
 import { useTelemetryStore, selectPower, selectHeartRate } from '@/app/stores/telemetry-store';
@@ -393,11 +394,11 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                                 />
                             </div>
                             <span
-                                className="absolute -top-2 -translate-x-1/2 text-[11px] leading-none transition-[left] duration-500"
+                                className="absolute -top-2 -translate-x-1/2 text-white/70 transition-[left] duration-500"
                                 style={{ left: `${rideProgressPct}%` }}
                                 aria-hidden
                             >
-                                🚴
+                                <Bike className="h-3 w-3" />
                             </span>
                         </div>
                     )}
@@ -521,11 +522,11 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                             />
                         </div>
                         <span
-                            className="absolute top-1 -translate-x-1/2 text-[11px] leading-none transition-[left] duration-500"
+                            className="absolute top-1 -translate-x-1/2 text-white/70 transition-[left] duration-500"
                             style={{ left: `${rideProgressPct}%` }}
                             aria-hidden
                         >
-                            🚴
+                            <Bike className="h-3 w-3" />
                         </span>
                     </div>
                 )}

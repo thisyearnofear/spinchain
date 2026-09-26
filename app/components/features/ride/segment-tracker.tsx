@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import { m, AnimatePresence } from "framer-motion";
+import { ArrowDown, Flame, MapPin, Mountain, Trees, Waves, Zap } from "lucide-react";
 
 /**
  * SegmentTracker — Tracks and displays time per route segment.
@@ -26,6 +27,20 @@ export interface SegmentTime {
   durationSec: number | null;
   isCurrent: boolean;
   isCompleted: boolean;
+}
+
+/** Segment-type icon at module scope — defining components during render
+    breaks the React Compiler's component-identity rule. */
+function TypeIcon({ type, className }: { type: string; className: string }) {
+  switch (type) {
+    case "climb": return <Mountain className={className} aria-hidden="true" />;
+    case "sprint": return <Zap className={className} aria-hidden="true" />;
+    case "drop": return <ArrowDown className={className} aria-hidden="true" />;
+    case "rest": return <Waves className={className} aria-hidden="true" />;
+    case "scenery": return <Trees className={className} aria-hidden="true" />;
+    case "push": return <Flame className={className} aria-hidden="true" />;
+    default: return <MapPin className={className} aria-hidden="true" />;
+  }
 }
 
 export function SegmentTracker({
@@ -113,18 +128,6 @@ export function SegmentTracker({
   const completedCount = segments.filter((s) => s.isCompleted).length;
   const currentSegment = segments.find((s) => s.isCurrent);
 
-  const typeIcon = (type: string) => {
-    switch (type) {
-      case "climb": return "⛰️";
-      case "sprint": return "⚡";
-      case "drop": return "💥";
-      case "rest": return "🌊";
-      case "scenery": return "🏔️";
-      case "push": return "🔥";
-      default: return "📍";
-    }
-  };
-
   const typeColor = (type: string) => {
     switch (type) {
       case "climb": return "text-orange-400";
@@ -174,7 +177,7 @@ export function SegmentTracker({
             exit={{ opacity: 0, y: -4 }}
             className="flex items-center gap-2 mb-2"
           >
-            <span className="text-base">{typeIcon(currentSegment.type)}</span>
+            <TypeIcon type={currentSegment.type} className="h-4 w-4 text-white/70" />
             <span className={`text-sm font-bold ${typeColor(currentSegment.type)}`}>
               {currentSegment.label}
             </span>
@@ -196,7 +199,7 @@ export function SegmentTracker({
                 seg.isCompleted ? "opacity-60" : seg.isCurrent ? "opacity-100" : "opacity-30"
               }`}
             >
-              <span className="text-xs">{typeIcon(seg.type)}</span>
+              <TypeIcon type={seg.type} className="h-3 w-3 text-white/50" />
               <span className={`flex-1 truncate ${seg.isCurrent ? typeColor(seg.type) : "text-white/60"}`}>
                 {seg.label}
               </span>

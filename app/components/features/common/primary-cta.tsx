@@ -21,7 +21,7 @@ export function PrimaryCTA({
       <div className="flex justify-center">
         <Link
           href={getDemoRideUrl()}
-          className="group inline-flex items-center gap-3 rounded-full bg-green-500 px-10 py-5 text-lg font-bold text-white shadow-lg shadow-green-500/30 transition-[transform,box-shadow] duration-150 hover:scale-105 hover:shadow-xl hover:shadow-green-500/40 active:scale-95"
+          className="group inline-flex items-center gap-3 rounded-full bg-[color:var(--accent)] px-10 py-5 text-lg font-bold text-black shadow-lg shadow-[color:var(--accent)]/30 transition-[transform,background-color,box-shadow] duration-150 hover:scale-105 hover:bg-[color:var(--accent-strong)] hover:shadow-xl hover:shadow-[color:var(--accent)]/40 active:scale-95"
         >
           <svg
             className="h-6 w-6 transition-transform group-hover:translate-x-0.5"
@@ -46,7 +46,7 @@ export function PrimaryCTA({
     <div className="flex justify-center">
       <Link
         href={nextClassName ? `/rider/ride/${encodeURIComponent(nextClassName)}` : getDemoRideUrl()}
-        className="group inline-flex items-center gap-3 rounded-full bg-[var(--accent)] px-10 py-5 text-lg font-bold text-white shadow-lg shadow-[var(--accent)]/30 transition-[transform,box-shadow] duration-150 hover:scale-105 hover:shadow-xl hover:shadow-[var(--accent)]/40 active:scale-95"
+        className="group inline-flex items-center gap-3 rounded-full bg-[color:var(--accent)] px-10 py-5 text-lg font-bold text-black shadow-lg shadow-[color:var(--accent)]/30 transition-[transform,background-color,box-shadow] duration-150 hover:scale-105 hover:bg-[color:var(--accent-strong)] hover:shadow-xl hover:shadow-[color:var(--accent)]/40 active:scale-95"
       >
         <svg
           className="h-6 w-6"

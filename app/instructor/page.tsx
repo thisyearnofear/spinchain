@@ -2,6 +2,7 @@
 
 import { useAccount } from "wagmi";
 import Link from "next/link";
+import { Bot, Heart, Map, Sparkles, Zap } from "lucide-react";
 import { PrimaryNav } from "../components/layout/nav";
 import { SurfaceCard, Tag } from "../components/ui/ui";
 import { ConnectWallet } from "../components/features/wallet/connect-wallet";
@@ -93,7 +94,7 @@ export default function InstructorPage() {
         </section>
 
         <div className="rounded-3xl border border-dashed border-[color:var(--border)] bg-[color:var(--surface)]/50 p-12 text-center">
-          <span className="mb-6 block text-5xl">✨</span>
+          <Sparkles className="mx-auto mb-6 h-12 w-12 text-[color:var(--accent)]" aria-hidden="true" />
           <h2 className="mb-3 text-2xl font-semibold text-[color:var(--foreground)]">
             Ready to build your first class?
           </h2>
@@ -102,12 +103,9 @@ export default function InstructorPage() {
           </p>
           <Link
             href="/instructor/builder"
-            className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent)] px-8 py-3 font-semibold text-white transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-1 font-semibold text-[color:var(--accent)] hover:underline"
           >
-            Open Class Builder
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
+            Open Class Builder →
           </Link>
           {!isConnected && (
             <p className="mt-3 text-sm text-[color:var(--muted)]">
@@ -121,7 +119,7 @@ export default function InstructorPage() {
             href="/instructor/agent"
             className="group rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 transition-colors hover:border-amber-500/50"
           >
-            <span className="mb-4 block text-3xl">⚡</span>
+            <Zap className="mb-4 block h-8 w-8 text-amber-400" aria-hidden="true" />
             <h3 className="mb-2 font-semibold text-[color:var(--foreground)]">
               Coach-Built Class
             </h3>
@@ -134,7 +132,7 @@ export default function InstructorPage() {
             href="/routes/builder"
             className="group rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 transition-colors hover:border-[color:var(--accent)]/50"
           >
-            <span className="mb-4 block text-3xl">🗺️</span>
+            <Map className="mb-4 block h-8 w-8 text-[color:var(--accent)]" aria-hidden="true" />
             <h3 className="mb-2 font-semibold text-[color:var(--foreground)]">
               Route Builder
             </h3>
@@ -147,7 +145,7 @@ export default function InstructorPage() {
             href="/instructor/ai"
             className="group rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-6 transition-colors hover:border-indigo-500/50"
           >
-            <span className="mb-4 block text-3xl">🤖</span>
+            <Bot className="mb-4 block h-8 w-8 text-indigo-400" aria-hidden="true" />
             <h3 className="mb-2 font-semibold text-[color:var(--foreground)]">
               AI Coach Settings
             </h3>
@@ -160,7 +158,7 @@ export default function InstructorPage() {
             href="/instructor/yellow"
             className="group rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-6 transition-colors hover:border-yellow-500/50"
           >
-            <span className="mb-4 block text-3xl">💛</span>
+            <Heart className="mb-4 block h-8 w-8 text-yellow-400" aria-hidden="true" />
             <h3 className="mb-2 font-semibold text-[color:var(--foreground)]">
               Revenue & Payouts
             </h3>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback, useId } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAccount } from "wagmi";
@@ -28,6 +28,7 @@ function MobileMenuButton({ isOpen, onClick }: { isOpen: boolean; onClick: () =>
       onClick={onClick}
       aria-label={isOpen ? "Close menu" : "Open menu"}
       aria-expanded={isOpen}
+      aria-controls="mobile-menu-panel"
       className="lg:hidden flex items-center justify-center w-10 h-10 rounded-full border border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)] transition-colors"
     >
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -64,6 +65,7 @@ function ModeToggle({ isInstructor, onToggle }: { isInstructor: boolean; onToggl
 function SettingsDropdown({ isInstructorMode, onModeToggle }: { isInstructorMode: boolean; onModeToggle: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const panelId = useId();
   const clickSound = useUIClickSound();
 
   useEffect(() => {
@@ -87,6 +89,7 @@ function SettingsDropdown({ isInstructorMode, onModeToggle }: { isInstructorMode
         onClick={handleToggle}
         aria-label="Settings"
         aria-expanded={isOpen}
+        aria-controls={panelId}
         aria-haspopup="true"
         type="button"
         className="flex items-center justify-center w-10 h-10 rounded-full border border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface)] transition-[color,border-color,background-color] duration-150 cursor-pointer active:scale-95"
@@ -100,6 +103,7 @@ function SettingsDropdown({ isInstructorMode, onModeToggle }: { isInstructorMode
       <AnimatePresence>
         {isOpen && (
           <m.div
+            id={panelId}
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.99 }}
@@ -287,6 +291,7 @@ export function PrimaryNav() {
   const navItems: NavItem[] = isInstructorMode
     ? [
         { href: "/instructor/builder", label: "Create" },
+        { href: "/instructor/agent", label: "Agent Studio" },
         { href: "/instructor/templates", label: "Templates" },
         { href: "/instructor/analytics", label: "Analytics" },
         { href: "/instructor/ai", label: "AI Coach" },
@@ -333,6 +338,7 @@ export function PrimaryNav() {
       <AnimatePresence mode="wait">
         {isMobileMenuOpen && (
           <m.div
+            id="mobile-menu-panel"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}

@@ -7,6 +7,7 @@
 "use client";
 
 import { useState } from "react";
+import { TriangleAlert } from "lucide-react";
 import { useRouteLibrary } from "../../../hooks/common/use-route-library";
 import { AIRouteGenerator } from "../../../components/features/ai/ai-route-generator";
 import { RouteLibrary } from "./route-library";
@@ -308,8 +309,8 @@ export function RouteSelectionStep({
         </button>
 
         {analysisError && (
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300 font-bold backdrop-blur-xl animate-in zoom-in-95 duration-300">
-             <span className="mr-2">⚠️</span> {analysisError}
+          <div className="flex items-center rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300 font-bold backdrop-blur-xl animate-in zoom-in-95 duration-300">
+             <TriangleAlert className="mr-2 h-4 w-4 shrink-0" aria-hidden="true" /> {analysisError}
           </div>
         )}
 

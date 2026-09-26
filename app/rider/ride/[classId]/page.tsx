@@ -749,7 +749,7 @@ export default function LiveRidePage() {
               <button
                 type="button"
                 onClick={handleResumeRide}
-                className="rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-amber-500/40 transition-all active:scale-95"
+                className="rounded-full bg-[color:var(--accent)] px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-[color:var(--accent)]/40 transition-all hover:bg-[color:var(--accent-strong)] active:scale-95"
                 aria-label="Resume ride"
               >
                 Resume

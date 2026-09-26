@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { Gamepad2 } from "lucide-react";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 
 interface NoBikeModalProps {
@@ -43,9 +44,9 @@ function NoBikeModalInternal({ open, onEnableSimulator, onDismiss }: NoBikeModal
         <div className="flex flex-col gap-2">
           <button
             onClick={onEnableSimulator}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/40 transition-all hover:shadow-amber-500/40 active:scale-[0.98]"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[color:var(--accent)] px-4 py-3 text-sm font-semibold text-black shadow-lg shadow-[color:var(--accent)]/40 transition-all hover:bg-[color:var(--accent-strong)] active:scale-[0.98]"
           >
-            🎮 Use Keyboard Controls
+            <Gamepad2 className="h-4 w-4" aria-hidden="true" /> Use Keyboard Controls
           </button>
           <button
             onClick={onDismiss}

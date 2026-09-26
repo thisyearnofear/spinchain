@@ -15,6 +15,7 @@ import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useUIStore } from "@/app/stores/ui-store";
 import { EASE_SMOOTH } from "@/app/lib/motion";
+import { Brain } from "lucide-react";
 import type { HapticType } from "@/app/hooks/use-haptic";
 
 interface RideBottomPanelProps {
@@ -384,7 +385,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => { onHaptic("medium"); onResumeRide(); }}
-                  className="rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/40 transition-all active:scale-95 touch-manipulation"
+                  className="rounded-full bg-[color:var(--accent)] px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-[color:var(--accent)]/40 transition-all hover:bg-[color:var(--accent-strong)] active:scale-95 touch-manipulation"
                   aria-label="Resume ride"
                 >
                   ▶ Resume
@@ -520,7 +521,7 @@ function AgentFeedback({
       <div className="rounded-xl border border-indigo-500/25 bg-black/70 backdrop-blur px-3 py-2">
         <div className="flex items-center gap-2 mb-1.5">
           <div className="relative">
-            <span className="text-sm">🧠</span>
+            <Brain className="h-3.5 w-3.5 text-indigo-300" aria-hidden="true" />
             {reasonerState === "thinking" && (
               <m.div
                 layoutId="brain-thinking"

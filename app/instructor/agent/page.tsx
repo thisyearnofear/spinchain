@@ -17,6 +17,7 @@ import { saveAgentClass } from "@/app/lib/agent/agent-class-store";
 import { saveClassRemote } from "@/app/lib/classes/class-store";
 import { getTheme, getThemeNames } from "@/app/lib/themes/registry";
 import { saveInstructorClassDraftFormData } from "@/app/hooks/instructor/use-class-draft";
+import { chipToneClasses } from "@/app/lib/ui/chip-tone";
 
 const DURATION_OPTIONS = [20, 30, 45, 60];
 
@@ -26,14 +27,11 @@ const PERSONALITY_LABELS: Record<CoachPersonality, string> = {
   data: "Analytical",
 };
 
-const PHASE_COLORS: Record<string, string> = {
-  warmup: "bg-sky-500/15 text-sky-300 border-sky-500/20",
-  endurance: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20",
-  interval: "bg-amber-500/15 text-amber-300 border-amber-500/20",
-  sprint: "bg-rose-500/15 text-rose-300 border-rose-500/20",
-  recovery: "bg-indigo-500/15 text-indigo-300 border-indigo-500/20",
-  cooldown: "bg-slate-500/15 text-slate-300 border-slate-500/20",
-};
+// Interval-phase chip classes come from the shared chip-tone map
+// (app/lib/ui/chip-tone.ts). The base chip markup already sets `border`,
+// so only the tone colors are composed here.
+const phaseChipClasses = (phase: string) =>
+  chipToneClasses(phase, "endurance", { withBorder: false });
 
 function OptionButton({
   selected,
@@ -255,9 +253,7 @@ export default function CoachBuiltClassPage() {
                   className="flex items-start gap-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)]/40 px-3 py-2"
                 >
                   <span
-                    className={`mt-0.5 inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize ${
-                      PHASE_COLORS[interval.phase] ?? PHASE_COLORS.endurance
-                    }`}
+                    className={`mt-0.5 inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize ${phaseChipClasses(interval.phase)}`}
                   >
                     {interval.phase}
                   </span>

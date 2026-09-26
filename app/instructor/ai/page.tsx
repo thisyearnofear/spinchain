@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { BarChart3, Droplets, Leaf, Mic, Settings, User, Zap } from "lucide-react";
 import { PrimaryNav } from "@/app/components/layout/nav";
 import {
   GlassCard,
@@ -96,9 +97,9 @@ export default function AiInstructorPage() {
         {/* Mobile-Only Tab Switcher */}
         <div className="lg:hidden flex p-1 bg-black/20 rounded-2xl border border-white/5">
           {[
-            { id: "persona", label: "Persona", icon: "👤" },
-            { id: "training", label: "Studio", icon: "🎙️" },
-            { id: "infrastructure", label: "Infra", icon: "⚙️" },
+            { id: "persona", label: "Persona", icon: User },
+            { id: "training", label: "Studio", icon: Mic },
+            { id: "infrastructure", label: "Infra", icon: Settings },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -109,7 +110,7 @@ export default function AiInstructorPage() {
                   : "text-white/40 hover:text-white/60"
               }`}
             >
-              <span>{tab.icon}</span>
+              <tab.icon className="h-3.5 w-3.5" aria-hidden="true" />
               {tab.label}
             </button>
           ))}
@@ -172,13 +173,13 @@ export default function AiInstructorPage() {
                     </label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { id: "zen", label: "Zen", icon: "🧘" },
+                        { id: "zen", label: "Zen", icon: Leaf },
                         {
                           id: "drill-sergeant",
                           label: "Drill",
-                          icon: "⚡",
+                          icon: Zap,
                         },
-                        { id: "data", label: "Data", icon: "📊" },
+                        { id: "data", label: "Data", icon: BarChart3 },
                       ].map((p) => (
                         <button
                           key={p.id}
@@ -193,7 +194,7 @@ export default function AiInstructorPage() {
                               : "border-(--border) bg-(--surface) text-(--muted) hover:bg-(--surface-strong)"
                           }`}
                         >
-                          <span className="text-2xl">{p.icon}</span>
+                          <p.icon className="h-6 w-6" aria-hidden="true" />
                           <span className="text-[9px] font-bold uppercase tracking-wider">
                             {p.label}
                           </span>
@@ -254,7 +255,7 @@ export default function AiInstructorPage() {
                     }`}
                   >
                     <div className="mt-1 grid h-8 w-8 place-items-center rounded-full bg-cyan-500/20 text-cyan-300">
-                      <span className="font-bold text-xs">💧</span>
+                      <Droplets className="h-3.5 w-3.5" aria-hidden="true" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">

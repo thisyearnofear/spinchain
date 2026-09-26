@@ -17,6 +17,7 @@ import {
   getProviderBadge,
 } from "@/app/lib/ai-providers";
 import { getAIService } from "@/app/lib/ai-service";
+import { Eye, EyeOff, Lock, Sparkles } from "lucide-react";
 
 interface AIProviderSettingsProps {
   onProviderChange?: (provider: AIProvider) => void;
@@ -127,7 +128,7 @@ export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps
                     : "border-gray-200 dark:border-gray-700 hover:border-purple-300"
                 }`}
               >
-                <span className="text-2xl">🔒</span>
+                <Lock className="h-6 w-6 shrink-0 text-purple-500" aria-hidden="true" />
                 <div className="text-left flex-1">
                   <div className="font-medium text-gray-900 dark:text-white">
                     Venice AI
@@ -152,7 +153,7 @@ export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps
                     : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
                 }`}
               >
-                <span className="text-2xl">✨</span>
+                <Sparkles className="h-6 w-6 shrink-0 text-blue-500" aria-hidden="true" />
                 <div className="text-left flex-1">
                   <div className="font-medium text-gray-900 dark:text-white">
                     Gemini 3.0 Flash
@@ -191,7 +192,11 @@ export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps
                     className="px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                     title={showGeminiKey ? "Hide" : "Show"}
                   >
-                    {showGeminiKey ? "🙈" : "👁️"}
+                    {showGeminiKey ? (
+                      <EyeOff className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="h-4 w-4" aria-hidden="true" />
+                    )}
                   </button>
                 </div>
                 

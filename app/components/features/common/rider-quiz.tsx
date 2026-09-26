@@ -5,6 +5,28 @@ import { useRouter } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
 import { CoachyMascot, type CoachyMood } from "@/app/components/ui/coachy-mascot";
 import {
+  BarChart3,
+  Bike,
+  Calendar,
+  CircleHelp,
+  Dumbbell,
+  Flag,
+  Flame,
+  Hand,
+  Leaf,
+  Medal,
+  Mic,
+  Mountain,
+  Music,
+  Sprout,
+  Target,
+  Timer,
+  TrendingUp,
+  Trophy,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
+import {
   useRiderProfile,
   type FitnessGoal,
   type ExperienceLevel,
@@ -32,7 +54,7 @@ interface QuizStep {
   id: string;
   question: string;
   coachyMood: CoachyMood;
-  options: { value: string; label: string; emoji: string; description?: string }[];
+  options: { value: string; label: string; icon: LucideIcon; description?: string }[];
 }
 
 const quizSteps: QuizStep[] = [
@@ -41,10 +63,10 @@ const quizSteps: QuizStep[] = [
     question: "What brings you here?",
     coachyMood: "welcoming",
     options: [
-      { value: "endurance", label: GOAL_LABELS["endurance"], emoji: "💪", description: "Build stamina and cardiovascular health" },
-      { value: "weight-loss", label: GOAL_LABELS["weight-loss"], emoji: "🔥", description: "Burn calories and shed pounds" },
-      { value: "event-training", label: GOAL_LABELS["event-training"], emoji: "🏆", description: "Prepare for a race or event" },
-      { value: "curious", label: GOAL_LABELS["curious"], emoji: "🤔", description: "Just exploring what SpinChain is" },
+      { value: "endurance", label: GOAL_LABELS["endurance"], icon: Dumbbell, description: "Build stamina and cardiovascular health" },
+      { value: "weight-loss", label: GOAL_LABELS["weight-loss"], icon: Flame, description: "Burn calories and shed pounds" },
+      { value: "event-training", label: GOAL_LABELS["event-training"], icon: Trophy, description: "Prepare for a race or event" },
+      { value: "curious", label: GOAL_LABELS["curious"], icon: CircleHelp, description: "Just exploring what SpinChain is" },
     ],
   },
   {
@@ -52,9 +74,9 @@ const quizSteps: QuizStep[] = [
     question: "How would you describe your cycling experience?",
     coachyMood: "thinking",
     options: [
-      { value: "beginner", label: EXPERIENCE_LABELS["beginner"], emoji: "🌱", description: "New to indoor cycling" },
-      { value: "intermediate", label: EXPERIENCE_LABELS["intermediate"], emoji: "🚴", description: "Ride regularly, know the basics" },
-      { value: "advanced", label: EXPERIENCE_LABELS["advanced"], emoji: "⚡", description: "Experienced rider, want a challenge" },
+      { value: "beginner", label: EXPERIENCE_LABELS["beginner"], icon: Sprout, description: "New to indoor cycling" },
+      { value: "intermediate", label: EXPERIENCE_LABELS["intermediate"], icon: Bike, description: "Ride regularly, know the basics" },
+      { value: "advanced", label: EXPERIENCE_LABELS["advanced"], icon: Zap, description: "Experienced rider, want a challenge" },
     ],
   },
   {
@@ -62,10 +84,10 @@ const quizSteps: QuizStep[] = [
     question: "How often do you ride?",
     coachyMood: "coaching",
     options: [
-      { value: "first-time", label: FREQUENCY_LABELS["first-time"], emoji: "👋" },
-      { value: "1-2-week", label: FREQUENCY_LABELS["1-2-week"], emoji: "📅" },
-      { value: "3-4-week", label: FREQUENCY_LABELS["3-4-week"], emoji: "🔥" },
-      { value: "daily", label: FREQUENCY_LABELS["daily"], emoji: "⚡" },
+      { value: "first-time", label: FREQUENCY_LABELS["first-time"], icon: Hand },
+      { value: "1-2-week", label: FREQUENCY_LABELS["1-2-week"], icon: Calendar },
+      { value: "3-4-week", label: FREQUENCY_LABELS["3-4-week"], icon: Flame },
+      { value: "daily", label: FREQUENCY_LABELS["daily"], icon: Zap },
     ],
   },
   {
@@ -73,10 +95,10 @@ const quizSteps: QuizStep[] = [
     question: "What keeps you pedaling?",
     coachyMood: "cheering",
     options: [
-      { value: "competition", label: MOTIVATION_LABELS["competition"], emoji: "🏁", description: "Chasing PRs and beating the leaderboard" },
-      { value: "data", label: MOTIVATION_LABELS["data"], emoji: "📊", description: "Numbers, zones, and performance metrics" },
-      { value: "coaching", label: MOTIVATION_LABELS["coaching"], emoji: "🎙️", description: "Guided instruction and form tips" },
-      { value: "vibes", label: MOTIVATION_LABELS["vibes"], emoji: "🎵", description: "Great music and immersive atmosphere" },
+      { value: "competition", label: MOTIVATION_LABELS["competition"], icon: Flag, description: "Chasing PRs and beating the leaderboard" },
+      { value: "data", label: MOTIVATION_LABELS["data"], icon: BarChart3, description: "Numbers, zones, and performance metrics" },
+      { value: "coaching", label: MOTIVATION_LABELS["coaching"], icon: Mic, description: "Guided instruction and form tips" },
+      { value: "vibes", label: MOTIVATION_LABELS["vibes"], icon: Music, description: "Great music and immersive atmosphere" },
     ],
   },
   {
@@ -84,9 +106,9 @@ const quizSteps: QuizStep[] = [
     question: "Pick your coach personality",
     coachyMood: "celebrating",
     options: [
-      { value: "drill-sergeant", label: COACH_LABELS["drill-sergeant"], emoji: "🎖️", description: "Pushes you hard, no excuses" },
-      { value: "zen-master", label: COACH_LABELS["zen-master"], emoji: "🧘", description: "Calm guidance, mindful pacing" },
-      { value: "data-analyst", label: COACH_LABELS["data-analyst"], emoji: "📈", description: "Metrics-driven, precision coaching" },
+      { value: "drill-sergeant", label: COACH_LABELS["drill-sergeant"], icon: Medal, description: "Pushes you hard, no excuses" },
+      { value: "zen-master", label: COACH_LABELS["zen-master"], icon: Leaf, description: "Calm guidance, mindful pacing" },
+      { value: "data-analyst", label: COACH_LABELS["data-analyst"], icon: TrendingUp, description: "Metrics-driven, precision coaching" },
     ],
   },
 ];
@@ -258,15 +280,15 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
           </p>
 
           <div className="flex flex-col gap-1.5 w-full mb-6">
-            <SummaryRow label="Difficulty" value={difficulty} emoji="⛰️" accent={theme.accent} />
-            <SummaryRow label="Duration" value={`${duration} min`} emoji="⏱️" accent={theme.accent} />
-            <SummaryRow label="Coach style" value={COACH_LABELS[profile.coachPersonality!]} emoji="🎙️" accent={theme.accent} />
-            <SummaryRow label="Focus" value={GOAL_LABELS[profile.goal!]} emoji="🎯" accent={theme.accent} />
+            <SummaryRow label="Difficulty" value={difficulty} icon={Mountain} accent={theme.accent} />
+            <SummaryRow label="Duration" value={`${duration} min`} icon={Timer} accent={theme.accent} />
+            <SummaryRow label="Coach style" value={COACH_LABELS[profile.coachPersonality!]} icon={Mic} accent={theme.accent} />
+            <SummaryRow label="Focus" value={GOAL_LABELS[profile.goal!]} icon={Target} accent={theme.accent} />
           </div>
 
           {rides.length > 0 && (
-            <div className="mb-5 text-sm text-orange-300">
-              🔥 {streak.daily}-day streak • {rides.length} rides completed
+            <div className="mb-5 flex items-center justify-center gap-1.5 text-sm text-orange-300">
+              <Flame className="h-4 w-4" aria-hidden="true" /> {streak.daily}-day streak • {rides.length} rides completed
             </div>
           )}
 
@@ -330,8 +352,8 @@ export function RiderQuiz({ onComplete, onSkip }: RiderQuizProps) {
                     border: `1px solid ${isSelected ? theme.accent + "60" : "var(--border)"}`,
                   }}
                 >
-                  <span className="text-xl shrink-0 transition-transform group-hover:scale-110" style={{ filter: `drop-shadow(0 0 8px ${isSelected ? theme.accent + "80" : "transparent"})` }}>
-                    {opt.emoji}
+                  <span className="shrink-0 text-[color:var(--muted)] transition-transform group-hover:scale-110" style={{ filter: `drop-shadow(0 0 8px ${isSelected ? theme.accent + "80" : "transparent"})` }}>
+                    <opt.icon className="h-5 w-5" aria-hidden="true" />
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-[color:var(--foreground)]">{opt.label}</p>
@@ -478,10 +500,10 @@ function QuizShell({ children, onSkip, onBack, stepId, theme }: QuizShellProps) 
   );
 }
 
-function SummaryRow({ label, value, emoji, accent }: { label: string; value: string; emoji: string; accent: string }) {
+function SummaryRow({ label, value, icon: Icon, accent }: { label: string; value: string; icon: LucideIcon; accent: string }) {
   return (
     <div className="flex items-center gap-3 py-2.5 border-b border-[color:var(--border)] last:border-0">
-      <span className="text-base shrink-0">{emoji}</span>
+      <Icon className="h-4 w-4 shrink-0 text-[color:var(--muted)]" aria-hidden="true" />
       <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--muted)] flex-1 text-left">{label}</span>
       <span className="text-sm font-bold capitalize" style={{ color: accent }}>{value}</span>
     </div>
