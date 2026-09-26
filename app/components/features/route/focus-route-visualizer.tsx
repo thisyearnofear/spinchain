@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useCallback, useRef, useState, useEffect, useSyncExternalStore, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useId, useMemo, useCallback, useRef, useEffect, useSyncExternalStore, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { StoryBeat } from "@/app/routes/builder/gpx-uploader";
 import { useViewport } from "@/app/lib/responsive";
 import dynamic from "next/dynamic";
