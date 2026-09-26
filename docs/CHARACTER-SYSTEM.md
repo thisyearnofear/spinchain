@@ -88,7 +88,8 @@ The character is how outcomes become emotional. These rules keep that honest:
 - [x] Mint 3D avatar with state-driven clips (idle / recovery / celebrate)
 - [x] Post-ride character presence in the completion moment (rider celebrates; coach orb speaks the debrief)
 - [x] Pre-ride character greeting on `/rider`
-- [x] Shared `CharacterState` vocabulary (`app/lib/character-state.ts`)
+- [x] Shared `CharacterState` vocabulary (`app/lib/character-state.ts`), extended with `resolveBetweenRideState` for the between-ride act
+- [x] Between-ride coach arc on the journey page (`lib/journey/coach-arc.ts` + `CoachArcCard`): the coach acknowledges PRs, recovery days, and rest from real history + memory — no readiness scores
 - [x] `ready` (eager pre-ride bounce) and `fatigued` (honest 7-day load → recovery coaching) states
 - [x] Celebration tiers: `finishPulse` for every finish, `prPulse` for PRs
 - [x] Second Mint archetype ("Volt", robot) — parameterized pipeline, earned-unlock proof of concept
