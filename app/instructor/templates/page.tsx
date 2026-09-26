@@ -287,7 +287,7 @@ export default function TemplateMarketplacePage() {
               const diff = DIFFICULTY_CONFIG[template.difficulty];
               const pers = PERSONALITY_CONFIG[template.personality];
               const PersIcon = pers.icon;
-              const themeGradient = THEME_CONFIG[template.theme] || "from-indigo-500/20 to-purple-500/20";
+              const themeGradient = THEME_CONFIG[template.theme];
               const isSaved = savedTemplates.has(template.id);
 
               return (
@@ -301,7 +301,7 @@ export default function TemplateMarketplacePage() {
                 >
                   <GlassCard className="p-0 overflow-hidden group hover:border-indigo-500/30 transition-[border-color] duration-200 cursor-pointer" >
                     {/* Theme gradient header */}
-                    <div className={`relative h-32 bg-gradient-to-br ${themeGradient} overflow-hidden`}>
+                    <div className={`relative h-32 overflow-hidden ${themeGradient ? `bg-gradient-to-br ${themeGradient}` : "bg-indigo-500/10"}`}>
                       <div className="absolute inset-0 bg-black/20" />
                       <div className="absolute top-3 right-3 flex gap-2">
                         <button
@@ -326,7 +326,7 @@ export default function TemplateMarketplacePage() {
                     {/* Body */}
                     <div className="p-5 space-y-4" onClick={() => applyTemplate(template)}>
                       <div>
-                        <h3 className="text-lg font-black text-white tracking-tight group-hover:text-indigo-300 transition-colors">
+                        <h3 className="text-lg font-black text-white tracking-tight group-hover:text-[color:var(--instructor)] transition-colors">
                           {template.name}
                         </h3>
                         <p className="text-xs text-white/50 mt-1 line-clamp-2">
@@ -365,7 +365,7 @@ export default function TemplateMarketplacePage() {
                       {/* Footer */}
                       <div className="flex items-center justify-between pt-3 border-t border-white/5">
                         <div className="flex items-center gap-2">
-                          <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500" />
+                          <div className="h-6 w-6 rounded-full bg-[color:var(--instructor)]" />
                           <span className="text-[10px] font-bold text-white/60">
                             {template.author}
                           </span>
@@ -406,7 +406,7 @@ export default function TemplateMarketplacePage() {
         )}
 
         {/* CTA: Create your own */}
-        <div className="mt-8 rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 p-8 backdrop-blur-xl text-center">
+        <div className="mt-8 rounded-3xl border border-indigo-500/20 bg-indigo-500/10 p-8 backdrop-blur-xl text-center">
           <Sparkles className="w-8 h-8 text-indigo-400 mx-auto mb-4" />
           <h2 className="text-2xl font-black text-white tracking-tight">
             Can&apos;t find what you need?

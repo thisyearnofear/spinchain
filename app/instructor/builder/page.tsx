@@ -161,7 +161,7 @@ function PricingCurveVisualizer({
   return (
     <div className="group relative h-64 w-full overflow-hidden rounded-3xl border border-white/10 bg-black/40 p-6 backdrop-blur-3xl shadow-2xl">
       {/* Tactical Border Glow */}
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-indigo-500/20 rounded-3xl blur opacity-30 group-hover:opacity-70 transition duration-1000"></div>
+      <div className="absolute -inset-0.5 bg-indigo-500/20 rounded-3xl blur opacity-30 group-hover:opacity-70 transition duration-1000"></div>
       
       <div className="relative">
         <div className="absolute left-6 top-6 z-10">
@@ -271,12 +271,6 @@ function PricingCurveVisualizer({
           </text>
         </svg>
       </div>
-      
-      {/* Corner accents */}
-      <div className="absolute top-0 left-0 w-8 h-8 border-l-2 border-t-2 border-white/10 rounded-tl-2xl" />
-      <div className="absolute top-0 right-0 w-8 h-8 border-r-2 border-t-2 border-white/10 rounded-tr-2xl" />
-      <div className="absolute bottom-0 left-0 w-8 h-8 border-l-2 border-b-2 border-white/10 rounded-bl-2xl" />
-      <div className="absolute bottom-0 right-0 w-8 h-8 border-r-2 border-b-2 border-white/10 rounded-br-2xl" />
     </div>
   );
 }
@@ -438,7 +432,7 @@ export default function InstructorBuilderPage() {
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 lg:px-12">
         <div className="group relative rounded-3xl border border-white/10 bg-black/40 px-8 py-10 backdrop-blur-3xl shadow-2xl overflow-hidden">
           {/* Tactical glow */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 rounded-3xl blur opacity-30"></div>
+          <div className="absolute -inset-1 bg-indigo-500/10 rounded-3xl blur opacity-30"></div>
           <PrimaryNav />
         </div>
 
@@ -786,7 +780,7 @@ export default function InstructorBuilderPage() {
 
             {step === 5 && (
               <div className="group relative rounded-3xl border border-white/10 bg-black/40 p-8 backdrop-blur-3xl shadow-2xl overflow-hidden">
-                <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 rounded-3xl blur opacity-30"></div>
+                <div className="absolute -inset-1 bg-indigo-500/10 rounded-3xl blur opacity-30"></div>
                 <div className="relative space-y-6">
                   <div className="flex items-center gap-3 mb-8">
                     <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
@@ -932,10 +926,9 @@ export default function InstructorBuilderPage() {
                     });
                   }}
                   disabled={isPending || !userAddress || !selectedRoute}
-                  className="group relative rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-10 py-3 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-500/30 transition hover:opacity-90 hover:scale-105 disabled:opacity-50 overflow-hidden"
+                  className="group relative rounded-full bg-[color:var(--instructor)] px-10 py-3 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-500/30 transition hover:bg-[color:var(--instructor-strong)] disabled:opacity-50 overflow-hidden"
                 >
                   <span className="relative z-10">{isPending ? getDeploymentStepText(deploymentStep) : "Publish Class"}</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               )}
             </div>

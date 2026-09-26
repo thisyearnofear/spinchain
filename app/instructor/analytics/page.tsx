@@ -303,12 +303,12 @@ export default function InstructorAnalyticsPage() {
               </div>
               <div className="w-full h-2 bg-[color:var(--surface-strong)] rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full origin-left"
+                  className="h-full bg-[color:var(--instructor)] rounded-full origin-left"
                   style={{ transform: `scaleX(${analytics.engagement.repeatRiderRate})`, transition: "transform 400ms cubic-bezier(0.23, 1, 0.32, 1)" }}
                 />
               </div>
 
-              <div className="mt-6 p-4 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20">
+              <div className="mt-6 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
                 <p className="text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1">
                   Top Insight
                 </p>
