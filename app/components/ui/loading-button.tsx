@@ -61,7 +61,7 @@ export function LoadingButton({
   ...props
 }: LoadingButtonProps) {
   const variants = {
-    primary: 'bg-[color:var(--accent)] text-white hover:opacity-90 hover:shadow-lg hover:shadow-[color:var(--glow)]',
+    primary: 'bg-[color:var(--accent)] text-black hover:opacity-90 hover:shadow-lg hover:shadow-[color:var(--glow)]',
     secondary: 'border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]',
     ghost: 'text-[color:var(--muted)] hover:text-[color:var(--foreground)] hover:bg-[color:var(--surface)]',
     danger: 'text-red-400 hover:text-red-300 hover:bg-red-500/10',

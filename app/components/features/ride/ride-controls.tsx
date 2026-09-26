@@ -56,7 +56,7 @@ export function RideControls({
   const isInputModeExpanded = (panelState?.inputMode ?? "expanded") === "expanded";
   const isStartDisabled = !canStartRide;
   const disabledStartReason = !canStartRide
-    ? (startHint ?? "Connect a bike or enable 🎮 Try Without Bike to start your ride.")
+    ? (startHint ?? "Connect a bike or enable Try Without Bike to start your ride.")
     : null;
   const clickSound = useUIClickSound();
 
@@ -371,7 +371,7 @@ function InputModeSelector({
         >
           <div className="flex items-start justify-between gap-2">
             <p>
-              New here? Press <span className="font-semibold">🎮 Try Without Bike</span> to ride with keyboard controls (
+              New here? Press <span className="font-semibold">Try Without Bike</span> to ride with keyboard controls (
               <kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">↑</kbd>/<kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">↓</kbd> to pedal, or
               <kbd className="ml-1 rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">←</kbd>/<kbd className="rounded bg-white/10 px-1 py-0.5 font-mono text-[9px]">→</kbd> for left/right leg). Hold any key to keep pedaling!
             </p>

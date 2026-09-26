@@ -148,7 +148,7 @@ export function DeviceSelector({ onMetricsUpdate, className = "" }: DeviceSelect
               <button
                 onClick={scanAndConnect}
                 disabled={isPending || isScanning}
-                className="flex-1 rounded-lg bg-[color:var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-[color:var(--accent)] px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-50"
               >
                 {isScanning ? (
                   <>

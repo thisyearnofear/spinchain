@@ -153,7 +153,7 @@ function RouteCard({ route, index }: { route: typeof DEMO_CLASSES[0]; index: num
         {/* Instructor + CTA */}
         <div className="flex items-center justify-between p-4 rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[color:var(--accent)] to-[color:var(--accent-strong)] flex items-center justify-center text-white text-sm font-bold">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[color:var(--accent)] to-[color:var(--accent-strong)] flex items-center justify-center text-black text-sm font-bold">
               {route.instructor.charAt(0)}
             </div>
             <div>
@@ -266,7 +266,7 @@ export function RouteShowcase() {
       >
         <Link
           href="/routes"
-          className="inline-flex items-center gap-2 px-8 py-4 rounded-full border-2 border-[color:var(--accent)] text-[color:var(--accent)] font-semibold hover:bg-[color:var(--accent)] hover:text-white transition-all"
+          className="inline-flex items-center gap-2 px-8 py-4 rounded-full border-2 border-[color:var(--accent)] text-[color:var(--accent)] font-semibold hover:bg-[color:var(--accent)] hover:text-black transition-all"
         >
           Explore All Routes
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

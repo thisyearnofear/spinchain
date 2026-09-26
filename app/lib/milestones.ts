@@ -66,7 +66,6 @@ export const MILESTONE_TIERS: Record<MilestoneTier, {
   color: string;
   bgColor: string;
   borderColor: string;
-  icon: string;
   scale: number;
 }> = {
   bronze: {
@@ -74,7 +73,6 @@ export const MILESTONE_TIERS: Record<MilestoneTier, {
     color: '#b45309',
     bgColor: 'rgba(180,83,9,0.1)',
     borderColor: 'rgba(180,83,9,0.4)',
-    icon: '🥉',
     scale: 1,
   },
   silver: {
@@ -82,7 +80,6 @@ export const MILESTONE_TIERS: Record<MilestoneTier, {
     color: '#475569',
     bgColor: 'rgba(71,85,105,0.1)',
     borderColor: 'rgba(71,85,105,0.4)',
-    icon: '🥈',
     scale: 1.1,
   },
   gold: {
@@ -90,7 +87,6 @@ export const MILESTONE_TIERS: Record<MilestoneTier, {
     color: '#ca8a04',
     bgColor: 'rgba(202,138,4,0.1)',
     borderColor: 'rgba(202,138,4,0.5)',
-    icon: '🥇',
     scale: 1.2,
   },
   platinum: {
@@ -98,7 +94,6 @@ export const MILESTONE_TIERS: Record<MilestoneTier, {
     color: '#6366f1',
     bgColor: 'rgba(99,102,241,0.1)',
     borderColor: 'rgba(99,102,241,0.6)',
-    icon: '💎',
     scale: 1.4,
   },
   diamond: {
@@ -106,7 +101,6 @@ export const MILESTONE_TIERS: Record<MilestoneTier, {
     color: '#a855f7',
     bgColor: 'rgba(168,85,247,0.15)',
     borderColor: 'rgba(168,85,247,0.7)',
-    icon: '👑',
     scale: 1.6,
   },
 };

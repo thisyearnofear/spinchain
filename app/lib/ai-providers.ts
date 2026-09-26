@@ -181,11 +181,11 @@ export function isFeatureAvailable(
   return PROVIDERS[provider].capabilities.includes(feature);
 }
 
-// Get provider badge/label for UI
+// Get provider badge/label for UI. Provider icons are rendered by the
+// consumer (ProviderIcon in ai-provider-settings.tsx), not stored here.
 export function getProviderBadge(provider: AIProvider): {
   label: string;
   color: string;
-  icon: string;
   description: string;
 } {
   switch (provider) {
@@ -193,28 +193,24 @@ export function getProviderBadge(provider: AIProvider): {
       return {
         label: "Gemini 3",
         color: "bg-blue-500",
-        icon: "✨",
         description: "Enhanced reasoning & structured outputs",
       };
     case "nvidia":
       return {
         label: "NVIDIA NIM",
         color: "bg-green-500",
-        icon: "🟢",
         description: "MiniMax-M3 via NVIDIA NIM",
       };
     case "venice":
       return {
         label: "Venice AI",
         color: "bg-purple-500",
-        icon: "🔒",
         description: "Privacy-first inference",
       };
     default:
       return {
         label: "Auto",
         color: "bg-gray-500",
-        icon: "⚡",
         description: "Best available provider",
       };
   }

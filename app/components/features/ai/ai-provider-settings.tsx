@@ -17,10 +17,24 @@ import {
   getProviderBadge,
 } from "@/app/lib/ai-providers";
 import { getAIService } from "@/app/lib/ai-service";
-import { Eye, EyeOff, Lock, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Lock, Sparkles, Cpu, Zap, Lightbulb } from "lucide-react";
 
 interface AIProviderSettingsProps {
   onProviderChange?: (provider: AIProvider) => void;
+}
+
+// Provider identity is carried by the badge color; the icon is a lucide
+// glyph per provider (no emoji-as-icon per the design craft floor).
+function ProviderIcon({ provider }: { provider: AIProvider }) {
+  const Icon =
+    provider === "gemini"
+      ? Sparkles
+      : provider === "nvidia"
+        ? Cpu
+        : provider === "venice"
+          ? Lock
+          : Zap;
+  return <Icon className="h-3.5 w-3.5" aria-hidden="true" />;
 }
 
 export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps) {
@@ -94,7 +108,7 @@ export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        <span>{currentBadge.icon}</span>
+        <ProviderIcon provider={prefs.preferredProvider} />
         <span className="hidden sm:inline">{currentBadge.label}</span>
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -255,8 +269,9 @@ export function AIProviderSettings({ onProviderChange }: AIProviderSettingsProps
 
             {/* Info Footer */}
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-              <p>
-                <strong>💡 Tip:</strong> Both providers work great. Venice is simpler (no setup), Gemini 3 has more advanced features.
+              <p className="flex items-start gap-1.5">
+                <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span><strong>Tip:</strong> Both providers work great. Venice is simpler (no setup), Gemini 3 has more advanced features.</span>
               </p>
             </div>
           </div>
@@ -277,7 +292,7 @@ export function AIProviderBadge() {
       className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${badge.color} text-white`}
       title={badge.description}
     >
-      <span>{badge.icon}</span>
+      <ProviderIcon provider={provider} />
       <span className="hidden sm:inline">{badge.label}</span>
     </div>
   );

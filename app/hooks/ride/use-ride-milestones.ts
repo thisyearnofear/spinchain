@@ -162,7 +162,7 @@ export function useRideMilestones({
     shownMilestoneIdsRef.current.add("first-flow");
 
     const label = flow.flowTier >= 2 ? "IN FLOW" : "FOCUSED";
-    showOverlay(`✨ ${label}`, "First flow moment — keep it going", {
+    showOverlay(label, "First flow moment — keep it going", {
       force: true,
     });
 

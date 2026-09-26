@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import {
+  AlertCircle,
+  CheckCircle2,
   ClipboardList,
   Coins,
   GraduationCap,
@@ -960,13 +962,16 @@ export default function InstructorBuilderPage() {
                   {isSuccess && (
                     <div className="flex items-center gap-2 mt-3">
                       <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-                      <p className="text-sm font-bold text-green-400">✨ Class contract deployed successfully and the saved draft was cleared.</p>
+                      <p className="flex items-center gap-1.5 text-sm font-bold text-green-400">
+                        <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                        Class contract deployed successfully and the saved draft was cleared.
+                      </p>
                     </div>
                   )}
                   {deployError && (
-                    <div className="flex items-center gap-2 mt-3">
-                      <span className="h-2 w-2 rounded-full bg-red-400" />
-                      <p className="text-sm font-bold text-red-400">❌ Deployment failed: {deployError}</p>
+                    <div className="flex items-center gap-2 mt-3 text-red-400">
+                      <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                      <p className="text-sm font-bold">Deployment failed: {deployError}</p>
                     </div>
                   )}
                 </div>
