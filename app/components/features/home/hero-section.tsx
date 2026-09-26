@@ -25,29 +25,16 @@ const RiveRider = dynamic(
   { ssr: false },
 );
 
-// Cast voice — first-time visitors get an eager greeting from the coach.
-// Returning riders get a streak acknowledgement instead.
-const COACH_GREETINGS = [
-  "Let's find your gear.",
-  "The road's ready when you are.",
-  "One pedal stroke at a time.",
-  "Your effort writes the route.",
-];
-
-function CoachGreeting({ rides }: { rides: number }) {
-  const idx = rides % COACH_GREETINGS.length;
+// Cast voice — one honest greeting from the coach for first-time visitors.
+function CoachGreeting() {
   return (
     <p className="mt-2 text-sm italic text-[color:var(--muted)]">
-      {COACH_GREETINGS[idx]}
+      The road&apos;s ready when you are.
     </p>
   );
 }
 
-interface HeroSectionProps {
-  onOpenGuide?: () => void;
-}
-
-export function HeroSection({ onOpenGuide }: HeroSectionProps) {
+export function HeroSection() {
   const { totalRides, currentTier } = useExperience();
   // Honest signal: show the rider's current tier, not an aspirational +1.
   const flowTier = Math.min(4, currentTier);
@@ -59,23 +46,21 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
       <div className="relative w-full overflow-hidden border-y border-[color:var(--border)] py-8 text-center md:py-12">
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 bg-[color:var(--accent)]/5 blur-[120px]" />
 
-        {/* Flow badge — separate from the character, keeps tier signal */}
-        <div className="mb-5 flex flex-col items-center justify-center gap-1">
-          <RiveFlowBadge
-            flowTier={flowTier}
-            label={totalRides > 0 ? (
-              <span className="inline-flex items-center gap-1">
-                <Flame className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
-                {totalRides} ride{totalRides === 1 ? "" : "s"}
-              </span>
-            ) : undefined}
-          />
-          {totalRides === 0 && (
-            <p className="text-xs text-[color:var(--muted)]">
-              Ride once to ignite your flow tier
-            </p>
-          )}
-        </div>
+        {/* Flow badge — progression furniture, only meaningful once the
+            rider has actually ridden. Hidden for first-timers. */}
+        {totalRides > 0 && (
+          <div className="mb-5 flex flex-col items-center justify-center gap-1">
+            <RiveFlowBadge
+              flowTier={flowTier}
+              label={
+                <span className="inline-flex items-center gap-1">
+                  <Flame className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+                  {totalRides} ride{totalRides === 1 ? "" : "s"}
+                </span>
+              }
+            />
+          </div>
+        )}
 
         {/* Character + heading — RiveRider beside H1 for first-time visitors */}
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6 md:mb-6">
@@ -94,7 +79,7 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
               <br />
               reacts to your effort.
             </h1>
-            {totalRides === 0 && <CoachGreeting rides={0} />}
+            {totalRides === 0 && <CoachGreeting />}
           </div>
         </div>
 
@@ -109,15 +94,6 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
             <Play className="h-4 w-4 fill-current" />
             Try a Demo Ride
           </MorphCTA>
-
-          {onOpenGuide && (
-            <button
-              onClick={onOpenGuide}
-              className="text-sm font-medium text-[color:var(--muted)] transition-colors hover:text-[color:var(--foreground)]"
-            >
-              Set up my profile
-            </button>
-          )}
         </div>
 
       </div>

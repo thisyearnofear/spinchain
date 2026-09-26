@@ -13,10 +13,12 @@ export function FinalCTASection() {
 
         <div className="relative">
           <h2 className="mb-3 text-2xl font-bold text-[color:var(--foreground)] md:mb-4 md:text-3xl lg:text-4xl">
-            Feel the world react to your effort
+            Your coach will remember this ride.
           </h2>
           <p className="mx-auto mb-6 max-w-xl text-sm text-[color:var(--muted)] md:mb-8 md:text-base">
-            Start with the free demo. No wallet, no signup, no friction — just a bike, a keyboard, and a world that moves with you.
+            Every ride is verified effort — proven, not promised — and earns
+            SPIN, the token your effort earns on SpinChain. Start with the free
+            demo: no wallet, no signup.
           </p>
           <Link
             href={getDemoRideUrl({ name: "Demo Ride" })}

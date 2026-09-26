@@ -193,7 +193,7 @@ describe("RideTransitionOverlay activation countdown", () => {
 
   it("renders the route thumbnail behind the countdown when provided", () => {
     renderWithUnstableCallbacks(vi.fn(), vi.fn(), {
-      routeThumbnailUrl: "/images/routes/route-city.jpg",
+      routeThumbnailUrl: "/images/worlds/neon.jpg",
       routeLabel: "Neon Grid Sprint",
     });
 
@@ -212,7 +212,7 @@ describe("RideTransitionOverlay activation countdown", () => {
     const onDone = vi.fn();
     renderWithUnstableCallbacks(onDone, vi.fn(), {
       reducedMotion: true,
-      routeThumbnailUrl: "/images/routes/route-mountain.jpg",
+      routeThumbnailUrl: "/images/worlds/alpine.jpg",
     });
 
     expect(onDone).toHaveBeenCalledTimes(1);
@@ -226,24 +226,24 @@ describe("RideTransitionOverlay activation countdown", () => {
     ).toBeTruthy();
   });
 
-  it("maps route themes to existing public thumbnail assets", () => {
+  it("maps route themes to shared world art assets", () => {
     expect(routeThumbnailForTheme("alpine")).toBe(
-      "/images/routes/route-forest.jpg",
+      "/images/worlds/alpine.jpg",
     );
     expect(routeThumbnailForTheme("mars")).toBe(
-      "/images/routes/route-group.jpg",
+      "/images/worlds/mars.jpg",
     );
     expect(routeThumbnailForTheme("anime")).toBe(
-      "/images/routes/route-coastal.jpg",
+      "/images/worlds/anime.jpg",
     );
     expect(routeThumbnailForTheme("rainbow")).toBe(
-      "/images/routes/route-mountain.jpg",
+      "/images/worlds/rainbow.jpg",
     );
     expect(routeThumbnailForTheme("neon")).toBe(
-      "/images/routes/route-city.jpg",
+      "/images/worlds/neon.jpg",
     );
     expect(routeThumbnailForTheme(undefined)).toBe(
-      "/images/routes/route-city.jpg",
+      "/images/worlds/neon.jpg",
     );
   });
 });

@@ -19,6 +19,8 @@ import { HowItWorksSection } from "@/app/components/features/home/how-it-works-s
 import { LivePreviewSection } from "@/app/components/features/home/live-preview-section";
 import { FeaturesGridSection } from "@/app/components/features/home/features-grid-section";
 import { FinalCTASection } from "@/app/components/features/home/final-cta-section";
+import { CoachMemorySection } from "@/app/components/features/home/coach-memory-section";
+import { WorldsSection } from "@/app/components/features/home/worlds-section";
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -98,11 +100,14 @@ function HomeContent() {
 
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-16 md:gap-20 px-6 pb-20 pt-10 lg:px-12">
         <FadeIn>
-          {hasProfile ? <PersonalizedHero /> : <HeroSection onOpenGuide={() => setShowQuiz(true)} />}
+          {hasProfile ? <PersonalizedHero /> : <HeroSection />}
         </FadeIn>
 
         {!isReturningRider && <LivePreviewSection />}
         <HowItWorksSection />
+        {/* Product truth, not onboarding — shown to returning riders too. */}
+        <CoachMemorySection />
+        <WorldsSection />
         <RouteShowcase />
         {!isReturningRider && <FeaturesGridSection />}
         {!isReturningRider && <FinalCTASection />}
