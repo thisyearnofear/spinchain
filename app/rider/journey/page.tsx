@@ -19,6 +19,7 @@ import {
 } from "../../lib/analytics/ride-history";
 
 import {
+  Check,
   Cloud,
   ShieldCheck,
   Wallet,
@@ -148,7 +149,7 @@ function JourneyContent() {
     const streak = retention.streaks.daily;
     if (streak >= 7) return { label: "1.5x", description: `${streak}-day streak bonus active.` };
     if (streak >= 3) return { label: "1.2x", description: `${streak}-day streak bonus active.` };
-    if (streak >= 1) return { label: "1.0x", description: "Ride 3+ days in a row to unlock a streak bonus." };
+    if (streak >= 1) return { label: "Base rate", description: "Ride 3+ days in a row to unlock a streak bonus." };
     return { label: "—", description: "Start a streak by riding 3+ days in a row." };
   }, [retention.streaks.daily]);
   useEffect(() => {
@@ -226,22 +227,27 @@ function JourneyContent() {
         </div>
 
         {isCompletedLanding && (
-          <div className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-6 py-4 text-emerald-100">
-            <div className="flex items-center justify-between">
+          <div
+            className={`flex items-center justify-between gap-4 rounded-2xl px-6 py-4 ${chipToneClasses("emerald")}`}
+          >
+            <div className="flex items-center gap-3">
+              <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
               <div>
-                <p className="text-sm font-semibold">Ride complete 🎉</p>
-                <p className="mt-1 text-sm text-emerald-100/80">
+                <p className="text-sm font-semibold">
+                  Ride complete — part of your story now.
+                </p>
+                <p className="mt-1 text-sm opacity-80">
                   Your latest ride has been added to your journey history.
                 </p>
               </div>
-              <Link
-                href="/rider"
-                className="flex items-center gap-2 rounded-xl bg-emerald-500/20 border border-emerald-400/30 px-4 py-2.5 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/30 transition-all whitespace-nowrap"
-              >
-                <Bike className="w-4 h-4" />
-                Ride Again
-              </Link>
             </div>
+            <Link
+              href="/rider"
+              className="flex items-center gap-2 rounded-xl border border-emerald-500/30 px-4 py-2 text-sm font-semibold transition-colors hover:bg-emerald-500/10 whitespace-nowrap"
+            >
+              <Bike className="h-4 w-4" aria-hidden="true" />
+              Ride Again
+            </Link>
           </div>
         )}
 
@@ -400,7 +406,11 @@ function JourneyContent() {
                       Active Multiplier
                     </span>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-black text-emerald-400 tracking-tighter">
+                      <span
+                        className={`text-3xl font-black tracking-tighter ${
+                          multiplier.label === "Base rate" ? "text-white" : "text-emerald-400"
+                        }`}
+                      >
                         {multiplier.label}
                       </span>
                     </div>
@@ -535,7 +545,9 @@ function JourneyContent() {
                     </p>
                     {proofTypeLegend.length > 0 && (
                       <p className="text-white/30">
-                        Proof types here: {proofTypeLegend.join(", ")}
+                        {proofTypeLegend.includes("zk")
+                          ? "This ride uses zero-knowledge verification — the math proves your effort without revealing anything else."
+                          : "Each ride is checked by a cryptographic proof — it confirms your effort without exposing your raw ride data."}
                       </p>
                     )}
                   </div>

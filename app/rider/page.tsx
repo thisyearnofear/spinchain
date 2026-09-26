@@ -288,7 +288,7 @@ export default function RiderPage() {
                   onClick={() => setFilterUpcoming(true)}
                   className={`rounded-md px-4 py-2 text-sm font-medium transition ${
                     filterUpcoming
-                      ? "bg-[color:var(--accent)] text-white"
+                      ? "bg-[color:var(--accent)] text-black hover:bg-[color:var(--accent-strong)]"
                       : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
                   }`}
                 >
@@ -298,7 +298,7 @@ export default function RiderPage() {
                   onClick={() => setFilterUpcoming(false)}
                   className={`rounded-md px-4 py-2 text-sm font-medium transition ${
                     !filterUpcoming
-                      ? "bg-[color:var(--accent)] text-white"
+                      ? "bg-[color:var(--accent)] text-black hover:bg-[color:var(--accent-strong)]"
                       : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
                   }`}
                 >

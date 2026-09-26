@@ -30,7 +30,7 @@ export function RideStartScreen({
   return (
     <div className="fixed inset-0 z-[65] flex flex-col items-center justify-center gap-6 pointer-events-none px-4">
       <div className="pointer-events-auto w-full max-w-sm rounded-2xl border border-white/10 bg-black/70 backdrop-blur-xl px-6 py-5 text-center">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-300/80 mb-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[color:var(--accent)]/80 mb-2">
           {isPracticeMode ? "Practice Ride" : "Class"}
         </p>
         <h2 className="text-lg font-black text-white tracking-tight leading-snug">
@@ -51,7 +51,7 @@ export function RideStartScreen({
               onClick={() => onPracticeDurationChange(sec)}
               className={`rounded-full px-4 py-1.5 text-xs font-black transition-colors ${
                 practiceDurationSec === sec
-                  ? "bg-amber-400 text-black shadow"
+                  ? "bg-[color:var(--accent)] text-black shadow"
                   : "text-white/60 hover:text-white"
               }`}
               aria-pressed={practiceDurationSec === sec}

@@ -283,7 +283,7 @@ export default function CoachBuiltClassPage() {
                 type="button"
                 onClick={rideItNow}
                 disabled={problems.length > 0}
-                className="flex-1 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-black transition-colors hover:bg-amber-300 disabled:opacity-40"
+                className="flex-1 rounded-xl bg-[color:var(--instructor)] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[color:var(--instructor-strong)] disabled:opacity-40"
               >
                 Ride it now
               </button>

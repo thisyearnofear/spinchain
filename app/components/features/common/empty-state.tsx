@@ -47,14 +47,14 @@ export function EmptyState({
         action.href ? (
           <Link
             href={action.href}
-            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[color:var(--accent)] text-white text-sm font-semibold transition-[transform,opacity] duration-150 active:scale-95 hover:opacity-90"
+            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[color:var(--accent)] text-black text-sm font-semibold transition-[transform,opacity] duration-150 active:scale-95 hover:opacity-90"
           >
             {action.label}
           </Link>
         ) : (
           <button
             onClick={action.onClick}
-            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[color:var(--accent)] text-white text-sm font-semibold transition-[transform,opacity] duration-150 active:scale-95 hover:opacity-90"
+            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[color:var(--accent)] text-black text-sm font-semibold transition-[transform,opacity] duration-150 active:scale-95 hover:opacity-90"
           >
             {action.label}
           </button>

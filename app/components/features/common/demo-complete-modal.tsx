@@ -102,7 +102,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                   className="relative mx-auto mb-4 h-16 w-16 sm:h-20 sm:w-20"
                 >
                   <div className="absolute inset-0 animate-pulse rounded-full bg-[color:var(--accent)] opacity-20" />
-                  <div className="relative flex h-full w-full items-center justify-center rounded-full border-2 border-white/20 bg-[color:var(--accent)] text-white shadow-xl">
+                  <div className="relative flex h-full w-full items-center justify-center rounded-full border-2 border-white/20 bg-[color:var(--accent)] text-black shadow-xl">
                     <Trophy className="h-8 w-8 sm:h-10 sm:w-10" />
                   </div>
                 </m.div>
@@ -185,7 +185,7 @@ export function DemoCompleteModal({ isOpen, onClose, stats }: DemoCompleteModalP
                 <div className="space-y-2">
                   <Link
                     href="/rider"
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--accent)] px-6 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
                   >
                     <Bike className="h-4 w-4" />
                     Browse Classes

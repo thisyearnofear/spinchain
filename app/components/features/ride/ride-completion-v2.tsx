@@ -33,13 +33,29 @@ import { formatTime } from "@/app/lib/formatters";
 import { toPracticeWallElapsed } from "@/app/lib/practice-demo";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useSensoryStore } from "@/app/stores/sensory-store";
-import { Star, CheckCircle2, ShieldCheck, Trophy, Flame, Volume2 } from "lucide-react";
+import { Star, CheckCircle2, ShieldCheck, Trophy, Flame, Volume2, Medal, Gem, Crown } from "lucide-react";
 import { milestonesAndStreaks, type SessionMilestone, type MilestoneTier, MILESTONE_TIERS } from "@/app/lib/milestones";
 import { ShareCardButton } from "./share-card";
 import { RideComparison } from "./ride-comparison";
 import { getEffortTier } from "@/app/lib/analytics/ride-history";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import type { RewardClaimStatus } from "@/app/lib/rewards";
+
+// Tier identity is carried by MILESTONE_TIERS colors; the glyph is a
+// lucide icon per tier (no emoji-as-icon per the design craft floor).
+// Module scope: defining components during render violates the React
+// Compiler rules of hooks.
+function TierIcon({ tier, className }: { tier: MilestoneTier; className?: string }) {
+  const Icon =
+    tier === "diamond" ? Crown : tier === "platinum" ? Gem : Medal;
+  return (
+    <Icon
+      className={className}
+      style={{ color: MILESTONE_TIERS[tier].color }}
+      aria-hidden="true"
+    />
+  );
+}
 
 // The rider's character joins the celebration (docs/CHARACTER-SYSTEM.md —
 // Act 3). Store-driven: it idles after the ride and fires its PR
@@ -483,9 +499,9 @@ export function RideCompletionV2({
                   initial={{ scale: 0, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 16 }}
-                  className="relative text-5xl leading-none mb-2"
+                  className="relative mb-2"
                 >
-                  {MILESTONE_TIERS[heroMilestone.tier].icon}
+                  <TierIcon tier={heroMilestone.tier} className="h-12 w-12" />
                 </m.div>
                 <p
                   className="relative text-2xl font-black tracking-tight"
@@ -592,8 +608,8 @@ export function RideCompletionV2({
                   </span>
                   <span className="flex items-center gap-2">
                     {MILESTONE_TIER_ORDER.filter((t) => tierCounts[t]).map((t) => (
-                      <span key={t} className="text-[11px] text-white/60 tabular-nums">
-                        {MILESTONE_TIERS[t].icon}
+                      <span key={t} className="inline-flex items-center text-[11px] text-white/60 tabular-nums">
+                        <TierIcon tier={t} className="h-3 w-3" />
                         <span className="ml-0.5">{tierCounts[t]}</span>
                       </span>
                     ))}
@@ -623,7 +639,7 @@ export function RideCompletionV2({
                               backgroundColor: MILESTONE_TIERS[milestone.tier].bgColor,
                             }}
                           >
-                            <span className="text-xl">{MILESTONE_TIERS[milestone.tier].icon}</span>
+                            <TierIcon tier={milestone.tier} className="h-5 w-5" />
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-white">{milestone.title}</p>
                               <p className="text-[10px] text-white/60 truncate">{milestone.description}</p>

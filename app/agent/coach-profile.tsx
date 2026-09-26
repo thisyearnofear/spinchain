@@ -20,6 +20,9 @@ import {
   Flame,
   Wind,
   MessageSquare,
+  Flower2,
+  BarChart3,
+  Mic,
 } from "lucide-react";
 import { m } from "framer-motion";
 import { useAgentReasoner } from "../hooks/ai/use-agent-reasoner";
@@ -454,9 +457,9 @@ export function CoachProfile({
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: "zen", label: "Zen", icon: "🧘" },
-                  { id: "drill-sergeant", label: "Drill", icon: "⚡" },
-                  { id: "data", label: "Quant", icon: "📊" },
+                  { id: "zen", label: "Zen", icon: Flower2 },
+                  { id: "drill-sergeant", label: "Drill", icon: Zap },
+                  { id: "data", label: "Quant", icon: BarChart3 },
                 ].map((p) => (
                   <button
                     key={p.id}
@@ -472,7 +475,7 @@ export function CoachProfile({
                         : "border-white/5 bg-white/5 text-white/40 hover:bg-white/10"
                     }`}
                   >
-                    <span className="text-xl">{p.icon}</span>
+                    <p.icon className="h-5 w-5" aria-hidden="true" />
                     <span className="text-[10px] font-bold uppercase">
                       {p.label}
                     </span>
@@ -485,7 +488,7 @@ export function CoachProfile({
               <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">🎙️</span>
+                    <Mic className="h-5 w-5 text-indigo-300" aria-hidden="true" />
                     <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">
                       Voice Preview
                     </span>

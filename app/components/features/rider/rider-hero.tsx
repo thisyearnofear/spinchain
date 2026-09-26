@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { m } from "framer-motion";
-import { Bike, Zap, TrendingUp, Users } from "lucide-react";
+import { Bike, Zap, TrendingUp, Users, type LucideIcon } from "lucide-react";
 import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import { useClasses } from "@/app/hooks/evm/use-class-data";
 import { useInstructors } from "@/app/hooks/evm/use-instructors";
@@ -35,11 +35,11 @@ export function RiderHero({
   const aiCoaches = instructors.length || 3;
   const avgReward = prs.bestSpin > 0 ? `${prs.bestSpin.toFixed(0)} SPIN` : "—";
 
-  const stats = [
+  const stats: { icon: LucideIcon; label: string; value: string; title?: string }[] = [
     { icon: Bike, label: "Active Routes", value: activeRoutes.toString() },
     { icon: Users, label: "AI Coaches", value: aiCoaches.toString() },
     { icon: Zap, label: "Best Effort", value: prs.bestEffort > 0 ? `${prs.bestEffort}` : "—" },
-    { icon: TrendingUp, label: "Top Reward", value: avgReward },
+    { icon: TrendingUp, label: "Top Reward", value: avgReward, title: "SPIN is the token your effort earns on SpinChain." },
   ];
 
   return (
@@ -162,6 +162,7 @@ export function RiderHero({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...modalTransition, delay: 0.25 + i * 0.05 }}
                 className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)]/60 backdrop-blur p-4 lg:w-[160px]"
+                title={stat.title}
               >
                 <stat.icon className="w-4 h-4 text-[color:var(--accent)] mb-2" strokeWidth={1.5} />
                 <p className="text-xl font-black text-[color:var(--foreground)] tracking-tight">

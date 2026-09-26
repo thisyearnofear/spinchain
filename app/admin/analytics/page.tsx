@@ -137,7 +137,7 @@ export default function AnalyticsDashboard() {
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[color:var(--accent)] text-white font-medium hover:opacity-90 disabled:opacity-50 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[color:var(--accent)] text-black font-medium hover:opacity-90 disabled:opacity-50 transition-all"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             {loading ? 'Loading...' : 'Refresh'}
@@ -238,7 +238,7 @@ export default function AnalyticsDashboard() {
                       onClick={() => setFilterEvent(filterEvent === name ? '' : name)}
                       className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-300 ${
                         filterEvent === name
-                          ? 'bg-[color:var(--accent)] text-white border-[color:var(--accent)]'
+                          ? 'bg-[color:var(--accent)] text-black border-[color:var(--accent)]'
                           : `${getEventColor(name)} hover:scale-105`
                       }`}
                     >

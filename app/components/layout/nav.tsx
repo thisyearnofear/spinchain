@@ -65,6 +65,7 @@ function ModeToggle({ isInstructor, onToggle }: { isInstructor: boolean; onToggl
 function SettingsDropdown({ isInstructorMode, onModeToggle }: { isInstructorMode: boolean; onModeToggle: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
   const clickSound = useUIClickSound();
 
@@ -78,6 +79,20 @@ function SettingsDropdown({ isInstructorMode, onModeToggle }: { isInstructorMode
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Escape key — close the dropdown and return focus to the trigger
+  // (mirrors the RoutePreviewDialog pattern in app/rider/page.tsx)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isOpen]);
+
   const handleToggle = () => {
     clickSound();
     setIsOpen(!isOpen);
@@ -86,6 +101,7 @@ function SettingsDropdown({ isInstructorMode, onModeToggle }: { isInstructorMode
   return (
     <div className="relative z-[100]" ref={dropdownRef}>
       <button
+        ref={triggerRef}
         onClick={handleToggle}
         aria-label="Settings"
         aria-expanded={isOpen}
@@ -156,7 +172,7 @@ function RiderIdentityChip() {
       className="flex items-center gap-2 rounded-full border border-white/5 bg-white/[0.03] pl-1 pr-3 py-1 hover:border-white/15 hover:bg-white/[0.07] transition-colors"
       title="View your journey"
     >
-      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-[10px] font-bold text-white shrink-0 overflow-hidden">
+      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[color:var(--instructor)] text-[10px] font-bold text-white shrink-0 overflow-hidden">
         {profile?.avatar ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
@@ -284,6 +300,17 @@ export function PrimaryNav() {
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
+  // Escape key — close the mobile menu (mirrors the RoutePreviewDialog
+  // pattern in app/rider/page.tsx)
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isMobileMenuOpen]);
+
   const handleModeToggle = () => {
     window.location.href = isInstructorMode ? "/rider" : "/instructor";
   };
@@ -306,7 +333,7 @@ export function PrimaryNav() {
     <nav className="flex w-full flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
       <div className="flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group" aria-label="SpinChain Home">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[color:var(--accent)] text-white shadow-lg shadow-[color:var(--accent)]/20 transition-transform group-hover:scale-105">
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[color:var(--accent)] text-black shadow-lg shadow-[color:var(--accent)]/20 transition-transform group-hover:scale-105">
             {isInstructorMode ? <GraduationCap className="h-6 w-6" /> : <Bike className="h-6 w-6" />}
           </span>
           <div>

@@ -94,7 +94,7 @@ export default function InstructorAnalyticsPage() {
             </p>
             <Link
               href="/instructor/builder"
-              className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent)] px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-full bg-[color:var(--instructor)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[color:var(--instructor-strong)]"
             >
               Create your first class
               <ArrowRight className="w-4 h-4" />
@@ -156,7 +156,7 @@ export default function InstructorAnalyticsPage() {
                 onClick={() => setTimeRange(range)}
                 className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-[background-color,color] duration-150 ${
                   timeRange === range
-                    ? "bg-[color:var(--accent)] text-white"
+                    ? "bg-[color:var(--instructor)] text-white"
                     : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
                 }`}
               >
@@ -269,7 +269,7 @@ export default function InstructorAnalyticsPage() {
                 </p>
               </div>
 
-              <button className="w-full mt-4 px-6 py-3 rounded-xl bg-[color:var(--accent)] text-white font-medium hover:opacity-90 transition-[transform,opacity] duration-150 active:scale-95 flex items-center justify-center gap-2">
+              <button className="w-full mt-4 px-6 py-3 rounded-xl bg-[color:var(--instructor)] text-white font-medium hover:bg-[color:var(--instructor-strong)] transition-[transform,background-color] duration-150 active:scale-95 flex items-center justify-center gap-2">
                 <Download size={16} />
                 Withdraw {formatCurrency(analytics.revenue.pendingWithdrawal)}
               </button>

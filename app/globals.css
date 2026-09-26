@@ -8,8 +8,13 @@
   --surface-strong: #121a2d;
   --surface-elevated: #1a2340;
   --muted: #98a2b3;
+  /* Mode split: --accent (orange) is the RIDER mode/action color — always
+     pair it with BLACK text (7.5:1 AA). --instructor (indigo) is the
+     INSTRUCTOR mode/action color — pair solid indigo with WHITE text. */
   --accent: #f97316;
   --accent-strong: #fb923c;
+  --instructor: #6366f1;
+  --instructor-strong: #4f46e5;
   --success: #6ef3c6;
   --warning: #fbbf24;
   --error: #f87171;
@@ -68,6 +73,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-instructor: var(--instructor);
   --font-sans: var(--font-geist-sans, system-ui, -apple-system, "Segoe UI", sans-serif);
   --font-mono: var(--font-geist-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
 }

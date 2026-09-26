@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { trackEvent, ANALYTICS_EVENTS } from '@/app/lib/analytics/events';
 
 export default function GlobalError({
@@ -25,7 +26,7 @@ export default function GlobalError({
         <div className="min-h-screen flex items-center justify-center p-6">
           <div className="max-w-md w-full text-center">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-500/10 flex items-center justify-center">
-              <span className="text-4xl">⚠️</span>
+              <AlertTriangle className="h-10 w-10 text-red-400" aria-hidden="true" />
             </div>
             
             <h2 className="text-2xl font-bold mb-2">

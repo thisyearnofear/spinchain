@@ -41,7 +41,7 @@ export default function InstructorPage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/instructor/builder"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--accent)] px-8 py-3 font-semibold text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--instructor)] px-8 py-3 font-semibold text-white transition-colors hover:bg-[color:var(--instructor-strong)]"
               >
                 Open Class Builder
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

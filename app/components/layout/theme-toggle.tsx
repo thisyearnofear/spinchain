@@ -70,8 +70,8 @@ export function ThemeToggle() {
         <div className={`
           relative w-6 h-6 rounded-full
           transform transition-all duration-500 ease-spring
-          ${isDark 
-            ? 'translate-x-6 bg-gradient-to-br from-indigo-400 to-purple-500' 
+          ${isDark
+            ? 'translate-x-6 bg-indigo-400'
             : 'translate-x-0 bg-gradient-to-br from-amber-300 to-orange-400'
           }
           shadow-lg

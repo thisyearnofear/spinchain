@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { Bike } from 'lucide-react';
+import { Bike, Footprints } from 'lucide-react';
 import { useDeviceType } from '../../../lib/responsive';
 import { ANALYTICS_EVENTS, trackEvent } from '@/app/lib/analytics/events';
 import { useTelemetryStore, selectPower, selectHeartRate } from '@/app/stores/telemetry-store';
@@ -453,8 +453,9 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                     )}
 
                     {showInstructions && (
-                        <p className="text-center text-xs text-white/45 mb-2 animate-pulse">
-                            Tap L &amp; R alternately to pedal 🚴
+                        <p className="flex items-center justify-center gap-1.5 text-center text-xs text-white/45 mb-2 animate-pulse">
+                            Tap L &amp; R alternately to pedal
+                            <Bike className="h-3.5 w-3.5" aria-hidden="true" />
                         </p>
                     )}
 
@@ -472,7 +473,7 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                             `}
                         >
                             <span className="absolute top-2 left-3 text-[10px] uppercase tracking-widest opacity-45">Left</span>
-                            <span className="block text-3xl leading-none">🦵</span>
+                            <Footprints className="mx-auto block h-8 w-8" aria-hidden="true" />
                             <span className="block text-sm mt-1 opacity-60">L</span>
                         </button>
 
@@ -488,7 +489,7 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                             `}
                         >
                             <span className="absolute top-2 right-3 text-[10px] uppercase tracking-widest opacity-45">Right</span>
-                            <span className="block text-3xl leading-none">🦵</span>
+                            <Footprints className="mx-auto block h-8 w-8" aria-hidden="true" />
                             <span className="block text-sm mt-1 opacity-60">R</span>
                         </button>
                     </div>

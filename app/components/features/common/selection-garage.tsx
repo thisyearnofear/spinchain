@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AVATARS, EQUIPMENT, WORLDS, RIDE_TEMPLATES, type AvatarAsset, type EquipmentAsset, type WorldAsset, type RideTemplate } from "@/app/lib/selection-library";
 import { GlassCard, SectionHeader, Tag } from "@/app/components/ui/ui";
 import { m, AnimatePresence } from "framer-motion";
-import { Bike, Globe, Sparkles, User } from "lucide-react";
+import { Bike, Bot, Building2, Cat, Cloud, Flower2, Ghost, Globe, Mountain, PawPrint, Rainbow, Rocket, Sparkles, Turtle, User } from "lucide-react";
 
 interface SelectionGarageProps {
   onSelectionChange: (selection: {
@@ -188,7 +188,7 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
 
         {/* Preview Panel */}
         <div className="rounded-2xl border border-white/10 bg-black/40 p-6 flex flex-col items-center justify-center text-center sticky top-0">
-          <div className="mb-6 h-48 w-48 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-white/5 relative group">
+          <div className="mb-6 h-48 w-48 rounded-full bg-indigo-500/10 flex items-center justify-center border border-white/5 relative group">
             {/* Asset Icons as placeholders for 3D preview */}
             <div className="text-7xl transition-transform duration-500 group-hover:scale-110">
               {activeTab === "avatar" || activeTab === "templates" ? (
@@ -236,21 +236,28 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
 }
 
 function AssetIcon({ asset, size = "md" }: { asset: AvatarAsset | EquipmentAsset | WorldAsset; size?: "xs" | "md" }) {
-  const emoji = "theme" in asset && asset.theme === "neon" ? "🌆" :
-                "theme" in asset && asset.theme === "anime" ? "🌸" :
-                "theme" in asset && asset.theme === "rainbow" ? "🌈" :
-                "theme" in asset && asset.theme === "mars" ? "☄️" :
-                asset.id === "space-cat" ? "🐱" :
-                asset.id === "ghost-rider" ? "👻" :
-                asset.id === "floating-cloud" ? "☁️" :
-                asset.id === "cyber-cycle" ? "🏍️" :
-                "type" in asset && asset.type === "humanoid" ? "👩‍🚀" :
-                "type" in asset && asset.type === "robot" ? "🤖" :
-                "type" in asset && asset.type === "creature" ? "🐉" :
-                "type" in asset && asset.type === "bike" ? "🚲" :
-                "type" in asset && asset.type === "vehicle" ? "🚀" : "🐢";
+  // Lucide stand-ins for the asset glyphs. Icons size in `em` so they keep
+  // inheriting the surrounding text scale (text-7xl preview, text-2xl card).
+  const Icon = "theme" in asset && asset.theme === "neon" ? Building2 :
+               "theme" in asset && asset.theme === "anime" ? Flower2 :
+               "theme" in asset && asset.theme === "rainbow" ? Rainbow :
+               "theme" in asset && asset.theme === "mars" ? Sparkles :
+               "theme" in asset && asset.theme === "alpine" ? Mountain :
+               asset.id === "space-cat" ? Cat :
+               asset.id === "ghost-rider" ? Ghost :
+               asset.id === "floating-cloud" ? Cloud :
+               asset.id === "cyber-cycle" ? Bike :
+               "type" in asset && asset.type === "humanoid" ? User :
+               "type" in asset && asset.type === "robot" ? Bot :
+               "type" in asset && asset.type === "creature" ? PawPrint :
+               "type" in asset && asset.type === "bike" ? Bike :
+               "type" in asset && asset.type === "vehicle" ? Rocket : Turtle;
 
-  return <span className={size === "xs" ? "text-sm" : ""}>{emoji}</span>;
+  return (
+    <span className={`inline-flex ${size === "xs" ? "text-sm" : ""}`}>
+      <Icon className="h-[1em] w-[1em]" aria-hidden="true" />
+    </span>
+  );
 }
 
 function LoadoutBadge({ icon, label }: { icon: React.ReactNode; label: string }) {
