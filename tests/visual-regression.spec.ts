@@ -20,10 +20,13 @@ test.setTimeout(60_000);
  *   pnpm exec playwright test tests/visual-regression.spec.ts
  */
 
+// paused=1 freezes the R3F frameloop (RouteVisualizer paused prop) so
+// toHaveScreenshot can capture a stable frame; without it the animated
+// scene never produces two identical screenshots and the assertion times out.
 const STATES = [
-  { name: "preview", url: "/test-harness/route-visualizer?testState=preview&seed=123", fullPage: true },
-  { name: "active-play", url: "/test-harness/route-visualizer?testState=active-play&seed=123", fullPage: true },
-  { name: "finished", url: "/test-harness/route-visualizer?testState=finished&seed=123", fullPage: true },
+  { name: "preview", url: "/test-harness/route-visualizer?testState=preview&seed=123&paused=1", fullPage: true },
+  { name: "active-play", url: "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1", fullPage: true },
+  { name: "finished", url: "/test-harness/route-visualizer?testState=finished&seed=123&paused=1", fullPage: true },
 ] as const;
 
 async function gotoWithHarness(page: import("@playwright/test").Page, url: string) {
@@ -80,7 +83,7 @@ test("visual — active-play @ mobile", async ({ page }) => {
   // This test only runs in the mobile project (Pixel 5 viewport via playwright.config.ts)
   // When run on desktop project, it will still pass but use desktop viewport — the
   // config's second project ensures true mobile coverage.
-  await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123");
+  await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1");
   await expect(page).toHaveScreenshot(`active-play-mobile.png`, { fullPage: false });
 });
 

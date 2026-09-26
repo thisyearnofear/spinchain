@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useCallback, useRef, useState, useEffect, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useId, useMemo, useCallback, useRef, useState, useEffect, useSyncExternalStore, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { StoryBeat } from "@/app/routes/builder/gpx-uploader";
 import { useViewport } from "@/app/lib/responsive";
 import dynamic from "next/dynamic";
@@ -8,7 +8,8 @@ import { EQUIPMENT, resolveAvatar } from "../../../lib/selection-library";
 import type { IntervalPhase } from "../../../lib/workout-plan";
 import type { RiderStats } from "./route-visualizer";
 import { StreetViewPreview } from "./street-view-preview";
-import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-theme";
+import { getTheme, loadRemoteThemes, subscribeThemes, getThemeVersion } from "@/app/lib/themes/registry";
+import type { VisualizerTheme } from "./visualizer-theme";
 import { CollapseToggle } from "@/app/components/features/common/collapse-toggle";
 import type { PanelState, PanelKey, PanelPositions, DesktopPanelKey } from "@/app/hooks/ui/use-panel-state";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
@@ -182,7 +183,15 @@ export default function FocusRouteVisualizer({
   const dragStateRef = useRef<{ key: DesktopPanelKey; startX: number; startY: number; pointerX: number; pointerY: number } | null>(null);
   const viewport = useViewport();
   const gradientId = useId().replace(/:/g, "");
-  const styles = THEMES[theme];
+  // Remote themes (Supabase visualizer_themes) — focus-renderer rides
+  // never mount RouteVisualizer, which owns this fetch on the 3D path,
+  // so the 2D path must trigger it too. No-op when Supabase is not set up.
+  const themeVersion = useSyncExternalStore(subscribeThemes, getThemeVersion, getThemeVersion);
+  useEffect(() => {
+    void loadRemoteThemes();
+  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- themeVersion re-reads the registry after remote themes load
+  const styles = useMemo(() => getTheme(theme), [theme, themeVersion]);
   const avatar = useMemo(() => resolveAvatar(avatarId), [avatarId]);
   const equipment = useMemo(() => EQUIPMENT.find((item) => item.id === equipmentId), [equipmentId]);
   const leftMode = panelState?.focusLeft ?? "expanded";

@@ -475,8 +475,8 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 
 ### Pre-Launch Checklist
 
-- [ ] **Redeploy Vercel from HEAD** — live site ships broken Noir import (`@noir-lang/backend_barretenberg`), causes `[NoirProver] Initialization failed` for every ride start
-- [ ] **Provision Supabase** — create project, run `app/lib/supabase/schema.sql`, set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` on Vercel
+- [x] **Redeploy Vercel from HEAD** — live site ships broken Noir import (`@noir-lang/backend_barretenberg`), causes `[NoirProver] Initialization failed` for every ride start — **done 2026-09-24** (`vercel deploy --prod` from local HEAD `4a90a87`; live at spinchain.vercel.app, happy path verified in-browser). Note: `git push` was blocked (token lacks write scope), so the deploy used the CLI path, not a git push.
+- [x] **Provision Supabase** — create project, run `app/lib/supabase/schema.sql`, set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` on Vercel — **done 2026-09-24** (project `spinchain`, org `snel`, us-east-2; schema applied: 8 tables, 19 RLS policies; 3 env vars set in production+preview; `SUPABASE_JWT_SECRET` still needs manual copy from the dashboard)
 - [ ] **Verify `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` stays unset on Vercel** (defaults to off; `.env.local` has it true for dev)
 - [ ] **Browser-level E2E tests** — wallet connect → class join → ride → ZK proof → claim; Supabase auth (nonce → sign → JWT); API routes
 - [ ] **Testnet soft-launch validation** — real users through the full loop on Fuji + Sui testnet

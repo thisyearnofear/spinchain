@@ -1,4 +1,4 @@
-import { VISUALIZER_THEMES } from "./visualizer-theme";
+import { getTheme } from "@/app/lib/themes/registry";
 
 /**
  * WorldReactivity — Makes the 3D ride world react to the rider's effort and phase.
@@ -12,18 +12,28 @@ import { VISUALIZER_THEMES } from "./visualizer-theme";
  * - Prop buildings react (pulse more during high effort)
  * - Speed lines accelerate with cadence during sprints
  * - Rider aura intensifies with heart rate and effort
- * - Camera FOV narrows during flow state (tunnel vision effect)
+ * - Camera FOV widens during sprints (tunnel vision effect)
  * - Particles rush past during sprints
  * - Stars rotate faster during high effort
  * - Grid lines pulse during sprints
  *
- * Design: computes reactive parameters once per frame and passes them to
+ * Single source of truth: all phase colors and effort mapping derive from
+ * computePhaseTheme() + PHASE_COLORS (app/lib/phase-theme.ts) — the same
+ * vocabulary the HUD, background, and coach channel read. Dark world colors
+ * (fog/sky/ambient) are mechanical darkenings of the phase primary, never a
+ * parallel hand-picked palette. Do not reintroduce a local color table.
+ *
+ * Design: computes reactive parameters once per commit and passes them to
  * sub-components via refs (no React state updates in useFrame).
  */
 
-import { useMemo } from "react";
+import {
+  computePhaseTheme,
+  PHASE_COLORS,
+  type IntervalPhase,
+  type PhaseColorKey,
+} from "@/app/lib/phase-theme";
 import type { VisualizerTheme } from "./visualizer-theme";
-import type { IntervalPhase } from "@/app/lib/phase-theme";
 
 // ─── Reactive parameters ────────────────────────────────────────────
 
@@ -80,6 +90,11 @@ export interface ReactiveParams {
   bloomIntensity: number;
   chromaticOffset: number;
   vignetteDarkness: number;
+
+  // Phase rhythm — ms between pulse beats, from computePhaseTheme().
+  // Components use this instead of hardcoded modulo timings so the whole
+  // world breathes at the phase's rate (sprint ≈400–700ms, recovery ≈3–4s).
+  pulseMs: number;
 }
 
 // ─── Color interpolation helpers ────────────────────────────────────
@@ -110,6 +125,12 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
+/** Mix a phase color toward black — derives the world's dark variants
+ *  (fog, sky, ambient) from the one shared phase palette. */
+function darken(hex: string, amount: number): string {
+  return lerpColor(hex, "#000000", amount);
+}
+
 // ─── Main reactive params computation ──────────────────────────────
 
 export function computeReactiveParams(
@@ -123,84 +144,40 @@ export function computeReactiveParams(
   const cadenceFactor = Math.min(1, stats.cadence / 120);
   const hrFactor = Math.min(1, stats.hr / 190);
 
-  // ─── Phase color mapping ───────────────────────────────────────
-  const phaseColors: Record<string, {
-    roadGlow: string;
-    fog: string;
-    skyTop: string;
-    skyBottom: string;
-    pointLight: string;
-    ambient: string;
-    speedLine: string;
-    grid: string;
-  }> = {
-    sprint: {
-      roadGlow: "#f43f5e",
-      fog: "#1a0a0a",
-      skyTop: "#1a0505",
-      skyBottom: "#4a0a0a",
-      pointLight: "#f97316",
-      ambient: "#3a1010",
-      speedLine: "#fb7185",
-      grid: "#f43f5e",
-    },
-    interval: {
-      roadGlow: "#f59e0b",
-      fog: "#1a1505",
-      skyTop: "#1a1505",
-      skyBottom: "#4a3505",
-      pointLight: "#fbbf24",
-      ambient: "#3a3010",
-      speedLine: "#fbbf24",
-      grid: "#f59e0b",
-    },
-    warmup: {
-      roadGlow: "#34d399",
-      fog: "#051a10",
-      skyTop: "#051a10",
-      skyBottom: "#0a3a20",
-      pointLight: "#34d399",
-      ambient: "#103a20",
-      speedLine: "#34d399",
-      grid: "#34d399",
-    },
-    recovery: {
-      roadGlow: "#38bdf8",
-      fog: "#05101a",
-      skyTop: "#05101a",
-      skyBottom: "#0a2a4a",
-      pointLight: "#818cf8",
-      ambient: "#101a3a",
-      speedLine: "#38bdf8",
-      grid: "#38bdf8",
-    },
-    cooldown: {
-      roadGlow: "#818cf8",
-      fog: "#0a051a",
-      skyTop: "#0a051a",
-      skyBottom: "#1a0a3a",
-      pointLight: "#a78bfa",
-      ambient: "#1a103a",
-      speedLine: "#818cf8",
-      grid: "#818cf8",
-    },
+  // ─── Phase theme (single source of truth) ─────────────────────
+  // computePhaseTheme expects effort on the shared 0–1000 scale.
+  const phaseTheme = computePhaseTheme(intervalPhase ?? "cruise", effort * 1000);
+  const pc = PHASE_COLORS[(intervalPhase as PhaseColorKey) ?? "cruise"] ?? PHASE_COLORS.cruise;
+
+  // World-surface colors derived from the shared phase palette. Dark
+  // variants are mechanical darkenings — no parallel color table here.
+  const phase = {
+    roadGlow: pc.primary,
+    fog: darken(pc.primary, 0.92),
+    skyTop: darken(pc.primary, 0.94),
+    skyBottom: darken(pc.primary, 0.8),
+    pointLight: pc.secondary,
+    ambient: darken(pc.primary, 0.85),
+    speedLine: pc.particle,
+    grid: pc.primary,
   };
 
-  const phase = phaseColors[intervalPhase ?? "interval"] ?? phaseColors.interval;
   const themeStyles = {
-    roadEmissive: `#${VISUALIZER_THEMES[theme].roadEmissive}`,
-    lineColor: `#${VISUALIZER_THEMES[theme].lineColor}`,
-    riderColor: `#${VISUALIZER_THEMES[theme].riderColor}`,
-    particleColor: `#${VISUALIZER_THEMES[theme].particleColor}`,
-    fog: VISUALIZER_THEMES[theme].fog,
-    skyTop: VISUALIZER_THEMES[theme].skyTop,
-    skyBottom: VISUALIZER_THEMES[theme].skyBottom,
-    horizonGlow: VISUALIZER_THEMES[theme].horizonGlow,
+    roadEmissive: getTheme(theme).roadEmissive,
+    lineColor: getTheme(theme).lineColor,
+    riderColor: getTheme(theme).riderColor,
+    particleColor: getTheme(theme).particleColor,
+    fog: getTheme(theme).fog,
+    skyTop: getTheme(theme).skyTop,
+    skyBottom: getTheme(theme).skyBottom,
+    horizonGlow: getTheme(theme).horizonGlow,
     gridColor: theme === "rainbow" ? "#ff00ff" : "#2a1d5a",
   };
 
-  // Blend phase color with base theme (phase influence scales with effort)
-  const phaseInfluence = effort; // 0.0 (neutral) → 1.0 (full phase color)
+  // Blend phase color with base theme. Influence follows the phase theme's
+  // intensity: sprint is floored at 0.5, recovery/cooldown damped — so the
+  // world reads the phase even before the rider's effort climbs.
+  const phaseInfluence = phaseTheme.intensity; // 0.0 (neutral) → 1.0 (full phase color)
 
   // ─── Compute all parameters ────────────────────────────────────
 
@@ -260,8 +237,9 @@ export function computeReactiveParams(
   const gridOpacity = effort * 0.6;
   const gridColor = lerpColor(themeStyles.gridColor, phase.grid, phaseInfluence);
 
-  // Post effects
-  const bloomIntensity = 0.5 + effort * 2.5; // 0.5 → 3.0
+  // Post effects — bloom scales with the phase theme's bloom multiplier,
+  // the same number the 2D background and HUD read.
+  const bloomIntensity = Math.min(3.5, phaseTheme.bloomMultiplier * (0.4 + effort * 2.0));
   const chromaticOffset = effort * 0.008; // 0 → 0.008
   const vignetteDarkness = lerp(0.8, 1.0, effort); // 0.8 → 1.0
 
@@ -297,8 +275,6 @@ export function computeReactiveParams(
     bloomIntensity,
     chromaticOffset,
     vignetteDarkness,
+    pulseMs: phaseTheme.pulseRate,
   };
 }
-
-// VISUALIZER_THEMES reference needed for color lookups
-// (imported at top)

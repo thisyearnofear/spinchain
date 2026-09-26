@@ -57,8 +57,11 @@ vi.mock("@/app/lib/elevenlabs", () => ({
     start: "gentle chime, workout beginning, motivational",
     finish: "triumphant bell",
     countdown: "electronic beep",
+    intervalStart: "air horn, stadium",
+    resistanceUp: "mechanical click",
     sprint: "whistle, sharp",
     recover: "wind chimes",
+    climb: "mountain wind",
     achievement: "sparkle, magic",
   },
   SOUND_DURATIONS: {
@@ -255,27 +258,19 @@ describe("AudioEngine", () => {
     });
   });
 
-  describe("EventBus integration — auto-play interval sounds", () => {
-    it("plays sprint sound on interval:changed with sprint phase", async () => {
+  describe("EventBus integration — auto-play coaching sounds", () => {
+    it("plays the requested sound on coaching:sound", async () => {
       const playSoundSpy = vi.spyOn(engine, "playSound");
 
-      bus.emit("interval:changed", {
-        index: 2,
-        phase: "sprint",
-        interval: { phase: "sprint", durationSeconds: 30 },
-      });
+      bus.emit("coaching:sound", { type: "intervalStart" });
 
-      expect(playSoundSpy).toHaveBeenCalledWith("sprint");
+      expect(playSoundSpy).toHaveBeenCalledWith("intervalStart");
     });
 
-    it("plays recover sound on interval:changed with recovery phase", async () => {
+    it("plays recover sound on coaching:sound recover", async () => {
       const playSoundSpy = vi.spyOn(engine, "playSound");
 
-      bus.emit("interval:changed", {
-        index: 3,
-        phase: "recovery",
-        interval: { phase: "recovery", durationSeconds: 30 },
-      });
+      bus.emit("coaching:sound", { type: "recover" });
 
       expect(playSoundSpy).toHaveBeenCalledWith("recover");
     });
@@ -289,25 +284,17 @@ describe("AudioEngine", () => {
 
       const playSoundSpy = vi.spyOn(engine, "playSound");
 
-      bus.emit("interval:changed", {
-        index: 2,
-        phase: "sprint",
-        interval: { phase: "sprint", durationSeconds: 30 },
-      });
+      bus.emit("coaching:sound", { type: "intervalStart" });
 
       expect(playSoundSpy).not.toHaveBeenCalled();
     });
 
-    it("plays nothing for unknown phases", async () => {
+    it("ignores unknown sound types", async () => {
       const playSoundSpy = vi.spyOn(engine, "playSound");
 
-      bus.emit("interval:changed", {
-        index: 0,
-        phase: "warmup",
-        interval: { phase: "warmup", durationSeconds: 60 },
-      });
+      bus.emit("coaching:sound", { type: "not-a-real-sound" });
 
-      expect(playSoundSpy).toHaveBeenCalledWith("start");
+      expect(playSoundSpy).not.toHaveBeenCalled();
     });
   });
 

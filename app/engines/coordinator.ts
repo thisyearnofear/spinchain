@@ -35,6 +35,12 @@ import {
   getIntervalProgress,
   getIntervalRemaining,
 } from "@/app/lib/workout-plan";
+import {
+  createInitialMemory,
+  loadCoachMemory,
+  saveCoachMemory,
+  updateMemoryAfterRide,
+} from "@/app/lib/walrus/coach-memory";
 
 export class RideCoordinator {
   readonly bus: EventBus;
@@ -63,6 +69,8 @@ export class RideCoordinator {
   private rafRunning = false;
   private sampleTimerId: ReturnType<typeof setInterval> | null = null;
   private styleOverrideHandler: EventListener | null = null;
+  /** Rider+coach pair the coach memory is loaded/saved under (Walrus blob pointer). */
+  private memoryKey: { riderId: string; coachId: string } | null = null;
 
   constructor() {
     this.bus = new EventBus();
@@ -96,7 +104,22 @@ export class RideCoordinator {
 
   // ─── Lifecycle ─────────────────────────────────────────────────
 
+  /**
+   * Starts the ride session. A coordinator instance is single-use: the
+   * coordinator hook creates a fresh instance per ride and disposes the old
+   * one, so a second start() on the same instance means a double-start bug
+   * upstream (leaked 1Hz clock timer, doubled EventBus writes). Guard and
+   * log instead of leaking.
+   */
+  private started = false;
+  private disposed = false;
+
   async start(config: RideStartConfig): Promise<void> {
+    if (this.started || this.disposed) {
+      console.warn("[Coordinator] start() ignored — instance already started or disposed");
+      return;
+    }
+    this.started = true;
     this.config = config;
 
     // Configure engines
@@ -129,6 +152,32 @@ export class RideCoordinator {
       aiActive: config.coachingConfig.aiActive,
       storyBeats: config.classData?.route?.route?.storyBeats,
     });
+
+    // Coach voice matches the class's coaching personality (AudioEngine's
+    // "drill" vs coaching's "drill-sergeant" vocabulary).
+    this.audio.updateConfig({
+      personality:
+        config.coachingConfig.personality === "drill-sergeant"
+          ? "drill"
+          : config.coachingConfig.personality,
+    });
+
+    // Cross-session coach memory (Walrus blob, system_prompt_cid pattern).
+    // Loads async; the engine greets from it a few seconds into the ride.
+    this.memoryKey = {
+      riderId: config.address ?? "guest",
+      coachId: `${config.coachingConfig.agentName}:${config.coachingConfig.personality}`,
+    };
+    loadCoachMemory(this.memoryKey.riderId, this.memoryKey.coachId)
+      .then((memory) => {
+        if (memory) {
+          this.coaching.updateConfig({ memory });
+          console.log(
+            `[Coordinator] Coach memory loaded for ${this.memoryKey?.coachId}: ${memory.rides} prior ride(s)`,
+          );
+        }
+      })
+      .catch((err) => console.warn("[Coordinator] Coach memory load failed:", err));
 
     // Wire cross-engine events
     this.unsubTick = this.bus.on("lifecycle:tick", ({ elapsed, progress }) => {
@@ -324,6 +373,11 @@ export class RideCoordinator {
     const averages = this.telemetry.refreshAverages();
     useTelemetryStore.setState({ averages });
 
+    // Persist cross-session coach memory (Walrus blob; best-effort)
+    this.persistCoachMemory(averages).catch((err) =>
+      console.warn("[Coordinator] Coach memory save failed:", err),
+    );
+
     // Clear coaching UI state
     useCoachingStore.setState({
       lastCoachMessage: null,
@@ -339,6 +393,40 @@ export class RideCoordinator {
     this.visualization.stop();
   }
 
+  /**
+   * Fold the finished ride into the rider's coach memory and persist it
+   * as a new Walrus blob (pointer advances; falls back to a flagged local
+   * cache when Walrus is unreachable). Best-effort — never blocks stop().
+   */
+  private async persistCoachMemory(
+    averages: ReturnType<TelemetryEngine["refreshAverages"]>,
+  ): Promise<void> {
+    if (!this.memoryKey) return;
+    // Skip rides with no real effort data (opened and closed the class).
+    if (averages.avgPower <= 0 && averages.avgEffort <= 0) return;
+
+    const { riderId, coachId } = this.memoryKey;
+    const existing =
+      (await loadCoachMemory(riderId, coachId)) ??
+      createInitialMemory(riderId, coachId);
+
+    const summary = {
+      avgPower: averages.avgPower,
+      durationSec: Math.round(useRideStore.getState().elapsedTime),
+      completed: useRideStore.getState().rideProgress >= 95,
+    };
+    const note =
+      existing.bestAvgPower > 0 && summary.avgPower > existing.bestAvgPower
+        ? "New best average power"
+        : undefined;
+
+    const memory = updateMemoryAfterRide(existing, summary, note);
+    const result = await saveCoachMemory(memory);
+    if (result.persisted === "local") {
+      console.warn("[Coordinator] Coach memory cached locally; Walrus unreachable");
+    }
+  }
+
   pause(): void {
     useRideStore.setState({ isPaused: true });
     this.bus.emit("ride:paused", {});
@@ -350,6 +438,7 @@ export class RideCoordinator {
   }
 
   dispose(): void {
+    this.disposed = true;
     this.rafRunning = false;
     this.clearTimers();
     this.telemetry.dispose();
@@ -434,7 +523,12 @@ export class RideCoordinator {
     const phase =
       this.coaching.coachingConfig.workoutPlan?.intervals?.[idx]?.phase ?? "";
     this.coaching.onTelemetry(
-      snapshot.cadence,
+      {
+        cadence: snapshot.cadence,
+        power: snapshot.power,
+        heartRate: snapshot.heartRate,
+        wBalPercentage: snapshot.wBalPercentage,
+      },
       idx,
       phase,
     );

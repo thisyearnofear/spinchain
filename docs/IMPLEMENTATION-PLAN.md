@@ -71,6 +71,30 @@
 - **Removed orphan**: `use-demo-effort.ts` (W/S hold-to-effort model) was never imported; deleted so copy and input schemes cannot diverge.
 - **Test**: In demo mode, alternate ← → (or A D) — world should visibly respond (particles, road glow, flow badge) within ~1s of pedaling.
 
+### 2.5 Coach As In-Ride Presence ✅ SHIPPED 2026-09-25
+- **Files**: `app/engines/coaching-engine.ts`, `app/engines/coordinator.ts`, `app/engines/audio-engine.ts`, `app/lib/walrus/coach-memory.ts` (new)
+- **What**: The coach now reacts to live effort, not just the script:
+  - Pacing cues when power sits outside the interval's target band for 15s (once per interval, per direction)
+  - Encouragement after 45s holding the band during work phases
+  - Adaptive difficulty *suggestions*: ease off when anaerobic reserve (W'bal) drops under 20% mid-interval; push more when consistently overpowering with a full tank (once per ride). Suggestions only — no automatic resistance changes.
+  - 20s minimum gap between engine cues so the coach never nag-stacks
+  - All output routes through `coaching:message` / `coaching:sound`; AudioEngine now subscribes to `coaching:sound` (previously a dead channel) and the TTS voice follows the class's coaching personality
+- **Cross-session memory**: Walrus coach blobs (`coach-memory.ts`, system_prompt_cid pattern). Loaded at ride start → factual welcome-back line ("Ride 4 on record — last ride you averaged 182 watts…"). Saved at ride end (averages + completion + best-power note). Pointer per rider+coach in localStorage; local cache is offline fallback only, flagged `pendingSync`. No fake familiarity: no memory, no greeting.
+- **Scale flag**: the pointer should move on-chain (Sui Coach struct) or to Supabase for multi-device sync — localStorage pointer is single-browser only.
+
+### 2.6 Data-Driven Theme Pipeline ✅ SHIPPED 2026-09-24
+- **Files**: `app/lib/themes/registry.ts` (new), `world-reactivity.ts`, `route-visualizer.tsx`, Supabase `visualizer_themes` table, `docs/THEME-PIPELINE.md`
+- **What**: World reactivity derives from `computePhaseTheme()` (no parallel color table); adding an environment is a SQL INSERT into `visualizer_themes`, not a redeploy. Built-ins always win over remote rows; invalid rows fall back to neon.
+
+### 2.7 Coach-Built Class (Agentic Builder) ✅ SHIPPED 2026-09-26
+- **Files**: `app/lib/agent/class-composer.ts` (new), `app/lib/agent/agent-class-store.ts` (new), `app/lib/agent/resolve-ride-plan.ts` (new), `app/instructor/agent/page.tsx` (new), `app/rider/ride/[classId]/page.tsx`, `app/hooks/ride/use-practice-config.ts`, `app/lib/contracts.ts`, `app/hooks/instructor/use-class-draft.ts`
+- **What**: One shared authoring primitive — `composeClass(intent)` turns { goal, duration, coach voice, world } into a complete class: a `WorkoutPlan` with per-interval power bands and personality-voiced cues, an environment (any theme registry name, built-in or Supabase-remote), and route parameters. Human instructors and AI coaches emit the same class shape through the same primitive.
+- **Plan travels with the class**: the ride page no longer hardcodes `PRESET_WORKOUTS[1]` — it resolves `?plan=<presetId>` → stored coach-built plan for the classId → default preset.
+- **Flow**: `/instructor/agent` (linked from instructor dashboard) — pick goal/length/coach/world → live class preview → "Ride it now" (practice ride, no wallet) or "Open in class builder" (pre-fills the instructor draft, `mode: "agentic"` — the previously unused draft mode).
+- **Theme type widened**: `EnhancedClassMetadata.route.theme` is now `string` (theme registry name; unknown names render as neon), so remote themes are valid class environments.
+- **Deterministic by design**: no LLM keys required; LLM-authored cues (e.g. `/api/ai/synthesize-workout`) can replace the line banks later without changing the emitted shape.
+- **Scale flag**: coach-built classes hand off via localStorage (same pattern as the instructor draft). Durable storage needs a Supabase `classes`/`class_plans` table — provisioning follow-up, not built here.
+
 ### 2.4 Add Milestone Pop-Up On First Achievement ✅
 - **Commit**: `pending` — `app/rider/ride/[classId]/page.tsx`
 - **What**: Real-time milestone detection during ride. When the rider hits their first milestone (e.g., "1 minute in flow"), show a celebratory pop-up with the milestone badge.
@@ -143,15 +167,13 @@
 - **Where to find them**: Local spin studios, cycling communities, Reddit r/spin, r/zwift
 - **Success criteria**: 7/10 say "I want to do this again" without mentioning rewards.
 
-### 5.2 Deploy Vercel From HEAD
+### 5.2 Deploy Vercel From HEAD ✅ DONE 2026-09-24
 - **What**: The live deployment is stale and causes Noir init failures. Redeploy.
-- **Status**: Blocker. Not in the wedge plan but blocks everything else. Do this first.
-- **Command**: `vercel deploy --prod` from current HEAD.
+- **Status**: Done — `vercel deploy --prod` from local HEAD (`4a90a87`); happy path verified in-browser at spinchain.vercel.app. `git push` still blocked (token lacks repo write scope).
 
-### 5.3 Provision Supabase
+### 5.3 Provision Supabase ✅ DONE 2026-09-24
 - **What**: Create project, run schema, set env vars. Without it, all persistence falls back to localStorage.
-- **Status**: Blocker. Blocks ride history, profiles, homework.
-- **Priority**: Second only to Vercel deploy.
+- **Status**: Done — project `spinchain` provisioned, `schema.sql` applied, 3 env vars wired to Vercel production+preview. `SUPABASE_JWT_SECRET` pending manual dashboard copy.
 
 ---
 

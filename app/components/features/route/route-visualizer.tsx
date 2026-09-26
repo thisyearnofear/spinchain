@@ -29,7 +29,7 @@ import {
   Noise,
 } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
-import { useMemo, useRef, useState, useEffect, Suspense, type MutableRefObject } from "react";
+import { useMemo, useRef, useState, useEffect, useSyncExternalStore, Suspense, type MutableRefObject } from "react";
 import {
   OrbitControls,
   Environment,
@@ -43,7 +43,8 @@ import {
   Clone,
   Text,
 } from "@react-three/drei";
-import { VISUALIZER_THEMES as THEMES, type VisualizerTheme } from "./visualizer-theme";
+import { getTheme, loadRemoteThemes, subscribeThemes, getThemeVersion } from "@/app/lib/themes/registry";
+import type { VisualizerTheme } from "./visualizer-theme";
 import { computeReactiveParams, type ReactiveParams } from "./world-reactivity";
 import { useCoachingStore, selectPrBeaten } from "@/app/stores/coaching-store";
 import { useRideStore } from "@/app/stores/ride-store";
@@ -161,7 +162,7 @@ function Road({
   reactive?: ReactiveParams | null;
 }) {
   const meshRef = useRef<Mesh>(null);
-  const styles = THEMES[theme];
+  const styles = getTheme(theme);
   // Per-stroke glow kick: consumes PedalSimulator's strokeSeq counter
   // via getState() (no React subscription, no re-render) so the first
   // keystroke lights the road within one frame, independent of the 10Hz
@@ -197,8 +198,10 @@ function Road({
     if (reactive) {
       emissiveIntensity = reactive.roadGlowIntensity;
       emissiveColor = reactive.roadGlowColor;
-      // Add extra pulse during sprints
-      if (state.clock.elapsedTime % 0.5 < 0.25) {
+      // Pulse at the phase's rhythm (computePhaseTheme pulseMs), not a
+      // hardcoded modulo — sprint ~400–700ms, recovery ~3–4s.
+      const beat = (state.clock.elapsedTime * 1000) % reactive.pulseMs;
+      if (beat < reactive.pulseMs / 2) {
         emissiveIntensity *= 1.2;
       }
     }
@@ -267,7 +270,7 @@ function RoadMarkings({
   steps?: number;
   reactive?: ReactiveParams | null;
 }) {
-  const styles = THEMES[theme];
+  const styles = getTheme(theme);
 
   const { dashGeometry, edgeGeometry } = useMemo(() => {
     // Dash lines use slightly fewer steps than the road surface
@@ -344,8 +347,9 @@ function RoadMarkings({
     if (reactive) {
       dashIntensity = reactive.roadGlowIntensity * 3;
       edgeIntensity = reactive.roadGlowIntensity * 6;
-      // Pulse edge glow during sprints
-      if (state.clock.elapsedTime % 0.4 < 0.2) {
+      // Pulse edge glow at the phase's rhythm (computePhaseTheme pulseMs)
+      const beat = (state.clock.elapsedTime * 1000) % reactive.pulseMs;
+      if (beat < reactive.pulseMs / 2) {
         edgeIntensity *= 1.3;
       }
     } else {
@@ -390,7 +394,7 @@ function RoadMarkings({
 }
 
 function FinishLine({ curve, theme = "neon" }: { curve: CatmullRomCurve3; theme?: VisualizerTheme }) {
-  const styles = THEMES[theme];
+  const styles = getTheme(theme);
   const point = useMemo(() => curve.getPointAt(0.995), [curve]);
   const tangent = useMemo(() => curve.getTangentAt(0.995), [curve]);
 
@@ -428,7 +432,7 @@ function FinishLine({ curve, theme = "neon" }: { curve: CatmullRomCurve3; theme?
 }
 
 function PropManager({ theme = "neon", curve, stats, reactive = null }: { theme?: VisualizerTheme; curve: CatmullRomCurve3; stats: RiderStats; reactive?: ReactiveParams | null }) {
-  const themeData = THEMES[theme];
+  const themeData = getTheme(theme);
   const propConfig = themeData.props;
   const meshGroupRef = useRef<Group>(null);
 
@@ -445,8 +449,9 @@ function PropManager({ theme = "neon", curve, stats, reactive = null }: { theme?
           // World reactivity: props pulse harder during sprints
           if (reactive) {
             baseIntensity = reactive.propEmissiveIntensity;
-            // Extra pulse during sprints
-            if (state.clock.elapsedTime % 0.5 < 0.25) {
+            // Extra pulse at the phase's rhythm (computePhaseTheme pulseMs)
+            const beat = (state.clock.elapsedTime * 1000) % reactive.pulseMs;
+            if (beat < reactive.pulseMs / 2) {
               baseIntensity *= 1.25;
             }
           }
@@ -568,7 +573,7 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
 }
 
 function HoloMap({ curve, progress, theme }: { curve: CatmullRomCurve3, progress: number, theme: VisualizerTheme }) {
-  const styles = THEMES[theme];
+  const styles = getTheme(theme);
   const safeProgress = Number.isFinite(progress) ? Math.max(0, Math.min(progress, 1)) : 0;
   const dotPosition = useMemo(() => {
     const point = curve.getPointAt(safeProgress);
@@ -647,7 +652,7 @@ function HoloHUD({
   // even when Scene hasn't triggered a React re-render.
   progressRef: MutableRefObject<number>;
 }) {
-  const styles = THEMES[theme];
+  const styles = getTheme(theme);
   const groupRef = useRef<Group>(null);
   // Local throttled state for the HTML progress bar (~10fps is plenty for text)
   const [displayProgress, setDisplayProgress] = useState(0);
@@ -750,7 +755,7 @@ function RiderMarker({
   intervalPhase?: IntervalPhase | null;
 }) {
   const groupRef = useRef<Group>(null);
-  const styles = THEMES[theme];
+  const styles = getTheme(theme);
 
   const auraRef = useRef<Mesh>(null);
   const lightRef = useRef<PointLight>(null);
@@ -936,7 +941,7 @@ function SpeedLines({
   reactive?: ReactiveParams | null;
   stats?: RiderStats;
 }) {
-  const styles = THEMES[theme];
+  const styles = getTheme(theme);
   const [allLines] = useState<(SpeedLineData & { id: string })[]>(() =>
     Array.from({ length: 50 }).map((_, idx) => ({
       id: `speedline-${idx}`,
@@ -988,11 +993,12 @@ function LineInstance({ line, color, reactive = null, stats = { power: 0, cadenc
     ref.current.position.z += speed * delta;
     if (ref.current.position.z > 50) ref.current.position.z = -150;
 
-    // Pulse opacity during sprints
+    // Pulse opacity at the phase's rhythm (computePhaseTheme pulseMs)
     if (reactive) {
       const mat = ref.current.material as THREE.MeshBasicMaterial;
       const baseOpacity = reactive.speedLineOpacity;
-      if (state.clock.elapsedTime % 0.3 < 0.15) {
+      const beat = (state.clock.elapsedTime * 1000) % reactive.pulseMs;
+      if (beat < reactive.pulseMs / 2) {
         mat.opacity = baseOpacity * 1.3;
       } else {
         mat.opacity = baseOpacity;
@@ -1009,7 +1015,7 @@ function LineInstance({ line, color, reactive = null, stats = { power: 0, cadenc
 }
 
 function FloatingParticles({ theme = "neon", stats, reactive = null }: { theme?: VisualizerTheme; stats: RiderStats; reactive?: ReactiveParams | null }) {
-  const styles = THEMES[theme];
+  const styles = getTheme(theme);
   const starsRef = useRef<Points>(null);
 
   useFrame(() => {
@@ -1109,7 +1115,7 @@ function GhostRider({
   theme?: VisualizerTheme;
 }) {
   const groupRef = useRef<Group>(null);
-  const styles = THEMES[theme];
+  const styles = getTheme(theme);
 
   useFrame(() => {
     if (!groupRef.current) return;
@@ -1145,7 +1151,7 @@ function GhostRider({
 }
 
 function WelcomeSign({ theme, name, curve }: { theme: VisualizerTheme; name?: string; curve: CatmullRomCurve3 }) {
-  const styles = THEMES[theme];
+  const styles = getTheme(theme);
   const point = useMemo(() => curve.getPointAt(0.01), [curve]);
   const tangent = useMemo(() => curve.getTangentAt(0.01), [curve]);
 
@@ -1323,7 +1329,7 @@ function Scene({
   contextPalette?: ContextPalette;
 }) {
   const curve = useRouteCurve(elevationProfile);
-  const styles = THEMES[theme];
+  const styles = getTheme(theme);
   const lastBeatRef = useRef<number>(-1);
   const smoothedLookTargetRef = useRef(new Vector3());
   const smoothedShakeRef = useRef(new Vector3());
@@ -1511,7 +1517,7 @@ function Scene({
           equirect texture; the mobile-safe tier. */}
       {panoUrl && <WorldSkybox url={panoUrl} />}
 
-      <Environment preset={styles.envPreset} />
+      <Environment preset={styles.envPreset as React.ComponentProps<typeof Environment>["preset"]} />
 
       {/* Dynamic atmospheric effects - disabled on low tier for performance */}
       <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} reactive={reactive} />
@@ -1648,6 +1654,7 @@ export default function RouteVisualizer({
   intervalPhase = null,
   flowTier = 0,
   contextPalette,
+  paused = false,
 }: {
   elevationProfile?: number[];
   theme?: VisualizerTheme;
@@ -1665,8 +1672,18 @@ export default function RouteVisualizer({
   intervalPhase?: IntervalPhase;
   flowTier?: FlowStateTier;
   contextPalette?: ContextPalette;
+  /** Freeze the render loop after first frame (visual-test determinism). */
+  paused?: boolean;
 }) {
   const adaptiveQuality = useAdaptiveQuality();
+
+  // Remote themes (Supabase visualizer_themes) — load once per session;
+  // the version subscription re-renders the visualizer if new themes
+  // arrive after first paint. No-op when Supabase is not configured.
+  const themeVersion = useSyncExternalStore(subscribeThemes, getThemeVersion, getThemeVersion);
+  useEffect(() => {
+    void loadRemoteThemes();
+  }, []);
 
   // Determine effective quality settings
   const effectiveQuality = useMemo(() => {
@@ -1684,7 +1701,8 @@ export default function RouteVisualizer({
     return adaptiveQuality;
   }, [quality, adaptiveQuality]);
 
-  const styles = THEMES[theme];
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- themeVersion re-reads the registry after remote themes load
+  const styles = useMemo(() => getTheme(theme), [theme, themeVersion]);
 
   const avatar = useMemo(() => resolveAvatar(avatarId), [avatarId]);
   const equipment = useMemo(() => EQUIPMENT.find(e => e.id === equipmentId), [equipmentId]);
@@ -1724,11 +1742,13 @@ export default function RouteVisualizer({
         <Canvas
           gl={{ alpha: true }}
           dpr={effectiveQuality.pixelRatio}
-          frameloop="demand"
+          // "never" freezes the loop entirely — used by the visual harness
+          // so Playwright can capture a stable frame for screenshot diffs.
+          frameloop={paused ? "never" : "demand"}
           performance={{ min: 0.5 }}
         >
           <CanvasContextLossHandler />
-          {mode === "ride" && <FrameRateLimiter fps={effectiveQuality.fps} />}
+          {mode === "ride" && !paused && <FrameRateLimiter fps={effectiveQuality.fps} />}
           <Scene
             elevationProfile={elevationProfile}
             theme={theme}

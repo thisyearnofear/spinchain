@@ -2,6 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
+  // Baselines render via SwiftShader (software WebGL), so they are stable
+  // across host OSes — pin the snapshot path without the platform segment
+  // so the Linux-generated baselines also match on macOS dev machines.
+  snapshotPathTemplate: "{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}-{projectName}{ext}",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -12,6 +16,12 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:3210",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    launchOptions: {
+      // Headless Chromium has no GPU here; without these flags WebGL context
+      // creation fails ("Cannot read properties of null (reading 'alpha')")
+      // and every canvas assertion is vacuous.
+      args: ["--enable-unsafe-swiftshader", "--use-angle=swiftshader"],
+    },
   },
   projects: [
     {
@@ -24,10 +34,12 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm dev",
+    // Production build: dev mode (strict-mode double-mount + HMR) loses the
+    // WebGL context under software rendering, which blanked every baseline.
+    command: "pnpm build && pnpm start -p 3210",
     url: "http://127.0.0.1:3210",
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 600_000,
   },
   expect: {
     timeout: 10_000,

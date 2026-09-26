@@ -24,6 +24,8 @@ export interface PracticeClassConfig {
   routeDistance: number;
   routeDuration: number;
   routeElevation: number;
+  /** Theme registry name for the environment; unknown names render as neon. */
+  theme?: string;
   instructor: string;
 }
 
@@ -63,6 +65,7 @@ export function usePracticeConfig(classId: string) {
           Number(searchParams.get("routeDuration")) || GUEST_DEMO_CLASS.duration,
         routeElevation:
           Number(searchParams.get("routeElevation")) || GUEST_DEMO_CLASS.elevationGain,
+        theme: searchParams.get("theme") || undefined,
         instructor: instructor || GUEST_DEMO_CLASS.instructor,
       };
     }
@@ -89,6 +92,7 @@ export function usePracticeConfig(classId: string) {
       routeDistance: Number(searchParams.get("routeDistance")) || 20,
       routeDuration: Number(searchParams.get("routeDuration")) || 45,
       routeElevation: Number(searchParams.get("routeElevation")) || 300,
+      theme: searchParams.get("theme") || undefined,
       instructor,
     };
   }, [isPracticeMode, isGuestDemo, searchParams]);
@@ -115,7 +119,7 @@ export function usePracticeConfig(classId: string) {
         distance: practiceConfig.routeDistance,
         duration: practiceConfig.routeDuration,
         elevationGain: practiceConfig.routeElevation,
-        theme: "neon",
+        theme: practiceConfig.theme ?? "neon",
         storyBeatsCount: 4,
       },
       practiceConfig.instructor,
