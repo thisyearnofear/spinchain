@@ -17,7 +17,7 @@
  */
 
 import "./rive-runtime";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import {
   useRive,
   useViewModel,
@@ -36,8 +36,8 @@ export interface RiveFlowBadgeProps {
   milestoneKey?: number;
   /** Increment to fire level-up pop. */
   levelUpKey?: number;
-  /** Optional text overlay, e.g. "Flow 2" or "🔥 5". */
-  label?: string;
+  /** Optional overlay, e.g. "Flow 2" or a Flame icon + streak count. */
+  label?: ReactNode;
   width?: number;
   height?: number;
   className?: string;
@@ -94,7 +94,7 @@ export function RiveFlowBadge({
     <div
       className={`relative ${className}`}
       style={{ width, height }}
-      aria-label={label ?? `Flow tier ${flowTier}`}
+      aria-label={typeof label === "string" ? label : `Flow tier ${flowTier}`}
       role="img"
     >
       {/* className on RiveComponent suppresses its inline style — sizing

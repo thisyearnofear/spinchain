@@ -232,9 +232,11 @@ type GradientTextProps = {
 };
 
 export function GradientText({ children, className = "" }: GradientTextProps) {
+  // Craft floor: no gradient text — emphasis comes from weight/size.
+  // Kept the component name/API so existing consumers don't break.
   return (
     <span
-      className={`bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] bg-clip-text text-transparent ${className}`}
+      className={`font-bold text-[color:var(--accent)] ${className}`}
     >
       {children}
     </span>

@@ -7,6 +7,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Zap } from "lucide-react";
 import RouteVisualizer from "./route-visualizer";
 import type { SavedRoute } from "../../../lib/route-library";
 import type { EnhancedClassMetadata } from "../../../lib/contracts";
@@ -17,6 +18,8 @@ type RoutePreviewCardProps = {
   variant?: "compact" | "detailed";
   onPreview?: () => void;
   className?: string;
+  /** Optional id for the heading, so a wrapping dialog can use aria-labelledby */
+  headingId?: string;
 };
 
 export function RoutePreviewCard({
@@ -24,6 +27,7 @@ export function RoutePreviewCard({
   variant = "compact",
   onPreview,
   className = "",
+  headingId,
 }: RoutePreviewCardProps) {
   const [showVisualization, setShowVisualization] = useState(false);
 
@@ -101,7 +105,7 @@ export function RoutePreviewCard({
                   }`}
                 >
                   {beat.type === 'climb' ? '▲' :
-                   beat.type === 'sprint' ? '⚡' :
+                   beat.type === 'sprint' ? <Zap className="h-2.5 w-2.5" aria-hidden="true" /> :
                    beat.type === 'drop' ? '▼' : '○'}
                 </div>
               ))}
@@ -144,7 +148,7 @@ export function RoutePreviewCard({
 
       {/* Route Info */}
       <div className="p-4">
-        <h4 className="text-base font-medium text-white">{routeData.name}</h4>
+        <h4 id={headingId} className="text-base font-medium text-white">{routeData.name}</h4>
         
         <div className="mt-3 grid grid-cols-3 gap-4">
           <div>

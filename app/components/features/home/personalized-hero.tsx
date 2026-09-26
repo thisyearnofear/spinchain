@@ -14,7 +14,7 @@ import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 import { useRiderName } from "@/app/hooks/common/use-profile";
 import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import Link from "next/link";
-import { Flame, Trophy, Bike, Zap } from "lucide-react";
+import { Flame, Trophy, Bike, Zap, Target } from "lucide-react";
 
 const RiveRider = dynamic(
   () => import("@/app/components/features/ride/rive-rider").then((m) => m.RiveRider),
@@ -84,7 +84,7 @@ export function PersonalizedHero() {
             </p>
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-lg">🎯</span>
+                <Target className="h-5 w-5 text-[color:var(--accent)]" aria-hidden="true" />
                 <div>
                   <p className="text-sm font-bold text-[color:var(--foreground)]">
                     {rideName}
@@ -96,7 +96,7 @@ export function PersonalizedHero() {
               </div>
               <Link
                 href={demoUrl}
-                className="shrink-0 rounded-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)] px-4 py-2 text-xs font-bold text-white transition-transform active:scale-95"
+                className="shrink-0 rounded-full bg-[color:var(--accent)] px-4 py-2 text-xs font-bold text-black transition-[transform,background-color] hover:bg-[color:var(--accent-strong)] active:scale-95"
               >
                 {isFirstTime ? "Start →" : "Quick ride →"}
               </Link>

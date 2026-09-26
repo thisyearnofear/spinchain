@@ -6,7 +6,7 @@ import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 import { MorphCTA } from "@/app/components/ui/morph-cta";
 import { useExperience } from "@/app/lib/experience-level";
 import dynamic from "next/dynamic";
-import { Play } from "lucide-react";
+import { Flame, Play } from "lucide-react";
 
 // Lazy-load: keeps the Rive JS runtime (~335 KB) + WASM bootstrap out of the
 // landing page's initial bundle.
@@ -63,7 +63,12 @@ export function HeroSection({ onOpenGuide }: HeroSectionProps) {
         <div className="mb-5 flex flex-col items-center justify-center gap-1">
           <RiveFlowBadge
             flowTier={flowTier}
-            label={totalRides > 0 ? `🔥 ${totalRides} ride${totalRides === 1 ? "" : "s"}` : undefined}
+            label={totalRides > 0 ? (
+              <span className="inline-flex items-center gap-1">
+                <Flame className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+                {totalRides} ride{totalRides === 1 ? "" : "s"}
+              </span>
+            ) : undefined}
           />
           {totalRides === 0 && (
             <p className="text-xs text-[color:var(--muted)]">

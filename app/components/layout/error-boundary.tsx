@@ -2,6 +2,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { m } from "framer-motion";
+import { TriangleAlert } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -63,7 +64,7 @@ export class ErrorBoundary extends Component<Props, State> {
               transition={{ delay: 0.1, type: "spring" }}
               className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-500/10 flex items-center justify-center"
             >
-              <span className="text-4xl">⚠️</span>
+              <TriangleAlert className="h-10 w-10 text-red-400" aria-hidden="true" />
             </m.div>
             
             <h2 className="text-2xl font-bold text-[color:var(--foreground)] mb-2">

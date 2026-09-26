@@ -13,16 +13,16 @@ export function MorphCTA({
   href?: string;
 }) {
   const content = (
-    <span className="relative flex items-center justify-center gap-2 px-7 py-3.5 text-sm font-bold text-white">
+    <span className="relative flex items-center justify-center gap-2 px-7 py-3.5 text-sm font-bold text-black">
       {children}
     </span>
   );
 
   const inner = (
     <m.div
-      // Darkened orange endpoints: white bold text on var(--accent) (#f97316)
-      // is ~2.9:1 — below WCAG AA. #c2410c → #b45309 keeps both ends ≥5:1.
-      className="relative inline-flex overflow-hidden bg-gradient-to-r from-[#c2410c] to-[#b45309] shadow-lg shadow-[color:var(--accent)]/30"
+      // Action color lives in the accent token. Black text on var(--accent)
+      // (#f97316) is ~7.5:1 in dark mode / ~5.9:1 in light mode — WCAG AA.
+      className="relative inline-flex overflow-hidden bg-[color:var(--accent)] transition-colors hover:bg-[color:var(--accent-strong)] shadow-lg shadow-[color:var(--accent)]/30"
       initial={{ borderRadius: 16 }}
       whileHover={{ borderRadius: 999, scale: 1.02 }}
       whileTap={{ scale: 0.97 }}

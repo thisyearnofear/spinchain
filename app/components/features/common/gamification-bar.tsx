@@ -1,5 +1,6 @@
 "use client";
 
+import { Bike, Flame, Waves, Zap } from "lucide-react";
 import { useMilestones } from "@/app/lib/milestones";
 
 /**
@@ -28,7 +29,7 @@ export function GamificationBar() {
       {/* Streak */}
       {streak > 0 && (
         <div className="flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1.5 border border-amber-500/20">
-          <span className="text-sm">🔥</span>
+          <Flame className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
           <span className="text-amber-400 font-bold">{streak}</span>
           <span className="text-[var(--muted)]/70">day streak</span>
         </div>
@@ -36,7 +37,7 @@ export function GamificationBar() {
 
       {/* Total rides */}
       <div className="flex items-center gap-1.5">
-        <span className="text-[var(--muted)]/50">🚴</span>
+        <Bike className="h-3.5 w-3.5 text-[var(--muted)]/50" aria-hidden="true" />
         <span className="font-bold text-[var(--foreground)]">{totalRides}</span>
         <span className="text-[var(--muted)]/70">rides</span>
       </div>
@@ -44,7 +45,7 @@ export function GamificationBar() {
       {/* Best power */}
       {bestMaxPower > 0 && (
         <div className="flex items-center gap-1.5">
-          <span className="text-[var(--muted)]/50">⚡</span>
+          <Zap className="h-3.5 w-3.5 text-[var(--muted)]/50" aria-hidden="true" />
           <span className="font-bold text-[var(--foreground)]">{bestMaxPower}W</span>
           <span className="text-[var(--muted)]/70">best</span>
         </div>
@@ -53,7 +54,7 @@ export function GamificationBar() {
       {/* Flow minutes */}
       {totalFlowMinutes > 0 && (
         <div className="flex items-center gap-1.5">
-          <span className="text-[var(--muted)]/50">🌊</span>
+          <Waves className="h-3.5 w-3.5 text-[var(--muted)]/50" aria-hidden="true" />
           <span className="font-bold text-[var(--foreground)]">{totalFlowMinutes}m</span>
           <span className="text-[var(--muted)]/70">flow</span>
         </div>

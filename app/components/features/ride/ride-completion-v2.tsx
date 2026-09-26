@@ -290,7 +290,7 @@ export function RideCompletionV2({
           <div className="w-full flex flex-col gap-2 mt-2">
             <a
               href="/rider/journey"
-              className="block w-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 py-3 text-sm font-bold text-black shadow-lg shadow-amber-500/30 text-center transition-transform active:scale-95 hover:scale-[1.02]"
+              className="block w-full rounded-full bg-[color:var(--accent)] py-3 text-sm font-bold text-black shadow-lg shadow-[color:var(--accent)]/30 text-center transition-[transform,background-color] active:scale-95 hover:scale-[1.02] hover:bg-[color:var(--accent-strong)]"
             >
               Try a Full Class
             </a>
@@ -736,7 +736,7 @@ export function RideCompletionV2({
                 {onRideAgain && (
                   <button
                     onClick={onRideAgain}
-                    className="flex-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 py-3 text-sm font-semibold text-black shadow-lg shadow-amber-500/40 transition-all active:scale-95"
+                    className="flex-1 rounded-full bg-[color:var(--accent)] py-3 text-sm font-semibold text-black shadow-lg shadow-[color:var(--accent)]/40 transition-all hover:bg-[color:var(--accent-strong)] active:scale-95"
                   >
                     Ride Again
                   </button>

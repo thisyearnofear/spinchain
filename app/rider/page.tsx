@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { PrimaryNav } from "../components/layout/nav";
@@ -23,6 +23,97 @@ import { getWeeklyLoad } from "../lib/analytics/training-load";
 import { useToast } from "../components/ui/toast";
 import { Bike, CalendarClock, ChevronDown, ChevronUp, User } from "lucide-react";
 import type { SavedRoute } from "../lib/route-library";
+
+// Dialog semantics mirror the QuizShell pattern in
+// app/components/features/common/rider-quiz.tsx: role="dialog" + aria-modal,
+// Escape-to-close, focus trap on Tab, initial focus on first control, and
+// focus restored to the trigger on close.
+function RoutePreviewDialog({
+  route,
+  isConnected,
+  onClose,
+}: {
+  route: SavedRoute;
+  isConnected: boolean;
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  // Escape key — close the preview
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  // Focus trap — save current focus, restore on close
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const first = focusable?.[0] ?? null;
+    first?.focus();
+
+    const trap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const focusableNow = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusableNow?.length) return;
+      const firstNow = focusableNow[0];
+      const lastNow = focusableNow[focusableNow.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === firstNow) { e.preventDefault(); lastNow.focus(); }
+      } else {
+        if (document.activeElement === lastNow) { e.preventDefault(); firstNow.focus(); }
+      }
+    };
+    window.addEventListener("keydown", trap);
+    return () => {
+      window.removeEventListener("keydown", trap);
+      previousFocusRef.current?.focus();
+    };
+  }, []);
+
+  return (
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="route-preview-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-2xl max-h-[90vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <RoutePreviewCard
+          route={route}
+          variant="detailed"
+          headingId="route-preview-title"
+        />
+        <div className="mt-4 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl bg-[color:var(--surface-strong)] text-[color:var(--foreground)] hover:bg-[color:var(--surface-elevated)] transition-colors"
+          >
+            Close Preview
+          </button>
+          {!isConnected && (
+            <div className="flex-1">
+              <ConnectWallet />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function RiderPage() {
   const router = useRouter();
@@ -287,30 +378,11 @@ export default function RiderPage() {
 
         {/* Route Preview Modal */}
         {selectedRoute && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-            onClick={() => setSelectedRoute(null)}
-          >
-            <div
-              className="w-full max-w-2xl max-h-[90vh] overflow-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <RoutePreviewCard route={selectedRoute} variant="detailed" />
-              <div className="mt-4 flex gap-3">
-                <button
-                  onClick={() => setSelectedRoute(null)}
-                  className="flex-1 py-3 rounded-xl bg-[color:var(--surface-strong)] text-[color:var(--foreground)] hover:bg-[color:var(--surface-elevated)] transition-colors"
-                >
-                  Close Preview
-                </button>
-                {!isConnected && (
-                  <div className="flex-1">
-                    <ConnectWallet />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <RoutePreviewDialog
+            route={selectedRoute}
+            isConnected={isConnected}
+            onClose={() => setSelectedRoute(null)}
+          />
         )}
 
         {/* Coach profiles — below classes so the primary action comes first */}

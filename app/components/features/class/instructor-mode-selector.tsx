@@ -2,11 +2,12 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
+import { Bot, GraduationCap, type LucideIcon } from "lucide-react";
 import { tabsTransition } from "@/app/lib/motion";
 
 interface InstructorMode {
   id: "human" | "agent";
-  icon: string;
+  icon: LucideIcon;
   title: string;
   subtitle: string;
   description: string;
@@ -23,7 +24,7 @@ interface InstructorMode {
 const modes: InstructorMode[] = [
   {
     id: "human",
-    icon: "🎓",
+    icon: GraduationCap,
     title: "Human Instructor",
     subtitle: "Lead With Your Own Style",
     description: "Draft a class concept, shape the route and pacing, and preview how your teaching style will show up before you publish anything.",
@@ -43,7 +44,7 @@ const modes: InstructorMode[] = [
   },
   {
     id: "agent",
-    icon: "🤖",
+    icon: Bot,
     title: "AI Coach",
     subtitle: "AI-Led Class Design",
     description: "Design an AI-led coaching experience, tune the tone of the session, and explore how an autonomous class could extend your reach.",
@@ -134,7 +135,7 @@ export function InstructorModeSelector() {
                   : "text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
               }`}
             >
-              <span className="text-lg">{mode.icon}</span>
+              <mode.icon className="h-5 w-5" aria-hidden="true" />
               <span className="hidden sm:inline">{mode.title}</span>
             </button>
           ))}
@@ -194,7 +195,7 @@ export function InstructorModeSelector() {
                   transition={{ delay: 0.1 }}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[color:var(--surface-strong)] border border-[color:var(--border)] mb-6"
                 >
-                  <span className="text-2xl">{currentMode.icon}</span>
+                  <currentMode.icon className="h-6 w-6 text-[color:var(--foreground)]" aria-hidden="true" />
                   <span className="text-sm font-medium text-[color:var(--muted)]">
                     {currentMode.subtitle}
                   </span>
@@ -266,7 +267,7 @@ export function InstructorModeSelector() {
                 <div className="absolute inset-0 flex items-center justify-center p-6">
                   <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-black/20 p-6 backdrop-blur-xl">
                     <div className="mb-4 flex items-center gap-3">
-                      <span className="text-5xl">{currentMode.icon}</span>
+                      <currentMode.icon className="h-12 w-12 text-[color:var(--foreground)]" aria-hidden="true" />
                       <div className="text-left">
                         <p className="text-sm font-semibold text-[color:var(--foreground)]">
                           {currentMode.visualTitle}

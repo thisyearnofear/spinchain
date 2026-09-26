@@ -85,11 +85,11 @@ export function RideStartScreen({
 
       <button
         onClick={onStart}
-        className="pointer-events-auto group relative rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-10 py-4 text-base font-black text-white shadow-[0_0_60px_rgba(245,158,11,0.5)] hover:scale-105 active:scale-95 transition-transform"
+        className="pointer-events-auto group relative rounded-full bg-[color:var(--accent)] px-10 py-4 text-base font-black text-black shadow-[0_0_60px_var(--glow)] hover:scale-105 hover:bg-[color:var(--accent-strong)] active:scale-95 transition-[transform,background-color]"
         aria-label="Start ride"
       >
         Start Ride
-        <span className="block text-[10px] font-bold uppercase tracking-[0.3em] text-white/60 mt-0.5">
+        <span className="block text-[10px] font-bold uppercase tracking-[0.3em] text-black/60 mt-0.5">
           Keyboard: ← → / A D
         </span>
       </button>

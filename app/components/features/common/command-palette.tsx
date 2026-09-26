@@ -11,7 +11,7 @@
 
 import { useState, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
-import { Mic, X, ChevronRight } from "lucide-react";
+import { Mic, X, ChevronRight, Zap, Wrench, BarChart3, Flame, Music, OctagonX, type LucideIcon } from "lucide-react";
 import { modalTransition } from "@/app/lib/motion";
 
 interface CommandPaletteProps {
@@ -21,35 +21,35 @@ interface CommandPaletteProps {
   confidence?: number;
 }
 
-const COMMAND_CATEGORIES = {
+const COMMAND_CATEGORIES: Record<string, { label: string; icon: LucideIcon; commands: string[] }> = {
   pace: {
     label: "Pace Control",
-    icon: "⚡",
+    icon: Zap,
     commands: ["slow down", "speed up", "hold this pace"],
   },
   resistance: {
     label: "Resistance",
-    icon: "🔧",
+    icon: Wrench,
     commands: ["more resistance", "less resistance"],
   },
   info: {
     label: "Information",
-    icon: "📊",
+    icon: BarChart3,
     commands: ["what's my heart rate", "how much time", "how far"],
   },
   motivation: {
     label: "Motivation",
-    icon: "🔥",
+    icon: Flame,
     commands: ["give me motivation", "cheer me on"],
   },
   music: {
     label: "Music",
-    icon: "🎵",
+    icon: Music,
     commands: ["next song", "volume up", "volume down"],
   },
   emergency: {
     label: "Emergency",
-    icon: "🛑",
+    icon: OctagonX,
     commands: ["stop", "pause", "resume"],
   },
 };
@@ -152,7 +152,7 @@ export function CommandPalette({
                     className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{category.icon}</span>
+                      <category.icon className="h-6 w-6 text-indigo-400" aria-hidden="true" />
                       <span className="font-medium text-[color:var(--foreground)]">
                         {category.label}
                       </span>
