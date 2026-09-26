@@ -221,11 +221,13 @@ export function RideVisualization({
           onExpandOne={onExpandOne}
           onHaptic={deviceType === "mobile" ? onHaptic : undefined}
           showStreetView={!isPracticeMode}
+          active={isFocus}
         />
       </m.div>
 
       {/* Tron (3D) — stacked, always mounted after probe (low-end still gets
-           low quality; auto-degrade will bail out if FPS poor). frameloop="demand" pauses when invisible. */}
+           low quality; auto-degrade will bail out if FPS poor). `active` stops
+           its render loop while hidden so it doesn't compete with 2D. */}
       <m.div
         className="absolute inset-0"
         initial={false}
@@ -245,11 +247,13 @@ export function RideVisualization({
           storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
           avatarId={searchParams.get("avatarId") || undefined}
           equipmentId={searchParams.get("equipmentId") || undefined}
+          worldId={searchParams.get("worldId") || undefined}
           quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
           className="h-full w-full"
           userDisplayName={undefined}
           intervalPhase={(currentInterval?.phase ?? undefined) as IntervalPhase | undefined}
           flowTier={flowTier}
+          active={!isFocus}
         />
       </m.div>
     </div>

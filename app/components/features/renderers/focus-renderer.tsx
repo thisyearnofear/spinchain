@@ -39,6 +39,8 @@ export interface FocusRendererProps {
   onHaptic?: (type?: HapticType) => boolean;
   useAccordion: boolean;
   showStreetView: boolean;
+  /** False while the 2D layer is hidden behind the 3D view — stops the rAF loop. */
+  active?: boolean;
 }
 
 /**
@@ -88,6 +90,7 @@ export const FocusRenderer = memo(function FocusRenderer(props: FocusRendererPro
         onHaptic={props.onHaptic}
         useAccordion={props.useAccordion}
         showStreetView={props.showStreetView}
+        active={props.active ?? true}
       />
     </Suspense>
   );

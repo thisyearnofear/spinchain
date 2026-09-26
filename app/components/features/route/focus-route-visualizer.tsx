@@ -13,6 +13,7 @@ import type { VisualizerTheme } from "./visualizer-theme";
 import { CollapseToggle } from "@/app/components/features/common/collapse-toggle";
 import type { PanelState, PanelKey, PanelPositions, DesktopPanelKey } from "@/app/hooks/ui/use-panel-state";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
+import { ProgressInterpolator } from "@/app/lib/progress-interpolator";
 
 const RiveRider = dynamic(
   () => import("@/app/components/features/ride/rive-rider").then((m) => m.RiveRider),
@@ -56,6 +57,8 @@ type Props = {
   onHaptic?: (type: "light" | "medium" | "heavy") => void;
   /** Toggle street view card visibility for mock/practice routes */
   showStreetView?: boolean;
+  /** False while hidden behind the 3D view — stops the rider rAF loop. */
+  active?: boolean;
 };
 
 const POWER_ZONES = [
@@ -73,6 +76,24 @@ function clamp(value: number, min: number, max: number) {
 function getPowerZone(power: number, ftp: number) {
   const ratio = ftp > 0 ? power / ftp : 0;
   return POWER_ZONES.find((zone) => ratio <= zone.maxRatio) ?? POWER_ZONES[POWER_ZONES.length - 1];
+}
+
+type RoutePoint = { x: number; y: number; elevation: number };
+
+/** Rider position + heading on the polyline for progress 0..1. */
+function positionOnRoute(points: RoutePoint[], progress: number, fallbackX: number, fallbackY: number) {
+  const p = clamp(progress, 0, 1);
+  const last = Math.max(0, points.length - 1);
+  const index = Math.floor(p * last);
+  const nextIndex = Math.min(index + 1, last);
+  const local = clamp(p * last - index, 0, 1);
+  const current = points[index] ?? { x: fallbackX, y: fallbackY };
+  const next = points[nextIndex] ?? current;
+  return {
+    x: current.x + (next.x - current.x) * local,
+    y: current.y + (next.y - current.y) * local,
+    rotation: (Math.atan2(next.y - current.y, Math.max(1, next.x - current.x)) * 180) / Math.PI,
+  };
 }
 
 function samplePoints(points: Array<{ x: number; y: number }>, count: number, scale: number, baseline: number) {
@@ -179,6 +200,7 @@ export default function FocusRouteVisualizer({
   onExpandOne,
   onHaptic,
   showStreetView = true,
+  active = true,
 }: Props) {
   const dragStateRef = useRef<{ key: DesktopPanelKey; startX: number; startY: number; pointerX: number; pointerY: number } | null>(null);
   const viewport = useViewport();
@@ -201,39 +223,18 @@ export default function FocusRouteVisualizer({
   const leftMinimized = leftMode === "minimized";
   const rightMinimized = rightMode === "minimized";
 
-  // 60fps display-only lerp — keeps 2D rider gliding between 1Hz store ticks.
-  // Store progress (rideProgress) remains the single writer per coordinator Rule 6.
-  const smoothRef = useRef(progress);
-  const [smoothProgress, setSmoothProgress] = useState(progress);
-  useEffect(() => {
-    smoothRef.current = progress;
-    setSmoothProgress(progress);
-  }, [progress]);
-  useEffect(() => {
-    let raf = 0;
-    const tick = () => {
-      const target = progress;
-      const diff = target - smoothRef.current;
-      if (Math.abs(diff) < 0.001 || target >= 0.999) {
-        if (smoothRef.current !== target) {
-          smoothRef.current = target;
-          setSmoothProgress(target);
-        }
-      } else {
-        const prefersReduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        if (prefersReduced) {
-          smoothRef.current = target;
-          setSmoothProgress(target);
-        } else {
-          smoothRef.current += diff * 0.08;
-          setSmoothProgress(smoothRef.current);
-        }
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [progress]);
+  // Rider motion runs outside React: a rAF loop samples a steady-speed
+  // interpolation of the ~1Hz progress ticks and writes straight to the
+  // rider overlay, glow group and progress clip (see the effect below).
+  // The old loop called setState every frame, re-rendering this whole
+  // component at 60fps, and snapped to each tick so the rider stepped.
+  const riderOverlayRef = useRef<HTMLDivElement>(null);
+  const riderGlowRef = useRef<SVGGElement>(null);
+  const progressClipRef = useRef<SVGRectElement>(null);
+  const interpolatorRef = useRef<ProgressInterpolator | null>(null);
+  if (interpolatorRef.current === null) {
+    interpolatorRef.current = new ProgressInterpolator(progress, 0);
+  }
 
   // Handler for accordion behavior - uses expandOne on mobile, toggle on desktop
   const handleToggle = useCallback((key: PanelKey) => {
@@ -310,7 +311,9 @@ export default function FocusRouteVisualizer({
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = Math.max(1, max - min);
-  const clampedProgress = clamp(smoothProgress, 0, 1);
+  // Coarse (per-tick) progress for beat states and readouts; the rider
+  // itself uses the per-frame interpolated value.
+  const clampedProgress = clamp(progress, 0, 1);
   const displayedPower = currentPower || stats.power || 0;
   const powerTrend = useMemo(() => {
     if (!recentPower || recentPower.length < 2) return 0;
@@ -354,17 +357,47 @@ export default function FocusRouteVisualizer({
     return `M ${padX},${height} L ${sampled.map((point) => `${point.x},${point.y}`).join(" L ")} L ${width - padX},${height} Z`;
   }, [height, horizonY, padX, points, styles.terrainFrontScale, width]);
 
-  const riderPosition = useMemo(() => {
-    const index = Math.floor(clampedProgress * Math.max(0, points.length - 1));
-    const nextIndex = Math.min(index + 1, points.length - 1);
-    const localProgress = clamp(clampedProgress * Math.max(0, points.length - 1) - index, 0, 1);
-    const current = points[index] ?? { x: padX, y: routeBottom };
-    const next = points[nextIndex] ?? current;
-    const x = current.x + (next.x - current.x) * localProgress;
-    const y = current.y + (next.y - current.y) * localProgress;
-    const rotation = (Math.atan2(next.y - current.y, Math.max(1, next.x - current.x)) * 180) / Math.PI;
-    return { x, y, rotation };
-  }, [clampedProgress, padX, points, routeBottom]);
+  // Initial / per-render placement; the rAF loop takes over from here.
+  const riderPosition = positionOnRoute(
+    points,
+    interpolatorRef.current.sample(typeof performance !== "undefined" ? performance.now() : 0),
+    padX,
+    routeBottom,
+  );
+
+  useEffect(() => {
+    const interp = interpolatorRef.current!;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced || progress >= 1) interp.snap(progress, performance.now());
+    else interp.push(progress, performance.now());
+  }, [progress]);
+
+  useEffect(() => {
+    if (!active) return;
+    let raf = 0;
+    let lastValue = Number.NaN;
+    const tick = () => {
+      const value = interpolatorRef.current!.sample(performance.now());
+      if (value !== lastValue) {
+        lastValue = value;
+        const pos = positionOnRoute(points, value, padX, routeBottom);
+        const overlay = riderOverlayRef.current;
+        if (overlay) {
+          overlay.style.left = `${(pos.x / width) * 100}%`;
+          overlay.style.top = `${(pos.y / height) * 100}%`;
+          overlay.style.transform = `translate(-50%, -90%) rotate(${pos.rotation}deg)`;
+        }
+        riderGlowRef.current?.setAttribute(
+          "transform",
+          `translate(${pos.x} ${pos.y}) rotate(${pos.rotation})`,
+        );
+        progressClipRef.current?.setAttribute("width", `${padX + clamp(value, 0, 1) * (width - padX * 2)}`);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active, points, padX, routeBottom, width, height]);
 
   const beatMarkers = useMemo(
     () =>
@@ -399,7 +432,8 @@ export default function FocusRouteVisualizer({
     if (!current || !next) return 0;
     return ((current.elevation - next.elevation) / Math.max(1, next.x - current.x)) * 120;
   }, [clampedProgress, points]);
-  const completionWidth = padX + clampedProgress * (width - padX * 2);
+  // Trail ends at the rider (the rAF loop keeps this in sync per frame).
+  const completionWidth = riderPosition.x;
   const routePreviewCoordinate = routeStartCoordinate ?? currentCoordinate ?? null;
   const horizonPatternOpacity = clamp(styles.patternOpacity + effortRatio * 0.04, styles.patternOpacity, styles.patternOpacity + 0.08);
   const isGridTheme = styles.atmosphere === "grid" || styles.atmosphere === "prism";
@@ -551,7 +585,7 @@ export default function FocusRouteVisualizer({
             </feMerge>
           </filter>
           <clipPath id={`${gradientId}-progress-clip`}>
-            <rect x="0" y="0" width={completionWidth} height={height} />
+            <rect ref={progressClipRef} x="0" y="0" width={completionWidth} height={height} />
           </clipPath>
         </defs>
 
@@ -671,16 +705,22 @@ export default function FocusRouteVisualizer({
           );
         })}
 
-        <g className="focus-float" transform={`translate(${riderPosition.x} ${riderPosition.y}) rotate(${riderPosition.rotation})`}>
-          <circle
-            cx="0"
-            cy="0"
-            r={clamp(20 + stats.cadence * 0.08, 20, 34)}
-            fill={currentZone.color}
-            fillOpacity="0.16"
-            filter={`url(#${gradientId}-glow)`}
-            className="focus-pulse"
-          />
+        {/* Position lives on the OUTER group's transform attribute; the CSS
+            float/pulse animations sit on inner elements. Putting a CSS
+            transform animation on the same element overrides the SVG
+            transform attribute, which parked this glow at the SVG origin. */}
+        <g ref={riderGlowRef} transform={`translate(${riderPosition.x} ${riderPosition.y}) rotate(${riderPosition.rotation})`}>
+          <g className="focus-float">
+            <circle
+              cx="0"
+              cy="0"
+              r={clamp(20 + stats.cadence * 0.08, 20, 34)}
+              fill={currentZone.color}
+              fillOpacity="0.16"
+              filter={`url(#${gradientId}-glow)`}
+              className="focus-pulse"
+            />
+          </g>
         </g>
       </svg>
 
@@ -688,6 +728,7 @@ export default function FocusRouteVisualizer({
           scale and practice rides never passed an avatarId. HTML overlay
           tracks the same viewBox coords (preserveAspectRatio=none). */}
       <div
+        ref={riderOverlayRef}
         className="pointer-events-none absolute"
         style={{
           left: `${(riderPosition.x / width) * 100}%`,

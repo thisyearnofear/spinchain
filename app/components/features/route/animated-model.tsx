@@ -49,6 +49,11 @@ export interface AnimatedModelProps {
   scale?: number;
   rotation?: [number, number, number];
   position?: [number, number, number];
+  /**
+   * Runs every frame right after the mixer update, with the rendered
+   * (cloned) character root — for procedural overrides such as IK.
+   */
+  onAfterUpdate?: (root: Object3D) => void;
 }
 
 function hasSkinnedMesh(root: Object3D): boolean {
@@ -67,6 +72,7 @@ export function AnimatedModel({
   scale = 1,
   rotation = [0, 0, 0],
   position = [0, 0, 0],
+  onAfterUpdate,
 }: AnimatedModelProps) {
   // No dedupe: useGLTF caches by URL, and keeping the array parallel to
   // [base, ...clips] lets clipMap below index by position.
@@ -133,8 +139,14 @@ export function AnimatedModel({
     };
   }, [mixer]);
 
+  const afterUpdateRef = useRef(onAfterUpdate);
+  useEffect(() => {
+    afterUpdateRef.current = onAfterUpdate;
+  }, [onAfterUpdate]);
+
   useFrame((_, delta) => {
     mixer?.update(delta * timeScaleRef.current);
+    if (renderObject && afterUpdateRef.current) afterUpdateRef.current(renderObject);
   });
 
   if (!renderObject) return null;

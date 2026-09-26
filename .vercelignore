@@ -1,26 +1,30 @@
 # Shrink deploy upload / build-cache noise. Runtime assets that the app needs
 # must live under public/ or be imported by the Next app — not listed here.
 # See docs/OPERATIONS.md §5 (Deployment Storage Rules).
+#
+# Anchor directory patterns with a leading "/". Unanchored "rive/" also
+# matched public/rive/ and silently 404'd every .riv + rive.wasm in prod
+# (same for circuits/ → public/circuits/).
 
 # Smart contracts / Foundry
-contracts/
+/contracts/
 
 # Circuit sources (runtime uses public/circuits/*.json only)
-circuits/
+/circuits/
 
 # Rive design sources (runtime uses public/rive/*)
-rive/
+/rive/
 
 # Mobile / Capacitor
-ios/
-android/
-mobile/
+/ios/
+/android/
+/mobile/
 
 # Test & report artifacts
-playwright-report/
-test-results/
-coverage/
-tests/
+/playwright-report/
+/test-results/
+/coverage/
+/tests/
 **/*.spec.ts
 **/*.spec.tsx
 **/*.test.ts
@@ -33,7 +37,7 @@ tests/
 .idea/
 *.md
 !README.md
-docs/
+/docs/
 
 # Keep scripts/ — postinstall (copy-rive-wasm) runs on Vercel install
 *.log

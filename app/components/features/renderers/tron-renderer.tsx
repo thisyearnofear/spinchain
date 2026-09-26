@@ -30,6 +30,8 @@ export interface TronRendererProps {
   userDisplayName?: string;
   intervalPhase?: IntervalPhase | null;
   flowTier?: FlowStateTier;
+  /** False while the 3D layer is hidden behind the 2D view — stops the render loop. */
+  active?: boolean;
 }
 
 /**
@@ -72,6 +74,7 @@ export const TronRenderer = memo(function TronRenderer(props: TronRendererProps)
         userDisplayName={props.userDisplayName}
         intervalPhase={props.intervalPhase}
         flowTier={props.flowTier}
+        active={props.active ?? true}
       />
     </Suspense>
   );

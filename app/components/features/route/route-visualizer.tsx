@@ -28,13 +28,18 @@ import {
   ChromaticAberration,
   Noise,
 } from "@react-three/postprocessing";
-import { BlendFunction } from "postprocessing";
+import {
+  BlendFunction,
+  BloomEffect,
+  ChromaticAberrationEffect,
+  VignetteEffect,
+  type EffectComposer as PostprocessingComposer,
+} from "postprocessing";
 import { useMemo, useRef, useState, useEffect, useSyncExternalStore, Suspense, type MutableRefObject } from "react";
 import {
   OrbitControls,
   Environment,
   Stars,
-  Float,
   Html,
   PerspectiveCamera,
   Sparkles,
@@ -48,6 +53,7 @@ import type { VisualizerTheme } from "./visualizer-theme";
 import { computeReactiveParams, type ReactiveParams } from "./world-reactivity";
 import { useCoachingStore, selectPrBeaten } from "@/app/stores/coaching-store";
 import { useRideStore } from "@/app/stores/ride-store";
+import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { resolveCharacterState, AVATAR_CLIP_BY_STATE } from "@/app/lib/character-state";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
 import type { FlowStateTier } from "@/app/lib/flow-state";
@@ -57,6 +63,8 @@ export type { VisualizerTheme } from "./visualizer-theme";
 // Import Selection types
 import { EQUIPMENT, WORLDS, resolveAvatar, type AvatarAsset, type EquipmentAsset } from "../../../lib/selection-library";
 import { AnimatedModel } from "./animated-model";
+import { ProceduralBike, useCyclistPose, BIKE_DECK_OFFSET, RIG } from "./procedural-cyclist";
+import { ProgressInterpolator, dampFactor } from "@/app/lib/progress-interpolator";
 import { WorldSkybox } from "./world-skybox";
 
 // Import StoryBeat types from gpx-uploader for consistency
@@ -520,34 +528,90 @@ function PropManager({ theme = "neon", curve, stats, reactive = null }: { theme?
 }
 
 function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive = null }: { theme: VisualizerTheme; stats: RiderStats; performanceTier?: "high" | "medium" | "low"; reactive?: ReactiveParams | null }) {
-  // Note: styles reserved for future theming of post-effects
+  // Live values go through refs and are written onto the effect instances
+  // in useFrame. @react-three/postprocessing recreates an effect whenever
+  // its props change (args memoized on JSON.stringify(props)), and the
+  // composer then tears down and recompiles its passes — driving bloom /
+  // chromatic props from live power did that on every telemetry commit.
+  const statsRef = useRef(stats);
+  const reactiveRef = useRef(reactive);
+  useEffect(() => {
+    statsRef.current = stats;
+    reactiveRef.current = reactive;
+  }, [stats, reactive]);
 
-  const powerFactor = Math.min(1, stats.power / 600);
+  // Effect instances are found through the composer's passes (refs on the
+  // wrapped effects would be JSON.stringify'd by the wrapper's memo key).
+  const composerRef = useRef<PostprocessingComposer | null>(null);
+  const effectsCacheRef = useRef<{
+    composer: PostprocessingComposer | null;
+    bloom: BloomEffect | null;
+    chromatic: ChromaticAberrationEffect | null;
+    vignette: VignetteEffect | null;
+  }>({ composer: null, bloom: null, chromatic: null, vignette: null });
+
   const intensityMultiplier = performanceTier === "low" ? 0 : performanceTier === "medium" ? 0.5 : 1;
-  let bloomIntensity = (0.5 + powerFactor * 2.0) * intensityMultiplier;
-  let chromaticOffset = stats.power > 300 ? powerFactor * 0.005 * intensityMultiplier : 0;
   const noiseOpacity = theme === 'neon' ? 0.03 * intensityMultiplier : 0;
 
-  // World reactivity: bloom intensifies during sprints
-  if (reactive) {
-    bloomIntensity = reactive.bloomIntensity * intensityMultiplier;
-    chromaticOffset = reactive.chromaticOffset * intensityMultiplier;
-  }
+  useFrame((_, delta) => {
+    const composer = composerRef.current;
+    if (!composer) return;
+    const cache = effectsCacheRef.current;
+    if (cache.composer !== composer || (!cache.bloom && !cache.chromatic)) {
+      cache.composer = composer;
+      cache.bloom = cache.chromatic = cache.vignette = null;
+      for (const pass of composer.passes) {
+        const passEffects = (pass as unknown as { effects?: unknown[] }).effects ?? [];
+        for (const fx of passEffects) {
+          if (fx instanceof BloomEffect) cache.bloom = fx;
+          else if (fx instanceof ChromaticAberrationEffect) cache.chromatic = fx;
+          else if (fx instanceof VignetteEffect) cache.vignette = fx;
+        }
+      }
+    }
+    const s = statsRef.current;
+    const r = reactiveRef.current;
+    const powerFactor = Math.min(1, s.power / 600);
+    // Caps: the phase theme's sprint values (bloom 3.5, chroma 0.008) blew
+    // the frame out to white and hid the rider from the chase camera.
+    const bloomTarget = Math.min(2.2, r ? r.bloomIntensity : 0.5 + powerFactor * 2.0) * intensityMultiplier;
+    const chromaTarget =
+      Math.min(0.0035, r ? r.chromaticOffset : s.power > 300 ? powerFactor * 0.005 : 0) * intensityMultiplier;
+    // Ease toward targets so 2–10Hz telemetry steps don't flicker the glow.
+    const k = dampFactor(4, delta);
+    if (cache.bloom) {
+      cache.bloom.intensity += (bloomTarget - cache.bloom.intensity) * k;
+    }
+    if (cache.chromatic) {
+      // applyProps assigns the JSX `offset={[0, 0]}` as a raw array; swap in
+      // a Vector2 once so it can be mutated in place.
+      let o = cache.chromatic.offset as THREE.Vector2 | number[];
+      if (!(o instanceof THREE.Vector2)) {
+        o = new THREE.Vector2(o?.[0] ?? 0, o?.[1] ?? 0);
+        cache.chromatic.offset = o;
+      }
+      const next = o.x + (chromaTarget - o.x) * k;
+      o.set(next, next);
+    }
+    if (cache.vignette && r) {
+      cache.vignette.darkness += (r.vignetteDarkness - cache.vignette.darkness) * k;
+    }
+  });
 
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  // Effect elements depend only on tier/theme — stable across telemetry.
   const effects = useMemo(() => {
     if (performanceTier === "low") return [];
     const e = [
       <Bloom
         key="bloom"
-        intensity={bloomIntensity}
+        intensity={0.5 * intensityMultiplier}
         luminanceThreshold={0.4}
         luminanceSmoothing={1}
         mipmapBlur
       />,
       <ChromaticAberration
         key="chromatic"
-        offset={[chromaticOffset, chromaticOffset]}
+        offset={[0, 0]}
         blendFunction={BlendFunction.NORMAL}
       />,
       <Noise
@@ -557,67 +621,19 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
       />,
     ];
     if (performanceTier !== "medium") {
-      const vignetteDarkness = reactive ? reactive.vignetteDarkness : 0.8;
-      e.push(<Vignette key="vignette" eskil={false} offset={0.15} darkness={vignetteDarkness} />);
+      e.push(<Vignette key="vignette" eskil={false} offset={0.15} darkness={0.8} />);
     }
     return e;
-  }, [bloomIntensity, chromaticOffset, noiseOpacity, performanceTier, reactive?.vignetteDarkness]);
+  }, [intensityMultiplier, noiseOpacity, performanceTier]);
 
   if (performanceTier === "low" || effects.length === 0) return null;
 
   return (
-    <EffectComposer multisampling={performanceTier === "high" ? 8 : 0}>
+    // 4x MSAA: 8x on top of mipmap bloom was the single heaviest GPU cost on
+    // the "high" tier, with no visible gain behind bloom + vignette.
+    <EffectComposer ref={composerRef} multisampling={performanceTier === "high" ? 4 : 0}>
       {effects}
     </EffectComposer>
-  );
-}
-
-function HoloMap({ curve, progress, theme }: { curve: CatmullRomCurve3, progress: number, theme: VisualizerTheme }) {
-  const styles = getTheme(theme);
-  const safeProgress = Number.isFinite(progress) ? Math.max(0, Math.min(progress, 1)) : 0;
-  const dotPosition = useMemo(() => {
-    const point = curve.getPointAt(safeProgress);
-    return isFiniteVector3(point) ? point : new Vector3(0, 0, 0);
-  }, [curve, safeProgress]);
-
-  const tubeGeo = useMemo(() => {
-    const geo = new TubeGeometry(curve, 64, 2.5, 8, true);
-    sanitizeGeometry(geo);
-    return geo;
-  }, [curve]);
-
-  return (
-    <group position={[0, 1.2, 1.5]} rotation={[-Math.PI / 4, 0, 0]} scale={0.012}>
-      {/* Tactical Border for Map */}
-      <mesh position={[0, 0, -6]}>
-        <planeGeometry args={[160, 160]} />
-        <meshBasicMaterial color={styles.lineColor} wireframe transparent opacity={0.1} />
-      </mesh>
-
-      {/* Mini Route Path - Glowing Neon */}
-      <mesh geometry={tubeGeo}>
-        <meshStandardMaterial
-          color={styles.lineColor}
-          emissive={styles.lineColor}
-          emissiveIntensity={10}
-          transparent
-          opacity={0.8}
-        />
-      </mesh>
-
-      {/* Rider Position Dot - High Intensity Flare */}
-      <mesh position={dotPosition}>
-        <sphereGeometry args={[10, 16, 16]} />
-        <meshBasicMaterial color="#ffffff" />
-        <pointLight intensity={50} color={styles.lineColor} distance={100} />
-      </mesh>
-
-      {/* Background Plate - Deep Glass */}
-      <mesh position={[0, 0, -5]}>
-        <planeGeometry args={[150, 150]} />
-        <meshBasicMaterial color={styles.lineColor} transparent opacity={0.05} side={2} />
-      </mesh>
-    </group>
   );
 }
 
@@ -635,100 +651,6 @@ function BeatFlare({ progress, beatProgress, color }: { progress: number, beatPr
         <meshBasicMaterial color={color} transparent opacity={0.2} />
       </mesh>
       <pointLight position={[0, 5, 0]} intensity={intensity / 10} color={color} distance={40} />
-    </group>
-  );
-}
-
-function HoloHUD({
-  stats,
-  theme,
-  curve,
-  progressRef,
-}: {
-  stats: RiderStats;
-  theme: VisualizerTheme;
-  curve: CatmullRomCurve3;
-  // Accept a ref so position updates from Scene's useFrame are always fresh
-  // even when Scene hasn't triggered a React re-render.
-  progressRef: MutableRefObject<number>;
-}) {
-  const styles = getTheme(theme);
-  const groupRef = useRef<Group>(null);
-  // Local throttled state for the HTML progress bar (~10fps is plenty for text)
-  const [displayProgress, setDisplayProgress] = useState(0);
-
-  // Throttle progress text via interval, not useFrame (r3f-no-state-in-use-frame).
-  useEffect(() => {
-    setDisplayProgress(progressRef.current);
-    const id = setInterval(() => setDisplayProgress(progressRef.current), 100);
-    return () => clearInterval(id);
-  }, []);
-
-  useFrame((state) => {
-    if (!groupRef.current) return;
-    const breathe = Math.sin(state.clock.elapsedTime * 2.5) * 0.08;
-    groupRef.current.position.y = 1.9 + breathe;
-    groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.4) * 0.08;
-  });
-
-  return (
-    <group ref={groupRef} position={[0, 1.9, -1.8]}>
-      {/* Background Vision Pro Glass Panel */}
-      <mesh rotation={[0, 0, 0]}>
-        <planeGeometry args={[2.4, 1.6]} />
-        <meshBasicMaterial
-          color={styles.lineColor}
-          transparent
-          opacity={0.08}
-          side={2}
-        />
-      </mesh>
-
-      {/* Diegetic Outer Glow */}
-      <mesh rotation={[0, 0, 0]} position={[0, 0, -0.01]}>
-        <planeGeometry args={[2.5, 1.7]} />
-        <meshBasicMaterial color={styles.lineColor} transparent opacity={0.05} />
-      </mesh>
-
-      {/* Mini-Map Integration */}
-      <HoloMap curve={curve} progress={displayProgress} theme={theme} />
-
-      <Html transform distanceFactor={5.5} position={[0, 0.2, 0.02]} scale={0.1} zIndexRange={[5, 0]}>
-        <div className="flex flex-col items-center justify-center p-6 min-w-[380px] select-none pointer-events-none bg-black/40 backdrop-blur-3xl rounded-3xl border border-white/10">
-          <div className="flex items-center gap-10 mb-6">
-            <div className="text-center">
-              <div className="text-[14px] font-black uppercase tracking-[0.4em] text-white/40 mb-1">Power</div>
-              <div className="text-[72px] font-black leading-none text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">{stats.power}<span className="text-[24px] ml-1 opacity-40 font-bold">W</span></div>
-            </div>
-            <div className="w-[2px] h-16 bg-white/10 rounded-full" />
-            <div className="text-center">
-              <div className="text-[14px] font-black uppercase tracking-[0.4em] text-white/40 mb-1">Cadence</div>
-              <div className="text-[72px] font-black leading-none text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">{stats.cadence}<span className="text-[24px] ml-1 opacity-40 font-bold">RPM</span></div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between w-full border-t border-white/5 pt-5">
-            <div className="flex flex-col items-start gap-1">
-              <span className="text-[10px] uppercase text-white/40 font-black tracking-[0.3em]">Neural Progress</span>
-              <div className="flex items-center gap-3">
-                <div className="h-1.5 w-32 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-white/40 rounded-full" style={{ width: `${displayProgress * 100}%` }} />
-                </div>
-                <span className="text-[20px] text-white font-black">{(displayProgress * 100).toFixed(1)}%</span>
-              </div>
-            </div>
-            {stats.hr > 0 && (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 backdrop-blur-xl">
-                <span className="text-[14px] font-black text-rose-400 uppercase tracking-tighter">♥ {stats.hr} BPM</span>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 text-[8px] font-mono text-white/20 uppercase tracking-[0.5em] w-full text-center">
-             System Node: Active-0xSui
-          </div>
-        </div>
-      </Html>
     </group>
   );
 }
@@ -755,10 +677,19 @@ function RiderMarker({
   intervalPhase?: IntervalPhase | null;
 }) {
   const groupRef = useRef<Group>(null);
+  const rigRef = useRef<Group>(null);
   const styles = getTheme(theme);
 
-  const auraRef = useRef<Mesh>(null);
+  const haloRef = useRef<Mesh>(null);
   const lightRef = useRef<PointLight>(null);
+
+  // Live values for useFrame without re-subscribing.
+  const statsRef = useRef(stats);
+  const reactiveRef = useRef(reactive);
+  useEffect(() => {
+    statsRef.current = stats;
+    reactiveRef.current = reactive;
+  }, [stats, reactive]);
 
   // PR celebration: prBeaten is sticky once set (app/hooks/ride/use-pr-pursuit),
   // so edge-trigger a ~4.5s celebrate window rather than pose-locking the rider.
@@ -781,88 +712,139 @@ function RiderMarker({
   });
   const activeClip = AVATAR_CLIP_BY_STATE[characterState];
 
-  useFrame((state) => {
+  // A skinned (Mint) avatar with no user-picked equipment rides the
+  // procedural bike with IK-driven legs. Picked equipment / static avatars
+  // keep the legacy presentation.
+  const rideProceduralBike = !equipment && !!avatar?.clips?.length;
+
+  // Crank phase + wheel angle, advanced from live cadence each frame.
+  const pedalPhaseRef = useRef(0);
+  const wheelAngleRef = useRef(0);
+  const leanRef = useRef(0);
+  const cadenceRef = useRef(0);
+  const poseCyclist = useCyclistPose(rigRef, pedalPhaseRef, leanRef);
+
+  // Road deck height along the curve. Road is an ExtrudeGeometry whose
+  // profile Y (0 → 0.5) runs along the curve's Frenet binormal, so the
+  // upper deck face sits max(0, 0.5·binormal.y) above the centreline.
+  const deckFrames = useMemo(() => curve.computeFrenetFrames(400, true), [curve]);
+  const scratch = useRef({ point: new Vector3(), tangent: new Vector3(), look: new Vector3() });
+
+  useFrame((state, delta) => {
     if (!groupRef.current) return;
 
     const progress = progressRef.current;
-    const point = curve.getPointAt(progress);
-    const tangent = curve.getTangentAt(progress);
+    const { point, tangent, look } = scratch.current;
+    curve.getPointAt(progress, point);
+    curve.getTangentAt(progress, tangent);
 
     // Guard against NaN positions from degenerate curves
     if (isNaN(point.x) || isNaN(point.y) || isNaN(point.z)) return;
 
-    // Update position
     groupRef.current.position.copy(point);
-    // Lift slightly above road
-    groupRef.current.position.y += equipment?.type === "vehicle" ? 2.5 : 1.5;
+    if (rideProceduralBike) {
+      const i = Math.min(deckFrames.binormals.length - 1, Math.max(0, Math.round(progress * 400)));
+      const by = deckFrames.binormals[i]?.y ?? 1;
+      groupRef.current.position.y += Math.max(0, 0.5 * by) + BIKE_DECK_OFFSET;
+    } else {
+      // Legacy presentation (picked equipment / static avatar).
+      groupRef.current.position.y += equipment?.type === "vehicle" ? 2.5 : 1.5;
+    }
 
     // getTangentAt can return NaN independently of getPointAt near a closed
     // curve's near-zero-length segments (most likely right at ride start,
     // where progress sits close to the wrap boundary). Feeding a NaN tangent
     // into lookAt() sets a NaN rotation quaternion, which NaN-poisons this
     // group's world matrix — and <Trail> below samples that world position
-    // every frame, baking the NaN into its geometry (visible as a burst of
-    // THREE.BufferGeometry NaN warnings that self-heals once progress moves
-    // off the degenerate value).
+    // every frame, baking the NaN into its geometry.
     if (Number.isFinite(tangent.x) && Number.isFinite(tangent.y) && Number.isFinite(tangent.z)) {
-      const lookAt = point.clone().add(tangent);
-      groupRef.current.lookAt(lookAt);
+      // lookAt() takes a WORLD-space target, but curve points are in the
+      // route group's space (offset [0,-10,0]). Passing the local point aimed
+      // the rider at a spot ~10 units overhead and pitched it almost
+      // vertical — the root of the "floating man".
+      look.copy(point).add(tangent);
+      groupRef.current.parent?.localToWorld(look);
+      groupRef.current.lookAt(look);
     }
 
-    // Reactive pulsing
-    if (auraRef.current) {
-      let pulse = 1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.2;
-      // World reactivity: aura scales with effort + phase
-      if (reactive) {
-        pulse *= reactive.riderAuraScale;
-      }
-      auraRef.current.scale.set(pulse, pulse, pulse);
+    // Pedal from live cadence. The keyboard simulator can report power
+    // with 0 rpm between strokes; keep the legs turning while the rider is
+    // clearly putting out effort so motion never freezes mid-ride.
+    const s = statsRef.current;
+    const liveCadence = useTelemetryStore.getState().snapshot.cadence || s.cadence || 0;
+    const wantCadence = isRiding ? (liveCadence > 0 ? liveCadence : s.power > 20 ? 70 : 0) : 0;
+    cadenceRef.current += (wantCadence - cadenceRef.current) * dampFactor(3, delta);
+    const omega = (cadenceRef.current / 60) * Math.PI * 2;
+    pedalPhaseRef.current = (pedalPhaseRef.current + omega * delta) % (Math.PI * 2);
+    // ~2.6 wheel turns per crank turn (mid gear).
+    wheelAngleRef.current = (wheelAngleRef.current + omega * 2.6 * delta) % (Math.PI * 2);
+    // Effort tucks the rider a little lower over the bars.
+    const effortLean = Math.min(0.18, Math.max(0, (s.power - 150) / 1500));
+    leanRef.current += (effortLean - leanRef.current) * dampFactor(2, delta);
+
+    // Ground halo breathes with cadence and effort.
+    const r = reactiveRef.current;
+    if (haloRef.current) {
+      let pulse = 1 + Math.sin(state.clock.elapsedTime * (Math.max(cadenceRef.current, 30) / 15)) * 0.08;
+      if (r) pulse *= Math.min(1.4, r.riderAuraScale);
+      haloRef.current.scale.set(pulse, pulse, pulse);
+      const mat = haloRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = r ? Math.min(0.55, r.riderAuraOpacity * 4) : 0.18 + Math.min(0.3, s.power / 1500);
     }
 
     if (lightRef.current) {
-      let lightIntensity = 5 + (stats.hr / 40) * 5;
-      if (reactive) {
-        lightIntensity = reactive.riderLightIntensity;
-      }
-      lightRef.current.intensity = lightIntensity;
+      lightRef.current.intensity = r ? r.riderLightIntensity : 5 + (s.hr / 40) * 5;
     }
   });
 
-  // Power-reactive trail length
-  const trailLength = Math.min(30, 5 + stats.power / 15);
   const trailColor = reactive ? reactive.riderTrailColor : styles.riderColor;
 
   return (
     <group ref={groupRef}>
-      {/* Immerive 3D HUD that follows the rider */}
-      {showYouLabel && <HoloHUD stats={stats} theme={theme} curve={curve} progressRef={progressRef} />}
+      {/* HoloHUD (glass stats panel + mini-map) used to ride on this group.
+          It sat between the chase camera and the cyclist, and its mini-map
+          point light (intensity 50) bloomed into a white blob over the
+          rider. The bottom ride HUD already shows the same stats. */}
 
-      <Trail
-        width={2 + stats.power / 200}
-        length={trailLength}
-        color={trailColor}
-        attenuation={(t) => t * t}
-      >
-        <Float speed={5} rotationIntensity={0.2} floatIntensity={0.5}>
-          {/* Avatar and Equipment Models */}
+      {/* Light trail from the rear wheel. Fixed integer length + width:
+          drei <Trail> sizes its buffer from length×10, so the old
+          power-derived fractional length produced NaN geometry and
+          "vertex buffer not big enough" errors every frame. */}
+      <Trail width={1.4} length={18} color={trailColor} attenuation={(t) => t * t}>
+        <mesh position={rideProceduralBike ? [0, 0.35, -1.1] : [0, 0, 0]} visible={false}>
+          <boxGeometry args={[0.01, 0.01, 0.01]} />
+          <meshBasicMaterial />
+        </mesh>
+      </Trail>
+
+      {rideProceduralBike && avatar ? (
+        <group ref={rigRef} scale={1.25}>
+          <ProceduralBike
+            phaseRef={pedalPhaseRef}
+            wheelAngleRef={wheelAngleRef}
+            frameColor={styles.lineColor}
+            accentColor={styles.riderColor}
+          />
+          <AnimatedModel
+            url={avatar.modelUrl}
+            clips={avatar.clips}
+            activeClip={activeClip}
+            scale={RIG.characterScale}
+            position={RIG.characterOffset}
+            onAfterUpdate={poseCyclist}
+          />
+        </group>
+      ) : (
+        <group>
           {avatar && (
             <group position={[0, equipment?.type === "bike" ? 0.8 : 0, 0]}>
               {avatar.clips && avatar.clips.length > 0 ? (
-                /* Pipeline-generated rider (Mint): skeletal clips crossfade
-                   by ride state (idle / recovery / PR celebration). */
-                <AnimatedModel
-                  url={avatar.modelUrl}
-                  clips={avatar.clips}
-                  activeClip={activeClip}
-                  scale={1.5}
-                  rotation={[0, Math.PI, 0]}
-                />
+                <AnimatedModel url={avatar.modelUrl} clips={avatar.clips} activeClip={activeClip} scale={1.5} />
               ) : (
-                <Model url={avatar.modelUrl} scale={1.5} rotation={[0, Math.PI, 0]} />
+                <Model url={avatar.modelUrl} scale={1.5} />
               )}
             </group>
           )}
-
           {equipment ? (
             <Model url={equipment.modelUrl} scale={equipment.type === "vehicle" ? 2 : 1.2} />
           ) : avatar ? null : (
@@ -889,29 +871,27 @@ function RiderMarker({
               </mesh>
             </group>
           )}
+        </group>
+      )}
 
-          {/* Pulsing Aura */}
-          <mesh ref={auraRef} rotation={[Math.PI / 2, 0, 0]}>
-            <sphereGeometry args={[2, 32, 32]} />
-            <meshBasicMaterial
-              color={styles.riderColor}
-              transparent
-              opacity={reactive ? reactive.riderAuraOpacity : 0.05 + stats.power / 2000}
-            />
-          </mesh>
+      {/* Effort halo on the road under the bike (was a radius-2 sphere that
+          swallowed the rider from the chase camera). */}
+      <mesh ref={haloRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
+        <ringGeometry args={[1.3, 1.9, 48]} />
+        <meshBasicMaterial color={styles.riderColor} transparent opacity={0.2} depthWrite={false} toneMapped={false} />
+      </mesh>
 
-          <pointLight
-            ref={lightRef}
-            distance={30}
-            intensity={10}
-            color={styles.riderColor}
-          />
-        </Float>
-      </Trail>
+      <pointLight
+        ref={lightRef}
+        position={[0, 2.5, 0]}
+        distance={30}
+        intensity={10}
+        color={styles.riderColor}
+      />
 
       {/* Label — only visible during active ride */}
       {showYouLabel && (
-        <Html position={[0, 4.5, 0]} center transform sprite distanceFactor={12} zIndexRange={[5, 0]} className="pointer-events-none">
+        <Html position={[0, 3.9, 0]} center transform sprite distanceFactor={6} zIndexRange={[5, 0]} className="pointer-events-none">
           <div className="flex flex-col items-center gap-1 pointer-events-none">
             <div className="whitespace-nowrap rounded-full bg-black/70 px-2 py-1 text-[11px] font-bold text-white border border-white/30 shadow-lg">
               YOU
@@ -1003,6 +983,9 @@ function LineInstance({ line, color, reactive = null, stats = { power: 0, cadenc
       } else {
         mat.opacity = baseOpacity;
       }
+    } else {
+      // Line count is fixed now; effort shows as visibility instead.
+      (ref.current.material as THREE.MeshBasicMaterial).opacity = Math.min(0.5, stats.power / 500);
     }
   });
 
@@ -1362,6 +1345,27 @@ function Scene({
   const renderProgressRef = useRef(
     mode === "preview" ? START_OFFSET : mapToCurveProgress(progress),
   );
+  // Steady-speed playback of the ~1Hz store ticks (see progress-interpolator).
+  const interpolatorRef = useRef<ProgressInterpolator | null>(null);
+  if (interpolatorRef.current === null) {
+    interpolatorRef.current = new ProgressInterpolator(progress, 0);
+  }
+  const reducedMotionRef = useRef(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    reducedMotionRef.current = mq.matches;
+    const onChange = () => { reducedMotionRef.current = mq.matches; };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  // Scratch vectors for the chase camera — no per-frame allocations.
+  const camScratch = useRef({
+    up: new Vector3(),
+    side: new Vector3(),
+    look: new Vector3(),
+    target: new Vector3(),
+    back: new Vector3(),
+  });
   // displayProgress drives HTML overlays (BeatMarker labels, ghost positions).
   // Throttled to ~10fps via interval to avoid setState in useFrame (r3f-no-state-in-use-frame).
   const [displayProgress, setDisplayProgress] = useState(0);
@@ -1382,25 +1386,23 @@ function Scene({
       rawProgress = progress;
     }
 
-    const curveProgress = mode === "preview" ? rawProgress : mapToCurveProgress(rawProgress);
-    // Display-only 60fps lerp — keeps rider gliding between 1Hz store ticks.
-    // Store progress (rideProgress) remains the single writer per coordinator Rule 6;
-    // this ref is only for visuals. Snap when close or at finish to avoid lag.
+    // Display-only steady-speed playback between 1Hz store ticks. Store
+    // progress (rideProgress) remains the single writer per coordinator
+    // Rule 6; this ref is only for visuals. Rider AND camera read it, so
+    // they never drift apart.
     if (mode === "preview") {
-      renderProgressRef.current = curveProgress;
+      renderProgressRef.current = rawProgress;
     } else {
-      const prefersReduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (prefersReduced) {
-        renderProgressRef.current = curveProgress;
+      const nowMs = performance.now();
+      const interp = interpolatorRef.current!;
+      if (reducedMotionRef.current || progress >= 1) {
+        interp.snap(progress, nowMs);
       } else {
-        const diff = Math.abs(curveProgress - renderProgressRef.current);
-        if (diff < 0.001 || curveProgress >= 0.999 || progress >= 1) {
-          renderProgressRef.current = curveProgress;
-        } else {
-          renderProgressRef.current = MathUtils.lerp(renderProgressRef.current, curveProgress, 0.08);
-        }
+        interp.push(progress, nowMs);
       }
+      renderProgressRef.current = mapToCurveProgress(interp.sample(nowMs));
     }
+    const curveProgress = renderProgressRef.current;
 
     // --- 2. Beat tracking (no state needed) ---
     storyBeats.forEach((beat, index) => {
@@ -1415,15 +1417,17 @@ function Scene({
     if (rawProgress < 0.01) lastBeatRef.current = -1;
 
     // --- 4. Chase camera ---
+    // Time-based damping (1 - e^(-λ·dt)) so the follow feel is identical at
+    // 30/60/120Hz. λ values reproduce the old per-frame factors at 60fps.
     if (mode !== "preview") {
       const safeCurveP = Number.isFinite(curveProgress)
         ? Math.max(0, Math.min(curveProgress, 1))
         : START_OFFSET;
-      const riderPos = curve.getPointAt(safeCurveP);
+      const riderPos = curve.getPointAt(safeCurveP, camScratch.current.target);
       if (!Number.isFinite(riderPos.x)) return;
       riderPos.y -= 10; // match group offset [0, -10, 0]
 
-      const rawTangent = curve.getTangentAt(safeCurveP);
+      const rawTangent = curve.getTangentAt(safeCurveP, camScratch.current.back);
       // Same class of bug as RiderMarker: getTangentAt can be NaN near a
       // closed curve's near-zero-length segments even when getPointAt is
       // fine. Unlike RiderMarker's self-healing Trail buffer, camera.lerp()
@@ -1433,23 +1437,30 @@ function Scene({
         return;
       }
       const tangent = rawTangent.normalize();
-      const up = Math.abs(tangent.y) > 0.98 ? new Vector3(1, 0, 0) : new Vector3(0, 1, 0);
-      const side = new Vector3().crossVectors(tangent, up).normalize();
+      const { up, side, look } = camScratch.current;
+      if (Math.abs(tangent.y) > 0.98) up.set(1, 0, 0);
+      else up.set(0, 1, 0);
+      side.crossVectors(tangent, up).normalize();
 
-      const lookTarget = riderPos.clone().add(new Vector3(0, 3, 0));
+      // Aim just above/ahead of the rider so the cyclist sits mid-frame,
+      // clear of the bottom HUD.
+      look.copy(riderPos).addScaledVector(tangent, 1.5);
+      look.y += 1.2;
+      // riderPos becomes the camera target: behind, slightly to the side,
+      // above. Closer than before (was 14 back / 10 up) so the cyclist
+      // reads as a person on a bike, not a dot.
       const targetCamPos = riderPos
-        .clone()
-        .add(tangent.clone().multiplyScalar(-14))
-        .add(side.multiplyScalar(3))
-        .add(new Vector3(0, 10, 0));
+        .addScaledVector(tangent, -10)
+        .addScaledVector(side, 2.5);
+      targetCamPos.y += 6.5;
 
-      const lerpSpeed = mode === "ride" ? 0.06 : 0.04;
-      state.camera.position.lerp(targetCamPos, lerpSpeed);
+      const follow = dampFactor(mode === "ride" ? 3.7 : 2.4, delta);
+      state.camera.position.lerp(targetCamPos, follow);
 
       if (!isFiniteVector3(smoothedLookTargetRef.current) || smoothedLookTargetRef.current.lengthSq() === 0) {
-        smoothedLookTargetRef.current.copy(lookTarget);
+        smoothedLookTargetRef.current.copy(look);
       } else {
-        smoothedLookTargetRef.current.lerp(lookTarget, lerpSpeed * 2);
+        smoothedLookTargetRef.current.lerp(look, dampFactor(mode === "ride" ? 7.7 : 5, delta));
       }
       state.camera.lookAt(smoothedLookTargetRef.current);
 
@@ -1461,18 +1472,21 @@ function Scene({
         } else {
           targetFov = 60 + Math.min(25, (stats.power / 400) * 20);
         }
-        cam.fov = MathUtils.lerp(cam.fov, targetFov, 0.05);
-        cam.updateProjectionMatrix();
+        const nextFov = MathUtils.lerp(cam.fov, targetFov, dampFactor(3, delta));
+        if (Math.abs(nextFov - cam.fov) > 0.001) {
+          cam.fov = nextFov;
+          cam.updateProjectionMatrix();
+        }
       }
 
       if (stats.power > 350) {
         const shake = Math.min(1, (stats.power - 350) / 450);
         const rawShake = (Math.random() - 0.5) * shake * 0.08;
         _shakeTargetVec.current.set(rawShake, rawShake * 0.5, 0);
-        smoothedShakeRef.current.lerp(_shakeTargetVec.current, 0.15);
+        smoothedShakeRef.current.lerp(_shakeTargetVec.current, dampFactor(9.8, delta));
       } else {
         _shakeTargetVec.current.set(0, 0, 0);
-        smoothedShakeRef.current.lerp(_shakeTargetVec.current, 0.1);
+        smoothedShakeRef.current.lerp(_shakeTargetVec.current, dampFactor(6.3, delta));
       }
       state.camera.position.x += smoothedShakeRef.current.x;
       state.camera.position.y += smoothedShakeRef.current.y;
@@ -1480,8 +1494,9 @@ function Scene({
       // Subtle mouse parallax — offsets camera based on pointer for depth perception
       mouseParallaxRef.current.targetX = state.pointer.x * 1.5;
       mouseParallaxRef.current.targetY = state.pointer.y * 0.8;
-      mouseParallaxRef.current.x += (mouseParallaxRef.current.targetX - mouseParallaxRef.current.x) * 0.04;
-      mouseParallaxRef.current.y += (mouseParallaxRef.current.targetY - mouseParallaxRef.current.y) * 0.04;
+      const parallax = dampFactor(2.45, delta);
+      mouseParallaxRef.current.x += (mouseParallaxRef.current.targetX - mouseParallaxRef.current.x) * parallax;
+      mouseParallaxRef.current.y += (mouseParallaxRef.current.targetY - mouseParallaxRef.current.y) * parallax;
       state.camera.position.x += mouseParallaxRef.current.x;
       state.camera.position.y += mouseParallaxRef.current.y;
     }
@@ -1496,10 +1511,13 @@ function Scene({
     }
   });
 
-  // Adaptive particle count based on quality
+  // Adaptive particle count based on quality. Counts are FIXED per quality
+  // tier: drei <Sparkles>/<SpeedLines> reallocate their buffers whenever
+  // `count` changes, and deriving it from live power rebuilt them on almost
+  // every telemetry commit. Effort is expressed through size/speed/opacity.
   const particleCount = quality?.particleCount || 200;
-  const sparkleCount = Math.min(particleCount, 30 + Math.floor(stats.power / 4));
-  const speedLineCount = quality?.particleCount ? Math.min(50, Math.floor(stats.power / 5)) : 0;
+  const sparkleCount = Math.min(particleCount, 120);
+  const speedLineCount = quality?.particleCount ? 30 : 0;
 
   return (
     <>
@@ -1557,7 +1575,9 @@ function Scene({
 
           {/* Flow golden particles — scale with tier */}
           <Sparkles
-            count={flowTier * 200}
+            // Fixed count: a tier-derived count reallocated the buffers on
+            // every tier change ("vertex buffer not big enough" warnings).
+            count={400}
             scale={80}
             size={Math.min(3, 1 + flowTier * 0.3)}
             speed={0.5 + flowTier * 0.3}
@@ -1655,6 +1675,7 @@ export default function RouteVisualizer({
   flowTier = 0,
   contextPalette,
   paused = false,
+  active = true,
 }: {
   elevationProfile?: number[];
   theme?: VisualizerTheme;
@@ -1674,6 +1695,8 @@ export default function RouteVisualizer({
   contextPalette?: ContextPalette;
   /** Freeze the render loop after first frame (visual-test determinism). */
   paused?: boolean;
+  /** False while this layer is hidden (2D view on top) — no frames rendered. */
+  active?: boolean;
 }) {
   const adaptiveQuality = useAdaptiveQuality();
 
@@ -1744,11 +1767,13 @@ export default function RouteVisualizer({
           dpr={effectiveQuality.pixelRatio}
           // "never" freezes the loop entirely — used by the visual harness
           // so Playwright can capture a stable frame for screenshot diffs.
-          frameloop={paused ? "never" : "demand"}
+          // Inactive (hidden behind 2D) also stops the loop — otherwise the
+          // invisible scene keeps rendering post-processing at full rate.
+          frameloop={paused || !active ? "never" : "demand"}
           performance={{ min: 0.5 }}
         >
           <CanvasContextLossHandler />
-          {mode === "ride" && !paused && <FrameRateLimiter fps={effectiveQuality.fps} />}
+          {mode === "ride" && !paused && active && <FrameRateLimiter fps={effectiveQuality.fps} />}
           <Scene
             elevationProfile={elevationProfile}
             theme={theme}
