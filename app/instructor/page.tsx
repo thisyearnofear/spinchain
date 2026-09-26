@@ -118,6 +118,19 @@ export default function InstructorPage() {
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <a
+            href="/instructor/agent"
+            className="group rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 transition-colors hover:border-amber-500/50"
+          >
+            <span className="mb-4 block text-3xl">⚡</span>
+            <h3 className="mb-2 font-semibold text-[color:var(--foreground)]">
+              Coach-Built Class
+            </h3>
+            <p className="text-sm text-[color:var(--muted)]">
+              Pick a goal — your coach composes the route, intervals, and cues. Ride it in under a minute.
+            </p>
+          </a>
+
+          <a
             href="/routes/builder"
             className="group rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/50 p-6 transition-colors hover:border-[color:var(--accent)]/50"
           >

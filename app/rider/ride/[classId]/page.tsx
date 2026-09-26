@@ -40,8 +40,8 @@ import { useHaptic } from "../../../hooks/use-haptic";
 import {
   type WorkoutPlan,
   PHASE_TO_THEME,
-  PRESET_WORKOUTS,
 } from "../../../lib/workout-plan";
+import { resolveRideWorkoutPlan } from "@/app/lib/agent/resolve-ride-plan";
 import { SectionErrorBoundary } from "../../../components/layout/error-boundary";
 import { useRideKeyboard } from "@/app/hooks/ride/use-ride-keyboard";
 import { useRideAnalytics } from "@/app/hooks/ride/use-ride-analytics";
@@ -218,7 +218,16 @@ export default function LiveRidePage() {
   }, [panelState.state.mobileRideWidgets]);
 
   // ─── Workout Plan ──────────────────────────────────────────────
-  const [workoutPlan] = useState<WorkoutPlan | null>(() => PRESET_WORKOUTS[1]);
+  // The plan travels with the class: an explicit ?plan=<presetId> param,
+  // a coach-built class stored for this classId, or the default preset.
+  const [workoutPlan] = useState<WorkoutPlan | null>(() =>
+    resolveRideWorkoutPlan(
+      classId,
+      typeof window === "undefined"
+        ? null
+        : new URLSearchParams(window.location.search),
+    ),
+  );
   const agentName = classData?.instructor || "Coach";
   const aiPersonality = classData?.metadata?.ai?.personality;
   const [rewardMode] = useState<RewardMode>("zk-batch");

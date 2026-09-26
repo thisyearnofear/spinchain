@@ -751,7 +751,10 @@ export interface EnhancedClassMetadata {
     distance: number; // km
     duration: number; // minutes
     elevationGain: number; // meters
-    theme: "neon" | "alpine" | "mars";
+    // Theme registry name (app/lib/themes/registry.ts). Built-ins are
+    // "neon" | "alpine" | "mars"; data-driven remote themes added via
+    // Supabase are equally valid — unknown names fall back to "neon".
+    theme: string;
     checksum: string;
     storyBeatsCount: number;
     terrainTags?: string[];
@@ -832,7 +835,7 @@ export function createClassMetadata(params: {
   walrusBlobId: string;
   aiEnabled: boolean;
   aiPersonality: "zen" | "drill-sergeant" | "data";
-  routeTheme?: "neon" | "alpine" | "mars";
+  routeTheme?: string;
   avatarId?: string;
   equipmentId?: string;
   worldId?: string;

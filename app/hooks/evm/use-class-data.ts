@@ -612,7 +612,8 @@ export interface PracticeClassOptions {
     distance: number;
     duration: number;
     elevationGain: number;
-    theme: "neon" | "alpine" | "mars";
+    // Theme registry name; unknown names fall back to "neon" at render.
+    theme: string;
     storyBeatsCount: number;
   };
   instructorAddress: string;

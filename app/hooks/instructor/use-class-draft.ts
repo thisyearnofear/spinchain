@@ -122,6 +122,16 @@ export function clearStoredInstructorClassDraft() {
   clearStoredDraft();
 }
 
+/**
+ * Seed the instructor builder with a prefilled draft (e.g. from the
+ * coach-built class page). The builder restores this on its next mount.
+ */
+export function saveInstructorClassDraftFormData(
+  formData: InstructorClassDraftFormData,
+): void {
+  writeStoredDraft({ version: 1, savedAt: Date.now(), status: "draft", formData });
+}
+
 export function isInstructorClassDraftComplete(
   formData: InstructorClassDraftFormData,
 ) {

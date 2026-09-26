@@ -12,7 +12,8 @@ interface RouteInfo {
   coordinates?: Array<{ lat: number; lng: number }>;
   distance?: number;
   duration?: number;
-  theme?: "neon" | "alpine" | "mars";
+  /** Theme registry name; unknown names fall back to neon at render. */
+  theme?: string;
   terrainTags?: string[];
 }
 
