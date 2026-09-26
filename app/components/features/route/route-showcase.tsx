@@ -1,10 +1,12 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { m, useScroll, useTransform } from "framer-motion";
 import { AnimatedCard } from "@/app/components/ui/animated-card";
 import { useClasses } from "@/app/hooks/evm/use-class-data";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
+import { worldImageFor } from "@/app/lib/themes/theme-images";
+import { VISUALIZER_THEMES } from "@/app/components/features/route/visualizer-theme";
 import Link from "next/link";
 
 const DIFFICULTY_THRESHOLDS = [
@@ -28,26 +30,13 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   Extreme: "bg-red-500/20 text-red-400 border-red-500/30",
 };
 
-const THEME_IMAGES: Record<string, string> = {
-  mountain: "/images/routes/route-mountain.jpg",
-  neon: "/images/routes/route-city.jpg",
-  alpine: "/images/routes/route-mountain.jpg",
-  mars: "/images/routes/route-forest.jpg",
-  city: "/images/routes/route-city.jpg",
-  coastal: "/images/routes/route-coastal.jpg",
-  forest: "/images/routes/route-forest.jpg",
-  group: "/images/routes/route-group.jpg",
-};
-
 // Demo content shown when no on-chain classes exist
 const DEMO_CLASSES = [
   {
     name: "Alpine Dawn",
     description: "Climb through misty mountain passes as the sun breaks through. A test of endurance with breathtaking views.",
-    image: "/images/routes/route-mountain.jpg",
     difficulty: "Hard",
     duration: "45 min",
-    distance: "18 km",
     elevation: "+420m",
     theme: "mountain" as const,
     instructor: "SpinChain Coaching",
@@ -55,10 +44,8 @@ const DEMO_CLASSES = [
   {
     name: "Neon Grid Sprint",
     description: "High-intensity intervals through a cyberpunk cityscape. Sync your effort to the beat.",
-    image: "/images/routes/route-city.jpg",
     difficulty: "Medium",
     duration: "30 min",
-    distance: "12 km",
     elevation: "+80m",
     theme: "city" as const,
     instructor: "SpinChain Coaching",
@@ -66,10 +53,8 @@ const DEMO_CLASSES = [
   {
     name: "Coastal Cruise",
     description: "Gentle rolling hills along the ocean. Perfect for recovery or beginners.",
-    image: "/images/routes/route-coastal.jpg",
     difficulty: "Easy",
     duration: "60 min",
-    distance: "25 km",
     elevation: "+150m",
     theme: "coastal" as const,
     instructor: "SpinChain Coaching",
@@ -78,6 +63,7 @@ const DEMO_CLASSES = [
 
 function RouteCard({ route, index }: { route: typeof DEMO_CLASSES[0]; index: number }) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const [imageFailed, setImageFailed] = useState(false);
   const { scrollYProgress } = useScroll({
     target: cardRef,
     offset: ["start end", "end start"],
@@ -87,6 +73,9 @@ function RouteCard({ route, index }: { route: typeof DEMO_CLASSES[0]; index: num
   const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.9, 1, 1, 0.9]);
   const isEven = index % 2 === 0;
+
+  const world = worldImageFor(route.theme);
+  const sky = VISUALIZER_THEMES[world.theme];
 
   return (
     <m.div
@@ -98,21 +87,34 @@ function RouteCard({ route, index }: { route: typeof DEMO_CLASSES[0]; index: num
       <div className={`relative aspect-[16/10] rounded-3xl overflow-hidden ${isEven ? "" : "lg:col-start-2"}`}>
         <AnimatedCard className="h-full" glowColor="var(--accent)">
           <div className="relative h-full overflow-hidden">
-            <m.div className="absolute inset-0" style={{ y: imageY }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={route.image}
-                alt={route.name}
-                className="w-full h-[120%] object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).src = "/images/routes/route-mountain.jpg"; }}
-              />
-            </m.div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            <div className="absolute bottom-4 left-4">
-              <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur text-xs text-white/80 border border-white/10 capitalize">
-                {route.theme}
-              </span>
-            </div>
+            {/* Theme-tinted tile — honest fallback when world art is missing */}
+            <div
+              className="absolute inset-0"
+              style={{ background: `linear-gradient(180deg, ${sky.skyTop}, ${sky.skyBottom})` }}
+            />
+            {!imageFailed && (
+              <m.div className="absolute inset-0" style={{ y: imageY }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={world.src}
+                  alt={route.name}
+                  className="w-full h-[120%] object-cover"
+                  onError={() => setImageFailed(true)}
+                />
+              </m.div>
+            )}
+            {imageFailed && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur text-xs text-white/80 border border-white/10">
+                    {world.label}
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur text-xs text-white/60 border border-white/10 uppercase tracking-wider">
+                    {world.theme}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </AnimatedCard>
       </div>
@@ -122,6 +124,9 @@ function RouteCard({ route, index }: { route: typeof DEMO_CLASSES[0]; index: num
         <div className="flex items-center gap-3">
           <span className={`px-3 py-1 rounded-full text-xs font-medium border ${DIFFICULTY_COLORS[route.difficulty]}`}>
             {route.difficulty}
+          </span>
+          <span className="px-3 py-1 rounded-full text-xs font-medium border bg-[color:var(--surface-strong)] text-[color:var(--muted)] border-[color:var(--border)]">
+            {world.label}
           </span>
         </div>
 
@@ -135,14 +140,10 @@ function RouteCard({ route, index }: { route: typeof DEMO_CLASSES[0]; index: num
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div className="p-4 rounded-2xl bg-[color:var(--surface-strong)] border border-[color:var(--border)]">
             <p className="text-2xl font-bold text-[color:var(--foreground)]">{route.duration}</p>
             <p className="text-xs text-[color:var(--muted)] uppercase tracking-wider">Duration</p>
-          </div>
-          <div className="p-4 rounded-2xl bg-[color:var(--surface-strong)] border border-[color:var(--border)]">
-            <p className="text-2xl font-bold text-[color:var(--foreground)]">{route.distance}</p>
-            <p className="text-xs text-[color:var(--muted)] uppercase tracking-wider">Distance</p>
           </div>
           <div className="p-4 rounded-2xl bg-[color:var(--surface-strong)] border border-[color:var(--border)]">
             <p className="text-2xl font-bold text-[color:var(--foreground)]">{route.elevation}</p>
@@ -175,30 +176,14 @@ function RouteCard({ route, index }: { route: typeof DEMO_CLASSES[0]; index: num
 
 export function RouteShowcase() {
   const { classes: liveClasses } = useClasses();
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-  });
-
-  const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
 
   // Use live on-chain classes when available; fall back to demo classes
   const isDemoMode = liveClasses.length === 0;
 
   return (
-    <section ref={containerRef} className="relative">
-      {/* Fixed Progress Bar */}
-      <div className="fixed top-0 left-0 right-0 h-1 bg-[color:var(--surface-strong)] z-50">
-        <m.div
-          className="h-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-strong)]"
-          style={{ width: progressWidth }}
-        />
-      </div>
-
+    <section className="relative">
       {/* Header */}
-      <div className="text-center mb-20">
+      <div className="text-center mb-12">
         <m.span
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -230,7 +215,7 @@ export function RouteShowcase() {
       </div>
 
       {/* Routes */}
-      <div className="space-y-32">
+      <div className="space-y-20">
         {isDemoMode
           ? DEMO_CLASSES.map((route, index) => (
               <RouteCard key={route.name} route={route} index={index} />
@@ -245,10 +230,8 @@ export function RouteShowcase() {
               const displayRoute = {
                 name: cls.name,
                 description: meta?.description ?? "A SpinChain class ride.",
-                image: THEME_IMAGES[clsRoute?.theme ?? "mountain"] ?? "/images/routes/route-mountain.jpg",
                 difficulty,
                 duration: `${clsRoute?.duration ?? meta?.duration ?? 30} min`,
-                distance: `${clsRoute?.distance ?? 15} km`,
                 elevation: `+${clsRoute?.elevationGain ?? 0}m`,
                 theme: (clsRoute?.theme ?? "mountain") as typeof DEMO_CLASSES[0]["theme"],
                 instructor: meta?.instructor ?? "SpinChain Coaching",
@@ -262,7 +245,7 @@ export function RouteShowcase() {
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="text-center mt-32"
+        className="text-center mt-16"
       >
         <Link
           href="/routes"

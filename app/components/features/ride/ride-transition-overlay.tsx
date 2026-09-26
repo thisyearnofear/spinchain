@@ -24,6 +24,7 @@
 import { useEffect, useState, useRef } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { useSensoryStore } from "@/app/stores/sensory-store";
+import { worldImageFor } from "@/app/lib/themes/theme-images";
 import { haptic } from "@/app/hooks/use-haptic";
 import {
   playCountdownTickSfx,
@@ -596,19 +597,7 @@ function phaseColor(phase?: string): string {
   return map[phase] ?? "#fbbf24";
 }
 
-/** Map class route theme → existing public route thumbnail assets. */
+/** Map class route theme → world art (shared map; unknown themes fall back to neon). */
 export function routeThumbnailForTheme(theme?: string | null): string {
-  switch ((theme ?? "").toLowerCase()) {
-    case "alpine":
-      return "/images/routes/route-forest.jpg";
-    case "mars":
-      return "/images/routes/route-group.jpg";
-    case "anime":
-      return "/images/routes/route-coastal.jpg";
-    case "rainbow":
-      return "/images/routes/route-mountain.jpg";
-    case "neon":
-    default:
-      return "/images/routes/route-city.jpg";
-  }
+  return worldImageFor(theme).src;
 }

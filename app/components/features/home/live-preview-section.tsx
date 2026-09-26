@@ -188,7 +188,7 @@ function SprintIgnitionPreview() {
         onClick={() => setPaused((p) => !p)}
         aria-pressed={paused}
         aria-label={paused ? "Play preview animation" : "Pause preview animation"}
-        className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white/80 backdrop-blur transition-colors hover:text-white"
+        className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white/80 backdrop-blur transition-colors hover:text-white"
       >
         {paused ? <Play className="h-4 w-4 fill-current" /> : <Pause className="h-4 w-4 fill-current" />}
       </button>
