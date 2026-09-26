@@ -311,7 +311,47 @@ Create a Supabase project, run `app/lib/supabase/schema.sql`, then set:
 
 Without these, persistence/auth silently fall back to localStorage.
 
+### Deployment Storage Rules
+
+SpinChain is heavy on purpose (in-browser UltraHonk + Three/Rive). Deployment Storage on Vercel is **retained build output × number of deployments**. Hobby keeps the latest 10 production deployments forever; every extra deploy multiplies cost.
+
+**Rules (do not break):**
+
+1. **ZK proving is browser-only.** Never import `@aztec/bb.js`, `@noir-lang/noir_js`, or `app/lib/zk/noir-prover` from API routes, Server Components, server actions, or Node scripts that run on Vercel. Load via dynamic `import()` behind a `window` check (see `app/lib/zk/noir-prover.ts`).
+2. **Do not put Noir/bb into serverless Functions.** `next.config.ts` uses `outputFileTracingExcludes` so native `bb.js/build/**` and related paths cannot land in lambdas. If you add a server import by mistake, fix the import — do not “fix” it by bundling natives.
+3. **Prefer Preview over Production.** Ship work-in-progress on Preview URLs. Promote to Production when you intentionally want a new live alias. Avoid rapid `--prod` / push-to-main spam.
+4. **Batch before promoting.** Multiple commits → one production deploy when possible. Aim for **≤ a few production deploys per day**, not dozens.
+5. **Keep rollback history short.** Retention is already 30 days (Hobby max). Periodically prune old Preview and non-aliased Production deployments; keep roughly the latest **10 production** + a handful of Preview. Live aliases (`spinchain.vercel.app`) must stay.
+6. **Do not grow `public/` with large media.** Prefer remote/CDN (e.g. Blob) for big videos/archives. Circuit JSON in `public/circuits/` stays small; Rive WASM (~1.8 MB) is expected.
+7. **Exclude non-app trees from upload.** `.vercelignore` must keep `contracts/`, circuit sources, Rive sources, mobile, and reports out of the deploy upload/cache noise.
+8. **Accept the client ZK payload.** Browser Barretenberg (~8 MB) + Noir WASM (~3 MB) are product cost of in-browser proving. Do not move proving to a Vercel Function to “save” static size — that would blow Functions Storage and cold starts.
+
+**Expected size profile (order of magnitude):**
+
+| Piece | Approx | Where it lives |
+|---|---|---|
+| Barretenberg (bb.js browser) | ~8 MB | Client static chunks |
+| Noir WASM | ~3 MB | Client static |
+| Three / R3F | ~1–2 MB | Client chunks |
+| `public/` (Rive WASM, GLBs, images) | ~5 MB | Static assets |
+| `@aztec/bb.js` native `build/` | ~126 MB | **Must never** ship to Functions |
+
+**When Usage → Deployment Storage spikes for `spinchain`:**
+
+1. Check deploy count (`vercel ls spinchain`) — prune old Preview / non-aliased Production first.
+2. Open a recent deployment → Resources — confirm no `@aztec/bb.js/build` in Functions.
+3. Only then change app code (lazy Three routes, defer prover init until first claim).
+
+**Agent / contributor checklist before merging deploy-touching changes:**
+
+- [ ] No new server-side imports of Noir/bb
+- [ ] Large new assets justified or offloaded from `public/`
+- [ ] Production deploy is intentional (not every WIP push)
+- [ ] Tracing excludes still cover `node_modules/@aztec/bb.js/build/**`
+
 ---
+
+
 
 ## 6. Mobile App
 

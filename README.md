@@ -60,7 +60,7 @@ Open [http://localhost:3000](http://localhost:3000)
 | [WEDGE](docs/WEDGE.md) | The wedge: effort → visual transformation. Feature discipline, guardrails, anti-examples. **Read first.** |
 | [IMPLEMENTATION-PLAN](docs/IMPLEMENTATION-PLAN.md) | Phased tasks with files, sizes, deadlines. Maps to wedge guardrails. |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Blockchain infrastructure, engine architecture, adaptive UX, ride experience, transitions, Yellow Network. |
-| [OPERATIONS](docs/OPERATIONS.md) | Local setup, deployment, testing, production roadmap, current product state. |
+| [OPERATIONS](docs/OPERATIONS.md) | Local setup, deployment, testing, production roadmap, current product state. Includes **Deployment Storage Rules** (Vercel prune / ZK client-only). |
 | [DEMO](docs/DEMO.md) | 3-minute pitch script (standalone). |
 
 ---

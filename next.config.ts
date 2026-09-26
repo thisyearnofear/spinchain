@@ -8,12 +8,35 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  // ZK proving is browser-only (see docs/OPERATIONS.md §5). Keep packages
+  // external on the server so a mistaken SSR import does not bundle them.
   serverExternalPackages: [
     "@noir-lang/noir_js",
     "@aztec/bb.js",
     "@noir-lang/acvm_js",
     "@noir-lang/noirc_abi",
   ],
+  // Safety net: never trace native bb binaries / non-app trees into lambdas.
+  // @aztec/bb.js/build alone is ~126MB across arches.
+  outputFileTracingExcludes: {
+    "*": [
+      "node_modules/@aztec/bb.js/build/**",
+      "node_modules/@aztec/bb.js/dest/node/**",
+      "node_modules/@aztec/bb.js/dest/node-cjs/**",
+      "node_modules/@aztec/bb.js/src/**",
+      "node_modules/@noir-lang/**",
+      "contracts/**",
+      "circuits/**",
+      "rive/**",
+      "ios/**",
+      "android/**",
+      "mobile/**",
+      "playwright-report/**",
+      "test-results/**",
+      "tests/**",
+      "**/*.map",
+    ],
+  },
   experimental: {
   },
   turbopack: {},

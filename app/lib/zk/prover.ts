@@ -3,7 +3,9 @@
 
 import type { ProofInput, ProofOutput, ZKProof, CircuitType, SelectiveDisclosure } from './types';
 import { CIRCUIT_CONFIGS } from './types';
-import { getNoirProver, NoirProver } from './noir-prover';
+// Dynamic import only — keeps @aztec/bb.js / noir out of the static graph until
+// first real prove (see docs/OPERATIONS.md §5 Deployment Storage Rules).
+import type { NoirProver } from './noir-prover';
 import { ZK_CONFIG } from "@/app/config";
 
 // Prover backend interface
@@ -115,6 +117,7 @@ export class ZKProver {
 
   private async tryInitializeNoir(): Promise<void> {
     try {
+      const { getNoirProver } = await import('./noir-prover');
       this.noirBackend = await getNoirProver();
       this.useNoir = this.noirBackend.isAvailable();
       console.log(`[ZKProver] Using ${this.useNoir ? 'Noir' : 'Mock'} backend`);

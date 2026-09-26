@@ -1,29 +1,42 @@
-# Vercel deployment exclusions — non-runtime payloads only.
-# Runtime copies of circuits and Rive assets live under public/ and are
-# deliberately NOT excluded (public/circuits, public/rive are preserved).
+# Shrink deploy upload / build-cache noise. Runtime assets that the app needs
+# must live under public/ or be imported by the Next app — not listed here.
+# See docs/OPERATIONS.md §5 (Deployment Storage Rules).
 
-# Git metadata
-/.git/
+# Smart contracts / Foundry
+contracts/
 
-# Local build / dependency caches
-/node_modules/
-/.next/
-/out/
-/tsconfig.tsbuildinfo
+# Circuit sources (runtime uses public/circuits/*.json only)
+circuits/
 
-# Test artifacts
-/coverage/
-/playwright-report/
-/test-results/
+# Rive design sources (runtime uses public/rive/*)
+rive/
 
-# Documentation and tests (not part of the runtime bundle)
-/docs/
-/tests/
+# Mobile / Capacitor
+ios/
+android/
+mobile/
 
-# Native mobile project
-/ios/
+# Test & report artifacts
+playwright-report/
+test-results/
+coverage/
+tests/
+**/*.spec.ts
+**/*.spec.tsx
+**/*.test.ts
+**/*.test.tsx
 
-# Root source-only directories (runtime copies live under public/)
-/contracts/
-/circuits/
-/rive/
+# Local / editor
+.next/
+.turbo/
+.vscode/
+.idea/
+*.md
+!README.md
+docs/
+
+# Keep scripts/ — postinstall (copy-rive-wasm) runs on Vercel install
+*.log
+.env*
+!.env.example
+!.env.local.template
