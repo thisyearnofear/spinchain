@@ -60,8 +60,9 @@ describe("agent class store", () => {
 
 describe("resolveRideWorkoutPlan", () => {
   it("prefers an explicit ?plan= preset param", () => {
-    const plan = resolveRideWorkoutPlan("any-class", params({ plan: "climb-45" }));
+    const { plan, source } = resolveRideWorkoutPlan("any-class", params({ plan: "climb-45" }));
     expect(plan.id).toBe("climb-45");
+    expect(source).toBe("preset");
   });
 
   it("uses the coach-built plan stored for the classId", () => {
@@ -77,24 +78,27 @@ describe("resolveRideWorkoutPlan", () => {
       themeName: composed.themeName,
       plan: composed.plan,
     });
-    const plan = resolveRideWorkoutPlan("agent-42", params({}));
+    const { plan, source } = resolveRideWorkoutPlan("agent-42", params({}));
     expect(plan.id).toBe(composed.plan.id);
     expect(plan.totalDuration).toBe(20 * 60);
+    expect(source).toBe("agent-local");
   });
 
   it("falls back to the historical default preset", () => {
-    const plan = resolveRideWorkoutPlan("no-such-class", params({}));
+    const { plan, source } = resolveRideWorkoutPlan("no-such-class", params({}));
     expect(plan.id).toBe(PRESET_WORKOUTS[1].id);
+    expect(source).toBe("default");
   });
 
   it("ignores unknown preset ids and keeps resolving", () => {
-    const plan = resolveRideWorkoutPlan("no-such-class", params({ plan: "nope-99" }));
+    const { plan, source } = resolveRideWorkoutPlan("no-such-class", params({ plan: "nope-99" }));
     expect(plan.id).toBe(PRESET_WORKOUTS[1].id);
+    expect(source).toBe("default");
   });
 
   it("falls back when no window (server render)", () => {
     delete (globalThis as Record<string, unknown>).window;
-    const plan = resolveRideWorkoutPlan("agent-42", null);
+    const { plan } = resolveRideWorkoutPlan("agent-42", null);
     expect(plan.id).toBe(PRESET_WORKOUTS[1].id);
   });
 });

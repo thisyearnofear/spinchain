@@ -4,12 +4,13 @@
  * The agent builder writes the composed class here and the ride page
  * resolves its workout plan from it. This mirrors how the instructor
  * builder hands off drafts via localStorage (see use-class-draft.ts) and
- * carries the same caveat: it is the unprovisioned path. Durable storage
- * for composed classes needs a Supabase `classes`/`class_plans` table —
- * flagged as a provisioning follow-up, not built here.
+ * carries the same caveat: it is the fast local path. The durable layer
+ * is the Supabase classes table (app/lib/classes/class-store.ts) — this
+ * store stays as the instant, offline-capable handoff.
  */
 
 import { isClient } from "@/app/lib/utils";
+import { parseWorkoutPlan } from "@/app/lib/classes/class-store";
 import type { WorkoutPlan } from "@/app/lib/workout-plan";
 import type { ClassGoal, CoachPersonality } from "./class-composer";
 
@@ -62,23 +63,6 @@ function pruneAgentClasses(): void {
   }
 }
 
-function isValidPlan(plan: unknown): plan is WorkoutPlan {
-  if (!plan || typeof plan !== "object") return false;
-  const candidate = plan as Partial<WorkoutPlan>;
-  return (
-    typeof candidate.id === "string" &&
-    Array.isArray(candidate.intervals) &&
-    candidate.intervals.length > 0 &&
-    candidate.intervals.every(
-      (interval) =>
-        interval &&
-        typeof interval.durationSeconds === "number" &&
-        interval.durationSeconds > 0 &&
-        typeof interval.phase === "string",
-    )
-  );
-}
-
 export function loadAgentClass(classId: string): StoredAgentClass | null {
   if (!isClient()) return null;
   try {
@@ -86,7 +70,7 @@ export function loadAgentClass(classId: string): StoredAgentClass | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<StoredAgentClass>;
     if (parsed.version !== 1 || parsed.classId !== classId) return null;
-    if (!isValidPlan(parsed.plan)) return null;
+    if (!parseWorkoutPlan(parsed.plan)) return null;
     return parsed as StoredAgentClass;
   } catch {
     return null;

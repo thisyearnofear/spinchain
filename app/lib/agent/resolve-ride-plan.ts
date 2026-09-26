@@ -2,9 +2,10 @@
  * Resolve the workout plan for a ride (Phase 3).
  *
  * Priority: explicit ?plan=<presetId> query param → coach-built class
- * stored for this classId → the historical default preset. Before
- * Phase 3 the ride page hardcoded PRESET_WORKOUTS[1] for every class;
- * the plan now travels with the class.
+ * stored locally for this classId → the historical default preset.
+ * A "default" result means nothing was found locally; the caller should
+ * try the durable remote store (Supabase classes table) and swap the
+ * plan in if a record arrives before the ride starts.
  */
 
 import {
@@ -14,18 +15,25 @@ import {
 } from "@/app/lib/workout-plan";
 import { loadAgentClass } from "./agent-class-store";
 
+export type RidePlanSource = "preset" | "agent-local" | "default";
+
+export interface ResolvedRidePlan {
+  plan: WorkoutPlan;
+  source: RidePlanSource;
+}
+
 export function resolveRideWorkoutPlan(
   classId: string,
   searchParams: Pick<URLSearchParams, "get"> | null,
-): WorkoutPlan {
+): ResolvedRidePlan {
   const presetId = searchParams?.get("plan");
   if (presetId) {
     const preset = getPresetWorkout(presetId);
-    if (preset) return preset;
+    if (preset) return { plan: preset, source: "preset" };
   }
 
   const agentClass = loadAgentClass(classId);
-  if (agentClass) return agentClass.plan;
+  if (agentClass) return { plan: agentClass.plan, source: "agent-local" };
 
-  return PRESET_WORKOUTS[1];
+  return { plan: PRESET_WORKOUTS[1], source: "default" };
 }
