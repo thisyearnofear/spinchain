@@ -66,6 +66,11 @@ jobs:
       - name: Install Rive CLI
         run: curl -fsSL https://releases.rive.app/cli/install.sh | bash
 
+      # The CLI links against EGL for headless rendering; ubuntu-latest
+      # doesn't ship it (libEGL.so.1: cannot open shared object file).
+      - name: Install EGL libraries
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgles2
+
       # Offline, no login needed: --verify/--once/--screenshot/--data-dump
       # never touch the network. Mirrors `pnpm rive:verify` without node.
       - name: Verify all Rive projects
