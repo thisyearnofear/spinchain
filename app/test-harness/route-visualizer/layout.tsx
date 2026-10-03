@@ -8,3 +8,7 @@ export const metadata: Metadata = {
   title: "Test Harness",
   robots: { index: false, follow: false },
 };
+
+export default function TestHarnessLayout({ children }: { children: React.ReactNode }) {
+  return children;
+}
