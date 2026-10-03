@@ -252,10 +252,10 @@ export default function RiderPage() {
         <GamificationBar />
 
         {/* 2. Hero — personalized greeting */}
-        <RiderHero initialGreeting={heroGreeting} weeklyLoad={weeklyLoad} />
+        <RiderHero initialGreeting={heroGreeting} weeklyLoad={weeklyLoad} hasRides={totalRides > 0} />
 
         {/* 3. ONE Primary CTA — the dominant action */}
-        <PrimaryCTA isConnected={isConnected} nextClassName={nextClassName} />
+        <PrimaryCTA isConnected={isConnected} nextClassName={nextClassName} hasRides={totalRides > 0} />
 
         {/* 4. Browse All Classes — collapsed by default, pushed below the fold */}
         <div id="classes" className="scroll-mt-8">
@@ -390,10 +390,10 @@ export default function RiderPage() {
           <div className="flex items-end justify-between">
             <div>
               <h2 className="text-2xl font-black text-[color:var(--foreground)] tracking-tighter">
-                Meet your coaches
+                Find the voice that pushes you
               </h2>
               <p className="text-sm text-[color:var(--muted)] font-medium">
-                AI-powered coaches to match your goals.
+                Pick a coach for your next ride.
               </p>
             </div>
           </div>
@@ -446,8 +446,9 @@ export default function RiderPage() {
           </div>
         </section>
 
-        {/* Guest Mode Banner — wallet secondary, below fold; primary demo CTA is PrimaryCTA above */}
-        {!isConnected && (
+        {/* Guest Mode Banner — only for first-timers. Returning guests get
+            the connect-wallet primary CTA above, so a second prompt is noise. */}
+        {!isConnected && totalRides === 0 && (
           <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur">
             <div className="flex items-center gap-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-white/50">

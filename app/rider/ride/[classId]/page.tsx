@@ -15,6 +15,7 @@ import { usePanelState } from "../../../hooks/ui/use-panel-state";
 import { useRideTutorial } from "../../../components/features/ride/ride-tutorial";
 import { RideLoading, RideNotFound } from "../../../components/features/ride/ride-loading";
 import { RideVisualization } from "../../../components/features/ride/ride-visualization";
+import { EffortDelightOverlay } from "../../../components/features/ride/effort-delight-overlay";
 import { useSwipeGesture } from "@/app/hooks/ride/use-swipe-gesture";
 import {
   useDeviceType,
@@ -692,6 +693,8 @@ export default function LiveRidePage() {
           onHaptic={haptic.trigger}
           flowTier={flow.flowTier}
         />
+        {/* Wedge delight: sprint beam + flow unlock, DOM-only, no WebGL cost */}
+        <EffortDelightOverlay flowTier={flow.flowTier} />
       </SectionErrorBoundary>
 
       {/* ─── Coach channel (replaces full-screen overlay) ─────────── */}

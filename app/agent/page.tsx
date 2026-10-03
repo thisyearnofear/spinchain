@@ -3,7 +3,7 @@
 import { useMemo, Suspense } from "react";
 import Link from "next/link";
 import { CoachProfile } from "./coach-profile";
-import { ArrowLeft, BarChart3, Users } from "lucide-react";
+import { ArrowLeft, Users } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
 export default function AgentPage() {
@@ -61,19 +61,27 @@ function AgentPageContent() {
         <div className="mx-auto w-full max-w-7xl px-6 py-12 lg:px-8">
           <div className="mb-12">
             <h1 className="text-4xl font-bold tracking-tight text-[color:var(--foreground)] sm:text-6xl">
-              Build a coach riders remember.
+              Meet your coach.
               <span className="mt-2 block text-lg font-medium tracking-normal text-[color:var(--accent)]">
-                Tune personality, pacing, and presence — then let it guide every ride.
+                A voice that knows when to push and when to ease off.
               </span>
             </h1>
             <p className="mt-4 max-w-2xl text-lg text-[color:var(--muted)]">
-              Create an AI coaching persona that adapts to each rider in real time,
-              delivers the right cue at the right moment, and scales your teaching
-              without losing your voice.
+              Pick a coaching voice for your next ride — encouraging,
+              analytical, or relentless. It reads your effort live and cues
+              you at the right moment.
             </p>
+            <div className="mt-6">
+              <Link
+                href="/rider"
+                className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent)] px-6 py-3 text-sm font-bold text-black transition-[transform,background-color] duration-150 hover:bg-[color:var(--accent-strong)] active:scale-95"
+              >
+                Ride with this coach
+              </Link>
+            </div>
           </div>
 
-          <div className="grid gap-12 lg:grid-cols-2">
+          <div className="max-w-2xl">
             <section className="space-y-6">
               <div className="flex items-center gap-3 border-b border-[color:var(--border)] pb-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400">
@@ -99,31 +107,6 @@ function AgentPageContent() {
               />
             </section>
 
-            <section className="space-y-6">
-              <div className="flex items-center gap-3 border-b border-[color:var(--border)] pb-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/20 text-pink-400">
-                  <BarChart3 className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-pink-400">
-                    Class Economics
-                  </h2>
-                  <p className="text-[10px] text-[color:var(--muted)]">
-                    Demand-based pricing for instructors
-                  </p>
-                </div>
-              </div>
-              <p className="text-sm text-[color:var(--muted)]">
-                As a class fills up, the price adjusts automatically — higher when
-                seats are scarce, lower to fill the last few spots. Riders get fair
-                pricing; you get predictable revenue.
-              </p>
-              <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6">
-                <p className="text-sm text-[color:var(--muted)]">
-                  Pricing simulator coming soon.
-                </p>
-              </div>
-            </section>
           </div>
         </div>
       </div>

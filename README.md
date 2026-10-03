@@ -2,7 +2,7 @@
 
 SpinChain is a Next.js + Capacitor prototype for AI-assisted spin classes, dual-chain reward settlement experiments, and privacy-preserving fitness telemetry.
 
-Current state: testnet/demo stage, live on Vercel at https://spinchain.vercel.app/. The app is not ready for general users yet.
+Current state: testnet/demo stage, live on Vercel at https://spinchain.vercel.app/ (redeployed 2026-10-03). The app is not ready for general users yet.
 
 ---
 
@@ -41,15 +41,15 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## Status
 
-- Launch readiness: not ready (testnet stage; live Vercel build is stale — redeploy pending)
+- Launch readiness: not ready (testnet stage; live at https://spinchain.vercel.app/, redeployed 2026-10-03 with new Supabase keys + delight overlay)
 - Network posture: Avalanche Fuji + Sui testnet
 - ZK proofs: real Noir circuit (`effort_threshold`) with Barretenberg/UltraHonk backend generates browser-side ZK proofs; on-chain verifier deployed to Fuji
 - Demo data: gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (off by default) — production shows only real on-chain classes and real telemetry/leaderboard data
 - UI polish: tabular-nums on all live HUD numbers, mobile HUD tap-to-expand restored, reduced-motion support app-wide, landing mousemove no longer re-renders React
 - Reward path: chunked ZK batch claims wired with real on-chain verification; Chainlink CRE fallback documented (pending Early Access)
 - Builder flow: unified into single progressive builder (wizard removed); wallet connection prompted at publish step
-- Verification: build + lint + 132 unit tests green; browser-level E2E still missing
-- Persistence: Supabase code complete; **instance not yet provisioned** (falls back to localStorage until env vars are set)
+- Verification: build + lint + 245 unit tests green; wedge-guard E2E added (landing/rider CTA + rider-language); full wallet→claim browser E2E still missing
+- Persistence: Supabase provisioned + migrated to new publishable/secret keys (legacy deactivation pending in dashboard); falls back to localStorage until env vars are set
 
 ---
 
@@ -73,13 +73,12 @@ Open [http://localhost:3000](http://localhost:3000)
 - [ ] Add coverage and operational validation for chunked ZK reward claims — gas benchmarks done; browser-level E2E of the full claim loop still missing
 - [ ] Add reliable verification gates and release checklists — CI has lint/typecheck/test; needs E2E + a release checklist runbook
 
-**Remaining blockers (2026-08-17):**
+**Remaining blockers (2026-10-03):**
 
-1. **Redeploy Vercel from current HEAD** — the live deployment is stale (pre-`bfa6d6c6e`) and still ships the broken `@noir-lang/backend_barretenberg` import, causing `[NoirProver] Initialization failed` for every user starting a ride. Current code uses `@aztec/bb.js` and is verified to build.
-2. **Provision Supabase** — create project, run `app/lib/supabase/schema.sql`, set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` locally and on Vercel. Without it, ride history/profiles/homework/auth silently fall back to localStorage.
-3. **E2E happy-path tests** — wallet connect → class join → ride → ZK proof → claim; Supabase auth (nonce → sign → JWT); API routes.
-4. **Chainlink CRE** — blocked on Early Access approval; ZK path works independently, not a launch blocker.
-5. **Testnet soft-launch** — validate the full loop with real users on Fuji/Sui testnet.
+1. **Deactivate legacy Supabase keys** — new publishable/secret keys live on Vercel production and verified; remove `anon`/`service_role` in dashboard (Settings > API Keys) after one real ride-save against prod. Add the 3 new vars to Preview env if preview deploys are used.
+2. **E2E happy-path tests** — wedge-guard spec covers landing/rider CTAs; still missing wallet connect → class join → ride → ZK proof → claim; Supabase auth (nonce → sign → JWT); API routes.
+3. **Chainlink CRE** — blocked on Early Access approval; ZK path works independently, not a launch blocker.
+4. **Testnet soft-launch** — validate the full loop with real users on Fuji/Sui testnet (7/10 "want again" without mentioning rewards).
 
 ## Security
 

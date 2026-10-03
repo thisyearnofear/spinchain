@@ -33,7 +33,6 @@ import {
 } from "@/app/lib/analytics/ghost-service";
 import { useMindbodySync } from "@/app/hooks/integrations/use-mindbody-sync";
 import { useSpinPack } from "@/app/hooks/evm/use-spin-pack";
-import { RidePreviewBadge } from "@/app/components/features/common/yellow-status-indicator";
 import { useLiveTelemetry } from "@/app/hooks/common/use-live-telemetry";
 import { DEMO_MODE } from "@/app/config";
 
@@ -213,16 +212,28 @@ export default function InstructorLivePage() {
           <PrimaryNav />
         </div>
 
-        <RidePreviewBadge />
-
         {/* Header with Live Status */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 bg-red-500/20 border border-red-500/30 px-3 py-1 rounded-full">
-                <span className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">
-                  {rideActive ? "Live Session" : "Preview Mode"}
+              <div
+                className={`flex items-center gap-1.5 border px-3 py-1 rounded-full ${
+                  rideActive
+                    ? "bg-red-500/20 border-red-500/30"
+                    : "bg-white/5 border-white/10"
+                }`}
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    rideActive ? "bg-red-500 animate-pulse" : "bg-white/20"
+                  }`}
+                />
+                <span
+                  className={`text-[10px] font-black uppercase tracking-widest ${
+                    rideActive ? "text-red-400" : "text-white/40"
+                  }`}
+                >
+                  {rideActive ? "Live Session" : "Standby"}
                 </span>
               </div>
               <Tag className="bg-indigo-500/10 border-indigo-500/20 text-indigo-400">
@@ -821,31 +832,18 @@ export default function InstructorLivePage() {
             </GlassCard>
           </div>
 
-          {/* SpinPack Ticket Management — Preview */}
+          {/* SpinPack ticket management — only shown once the contract is live */}
+          {spinPack.isDeployed && (
           <div className="mt-8">
             <GlassCard className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <SectionHeader
                   eyebrow="On-chain Tickets"
-                  title="SpinPack ERC-1155"
+                  title="SpinPack Tickets"
                   description="Create ticket packs and let riders purchase on-chain."
                 />
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-purple-400/60">Preview</span>
-                  <Ticket className="w-5 h-5 text-purple-400" />
-                </div>
+                <Ticket className="w-5 h-5 text-purple-400" />
               </div>
-
-              {!spinPack.isDeployed && (
-                <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-400" />
-                    <span className="text-xs text-amber-300">
-                      Ticket pack contract is in preview. The UI is fully built — contract deployment coming soon.
-                    </span>
-                  </div>
-                </div>
-              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                 <div className="p-3 rounded-xl bg-white/5 border border-white/10">
@@ -995,6 +993,7 @@ export default function InstructorLivePage() {
               </div>
             </GlassCard>
           </div>
+          )}
         </div>
       </main>
     </div>

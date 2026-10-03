@@ -20,9 +20,11 @@ const RiveRider = dynamic(
 export function RiderHero({
   initialGreeting,
   weeklyLoad,
+  hasRides = false,
 }: {
   initialGreeting?: string;
   weeklyLoad?: WeeklyLoad;
+  hasRides?: boolean;
 }) {
   const fatigued = weeklyLoad?.fatigued ?? false;
   const { prs } = useRiderStats();
@@ -36,10 +38,14 @@ export function RiderHero({
   const avgReward = prs.bestSpin > 0 ? `${prs.bestSpin.toFixed(0)} SPIN` : "—";
 
   const stats: { icon: LucideIcon; label: string; value: string; title?: string }[] = [
-    { icon: Bike, label: "Active Routes", value: activeRoutes.toString() },
+    // Never advertise an empty platform — a "0 Active Routes" card tells a
+    // returning rider the product is dead. Real count only.
+    ...(activeRoutes > 0
+      ? [{ icon: Bike, label: "Active Routes", value: activeRoutes.toString() }]
+      : []),
     { icon: Users, label: "AI Coaches", value: aiCoaches.toString() },
     { icon: Zap, label: "Best Effort", value: prs.bestEffort > 0 ? `${prs.bestEffort}` : "—" },
-    { icon: TrendingUp, label: "Top Reward", value: avgReward, title: "SPIN is the token your effort earns on SpinChain." },
+    { icon: TrendingUp, label: "Top Reward", value: avgReward, title: "Your best single-ride reward." },
   ];
 
   return (
@@ -125,6 +131,10 @@ export function RiderHero({
               )}
             </m.p>
 
+            {/* Tertiary links — first-timers only. Returning riders already
+                have one primary CTA + the class browser below; more links
+                here compete with the next step instead of serving it. */}
+            {!hasRides && (
             <m.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -146,6 +156,7 @@ export function RiderHero({
                 Host a class
               </a>
             </m.div>
+            )}
           </div>
 
           {/* Right: Live stats */}

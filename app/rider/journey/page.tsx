@@ -228,26 +228,17 @@ function JourneyContent() {
 
         {isCompletedLanding && (
           <div
-            className={`flex items-center justify-between gap-4 rounded-2xl px-6 py-4 ${chipToneClasses("emerald")}`}
+            className={`flex items-center gap-4 rounded-2xl px-6 py-4 ${chipToneClasses("emerald")}`}
           >
-            <div className="flex items-center gap-3">
-              <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <div>
-                <p className="text-sm font-semibold">
-                  Ride complete — part of your story now.
-                </p>
-                <p className="mt-1 text-sm opacity-80">
-                  Your latest ride has been added to your journey history.
-                </p>
-              </div>
+            <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-semibold">
+                Ride complete — part of your story now.
+              </p>
+              <p className="mt-1 text-sm opacity-80">
+                Your latest ride has been added to your journey history.
+              </p>
             </div>
-            <Link
-              href="/rider"
-              className="flex items-center gap-2 rounded-xl border border-emerald-500/30 px-4 py-2 text-sm font-semibold transition-colors hover:bg-emerald-500/10 whitespace-nowrap"
-            >
-              <Bike className="h-4 w-4" aria-hidden="true" />
-              Ride Again
-            </Link>
           </div>
         )}
 
@@ -379,11 +370,17 @@ function JourneyContent() {
                       </span>
                     </div>
                     <p className="mt-2 text-[10px] text-white/40 font-medium">
-                      SPIN — the token your effort earns.
+                      SPIN — what your effort earns.
                     </p>
-                    <p className="mt-2 text-[10px] text-white/40 font-medium">
-                      Claim your rewards from each ride&apos;s summary screen right after you finish.
-                    </p>
+                    {claimableSpin > 0 ? (
+                      <p className="mt-2 text-[10px] font-bold text-yellow-400/90">
+                        {claimableSpin.toFixed(1)} SPIN verified and ready.
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-[10px] text-white/40 font-medium">
+                        Rewards are claimed from each ride&apos;s finish screen.
+                      </p>
+                    )}
                   </div>
 
                   <div className="p-5 rounded-3xl bg-black/40 border border-white/5">

@@ -1,8 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SECRET_KEY;
+// Own session-signing secret for wallet auth fallback tokens (HMAC-SHA256).
+// Deliberately NOT Supabase's JWT secret — our tokens are ours to sign.
+// Generate: openssl rand -hex 32
+const SESSION_SECRET = process.env.SESSION_SECRET;
 
 export interface SessionPayload {
   address: string;
@@ -94,12 +97,12 @@ export async function createSession(
     // WARNING: This is NOT a full JWT. Use a proper JWT library in production.
     const payload: SessionPayload = { address: address.toLowerCase(), role, exp };
     const payloadB64 = btoa(JSON.stringify(payload));
-    if (JWT_SECRET) {
-      const signature = await hmacSign(JWT_SECRET, payloadB64);
+    if (SESSION_SECRET) {
+      const signature = await hmacSign(SESSION_SECRET, payloadB64);
       return `${payloadB64}.${signature}`;
     }
-    // Without JWT_SECRET, we cannot sign — log a warning
-    console.warn("[auth] SUPABASE_JWT_SECRET not set — session tokens are unsigned!");
+    // Without SESSION_SECRET, we cannot sign — log a warning
+    console.warn("[auth] SESSION_SECRET not set — session tokens are unsigned!");
     return payloadB64;
   }
 
@@ -119,18 +122,18 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
     const parts = token.split(".");
     let payloadB64: string;
 
-    if (parts.length === 2 && JWT_SECRET) {
+    if (parts.length === 2 && SESSION_SECRET) {
       // Signed token — verify HMAC
       const [payloadPart, signature] = parts;
-      const expectedSignature = await hmacSign(JWT_SECRET, payloadPart);
+      const expectedSignature = await hmacSign(SESSION_SECRET, payloadPart);
       if (signature !== expectedSignature) {
         return null; // Signature mismatch — token tampered
       }
       payloadB64 = payloadPart;
     } else if (parts.length === 1) {
-      // Legacy unsigned token — only accept if no JWT_SECRET configured
-      if (JWT_SECRET) {
-        console.warn("[auth] Rejecting unsigned token when JWT_SECRET is configured");
+      // Legacy unsigned token — only accept if no SESSION_SECRET configured
+      if (SESSION_SECRET) {
+        console.warn("[auth] Rejecting unsigned token when SESSION_SECRET is configured");
         return null;
       }
       payloadB64 = token;
@@ -148,7 +151,7 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
 }
 
 /**
- * HMAC-SHA256 sign a message using the JWT secret.
+ * HMAC-SHA256 sign a message using the session secret.
  * Uses Web Crypto API (available in Edge Runtime).
  */
 async function hmacSign(secret: string, message: string): Promise<string> {

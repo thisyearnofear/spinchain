@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { PrimaryNav } from "../components/layout/nav";
 import { BulletList, SectionHeader, SurfaceCard, Tag } from "../components/ui/ui";
 import RouteVisualizer, {
@@ -40,10 +41,10 @@ export default function RoutesPage() {
         <SurfaceCard
           eyebrow="Route Worlds"
           title="Turn GPX routes into immersive class worlds"
-          description="Every class can ship with a cinematic narrative world driven by real elevation or creative prompts. Choose a theme below."
+          description="Every class can ship with a cinematic narrative world driven by real elevation or creative prompts. Choose a theme below — then go ride one."
           className="bg-[color:var(--surface-strong)]"
         >
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             {["neon", "alpine", "mars", "anime", "rainbow"].map((theme) => (
               <button
                 key={theme}
@@ -56,12 +57,18 @@ export default function RoutesPage() {
                 {theme.charAt(0).toUpperCase() + theme.slice(1)}
               </button>
             ))}
+            <Link
+              href="/rider"
+              className="rounded-full bg-[color:var(--accent)] px-4 py-1.5 text-xs font-bold text-black transition-[transform,background-color] hover:bg-[color:var(--accent-strong)] active:scale-95"
+            >
+              Ride a world →
+            </Link>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <BulletList items={worldModes} />
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 text-sm text-[color:var(--foreground)]">
-              Three.js will power the 3D runtime. For MVP we show a narrative
-              preview, then swap in the WebGL scene.
+              The preview above is the real 3D runtime — the same world you
+              ride in class, driven by live effort.
             </div>
           </div>
         </SurfaceCard>
@@ -138,26 +145,21 @@ export default function RoutesPage() {
         </SurfaceCard>
 
         <SurfaceCard
-          eyebrow="Build Path"
-          title="MVP → 3D release"
-          description="Start with GPX parsing + visual preview, then add runtime worlds."
+          eyebrow="World Library"
+          title="Ready to ride today"
+          description="Upload a GPX route or describe one in words — worlds go straight into classes."
         >
           <SectionHeader
-            eyebrow="Phase 1"
-            title="GPX upload + 2D elevation profile"
-            description="Confirm routing data + preview story beats."
+            eyebrow=""
+            title="Build a world"
+            description="Upload a GPX file or describe the ride — preview it live, then save it to a class."
             actions={
-              <>
-                <button className="rounded-full border border-[color:var(--border)] px-5 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)]">
-                  View spec
-                </button>
-                <a
-                  href="/routes/builder"
-                  className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-2 text-sm font-semibold text-[color:var(--foreground)] shadow-lg shadow-indigo-500/20"
-                >
-                  Start world builder
-                </a>
-              </>
+              <a
+                href="/routes/builder"
+                className="rounded-full bg-[linear-gradient(135deg,#6d7cff,#9b7bff)] px-5 py-2 text-sm font-semibold text-[color:var(--foreground)] shadow-lg shadow-indigo-500/20"
+              >
+                Start world builder
+              </a>
             }
           />
         </SurfaceCard>

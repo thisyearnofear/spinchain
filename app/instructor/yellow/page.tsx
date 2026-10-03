@@ -139,14 +139,14 @@ export default function InstructorYellowSettlementsPage() {
         <div className="flex flex-col gap-6 lg:flex-row">
           <div className="flex-1">
             <SurfaceCard
-              eyebrow="Yellow Network"
-              title="Instructor Settlement Hub"
-              description="Co-sign and batch-settle rider rewards via Yellow state channels."
+              eyebrow="Rewards"
+              title="Release rider rewards"
+              description="Review each rider's effort, co-sign, and release rewards in one batch."
               className="bg-[color:var(--surface-strong)]"
             >
               <div className="mt-4 flex flex-wrap gap-2">
                 <Tag>Avalanche Fuji</Tag>
-                <Tag>EIP-712</Tag>
+                <Tag>One-click settle</Tag>
                 <Tag>Batch Processing</Tag>
                 {hasSessionPermission && (
                   <Tag className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
@@ -269,8 +269,8 @@ export default function InstructorYellowSettlementsPage() {
                             </div>
                           </div>
 
-                          {/* Telemetry Sparkline Placeholder */}
-                          <div className="mt-4 flex h-8 items-end gap-0.5 overflow-hidden rounded-lg bg-[color:var(--surface-strong)]/50 px-2 py-1">
+                          {/* Effort sparkline — real heart-rate points from the ride */}
+                          <div className="mt-4 flex h-8 items-end gap-0.5 overflow-hidden rounded-lg bg-[color:var(--surface-strong)]/50 px-2 py-1" title="Heart-rate across the ride">
                             {p.updates.slice(-30).map((u, i) => {
                               const height = Math.min(100, (u.heartRate / 200) * 100);
                               return (
@@ -367,7 +367,7 @@ function clearNodeStatus(connected?: boolean) {
       connected ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
     }`}>
       <span className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
-      ClearNode {connected ? "Live" : "Offline"}
+      Settlement {connected ? "Live" : "Offline"}
     </div>
   );
 }

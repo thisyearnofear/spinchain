@@ -2,7 +2,7 @@
 
 import { useAccount } from "wagmi";
 import Link from "next/link";
-import { Bot, Heart, Map, Sparkles, Zap } from "lucide-react";
+import { Bot, Heart, Map, Zap } from "lucide-react";
 import { PrimaryNav } from "../components/layout/nav";
 import { SurfaceCard, Tag } from "../components/ui/ui";
 import { ConnectWallet } from "../components/features/wallet/connect-wallet";
@@ -74,45 +74,6 @@ export default function InstructorPage() {
             </div>
           </SurfaceCard>
         </section>
-
-        <section className="grid gap-6 lg:grid-cols-2">
-          <SurfaceCard eyebrow="No wallet needed" title="Build and preview first">
-            <ul className="mt-4 space-y-3 text-sm text-[color:var(--muted)]">
-              <li>Explore routes, pricing, and rewards configuration</li>
-              <li>Try a practice run with AI coaching before deploying</li>
-              <li>Everything saves automatically as you go</li>
-            </ul>
-          </SurfaceCard>
-
-          <SurfaceCard eyebrow="When you connect" title="Publish on-chain">
-            <ul className="mt-4 space-y-3 text-sm text-[color:var(--muted)]">
-              <li>Deploy your class as an on-chain contract</li>
-              <li>Track rider signups and earnings in analytics</li>
-              <li>Manage payouts and reward distribution</li>
-            </ul>
-          </SurfaceCard>
-        </section>
-
-        <div className="rounded-3xl border border-dashed border-[color:var(--border)] bg-[color:var(--surface)]/50 p-12 text-center">
-          <Sparkles className="mx-auto mb-6 h-12 w-12 text-[color:var(--accent)]" aria-hidden="true" />
-          <h2 className="mb-3 text-2xl font-semibold text-[color:var(--foreground)]">
-            Ready to build your first class?
-          </h2>
-          <p className="mx-auto mb-6 max-w-md text-[color:var(--muted)]">
-            Start with the class builder. You can connect your wallet whenever you&apos;re ready to publish.
-          </p>
-          <Link
-            href="/instructor/builder"
-            className="inline-flex items-center gap-1 font-semibold text-[color:var(--accent)] hover:underline"
-          >
-            Open Class Builder →
-          </Link>
-          {!isConnected && (
-            <p className="mt-3 text-sm text-[color:var(--muted)]">
-              Optional: connect a wallet to publish when ready
-            </p>
-          )}
-        </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <a

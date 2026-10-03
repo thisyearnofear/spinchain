@@ -48,13 +48,13 @@ pnpm run dev
 
 Open [http://localhost:3210](http://localhost:3210) (dev server is pinned to port 3210)
 
-### Current Status (2026-08-17)
+### Current Status (2026-10-03, verified)
 
-- The app is in testnet/pre-launch stage
-- Demo content gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` — off by default
-- Real Noir ZK circuit deployed: HonkVerifier on Fuji, UltraHonk proving in-browser via `@aztec/bb.js`
-- Supabase code is complete but no instance is provisioned yet — persistence/auth fall back to localStorage
-- Do not treat this repo as production-ready without completing the launch checklist below
+- Testnet/pre-launch. Live at https://spinchain.vercel.app/ (redeployed 2026-10-03 from local HEAD — new Supabase keys, delight overlay, key migration; `pnpm build` green, `/` + `/rider` 200).
+- Demo content gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` — off by default (unset on Vercel, true locally for dev).
+- Real Noir ZK circuit deployed: HonkVerifier on Fuji, UltraHonk proving in-browser via `@aztec/bb.js`.
+- Supabase provisioned (project `spinchain`, schema applied: 8 tables, 19 RLS policies) and migrated to new publishable/secret keys + own `SESSION_SECRET`. Legacy `anon`/`service_role` deactivation pending in dashboard.
+- Missing for users: browser-level E2E of full claim loop, testnet soft-launch validation (10 riders).
 
 ---
 
@@ -304,10 +304,11 @@ NEXT_PUBLIC_REWARD_VERIFICATION_MODE=zk
 
 ### Supabase (Required)
 
-Create a Supabase project, run `app/lib/supabase/schema.sql`, then set:
+Create a Supabase project, run `app/lib/supabase/schema.sql`, then set (Dashboard: Settings > API Keys — new keys, not legacy):
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SECRET_KEY`
+- `SESSION_SECRET` (own random: `openssl rand -hex 32`; signs wallet fallback tokens)
 
 Without these, persistence/auth silently fall back to localStorage.
 
@@ -498,11 +499,11 @@ git commit --no-verify
 
 ### Current State
 
-SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coaching (rule-based + LLM), ZK proof rewards, Walrus-anchored telemetry, on-chain class contracts, Supabase-backed persistence (pending provisioning), instructor-rider loop, and personalized onboarding flow. Codebase is clean (0 TS errors, 20 pre-existing lint warnings in the ride page, 135 tests passing, CI green).
+SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coaching (rule-based + LLM), ZK proof rewards, Walrus-anchored telemetry, on-chain class contracts, Supabase-backed persistence (provisioned + on new API keys), instructor-rider loop, and personalized onboarding flow. Codebase is clean (0 TS errors, 0 errors / ~198 pre-existing lint warnings, 245 tests passing, CI green).
 
-**What's done**: Phases 0–3 complete, real ZK batch claims on Fuji, all 8 EVM contracts deployed + verified, Sui package v2 on testnet, Walrus persistence, ride history/analytics/badges, gym registry + calibration, ghost racing.
+**What's done**: Phases 0–3 complete, real ZK batch claims on Fuji, all 8 EVM contracts deployed + verified, Sui package v2 on testnet, Walrus persistence, ride history/analytics/badges, gym registry + calibration, ghost racing, prod on HEAD (2026-10-03).
 
-**What's missing for users**: Vercel redeploy (live build is stale), Supabase provisioning on Vercel, browser-level E2E tests, testnet soft-launch validation.
+**What's missing for users**: browser-level E2E of the full claim loop, testnet soft-launch validation, legacy Supabase key deactivation.
 
 ### Scale Risks (Must Fix Before Features)
 
@@ -515,8 +516,8 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 
 ### Pre-Launch Checklist
 
-- [x] **Redeploy Vercel from HEAD** — live site ships broken Noir import (`@noir-lang/backend_barretenberg`), causes `[NoirProver] Initialization failed` for every ride start — **done 2026-09-24** (`vercel deploy --prod` from local HEAD `4a90a87`; live at spinchain.vercel.app, happy path verified in-browser). Note: `git push` was blocked (token lacks write scope), so the deploy used the CLI path, not a git push.
-- [x] **Provision Supabase** — create project, run `app/lib/supabase/schema.sql`, set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` on Vercel — **done 2026-09-24** (project `spinchain`, org `snel`, us-east-2; schema applied: 8 tables, 19 RLS policies; 3 env vars set in production+preview; `SUPABASE_JWT_SECRET` still needs manual copy from the dashboard)
+- [x] **Redeploy Vercel from HEAD** — original stale-build Noir init failure fixed 2026-09-24; redeployed again 2026-10-03 (key migration + delight overlay, `pnpm build` green, `/` + `/rider` 200). Note: `git push` was blocked (token lacks write scope), so deploys use the CLI path, not git push.
+- [x] **Finish Supabase key migration** — code migrated 2026-10-03 (no legacy fallback); new publishable + secret keys + `SESSION_SECRET` set on Vercel production and prod redeployed from local HEAD (`pnpm build` green, spinchain.vercel.app 200). Remaining: add the 3 vars to Preview in dashboard if needed, then deactivate legacy anon/service_role keys.
 - [ ] **Verify `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` stays unset on Vercel** (defaults to off; `.env.local` has it true for dev)
 - [ ] **Browser-level E2E tests** — wallet connect → class join → ride → ZK proof → claim; Supabase auth (nonce → sign → JWT); API routes
 - [ ] **Testnet soft-launch validation** — real users through the full loop on Fuji + Sui testnet
@@ -573,11 +574,11 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 ### Not Yet Launch-Ready
 
 - Fully validated production-safe reward settlement (ZK batch claims verified on Fuji; browser-level E2E of the full claim loop still missing)
-- Supabase backend provisioned — schema + client code complete, but no instance/env vars exist yet; persistence silently falls back to localStorage
-- Live Vercel deployment is stale — ships the pre-UltraHonk bundle that fails Noir init; redeploy from HEAD
-- SpinPack ERC-1155 contract is deployed on Fuji, but UI flows around it still carry "Preview" labels
+- New Supabase API keys not yet on Vercel (`PUBLISHABLE`/`SECRET`/`SESSION_SECRET`); persistence silently falls back to localStorage until set, then deactivate legacy keys in dashboard
+- `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` must stay unset on Vercel (defaults off)
+- SpinPack ERC-1155 deployed on Fuji, but UI flows around it still carry "Preview" labels — make real or remove per wedge
 - Finalized launch verification and operational monitoring
-- Demo/mock content is now gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (off by default)
+- Demo/mock content gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (off by default)
 
 ### AI Integration
 

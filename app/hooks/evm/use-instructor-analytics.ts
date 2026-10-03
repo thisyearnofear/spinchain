@@ -209,7 +209,9 @@ export function useInstructorAnalytics(timeRange: "7d" | "30d" | "90d" | "all" =
     
     const engagement: EngagementMetrics = {
       totalRiders,
-      uniqueRiders: realAnalytics?.uniqueRiders ?? Math.max(1, Math.floor(totalRiders * 0.7)),
+      // No fabrication: unknown unique-rider count is 0, not an estimate.
+      // Revenue below remains explicitly estimated ($15 avg) until contracts report.
+      uniqueRiders: realAnalytics?.uniqueRiders ?? 0,
       avgClassSize: completedClasses.length > 0 
         ? totalRiders / completedClasses.length 
         : 0,

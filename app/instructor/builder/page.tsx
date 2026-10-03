@@ -934,16 +934,9 @@ export default function InstructorBuilderPage() {
             </div>
 
             {walrusBlobId && (
-              <div className="group relative mt-6 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-6 backdrop-blur-3xl overflow-hidden">
-                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-cyan-500/10 blur opacity-30"></div>
-                <div className="relative">
-                  <p className="mb-2 text-xs font-black uppercase tracking-widest text-cyan-200/70">Walrus Route Reference</p>
-                  <p className="font-mono text-sm break-all text-cyan-300">{walrusBlobId}</p>
-                  <p className="mt-2 text-xs text-cyan-100/70">
-                    This class is now linked to a real uploaded route blob instead of a placeholder route reference.
-                  </p>
-                </div>
-              </div>
+              <p className="mt-4 text-sm font-medium text-emerald-400" title={`Route reference: ${walrusBlobId}`}>
+                Route saved ✓
+              </p>
             )}
 
             {hash && (
@@ -976,7 +969,7 @@ export default function InstructorBuilderPage() {
           <div className="hidden lg:block">
             <div className="sticky top-10 space-y-6">
               <SurfaceCard
-                eyebrow="Preview"
+                eyebrow="Review"
                 title="Class Summary"
                 className="bg-[color:var(--surface-strong)]"
               >

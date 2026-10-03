@@ -1,63 +1,49 @@
-# SpinChain: The 3-Minute "Digital Ownership" Pitch
+# SpinChain: The 3-Minute "Holy Shit" Demo
 
-## 🎯 The Core Hook (0:00 - 0:45)
-**Slide: "The Extractive Fitness Economy"**
+> **Rule**: This demo sells one thing — effort turns into visual power. No wallet, no ZK, no chain names until minute 2:30. See [WEDGE.md](./WEDGE.md).
 
-> "The $96B fitness industry is built on a model of triple-extraction, and it’s broken for everyone involved:
+## Hook (0:00 - 0:30)
+
+> "Indoor cycling is boring. The screen just sits there. Watch this."
+
+Click **Start Demo Ride — No Wallet Needed**. 3s activation. Pedal (← → keys if no bike).
+
+> "Pedal harder — the world reacts. Road glows, fog thickens, camera widens. That's the whole product."
+
+## Live Ride (0:30 - 2:00)
+
+**Step 1: Sprint = firepower (0:30 - 1:00)**
+> "Sprint. See the beam hold while you hold watts? That's your power made visible. Stop pedaling — it dies. This isn't a video. It's your legs."
+
+**Step 2: Flow = unlock (1:00 - 1:30)**
+> "Hold target for 15 seconds — flow tier rises, visuals multiply 1.5x, music lifts. Consistency unlocks the big VFX. No button. Just discipline."
+
+**Step 3: Milestone = dopamine (1:30 - 2:00)**
+> "First flow minute — badge pops, character fist-pumps, coach remembers it next ride. That's why people come back tomorrow."
+
+## Business (2:00 - 2:40)
+
+> "The demo is free and it's the best part. Freemium converts on fun:"
 >
-> 1. **For Instructors:** They are 'Digital Serfs.' They build 100k-strong communities on Peloton or Instagram, but they own zero equity in that relationship. If the platform changes a line of code, their business dies.
-> 
-> 2. **For Riders:** They are the product. Their most sensitive biometric data—heart rate, power, and effort—is harvested and sold. The rider does the work, the platform gets the data, and the user gets a monthly bill.
+> * Free: demo ride, one world, full delight.
+> * Paid: custom worlds, coach memory, ghosts, history, verified rewards.
 >
-> 3. **For Sponsors:** Brands spend billions on 'blind' social media ads. They have no way to verify if a user actually did the work they are targeting.
->
-> SpinChain is the **Correction Layer**. We use Yellow Network and ZK-Proofs to turn fitness from an extractive platform into a **Sovereign Ownership Protocol** where effort is verified, data is private, and value flows to the people who create it."
+> "Ownership and ZK proofs run in the background — your data stays private, rewards verify on-chain. Important, but never the pitch."
+
+## Wrap (2:40 - 3:00)
+
+> "Zwift maps effort to avatar speed. Peloton's screen is passive. We turn sweat into firepower. Try it — you'll feel it in 30 seconds."
 
 ---
 
-## 🚴 Live Demo: The Ride (0:45 - 2:00)
+## Demo Cheat Sheet
 
-**Step 1: The HUD & Real-Time Rewards**
-> "Look at the HUD. That SPIN balance is a live economic signal. Notice we’re in **Yellow Mode**. 
-> 
-> To make this seamless, we use **Ephemeral Session Keys**. The rider signs once at the start, and the device handles the rest. No MetaMask prompts mid-sprint."
+| If asked | Say |
+|----------|-----|
+| Blockchain? | Avalanche + Sui testnet in background. Ride works without it. |
+| ZK? | Browser-side effort proofs, only `effortScore` revealed. Details in ARCHITECTURE appendix. |
+| Rewards? | SPIN batch claims on Fuji. Free ride first, claim after. |
+| Hardware? | Any BLE bike (IC4/C6/M3i) or keyboard sim. |
 
-**Step 2: The "Yellow" Technical Unlock**
-> "We are streaming micro-rewards off-chain via the **Nitrolite (ERC-7824) Protocol**. Every 10 seconds, we sign a state update with **zero gas** and **instant finality**. 
->
-> Look at the **Sequence Counter** on the HUD. Every tick is a cryptographic proof of effort. In traditional web3, this would cost $10 in gas for a $0.10 reward. With Yellow, it's free, real-time, and settles on-chain in one transaction at the end."
-
-**Step 3: Sovereign Privacy**
-> "If the rider wants total privacy, they toggle **Sovereign Mode**. We prove they hit their 150BPM threshold locally using ZK, and only send the 'Proof of Effort' to the chain. Your heart rate never leaves your device."
-
----
-
-## 📈 The Business Case (2:00 - 2:40)
-
-**The Triple-Moat Platform:**
-*   **For Instructors:** Classes are **Revenue-Bearing NFTs**. To leave SpinChain is to leave their future income behind.
-*   **For Sponsors:** We offer **'Performance-Gated' Marketing**. Brands only pay when a rider hits 160BPM for 30 minutes. This is a 100% efficient ad spend.
-*   **The Killer Stat (Cost):** Processing 1,000 riders at 10Hz on Ethereum L1 costs **$144/session**. On Sui’s parallel engine, it costs **$0.72**. 
-*   **Revenue:** The protocol captures a **2.5% fee** on every settlement, fueling the **Instructor DAO**.
-
----
-
-## 🏁 Wrap-Up (2:40 - 3:00)
-> "SpinChain is the **DePIN for Biometrics**. 
->
-> We have the privacy of Sovereign ZK, the real-time speed of Yellow, and the cost-efficiency of Sui. The $96B fitness industry is being decentralized. Let’s ride."
-
----
-
-## 🛠️ Demo Cheat Sheet (For Technical Q&A)
-
-| Component | Technical Detail |
-| :--- | :--- |
-| **Yellow Protocol** | Nitrolite (ERC-7824) NitroRPC 0.4 |
-| **Authentication** | Ephemeral ECDSA Session Keys (Local) |
-| **State Finality** | EIP-712 Typed Signatures |
-| **Consolidation** | 300+ off-chain updates → 1 on-chain mint |
-
----
 **One-Click Demo URL:**
-`http://localhost:3000/rider/ride/demo?mode=practice&demo=true&auto=true&name=Accelerator+Pitch`
+`https://spinchain.vercel.app/rider/ride/demo?mode=practice&demo=true&auto=true`

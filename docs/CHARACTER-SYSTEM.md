@@ -1,6 +1,7 @@
 # SpinChain Character System
 
-> **Status**: ACTIVE — character, world, and coach decisions reference this document.
+> **Status**: ACTIVE — subordinate to [WEDGE.md](./WEDGE.md). This doc implements wedge delight (effort → visual power), it does not define a second wedge.
+> **Focus**: two curated in-ride moments only — (1) sprint = beam, (2) flow tier 3+ = unlock. Everything else below is parked until 10-rider validation.
 > **Created**: 2026-09-15
 > **See also**: [WEDGE.md](./WEDGE.md) for the core loop, [ARCHITECTURE.md](./ARCHITECTURE.md) for the technical layers.
 
@@ -82,17 +83,20 @@ The character is how outcomes become emotional. These rules keep that honest:
 
 ---
 
-## Roadmap
+## Roadmap — wedge-first (2 moments ship, rest parked)
 
+Foreground (ships with Phase 2 delight):
 - [x] Rive HUD rider v2 (articulated, cadence/effort/phase/PR reactive)
 - [x] Mint 3D avatar with state-driven clips (idle / recovery / celebrate)
-- [x] Post-ride character presence in the completion moment (rider celebrates; coach orb speaks the debrief)
-- [x] Pre-ride character greeting on `/rider`
-- [x] Shared `CharacterState` vocabulary (`app/lib/character-state.ts`), extended with `resolveBetweenRideState` for the between-ride act
-- [x] Between-ride coach arc on the journey page (`lib/journey/coach-arc.ts` + `CoachArcCard`): the coach acknowledges PRs, recovery days, and rest from real history + memory — no readiness scores
-- [x] `ready` (eager pre-ride bounce) and `fatigued` (honest 7-day load → recovery coaching) states
-- [x] Celebration tiers: `finishPulse` for every finish, `prPulse` for PRs
-- [x] Second Mint archetype ("Volt", robot) — parameterized pipeline, earned-unlock proof of concept
-- [ ] World Labs environments — the *world* as mood, generated against the state vocabulary (needs `WLT_API_KEY`; mobile-benchmark the pano tier)
-- [ ] Journey-page character progression (earned cosmetics/clips; recovery-respecting streaks — Volt is the first unlock candidate)
-- [ ] Pedaling clip for the 3D avatar (blocked on Mint's catalog)
+- [x] Post-ride character presence in the completion moment
+- [x] Shared `CharacterState` vocabulary (`app/lib/character-state.ts`)
+- [x] Celebration tiers: `finishPulse` every finish, `prPulse` for PRs only
+
+Parked until 10-rider validation (do not build):
+- [ ] Journey-page character progression (earned cosmetics/clips; Volt as first unlock candidate)
+- [ ] World Labs environments (needs `WLT_API_KEY`; mobile-benchmark first)
+- [ ] Pedaling clip for the 3D avatar (blocked on Mint catalog)
+- [ ] Between-ride coach arc expansion beyond current `CoachArcCard`
+
+Kept (already shipped, no expansion):
+- [x] Pre-ride greeting, `ready`/`fatigued` states, second archetype "Volt"

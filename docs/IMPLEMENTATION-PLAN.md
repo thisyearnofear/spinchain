@@ -43,7 +43,7 @@
 
 ## Phase 2: Perfect The Demo Ride (2–3 weeks)
 
-**Goal**: Make the demo ride the best gamified indoor cycling session anyone has ever experienced. Even with a keyboard.
+**Goal**: Make the demo ride the best gamified indoor cycling session anyone has ever experienced. Even with a keyboard. Delight lives *inside* the ride — see `ARCHITECTURE.md §1` (only two curated moments: sprint=beam, flow=unlock).
 
 ### 2.1 Cut The Demo Ride To Under 30 Seconds
 - **File**: `app/rider/page.tsx` → `getDemoRideUrl()` + `app/rider/ride/[classId]/page.tsx`
@@ -167,41 +167,27 @@
 - **Where to find them**: Local spin studios, cycling communities, Reddit r/spin, r/zwift
 - **Success criteria**: 7/10 say "I want to do this again" without mentioning rewards.
 
-### 5.2 Deploy Vercel From HEAD ✅ DONE 2026-09-24
-- **What**: The live deployment is stale and causes Noir init failures. Redeploy.
-- **Status**: Done — `vercel deploy --prod` from local HEAD (`4a90a87`); happy path verified in-browser at spinchain.vercel.app. `git push` still blocked (token lacks repo write scope).
+### 5.2 Deploy Vercel From HEAD ✅ DONE (re-deployed 2026-10-03)
+- **What**: Keep the live deployment on HEAD.
+- **Status**: Done 2026-09-24 (`4a90a87`) and again 2026-10-03 (key migration + delight overlay, `pnpm build` green, `/` + `/rider` 200). `git push` still blocked (token lacks repo write scope) — deploys use the CLI path.
 
-### 5.3 Provision Supabase ✅ DONE 2026-09-24
+### 5.3 Provision Supabase ✅ DONE (migrated 2026-10-03)
 - **What**: Create project, run schema, set env vars. Without it, all persistence falls back to localStorage.
-- **Status**: Done — project `spinchain` provisioned, `schema.sql` applied, 3 env vars wired to Vercel production+preview. `SUPABASE_JWT_SECRET` pending manual dashboard copy.
+- **Status**: Done — project `spinchain` provisioned, `schema.sql` applied, new publishable/secret keys + `SESSION_SECRET` live on Vercel production and verified; prod redeployed 2026-10-03. Remaining: Preview env (dashboard) + deactivate legacy anon/service_role keys.
 
 ---
 
-## Phase 6: Tooling & Visualization Polish ✅ SHIPPED 2026-09-01
+## Phase 6: Tooling — PARKED (outside the ride)
 
-**Goal**: Make 2D/3D switching discoverable + delightful and lock in agent quality gates.
+**Status**: Parked. `react-doctor` CI gate stays. No new threejs/webgpu skill work until wedge validated with 10 riders. Tooling must not add scope.
 
-### 6.1 Delightful 2D/3D Switching
-- **Commits**: `e6520a0` + `32c4dba` — `ride-visualization.tsx` + `page.tsx` + `gpu-probe.ts` + `enhanced-flow-background.tsx` + `visualization-engine.ts` wiring
-- **Before**: hard ternary unmount, `Suspense` spinner flash, `probeGpu` treated unknown `deviceMemory`/`cores` as low-end (every Chromium-less browser → `focus-2d`), pill only visible mid-ride and disabled on low-end, `EnhancedFlowBackground` popped via `return null`, `visualization:degraded` never fired (no `onFrame` feed)
-- **After**: keep-alive stacked (`motion` 220ms crossfade, both bundles preloaded on mount), `probeGpu` only counts `cores`/`memory` when explicitly available (`cores <=2`, `memory <=4`, `maxTexture <2048`), `effectiveMode = viewMode === "focus" ? "focus-2d" : "tron-3d"` so user override wins, pre-ride segmented `2D Focus | 3D Immersive` above `Start Ride` + `Press V` hint, mid-ride pill always enabled with `Low GPU` badge + `warning` haptic, `frameloop="demand"` pauses hidden renderer, `Background` fades opacity, rAF feeds `visualization.onFrame()` and `visualization:degraded` auto-flips to Focus at <25fps ×3
+## Phase 7: Brand Embodiment — PARKED (outside the ride)
 
-### 6.2 Agent Skills Evaluation
-- **Doc**: `docs/SKILLS-PLAN.md` (review only, no installs executed)
-- **Verdict**: `react-doctor` 14.7k★ → **Install now** (deterministic lint + `scan http://localhost:3000` chrome trace + diff-only CI gate); `threejs-game-skills` 1.4k★ → **Evaluate selectively** (`aaa-graphics-builder` + `debug-profiler` + `qa-release` only); `webgpu-claude-skill` 1.2k★ → **Park** until `three/webgpu` migration
-- **Flagged prompts not run**: `npx skills add ...` / `./install.sh --codex` / `npx react-doctor@latest` / `npx react-doctor@latest ci install` / `npx react-doctor@latest scan` / `/skill install webgpu-threejs-tsl@...`
+**Status**: Parked. Chainring carousel, Matter chain, morph CTA, scroll-scrubbed route, stickers shipped 2026-09-01 — keep, don't expand. Landing/journey polish is secondary to in-ride delight (sprint beam + flow unlock). Any new landing work must pass WEDGE guardrails (one CTA, visible game, rider language) or be rejected.
 
-## Phase 7: Brand Embodiment (Sylva + Maxima Techniques) ✅ SHIPPED 2026-09-01
-
-**Goal**: Make the site feel like cycling/health, not SaaS.
-
-- **Lenis + GSAP ticker** (`smooth-scroll.tsx` already wired, `layout.tsx`) — cadence `scrub:1.2`
-- **Chainring wheel** (`chainring-carousel.tsx`): 4×90° rotated divs in wrapper (Maxima), GSAP `rotation`, Lottie per discipline (Endurance top-down route via `generateRouteData` mini SVG, Sprint MIT `cycle.json` 720°, Recovery heart, Mind wave), draft ripple on Mind `onMouseMove`
-- **Matter.js chain** (`chain-tension.tsx`): `"CHAIN"` hangs from 2×6-segment ropes, `MouseConstraint` drag — tension metaphor, mounted in `training-studio.tsx`
-- **Morph CTA** (`morph-cta.tsx`): `borderRadius 16→999 spring 400/12` square→wheel, replaces static gradient
-- **Scroll-scrubbed route** (`how-it-works-section.tsx`): `ScrollTrigger scrub 1.2` draws SVG road + `EffortAuraCanvas` (`globalCompositeOperation source-in` dot pattern + radial mask) as you read 1-2-3
-- **Stickers** (`how-it-works-section.tsx`): `🚴⚡️🧘` cycle on step click `elastic.out(1.2,0.8)`
-- **Lotties**: 4 distinct, 11KB Sprint MIT + 3 inline pulses, all loopable 60f, `next/dynamic` ssr:false for Turbopack
+### Shipped (keep, don't expand)
+- **2D/3D switching**: keep-alive stacked 220ms crossfade, user override wins, auto-degrade <25fps ×3 (`e6520a0` + `32c4dba`)
+- **Brand**: Lenis/GSAP ticker, chainring carousel, Matter chain, morph CTA, scroll-scrubbed route, stickers — shipped 2026-09-01, frozen.
 
 ## What NOT To Build (Yet)
 
@@ -209,13 +195,16 @@ These are explicitly deferred until the wedge is validated with real users:
 
 | Deferred | Why |
 |----------|-----|
-| Multi-sport adapter (running, rowing, etc.) | Focus on cycling first. One sport done right beats three done poorly. |
+| In-ride delight beyond 2 moments | Sprint beam + flow unlock only. No ability sandbox, no editors, no new renderers until retention proves. |
+| Journey-page progression, World Labs envs, 3D pedaling clip | CHARACTER-SYSTEM roadmap — parked until 10-rider validation. |
+| New landing sections / coach rooms | Outside-ride polish. Must pass one-CTA + visible-game guardrails or rejected. |
+| Multi-sport adapter | One sport done right beats three done poorly. |
 | Mindbody/ClassPass bridge | Network effects require riders first. Don't build distribution before product. |
 | Uniswap v4 dynamic pricing | Instructor economics is a platform feature. Riders don't need to see it. |
 | ERC-7715 permissions / agent co-signing | Infrastructure. Hide it. |
 | Cross-gym calibration | Important for scale. Not for the wedge. |
 | 22-speed virtual shifting | Nice-to-have physics detail. Cadence and power are enough for the reactive world. |
-| Full E2E tests across the claim loop | Testing is important but not wedge-critical. Manual testing through the ride flow is sufficient for now. |
+| Full claim-loop E2E | Single happy-path ride E2E required (connect → ride 60s → flow rise → milestone → save). Full ZK-claim matrix deferred. |
 
 ---
 
@@ -229,7 +218,7 @@ Week 3    Phase 4: Onboarding reorder (concurrent with Phase 2)
 Week 3-6  Phase 5: Real users (parallel, ongoing)
 ```
 
-**Hard dependency**: Vercel deploy and Supabase provisioning must happen before Phase 5 (real users). Everything else can start immediately.
+**Hard dependency**: ~~Vercel deploy and Supabase provisioning must happen before Phase 5~~ ✅ DONE 2026-10-03 — Phase 5 (real users) is unblocked.
 
 ---
 

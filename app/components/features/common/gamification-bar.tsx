@@ -11,6 +11,12 @@ import { useMilestones } from "@/app/lib/milestones";
  *
  * Wedge guardrail: [visible game](../../docs/WEDGE.md#the-gamification-must-be-visible-before-the-ride)
  */
+
+/** Rider-facing duration: 1 decimal under 10m, whole minutes above. */
+export function formatFlowMinutes(minutes: number): string {
+  if (!Number.isFinite(minutes) || minutes <= 0) return "0";
+  return minutes < 10 ? String(Number(minutes.toFixed(1))) : String(Math.round(minutes));
+}
 export function GamificationBar() {
   const { streak, totalRides, bestMaxPower, totalFlowMinutes } = useMilestones();
 
@@ -55,7 +61,7 @@ export function GamificationBar() {
       {totalFlowMinutes > 0 && (
         <div className="flex items-center gap-1.5">
           <Waves className="h-3.5 w-3.5 text-[var(--muted)]/50" aria-hidden="true" />
-          <span className="font-bold text-[var(--foreground)]">{totalFlowMinutes}m</span>
+          <span className="font-bold text-[var(--foreground)] tabular-nums">{formatFlowMinutes(totalFlowMinutes)}m</span>
           <span className="text-[var(--muted)]/70">flow</span>
         </div>
       )}
