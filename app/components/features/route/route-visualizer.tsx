@@ -1763,7 +1763,15 @@ export default function RouteVisualizer({
         </div>
       }>
         <Canvas
-          gl={{ alpha: true }}
+          gl={{
+            alpha: true,
+            // The EffectComposer owns AA on high/medium (4x MSAA inside the
+            // composer on high); native MSAA on the default framebuffer is
+            // discarded on that path and only costs fill-rate. Low tier runs
+            // no composer, so it keeps native AA.
+            antialias: effectiveQuality.fps === 30,
+            powerPreference: "high-performance",
+          }}
           dpr={effectiveQuality.pixelRatio}
           // "never" freezes the loop entirely — used by the visual harness
           // so Playwright can capture a stable frame for screenshot diffs.

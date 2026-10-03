@@ -68,6 +68,11 @@ export class RideCoordinator {
   private eventUnsubs: Array<() => void> = [];
   private rafRunning = false;
   private sampleTimerId: ReturnType<typeof setInterval> | null = null;
+  /** Last wall-clock write of trend arrays (history/recentPower). Graphs and
+   *  power trends read fine at 2Hz; writing them at the full commit rate
+   *  (up to 10Hz) reallocates arrays and re-renders subscribers for no
+   *  visible gain — a cheap source of ride judder. */
+  private lastTrendWriteMs = 0;
   private styleOverrideHandler: EventListener | null = null;
   /** Rider+coach pair the coach memory is loaded/saved under (Walrus blob pointer). */
   private memoryKey: { riderId: string; coachId: string } | null = null;
@@ -561,17 +566,23 @@ export class RideCoordinator {
       storeUpdate.multiGhostState = [...nextMulti];
     }
 
-    // Update rolling history arrays for performance graphs (last 60 samples)
-    const prevHistory = useTelemetryStore.getState().history;
-    const MAX_HISTORY = 60;
-    storeUpdate.history = {
-      power: [...prevHistory.power, snapshot.power].slice(-MAX_HISTORY),
-      cadence: [...prevHistory.cadence, snapshot.cadence].slice(-MAX_HISTORY),
-      heartRate: [...prevHistory.heartRate, snapshot.heartRate].slice(-MAX_HISTORY),
-    };
+    // Rolling history arrays for performance graphs (last 60 samples) —
+    // throttled to 2Hz (see lastTrendWriteMs). Live numbers and flow input
+    // still commit at full rate above; only trend consumers slow down.
+    const nowMs = Date.now();
+    if (nowMs - this.lastTrendWriteMs >= 500) {
+      this.lastTrendWriteMs = nowMs;
+      const prevHistory = useTelemetryStore.getState().history;
+      const MAX_HISTORY = 60;
+      storeUpdate.history = {
+        power: [...prevHistory.power, snapshot.power].slice(-MAX_HISTORY),
+        cadence: [...prevHistory.cadence, snapshot.cadence].slice(-MAX_HISTORY),
+        heartRate: [...prevHistory.heartRate, snapshot.heartRate].slice(-MAX_HISTORY),
+      };
 
-    // Update recentPower for focus view power trend (last 30 samples)
-    storeUpdate.recentPower = [...useTelemetryStore.getState().recentPower, snapshot.power].slice(-30);
+      // recentPower for focus view power trend (last 30 samples)
+      storeUpdate.recentPower = [...useTelemetryStore.getState().recentPower, snapshot.power].slice(-30);
+    }
 
     useTelemetryStore.setState(storeUpdate as never);
 
