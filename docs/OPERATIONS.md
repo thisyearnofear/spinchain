@@ -516,7 +516,7 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 
 ### Pre-Launch Checklist
 
-- [x] **Redeploy Vercel from HEAD** — original stale-build Noir init failure fixed 2026-09-24; redeployed again 2026-10-03 (key migration + delight overlay, `pnpm build` green, `/` + `/rider` 200). Note: `git push` was blocked (token lacks write scope), so deploys use the CLI path, not git push.
+- [x] **Redeploy Vercel from HEAD** — original stale-build Noir init failure fixed 2026-09-24; redeployed 2026-10-03 twice (key migration + page-review batch `a6de86153`, then layout-fix `3ffb38d`; `/`, `/rider`, `/routes` 200). Note: `git push` works again (earlier token scope issue resolved), but CLI deploys remain the path.
 - [x] **Finish Supabase key migration** — code migrated 2026-10-03 (no legacy fallback); new publishable + secret keys + `SESSION_SECRET` set on Vercel production and prod redeployed from local HEAD (`pnpm build` green, spinchain.vercel.app 200). Remaining: add the 3 vars to Preview in dashboard if needed, then deactivate legacy anon/service_role keys.
 - [ ] **Verify `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` stays unset on Vercel** (defaults to off; `.env.local` has it true for dev)
 - [ ] **Browser-level E2E tests** — wallet connect → class join → ride → ZK proof → claim; Supabase auth (nonce → sign → JWT); API routes
