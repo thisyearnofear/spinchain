@@ -9,6 +9,7 @@ import {
   SKIRT_STEPS,
   SKIRT_WIDTH_SEGMENTS,
   buildRouteSkirtGeometry,
+  createSkirtMaterial,
   roadProfile,
   skirtSurfacePoint,
 } from "../route-skirt";
@@ -92,6 +93,13 @@ describe("route skirt", () => {
     expect(SKIRT_FRAGMENT_SHADER).toContain("fogColor");
     expect(SKIRT_FRAGMENT_SHADER).toContain("smoothstep(0.05, 0.85, edge)");
     expect(SKIRT_FRAGMENT_SHADER).toContain("smoothstep(0.42, 1.0, edge)");
+    // The renderer writes these every frame when material.fog is set.
+    const material = createSkirtMaterial("#25473d", "#84cc16");
+    expect(material.fog).toBe(true);
+    expect(material.uniforms.fogColor.value).toBeDefined();
+    expect(material.uniforms.fogNear.value).toEqual(expect.any(Number));
+    expect(material.uniforms.fogFar.value).toEqual(expect.any(Number));
+    material.dispose();
   });
 
   it("drops the wider rainbow ribbon onto the skirt as well", () => {

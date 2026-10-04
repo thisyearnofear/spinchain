@@ -5,6 +5,8 @@ import {
   Color,
   FrontSide,
   ShaderMaterial,
+  UniformsLib,
+  UniformsUtils,
   Vector3,
   type Curve,
 } from "three";
@@ -211,10 +213,16 @@ void main() {
 
 export function createSkirtMaterial(terrainColor: string, terrainAccent: string): ShaderMaterial {
   return new ShaderMaterial({
-    uniforms: {
-      uColor: { value: new Color(terrainColor) },
-      uAccent: { value: new Color(terrainAccent) },
-    },
+    // fog: true makes the renderer write fogColor / fogNear / fogFar every
+    // frame. Those uniforms have to exist or refreshFogUniforms throws and
+    // the whole scene stops rendering.
+    uniforms: UniformsUtils.merge([
+      UniformsLib.fog,
+      {
+        uColor: { value: new Color(terrainColor) },
+        uAccent: { value: new Color(terrainAccent) },
+      },
+    ]),
     vertexShader: SKIRT_VERTEX_SHADER,
     fragmentShader: SKIRT_FRAGMENT_SHADER,
     fog: true,
