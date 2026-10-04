@@ -58,7 +58,9 @@ export function useRideCoordinator() {
    * Safe to call before coordinator.start() — will be a no-op.
    */
   const ingestBleMetrics = useCallback((metrics: Partial<TelemetrySnapshot>): void => {
-    coordinatorRef.current?.telemetry.ingest(metrics);
+    // Class method derives the 0–1000 effort score. telemetry.ingest alone
+    // would leave effort at 0 and the ride clock would hold the world still.
+    coordinatorRef.current?.ingestBleMetrics(metrics);
   }, []);
 
   /**

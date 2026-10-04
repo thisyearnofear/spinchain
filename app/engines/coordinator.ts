@@ -26,6 +26,7 @@ import { SuiEngine } from "./sui-engine";
 import { getLocalOracle } from "@/app/lib/zk/oracle";
 import type { RideStartConfig, TelemetrySnapshot } from "./types";
 import { PRACTICE_WALL_DURATION_SEC } from "@/app/lib/practice-demo";
+import { calculateEffortScore } from "@/app/lib/rewards/calculator";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
@@ -90,9 +91,10 @@ export class RideCoordinator {
     this.visualization = new VisualizationEngine(this.bus);
     this.sui = new SuiEngine(this.bus);
 
-    // Wire device → telemetry ingestion
+    // Wire device → telemetry ingestion. BLE has no effort field; score it
+    // on the way in (same path as ingestBleMetrics).
     this.device.onTelemetry = (update) => {
-      this.telemetry.ingest(update);
+      this.ingestBleMetrics(update);
     };
 
     this.device.onSimulatorTelemetry = (update) => {
@@ -460,9 +462,24 @@ export class RideCoordinator {
 
   // ─── External Data Ingestion ─────────────────────────────────
 
-  /** Direct ingestion point for BLE metrics (called from useRideCoordinator hook) */
+  /**
+   * BLE metrics (power, cadence, heart rate) have no 0–1000 effort field.
+   * Score power and heart rate with calculateEffortScore — the existing
+   * 0–1000 scale; cadence is not an input to that score — and store it on
+   * the snapshot the 1Hz clock already reads. No power is a coast, so the
+   * rider holds still even if heart rate is still elevated. An explicit
+   * effort on the packet is kept. Keyboard and the pedal simulator do not
+   * use this path.
+   */
   ingestBleMetrics(metrics: Partial<TelemetrySnapshot>): void {
+    const explicitEffort = metrics.effort != null && Number.isFinite(metrics.effort);
     this.telemetry.ingest(metrics);
+    if (explicitEffort) return;
+    const { power, heartRate } = this.telemetry.rawSnapshot;
+    this.telemetry.rawSnapshot.effort =
+      power > 0
+        ? calculateEffortScore({ heartRate, power, durationSeconds: 0 })
+        : 0;
   }
 
   /** Direct ingestion point for simulator metrics */

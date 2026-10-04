@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RideCoordinator } from "../coordinator";
 import { useRideStore } from "@/app/stores/ride-store";
 import { PRACTICE_WALL_DURATION_SEC } from "@/app/lib/practice-demo";
+import { calculateEffortScore } from "@/app/lib/rewards/calculator";
 import type { RideStartConfig } from "../types";
 
 /**
@@ -180,5 +181,79 @@ describe("RideCoordinator ride clock", () => {
     expect(useRideStore.getState().rideProgress).toBeCloseTo(
       ((scale + scale * 1.6) / durationSeconds) * 100,
     );
+  });
+
+  it("derives BLE effort from power and heart rate so a bike moves the world", async () => {
+    const ride = await startRide();
+    const durationSeconds = 60;
+
+    // Coasting: no power holds the rider, even with heart rate and cadence.
+    ride.ingestBleMetrics({ power: 0, heartRate: 160, cadence: 90 });
+    expect(ride.telemetry.rawSnapshot.effort).toBe(0);
+    await tick();
+    expect(useRideStore.getState().elapsedTime).toBe(1);
+    expect(useRideStore.getState().rideProgress).toBe(0);
+
+    // Steady pedal on the existing 0–1000 score: 200W and 100bpm is exactly
+    // 350, which is 1x class pace. Cadence is not part of that score.
+    const steadyEffort = calculateEffortScore({
+      heartRate: 100,
+      power: 200,
+      durationSeconds: 0,
+    });
+    expect(steadyEffort).toBe(350);
+    ride.ingestBleMetrics({ power: 200, heartRate: 100, cadence: 85 });
+    expect(ride.telemetry.rawSnapshot.effort).toBe(steadyEffort);
+    ride.ingestBleMetrics({ power: 200, heartRate: 100, cadence: 40 });
+    expect(ride.telemetry.rawSnapshot.effort).toBe(steadyEffort);
+    await tick();
+    expect(useRideStore.getState().elapsedTime).toBe(2);
+    expect(useRideStore.getState().rideProgress).toBeCloseTo((1 / durationSeconds) * 100);
+
+    // Hard power and heart rate reach the 1.6x cap.
+    const hardEffort = calculateEffortScore({
+      heartRate: 180,
+      power: 320,
+      durationSeconds: 0,
+    });
+    expect(hardEffort).toBeGreaterThanOrEqual(470);
+    ride.ingestBleMetrics({ power: 320, heartRate: 180, cadence: 110 });
+    expect(ride.telemetry.rawSnapshot.effort).toBe(hardEffort);
+    await tick();
+    expect(useRideStore.getState().elapsedTime).toBe(3);
+    expect(useRideStore.getState().rideProgress).toBeCloseTo(((1 + 1.6) / durationSeconds) * 100);
+
+    const held = useRideStore.getState().rideProgress;
+    ride.ingestBleMetrics({ power: 0, heartRate: 155, cadence: 0 });
+    await tick();
+    expect(useRideStore.getState().elapsedTime).toBe(4);
+    expect(useRideStore.getState().rideProgress).toBe(held);
+  });
+
+  it("leaves keyboard and simulator effort untouched", async () => {
+    const ride = await startRide();
+    ride.ingestSimulatorMetrics({
+      heartRate: 150,
+      power: 300,
+      cadence: 90,
+      speed: 28,
+      effort: 120,
+    });
+    expect(ride.telemetry.rawSnapshot.effort).toBe(120);
+    await tick();
+    expect(useRideStore.getState().elapsedTime).toBe(1);
+    expect(useRideStore.getState().rideProgress).toBe(0);
+
+    ride.ingestSimulatorMetrics({
+      heartRate: 160,
+      power: 280,
+      cadence: 95,
+      speed: 30,
+      effort: 350,
+    });
+    expect(ride.telemetry.rawSnapshot.effort).toBe(350);
+    await tick();
+    expect(useRideStore.getState().elapsedTime).toBe(2);
+    expect(useRideStore.getState().rideProgress).toBeCloseTo((1 / 60) * 100);
   });
 });
