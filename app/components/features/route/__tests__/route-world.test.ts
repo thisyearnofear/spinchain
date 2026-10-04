@@ -1,8 +1,10 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Euler, Matrix4, Quaternion, Vector3 } from "three";
 import { VISUALIZER_THEMES } from "../visualizer-theme";
 import { buildRouteCurve } from "../route-curve";
 import {
+  NEUTRAL_SKIRT_LIGHT,
   SKIRT_EDGE_DROP,
   SKIRT_FRAGMENT_SHADER,
   SKIRT_HALF_WIDTH,
@@ -13,6 +15,18 @@ import {
   roadProfile,
   skirtSurfacePoint,
 } from "../route-skirt";
+import {
+  ALPINE_FOG_FAR,
+  ALPINE_SKIRT_ALBEDO_GAIN,
+  ALPINE_SKIRT_EDGE_SHADE,
+  ALPINE_SKIRT_SUN_GAIN,
+  ALPINE_SKY_FRAGMENT,
+  ALPINE_SUN_DIR,
+  buildAlpineHorizonGeometry,
+  createAlpineSkyMaterial,
+  sampleCurveVertical,
+  skirtOuterRadius,
+} from "../alpine-atmosphere";
 import {
   SILHOUETTES,
   buildPropField,
@@ -99,6 +113,10 @@ describe("route skirt", () => {
     expect(material.uniforms.fogColor.value).toBeDefined();
     expect(material.uniforms.fogNear.value).toEqual(expect.any(Number));
     expect(material.uniforms.fogFar.value).toEqual(expect.any(Number));
+    // Default light is a no-op so the other themes keep the flat skirt.
+    expect(material.uniforms.uAlbedoGain.value).toBe(NEUTRAL_SKIRT_LIGHT.albedoGain);
+    expect(material.uniforms.uEdgeShade.value).toBe(0.22);
+    expect(material.uniforms.uSunGain.value).toBe(0);
     material.dispose();
   });
 
@@ -108,6 +126,89 @@ describe("route skirt", () => {
     const neonY = buildRouteSkirtGeometry(curve, 2.5).getAttribute("position").getY(centerIndex(40));
     const rainbowY = buildRouteSkirtGeometry(curve, 4).getAttribute("position").getY(centerIndex(40));
     expect(rainbowY).toBeLessThan(neonY);
+  });
+});
+
+describe("alpine atmosphere", () => {
+  it("lifts only the alpine skirt into the sun and leaves the sky unfogged", () => {
+    const lit = createSkirtMaterial("#25473d", "#84cc16", {
+      albedoGain: ALPINE_SKIRT_ALBEDO_GAIN,
+      edgeShade: ALPINE_SKIRT_EDGE_SHADE,
+      sunGain: ALPINE_SKIRT_SUN_GAIN,
+      sunDir: ALPINE_SUN_DIR,
+    });
+    expect(lit.uniforms.uAlbedoGain.value).toBeGreaterThan(1);
+    expect(lit.uniforms.uEdgeShade.value).toBeGreaterThan(0.22);
+    expect(lit.uniforms.uSunGain.value).toBeGreaterThan(0);
+    expect(lit.fog).toBe(true);
+    lit.dispose();
+
+    const sky = createAlpineSkyMaterial("#b7d3f2", "#caccf0");
+    expect(sky.fog).toBe(false);
+    expect(sky.depthWrite).toBe(false);
+    expect(ALPINE_SKY_FRAGMENT).not.toContain("fog_fragment");
+    expect(ALPINE_SKY_FRAGMENT).toContain("uHorizon");
+    expect(sky.uniforms.uHorizon.value).toBeDefined();
+    expect(sky.uniforms.uSunDir.value).toBeDefined();
+    sky.dispose();
+
+    expect(ALPINE_FOG_FAR).toBeLessThan(250);
+    expect(ALPINE_FOG_FAR).toBeGreaterThan(40);
+  });
+
+  it("rings the skirt with ridges that face the valley", () => {
+    const { minY, maxY, midY } = sampleCurveVertical(curve);
+    const geometry = buildAlpineHorizonGeometry(curve);
+    const position = geometry.getAttribute("position");
+    const index = geometry.getIndex()!;
+    expect(position.count).toBeGreaterThan(0);
+
+    let minVertexY = Infinity;
+    let maxVertexY = -Infinity;
+    let maxR = 0;
+    for (let i = 0; i < position.count; i++) {
+      expect(Number.isFinite(position.getX(i))).toBe(true);
+      expect(Number.isFinite(position.getY(i))).toBe(true);
+      expect(Number.isFinite(position.getZ(i))).toBe(true);
+      minVertexY = Math.min(minVertexY, position.getY(i));
+      maxVertexY = Math.max(maxVertexY, position.getY(i));
+      maxR = Math.max(maxR, Math.hypot(position.getX(i), position.getZ(i)));
+    }
+
+    expect(minVertexY).toBeLessThan(minY);
+    expect(maxVertexY).toBeGreaterThan(maxY);
+    expect(maxVertexY).toBeGreaterThan(midY + 20);
+    expect(geometry.userData.baseRadius).toBeGreaterThan(skirtOuterRadius(curve));
+
+    const a = new Vector3();
+    const b = new Vector3();
+    const c = new Vector3();
+    const normal = new Vector3();
+    const mid = new Vector3();
+    let inward = 0;
+    let up = 0;
+    const faces = index.count / 3;
+    for (let face = 0; face < faces; face += 17) {
+      const offset = face * 3;
+      a.fromBufferAttribute(position, index.getX(offset));
+      b.fromBufferAttribute(position, index.getX(offset + 1));
+      c.fromBufferAttribute(position, index.getX(offset + 2));
+      normal.copy(b).sub(a).cross(c.clone().sub(a));
+      mid.copy(a).add(b).add(c);
+      inward += normal.dot(new Vector3(-mid.x, 0, -mid.z));
+      up += normal.y;
+    }
+    expect(inward).toBeGreaterThan(0);
+    expect(up).toBeGreaterThan(0);
+    expect(maxR).toBeGreaterThan(0);
+    geometry.dispose();
+  });
+
+  it("does not walk the sky or the ridge from the frame loop", () => {
+    const atmosphere = readFileSync(new URL("../alpine-atmosphere.ts", import.meta.url), "utf8");
+    const view = readFileSync(new URL("../alpine-view.tsx", import.meta.url), "utf8");
+    expect(atmosphere).not.toContain("useFrame");
+    expect(view).not.toContain("useFrame");
   });
 });
 

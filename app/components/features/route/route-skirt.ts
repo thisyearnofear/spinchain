@@ -180,28 +180,56 @@ export const SKIRT_VERTEX_SHADER = /* glsl */ `
 #include <common>
 #include <fog_pars_vertex>
 varying float vEdge;
+varying vec3 vNormal;
 void main() {
   vEdge = uv.y;
+  vNormal = normalize(mat3(modelMatrix) * normal);
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
   gl_Position = projectionMatrix * mvPosition;
   #include <fog_vertex>
 }
 `;
 
+/**
+ * Lighting for the unlit skirt. Neutral values reproduce the flat look:
+ * gain 1, edge shade 0.22, no sun. Alpine raises the dark terrain color
+ * and adds one sun term. The renderer still writes fog; this does not.
+ */
+export interface SkirtLight {
+  albedoGain: number;
+  edgeShade: number;
+  sunGain: number;
+  sunDir: Vector3;
+}
+
+export const NEUTRAL_SKIRT_LIGHT: SkirtLight = {
+  albedoGain: 1,
+  edgeShade: 0.22,
+  sunGain: 0,
+  sunDir: new Vector3(0, 1, 0),
+};
+
 export const SKIRT_FRAGMENT_SHADER = /* glsl */ `
 #include <common>
 #include <fog_pars_fragment>
 uniform vec3 uColor;
 uniform vec3 uAccent;
+uniform float uAlbedoGain;
+uniform float uEdgeShade;
+uniform float uSunGain;
+uniform vec3 uSunDir;
 varying float vEdge;
+varying vec3 vNormal;
 void main() {
   float edge = clamp(vEdge, 0.0, 1.0);
   // Terrain under the road, a hint of the theme accent, gone before the fade.
   vec3 albedo = mix(uColor, uAccent, 0.08 * (1.0 - edge));
   // Darken toward the rim, then dissolve into the scene fog color so the
-  // cut reads as a horizon instead of a hole.
-  float shade = mix(1.0, 0.22, smoothstep(0.05, 0.85, edge));
-  gl_FragColor = vec4(albedo * shade, 1.0);
+  // cut reads as a horizon instead of a hole. uEdgeShade is 0.22 unless a
+  // theme lifts it so the rim meets a light sky instead of a black band.
+  float shade = mix(1.0, uEdgeShade, smoothstep(0.05, 0.85, edge));
+  float sun = 1.0 + uSunGain * max(dot(normalize(vNormal), normalize(uSunDir)), 0.0);
+  gl_FragColor = vec4(albedo * uAlbedoGain * shade * sun, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
   #include <fog_fragment>
@@ -211,7 +239,11 @@ void main() {
 }
 `;
 
-export function createSkirtMaterial(terrainColor: string, terrainAccent: string): ShaderMaterial {
+export function createSkirtMaterial(
+  terrainColor: string,
+  terrainAccent: string,
+  light: SkirtLight = NEUTRAL_SKIRT_LIGHT,
+): ShaderMaterial {
   return new ShaderMaterial({
     // fog: true makes the renderer write fogColor / fogNear / fogFar every
     // frame. Those uniforms have to exist or refreshFogUniforms throws and
@@ -221,6 +253,10 @@ export function createSkirtMaterial(terrainColor: string, terrainAccent: string)
       {
         uColor: { value: new Color(terrainColor) },
         uAccent: { value: new Color(terrainAccent) },
+        uAlbedoGain: { value: light.albedoGain },
+        uEdgeShade: { value: light.edgeShade },
+        uSunGain: { value: light.sunGain },
+        uSunDir: { value: light.sunDir.clone() },
       },
     ]),
     vertexShader: SKIRT_VERTEX_SHADER,

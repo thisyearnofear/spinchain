@@ -67,8 +67,21 @@ import { ProceduralBike, useCyclistPose, BIKE_DECK_OFFSET, RIG } from "./procedu
 import { ProgressInterpolator, dampFactor } from "@/app/lib/progress-interpolator";
 import { WorldSkybox } from "./world-skybox";
 import { buildRouteCurve } from "./route-curve";
-import { buildRouteSkirtGeometry, createSkirtMaterial, roadProfile } from "./route-skirt";
+import { buildRouteSkirtGeometry, createSkirtMaterial, roadProfile, type SkirtLight } from "./route-skirt";
 import { buildPropField, getPartGeometry, type PropPartField } from "./route-silhouettes";
+import {
+  ALPINE_AMBIENT_COLOR,
+  ALPINE_AMBIENT_GAIN,
+  ALPINE_FOG_FAR,
+  ALPINE_POINT_COLOR,
+  ALPINE_SKIRT_ALBEDO_GAIN,
+  ALPINE_SKIRT_EDGE_SHADE,
+  ALPINE_SKIRT_SUN_GAIN,
+  ALPINE_SUN_COLOR,
+  ALPINE_SUN_DIR,
+  ALPINE_SUN_INTENSITY,
+} from "./alpine-atmosphere";
+import { AlpineAtmosphere } from "./alpine-view";
 
 // Import StoryBeat types from gpx-uploader for consistency
 import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../../../routes/builder/gpx-uploader";
@@ -416,9 +429,18 @@ function RouteSkirt({ curve, theme }: { curve: CatmullRomCurve3; theme: Visualiz
   const styles = getTheme(theme);
   const { halfWidth } = roadProfile(theme);
   const geometry = useMemo(() => buildRouteSkirtGeometry(curve, halfWidth), [curve, halfWidth]);
+  const light = useMemo<SkirtLight | undefined>(() => {
+    if (theme !== "alpine") return undefined;
+    return {
+      albedoGain: ALPINE_SKIRT_ALBEDO_GAIN,
+      edgeShade: ALPINE_SKIRT_EDGE_SHADE,
+      sunGain: ALPINE_SKIRT_SUN_GAIN,
+      sunDir: ALPINE_SUN_DIR,
+    };
+  }, [theme]);
   const material = useMemo(
-    () => createSkirtMaterial(styles.terrainColor, styles.terrainAccent),
-    [styles.terrainColor, styles.terrainAccent],
+    () => createSkirtMaterial(styles.terrainColor, styles.terrainAccent, light),
+    [styles.terrainColor, styles.terrainAccent, light],
   );
 
   useEffect(() => () => geometry.dispose(), [geometry]);
@@ -1530,14 +1552,41 @@ function Scene({
   return (
     <>
       <PerspectiveCamera makeDefault position={[0, 100, 100]} fov={60} rotation={[-Math.PI / 3, 0, 0]} />
-      <ambientLight intensity={reactive ? reactive.ambientIntensity : 0.5} />
+      <ambientLight
+        intensity={(reactive ? reactive.ambientIntensity : 0.5) * (theme === "alpine" ? ALPINE_AMBIENT_GAIN : 1)}
+        color={theme === "alpine" ? ALPINE_AMBIENT_COLOR : "#ffffff"}
+      />
+      {theme === "alpine" && (
+        <directionalLight
+          position={[ALPINE_SUN_DIR.x * 80, ALPINE_SUN_DIR.y * 80, ALPINE_SUN_DIR.z * 80]}
+          intensity={ALPINE_SUN_INTENSITY}
+          color={ALPINE_SUN_COLOR}
+        />
+      )}
       <pointLight
         position={[10, 50, 10]}
         intensity={reactive ? reactive.pointLightIntensity : 1}
-        color={reactive ? reactive.pointLightColor : (theme === "mars" ? "#ef4444" : theme === "rainbow" ? "#ff00ff" : "#9b7bff")}
+        color={
+          reactive
+            ? reactive.pointLightColor
+            : theme === "mars"
+              ? "#ef4444"
+              : theme === "rainbow"
+                ? "#ff00ff"
+                : theme === "alpine"
+                  ? ALPINE_POINT_COLOR
+                  : "#9b7bff"
+        }
         castShadow={quality?.shadows}
       />
-      <fog attach="fog" args={[reactive ? reactive.fogColor : styles.fog, reactive ? reactive.fogDensity : 40, 250]} />
+      <fog
+        attach="fog"
+        args={[
+          reactive ? reactive.fogColor : styles.fog,
+          reactive ? reactive.fogDensity : 40,
+          theme === "alpine" ? ALPINE_FOG_FAR : 250,
+        ]}
+      />
 
       {/* Generated-world panorama (World Labs pipeline) — one static
           equirect texture; the mobile-safe tier. */}
@@ -1600,6 +1649,13 @@ function Scene({
 
       <group position={[0, -10, 0]}>
         {/* Adaptive road geometry resolution: high=600, medium=250, low=100 */}
+        {theme === "alpine" && (
+          <AlpineAtmosphere
+            curve={curve}
+            horizon={reactive ? reactive.fogColor : styles.fog}
+            zenith={reactive ? reactive.skyTopColor : styles.skyTop}
+          />
+        )}
         <RouteSkirt curve={curve} theme={theme} />
         <Road
           curve={curve}
