@@ -2,7 +2,7 @@
 
 SpinChain is a Next.js + Capacitor prototype for AI-assisted spin classes: effort drives real-time world/flow/coaching changes in the foreground, with optional future achievement settlement in the background.
 
-Current state: testnet/demo stage, live on Vercel at https://spinchain.vercel.app/ (redeployed 2026-10-03). Direction approved 2026-10-04: **receipt-first architecture** — ride completion and progression are saved independently of any chain; value-bearing redemption is an optional, separately-approved future layer. The app is not ready for general users: public personal-data publication is disabled in the release-prepared phase-1 build (local, not yet deployed) and real-bike launch stays blocked pending consent controls and legal review.
+Current state: testnet/demo stage, live on Vercel at https://spinchain.vercel.app/ (application release `a3c7e37` deployed 2026-10-04). Direction approved 2026-10-04: **receipt-first architecture** — ride completion and progression are saved independently of any chain; value-bearing redemption is an optional, separately-approved future layer. The app is not ready for general users: public personal-data publication is disabled in the live phase-1 build and real-bike launch stays blocked pending consent controls and legal review.
 
 ---
 
@@ -44,12 +44,12 @@ Open [http://localhost:3210](http://localhost:3210)
 - Launch readiness: not ready — general real-bike launch stays blocked until privacy/consent controls and a legal review are done (2026-10-04)
 - Network posture: Avalanche Fuji + Sui testnet for existing experiments; no chain migration planned
 - Direction: receipt-first. Foreground ride → completion/progression saved locally → optional private account sync → optional future campaign settlement. Three separate ledgers: local runtime, private account progression, optional settlement. "Progress saved", "verification pending", and "redemption confirmed" are never interchangeable.
-- Local hardening (release prepared 2026-10-04; commit/deploy record pending, not deployed): session-bound wallet auth, owner-scoped ride persistence, CTA-by-address routing, Noir beta.22 compatibility, receipt-status correctness, plus phase-1 public-write boundary + `RideReceiptV1` — verified locally (366 unit tests / 42 files + 10 Foundry real-verifier tests; final combined browser run interrupted)
+- Local hardening (deployed 2026-10-04 as application release `a3c7e37`): session-bound wallet auth, owner-scoped ride persistence, CTA-by-address routing, Noir beta.22 compatibility, receipt-status correctness, plus phase-1 public-write boundary + `RideReceiptV1` — verified locally (366 unit tests / 42 files + 10 Foundry real-verifier tests; final combined browser run interrupted)
 - Production known-broken: the deployed EffortThresholdVerifier wrapper forwards the wrong public-input slice (reverts on real proofs); the underlying Honk verifier accepts them. No redeploy/adapter is the next step — settlement redesign comes first.
-- Persistence: private Supabase account sync exists session-gated; the `summary jsonb` column was applied to production Supabase (`avcihfixqlofvkpvwmiq`) on 2026-10-04 (additive, nullable). Public telemetry/profile/coach-memory publication is disabled in the release-prepared phase-1 build. localStorage is device-local and NOT encrypted.
+- Persistence: private Supabase account sync exists session-gated; the `summary jsonb` column was applied to production Supabase (`avcihfixqlofvkpvwmiq`) on 2026-10-04 (additive, nullable). Public telemetry/profile/coach-memory publication is disabled in the live phase-1 build. localStorage is device-local and NOT encrypted.
 - ZK proofs: real Noir `effort_threshold` circuit + UltraHonk backend prove only three public outputs (`threshold_met`, `seconds_above`, `effort_score`); class/rider/threshold/min-duration are attached metadata, not proven inputs. ZK is an optional future privacy layer over issuer-bound commitments — no trustless physical-effort claims.
 - Demo data: gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (off by default)
-- Reward path: live claims are not approved — the deployed wrapper rejects real proofs and the app-side legacy-claim gate (`NEXT_PUBLIC_ENABLE_LEGACY_REWARD_CLAIMS`, Fuji-only) exists in the release-prepared build with production set to `false` (production still runs the old build). Future bounded campaigns would use a signed `RideReceipt`/nullifier redeemer (AchievementRedeemerV2, design phase 4)
+- Reward path: live claims are not approved — the deployed wrapper rejects real proofs and the app-side legacy-claim gate (`NEXT_PUBLIC_ENABLE_LEGACY_REWARD_CLAIMS`, Fuji-only) deployed with production set to `false`. Future bounded campaigns would use a signed `RideReceipt`/nullifier redeemer (AchievementRedeemerV2, design phase 4)
 - Verification: build + typecheck + unit tests + desktop/mobile Playwright + real-verifier Foundry tests
 
 ---
@@ -73,7 +73,7 @@ Open [http://localhost:3210](http://localhost:3210)
 
 Phase gates per the approved plan (see IMPLEMENTATION-PLAN):
 
-- [ ] Phase 1 (implemented locally — commit/deploy pending): disable ALL public personal-data writes (telemetry, ride summaries, rider profiles, coach memory, Sui ride telemetry/anchors); save completed rides locally with a durable `RideReceiptV1`; block rather than opt into plaintext publishing
+- [x] Phase 1 (deployed 2026-10-04, `a3c7e37`): disabled the covered public personal-data publishing paths (telemetry, ride summaries, rider profiles, coach memory, Sui ride telemetry/anchors); completed rides save locally with a durable `RideReceiptV1`; plaintext publishing is blocked in code
 - [x] Apply the `summary jsonb` migration to production Supabase (applied 2026-10-04, additive, nullable)
 - [ ] Phase 2: private account save/outbox/recoverable jobs + granular consent (cloud history, third-party AI/voice/instructor live view, public achievement export are separate consents)
 - [ ] Phase 3: explicit verification-provider interface/provenance; studio/wearable pilot before any CRE/zkTLS adoption; third-party AI/TTS biometric context needs the same user consent
@@ -99,7 +99,7 @@ The hook blocks accidental secret commits — do not bypass it; fix the flagged 
 - **Mobile**: Capacitor 5.7, BLE plugin
 - **ZK**: Noir circuits, Barretenberg backend (UltraHonk proving), on-chain Honk verifier
 - **AI**: Venice AI, NVIDIA NIM (MiniMax-M3), and Gemini 3.0 Flash with multi-provider fallback (Venice → NVIDIA → Gemini) — third-party AI/TTS receive biometric context; granular consent controls are PLANNED (phase 2), so no overall privacy-ready claim
-- **Storage**: Walrus (route/world assets; personal-data writes disabled in the release-prepared phase-1 build)
+- **Storage**: Walrus (route/world assets; personal-data writes disabled in the live phase-1 build)
 
 ---
 

@@ -16,15 +16,15 @@
 
 ## Current Plan — Receipt-First (approved 2026-10-04)
 
-Supersedes the old week-numbered timeline and the historical phases below. Evidence: [plans/wedge-contract-research.md](../plans/wedge-contract-research.md). Recovery detail: [plans/journey-claim-flow.md](../plans/journey-claim-flow.md). Statuses here mean code state, not deployment.
+Supersedes the old week-numbered timeline and the historical phases below. Evidence: [plans/wedge-contract-research.md](../plans/wedge-contract-research.md). Recovery detail: [plans/journey-claim-flow.md](../plans/journey-claim-flow.md). Phase headings record both code state and deployment state.
 
-### Phase 0 — Reliability fixes (LOCAL VERIFIED, uncommitted)
+### Phase 0 — Reliability fixes (DEPLOYED 2026-10-04, `a3c7e37`)
 
-Session-bound EVM wallet auth (nonce → `personal_sign` → HMAC cookie), owner-scoped ride persistence (insert-first + conflict-scoped update, 403 on identity mismatch), CTA-by-address routing, Noir beta.22 runtime compatibility, `useTransaction` receipt-status correctness. Verified locally: 301 unit + 6 browser tests + 10 Foundry real-verifier tests. **Not deployed; claims not approved.**
+Session-bound EVM wallet auth (nonce → `personal_sign` → HMAC cookie), owner-scoped ride persistence (insert-first + conflict-scoped update, 403 on identity mismatch), CTA-by-address routing, Noir beta.22 runtime compatibility, `useTransaction` receipt-status correctness. Verified locally: 301 unit + 6 browser tests + 10 Foundry real-verifier tests. **Deployed as part of `a3c7e37`; claims not approved.**
 
-### Phase 1 — Privacy boundary: stop public personal-data writes (IMPLEMENTED + REVIEWED LOCALLY — release prepared 2026-10-04; commit/deploy pending)
+### Phase 1 — Privacy boundary: stop public personal-data writes (DEPLOYED 2026-10-04, `a3c7e37`; user browser/real-device feedback pending)
 
-Local gate evidence: 366 unit tests across 42 files pass; `tsc --noEmit` clean; production build green under the isolated Playwright env; ESLint 0 errors (7 warnings). The final combined browser run was interrupted; remaining browser checks are delegated to the user on production after deployment. Production is unchanged (last live 2026-10-03).
+Local gate evidence: 366 unit tests across 42 files pass; `tsc --noEmit` clean; production build green under the isolated Playwright env; ESLint 0 errors (7 warnings). The final combined browser run was interrupted; remaining browser checks are user-owned on the live deployment (real-device feedback pending).
 
 - Hard-disable public personal-data writes: telemetry, ride summaries, rider profiles, coach memory, Sui ride telemetry/anchors. Public world/route asset publishing is preserved.
 - Prevent automatic proof generation on ride stop; save the completed ride locally BEFORE background work; attach a durable `RideReceiptV1` (interface in [ARCHITECTURE §2](./ARCHITECTURE.md)).
@@ -224,4 +224,4 @@ This plan is the source of truth for feature priority. When new features are pro
 3. Is it platform creep? → Reject until wedge is validated with real users
 
 **Direction approved by**: user, 2026-10-04
-**Next review**: after phase 1 lands
+**Next review**: after user browser/real-device feedback on the live phase-1 build (`a3c7e37`)

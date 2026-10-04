@@ -5,13 +5,13 @@
 
 ## What exists today
 
-- `RideSummary` (localStorage/Supabase) stores aggregates only; no raw samples are persisted for proof regeneration. Raw Walrus telemetry blobs exist for historical rides and are legacy reads — migration-only, auth-owner-scoped enforcement is implemented locally in phase 1 (API owner-scoping included: 403 on rider mismatch, 404 cross-owner); never retroactively declared private.
-- In-session claim plumbing (`useZKClaim` → `IncentiveEngine`) exists but the deployed Fuji wrapper is known-broken (wrong public-input slice, confirmed 2026-10-04) and claims are not approved — the app-side legacy-claim gate (`isLegacyRewardClaimsEnabled`, Fuji-only flag) is implemented locally in phase 1; production still runs the old build.
-- Proof generation on ride stop is disabled in the release-prepared phase-1 build (LocalOracle instantiated only under the legacy flag); nothing here is deployed yet.
+- `RideSummary` (localStorage/Supabase) stores aggregates only; no raw samples are persisted for proof regeneration. Raw Walrus telemetry blobs exist for historical rides and are legacy reads — migration-only, auth-owner-scoped enforcement is deployed in phase 1 (API owner-scoping included: 403 on rider mismatch, 404 cross-owner); never retroactively declared private.
+- In-session claim plumbing (`useZKClaim` → `IncentiveEngine`) exists but the deployed Fuji wrapper is known-broken (wrong public-input slice, confirmed 2026-10-04) and claims are not approved — the app-side legacy-claim gate (`isLegacyRewardClaimsEnabled`, Fuji-only flag) is deployed in phase 1 with production `false`.
+- Proof generation on ride stop is disabled in the live phase-1 build (LocalOracle instantiated only under the legacy flag).
 
 ## Receipt-first recovery phases (current design)
 
-### V1 ride record (phase 1 — implemented locally)
+### V1 ride record (phase 1 — deployed 2026-10-04, `a3c7e37`)
 
 - Completed ride saves locally BEFORE any background work, carrying a durable `RideReceiptV1` (interface in `docs/ARCHITECTURE.md` §2).
 - Journey/history shows honest status: `progress saved`. No claim buttons, no "X SPIN ready" copy — a V1 receipt is not a certificate and redemption is `unavailable`.

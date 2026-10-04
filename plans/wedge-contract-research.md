@@ -2,7 +2,7 @@
 
 **Research date:** 2026-10-04
 
-**Status:** Research completed; receipt-first direction approved 2026-10-04. The `ride_summaries.summary` column was absent at preflight; the additive migration was applied during release prep 2026-10-04 and phase-1 code is implemented locally (commit/deploy pending).
+**Status:** Research completed; receipt-first direction approved 2026-10-04. The `ride_summaries.summary` column was absent at preflight; the additive migration was applied during release prep 2026-10-04 and phase-1 code deployed 2026-10-04 (application release `a3c7e37`).
 
 **Decision:** Should SpinChain repair its existing effort-to-token contracts, or redesign the contract layer around the current cycling experience?
 

@@ -50,12 +50,12 @@ Open [http://localhost:3210](http://localhost:3210) (dev server is pinned to por
 
 ### Current Status (2026-10-04, verified)
 
-- Testnet/pre-launch. Live at https://spinchain.vercel.app/ (redeployed 2026-10-03 from local HEAD). **Direction approved 2026-10-04: receipt-first** — progression is independent of any chain; optional settlement is a future phase. See `plans/wedge-contract-research.md`.
+- Testnet/pre-launch. Live at https://spinchain.vercel.app/ (application release `a3c7e37` live 2026-10-04). **Direction approved 2026-10-04: receipt-first** — progression is independent of any chain; optional settlement is a future phase. See `plans/wedge-contract-research.md`.
 - Demo content gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` — off by default.
 - Production verifier state (read-only `eth_call` preflight 2026-10-04): deployed `EffortThresholdVerifier` `0xBbc32cc3…c9dA4` **rejects real proofs** (revert `0xfa066593` — wrong public-input slice); underlying `HonkVerifier` `0xF2a33f6e…641B` accepts the committed fixture proof. Corrected wrapper exists locally, **not deployed**; no adapter/redeploy is the next step — `AchievementRedeemerV2` design (phase 4) comes first. Engine/wrapper owner: deployer `0x29FA…F1Cd` (~1.98 AVAX Fuji).
 - Supabase `spinchain` (`avcihfixqlofvkpvwmiq`, us-east-2) ACTIVE_HEALTHY; **`ride_summaries.summary` column APPLIED 2026-10-04 — additive `jsonb` nullable migration (`app/lib/supabase/migrations/20261004_ride_summary.sql`), verified on the same project.**
-- Local hardening uncommitted (not on prod): session-bound wallet auth, owner-scoped ride persistence, CTA-by-address, Noir beta.22 compat, receipt-status fixes — 301 unit + 6 browser + 10 Foundry tests green locally.
-- Missing for users: phase-1 public-write disable, phase-2 consent controls, legal review, and the integrated testnet dogfood.
+- Phase-0 auth/ownership/CTA/Noir/receipt fixes and phase-1 public-write boundary + `RideReceiptV1` are live on prod (`a3c7e37`, deployed 2026-10-04) — 366 unit + Foundry real-verifier tests green locally.
+- Missing for general users: phase-2 consent and recovery controls, legal review, and integrated real-device validation. Phase-1 public-write blocking is deployed; controlled production feedback is user-owned.
 
 ---
 
@@ -242,7 +242,7 @@ sui client publish --gas-budget 100000000
 - `spinsession::TelemetryAnchor` struct + `TelemetryBlobAttached` event
 - `spin_token` module (`TreasuryManager` shared object with buyback/burn/deposit entry functions)
 
-> The on-chain capability exists, but app-side ride telemetry/anchor writes are disabled in the release-prepared phase-1 build — the package is a legacy experiment surface, not a launch dependency.
+> The on-chain capability exists, but app-side ride telemetry/anchor writes are disabled in the live phase-1 build — the package is a legacy experiment surface, not a launch dependency.
 
 ### ZK Verifier (Noir)
 
@@ -487,9 +487,9 @@ Do not bypass the hook — fix the flagged content instead.
 
 SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coaching (rule-based + LLM), Walrus-anchored telemetry, on-chain class contracts, Supabase-backed persistence, instructor-rider loop, personalized onboarding. Direction as of 2026-10-04: **receipt-first** — see `plans/wedge-contract-research.md` and `docs/IMPLEMENTATION-PLAN.md` phase list.
 
-**What's done**: phases 0–4 of the old wedge plan; local hardening (auth, ownership, CTA, Noir compat, receipt status) and phase-1 public-write boundary + `RideReceiptV1` verified locally (366 tests, clean typecheck/build) — **commit/deploy pending, production still runs the 2026-10-03 build**. The Fuji contracts above are legacy experiments — **claims are not approved**: the deployed wrapper rejects real proofs and the app-side legacy-claim gate exists locally (prod env flag `false`).
+**What's done**: phases 0–4 of the old wedge plan; local hardening (auth, ownership, CTA, Noir compat, receipt status) and phase-1 public-write boundary + `RideReceiptV1` verified locally (366 tests, clean typecheck/build) — **deployed 2026-10-04 as application release `a3c7e37`**. The Fuji contracts above are legacy experiments — **claims are not approved**: the deployed wrapper rejects real proofs and the app-side legacy-claim gate exists locally (prod env flag `false`).
 
-**What's missing for users**: phase-1 public personal-data write disable (implemented locally, deploy pending); phase-2 consent transfer controls; phase-3 provider/provenance interface; phase-4 redeemer design; phase-5 real-verifier benchmarks + operator-approved testnet deployment; legal/policy review.
+**What's missing for users**: phase-2 consent transfer controls (outbox, third-party AI/voice/instructor consents, `source-attested` provenance); phase-3 provider/provenance interface; phase-4 `AchievementRedeemerV2` redeemer design; phase-5 real-verifier benchmarks + operator-approved testnet deployment; legal/policy review. User browser/real-device feedback on the live phase-1 build is pending.
 
 ### Scale Risks (Must Fix Before Features)
 
@@ -498,13 +498,13 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 | localStorage as primary store | **High** | Ride history, profile, panel state, analytics — all in localStorage. 200-ride cap is arbitrary. Data lost on browser clear. |
 | Mocked instructor analytics | **High** | `attendanceRate: 0.85`, `repeatRiderRate: 0.35` — hardcoded |
 | No durable account layer | **High** | Supabase project provisioned, but durable account relationships, outbox, and recoverable jobs are absent (phase 2) |
-| Public personal-data writes | **High** | Telemetry, ride summaries, profiles, coach memory, and Sui anchors publish publicly until phase 1 lands. localStorage is device-local and NOT encrypted. |
-| No auth (historical) | Medium | Session-bound wallet auth implemented locally (uncommitted); deployed prod still has the legacy path |
+| Personal-data privacy and consent | **High** | Phase 1 blocks the covered Walrus, Sui, relay, and live-telemetry publishing paths. Third-party AI/voice consent controls remain planned; localStorage is device-local and NOT encrypted. |
+| No auth (historical) | Medium | Session-bound wallet auth deployed in `a3c7e37`; live prod enforces signed sessions |
 
 ### Pre-Launch Checklist
 
 - [x] **Redeploy Vercel from HEAD** (2026-10-03, historical committed tree — not the current uncommitted work); CLI deploys remain the path
-- [ ] **Phase 1 privacy boundary** — no public personal-data writes; local durable `RideReceiptV1`
+- [x] **Phase 1 privacy boundary** — deployed 2026-10-04 (`a3c7e37`): no public personal-data writes; local durable `RideReceiptV1`
 - [x] **`ride_summaries.summary` migration** applied to production Supabase 2026-10-04 (additive, nullable `jsonb`)
 - [ ] **Phase 2 consent controls** — separate consents for cloud history / third-party AI / voice / instructor live view / public export
 - [x] **Fix Vercel env names** — canonical `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `GEMINI_API_KEY` added to production 2026-10-04 (values copied from the legacy cloud vars; legacy names preserved); code reads `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `GEMINI_API_KEY`
@@ -528,6 +528,18 @@ The former multi-chain mainnet migration checklist is retired. Do not publish pe
 
 ### Session Log
 
+#### 2026-10-04 — Phase 1 deployed (22:27 UTC)
+
+**Live application release:** source commit `a3c7e37` (pushed to `main`, confirmed on remote) → Vercel auto-production deployment `dpl_2QeCERr5wTsFhcGgnz8Ltsz7fjh3` (`https://spinchain-n4juosoou-papas-projects-5b188431.vercel.app`), created 2026-10-04T22:27:37Z, READY, `target=production`, `meta.githubCommitSha` = `a3c7e37`. Alias `https://spinchain.vercel.app` confirmed pointing at this deployment; `/` and `/rider` return 200.
+
+**Live now:** phase-0 session-bound wallet auth, owner-scoped ride persistence, CTA-by-address routing, Noir beta.22 compat, receipt-status fixes + phase-1 public personal-data write boundary (`isPersonalDataPublicationAllowed()` hard-false) and durable `RideReceiptV1`. Legacy reward claims flag `false`; chain defaults Fuji 43113; no contract changes or broadcasts. The corrected Fuji wrapper remains undeployed (superseded by the phase-4 `AchievementRedeemerV2` design). Instructor live telemetry sharing is intentionally disabled until phase-2 consent/authorization. Existing third-party AI/voice paths may still receive biometric context; their consent controls are not implemented, so this release is not privacy-compliance certified. Legacy public Walrus blobs remain publicly readable (no erasure promise).
+
+**Still planned (not in this release):** phase-2 consent/outbox/recoverable jobs, `source-attested` provenance, V2 receipt/redeemer. No general-user launch or privacy-compliance claim.
+
+**Verification carried over:** 366 unit / 42 files, clean typecheck, isolated production build, ESLint 0 errors / 7 warnings (pre-deploy gate); 4/4 real-Honk Foundry tests and 14/14 wallet-auth tests re-passed after the prefixless fixture format change (byte-identical proof data). Pre-commit hook passed normally. `SESSION_SECRET`/`SUPABASE_SECRET_KEY` are `sensitive`-type vars: `vercel env pull`/`run` return empty by design — configured, not missing; auth fails closed. Signup/signature pipeline is user-verified pending, not claimed tested.
+
+**Remaining checks are user-owned on live:** guest ride → record in history → reload; sign in before a second ride → wallet-owned private save → reload on another device with the same wallet. No monetary claim (legacy flag off).
+
 #### 2026-10-04 — Phase 1 release prepared (commit/deploy pending)
 
 **Migration:** `ride_summaries.summary` additive `jsonb` nullable column applied to production Supabase (`avcihfixqlofvkpvwmiq`) — verified present post-apply. No tables dropped, no data deleted; no other migrations run.
@@ -545,7 +557,7 @@ The former multi-chain mainnet migration checklist is retired. Do not publish pe
 
 **User manual checklist on the deployed build:** complete a guest ride → record appears in local history → reload → sign in before a second ride → confirm that wallet-owned ride syncs to the private account → reload on another device using the same wallet. Guest records remain device-local; repeat completion must not duplicate or reassign them. No monetary claim; a V1 receipt is an unverified record, not a future V2 certificate.
 
-**Status:** staging/commit/push/deployment PENDING — production still serves the 2026-10-03 build.
+**Status (historical):** staging/commit/push were pending at the time of this entry — superseded by the deployment record above (`a3c7e37`, deployed 22:27 UTC the same day).
 
 #### 2026-08-17 — Launch-prep: production bug fixes + UI/UX pass
 
@@ -585,9 +597,9 @@ The former multi-chain mainnet migration checklist is retired. Do not publish pe
 ### Not Yet Launch-Ready
 
 - Live value-bearing claims — the deployed Fuji wrapper is broken and the redeemer is unbuilt; claims stay off until phases 4–5
-- Public personal-data writes not yet disabled (phase 1)
+- Granular consent, recovery jobs, and encryption/retention controls remain unfinished; the phase-1 public publishing boundary is deployed.
 - Consent transfer controls for third-party AI/TTS biometric context (phase 2); no "privacy-ready" claim before then
-- `ride_summaries.summary` migration applied 2026-10-04 — canonical summary roundtrip enabled server-side (phase-1 client ships with the pending release)
+- `ride_summaries.summary` migration applied 2026-10-04 — canonical summary roundtrip enabled server-side (client shipped in `a3c7e37`)
 - Browser-level E2E covers wedge/auth paths; the integrated production dogfood loop is a phase-5 user task
 - Legal/policy review (Apple 3.1.1/5.1, EDPB, reward jurisdiction) outstanding
 
@@ -611,7 +623,7 @@ All providers handle: route generation, narrative creation, chat, coaching, and 
 ### Privacy Features
 
 - **ZK proofs** reveal only three public outputs (`threshold_met`, `seconds_above`, `effort_score`); class/rider/threshold/min-duration are attached metadata, not proven inputs. ZK is an optional future privacy layer over issuer-bound commitments — not trustless physical-effort verification.
-- **Boundary status**: public personal-data publication is disabled in the release-prepared phase-1 build (not yet deployed) and granular third-party/AI consent lands in phase 2. Until both ship and deploy, do not claim privacy-ready. localStorage is device-local and not encrypted; legacy public blobs remain readable (migration-only, owner-scoped).
+- **Boundary status**: public personal-data publication is disabled in the live phase-1 build (`a3c7e37`) and granular third-party/AI consent lands in phase 2. Until consent ships and deploys, do not claim privacy-ready. localStorage is device-local and not encrypted; legacy public blobs remain readable (migration-only, owner-scoped).
 - **Provenance classes**: `simulated` / `device-observed` / `estimated` on `RideReceiptV1`; `source-attested` is reserved and cannot be client-declared. FTMS is a transport protocol, not attestation.
 
 ---
