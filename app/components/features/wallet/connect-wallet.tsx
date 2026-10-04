@@ -1,10 +1,19 @@
 'use client';
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { Wallet } from 'lucide-react';
+import { Wallet, Check } from 'lucide-react';
 import { WalletInfoTooltip } from './wallet-info-tooltip';
+import { useWalletAuth } from '@/app/hooks/common/use-wallet-auth';
+import { isSupabaseConfigured } from '@/app/lib/supabase/client';
 
 export function ConnectWallet() {
+  const {
+    isAuthenticated,
+    isAuthenticating,
+    error: authError,
+    login,
+    logout,
+  } = useWalletAuth();
   return (
     <ConnectButton.Custom>
       {({
@@ -59,6 +68,7 @@ export function ConnectWallet() {
               }
 
               return (
+                <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={openChainModal}
@@ -100,7 +110,38 @@ export function ConnectWallet() {
                       {account.address.slice(0, 4)}...{account.address.slice(-2)}
                     </span>
                   </button>
+
+                  {isSupabaseConfigured() && (
+                    isAuthenticated ? (
+                      <button
+                        onClick={() => void logout()}
+                        type="button"
+                        aria-label="Sign out"
+                        title="Sign out"
+                        className="flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-500 transition hover:bg-emerald-500/20"
+                      >
+                        <Check className="w-3 h-3" aria-hidden />
+                        <span className="hidden sm:inline">Signed in</span>
+                        <span className="sm:hidden">Sign out</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => void login()}
+                        type="button"
+                        disabled={isAuthenticating}
+                        className="flex items-center gap-1.5 rounded-full border border-[color:var(--border)] bg-transparent px-3 py-2 text-xs font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] hover:border-[color:var(--border-strong)] disabled:opacity-50"
+                      >
+                        {isAuthenticating ? "Signing…" : "Sign in to save rides"}
+                      </button>
+                    )
+                  )}
                 </div>
+                {authError && (
+                  <p role="alert" className="mt-1 text-xs text-red-500">
+                    {authError}
+                  </p>
+                )}
+              </div>
               );
             })()}
           </div>

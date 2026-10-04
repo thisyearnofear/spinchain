@@ -8,6 +8,9 @@ export interface RideProofSummary {
 }
 
 import { isClient, safeParse } from "@/app/lib/utils";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
+import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
+import { parseRideReceipt, type RideReceiptV1 } from "./ride-receipt";
 
 export type RideSyncStatus = "local_only" | "queued" | "relayed" | "anchored" | "failed";
 
@@ -54,6 +57,7 @@ export interface RideSummary {
     status: "pending" | "confirmed" | "failed" | "skipped";
     commitmentEpoch?: number;
   };
+  receipt?: RideReceiptV1;
 }
 
 export interface RideSyncQueueItem {
@@ -208,6 +212,21 @@ function toRideSummary(value: unknown): RideSummary | null {
                 : undefined,
         }
       : undefined,
+    receipt: (() => {
+      if (value.receipt === undefined) return undefined;
+      const parsed = parseRideReceipt(value.receipt);
+      if (
+        !parsed ||
+        parsed.receiptId !== value.id ||
+        parsed.riderId !== riderId ||
+        parsed.classId !== value.classId ||
+        parsed.completedAt !== value.completedAt ||
+        parsed.durationSec !== (typeof value.durationSec === "number" ? value.durationSec : 0)
+      ) {
+        return undefined;
+      }
+      return parsed;
+    })(),
   };
 }
 
@@ -384,6 +403,18 @@ export function getRideRewardStatus(ride: RideSummary): {
   label: string;
   tone: "neutral" | "cyan" | "emerald" | "amber" | "red";
 } {
+  if (!isLegacyRewardClaimsEnabled()) {
+    if (ride.receipt) {
+      return {
+        label:
+          ride.receipt.provenance === "device-observed"
+            ? "Recorded from device"
+            : "Ride recorded",
+        tone: "neutral",
+      };
+    }
+    return { label: "Legacy ride record", tone: "neutral" };
+  }
   if (ride.proof.status === "claimed") {
     return { label: "Rewards claimed", tone: "emerald" };
   }
@@ -458,6 +489,7 @@ async function relayRideSummary(summary: RideSummary): Promise<RelaySyncResult> 
 
 export async function processRideSyncQueue(now = Date.now()) {
   if (!isClient()) return;
+  if (!isPersonalDataPublicationAllowed()) return;
   if (!navigator.onLine) return;
 
   const queue = readQueue();

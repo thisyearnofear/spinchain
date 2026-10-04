@@ -1,6 +1,7 @@
 import { getWalrusClient } from "./client";
 import { STORAGE_KEYS, type RideSummary } from "../analytics/ride-history";
 import { isClient, safeParse } from "@/app/lib/utils";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 
 const INDEX_KEY = STORAGE_KEYS.walrusRideBlobs;
 
@@ -25,6 +26,8 @@ function writeLocalIndex(index: RideBlobIndex): void {
 export async function persistRideSummaryToWalrus(
   summary: RideSummary,
 ): Promise<string | null> {
+  if (!isPersonalDataPublicationAllowed()) return null;
+
   try {
     const client = getWalrusClient();
     const result = await client.storeJSON(summary, 90);

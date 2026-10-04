@@ -178,6 +178,7 @@ export class NoirProver {
       ],
       circuitType,
       verifierAddress: ZK_CONFIG.verifierAddress ?? "",
+      backend: "noir",
     };
   }
 

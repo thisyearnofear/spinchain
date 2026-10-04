@@ -36,9 +36,10 @@ class MockProver implements ProverBackend {
       ],
       circuitType,
       verifierAddress: ZK_CONFIG.verifierAddress ?? "",
+      backend: "mock",
     };
   }
-  
+
   async verifyProof(proof: ZKProof, _publicInputs: string[]): Promise<boolean> {
     const config = CIRCUIT_CONFIGS[proof.circuitType];
     await new Promise(r => setTimeout(r, config.verificationTime));
@@ -213,10 +214,17 @@ export class ZKProver {
     return this.generateWithFallback(input, 'composite');
   }
   
-  // Verify any proof
+  // Verify with the backend that produced the proof.
   async verify(proof: ZKProof): Promise<boolean> {
     await this.ensureInitialized();
-    return this.getBackend().verifyProof(proof, proof.publicInputs);
+    if (proof.backend === "mock") {
+      return this.mockBackend.verifyProof(proof, proof.publicInputs);
+    }
+    if (proof.backend === "noir") {
+      if (!this.useNoir || !this.noirBackend) return false;
+      return this.noirBackend.verifyProof(proof, proof.publicInputs);
+    }
+    return false;
   }
   
   // Create selective disclosure from proof

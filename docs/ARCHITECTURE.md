@@ -65,20 +65,58 @@ Milestone popup (2s, first achievement) + `RideCompletionV2` (celebration → st
 
 ---
 
-## 2. Background: Infrastructure (appendix)
+## 2. Background: Ledgers, State, and Interfaces
 
-Rider never sees these words. Built in parallel, never blocking the ride.
+Rider never sees these words. Built in parallel, never blocking the ride. Direction approved 2026-10-04: **receipt-first** — evidence and the phased plan live in [plans/wedge-contract-research.md](../plans/wedge-contract-research.md); recovery flow in [plans/journey-claim-flow.md](../plans/journey-claim-flow.md).
 
-| System | What | Where |
-|--------|------|-------|
-| Settlement (Avalanche Fuji) | ERC-721 tickets, ERC-20 SPIN, `IncentiveEngine.submitZKProofBatch()`, HonkVerifier | `contracts/evm/`, OPERATIONS §4 |
-| Performance (Sui testnet) | `RiderStats` 10Hz batched PTB, `TelemetryAnchor` Walrus blob IDs | `move/spinchain/`, OPERATIONS §4 |
-| ZK `effort_threshold` | Noir circuit: 60s HR private, threshold/duration public → `effort_score` 0-1000. Browser proving via `@aztec/bb.js`, chunked 60s windows | `circuits/effort_threshold/` |
-| Yellow channels | Nitro off-chain accrual → single on-chain mint. Consolidated into `IncentiveEngine.submitChannelProof`. HUD ticker only. | ARCHITECTURE history |
-| Storage (Walrus) | Telemetry blobs (30 epochs), ghosts/worlds (permanent), coach memory blobs | `app/lib/walrus/` |
-| AI coaching | Venice → NVIDIA → Gemini fallback. Rule-based pacing cues + TTS personality. Memory via Walrus blobs. | `app/engines/coaching-engine.ts` |
+### Three separate ledgers — never interchangeable
 
-Full contract addresses, deploy commands, gas benchmarks (batch 9 chunks / 45min = 364k gas, ~40-80% savings): OPERATIONS §4 + §7.
+| Ledger | Contains | Status vocabulary |
+|--------|----------|-------------------|
+| **Local runtime** | Transient in-memory engine state (telemetry, flow, world) | — |
+| **Durable progression** | Completed ride record + `RideReceiptV1` — device-local first (localStorage, NOT encrypted), then session-gated Supabase account sync (consent-gated) | "saved on device" / "cloud save pending" / "saved to account" |
+| **Optional campaign settlement** | Future bounded, funded redeemer over a signed receipt + nullifier | "redemption confirmed" |
+
+Receipt `verification.status` is a separate axis from where the record is stored — a receipt can be `unverified` regardless of ledger location. Cloud-save job state is separate from chain anchoring/proof state. Legacy reads are migration-only and auth-owner-scoped (phase 1, implemented locally) — old blobs are never retroactively declared private/deleted.
+
+### RideReceiptV1 (implemented locally: `app/lib/analytics/ride-receipt.ts`)
+
+```ts
+type RideReceiptV1 = {
+  version: 1;
+  receiptId: string;      // saved summary id (legacy formats preserved on read)
+  sessionId: string;      // stable ride-session id
+  riderId: string;        // account/wallet id
+  classId: string;
+  completedAt: number;
+  durationSec: number;
+  policyVersion: 'ride-record-v1';
+  provenance: 'simulated' | 'device-observed' | 'estimated';
+  progression: { rideRecorded: true };
+  verification: { status: 'unverified'; issuer: null };
+  redemption: { status: 'unavailable'; reason: 'redemption-not-enabled' };
+  telemetryCommitment: null;
+};
+```
+
+Derived from the saved summary + stable session id; carried as an optional field on `RideSummary`. V1 carries **no** raw samples, score proof, or cryptographic attestation — it is a record, not a certificate. `source-attested` provenance is reserved and cannot be client-declared. No issuer secret (e.g. EIP-712 key) ever lives on the client.
+
+### Privacy boundary (phase 1 → 2)
+
+- Phase 1 (implemented and reviewed locally — not yet deployed; the live build still allows public publication) closes **public** publication: telemetry, ride summaries, rider profiles, coach memory, and Sui ride anchors stop being written publicly. Public world/route asset publishing stays.
+- Phase 2 closes **consent transfer**: cloud history, third-party AI/voice, instructor live view, and public achievement export are separate granular consents. Third-party AI/TTS currently send biometric context — consent required before claiming privacy-ready.
+- Ordinary progression is not cash or transferable SPIN; tradable/cash rewards require jurisdictional legal review (EDPB privacy rules (minimization/retention/erasure — encrypted data is still personal data), Apple platform rules (3.1.1 digital goods/NFT, 5.1 health/AI consent), and jurisdictional financial review are separate concerns — see research doc §§5–7). A `RideReceiptV1` is a record, not a medical measurement or attestation certificate.
+
+### Current vs planned chain systems
+
+| System | Current (testnet experiment) | Planned |
+|--------|------------------------------|---------|
+| Avalanche Fuji | `IncentiveEngine`, ERC-20 SPIN, deployed wrapper + HonkVerifier. **Deployed wrapper is broken**: forwards wrong public-input slice (verified on-chain 2026-10-04); underlying Honk verifies fixture proofs. Corrected wrapper code exists locally, NOT deployed. | `AchievementRedeemerV2`: issuer-signed typed receipt + stable consumed nullifier, EIP-712 domain binding, expiry, campaign/user budgets, gas-payer allowlist, pause/rotation. Design phase 4 — no redeploy/adapter now. |
+| Sui testnet | `RiderStats` PTB, `TelemetryAnchor` Walrus blob ids | Phase 1 (implemented locally): ALL personal ride telemetry/anchor writes DISABLED — no private on-chain writes; anchoring optional future |
+| ZK `effort_threshold` | Noir circuit + `@aztec/bb.js` UltraHonk. **Only 3 public outputs** (`threshold_met`, `seconds_above`, `effort_score`); threshold/minDuration/classId/rider are attached metadata, NOT proven. Proof-hash replay key ≠ stable session nullifier. FTMS is transport, not attestation. | Optional privacy layer over issuer-bound commitment; real-verifier benchmarks in phase 5 |
+| Yellow channels | Parked until a funded use case exists | — |
+
+Legacy gas benchmarks used MockVerifier (the "364k/9-chunk" figures are not real-verifier measurements).
 
 ---
 
@@ -92,4 +130,4 @@ app/stores/   ride, coaching, ui, sensory, ride-modal
 app/lib/      flow-state, phase-theme, milestones, experience-level, context-palette, gpu-probe, themes/registry
 ```
 
-*Last updated: 2026-10-03 — slimmed to foreground/background. Deleted duplicated §5 tail, collapsed chain/ZK/Yellow detail to appendix with OPERATIONS pointers.*
+*Last updated: 2026-10-04 — slimmed to foreground/background. Deleted duplicated §5 tail, collapsed chain/ZK/Yellow detail to appendix with OPERATIONS pointers.*

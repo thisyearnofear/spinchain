@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { apiError, apiOk } from "@/app/lib/api/response";
 import { getServerClient } from "@/app/lib/supabase/client";
 import { verifySession } from "@/app/lib/auth/session";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,9 @@ async function getAuthPayload(request: NextRequest) {
 const STALE_MS = 5 * 60 * 1000;
 
 export async function GET(request: NextRequest) {
+  if (!isPersonalDataPublicationAllowed()) {
+    return apiError("Live telemetry sharing is disabled", "NOT_IMPLEMENTED", 501);
+  }
   const client = getServerClient();
   if (!client) {
     return apiError("Database not configured", "NOT_CONFIGURED", 503);
@@ -92,6 +96,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isPersonalDataPublicationAllowed()) {
+    return apiError("Live telemetry publishing is disabled", "NOT_IMPLEMENTED", 501);
+  }
   const client = getServerClient();
   if (!client) {
     return apiError("Database not configured", "NOT_CONFIGURED", 503);

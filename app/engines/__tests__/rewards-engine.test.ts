@@ -61,6 +61,7 @@ describe("RewardsEngine", () => {
   let engine: RewardsEngine;
 
   beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_ENABLE_LEGACY_REWARD_CLAIMS", "true");
     vi.useFakeTimers();
     bus = new EventBus();
   });
@@ -69,6 +70,7 @@ describe("RewardsEngine", () => {
     engine?.dispose();
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   describe("ZK batch mode", () => {

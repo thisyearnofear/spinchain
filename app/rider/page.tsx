@@ -197,7 +197,10 @@ export default function RiderPage() {
     // eslint-disable-next-line react-hooks/purity -- Date.now() captured for first-render class filtering
     (cls) => cls.startTime > Math.floor(Date.now() / 1000)
   );
-  const nextClassName = nextClass ? nextClass.name : undefined;
+  const nextClassForCta =
+    nextClass && nextClass.address
+      ? { name: nextClass.name, address: nextClass.address as `0x${string}` }
+      : undefined;
 
   const featuredInstructors = instructors.length > 0 ? instructors.map(i => ({
     ...i,
@@ -255,7 +258,7 @@ export default function RiderPage() {
         <RiderHero initialGreeting={heroGreeting} weeklyLoad={weeklyLoad} hasRides={totalRides > 0} />
 
         {/* 3. ONE Primary CTA — the dominant action */}
-        <PrimaryCTA isConnected={isConnected} nextClassName={nextClassName} hasRides={totalRides > 0} />
+        <PrimaryCTA isConnected={isConnected} nextClass={nextClassForCta} hasRides={totalRides > 0} />
 
         {/* 4. Browse All Classes — collapsed by default, pushed below the fold */}
         <div id="classes" className="scroll-mt-8">
@@ -364,7 +367,7 @@ export default function RiderPage() {
                   title={filterUpcoming ? "No upcoming rides yet" : "No past rides yet"}
                   description={filterUpcoming
                     ? "New rides are added every day. Be the first to host one, or try a demo ride in the meantime."
-                    : "Your completed rides will appear here with full telemetry and reward history."
+                    : "Your completed rides will appear here with full telemetry and progression history."
                   }
                   action={!isConnected ? {
                     label: "Try Demo Ride",
@@ -459,7 +462,7 @@ export default function RiderPage() {
                   Riding as guest
                 </span>
                 <span className="text-[color:var(--muted)]/70 hidden sm:inline">
-                  {" "}· connect later to keep rewards
+                  {" "}· rides save on this device — no wallet needed
                 </span>
               </div>
             </div>
@@ -481,7 +484,7 @@ export default function RiderPage() {
                   Wallet connected
                 </p>
                 <p className="text-xs text-[color:var(--muted)] mt-0.5">
-                  You can join classes and earn rewards
+                  Wallet connected — rides still save on this device
                 </p>
               </div>
             </div>

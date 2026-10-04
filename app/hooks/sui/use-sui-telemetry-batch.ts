@@ -23,6 +23,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { SUI_CONFIG } from "@/app/config";
 import { useSuiTransaction } from "./use-sui-transaction";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 
 const MODULE_NAME = "spinsession";
 const BATCH_SIZE = 50; // Submit when buffer reaches this size
@@ -70,6 +71,9 @@ export function useSuiTelemetryBatch(
    * Submit a batch of telemetry points as a single PTB transaction
    */
   const submitBatch = useCallback(async (batch: TelemetryPoint[]): Promise<boolean> => {
+    if (!isPersonalDataPublicationAllowed()) {
+      return false;
+    }
     if (!sessionId || !statsObjectId || batch.length === 0) {
       return false;
     }
@@ -123,6 +127,9 @@ export function useSuiTelemetryBatch(
    * Queue a telemetry point (adds to buffer, no gas cost)
    */
   const queueTelemetry = useCallback((data: Omit<TelemetryPoint, "timestamp">) => {
+    if (!isPersonalDataPublicationAllowed()) {
+      return;
+    }
     if (!sessionId || !statsObjectId) {
       console.warn("[SuiTelemetryBatch] Missing sessionId or statsObjectId");
       return;

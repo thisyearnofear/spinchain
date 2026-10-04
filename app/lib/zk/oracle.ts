@@ -4,6 +4,7 @@
 import type { ZKProof } from './types';
 import { getProver, ZKProver } from './prover';
 import { getAssetManager } from '../walrus/client';
+import { isPersonalDataPublicationAllowed } from '@/app/lib/privacy/publication-policy';
 import { DisclosureBuilder, DEFAULT_POLICY } from './disclosure';
 
 // Telemetry data point from sensors
@@ -89,42 +90,12 @@ export class LocalOracle {
     if (!this.isRecording || !this.config) {
       return { success: false, error: 'No active session' };
     }
-    
-    this.isRecording = false;
-    
-    const startTime = performance.now();
-    
-    try {
-      const result = await this.generateProofsFromHeartRateSamples({
-        heartRateSamples: this.telemetryBuffer.map((point) => point.heartRate),
-        avgPower: this.analyzeTelemetry().avgPower,
-        classId: this.config.classId,
-        riderId: this.config.riderId,
-        threshold: this.config.targetHeartRate,
-        minDuration: this.config.minDuration,
-      });
-      if (!result.success) {
-        return result;
-      }
-      
-      // Store raw telemetry to Walrus (optional, encrypted)
-      await this.storeTelemetrySecurely();
 
-      return {
-        ...result,
-        metadata: result.metadata
-          ? {
-              ...result.metadata,
-              provingTime: performance.now() - startTime,
-            }
-          : undefined,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Proof generation failed',
-      };
-    }
+    this.isRecording = false;
+    return {
+      success: false,
+      error: 'Automatic verification is disabled; ride recording stopped',
+    };
   }
   
   // Real-time proof update (for long sessions)
@@ -308,6 +279,7 @@ export class LocalOracle {
   // Store telemetry encrypted to Walrus
   private async storeTelemetrySecurely(): Promise<void> {
     if (!this.config || this.telemetryBuffer.length === 0) return;
+    if (!isPersonalDataPublicationAllowed()) return;
     
     try {
       const manager = getAssetManager();

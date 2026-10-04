@@ -14,8 +14,9 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
-import { isAddress } from "viem";
+
 import { useYellowSettlement } from "@/app/hooks/evm/use-yellow-settlement";
+import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 import { useZKClaim as useOnchainZKClaim } from "@/app/hooks/evm/use-zk-claim";
 import type { TelemetryPoint } from "@/app/lib/zk/oracle";
 import {
@@ -29,7 +30,6 @@ import {
   // Calculator
   formatReward,
   parseReward,
-  calculateRewardFromScore,
   calculateAccumulatedReward,
   // Yellow
   useYellowStreaming,
@@ -121,7 +121,7 @@ export interface UseRewardsReturn {
 
 export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   const { address: rider } = useAccount();
-  const { mode, classId, instructor, depositAmount = BigInt(0), zkThreshold = 150 } = config;
+  const { mode, classId, instructor, depositAmount = BigInt(0) } = config;
   
   // Get mode configuration
   const modeConfig = REWARD_MODES[mode];
@@ -146,6 +146,7 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   // ============================================================================
   
   const startEarning = useCallback(async (): Promise<void> => {
+    if (!isLegacyRewardClaimsEnabled()) return;
     switch (mode) {
       case "yellow-stream": {
         if (!rider) throw new Error("Wallet required for Yellow streaming");
@@ -182,6 +183,7 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
   // ============================================================================
   
   const recordEffort = useCallback(async (telemetry: TelemetryPoint): Promise<void> => {
+    if (!isLegacyRewardClaimsEnabled()) return;
     switch (mode) {
       case "yellow-stream": {
         const signed = await yellow.sendUpdate(telemetry);
@@ -238,6 +240,9 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
     amount: bigint; 
     hash?: string 
   }> => {
+    if (!isLegacyRewardClaimsEnabled()) {
+      return { success: false, amount: BigInt(0) };
+    }
     switch (mode) {
       case "yellow-stream": {
         const closedChannel = await yellow.stopStreaming();
@@ -295,67 +300,9 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
       }
       
       case "zk-batch": {
-        if (!batchAccumulator || !rider) {
-          return { success: false, amount: BigInt(0) };
-        }
-
-        if (!isAddress(classId)) {
-          console.warn("[Rewards] Skipping ZK claim for non-contract class:", classId);
-          return { success: false, amount: BigInt(0) };
-        }
-
-        const heartRateSamples = batchAccumulator.telemetryPoints.map(
-          (point) => point.heartRate,
-        );
-        const durationSeconds = Math.max(
-          1,
-          Math.floor(batchAccumulator.totalDuration || heartRateSamples.length),
-        );
-        const averageHeartRate =
-          heartRateSamples.length > 0
-            ? Math.round(
-                heartRateSamples.reduce((sum, value) => sum + value, 0) /
-                  heartRateSamples.length,
-              )
-            : batchAccumulator.maxHeartRate;
-
-        const proofResult = await zkClaim.generateProof({
-          heartRate: averageHeartRate,
-          threshold: zkThreshold,
-          durationSeconds,
-          classId,
-          riderId: rider,
-          heartRateSamples,
-          avgPower: batchAccumulator.avgPower,
-        });
-
-        if (!proofResult.success || !proofResult.proof) {
-          return { success: false, amount: BigInt(0) };
-        }
-
-        await zkClaim.submitProof(
-          {
-            spinClass: classId,
-            rider,
-            rewardAmount: "0",
-            classId,
-          },
-          proofResult.proof,
-          proofResult.proofs,
-          durationSeconds,
-        );
-
-        const reward = calculateRewardFromScore(
-          proofResult.metadata?.aggregateEffortScore ??
-            proofResult.disclosure?.revealed.effortScore ??
-            0,
-        );
-
-        return {
-          success: true,
-          amount: reward.totalAmount,
-          hash: zkClaim.hash,
-        };
+        // finalize reports the accrued estimate only — the explicit claim
+        // on the finish screen is the only ZK submission.
+        return { success: false, amount: zkAccumulated };
       }
       
       case "sui-native": {
@@ -369,11 +316,7 @@ export function useRewards(config: UseRewardsConfig): UseRewardsReturn {
     yellow,
     yellowSettlement,
     updates,
-    batchAccumulator,
-    classId,
-    rider,
-    zkClaim,
-    zkThreshold,
+    zkAccumulated,
   ]);
 
   // ============================================================================

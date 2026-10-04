@@ -23,7 +23,10 @@ export function GamificationBar() {
   // Early return for zero-state — looks like nothing
   if (totalRides === 0) {
     return (
-      <div className="flex items-center gap-4 text-xs text-[var(--muted)]">
+      <div
+        className="flex items-center gap-4 text-xs text-[var(--muted)]"
+        data-testid="gamification-bar"
+      >
         <span>Start your first ride to unlock streaks, milestones, and flow tracking</span>
         <span className="text-accent">→</span>
       </div>
@@ -31,7 +34,10 @@ export function GamificationBar() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-[var(--muted)]">
+    <div
+      className="flex flex-wrap items-center gap-4 text-xs font-medium text-[var(--muted)]"
+      data-testid="gamification-bar"
+    >
       {/* Streak */}
       {streak > 0 && (
         <div className="flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1.5 border border-amber-500/20">

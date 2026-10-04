@@ -5,6 +5,7 @@ import type { Address } from "viem";
 import { createWalletClient, createPublicClient, http, defineChain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { CONTRACT_ADDRESSES, INCENTIVE_ENGINE_ABI, AVALANCHE_FUJI } from "@/app/lib/contracts";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 
 export const dynamic = 'force-dynamic';
 
@@ -129,6 +130,10 @@ function isRelayerModeAvailable(): boolean {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse<SyncResponse | ApiErrorBody>> {
+  if (!isPersonalDataPublicationAllowed()) {
+    return apiError("Public ride publishing is disabled", "NOT_IMPLEMENTED", 501);
+  }
+
   try {
     const rawBody = await req.json();
     const validation = validatePayload(rawBody);

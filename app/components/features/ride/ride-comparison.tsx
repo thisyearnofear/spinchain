@@ -5,6 +5,7 @@ import { m } from "framer-motion";
 import { ArrowUp, ArrowDown, Minus, TrendingUp } from "lucide-react";
 import { getRideHistory, estimateZones } from "@/app/lib/analytics/ride-history";
 import { formatTime } from "@/app/lib/formatters";
+import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 
 /**
  * RideComparison — Side-by-side comparison with previous ride on same route.
@@ -78,14 +79,16 @@ export function RideComparison({
       higherIsBetter: true,
       format: (v: number) => formatTime(v),
     },
-    {
-      label: "SPIN",
-      current: parseFloat(spinEarned) || 0,
-      previous: previousRide.spinEarned,
-      unit: "",
-      higherIsBetter: true,
-      format: (v: number) => v.toFixed(1),
-    },
+    ...(isLegacyRewardClaimsEnabled()
+      ? [{
+          label: "SPIN",
+          current: parseFloat(spinEarned) || 0,
+          previous: previousRide.spinEarned,
+          unit: "",
+          higherIsBetter: true,
+          format: (v: number) => v.toFixed(1),
+        }]
+      : []),
   ];
 
   return (
@@ -97,7 +100,7 @@ export function RideComparison({
         </span>
       </div>
 
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${comparisons.length}, minmax(0, 1fr))` }}>
         {comparisons.map((cmp) => {
           const delta = cmp.current - cmp.previous;
           const pctChange = cmp.previous > 0 ? (delta / cmp.previous) * 100 : 0;

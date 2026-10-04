@@ -73,6 +73,7 @@ create table if not exists ride_summaries (
   avg_power integer,
   effort_tier text,
   zones jsonb,
+  summary jsonb,
   walrus_blob_id text,
   sync_status text default 'synced',
   created_at timestamptz default now()

@@ -314,6 +314,9 @@ export default function LiveRidePage() {
     address,
     elapsedTime,
     telemetryAverages,
+    // Raw recorded HR samples, read lazily at claim time.
+    getHeartRateSamples: () =>
+      coordinatorRef.current.getCoordinator()?.telemetry.samples.map(({ hr }) => hr) ?? [],
   });
 
   const simulatorHook = useRideSimulator({
@@ -586,13 +589,15 @@ export default function LiveRidePage() {
     const modals = useRideModalStore.getState();
     modals.setShowCompletionScreen(false);
     modals.setWalrusAnchorInfo(null);
+    modals.setCompletedRideId(null);
+    rewardsHook.setCompletedRideId(null);
     useRideStore.setState({ rideProgress: 0, elapsedTime: 0, isActive: false, isPaused: false, isStarting: false });
     useTelemetryStore.getState().reset();
     milestones.reset();
     analyticsHook.trackedCompletionRef.current = false;
     setActivationComplete(false);
     setShowActivation(true);
-  }, [analyticsHook, milestones]);
+  }, [analyticsHook, milestones, rewardsHook]);
 
   // ─── Tutorial ──────────────────────────────────────────────────
   const { nextStep: nextTutorial, dismiss: dismissTutorial } = useRideTutorial({ isPracticeMode, walletConnected });

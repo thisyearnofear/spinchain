@@ -29,7 +29,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { getWalrusFeed, retrieveRideSummaryFromWalrus, type WalrusFeedEntry } from "../../lib/walrus/ride-persistence";
-import { useSupabaseSync } from "../../hooks/common/use-supabase-sync";
+import { useSupabaseSync, RIDE_HISTORY_UPDATED_EVENT } from "../../hooks/common/use-supabase-sync";
 import { useAccount } from "wagmi";
 import Link from "next/link";
 import {
@@ -47,6 +47,7 @@ import { CoachArcCard } from "../../components/features/rider/coach-arc-card";
 import { useProfileSyncEffect } from "../../hooks/common/use-profile-sync";
 import { composeCoachArc } from "../../lib/journey/coach-arc";
 import { listCachedCoachMemories } from "../../lib/walrus/coach-memory";
+import { isLegacyRewardClaimsEnabled } from "../../lib/rewards/legacy-policy";
 import { useRiderProfile, mapCoachPersonalityToEngine } from "../../stores/rider-profile-store";
 import { getTheme } from "../../lib/themes/registry";
 import { experienceManager } from "../../lib/experience-level";
@@ -91,6 +92,8 @@ function JourneyContent() {
       : experienceManager.getProfile().preferredTheme,
   );
   const roomTheme = useMemo(() => getTheme(themeName), [themeName]);
+
+  const legacyEnabled = isLegacyRewardClaimsEnabled();
 
   const totalSpin = useMemo(
     () => rides.reduce((sum, r) => sum + r.spinEarned, 0),
@@ -192,7 +195,11 @@ function JourneyContent() {
   useEffect(() => {
     const handleStorage = () => setRides(getRideHistory());
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener(RIDE_HISTORY_UPDATED_EVENT, handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(RIDE_HISTORY_UPDATED_EVENT, handleStorage);
+    };
   }, []);
 
   // One-line factual summaries for the collapsed section headers ("—" when
@@ -207,8 +214,10 @@ function JourneyContent() {
   const rewardsSummary =
     rides.length === 0
       ? "—"
-      : `${totalSpin.toFixed(1)} SPIN earned` +
-        (claimableSpin > 0 ? ` · ${claimableSpin.toFixed(1)} SPIN to claim` : "");
+      : legacyEnabled
+        ? `${totalSpin.toFixed(1)} SPIN earned` +
+          (claimableSpin > 0 ? ` · ${claimableSpin.toFixed(1)} SPIN to claim` : "")
+        : `${rides.length} ride record${rides.length === 1 ? "" : "s"} · no redemption available`;
   const historySummary =
     rides.length === 0
       ? "—"
@@ -358,28 +367,53 @@ function JourneyContent() {
 
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="p-5 rounded-3xl bg-black/40 border border-white/5">
-                    <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] block mb-2">
-                      Total Earned
-                    </span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-black text-white tracking-tighter">
-                        {totalSpin.toFixed(1)}
-                      </span>
-                      <span className="text-xs font-bold text-yellow-500 uppercase">
-                        SPIN
-                      </span>
-                    </div>
-                    <p className="mt-2 text-[10px] text-white/40 font-medium">
-                      SPIN — what your effort earns.
-                    </p>
-                    {claimableSpin > 0 ? (
-                      <p className="mt-2 text-[10px] font-bold text-yellow-400/90">
-                        {claimableSpin.toFixed(1)} SPIN verified and ready.
-                      </p>
+                    {legacyEnabled ? (
+                      <>
+                        <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] block mb-2">
+                          Total Earned
+                        </span>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-black text-white tracking-tighter">
+                            {totalSpin.toFixed(1)}
+                          </span>
+                          <span className="text-xs font-bold text-yellow-500 uppercase">
+                            SPIN
+                          </span>
+                        </div>
+                        <p className="mt-2 text-[10px] text-white/40 font-medium">
+                          SPIN — what your effort earns.
+                        </p>
+                        {claimableSpin > 0 ? (
+                          <p className="mt-2 text-[10px] font-bold text-yellow-400/90">
+                            {claimableSpin.toFixed(1)} SPIN unclaimed — claims are
+                            available on the ride finish screen. Claim recovery
+                            from history is not available yet.
+                          </p>
+                        ) : (
+                          <p className="mt-2 text-[10px] text-white/40 font-medium">
+                            Rewards are claimed on the ride finish screen.
+                          </p>
+                        )}
+                      </>
                     ) : (
-                      <p className="mt-2 text-[10px] text-white/40 font-medium">
-                        Rewards are claimed from each ride&apos;s finish screen.
-                      </p>
+                      <>
+                        <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] block mb-2">
+                          Ride Records
+                        </span>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-black text-white tracking-tighter">
+                            {rides.length}
+                          </span>
+                          <span className="text-xs font-bold text-yellow-500 uppercase">
+                            completed
+                          </span>
+                        </div>
+                        <p className="mt-2 text-[10px] text-white/40 font-medium">
+                          Each completed ride saves a record on this device.
+                          Ride records are not independently verified and no
+                          redemption is available.
+                        </p>
+                      </>
                     )}
                   </div>
 
@@ -475,21 +509,26 @@ function JourneyContent() {
                             >
                               {getRideAnchoringStatus(ride).label}
                             </span>
-                            {ride.proof.mode !== "none" ? (
+                            {legacyEnabled && ride.proof.mode !== "none" ? (
                               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/60">
                                 {ride.proof.isVerified ? "Verified ✓" : "Pending"}
                               </span>
                             ) : null}
-                            {ride.proof.verifiedScore ? (
+                            {legacyEnabled && ride.proof.verifiedScore ? (
                               <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-cyan-200">
                                 {ride.proof.verifiedScore} effort verified
                               </span>
                             ) : null}
+                            {!legacyEnabled && ride.receipt && (
+                              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/50">
+                                Not independently verified
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="text-right text-xs text-white/70">
                           <p>{ride.avgEffort} effort</p>
-                          <p>{ride.spinEarned.toFixed(1)} SPIN</p>
+                          {legacyEnabled && <p>{ride.spinEarned.toFixed(1)} SPIN</p>}
                         </div>
                       </div>
                     </div>
@@ -519,16 +558,21 @@ function JourneyContent() {
                 </div>
                 <div className="mt-4 text-sm text-white/60">
                   PR Power: {prs.bestPower}W • PR Duration:{" "}
-                  {Math.round(prs.bestDuration / 60)}m • PR SPIN:{" "}
-                  {prs.bestSpin.toFixed(1)}
+                  {Math.round(prs.bestDuration / 60)}m
+                  {legacyEnabled && (
+                    <> • PR SPIN: {prs.bestSpin.toFixed(1)}</>
+                  )}
                 </div>
               </div>
 
               <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
                 <h3 className="text-lg font-bold text-white">Class Leaderboard</h3>
                 <p className="mt-1 text-xs text-white/50">
-                  Ranked by verified effort from completed rides.
+                  {legacyEnabled
+                    ? "Ranked by verified effort from completed rides."
+                    : "Ranked by effort from completed rides."}
                 </p>
+                {legacyEnabled && (
                 <details className="group mt-3">
                   <summary className="cursor-pointer text-xs text-white/50 hover:text-white/70">
                     How verification works
@@ -549,6 +593,7 @@ function JourneyContent() {
                     )}
                   </div>
                 </details>
+                )}
                 <div className="mt-4 space-y-2">
                   {leaderboard === null ? (
                     <QuietPlaceholder />

@@ -1,34 +1,37 @@
 # Journey Claim Flow — Spec
 
-> **Status**: SPEC — not built. **Problem**: rides stuck at proof `ready` have no claim path once the finish screen closes. Claiming only exists in-session (`useRewards.finalizeRewards`). The journey page shows "X SPIN verified and ready" with nowhere to go.
-> **Wedge rule**: never advertise what riders can't do. Ship the flow before any copy promises it.
+> **Status**: SUPERSEDED by receipt-first direction (approved 2026-10-04). The raw-Walrus-fetch claim flow below is historical context only — it is NOT the build target. Current design: V1 is a local ride record; future claim/settlement is a separate architecture and is **not shipped**. See `plans/wedge-contract-research.md` and `docs/ARCHITECTURE.md` §2.
+> **Wedge rule**: never advertise what riders can't do. Journey copy must distinguish `progress saved` / `verification pending` / `redemption confirmed`.
 
-## How claiming works today
+## What exists today
 
-- `useZKClaim.generateProof(sessionData)` needs **raw HR samples** (`heartRateSamples`, 1Hz) → Noir `effort_threshold` via Barretenberg (~8MB WASM, browser-only) → submit to `IncentiveEngine` on Fuji → ride marked `claimed` in history.
-- `RideSummary` (localStorage/Supabase) stores **aggregates only** (`avgHeartRate`, `spinEarned`) — no samples. Raw telemetry lives in Walrus blobs (`spinchain:walrus:ride-blobs:v1`: rideId → blobId).
+- `RideSummary` (localStorage/Supabase) stores aggregates only; no raw samples are persisted for proof regeneration. Raw Walrus telemetry blobs exist for historical rides and are legacy reads — migration-only, auth-owner-scoped enforcement is implemented locally in phase 1 (API owner-scoping included: 403 on rider mismatch, 404 cross-owner); never retroactively declared private.
+- In-session claim plumbing (`useZKClaim` → `IncentiveEngine`) exists but the deployed Fuji wrapper is known-broken (wrong public-input slice, confirmed 2026-10-04) and claims are not approved — the app-side legacy-claim gate (`isLegacyRewardClaimsEnabled`, Fuji-only flag) is implemented locally in phase 1; production still runs the old build.
+- Proof generation on ride stop is disabled in the release-prepared phase-1 build (LocalOracle instantiated only under the legacy flag); nothing here is deployed yet.
 
-## Proposed flow (async, per ride)
+## Receipt-first recovery phases (current design)
 
-```
-Journey "Claim X SPIN" → wallet check → fetch Walrus blob → extract 1Hz HR
-→ generateProof (progress UI: proving… submitting… confirming)
-→ mark claimed → status chip flips to "Rewards claimed" → totals update
-```
+### V1 ride record (phase 1 — implemented locally)
 
-1. **Entry**: claim button on the Total Earned card (only when `claimableSpin > 0`) + per-ride "Claim" on rows with status `ready`. One dominant action per card.
-2. **Preconditions**: wallet connected (else connect prompt — same `SESSION_SECRET` nonce flow), Walrus blob present (else row shows "telemetry unavailable", no button — never a dead end).
-3. **Proving**: lazy-load prover on first claim only (never on page load — protects the 11MB client budget). Per-ride sequential, cancellable, survives tab backgrounding via the existing sync-queue pattern (`RideSyncQueueItem` + backoff).
-4. **Batching**: claim rides one tx at a time initially (matches `submitZKProofBatch` chunking per ride); multi-ride batching only if gas benchmarks justify it.
-5. **Failure**: `failed` status keeps the button with the error inline; retry reuses the blob (no re-ride needed).
+- Completed ride saves locally BEFORE any background work, carrying a durable `RideReceiptV1` (interface in `docs/ARCHITECTURE.md` §2).
+- Journey/history shows honest status: `progress saved`. No claim buttons, no "X SPIN ready" copy — a V1 receipt is not a certificate and redemption is `unavailable`.
+- No fabricated raw samples from averages; no plaintext fallback opt-in.
 
-## Scope (aggressive: no users, clean cut)
+### Private account sync (phase 2 — planned)
 
-- New `useJourneyClaim(rideId)` hook wrapping `generateProof` + submit + history status update. Reuses `LocalProofResult`, `createDisclosure`, engine ABI — no new crypto.
-- Journey UI: claim buttons + progress states. No changes to in-session finish-screen flow.
-- Tests: unit (status transitions ready→claimed, blob-missing → no button), E2E extension of wedge-guard (claim button visible when a `ready` ride exists).
-- Docs: flip this file to SHIPPED, update OPERATIONS E2E line.
+- Session-gated Supabase sync with durable outbox/recoverable jobs; pending proof/receipt state persists independent of the finish screen.
+- Granular consents gate cloud history, third-party AI/voice, instructor live view, and public achievement export separately.
+
+### Future claim/settlement (phases 4–5 — design principles approved, not built)
+
+- `AchievementRedeemerV2`: issuer-signed typed receipt bound to recipient/session/class/policy, EIP-712 domain, stable consumed nullifier (NOT proof bytes), expiry, campaign/user budgets, gas-payer allowlist, pause/signer rotation.
+- Semantic replay registry survives verifier changes. Honest SpinChain-issuer trust initially; optional ZK envelope later over issuer-bound commitments.
+- No numeric payout promises; exact ABI/economics are NOT yet designed or approved — they are a separate spec.
+
+## Historical context (do not build)
+
+The superseded flow fetched a Walrus blob → regenerated 1Hz HR → `generateProof` → `submitZKProofBatch`. Retired because: raw telemetry must not be public, proof bytes are not a stable session nullifier, and ZK does not authenticate physical-world provenance.
 
 ## Out of scope
 
-- Cross-ride single-tx batching, Yellow-channel claims from journey, gasless/sponsored claims.
+Cross-ride batching, Yellow-channel claims, gasless/sponsored claims, any settlement wiring in phases 1–2.

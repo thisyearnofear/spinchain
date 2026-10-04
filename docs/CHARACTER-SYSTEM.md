@@ -80,6 +80,8 @@ The character is how outcomes become emotional. These rules keep that honest:
 3. **No fake precision.** No readiness scores or medical-sounding claims without the data to back them (no HRV/sleep integration today). "You've gone hard four days straight — today we spin easy" is a coaching line, not a diagnosis.
 4. **Stylized over realistic.** At current fidelity, a stylized character with great state transitions beats a realistic one with four clips. The uncanny valley kills the relationship faster than low poly ever will.
 5. **Outcomes loop, always**: ride → measure (HR zones, power, PRs) → reflect *through the character* → prescribe (homework/plan) → return. The character is present at every step so it feels like one relationship, not four features.
+6. **Memory is personal data, scoped by consent.** Coach memory is local-device first; cloud memory and any third-party AI/voice use of biometric context require separate granular consent (phase 2). Never imply memory guarantees privacy — one-to-one fitness data does not justify one-to-many sharing.
+7. **Progression is not financial.** Earned kits, clips, and aura tiers are progression artifacts — not tokens, not cash-equivalent rewards. Character language never promises earnings or medical/diagnostic outcomes.
 
 ---
 

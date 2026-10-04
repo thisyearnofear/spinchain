@@ -6,6 +6,7 @@ import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useAiInstructor } from "@/app/hooks/ai/use-ai-instructor";
 import { useLLMCoaching } from "@/app/hooks/ai/use-llm-coaching";
 import { usePushLiveTelemetry } from "@/app/hooks/common/use-live-telemetry";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 import { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 import type { ClassWithRoute } from "@/app/hooks/evm/use-class-data";
 import type { WorkoutInterval } from "@/app/lib/workout-plan";
@@ -106,7 +107,9 @@ export function RideAiTelemetryBridge({
   });
 
   // ─── Push live telemetry to server for instructor view (throttled) ───
-  const { pushTelemetry, clearTelemetry } = usePushLiveTelemetry(isRiding && !isPracticeMode ? classId : null);
+  const { pushTelemetry, clearTelemetry } = usePushLiveTelemetry(
+    isPersonalDataPublicationAllowed() && isRiding && !isPracticeMode ? classId : null,
+  );
   useEffect(() => {
     if (!isRiding) return;
     pushTelemetry({

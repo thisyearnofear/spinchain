@@ -51,6 +51,11 @@ vi.mock("@mysten/sui/transactions", () => ({
 
 // ─── Mock SUI_CONFIG ────────────────────────────────────────────
 
+// Legacy-positive suite — publication policy mocked open.
+vi.mock("@/app/lib/privacy/publication-policy", () => ({
+  isPersonalDataPublicationAllowed: () => true,
+}));
+
 vi.mock("@/app/config", () => ({
   SUI_CONFIG: {
     packageId: "0xpackageid",

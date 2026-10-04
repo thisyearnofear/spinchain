@@ -14,6 +14,7 @@
  *   than in a separate hook.
  */
 
+import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 import { EventBus } from "./event-bus";
 import type { RewardMode, RewardStreamState, SignedRewardUpdate, RewardChannel } from "@/app/lib/rewards";
 import type { TelemetryPoint } from "@/app/lib/zk/oracle";
@@ -123,6 +124,7 @@ export class RewardsEngine {
 
   async startEarning(startConfig?: StartEarningConfig): Promise<void> {
     if (this.disposed) return;
+    if (!isLegacyRewardClaimsEnabled()) return;
 
     switch (this.mode) {
       case "yellow-stream": {
@@ -147,6 +149,7 @@ export class RewardsEngine {
 
   async recordEffort(telemetry: TelemetryPoint): Promise<void> {
     if (this.disposed || !this.isActive) return;
+    if (!isLegacyRewardClaimsEnabled()) return;
 
     switch (this.mode) {
       case "yellow-stream": {
@@ -199,6 +202,7 @@ export class RewardsEngine {
   /** Start simulated reward ticker for training/guest mode */
   startSimulated(): void {
     if (this.disposed || this.isSimulating) return;
+    if (!isLegacyRewardClaimsEnabled()) return;
     this.isSimulating = true;
     this.simulatedReward = 0;
 

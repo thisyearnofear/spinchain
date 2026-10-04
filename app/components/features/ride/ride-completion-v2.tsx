@@ -37,7 +37,8 @@ import { Star, CheckCircle2, ShieldCheck, Trophy, Flame, Volume2, Medal, Gem, Cr
 import { milestonesAndStreaks, type SessionMilestone, type MilestoneTier, MILESTONE_TIERS } from "@/app/lib/milestones";
 import { ShareCardButton } from "./share-card";
 import { RideComparison } from "./ride-comparison";
-import { getEffortTier } from "@/app/lib/analytics/ride-history";
+import { getEffortTier, getRideHistory } from "@/app/lib/analytics/ride-history";
+import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import type { RewardClaimStatus } from "@/app/lib/rewards";
 
@@ -150,6 +151,9 @@ export function RideCompletionV2({
   peakEffort = avgEffort,
   rideMilestones = [],
 }: RideCompletionV2Props) {
+  const legacyEnabled = isLegacyRewardClaimsEnabled();
+  const rideRecorded = !!completedRideId &&
+    getRideHistory().some((r) => r.id === completedRideId && r.receipt != null);
   const [completionPhase, setCompletionPhase] = useState<CompletionPhase>("celebration");
   const [prBeaten, setPrBeaten] = useState(false);
   const [rating, setRating] = useState(0);
@@ -255,7 +259,7 @@ export function RideCompletionV2({
       return `A mindful ${formatTime(displayElapsed)} session. Your body sustained ${avgPower}W with a steady rhythm. ${effortTier === "elite" ? "Today you found your flow state." : "Each ride deepens your practice."} I've noted this for your journey.`;
     }
 
-    return `Session analysis: ${formatTime(displayElapsed)} duration, ${avgPower}W avg power, ${avgHeartRate} BPM avg HR. ${hrEfficiency ? `Efficiency ratio: ${hrEfficiency}. ` : ""}Effort score ${avgEffort}/1000 (${effortTier}). ${effortTier === "elite" ? "Performance logged — recommending threshold increase." : `Target: push above ${avgEffort < 500 ? 500 : 800} next ride for higher SPIN yield.`}`;
+    return `Session analysis: ${formatTime(displayElapsed)} duration, ${avgPower}W avg power, ${avgHeartRate} BPM avg HR. ${hrEfficiency ? `Efficiency ratio: ${hrEfficiency}. ` : ""}Effort score ${avgEffort}/1000 (${effortTier}). ${effortTier === "elite" ? "Performance logged — recommending threshold increase." : `Target: push above ${avgEffort < 500 ? 500 : 800} next ride.`}`;
   }, [agentPersonality, avgPower, avgHeartRate, avgEffort, displayElapsed]);
 
   // Auto-advance to stats after celebration
@@ -279,6 +283,7 @@ export function RideCompletionV2({
   if (isPracticeMode) {
     return (
       <m.div
+        data-testid="ride-completion"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
@@ -303,6 +308,20 @@ export function RideCompletionV2({
             {formatTime(displayElapsed)} &middot; {peakEffort}/1000 effort
             {maxPower > avgPower ? ` \u00b7 Peak ${maxPower}W` : ""}
           </p>
+          {!legacyEnabled && (
+            <span
+              data-testid="ride-record-status"
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold ${
+                rideRecorded
+                  ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+                  : "border-white/15 bg-white/5 text-white/60"
+              }`}
+            >
+              {rideRecorded
+                ? "Ride recorded on this device"
+                : "Ride finished — history could not be saved on this device"}
+            </span>
+          )}
           <div className="w-full flex flex-col gap-2 mt-2">
             <a
               href="/rider/journey"
@@ -333,6 +352,7 @@ export function RideCompletionV2({
   return (
     <m.div
       ref={containerRef}
+      data-testid="ride-completion"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
@@ -657,7 +677,7 @@ export function RideCompletionV2({
             )}
 
             {/* Streak / SPIN / saved — chips, not boxes */}
-            {(currentStreak > 0 || !isPracticeMode || walrusAnchorInfo) && (
+            {(currentStreak > 0 || !isPracticeMode || walrusAnchorInfo || !legacyEnabled) && (
               <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
                 {currentStreak > 0 && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1.5 text-[11px] font-bold text-orange-300">
@@ -665,10 +685,25 @@ export function RideCompletionV2({
                     {currentStreak}-day streak
                   </span>
                 )}
-                {!isPracticeMode && (
+                {!isPracticeMode && legacyEnabled && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1.5 text-[11px] font-bold text-amber-300 tabular-nums">
                     <Star className="w-3.5 h-3.5" />
                     {spinEarned} SPIN earned
+                  </span>
+                )}
+                {!legacyEnabled && (
+                  <span
+                    data-testid="ride-record-status"
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold ${
+                      rideRecorded
+                        ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+                        : "border-white/15 bg-white/5 text-white/60"
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {rideRecorded
+                      ? "Ride recorded on this device"
+                      : "Ride finished — history could not be saved on this device"}
                   </span>
                 )}
                 {walrusAnchorInfo && (
@@ -708,7 +743,7 @@ export function RideCompletionV2({
                   {avgEffort >= 800
                     ? "You crushed it! Try a higher-intensity class to push your threshold further."
                     : avgEffort >= 500
-                      ? "Solid effort. Aim for above 700 effort next ride for higher SPIN rewards."
+                      ? "Solid effort. Aim for above 700 effort next ride."
                       : "Great start! An endurance class will help you build your base over time."}
                 </p>
               </div>
@@ -717,7 +752,7 @@ export function RideCompletionV2({
           )}
 
           {/* Infra details — live classes only (practice stays rider-facing) */}
-          {!isPracticeMode && (
+          {!isPracticeMode && legacyEnabled && (
             <StorageDetails
               walrusAnchorInfo={walrusAnchorInfo}
               syncStatus={walrusAnchorInfo ? "anchored" : "pending"}
@@ -795,9 +830,10 @@ export function RideCompletionV2({
               avgPower={avgPower}
               avgHeartRate={avgHeartRate}
               durationSec={displayElapsed}
-              spinEarned={isPracticeMode ? "0" : spinEarned}
+              spinEarned={isPracticeMode || !legacyEnabled ? "0" : spinEarned}
               agentName={agentName}
               walrusBlobId={!isPracticeMode ? walrusAnchorInfo?.blobId : undefined}
+              rideRecorded={rideRecorded}
             />
             {onExportTCX && !isPracticeMode && (
               <button
@@ -820,6 +856,7 @@ export function RideCompletionV2({
             </button>
           ) : (
             !isPracticeMode &&
+            legacyEnabled &&
             ((onClaimRewards) || (!walletConnected && onConnectWallet)) && (
               <ClaimRewardsButton
                 walletConnected={walletConnected}

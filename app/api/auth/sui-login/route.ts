@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiError, apiOk } from "@/app/lib/api/response";
-import { generateNonce, verifyNonce, createSession } from "@/app/lib/auth/session";
+import { checkRateLimit } from "@/app/lib/api/rate-limiter";
+import {
+  consumeNonce,
+  createSession,
+  generateNonce,
+  isRequestOriginAllowed,
+} from "@/app/lib/auth/session";
+import { SUI_ADDRESS_RE } from "@/app/lib/auth/types";
 import { getServerClient } from "@/app/lib/supabase/client";
 
 export const dynamic = "force-dynamic";
@@ -10,10 +17,12 @@ export const dynamic = "force-dynamic";
  *
  * POST /api/auth/sui-login
  * Step 1: { address } -> { nonce }  (client signs nonce with wallet)
- * Step 2: { address, nonce, signature } -> { token, role }
+ * Step 2: { address, nonce, signature } -> { token, role, address }
  *
- * The signature is verified against the Sui wallet's public key.
- * On success, a JWT is returned for subsequent authenticated requests.
+ * The Sui signature is verified via verifyPersonalMessageSignature — the
+ * serialized signature carries its public key, so the wallet address is
+ * recovered, not trusted. The nonce is consumed atomically only AFTER the
+ * signature verifies.
  */
 
 interface LoginRequestBody {
@@ -24,21 +33,39 @@ interface LoginRequestBody {
 }
 
 export async function POST(request: NextRequest) {
-  let body: LoginRequestBody;
+  if (!isRequestOriginAllowed(request)) {
+    return apiError("Origin mismatch", "FORBIDDEN", 403);
+  }
+
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  const rate = checkRateLimit(`auth:${ip}`);
+  if (!rate.allowed) {
+    return apiError("Too many requests", "RATE_LIMITED", 429);
+  }
+
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return apiError("Invalid JSON body", "INVALID_FORMAT", 400);
   }
+  if (typeof body !== "object" || body === null) {
+    return apiError("Invalid JSON body", "INVALID_FORMAT", 400);
+  }
+  const { address: rawAddress, nonce, signature } = body as LoginRequestBody;
 
-  if (!body.address || typeof body.address !== "string") {
+  if (!rawAddress || typeof rawAddress !== "string") {
     return apiError("Missing address field", "MISSING_FIELD", 400);
   }
 
-  const address = body.address.toLowerCase();
+  const address = rawAddress.toLowerCase();
+  if (!SUI_ADDRESS_RE.test(address)) {
+    return apiError("Invalid address", "VALIDATION_FAILED", 400);
+  }
 
   // Step 1: Request nonce
-  if (!body.nonce && !body.signature) {
+  if (!nonce && !signature) {
     const nonce = await generateNonce(address);
     if (!nonce) {
       return apiError(
@@ -50,30 +77,21 @@ export async function POST(request: NextRequest) {
     return apiOk({ nonce });
   }
 
-  // Step 2: Verify signature
-  if (!body.nonce || !body.signature || !body.publicKey) {
-    return apiError("Missing nonce, signature, or publicKey", "MISSING_FIELD", 400);
+  // Step 2: Verify signature BEFORE consuming the nonce.
+  if (!nonce || !signature) {
+    return apiError("Missing nonce or signature", "MISSING_FIELD", 400);
   }
 
-  const isValidNonce = await verifyNonce(body.nonce, address);
-  if (!isValidNonce) {
-    return apiError("Invalid or expired nonce", "FORBIDDEN", 403);
-  }
-
-  // SECURITY: Verify the Sui signature server-side.
-  // Without this verification, ANY client can forge a valid session
-  // by submitting any address + nonce without actually signing with their wallet.
-  //
-  // We reconstruct the signed message ("Sign in to SpinChain\n\nNonce: <nonce>")
-  // and verify using @mysten/sui verifyPersonalMessageSignature.
+  // SECURITY: Verify the Sui signature server-side — the serialized
+  // signature recovers the signer address; no publicKey is trusted.
   try {
     const { verifyPersonalMessageSignature } = await import("@mysten/sui/verify");
-    const message = new TextEncoder().encode(`Sign in to SpinChain\n\nNonce: ${body.nonce}`);
+    const message = new TextEncoder().encode(`Sign in to SpinChain\n\nNonce: ${nonce}`);
     const publicKey = await verifyPersonalMessageSignature(
       message,
-      body.signature as `0x${string}`,
+      signature as `0x${string}`,
     );
-    // Verify the public key matches the claimed address
+    // Verify the recovered address matches the claimed address
     const verifiedAddress = publicKey.toSuiAddress();
     if (verifiedAddress !== address) {
       return apiError("Signature does not match claimed address", "FORBIDDEN", 403);
@@ -81,6 +99,11 @@ export async function POST(request: NextRequest) {
   } catch (verifyError) {
     console.error("[auth] Signature verification failed:", verifyError);
     return apiError("Invalid signature verification", "FORBIDDEN", 403);
+  }
+
+  const consumed = await consumeNonce(nonce, address);
+  if (!consumed) {
+    return apiError("Invalid or expired nonce", "FORBIDDEN", 403);
   }
 
   // Determine role: instructor if they have published classes on-chain
@@ -113,11 +136,10 @@ export async function POST(request: NextRequest) {
   return response;
 }
 
-async function determineRole(address: string): Promise<"rider" | "instructor"> {
+async function determineRole(_address: string): Promise<"rider" | "instructor"> {
   // Check if address has published any on-chain classes
   // For now, default to "rider" — instructor detection will be
   // implemented when we wire up on-chain class queries
   // TODO: Query SpinClassNFT.sol for instructor classes
-  void address;
   return "rider";
 }

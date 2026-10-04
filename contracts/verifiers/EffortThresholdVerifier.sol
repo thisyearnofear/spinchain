@@ -14,7 +14,7 @@ interface IUltraVerifier {
 /// @dev Integrates with SpinChain IncentiveEngine for reward distribution
 /// @custom:security-contact security@spinchain.xyz
 contract EffortThresholdVerifier is Ownable, Pausable {
-    uint256 private constant NOIR_PUBLIC_INPUTS = 5;
+    uint256 private constant NOIR_PUBLIC_INPUTS = 3;
     
     // ============ Errors ============
     error InvalidProof();
@@ -221,7 +221,7 @@ contract EffortThresholdVerifier is Ownable, Pausable {
     function _proofInputsForNoir(bytes32[] calldata publicInputs) private pure returns (bytes32[] memory inputs) {
         inputs = new bytes32[](NOIR_PUBLIC_INPUTS);
         for (uint256 i = 0; i < NOIR_PUBLIC_INPUTS; i++) {
-            inputs[i] = publicInputs[i];
+            inputs[i] = publicInputs[i + 2];
         }
     }
 }

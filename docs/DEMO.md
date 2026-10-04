@@ -19,20 +19,20 @@ Click **Start Demo Ride — No Wallet Needed**. 3s activation. Pedal (← → ke
 > "Hold target for 15 seconds — flow tier rises, visuals multiply 1.5x, music lifts. Consistency unlocks the big VFX. No button. Just discipline."
 
 **Step 3: Milestone = dopamine (1:30 - 2:00)**
-> "First flow minute — badge pops, character fist-pumps, coach remembers it next ride. That's why people come back tomorrow."
+> "First flow minute — badge pops, character fist-pumps. The coach notes your ride locally on this device — if you've ridden here before it can greet you with your last average next session."
 
 ## Business (2:00 - 2:40)
 
 > "The demo is free and it's the best part. Freemium converts on fun:"
 >
 > * Free: demo ride, one world, full delight.
-> * Paid: custom worlds, coach memory, ghosts, history, verified rewards.
+> * Paid (business-model candidate — requires App Store/entitlement review, not shipped): custom worlds, coach memory, ghosts, extended history.
 >
-> "Ownership and ZK proofs run in the background — your data stays private, rewards verify on-chain. Important, but never the pitch."
+> "Your ride saves on this device and earns progression — not tokens. Private account sync and any future reward settlement are opt-in and still being built; where we're headed is a receipt-based model, not free crypto. Details exist, but they're never the pitch."
 
 ## Wrap (2:40 - 3:00)
 
-> "Zwift maps effort to avatar speed. Peloton's screen is passive. We turn sweat into firepower. Try it — you'll feel it in 30 seconds."
+> "Your effort transforms this world — in this moment, on this route. Try it — you'll feel it in 30 seconds."
 
 ---
 
@@ -40,10 +40,11 @@ Click **Start Demo Ride — No Wallet Needed**. 3s activation. Pedal (← → ke
 
 | If asked | Say |
 |----------|-----|
-| Blockchain? | Avalanche + Sui testnet in background. Ride works without it. |
-| ZK? | Browser-side effort proofs, only `effortScore` revealed. Details in ARCHITECTURE appendix. |
-| Rewards? | SPIN batch claims on Fuji. Free ride first, claim after. |
-| Hardware? | Any BLE bike (IC4/C6/M3i) or keyboard sim. |
+| Blockchain? | Avalanche + Sui testnet experiments exist in the background. The ride works without them; no wallet is a prerequisite. |
+| ZK? | Browser-side effort proofs exist in the testnet experiment; live claims are not approved (deployed Fuji wrapper rejects real proofs; app-side legacy gate implemented locally, off in prod env) — a receipt-first redesign is approved. Details in ARCHITECTURE. |
+| Rewards? | Rides earn progression — visuals, milestones, history. Token redemption is a future, separately designed path; no free SPIN is promised. |
+| Data? | Completed rides save locally on the device. Private cloud sync and consent controls are being built; nothing is claimed private-by-default yet. |
+| Hardware? | FTMS / cycling-power / heart-rate BLE devices; specific models (IC4/C6/M3i candidates) require validation. Keyboard simulator is always available. |
 
 **One-Click Demo URL:**
 `https://spinchain.vercel.app/rider/ride/demo?mode=practice&demo=true&auto=true`

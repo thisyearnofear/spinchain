@@ -23,7 +23,8 @@ import { AudioEngine } from "./audio-engine";
 import { RewardsEngine } from "./rewards-engine";
 import { VisualizationEngine } from "./visualization-engine";
 import { SuiEngine } from "./sui-engine";
-import { getLocalOracle } from "@/app/lib/zk/oracle";
+import { getLocalOracle, type LocalOracle } from "@/app/lib/zk/oracle";
+import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 import type { RideStartConfig, TelemetrySnapshot } from "./types";
 import { PRACTICE_WALL_DURATION_SEC } from "@/app/lib/practice-demo";
 import { useRideStore } from "@/app/stores/ride-store";
@@ -51,7 +52,7 @@ export class RideCoordinator {
   readonly rewards: RewardsEngine;
   readonly visualization: VisualizationEngine;
   readonly sui: SuiEngine;
-  private oracle = getLocalOracle();
+  private oracle: LocalOracle | null = null;
 
   private config: RideStartConfig | null = null;
   private durationSeconds = 45 * 60;
@@ -209,7 +210,7 @@ export class RideCoordinator {
       }
 
       // Feed LocalOracle for 10-min rolling buffer + Walrus encrypted backup
-      this.oracle.addTelemetry({
+      this.oracle?.addTelemetry({
         timestamp: Date.now(),
         heartRate: snapshot.heartRate,
         power: snapshot.power,
@@ -304,16 +305,16 @@ export class RideCoordinator {
     }
 
     // Start Local Oracle for on-device proof generation
-    this.oracle.startSession({
-      classId: config.classId,
-      riderId: config.address ?? "guest",
-      startTime: Date.now(),
-      targetHeartRate: 150,
-      minDuration: 300,
-    });
-
-    // Start Sui engine (subscribe to telemetry:committed events)
-    this.sui.start();
+    if (isLegacyRewardClaimsEnabled() && !config.isPracticeMode) {
+      this.oracle = this.oracle ?? getLocalOracle();
+      this.oracle.startSession({
+        classId: config.classId,
+        riderId: config.address ?? "guest",
+        startTime: Date.now(),
+        targetHeartRate: 150,
+        minDuration: 300,
+      });
+    }
 
     // Start visualization engine (GPU probe + FPS monitoring)
     this.visualization.start();
@@ -370,7 +371,7 @@ export class RideCoordinator {
     this.telemetry.stop();
 
     // End Local Oracle session — generates ZK proof + stores encrypted telemetry to Walrus
-    this.oracle.endSession().catch((err) =>
+    this.oracle?.endSession().catch((err) =>
       console.warn("[Coordinator] LocalOracle endSession failed:", err),
     );
 

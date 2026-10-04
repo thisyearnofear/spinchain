@@ -19,6 +19,7 @@
  */
 
 import { getWalrusClient } from "./client";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 
 export interface CoachRideSummary {
   avgPower: number;
@@ -196,6 +197,10 @@ export async function loadCoachMemory(
 ): Promise<CoachMemory | null> {
   if (typeof window === "undefined") return null;
 
+  if (!isPersonalDataPublicationAllowed()) {
+    return readCache(riderId, coachId);
+  }
+
   let blobId: string | null = null;
   try {
     blobId = localStorage.getItem(pointerKey(riderId, coachId));
@@ -243,6 +248,11 @@ export async function saveCoachMemory(memory: CoachMemory): Promise<SaveCoachMem
   if (typeof window === "undefined") return { persisted: "local", blobId: null };
 
   const { riderId, coachId } = memory;
+
+  if (!isPersonalDataPublicationAllowed()) {
+    writeCache(riderId, coachId, memory, false);
+    return { persisted: "local", blobId: null };
+  }
   try {
     const result = await getWalrusClient().storeJSON(memory);
     if (result.success && result.blobId) {

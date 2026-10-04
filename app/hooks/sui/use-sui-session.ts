@@ -14,6 +14,7 @@
 import { useSuiClient, useCurrentAccount } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
 import { useState, useCallback } from "react";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 import { SUI_CONFIG } from "@/app/config";
 import { useSuiTransaction } from "./use-sui-transaction";
 
@@ -100,6 +101,9 @@ export function useSuiSession(): UseSuiSessionReturn {
     classId: string,
     duration: number
   ): Promise<string | null> => {
+    if (!isPersonalDataPublicationAllowed()) {
+      return null;
+    }
     if (!account) {
       console.warn("[SuiSession] Wallet not connected");
       return null;
@@ -142,6 +146,9 @@ export function useSuiSession(): UseSuiSessionReturn {
   const joinSession = useCallback(async (
     sessionId: string
   ): Promise<string | null> => {
+    if (!isPersonalDataPublicationAllowed()) {
+      return null;
+    }
     if (!account) {
       console.warn("[SuiSession] Wallet not connected");
       return null;
@@ -182,6 +189,9 @@ export function useSuiSession(): UseSuiSessionReturn {
   const closeSession = useCallback(async (
     sessionId: string
   ): Promise<boolean> => {
+    if (!isPersonalDataPublicationAllowed()) {
+      return false;
+    }
     if (!account) {
       console.warn("[SuiSession] Wallet not connected");
       return false;

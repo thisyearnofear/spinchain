@@ -13,13 +13,15 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "playwright test tests/wedge-guard.spec.ts tests/browser-smoke.spec.ts tests/receipt-first.spec.ts",
     "rive:build": "rive rive/rider --once --quiet && rive rive/effort-aura --once --quiet && rive rive/coach-orb --once --quiet && rive rive/flow-badge --once --quiet && cp rive/rider/build/rider.riv rive/effort-aura/build/effort-aura.riv rive/coach-orb/build/coach-orb.riv rive/flow-badge/build/flow-badge.riv public/rive/",
     "rive:verify": "rive rive/rider --verify && rive rive/effort-aura --verify && rive rive/coach-orb --verify && rive rive/flow-badge --verify",
     "postinstall": "node scripts/copy-rive-wasm.mjs",
     "mint:rider": "node scripts/mint/generate-rider.mjs",
     "worldlabs:world": "node scripts/worldlabs/generate-world.mjs",
     "doctor": "npx react-doctor@latest",
-    "characters:optimize": "node scripts/optimize-characters.mjs"
+    "characters:optimize": "node scripts/optimize-characters.mjs",
+    "test:contracts": "cd contracts/evm && mkdir depstmp && cd depstmp && npm init -y >/dev/null && npm install @openzeppelin/contracts@5.0.2 --no-audit --no-fund && mkdir -p ../node_modules && cp -r node_modules/@openzeppelin ../node_modules/ && cd .. && rm -rf depstmp && forge install --no-git foundry-rs/forge-std@v1.15.0 && FOUNDRY_PROFILE=honk forge build --skip test --skip script && forge test --match-contract 'EffortThresholdVerifier.*'"
   },
   "dependencies": {
     "@aztec/bb.js": "5.0.0-rc.1",
@@ -35,7 +37,7 @@
     "@gsap/react": "2.1.2",
     "@mysten/dapp-kit": "^0.14.53",
     "@mysten/sui": "^1.45.2",
-    "@noir-lang/noir_js": "1.0.0-beta.19",
+    "@noir-lang/noir_js": "1.0.0-beta.22",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",

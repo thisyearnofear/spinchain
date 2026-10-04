@@ -9,6 +9,7 @@ import type {
   RetrieveResult,
 } from './types';
 import { DEFAULT_STORAGE_CONFIG } from './types';
+import { isPersonalDataPublicationAllowed } from '@/app/lib/privacy/publication-policy';
 
 // Walrus HTTP API client
 export class WalrusClient {
@@ -185,6 +186,8 @@ export class AssetManager {
       classId: string;
     }
   ): Promise<StoredAsset | null> {
+    if (!isPersonalDataPublicationAllowed()) return null;
+
     // Compress telemetry data
     const compressed = this.compressTelemetry(telemetry);
     

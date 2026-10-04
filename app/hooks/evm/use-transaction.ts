@@ -4,7 +4,7 @@
 // DRY: Eliminates duplicate toast/error logic across all contract hooks
 
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo, useRef } from "react";
 import { useToast } from "@/app/components/ui/toast";
 import { parseError, type ErrorCategory } from "@/app/lib/errors";
 import type { Abi, Address } from "viem";
@@ -28,6 +28,7 @@ interface UseTransactionOptions {
 
 interface UseTransactionReturn {
   write: (args: WriteContractArgs) => void;
+  reset: () => void;
   hash?: `0x${string}`;
   isPending: boolean;
   isSuccess: boolean;
@@ -36,60 +37,116 @@ interface UseTransactionReturn {
 
 export function useTransaction(options: UseTransactionOptions): UseTransactionReturn {
   const toast = useToast();
-  
-  const { 
-    writeContract, 
-    data: hash, 
-    error, 
-    isPending: isWritePending,
-    isError 
-  } = useWriteContract();
-  
-  const { isLoading: isWaiting, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  // Handle errors with centralized error mapping
+  // `options` is usually an inline object — pin latest values in refs.
+  const optionsRef = useRef(options);
+  const toastRef = useRef(toast);
   useEffect(() => {
-    if (isError && error) {
-      const parsed = parseError(error);
-      
-      // Check for context-specific override
-      const override = options.errorContext?.[parsed.category];
-      
-      toast.error(
-        override?.title || parsed.title,
-        override?.message || parsed.message
-      );
-      
-      options.onError?.(error);
+    optionsRef.current = options;
+    toastRef.current = toast;
+  });
+
+  const {
+    writeContract,
+    data: hash,
+    error: writeError,
+    isPending: isWritePending,
+    isError: isWriteError,
+    reset: resetWrite,
+  } = useWriteContract();
+
+  const {
+    data: receipt,
+    isLoading: isWaiting,
+    isError: isReceiptError,
+    error: receiptError,
+  } = useWaitForTransactionReceipt({ hash });
+
+  // Receipt-derived state only counts for the current hash.
+  const receiptForCurrentHash =
+    hash && (!receipt?.transactionHash || receipt.transactionHash === hash)
+      ? receipt
+      : undefined;
+  const isSuccess = receiptForCurrentHash?.status === "success";
+  const isReverted = receiptForCurrentHash?.status === "reverted";
+  const revertedError = useMemo(
+    () => new Error("Transaction reverted on-chain"),
+    [],
+  );
+  const error =
+    writeError ??
+    (hash ? receiptError : null) ??
+    (isReverted ? revertedError : null);
+
+  // Notifications fire once per write attempt, keyed on the hash.
+  const notifiedKeyRef = useRef<string | null>(null);
+
+  const notifyError = useCallback((err: Error, key: string) => {
+    if (notifiedKeyRef.current === key) return;
+    notifiedKeyRef.current = key;
+    const opts = optionsRef.current;
+    const parsed = parseError(err);
+    const override = opts.errorContext?.[parsed.category];
+    toastRef.current.error(
+      override?.title || parsed.title,
+      override?.message || parsed.message,
+    );
+    opts.onError?.(err);
+  }, []);
+
+  // Handle error (wallet rejection, etc.)
+  useEffect(() => {
+    if (isWriteError && writeError) {
+      notifyError(writeError, `write:${writeError.message}`);
     }
-  }, [isError, error, options, toast]);
+  }, [isWriteError, writeError, notifyError]);
+
+  // Reverted receipts and receipt-fetch failures surface as errors too.
+  useEffect(() => {
+    if (isReverted && hash) {
+      notifyError(revertedError, `reverted:${hash}`);
+      return;
+    }
+    if (isReceiptError && receiptError && hash) {
+      notifyError(receiptError, `receipt:${hash}`);
+    }
+  }, [isReverted, isReceiptError, receiptError, hash, revertedError, notifyError]);
 
   // Handle success
   useEffect(() => {
-    if (isSuccess && hash) {
-      toast.success(
-        options.successMessage,
+    if (isSuccess && hash && notifiedKeyRef.current !== `success:${hash}`) {
+      notifiedKeyRef.current = `success:${hash}`;
+      const opts = optionsRef.current;
+      toastRef.current.success(
+        opts.successMessage,
         undefined,
         {
           label: 'View',
           onClick: () => {
             const base = process.env.NEXT_PUBLIC_AVALANCHE_EXPLORER_URL || "https://testnet.snowtrace.io";
-            window.open(`${base}/tx/${hash}`, "_blank");
+            window.open(`${base}/tx/${hash}`, "_blank", "noopener,noreferrer");
           },
         }
       );
-      
-      options.onSuccess?.(hash);
+      opts.onSuccess?.(hash);
     }
-  }, [isSuccess, hash, options, toast]);
+  }, [isSuccess, hash]);
 
   const write = useCallback((args: WriteContractArgs) => {
-    toast.loading(options.pendingMessage, 'Confirm in your wallet');
+    notifiedKeyRef.current = null;
+    toastRef.current.loading(optionsRef.current.pendingMessage, 'Confirm in your wallet');
     writeContract(args as Parameters<typeof writeContract>[0]);
-  }, [writeContract, toast, options.pendingMessage]);
+  }, [writeContract]);
+
+  const reset = useCallback(() => {
+    // Invalidate notifications before wagmi clears the old hash.
+    notifiedKeyRef.current = null;
+    resetWrite();
+  }, [resetWrite]);
 
   return {
     write,
+    reset,
     hash,
     isPending: isWritePending || isWaiting,
     isSuccess,

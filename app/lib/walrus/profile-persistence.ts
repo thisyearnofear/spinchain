@@ -5,6 +5,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import type { RiderProfile } from "@/app/stores/rider-profile-store";
 import { STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
 import { isClient, safeParse } from "@/app/lib/utils";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 
 export interface ProfileSyncState {
   walrusBlobId: string | null;
@@ -60,6 +61,8 @@ export async function persistProfileToWalrus(
   profile: RiderProfile,
   address: string
 ): Promise<string | null> {
+  if (!isPersonalDataPublicationAllowed()) return null;
+
   try {
     const { getWalrusClient } = await import("@/app/lib/walrus/client");
     const client = getWalrusClient();

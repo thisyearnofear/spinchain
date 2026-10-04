@@ -5,6 +5,7 @@ import { m, AnimatePresence } from "framer-motion";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import { useRideStore, selectRidePhase } from "@/app/stores/ride-store";
 import { useRewardsStore } from "@/app/stores/rewards-store";
+import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 import { useUIStore } from "@/app/stores/ui-store";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 import { EASE_SMOOTH } from "@/app/lib/motion";
@@ -44,6 +45,7 @@ export const RideTopBar = memo(function RideTopBar({
   const rewardsClearNodeConnected = useRewardsStore((s) => s.clearNodeConnected);
   const rewardsIsSimulating = useRewardsStore((s) => s.isSimulating);
   const rewardsSimulatedReward = useRewardsStore((s) => s.simulatedReward);
+  const legacyRewardsEnabled = isLegacyRewardClaimsEnabled();
 
   const viewMode = useUIStore((s) => s.viewMode);
   const hudMode = useUIStore((s) => s.hudMode);
@@ -128,7 +130,7 @@ export const RideTopBar = memo(function RideTopBar({
         {/* Right: Controls — phase-aware */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Active reward badge — compact, during ride only */}
-          {isActive && !isPracticeMode && !isTrainingMode && !isGuestMode && (
+          {isActive && legacyRewardsEnabled && !isPracticeMode && !isTrainingMode && !isGuestMode && (
             <div className="hidden sm:flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/50 px-2 py-1.5 text-[10px] font-medium text-white/70">
               {rewardsIsSimulating ? (
                 <>
@@ -150,7 +152,7 @@ export const RideTopBar = memo(function RideTopBar({
           )}
 
           {/* Pre-ride: reward mode + training toggle in "more" dropdown */}
-          {showPreRideSetup && !isPracticeMode && !isGuestMode && walletConnected && (
+          {showPreRideSetup && !isPracticeMode && !isGuestMode && walletConnected && legacyRewardsEnabled && (
             <div className="hidden sm:flex items-center gap-1">
               {(["zk-batch", "yellow-stream"] as RewardMode[]).map((m) => (
                 <button
@@ -172,7 +174,7 @@ export const RideTopBar = memo(function RideTopBar({
             </div>
           )}
 
-          {showPreRideSetup && !isPracticeMode && isGuestMode && (
+          {showPreRideSetup && !isPracticeMode && isGuestMode && legacyRewardsEnabled && (
             <div className="hidden sm:flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[10px] text-white/40" title="Connect wallet to earn SPIN tokens">
               <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
               <span>Connect to earn</span>

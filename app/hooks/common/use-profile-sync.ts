@@ -4,7 +4,9 @@ import { useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
 import { useRiderProfile, toProfilePayload } from "@/app/stores/rider-profile-store";
 import { useProfileSync, persistProfileToWalrus, retrieveProfileFromWalrus } from "@/app/lib/walrus/profile-persistence";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 import { isSupabaseConfigured } from "@/app/lib/supabase/client";
+import { useWalletAuth } from "@/app/hooks/common/use-wallet-auth";
 
 /**
  * useProfileSyncEffect — Auto-syncs rider profile to Walrus + Supabase when wallet connects.
@@ -15,25 +17,48 @@ import { isSupabaseConfigured } from "@/app/lib/supabase/client";
  */
 export function useProfileSyncEffect() {
   const { address } = useAccount();
+  const { session } = useWalletAuth();
   const profile = useRiderProfile();
   const { syncStatus, setSyncing, setSynced, setFailed, walrusBlobId } = useProfileSync();
   const lastSyncedAddress = useRef<string | null>(null);
   const lastSupabaseSync = useRef<string | null>(null);
+  const supabaseGeneration = useRef(0);
+  const ownedProfileFor = useRef<string | null>(null);
+  const prevCompleteRef = useRef(profile.isComplete());
+
+  // Supabase effects gate on a verified session bound to the connected wallet.
+  const authedAddress =
+    address && session && session.address === address.toLowerCase()
+      ? address
+      : null;
 
   // Supabase: hydrate from server if local profile is empty
   useEffect(() => {
-    if (!address) return;
-    if (profile.isComplete()) return;
-    if (!isSupabaseConfigured()) return;
-    if (lastSupabaseSync.current === address) return;
-    lastSupabaseSync.current = address;
+    const generation = ++supabaseGeneration.current;
+    const controller = new AbortController();
+    const stale = () => generation !== supabaseGeneration.current || controller.signal.aborted;
+
+    if (!authedAddress) {
+      lastSupabaseSync.current = null;
+      return () => controller.abort();
+    }
+    if (profile.isComplete()) return () => controller.abort();
+    if (!isSupabaseConfigured()) return () => controller.abort();
+    if (lastSupabaseSync.current === authedAddress) return () => controller.abort();
+    const owner = authedAddress;
 
     (async () => {
       try {
-        const res = await fetch("/api/profile", { credentials: "include" });
-        if (!res.ok) return;
+        const res = await fetch("/api/profile", {
+          credentials: "include",
+          signal: controller.signal,
+        });
+        if (stale() || !res.ok) return;
         const { profile: remote } = await res.json();
+        if (stale()) return;
+        lastSupabaseSync.current = owner;
         if (remote && remote.goal) {
+          ownedProfileFor.current = owner;
           profile.setProfile({
             goal: remote.goal,
             experience: remote.experience,
@@ -54,12 +79,20 @@ export function useProfileSyncEffect() {
         // Silent fail — localStorage is the fallback
       }
     })();
-  }, [address, profile]);
+
+    return () => controller.abort();
+  }, [authedAddress, profile]);
 
   // Supabase: mirror profile to server when it changes and is complete
   useEffect(() => {
-    if (!address) return;
-    if (!profile.isComplete()) return;
+    const complete = profile.isComplete();
+    if (authedAddress && complete && !prevCompleteRef.current) {
+      ownedProfileFor.current = authedAddress;
+    }
+    prevCompleteRef.current = complete;
+    if (!authedAddress) return;
+    if (!complete) return;
+    if (ownedProfileFor.current !== authedAddress) return;
     if (!isSupabaseConfigured()) return;
 
     const timer = setTimeout(() => {
@@ -87,10 +120,13 @@ export function useProfileSyncEffect() {
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, profile.goal, profile.experience, profile.frequency, profile.motivation, profile.coachPersonality, profile.displayName, profile.ftp, profile.maxHr, profile.restingHr, profile.weightKg, profile.heightCm, profile.injuries, profile.trainingZones]);
+  }, [authedAddress, profile.goal, profile.experience, profile.frequency, profile.motivation, profile.coachPersonality, profile.displayName, profile.ftp, profile.maxHr, profile.restingHr, profile.weightKg, profile.heightCm, profile.injuries, profile.trainingZones]);
 
   // Walrus sync (existing)
   useEffect(() => {
+    // Public personal-data publishing is disabled: stay local/idle,
+    // never flip to syncing/failed or retry.
+    if (!isPersonalDataPublicationAllowed()) return;
     if (!address || !profile.isComplete()) return;
     if (lastSyncedAddress.current === address) return;
     if (syncStatus === "synced" && walrusBlobId) {

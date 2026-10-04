@@ -1,28 +1,43 @@
-import { createClient } from "@supabase/supabase-js";
+import type { NextRequest } from "next/server";
+import { getServerClient } from "@/app/lib/supabase/client";
+import {
+  isValidSessionAddress,
+  isValidSessionExp,
+  isValidSessionRole,
+  SIGNATURE_HEX_RE,
+  type SessionPayload,
+} from "./types";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SECRET_KEY;
-// Own session-signing secret for wallet auth fallback tokens (HMAC-SHA256).
+// Own session-signing secret for wallet auth tokens (HMAC-SHA256).
 // Deliberately NOT Supabase's JWT secret — our tokens are ours to sign.
-// Generate: openssl rand -hex 32
+// Must be >= 32 characters. Generate: openssl rand -hex 32
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
-export interface SessionPayload {
-  address: string;
-  role: "rider" | "instructor";
-  exp: number;
+const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+
+export function isAuthConfigured(): boolean {
+  return typeof SESSION_SECRET === "string" && SESSION_SECRET.length >= 32;
+}
+
+/**
+ * True when the request has no Origin header (same-origin fetches may omit it)
+ * or the Origin matches the deployment origin. Rejects cross-origin posts.
+ */
+export function isRequestOriginAllowed(request: NextRequest): boolean {
+  const origin = request.headers.get("origin");
+  if (!origin) return true;
+  return origin === request.nextUrl.origin;
 }
 
 /**
  * Generate a random nonce for wallet sign-in.
  * Stored in Supabase with a 5-minute expiry.
+ * Requires both the signing secret and the DB — fail closed otherwise.
  */
 export async function generateNonce(address: string): Promise<string | null> {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return null;
-
-  const client = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-    auth: { persistSession: false },
-  });
+  if (!isAuthConfigured()) return null;
+  const client = getServerClient();
+  if (!client) return null;
 
   const nonce = crypto.randomUUID().replace(/-/g, "");
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
@@ -42,108 +57,87 @@ export async function generateNonce(address: string): Promise<string | null> {
 }
 
 /**
- * Verify that a nonce is valid, unused, and not expired.
- * Marks it as used on successful verification.
+ * Atomically consume a nonce: marks it used ONLY if it exists, belongs to the
+ * address, is unused, and unexpired. Single conditional UPDATE — no
+ * read-then-update window for replay races.
  */
-export async function verifyNonce(nonce: string, address: string): Promise<boolean> {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return false;
-
-  const client = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-    auth: { persistSession: false },
-  });
+export async function consumeNonce(nonce: string, address: string): Promise<boolean> {
+  const client = getServerClient();
+  if (!client) return false;
 
   const { data, error } = await client
     .from("auth_nonces")
-    .select("nonce, address, expires_at, used")
+    .update({ used: true })
     .eq("nonce", nonce)
-    .single();
+    .eq("address", address.toLowerCase())
+    .eq("used", false)
+    .gt("expires_at", new Date().toISOString())
+    .select("nonce")
+    .maybeSingle();
 
-  if (error || !data) return false;
-  if (data.used) return false;
-  if (data.address !== address.toLowerCase()) return false;
-  if (new Date(data.expires_at) < new Date()) return false;
-
-  await client.from("auth_nonces").update({ used: true }).eq("nonce", nonce);
-
-  return true;
+  return !error && !!data;
 }
 
 /**
- * Create a JWT for the authenticated user.
- * Uses Supabase's built-in JWT signing via the service role key.
+ * Create a signed session token for the authenticated wallet.
+ * Opaque token format: base64(payload).hex(hmac-sha256)
+ * Returns null when signing is not configured (>=32-char SESSION_SECRET).
  */
 export async function createSession(
   address: string,
-  role: "rider" | "instructor",
+  role: SessionPayload["role"],
 ): Promise<string | null> {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return null;
+  if (!isAuthConfigured()) return null;
+  if (!isValidSessionAddress(address.toLowerCase())) return null;
+  if (!isValidSessionRole(role)) return null;
 
-  const client = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-    auth: { persistSession: false },
-  });
-
-  const exp = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days
-
-  const { data, error } = await client.auth.admin.generateLink({
-    type: "magiclink",
-    email: `${address.toLowerCase()}@spinchain.auth`,
-    options: {
-      data: { address: address.toLowerCase(), role, exp },
-    },
-  });
-
-  if (error) {
-    // Fallback: create an HMAC-signed token to prevent tampering
-    // WARNING: This is NOT a full JWT. Use a proper JWT library in production.
-    const payload: SessionPayload = { address: address.toLowerCase(), role, exp };
-    const payloadB64 = btoa(JSON.stringify(payload));
-    if (SESSION_SECRET) {
-      const signature = await hmacSign(SESSION_SECRET, payloadB64);
-      return `${payloadB64}.${signature}`;
-    }
-    // Without SESSION_SECRET, we cannot sign — log a warning
-    console.warn("[auth] SESSION_SECRET not set — session tokens are unsigned!");
-    return payloadB64;
-  }
-
-  // Extract token from the generated link
-  const token = data.properties?.action_link?.split("token=")[1];
-  return token ?? null;
+  const payload: SessionPayload = {
+    address: address.toLowerCase(),
+    role,
+    exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+  };
+  const payloadB64 = btoa(JSON.stringify(payload));
+  const signature = await hmacSign(SESSION_SECRET!, payloadB64);
+  return `${payloadB64}.${signature}`;
 }
 
 /**
- * Verify a JWT from the client.
+ * Verify a session token. Rejects unsigned, tampered, malformed, expired, or
+ * schema-invalid tokens. Fail-closed when SESSION_SECRET is not configured.
  */
 export async function verifySession(token: string): Promise<SessionPayload | null> {
-  if (!token) return null;
+  if (!token || !isAuthConfigured()) return null;
 
   try {
-    // Check for HMAC-signed token format (payload.signature)
     const parts = token.split(".");
-    let payloadB64: string;
+    if (parts.length !== 2) return null;
+    const [payloadB64, signature] = parts;
+    if (!SIGNATURE_HEX_RE.test(signature)) return null;
 
-    if (parts.length === 2 && SESSION_SECRET) {
-      // Signed token — verify HMAC
-      const [payloadPart, signature] = parts;
-      const expectedSignature = await hmacSign(SESSION_SECRET, payloadPart);
-      if (signature !== expectedSignature) {
-        return null; // Signature mismatch — token tampered
-      }
-      payloadB64 = payloadPart;
-    } else if (parts.length === 1) {
-      // Legacy unsigned token — only accept if no SESSION_SECRET configured
-      if (SESSION_SECRET) {
-        console.warn("[auth] Rejecting unsigned token when SESSION_SECRET is configured");
-        return null;
-      }
-      payloadB64 = token;
-    } else {
-      return null; // Invalid format
-    }
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(SESSION_SECRET!),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"],
+    );
+    const signatureBytes = new Uint8Array(
+      signature.match(/../g)!.map((b) => parseInt(b, 16)),
+    );
+    const valid = await crypto.subtle.verify(
+      "HMAC",
+      key,
+      signatureBytes,
+      encoder.encode(payloadB64),
+    );
+    if (!valid) return null;
 
     const payload = JSON.parse(atob(payloadB64)) as SessionPayload;
-    if (payload.exp < Math.floor(Date.now() / 1000)) return null;
-    if (!payload.address || !payload.role || !payload.exp) return null;
+    if (!payload || typeof payload !== "object") return null;
+    if (!isValidSessionRole(payload.role)) return null;
+    if (!isValidSessionAddress(payload.address)) return null;
+    if (!isValidSessionExp(payload.exp)) return null;
     return payload;
   } catch {
     return null;

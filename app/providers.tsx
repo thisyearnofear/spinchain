@@ -38,6 +38,7 @@ function getQueryClient() {
 import { backgroundManager } from './lib/mobile-bridge/background';
 import { flushAnalytics } from './lib/analytics/events';
 import { TestHooksProvider } from './lib/test-hooks';
+import { WalletAuthProvider } from './hooks/common/use-wallet-auth';
 
 // ... (existing code)
 
@@ -96,7 +97,9 @@ function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
         learnMoreUrl: "https://spinchain.xyz",
       }}
     >
-      {mounted ? children : <div style={{ visibility: 'hidden' }} />}
+      <WalletAuthProvider>
+        {mounted ? children : <div style={{ visibility: 'hidden' }} />}
+      </WalletAuthProvider>
     </RainbowKitProvider>
   );
 }

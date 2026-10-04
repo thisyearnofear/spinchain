@@ -5,6 +5,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import { useState, useCallback } from "react";
 import { SUI_CONFIG } from "@/app/config";
 import { useSuiTransaction } from "./use-sui-transaction";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 
 const MODULE_NAME = "spinsession";
 
@@ -43,6 +44,9 @@ export function useSuiTelemetry(sessionId: string | null, statsObjectId: string 
         power: number,
         cadence: number
     ): Promise<boolean> => {
+        if (!isPersonalDataPublicationAllowed()) {
+            return false;
+        }
         if (!sessionId || !statsObjectId) {
             console.warn("[SuiTelemetry] Missing sessionId or statsObjectId");
             return false;
@@ -84,6 +88,9 @@ export function useSuiTelemetry(sessionId: string | null, statsObjectId: string 
         beatType: string,
         intensity: number
     ): Promise<boolean> => {
+        if (!isPersonalDataPublicationAllowed()) {
+            return false;
+        }
         if (!sessionId) {
             console.warn("[SuiTelemetry] Missing sessionId");
             return false;

@@ -48,13 +48,14 @@ pnpm run dev
 
 Open [http://localhost:3210](http://localhost:3210) (dev server is pinned to port 3210)
 
-### Current Status (2026-10-03, verified)
+### Current Status (2026-10-04, verified)
 
-- Testnet/pre-launch. Live at https://spinchain.vercel.app/ (redeployed 2026-10-03 from local HEAD — new Supabase keys, delight overlay, key migration; `pnpm build` green, `/` + `/rider` 200).
-- Demo content gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` — off by default (unset on Vercel, true locally for dev).
-- Real Noir ZK circuit deployed: HonkVerifier on Fuji, UltraHonk proving in-browser via `@aztec/bb.js`.
-- Supabase provisioned (project `spinchain`, schema applied: 8 tables, 19 RLS policies) and migrated to new publishable/secret keys + own `SESSION_SECRET`. Legacy `anon`/`service_role` deactivation pending in dashboard.
-- Missing for users: browser-level E2E of full claim loop, testnet soft-launch validation (10 riders).
+- Testnet/pre-launch. Live at https://spinchain.vercel.app/ (redeployed 2026-10-03 from local HEAD). **Direction approved 2026-10-04: receipt-first** — progression is independent of any chain; optional settlement is a future phase. See `plans/wedge-contract-research.md`.
+- Demo content gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` — off by default.
+- Production verifier state (read-only `eth_call` preflight 2026-10-04): deployed `EffortThresholdVerifier` `0xBbc32cc3…c9dA4` **rejects real proofs** (revert `0xfa066593` — wrong public-input slice); underlying `HonkVerifier` `0xF2a33f6e…641B` accepts the committed fixture proof. Corrected wrapper exists locally, **not deployed**; no adapter/redeploy is the next step — `AchievementRedeemerV2` design (phase 4) comes first. Engine/wrapper owner: deployer `0x29FA…F1Cd` (~1.98 AVAX Fuji).
+- Supabase `spinchain` (`avcihfixqlofvkpvwmiq`, us-east-2) ACTIVE_HEALTHY; **`ride_summaries.summary` column APPLIED 2026-10-04 — additive `jsonb` nullable migration (`app/lib/supabase/migrations/20261004_ride_summary.sql`), verified on the same project.**
+- Local hardening uncommitted (not on prod): session-bound wallet auth, owner-scoped ride persistence, CTA-by-address, Noir beta.22 compat, receipt-status fixes — 301 unit + 6 browser + 10 Foundry tests green locally.
+- Missing for users: phase-1 public-write disable, phase-2 consent controls, legal review, and the integrated testnet dogfood.
 
 ---
 
@@ -150,9 +151,11 @@ curl -L https://foundry.paradigm.xyz | bash
 foundryup
 ```
 
-#### Deploy to Fuji
+#### Deploy to Fuji — ARCHIVED (unapproved path)
 
-**Option A: Full deployment with real HonkVerifier**
+> Broadcast commands below are historical reference only, not a current operator action. Any future deployment waits on the phase-4 `AchievementRedeemerV2` design gate and explicit operator approval; use operator-protected signing, never raw private-key CLI arguments.
+
+**Option A (archived): Full deployment with real HonkVerifier**
 ```bash
 cd contracts/evm
 export AVALANCHE_PRIVATE_KEY=your_deployer_key
@@ -177,7 +180,7 @@ forge script src/deploy.s.sol:DeployScript \
   --broadcast -vvvv
 ```
 
-**Option B: Quick deployment with mock verifier (testing only)**
+**Option B (archived, dev only): Quick deployment with mock verifier**
 ```bash
 cd contracts/evm
 export AVALANCHE_PRIVATE_KEY=your_deployer_key
@@ -185,24 +188,20 @@ export ALLOW_MOCK_VERIFIER=true
 forge script src/deploy.s.sol:DeployScript --rpc-url https://api.avax-test.network/ext/bc/C/rpc --broadcast -vvvv
 ```
 
-#### Deployed Contracts (Fuji — 2026-06-22)
+#### Deployed Contracts (Fuji — legacy experiment deployment, 2026-06-22)
 
-| Contract | Address |
-|----------|---------|
-| `SpinPack` (ERC-1155) | `0x2C8443584daFA864Caa967cBDD7ec3D17157618B` |
-| `SpinToken` (ERC-20) | `0x4c0E965B809452F2C914a74d1D0e9C3375543392` |
-| `IncentiveEngine` | `0x69800d3ABda003b7aA6038831715a4aCb736403d` |
-| `ClassFactory` | `0x035026f85CCbC273160669FBe9Ba5Dc147D0Bd9b` |
-| `HonkVerifier` (real ZK) | `0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B` |
-| `EffortThresholdVerifier` | `0xBbc32cc3b8AF9BaeD8D77E3bf4fC69141b0c9dA4` |
-| `TreasurySplitter` | `0x00a1e5688AF26c724155BfEe100fF23d387850AB` |
-| `BiometricOracle` | `0x038fca8A26F9065f12F831C0600f30d8C90AFCFD` |
+| Contract | Address | Status |
+|----------|---------|--------|
+| `SpinPack` (ERC-1155) | `0x2C8443584daFA864Caa967cBDD7ec3D17157618B` | legacy experiment |
+| `SpinToken` (ERC-20) | `0x4c0E965B809452F2C914a74d1D0e9C3375543392` | legacy experiment |
+| `IncentiveEngine` | `0x69800d3ABda003b7aA6038831715a4aCb736403d` | legacy experiment |
+| `ClassFactory` | `0x035026f85CCbC273160669FBe9Ba5Dc147D0Bd9b` | legacy experiment |
+| `HonkVerifier` (real ZK) | `0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B` | verifies committed fixture proofs (confirmed 2026-10-04) |
+| `EffortThresholdVerifier` | `0xBbc32cc3b8AF9BaeD8D77E3bf4fC69141b0c9dA4` | **broken** — wrong public-input slice, reverts on real proofs |
+| `TreasurySplitter` | `0x00a1e5688AF26c724155BfEe100fF23d387850AB` | legacy experiment |
+| `BiometricOracle` | `0x038fca8A26F9065f12F831C0600f30d8C90AFCFD` | placeholder forwarder; CRE not adopted |
 
-> `HonkVerifier` is a real UltraHonk Solidity verifier generated from the Noir circuit via `bb.js 5.0.0-rc.1`. ZK proofs are cryptographically verified on-chain.
->
-> `BiometricOracle` is deployed with the deployer as the CRE forwarder (placeholder). CRE deployment pending Chainlink Early Access approval.
->
-> `YellowSettlement` was consolidated into `IncentiveEngine` as `submitChannelProof` / `batchSubmitChannelProof`.
+> These are testnet experiment contracts from the pre-redesign architecture. They are not a launch surface: the corrected wrapper is not deployed, and settlement redesign (`AchievementRedeemerV2`, phase 4) supersedes repairing them. Do not treat these addresses as the live claim path.
 
 #### Verify on Snowtrace
 ```bash
@@ -242,6 +241,8 @@ sui client publish --gas-budget 100000000
 - `spinsession::anchor_telemetry_blob` entry function (Walrus-as-memory anchoring)
 - `spinsession::TelemetryAnchor` struct + `TelemetryBlobAttached` event
 - `spin_token` module (`TreasuryManager` shared object with buyback/burn/deposit entry functions)
+
+> The on-chain capability exists, but app-side ride telemetry/anchor writes are disabled in the release-prepared phase-1 build — the package is a legacy experiment surface, not a launch dependency.
 
 ### ZK Verifier (Noir)
 
@@ -426,21 +427,9 @@ cd contracts/evm && forge test --match-contract E2EFujiDeployment --fork-url fuj
 ./scripts/e2e-verify-fuji.sh
 ```
 
-### Gas Benchmark Results
+### Gas Benchmark Results (historical — mock verifier)
 
-| Chunks | Ride Duration | Gas (batch) | Gas (individual) | Savings | Fuji Block Headroom |
-|--------|--------------|-------------|-------------------|---------|---------------------|
-| 1 | 5 min | 159k | 159k | — | 98% |
-| 3 | 15 min | 95k | ~477k | 80% | 99% |
-| 6 | 30 min | 299k | — | — | 96% |
-| 9 | 45 min | 364k | 492k | 40% | 95% |
-| 12 | 60 min | 442k | — | — | 94% |
-
-- Per-chunk cost stabilizes at ~28k gas for batches of 3-9 chunks
-- 45-min session (9 chunks): 364k gas, avg effort 716, reward 71.47 SPIN
-- All batch sizes fit comfortably within Fuji's 8M block gas limit
-- **Recommendation**: Use batch submission for rides >= 3 chunks
-
+The legacy `ZKGasBenchmark` test measures `MockVerifier` stub costs, not Honk verification — it does not establish real-verifier gas performance. Prior per-chunk tables, durations, and savings percentages are removed; no performance claim is made. A real-verifier benchmark is a phase-5 task.
 ---
 
 ## 8. Security
@@ -455,10 +444,7 @@ Blocks accidental secret commits.
 - High-entropy `KEY=`, `SECRET=`, `TOKEN=` patterns
 - `.env.local`, `.env.production`, `.env.development`
 
-**Bypass (Emergency Only):**
-```bash
-git commit --no-verify
-```
+Do not bypass the hook — fix the flagged content instead.
 
 ---
 
@@ -499,11 +485,11 @@ git commit --no-verify
 
 ### Current State
 
-SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coaching (rule-based + LLM), ZK proof rewards, Walrus-anchored telemetry, on-chain class contracts, Supabase-backed persistence (provisioned + on new API keys), instructor-rider loop, and personalized onboarding flow. Codebase is clean (0 TS errors, 0 errors / ~198 pre-existing lint warnings, 245 tests passing, CI green).
+SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coaching (rule-based + LLM), Walrus-anchored telemetry, on-chain class contracts, Supabase-backed persistence, instructor-rider loop, personalized onboarding. Direction as of 2026-10-04: **receipt-first** — see `plans/wedge-contract-research.md` and `docs/IMPLEMENTATION-PLAN.md` phase list.
 
-**What's done**: Phases 0–3 complete, real ZK batch claims on Fuji, all 8 EVM contracts deployed + verified, Sui package v2 on testnet, Walrus persistence, ride history/analytics/badges, gym registry + calibration, ghost racing, prod on HEAD (2026-10-03).
+**What's done**: phases 0–4 of the old wedge plan; local hardening (auth, ownership, CTA, Noir compat, receipt status) and phase-1 public-write boundary + `RideReceiptV1` verified locally (366 tests, clean typecheck/build) — **commit/deploy pending, production still runs the 2026-10-03 build**. The Fuji contracts above are legacy experiments — **claims are not approved**: the deployed wrapper rejects real proofs and the app-side legacy-claim gate exists locally (prod env flag `false`).
 
-**What's missing for users**: browser-level E2E of the full claim loop, testnet soft-launch validation, legacy Supabase key deactivation.
+**What's missing for users**: phase-1 public personal-data write disable (implemented locally, deploy pending); phase-2 consent transfer controls; phase-3 provider/provenance interface; phase-4 redeemer design; phase-5 real-verifier benchmarks + operator-approved testnet deployment; legal/policy review.
 
 ### Scale Risks (Must Fix Before Features)
 
@@ -511,30 +497,55 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 |------|----------|--------|
 | localStorage as primary store | **High** | Ride history, profile, panel state, analytics — all in localStorage. 200-ride cap is arbitrary. Data lost on browser clear. |
 | Mocked instructor analytics | **High** | `attendanceRate: 0.85`, `repeatRiderRate: 0.35` — hardcoded |
-| No backend | **High** | API routes exist for AI but no persistent backend for rider-instructor relationships |
-| No auth | Medium | Wallet address is the only identity. No sessions, no access control |
+| No durable account layer | **High** | Supabase project provisioned, but durable account relationships, outbox, and recoverable jobs are absent (phase 2) |
+| Public personal-data writes | **High** | Telemetry, ride summaries, profiles, coach memory, and Sui anchors publish publicly until phase 1 lands. localStorage is device-local and NOT encrypted. |
+| No auth (historical) | Medium | Session-bound wallet auth implemented locally (uncommitted); deployed prod still has the legacy path |
 
 ### Pre-Launch Checklist
 
-- [x] **Redeploy Vercel from HEAD** — original stale-build Noir init failure fixed 2026-09-24; redeployed 2026-10-03 twice (key migration + page-review batch `a6de86153`, then layout-fix `3ffb38d`; `/`, `/rider`, `/routes` 200). Note: `git push` works again (earlier token scope issue resolved), but CLI deploys remain the path.
-- [x] **Finish Supabase key migration** — code migrated 2026-10-03 (no legacy fallback); new publishable + secret keys + `SESSION_SECRET` set on Vercel production and prod redeployed from local HEAD (`pnpm build` green, spinchain.vercel.app 200). Remaining: add the 3 vars to Preview in dashboard if needed, then deactivate legacy anon/service_role keys.
-- [ ] **Verify `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` stays unset on Vercel** (defaults to off; `.env.local` has it true for dev)
-- [ ] **Browser-level E2E tests** — wallet connect → class join → ride → ZK proof → claim; Supabase auth (nonce → sign → JWT); API routes
-- [ ] **Testnet soft-launch validation** — real users through the full loop on Fuji + Sui testnet
-- [ ] Chainlink CRE — blocked on Early Access approval (ZK path is independent, not a blocker)
-- [x] Rive rider asset — CLI-built from `rive/rider/scene.rml` via `pnpm rive:build` (contract: `public/rive/README.md`)
+- [x] **Redeploy Vercel from HEAD** (2026-10-03, historical committed tree — not the current uncommitted work); CLI deploys remain the path
+- [ ] **Phase 1 privacy boundary** — no public personal-data writes; local durable `RideReceiptV1`
+- [x] **`ride_summaries.summary` migration** applied to production Supabase 2026-10-04 (additive, nullable `jsonb`)
+- [ ] **Phase 2 consent controls** — separate consents for cloud history / third-party AI / voice / instructor live view / public export
+- [x] **Fix Vercel env names** — canonical `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `GEMINI_API_KEY` added to production 2026-10-04 (values copied from the legacy cloud vars; legacy names preserved); code reads `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `GEMINI_API_KEY`
+- [ ] **Phase 3–5** — verification-provider interface/pilot, `AchievementRedeemerV2` design+tests, real-verifier benchmarks, operator-approved testnet deploy
+- [ ] **Legal/policy review** — Apple 3.1.1/5.1, EDPB, jurisdictional review for any tradable reward; no health claims without validation
 - [ ] Load testing — pending testnet deployment
 - [ ] Security audit — pre-mainnet
 
-### Mainnet Migration Path (post-testnet)
+### Production dogfooding checklist (integrated testnet loop — user runs)
 
-- [ ] Publish `spinsession.move` package to Sui mainnet → update `NEXT_PUBLIC_SUI_PACKAGE_ID`
-- [ ] Flip Walrus to mainnet: `NEXT_PUBLIC_WALRUS_NETWORK=mainnet`
-- [ ] Deploy `IncentiveEngine.sol` + supporting contracts to Avalanche C-Chain mainnet → update all `NEXT_PUBLIC_*_ADDRESS` env vars
-- [ ] Re-run the full claim flow end-to-end on mainnet (single + batched ZK proofs)
-- [ ] Security audit of contracts before real-value deployment
+- [ ] Ride completes → completion saved locally with `RideReceiptV1` before any background work
+- [ ] History shows the ride with honest status (`progress saved`; no implied verification/redemption)
+- [ ] Sign in before a second ride → that wallet-owned ride saves to the private account; no public write observed. Earlier guest rides remain device-local and are not automatically reassigned.
+- [ ] Reload/other device while signed into the same wallet → wallet-owned history recovers via the private account path (not legacy public blobs)
+- [ ] No automatic proof generation on stop; no raw-sample fabrication
+- [ ] (Future claim path — phase 5 only): signed receipt → redeemer → `redemption confirmed`, distinct from progression
+
+### Mainnet (not part of this release)
+
+The former multi-chain mainnet migration checklist is retired. Do not publish personal telemetry or redeploy `IncentiveEngine` as a mainnet launch path. Any real-value release requires a separately approved V2 redeemer specification, source-authentication and consent controls, a contract security audit, jurisdictional review, and successful operator-approved testnet validation.
 
 ### Session Log
+
+#### 2026-10-04 — Phase 1 release prepared (commit/deploy pending)
+
+**Migration:** `ride_summaries.summary` additive `jsonb` nullable column applied to production Supabase (`avcihfixqlofvkpvwmiq`) — verified present post-apply. No tables dropped, no data deleted; no other migrations run.
+
+**Production env (names only — no values recorded):**
+- `NEXT_PUBLIC_ENABLE_LEGACY_REWARD_CLAIMS=false` added to Production.
+- `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` added, copied from the existing cloud `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID` (legacy var preserved).
+- `GEMINI_API_KEY` added, copied from `GOOGLE_GENERATIVE_AI_API_KEY` (legacy var preserved).
+- `SESSION_SECRET` is configured in production; value length unverifiable via `vercel env run` (it injects empty for it, same as the known-working `SUPABASE_SECRET_KEY`) — flagged, not replaced.
+- `NEXT_PUBLIC_AVALANCHE_CHAIN_ID` unset → code default 43113 (Fuji). No Preview/Development changes.
+
+**Invariants in this release:** legacy reward claims flag off; public personal-data publication hard-denied in code (`isPersonalDataPublicationAllowed()` — no env override); no contract redeploys, no chain migrations, no broadcast transactions.
+
+**Local verification:** 366 unit tests / 42 files pass; `tsc --noEmit` clean; production build green under isolated env; ESLint 0 errors (7 warnings). Individual desktop/mobile spec evidence exists from standalone runs, but the final combined run was interrupted — remaining browser checks are delegated to the user on production after deployment.
+
+**User manual checklist on the deployed build:** complete a guest ride → record appears in local history → reload → sign in before a second ride → confirm that wallet-owned ride syncs to the private account → reload on another device using the same wallet. Guest records remain device-local; repeat completion must not duplicate or reassign them. No monetary claim; a V1 receipt is an unverified record, not a future V2 certificate.
+
+**Status:** staging/commit/push/deployment PENDING — production still serves the 2026-10-03 build.
 
 #### 2026-08-17 — Launch-prep: production bug fixes + UI/UX pass
 
@@ -573,12 +584,12 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 
 ### Not Yet Launch-Ready
 
-- Fully validated production-safe reward settlement (ZK batch claims verified on Fuji; browser-level E2E of the full claim loop still missing)
-- New Supabase API keys not yet on Vercel (`PUBLISHABLE`/`SECRET`/`SESSION_SECRET`); persistence silently falls back to localStorage until set, then deactivate legacy keys in dashboard
-- `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` must stay unset on Vercel (defaults off)
-- SpinPack ERC-1155 deployed on Fuji, but UI flows around it still carry "Preview" labels — make real or remove per wedge
-- Finalized launch verification and operational monitoring
-- Demo/mock content gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (off by default)
+- Live value-bearing claims — the deployed Fuji wrapper is broken and the redeemer is unbuilt; claims stay off until phases 4–5
+- Public personal-data writes not yet disabled (phase 1)
+- Consent transfer controls for third-party AI/TTS biometric context (phase 2); no "privacy-ready" claim before then
+- `ride_summaries.summary` migration applied 2026-10-04 — canonical summary roundtrip enabled server-side (phase-1 client ships with the pending release)
+- Browser-level E2E covers wedge/auth paths; the integrated production dogfood loop is a phase-5 user task
+- Legal/policy review (Apple 3.1.1/5.1, EDPB, reward jurisdiction) outstanding
 
 ### AI Integration
 
@@ -599,10 +610,10 @@ All providers handle: route generation, narrative creation, chat, coaching, and 
 
 ### Privacy Features
 
-- **Selective Disclosure** — ZK proofs reveal only `effortScore`, `zone`, `duration` — hide `maxHeartRate`, raw data
-- **Privacy Policies** — HIGH (effort_score only), MEDIUM (+ duration, ranking), LOW (full disclosure)
-- **Local Oracle** — Browser-based proof generation using real Noir circuit + Barretenberg WASM, 10-minute rolling telemetry buffer, no data leaves device without consent
+- **ZK proofs** reveal only three public outputs (`threshold_met`, `seconds_above`, `effort_score`); class/rider/threshold/min-duration are attached metadata, not proven inputs. ZK is an optional future privacy layer over issuer-bound commitments — not trustless physical-effort verification.
+- **Boundary status**: public personal-data publication is disabled in the release-prepared phase-1 build (not yet deployed) and granular third-party/AI consent lands in phase 2. Until both ship and deploy, do not claim privacy-ready. localStorage is device-local and not encrypted; legacy public blobs remain readable (migration-only, owner-scoped).
+- **Provenance classes**: `simulated` / `device-observed` / `estimated` on `RideReceiptV1`; `source-attested` is reserved and cannot be client-declared. FTMS is a transport protocol, not attestation.
 
 ---
 
-*Last updated: 2026-08-17*
+*Last updated: 2026-10-04*

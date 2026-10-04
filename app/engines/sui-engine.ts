@@ -26,6 +26,7 @@
 import { EventBus } from "./event-bus";
 import { SUI_CONFIG } from "@/app/config";
 import { Transaction } from "@mysten/sui/transactions";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -123,6 +124,7 @@ export class SuiEngine {
    */
   async startSession(classId: string, duration: number): Promise<string | null> {
     if (this.disposed) return null;
+    if (!isPersonalDataPublicationAllowed()) return null;
     if (!this.config.executeTransaction) {
       console.warn("[SuiEngine] No executeTransaction callback configured");
       return null;
@@ -170,6 +172,7 @@ export class SuiEngine {
    */
   async joinSession(sessionId: string): Promise<string | null> {
     if (this.disposed) return null;
+    if (!isPersonalDataPublicationAllowed()) return null;
     if (!this.config.executeTransaction) {
       console.warn("[SuiEngine] No executeTransaction callback configured");
       return null;
@@ -211,6 +214,7 @@ export class SuiEngine {
    */
   async closeSession(): Promise<boolean> {
     if (this.disposed) return false;
+    if (!isPersonalDataPublicationAllowed()) return false;
     if (!this.session.sessionId || !this.session.isActive) return false;
     if (!this.config.executeTransaction) return false;
 
@@ -253,6 +257,7 @@ export class SuiEngine {
    */
   async submitTelemetry(hr: number, power: number, cadence: number): Promise<boolean> {
     if (this.disposed) return false;
+    if (!isPersonalDataPublicationAllowed()) return false;
     if (!this.session.sessionId || !this.session.statsObjectId || !this.session.isActive) {
       return false;
     }
@@ -286,6 +291,7 @@ export class SuiEngine {
    */
   queueTelemetry(hr: number, power: number, cadence: number): void {
     if (this.disposed) return;
+    if (!isPersonalDataPublicationAllowed()) return;
     if (!this.session.isActive) return;
 
     this.telemetryBuffer.push({ hr, power, cadence, timestamp: Date.now() });
@@ -303,6 +309,7 @@ export class SuiEngine {
    */
   async flushTelemetry(): Promise<boolean> {
     if (this.disposed) return false;
+    if (!isPersonalDataPublicationAllowed()) return false;
     if (
       this.telemetryBuffer.length === 0 ||
       !this.session.sessionId ||
@@ -368,6 +375,7 @@ export class SuiEngine {
     pointCount: number;
   }): Promise<{ digest: string } | null> {
     if (this.disposed || !this.config.executeTransaction) return null;
+    if (!isPersonalDataPublicationAllowed()) return null;
 
     try {
       const tx = new Transaction();

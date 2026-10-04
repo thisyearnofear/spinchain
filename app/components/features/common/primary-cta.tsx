@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Wallet } from "lucide-react";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
+import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 
 const PRIMARY_PILL =
   "group inline-flex items-center gap-3 rounded-full bg-[color:var(--accent)] px-10 py-5 text-lg font-bold text-black shadow-lg shadow-[color:var(--accent)]/30 transition-[transform,background-color,box-shadow] duration-150 hover:scale-105 hover:bg-[color:var(--accent-strong)] hover:shadow-xl hover:shadow-[color:var(--accent)]/40 active:scale-95";
@@ -19,16 +20,23 @@ const PRIMARY_PILL =
  * Wedge guardrail: [30-second rule](../../docs/WEDGE.md#the-core-loop-must-be-under-30-seconds)
  *                  [one primary CTA](../../docs/WEDGE.md#wedge-guardrails)
  */
+const EVM_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+
 export function PrimaryCTA({
   isConnected,
-  nextClassName,
+  nextClass,
   hasRides = false,
 }: {
   isConnected: boolean;
-  nextClassName?: string;
+  nextClass?: { name: string; address: `0x${string}` };
   hasRides?: boolean;
 }) {
-  if (!isConnected && hasRides) {
+  const nextClassAddress =
+    nextClass && EVM_ADDRESS_RE.test(nextClass.address)
+      ? nextClass.address
+      : undefined;
+  const nextClassName = nextClassAddress ? nextClass?.name : undefined;
+  if (!isConnected && hasRides && isLegacyRewardClaimsEnabled()) {
     return (
       <div className="flex flex-col items-center gap-3">
         <ConnectButton.Custom>
@@ -38,6 +46,7 @@ export function PrimaryCTA({
               type="button"
               disabled={!mounted}
               className={PRIMARY_PILL}
+              data-testid="primary-cta"
             >
               <Wallet className="h-6 w-6" />
               Connect wallet to keep your rewards
@@ -60,6 +69,7 @@ export function PrimaryCTA({
         <Link
           href={getDemoRideUrl()}
           className={PRIMARY_PILL}
+          data-testid="primary-cta"
         >
           <svg
             className="h-6 w-6 transition-transform group-hover:translate-x-0.5"
@@ -83,8 +93,9 @@ export function PrimaryCTA({
   return (
     <div className="flex justify-center">
       <Link
-        href={nextClassName ? `/rider/ride/${encodeURIComponent(nextClassName)}` : getDemoRideUrl()}
+        href={nextClassAddress ? `/rider/ride/${nextClassAddress}` : getDemoRideUrl()}
         className={PRIMARY_PILL}
+        data-testid="primary-cta"
       >
         <svg
           className="h-6 w-6"

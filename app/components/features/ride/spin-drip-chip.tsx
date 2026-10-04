@@ -10,6 +10,7 @@
 "use client";
 
 import { useRewardsStore } from "@/app/stores/rewards-store";
+import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 
 export function SpinDripChip({ className = "" }: { className?: string }) {
   const isActive = useRewardsStore((s) => s.isActive);
@@ -17,7 +18,7 @@ export function SpinDripChip({ className = "" }: { className?: string }) {
   const formattedReward = useRewardsStore((s) => s.formattedReward);
   const simulatedReward = useRewardsStore((s) => s.simulatedReward);
 
-  const show = isActive || isSimulating;
+  const show = isLegacyRewardClaimsEnabled() && (isActive || isSimulating);
   const value = isActive ? formattedReward : simulatedReward;
   if (!show) return null;
 

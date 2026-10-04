@@ -1,8 +1,8 @@
 # SpinChain
 
-SpinChain is a Next.js + Capacitor prototype for AI-assisted spin classes, dual-chain reward settlement experiments, and privacy-preserving fitness telemetry.
+SpinChain is a Next.js + Capacitor prototype for AI-assisted spin classes: effort drives real-time world/flow/coaching changes in the foreground, with optional future achievement settlement in the background.
 
-Current state: testnet/demo stage, live on Vercel at https://spinchain.vercel.app/ (redeployed 2026-10-03). The app is not ready for general users yet.
+Current state: testnet/demo stage, live on Vercel at https://spinchain.vercel.app/ (redeployed 2026-10-03). Direction approved 2026-10-04: **receipt-first architecture** — ride completion and progression are saved independently of any chain; value-bearing redemption is an optional, separately-approved future layer. The app is not ready for general users: public personal-data publication is disabled in the release-prepared phase-1 build (local, not yet deployed) and real-bike launch stays blocked pending consent controls and legal review.
 
 ---
 
@@ -22,7 +22,7 @@ cp .env.local.template .env.local
 pnpm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3210](http://localhost:3210)
 
 ---
 
@@ -41,15 +41,16 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## Status
 
-- Launch readiness: not ready (testnet stage; live at https://spinchain.vercel.app/, redeployed 2026-10-03 with new Supabase keys + delight overlay)
-- Network posture: Avalanche Fuji + Sui testnet
-- ZK proofs: real Noir circuit (`effort_threshold`) with Barretenberg/UltraHonk backend generates browser-side ZK proofs; on-chain verifier deployed to Fuji
-- Demo data: gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (off by default) — production shows only real on-chain classes and real telemetry/leaderboard data
-- UI polish: tabular-nums on all live HUD numbers, mobile HUD tap-to-expand restored, reduced-motion support app-wide, landing mousemove no longer re-renders React
-- Reward path: chunked ZK batch claims wired with real on-chain verification; Chainlink CRE fallback documented (pending Early Access)
-- Builder flow: unified into single progressive builder (wizard removed); wallet connection prompted at publish step
-- Verification: build + lint + 245 unit tests green; wedge-guard E2E added (landing/rider CTA + rider-language); full wallet→claim browser E2E still missing
-- Persistence: Supabase provisioned + migrated to new publishable/secret keys (legacy deactivation pending in dashboard); falls back to localStorage until env vars are set
+- Launch readiness: not ready — general real-bike launch stays blocked until privacy/consent controls and a legal review are done (2026-10-04)
+- Network posture: Avalanche Fuji + Sui testnet for existing experiments; no chain migration planned
+- Direction: receipt-first. Foreground ride → completion/progression saved locally → optional private account sync → optional future campaign settlement. Three separate ledgers: local runtime, private account progression, optional settlement. "Progress saved", "verification pending", and "redemption confirmed" are never interchangeable.
+- Local hardening (release prepared 2026-10-04; commit/deploy record pending, not deployed): session-bound wallet auth, owner-scoped ride persistence, CTA-by-address routing, Noir beta.22 compatibility, receipt-status correctness, plus phase-1 public-write boundary + `RideReceiptV1` — verified locally (366 unit tests / 42 files + 10 Foundry real-verifier tests; final combined browser run interrupted)
+- Production known-broken: the deployed EffortThresholdVerifier wrapper forwards the wrong public-input slice (reverts on real proofs); the underlying Honk verifier accepts them. No redeploy/adapter is the next step — settlement redesign comes first.
+- Persistence: private Supabase account sync exists session-gated; the `summary jsonb` column was applied to production Supabase (`avcihfixqlofvkpvwmiq`) on 2026-10-04 (additive, nullable). Public telemetry/profile/coach-memory publication is disabled in the release-prepared phase-1 build. localStorage is device-local and NOT encrypted.
+- ZK proofs: real Noir `effort_threshold` circuit + UltraHonk backend prove only three public outputs (`threshold_met`, `seconds_above`, `effort_score`); class/rider/threshold/min-duration are attached metadata, not proven inputs. ZK is an optional future privacy layer over issuer-bound commitments — no trustless physical-effort claims.
+- Demo data: gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (off by default)
+- Reward path: live claims are not approved — the deployed wrapper rejects real proofs and the app-side legacy-claim gate (`NEXT_PUBLIC_ENABLE_LEGACY_REWARD_CLAIMS`, Fuji-only) exists in the release-prepared build with production set to `false` (production still runs the old build). Future bounded campaigns would use a signed `RideReceipt`/nullifier redeemer (AchievementRedeemerV2, design phase 4)
+- Verification: build + typecheck + unit tests + desktop/mobile Playwright + real-verifier Foundry tests
 
 ---
 
@@ -58,37 +59,36 @@ Open [http://localhost:3000](http://localhost:3000)
 | Doc | Description |
 |-----|-------------|
 | [WEDGE](docs/WEDGE.md) | The wedge: effort → visual transformation. Feature discipline, guardrails, anti-examples. **Read first.** |
-| [IMPLEMENTATION-PLAN](docs/IMPLEMENTATION-PLAN.md) | Phased tasks with files, sizes, deadlines. Maps to wedge guardrails. |
-| [ARCHITECTURE](docs/ARCHITECTURE.md) | Blockchain infrastructure, engine architecture, adaptive UX, ride experience, transitions, Yellow Network. |
-| [OPERATIONS](docs/OPERATIONS.md) | Local setup, deployment, testing, production roadmap, current product state. Includes **Deployment Storage Rules** (Vercel prune / ZK client-only). |
+| [IMPLEMENTATION-PLAN](docs/IMPLEMENTATION-PLAN.md) | Phased, actionable plan aligned to the approved receipt-first direction. |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | Foreground engine/renderer facts plus the ledger/privacy boundary model. |
+| [OPERATIONS](docs/OPERATIONS.md) | Local setup, test commands, production preflight findings, dogfooding checklist. |
 | [DEMO](docs/DEMO.md) | 3-minute pitch script (standalone). |
+| [Contract research](plans/wedge-contract-research.md) | Evidence base for the approved receipt-first direction (2026-10-04). |
+| [Journey claim flow](plans/journey-claim-flow.md) | Receipt-first recovery phases (V1 record vs future claim). |
+| [Contract deploy](contracts/DEPLOY.md) | Retired default deployment; operator-guarded testnet plan only. |
 
 ---
 
 ## Before User Launch
 
-- [x] Remove mock/demo class fallbacks from user-facing flows — gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` (off by default; curated classes, instructor-live demo metrics, fake leaderboard only show when the flag is true)
-- [x] Replace placeholder and zero-value addresses in runtime config — all 8 Fuji contracts deployed with real addresses; zero-values guarded via `isZeroAddress`
-- [x] Complete real verifier + engine deployment and testnet claim validation — E2E Fuji fork tests + `scripts/e2e-verify-fuji.sh` passing
-- [ ] Add coverage and operational validation for chunked ZK reward claims — gas benchmarks done; browser-level E2E of the full claim loop still missing
-- [ ] Add reliable verification gates and release checklists — CI has lint/typecheck/test; needs E2E + a release checklist runbook
+Phase gates per the approved plan (see IMPLEMENTATION-PLAN):
 
-**Remaining blockers (2026-10-03):**
-
-1. **Deactivate legacy Supabase keys** — new publishable/secret keys live on Vercel production and verified; remove `anon`/`service_role` in dashboard (Settings > API Keys) after one real ride-save against prod. Add the 3 new vars to Preview env if preview deploys are used.
-2. **E2E happy-path tests** — wedge-guard spec covers landing/rider CTAs; still missing wallet connect → class join → ride → ZK proof → claim; Supabase auth (nonce → sign → JWT); API routes.
-3. **Chainlink CRE** — blocked on Early Access approval; ZK path works independently, not a launch blocker.
-4. **Testnet soft-launch** — validate the full loop with real users on Fuji/Sui testnet (7/10 "want again" without mentioning rewards).
+- [ ] Phase 1 (implemented locally — commit/deploy pending): disable ALL public personal-data writes (telemetry, ride summaries, rider profiles, coach memory, Sui ride telemetry/anchors); save completed rides locally with a durable `RideReceiptV1`; block rather than opt into plaintext publishing
+- [x] Apply the `summary jsonb` migration to production Supabase (applied 2026-10-04, additive, nullable)
+- [ ] Phase 2: private account save/outbox/recoverable jobs + granular consent (cloud history, third-party AI/voice/instructor live view, public achievement export are separate consents)
+- [ ] Phase 3: explicit verification-provider interface/provenance; studio/wearable pilot before any CRE/zkTLS adoption; third-party AI/TTS biometric context needs the same user consent
+- [ ] Phase 4: AchievementRedeemerV2 design + tests (signed receipt + nullifier redeemer); no numeric payout promises
+- [ ] Phase 5: real-verifier benchmarks, boundary matrix, local full loop, documented migration, operator-approved testnet deployment, integrated production dogfood on testnets
+- [ ] Reviews are separate concerns, all pending before monetization: (a) EDPB privacy — minimization, retention, erasure (encrypted data is still personal data); (b) Apple platform rules — 3.1.1 digital-goods/NFT, 5.1 third-party AI/health-sharing consent; (c) jurisdictional financial review for any tradable/cash reward. No health/diagnostic claims without validation. Details: `plans/wedge-contract-research.md` §§5–7.
 
 ## Security
 
 ```bash
 # Verify hook is installed
 ./scripts/setup-hooks.sh
-
-# Emergency bypass
-git commit --no-verify
 ```
+
+The hook blocks accidental secret commits — do not bypass it; fix the flagged content.
 
 ---
 
@@ -97,9 +97,9 @@ git commit --no-verify
 - **Blockchain**: Avalanche (EVM), Sui (Move), Chainlink CRE (pending Early Access)
 - **Frontend**: Next.js 16, React Three Fiber, Tailwind CSS
 - **Mobile**: Capacitor 5.7, BLE plugin
-- **ZK**: Noir circuits, Barretenberg backend (UltraPlonk proving), on-chain Honk verifier
-- **AI**: Venice AI, NVIDIA NIM (MiniMax-M3), and Gemini 3.0 Flash with multi-provider fallback (Venice → NVIDIA → Gemini)
-- **Storage**: Walrus (verifiable data layer for ride telemetry, route GPX, AI coach memory)
+- **ZK**: Noir circuits, Barretenberg backend (UltraHonk proving), on-chain Honk verifier
+- **AI**: Venice AI, NVIDIA NIM (MiniMax-M3), and Gemini 3.0 Flash with multi-provider fallback (Venice → NVIDIA → Gemini) — third-party AI/TTS receive biometric context; granular consent controls are PLANNED (phase 2), so no overall privacy-ready claim
+- **Storage**: Walrus (route/world assets; personal-data writes disabled in the release-prepared phase-1 build)
 
 ---
 

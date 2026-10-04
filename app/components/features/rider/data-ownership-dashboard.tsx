@@ -8,9 +8,11 @@ import { getRideHistory, STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
 import { useRiderProfile, toProfilePayload } from "@/app/stores/rider-profile-store";
 import { useProfileSync, persistProfileToWalrus, getProfileBlobId } from "@/app/lib/walrus/profile-persistence";
 import { useAccount } from "wagmi";
+import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 
 export function DataOwnershipDashboard() {
   const { address } = useAccount();
+  const publicationAllowed = isPersonalDataPublicationAllowed();
   const router = useRouter();
   const profile = useRiderProfile();
   const profileSync = useProfileSync();
@@ -75,6 +77,7 @@ export function DataOwnershipDashboard() {
   }, [router]);
 
   const handleSyncProfile = useCallback(async () => {
+    if (!publicationAllowed) return;
     if (!address || !profile.isComplete()) return;
     setSyncingProfile(true);
     profileSync.setSyncing();
@@ -85,7 +88,7 @@ export function DataOwnershipDashboard() {
       profileSync.setFailed();
     }
     setSyncingProfile(false);
-  }, [address, profile, profileSync]);
+  }, [publicationAllowed, address, profile, profileSync]);
 
   const handleUpdatePreferences = useCallback(() => {
     setPrefLoading(true);
@@ -157,7 +160,7 @@ export function DataOwnershipDashboard() {
             <div className="flex items-center gap-2 mb-3">
               <Cloud className="w-4 h-4 text-emerald-400/60" />
               <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">
-                Cloud Backup
+                {publicationAllowed ? "Cloud Backup" : "Legacy public backups"}
               </span>
             </div>
             <div className="space-y-2">
@@ -191,7 +194,7 @@ export function DataOwnershipDashboard() {
         {/* Actions */}
         <div className="flex flex-wrap gap-3">
           {/* Sync profile across devices */}
-          {address && profile.isComplete() && profileSync.syncStatus !== "synced" && (
+          {publicationAllowed && address && profile.isComplete() && profileSync.syncStatus !== "synced" && (
             <button
               onClick={handleSyncProfile}
               disabled={syncingProfile}
@@ -278,8 +281,8 @@ export function DataOwnershipDashboard() {
         <div className="mt-4 flex items-start gap-2 text-[10px] text-white/30">
           <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
           <p>
-            Local data stays in this browser. Cloud backup keeps your profile and rides available on other devices.
-            Exporting downloads a JSON backup. Deleting clears data on this device only — cloud backups remain until they expire.
+            Local data stays in this browser and is not encrypted — account and consent controls are still being built.
+            Exporting downloads a JSON backup. Deleting clears data on this device only — any legacy public backups remain until they expire.
           </p>
         </div>
       </div>

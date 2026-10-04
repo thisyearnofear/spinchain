@@ -232,6 +232,8 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
     stopAudio();
 
     try {
+      const sessionId = useRideStore.getState().session?.id;
+
       // Stop the engines first — this finalizes telemetry averages into the
       // store and ends the oracle session (background proof generation +
       // encrypted telemetry backup). The coordinator is not disposed here;
@@ -242,6 +244,7 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
 
       const result = await persistRide({
         classId,
+        sessionId,
         classData,
         practiceConfig,
         agentName,

@@ -1,7 +1,7 @@
 # SpinChain Wedge
 
 > **Status**: ACTIVE — all feature decisions reference this document.
-> **Last reviewed**: 2026-08-17
+> **Last reviewed**: 2026-10-04
 > **See also**: [IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md) for concrete tasks, [ARCHITECTURE.md](./ARCHITECTURE.md) for the background layer, [CHARACTER-SYSTEM.md](./CHARACTER-SYSTEM.md) for the character/world/coach vision, [OPERATIONS.md](./OPERATIONS.md) for setup and deployment.
 
 ---
@@ -37,11 +37,14 @@ The flow state engine, milestones, streaks, and experience level are built and d
 The rider never needs to know about:
 - ZK proofs
 - State channels
-- ERC-1155 tokens
+- ERC-1155 tokens / NFT gating
 - Uniswap v4 hooks
 - Agent autonomy
 - Walrus blobs
 - ClearNode
+- Wallet, signing, or chain prerequisites
+
+Rides, progression, and achievements must work with no wallet and no NFT. Ordinary ride progression is not cash and not transferable tokens; any future value-bearing redemption is an optional, separately-approved campaign layer over a signed ride receipt — never a prerequisite for the loop. "Progress saved", "verification pending", and "redemption confirmed" are distinct statuses and must never be presented as the same thing.
 
 These are infrastructure. If the coach card says "agenticPowers: Dynamic pricing based on demand," that is a wedge violation. The rider wants to know: "Coach Atlas pushes you harder on climbs."
 
@@ -59,6 +62,8 @@ Every new feature, refactor, or UX change must pass this checklist:
 | **No preview badges** | Are we never showing a "Preview" label next to a core feature? (Either make it real or remove it.) |
 | **Rider language** | Does any component use infrastructure language (ZK, state channel, ERC, hook, agent) that a rider would not understand? |
 | **Wedge-first** | Would this feature make the core loop (effort → visual transformation) more or less compelling? |
+| **No prerequisites** | Does the ride still complete, save progress, and show progression with no wallet, NFT, or signup? |
+| **Honest status** | Are "saved", "verified", and "redeemed" shown as separate states — never implied equal? |
 
 If a feature fails more than one guardrail, it must be reviewed against this wedge document before merging.
 
@@ -79,16 +84,15 @@ These are important and we are building them. But they are **moats**, not the we
 
 ---
 
-## Competitors And Why We Win
+## Competitive Context And Hypothesis
 
-| Competitor | What They Do | What They Can't Do |
-|------------|-------------|-------------------|
-| Peloton | Live classes, branded instructors | Real-time effort→visual transformation. The screen is passive. |
-| Zwift | 3D world, gamification | Effort maps to avatar speed, not visual world transformation. No flow state engine. |
-| Wahoo/Strava | Data, analytics, leaderboards | No visual feedback loop. No gamification inside the ride itself. |
-| Sweatcoin | Token rewards | No ride experience at all. Just step counting. |
+| Competitor | Documented capabilities | Our hypothesis to test |
+|------------|------------------------|------------------------|
+| Zwift | Immersive 3D world, structured training, gamification (routes, XP, power-ups) — see [research §3.3/§8](../plans/wedge-contract-research.md) | Effort→visual world transformation plus a flow-state engine can differentiate beyond "world + gamification" — a hypothesis, not a proven gap. |
+| STEPN | Official token economy with anti-cheat systems ([research §3.3](../plans/wedge-contract-research.md)) | Receipt-first progression keeps fitness honest without inheriting token-economy risks — also a hypothesis. |
+| Peloton, Wahoo, Strava | Established class/content and data platforms | We do not claim categorical gaps without current research; differentiation must be demonstrated in testing. |
 
-**Our wedge**: No one makes the world *react* to your sweat in real-time. The road glows, fog thickens, speed lines accelerate, camera FOV widens — all from your effort. That is the thing.
+**Our wedge**: the world *reacts* to your sweat in real-time. That is the thing to prove — with the loop itself, without rewards.
 
 ---
 

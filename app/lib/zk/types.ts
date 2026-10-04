@@ -35,6 +35,8 @@ export interface ZKProof {
   publicInputs: string[];
   circuitType: CircuitType;
   verifierAddress: string;
+  /** Which proving backend produced this proof. */
+  backend?: "noir" | "mock";
 }
 
 export interface SelectiveDisclosure {

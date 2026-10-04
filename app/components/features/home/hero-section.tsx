@@ -89,7 +89,10 @@ export function HeroSection() {
           needed.
         </p>
 
-        <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+        <div
+          className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row"
+          data-testid="primary-cta"
+        >
           <MorphCTA href={getDemoRideUrl({ name: "Demo Ride" })}>
             <Play className="h-4 w-4 fill-current" />
             Try a Demo Ride

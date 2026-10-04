@@ -14,6 +14,7 @@ remappings = [
 # HonkVerifier.sol is in src-honk/ and compiled via FOUNDRY_PROFILE=honk
 # because it triggers "stack too deep" with via_ir enabled.
 auto_detect_solc = false
+fs_permissions = [{ access = "read", path = "./test/fixtures" }, { access = "read", path = "./cache/out" }]
 
 [profile.honk]
 src = "src-honk"

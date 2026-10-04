@@ -1,8 +1,8 @@
 # SpinChain: Implementation Plan — Wedge-First
 
-> **Created**: 2026-08-17
+> **Created**: 2026-08-17 — restructured 2026-10-04 around the approved receipt-first direction
 > **Purpose**: Concrete tasks to enforce wedge discipline. Each task maps to a guardrail in [WEDGE.md](./WEDGE.md).
-> **Status**: Active
+> **Status**: Active — receipt-first direction approved 2026-10-04
 > **Read first**: [WEDGE.md](./WEDGE.md) defines the wedge and guardrails. This plan converts them into tasks.
 
 ---
@@ -14,7 +14,60 @@
 
 ---
 
-## Phase 1: Surface The Game ✅ COMPLETE
+## Current Plan — Receipt-First (approved 2026-10-04)
+
+Supersedes the old week-numbered timeline and the historical phases below. Evidence: [plans/wedge-contract-research.md](../plans/wedge-contract-research.md). Recovery detail: [plans/journey-claim-flow.md](../plans/journey-claim-flow.md). Statuses here mean code state, not deployment.
+
+### Phase 0 — Reliability fixes (LOCAL VERIFIED, uncommitted)
+
+Session-bound EVM wallet auth (nonce → `personal_sign` → HMAC cookie), owner-scoped ride persistence (insert-first + conflict-scoped update, 403 on identity mismatch), CTA-by-address routing, Noir beta.22 runtime compatibility, `useTransaction` receipt-status correctness. Verified locally: 301 unit + 6 browser tests + 10 Foundry real-verifier tests. **Not deployed; claims not approved.**
+
+### Phase 1 — Privacy boundary: stop public personal-data writes (IMPLEMENTED + REVIEWED LOCALLY — release prepared 2026-10-04; commit/deploy pending)
+
+Local gate evidence: 366 unit tests across 42 files pass; `tsc --noEmit` clean; production build green under the isolated Playwright env; ESLint 0 errors (7 warnings). The final combined browser run was interrupted; remaining browser checks are delegated to the user on production after deployment. Production is unchanged (last live 2026-10-03).
+
+- Hard-disable public personal-data writes: telemetry, ride summaries, rider profiles, coach memory, Sui ride telemetry/anchors. Public world/route asset publishing is preserved.
+- Prevent automatic proof generation on ride stop; save the completed ride locally BEFORE background work; attach a durable `RideReceiptV1` (interface in [ARCHITECTURE §2](./ARCHITECTURE.md)).
+- Historical records preserved — no destructive cleanup; legacy reads stay migration-only and auth-owner-scoped.
+- Block publishing instead of env-opting into existing plaintext paths; raw-data encryption/consent pipeline is explicitly NOT in this phase.
+- File areas: ride completion/summary persistence (`app/lib/analytics/*`), receipt builder (`RideReceiptV1` type + derivation), write gates on telemetry/summary/profile/coach-memory/Sui-anchor call sites, journey/history status rendering.
+- Acceptance: a completed ride persists locally with a durable receipt BEFORE background work; zero public personal-data requests and zero automatic proof/chain writes fire in browser E2E (negative privacy gates); legacy reads remain owner-scoped; local rule-based coach memory and shipped assets unchanged.
+
+### Phase 2 — Private account sync + consent (planned)
+
+- Private account save/outbox/recoverable jobs; durable pending proof/receipt state independent of the finish screen.
+- Granular, separate consents: cloud history, third-party AI/voice, instructor live view, public achievement export.
+- Account auth beyond EOA (passkeys/embedded wallets) later; no smart-wallet compatibility promise on the existing EOA path.
+
+### Phase 3 — Verification-provider interface + pilot (planned)
+
+- Explicit verification-provider interface with provenance classes; studio/wearable pilot before any CRE/zkTLS adoption.
+- Same user consent required before claiming privacy-ready for LLM coaching context and personalized TTS.
+- General real-bike launch stays blocked until controls + audit; no medical/diagnostic claims.
+
+### Phase 4 — AchievementRedeemerV2 design + tests (planned; NOT phase-1 code)
+
+Issuer auth; recipient/session/class + policy binding; EIP-712 domain (version/chain/contract); stable consumed nullifier; lifetime expiry; per-campaign and per-user budgets; gas-payer allowlist; incident pause + signer rotation with governance policy. Semantic replay registry survives verifier changes. Initial signed receipts carry honest SpinChain-issuer trust; a later ZK envelope may bind proof to the same receipt. Scoring/economics/ABI remain a separately approved spec — no numeric payout promises.
+
+### Phase 5 — Validation then operator-approved testnet deployment (planned)
+
+Measured real-verifier benchmarks (legacy "364k/45min" figures used MockVerifier and are not real-verifier measurements), contract boundary matrix, local full loop, documented migration, then operator-approved testnet deployment and an integrated production dogfood pass on testnets.
+
+### Parked / gates
+
+- Yellow channels, sui-native earning, Uniswap pricing: parked until a funded use case exists.
+- Class access: one ERC-1155 registry vs per-class ERC-721 evaluated only if a portable entitlement need appears; no NFT gating of digital features absent an Apple policy review; token ownership is not a legal route-IP claim; creators are human/AI names, not autonomous economic counterparties by default.
+- Chainlink CRE: new docs still require deployment approval; repository workflow is mockRequest + placeholder wearable URL — not a deploy toggle. Avalanche ACP-209 is Proposed, not proof of Fuji 7702 support.
+- The 10-rider "want again" signal is a qualitative product hypothesis, not statistical evidence.
+
+
+---
+
+## Historical: shipped wedge phases (record, not current priorities)
+
+The phases below shipped before the receipt-first re-plan and are kept for context. They are not the current roadmap.
+
+## Historical Phase 1: Surface The Game ✅ COMPLETE (shipped wedge work)
 
 **All tasks done.** Gamification now visible on the front door. One primary CTA dominates. Class grid is secondary.
 
@@ -41,9 +94,9 @@
 
 ---
 
-## Phase 2: Perfect The Demo Ride (2–3 weeks)
+## Historical Phase 2: Perfect The Demo Ride
 
-**Goal**: Make the demo ride the best gamified indoor cycling session anyone has ever experienced. Even with a keyboard. Delight lives *inside* the ride — see `ARCHITECTURE.md §1` (only two curated moments: sprint=beam, flow=unlock).
+**Goal (historical)**: Make the demo ride the best gamified indoor cycling session anyone has ever experienced. Even with a keyboard. Delight lives *inside* the ride — see `ARCHITECTURE.md §1` (only two curated moments: sprint=beam, flow=unlock).
 
 ### 2.1 Cut The Demo Ride To Under 30 Seconds
 - **File**: `app/rider/page.tsx` → `getDemoRideUrl()` + `app/rider/ride/[classId]/page.tsx`
@@ -110,7 +163,7 @@
 
 ---
 
-## Phase 3: Language Cleanup ✅ COMPLETE
+## Historical Phase 3: Language Cleanup ✅ COMPLETE (shipped)
 
 **All tasks done.** Infrastructure language removed from rider-facing UX.
 
@@ -135,7 +188,7 @@
 
 ---
 
-## Phase 4: Onboarding Reorder ✅ COMPLETE
+## Historical Phase 4: Onboarding Reorder ✅ COMPLETE (shipped)
 
 **All tasks done.** Riders experience the product before being asked for information.
 
@@ -153,81 +206,12 @@
 
 ---
 
-## Phase 5: Real Users (2–4 weeks, parallel)
-
-**Goal**: Get real people with spin bikes riding. Validate the wedge with sweat.
-
-### 5.1 Soft Launch With 10 Riders
-- **What**: Find 10 people with connected spin bikes (Schwinn IC4, Bowflex C6, Keiser M3i) and get them through the full flow:
-  1. Connect bike via BLE
-  2. Join a class
-  3. Ride (real HR, real power)
-  4. See world react to their effort
-  5. Complete ride, see milestones
-- **Where to find them**: Local spin studios, cycling communities, Reddit r/spin, r/zwift
-- **Success criteria**: 7/10 say "I want to do this again" without mentioning rewards.
-
-### 5.2 Deploy Vercel From HEAD ✅ DONE (re-deployed 2026-10-03)
-- **What**: Keep the live deployment on HEAD.
-- **Status**: Done 2026-09-24 (`4a90a87`) and again 2026-10-03 (key migration + delight overlay, `pnpm build` green, `/` + `/rider` 200). `git push` still blocked (token lacks repo write scope) — deploys use the CLI path.
-
-### 5.3 Provision Supabase ✅ DONE (migrated 2026-10-03)
-- **What**: Create project, run schema, set env vars. Without it, all persistence falls back to localStorage.
-- **Status**: Done — project `spinchain` provisioned, `schema.sql` applied, new publishable/secret keys + `SESSION_SECRET` live on Vercel production and verified; prod redeployed 2026-10-03. Remaining: Preview env (dashboard) + deactivate legacy anon/service_role keys.
-
----
-
-## Phase 6: Tooling — PARKED (outside the ride)
-
-**Status**: Parked. `react-doctor` CI gate stays. No new threejs/webgpu skill work until wedge validated with 10 riders. Tooling must not add scope.
-
-## Phase 7: Brand Embodiment — PARKED (outside the ride)
-
-**Status**: Parked. Chainring carousel, Matter chain, morph CTA, scroll-scrubbed route, stickers shipped 2026-09-01 — keep, don't expand. Landing/journey polish is secondary to in-ride delight (sprint beam + flow unlock). Any new landing work must pass WEDGE guardrails (one CTA, visible game, rider language) or be rejected.
-
-### Shipped (keep, don't expand)
-- **2D/3D switching**: keep-alive stacked 220ms crossfade, user override wins, auto-degrade <25fps ×3 (`e6520a0` + `32c4dba`)
-- **Brand**: Lenis/GSAP ticker, chainring carousel, Matter chain, morph CTA, scroll-scrubbed route, stickers — shipped 2026-09-01, frozen.
-
-## What NOT To Build (Yet)
-
-These are explicitly deferred until the wedge is validated with real users:
-
-| Deferred | Why |
-|----------|-----|
-| In-ride delight beyond 2 moments | Sprint beam + flow unlock only. No ability sandbox, no editors, no new renderers until retention proves. |
-| Journey-page progression, World Labs envs, 3D pedaling clip | CHARACTER-SYSTEM roadmap — parked until 10-rider validation. |
-| New landing sections / coach rooms | Outside-ride polish. Must pass one-CTA + visible-game guardrails or rejected. |
-| Multi-sport adapter | One sport done right beats three done poorly. |
-| Mindbody/ClassPass bridge | Network effects require riders first. Don't build distribution before product. |
-| Uniswap v4 dynamic pricing | Instructor economics is a platform feature. Riders don't need to see it. |
-| ERC-7715 permissions / agent co-signing | Infrastructure. Hide it. |
-| Cross-gym calibration | Important for scale. Not for the wedge. |
-| 22-speed virtual shifting | Nice-to-have physics detail. Cadence and power are enough for the reactive world. |
-| Full claim-loop E2E | Single happy-path ride E2E required (connect → ride 60s → flow rise → milestone → save). Full ZK-claim matrix deferred. |
-
----
-
-## Timeline
-
-```
-Week 1-2  Phase 1: Surface the game (visible gamification on landing)
-Week 2-4  Phase 2: Perfect the demo ride (30 seconds, zero friction)
-Week 3    Phase 3: Language cleanup (concurrent, low effort)
-Week 3    Phase 4: Onboarding reorder (concurrent with Phase 2)
-Week 3-6  Phase 5: Real users (parallel, ongoing)
-```
-
-**Hard dependency**: ~~Vercel deploy and Supabase provisioning must happen before Phase 5~~ ✅ DONE 2026-10-03 — Phase 5 (real users) is unblocked.
-
----
-
 ## Review Cadence
 
 - **Weekly**: Check each task against [WEDGE.md](./WEDGE.md) guardrails
-- **After Phase 1**: Show the rider landing to 5 people. Do they immediately see the gamification?
-- **After Phase 2**: Run the demo ride with eyes closed first. Does the audio + haptics + world still feel good?
-- **After Phase 5**: If <50% of riders say "I want to come back," the wedge is broken. Re-evaluate.
+- **After phase 1**: verify zero public personal-data requests in a ride E2E and a durable `RideReceiptV1` on the saved summary; the rule-based local coach memory and shipped assets remain unchanged.
+- **After phase 2**: consent gates cover cloud history, third-party AI/voice, instructor live view, and public export separately.
+- **After phase 5**: integrated production dogfood on testnets; the 10-rider "want again" signal remains a qualitative hypothesis.
 
 ---
 
@@ -235,10 +219,9 @@ Week 3-6  Phase 5: Real users (parallel, ongoing)
 
 This plan is the source of truth for feature priority. When new features are proposed:
 
-1. Does it serve the wedge? → Add to Phase 1-4
-2. Is it infrastructure/moat? → Add to backlog, build in parallel
+1. Does it serve the wedge? → Slot into the receipt-first phases
+2. Is it infrastructure/moat? → Backlog until a funded use case exists
 3. Is it platform creep? → Reject until wedge is validated with real users
 
-**Approved by**: team
-**Date**: 2026-08-17
-**Next review**: After Phase 1 completion
+**Direction approved by**: user, 2026-10-04
+**Next review**: after phase 1 lands

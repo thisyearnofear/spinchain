@@ -55,6 +55,78 @@ jobs:
       - name: Test
         run: pnpm exec vitest run
 
+  e2e:
+    name: Build + wedge/browser smoke (Playwright)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Pinned @playwright/test 1.62.1 — install matching browser binaries.
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Production build + wedge guard + browser smoke on desktop and mobile
+      # (projects are defined in playwright.config.ts).
+      - name: E2E gate
+        run: pnpm test:e2e
+
+  contracts:
+    name: EVM verifier tests (forge v1.5.1)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.5.1
+
+      # The committed lockfile has a pre-existing peer conflict
+      # (hardhat-toolbox wants ethers@5, root pins ethers@6), so `npm ci`
+      # fails on clean checkouts. The forge tests only need the locked prod
+      # dependency — install it standalone without resolving the dev tree.
+      - name: Install contract dependencies
+        working-directory: contracts/evm
+        run: |
+          mkdir depstmp && cd depstmp
+          npm init -y >/dev/null
+          npm install @openzeppelin/contracts@5.0.2 --no-audit --no-fund
+          mkdir -p ../node_modules
+          cp -r node_modules/@openzeppelin ../node_modules/
+          cd .. && rm -rf depstmp
+
+      # forge-std is vendored locally but untracked — install the exact
+      # pinned tag on clean checkouts.
+      - name: Install forge-std
+        working-directory: contracts/evm
+        run: forge install --no-git foundry-rs/forge-std@v1.15.0
+
+      - name: Build honk artifact
+        working-directory: contracts/evm
+        run: FOUNDRY_PROFILE=honk forge build --skip test --skip script
+
+      - name: Run verifier tests
+        working-directory: contracts/evm
+        run: forge test --match-contract 'EffortThresholdVerifier.*'
+
   rive:
     name: Rive verify + goldens
     runs-on: ubuntu-latest

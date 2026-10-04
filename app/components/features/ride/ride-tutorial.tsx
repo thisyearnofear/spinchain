@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useMemo, useRef } from "react";
+import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 import { useRideModalStore } from "@/app/stores/ride-modal-store";
 import { experienceManager } from "@/app/lib/experience-level";
 
@@ -44,8 +45,8 @@ const ALL_STEPS: TutorialStepDef[] = [
     spotlight: "bottom-left",
   },
   {
-    title: "Private & Secure",
-    content: "Your health data is private. We only verify your effort on the blockchain without ever seeing your raw biometrics.",
+    title: "Your Ride Record",
+    content: "Completed rides save a record on your device. Sharing and any future verification are always your choice.",
     position: "bottom-40 right-10",
     audience: "web3",
     spotlight: "bottom-right",
@@ -66,7 +67,9 @@ export function useRideTutorial(opts?: { isPracticeMode?: boolean; walletConnect
   const modalStore = useRideModalStore;
 
   const audience: TutorialAudience =
-    opts?.isPracticeMode || !opts?.walletConnected ? "fitness" : "web3";
+    opts?.isPracticeMode || !opts?.walletConnected || !isLegacyRewardClaimsEnabled()
+      ? "fitness"
+      : "web3";
 
   const steps = useMemo(
     () => ALL_STEPS.filter((s) => s.audience === "fitness" || audience === "web3"),

@@ -10,6 +10,7 @@ import { getLocalOracle, type LocalProofResult } from '@/app/lib/zk/oracle';
 import { getProver } from '@/app/lib/zk/prover';
 import { createDisclosure, calculatePrivacyScore, getPrivacyLevel } from '@/app/lib/zk/disclosure';
 import { INCENTIVE_ENGINE_ABI, INCENTIVE_ENGINE_ADDRESS } from "@/app/lib/contracts";
+import { isLegacyRewardClaimsEnabled } from '@/app/lib/rewards/legacy-policy';
 import type { ZKProof } from '@/app/lib/zk/types';
 import { encodePacked, keccak256 } from 'viem';
 
@@ -42,7 +43,7 @@ export function useZKClaim() {
   });
   
   // Use IncentiveEngine for on-chain verification + mint
-  const { write: submitToEngine, ...txState } = useTransaction({
+  const { write: submitToEngine, reset: resetTx, ...txState } = useTransaction({
     successMessage: 'ZK reward claimed on-chain',
     pendingMessage: 'Submitting ZK reward claim...',
     errorContext: CONTRACT_ERROR_CONTEXT.claimReward,
@@ -60,17 +61,17 @@ export function useZKClaim() {
       avgPower?: number;
     }
   ): Promise<LocalProofResult> => {
-    setZkState(prev => ({ ...prev, isGeneratingProof: true }));
-    
+    if (!isLegacyRewardClaimsEnabled()) {
+      return { success: false, error: 'Legacy reward claims are not enabled' };
+    }
+    setZkState(prev => ({ ...prev, isGeneratingProof: true, error: null }));
+
     try {
       const oracle = getLocalOracle();
-      const samples =
-        sessionData.heartRateSamples && sessionData.heartRateSamples.length > 0
-          ? sessionData.heartRateSamples
-          : Array.from(
-              { length: Math.max(1, sessionData.durationSeconds) },
-              () => sessionData.heartRate,
-            );
+      const samples = sessionData.heartRateSamples;
+      if (!samples?.length) {
+        throw new Error("Recorded heart-rate samples are required to claim rewards");
+      }
 
       const result = await oracle.generateProofsFromHeartRateSamples({
         heartRateSamples: samples,
@@ -129,18 +130,42 @@ export function useZKClaim() {
     proofs?: ZKProof[],
     minTotalSeconds?: number,
   ) => {
+    if (!isLegacyRewardClaimsEnabled()) {
+      throw new Error("Legacy reward claims are not enabled");
+    }
     if (!INCENTIVE_ENGINE_ADDRESS) {
       throw new Error("IncentiveEngine is not configured");
     }
 
-    if (proofs && proofs.length > 1) {
+    setZkState(prev => ({ ...prev, error: null }));
+
+    // Only real Noir proofs may go on-chain.
+    const allProofs = proofs && proofs.length > 0 ? proofs : [proof];
+    // Submit the validated candidate, never the raw `proof` argument.
+    const candidate = allProofs[0];
+    if (allProofs.some((item) => item.backend !== "noir")) {
+      throw new Error(
+        "Only verified Noir proofs can be submitted on-chain (mock/unknown backend rejected)"
+      );
+    }
+
+    // Locally verify every proof before asking the wallet to sign.
+    const prover = getProver();
+    for (const item of allProofs) {
+      const valid = await prover.verify(item);
+      if (!valid) {
+        throw new Error("Local proof verification failed — proof is invalid");
+      }
+    }
+
+    if (allProofs.length > 1) {
       submitToEngine({
         address: INCENTIVE_ENGINE_ADDRESS,
         abi: INCENTIVE_ENGINE_ABI,
         functionName: 'submitZKProofBatch',
         args: [
-          proofs.map((item) => `0x${Buffer.from(item.proof).toString('hex')}` as `0x${string}`),
-          proofs.map((item) => encodePublicInputs(item.publicInputs)),
+          allProofs.map((item) => `0x${Buffer.from(item.proof).toString('hex')}` as `0x${string}`),
+          allProofs.map((item) => encodePublicInputs(item.publicInputs)),
           minTotalSeconds ?? 0,
         ],
       });
@@ -152,8 +177,8 @@ export function useZKClaim() {
       abi: INCENTIVE_ENGINE_ABI,
       functionName: 'submitZKProof',
       args: [
-        `0x${Buffer.from(proof.proof).toString('hex')}` as `0x${string}`,
-        encodePublicInputs(proof.publicInputs),
+        `0x${Buffer.from(candidate.proof).toString('hex')}` as `0x${string}`,
+        encodePublicInputs(candidate.publicInputs),
       ],
     });
   }, [submitToEngine]);
@@ -169,6 +194,16 @@ export function useZKClaim() {
       avgPower?: number;
     }
   ) => {
+    setZkState(prev => ({ ...prev, error: null }));
+
+    if (!isLegacyRewardClaimsEnabled()) {
+      setZkState(prev => ({
+        ...prev,
+        error: new Error('Legacy reward claims are not enabled'),
+      }));
+      return;
+    }
+
     // Step 1: Generate ZK proof
     const proofResult = await generateProof(
       {
@@ -190,24 +225,20 @@ export function useZKClaim() {
       return;
     }
 
-    // Step 2: Verify proof locally before submitting on-chain
-    const prover = getProver();
-    const isValid = await prover.verify(proofResult.proof);
-    if (!isValid) {
+    // Step 2: Submit to IncentiveEngine for on-chain verification + mint
+    try {
+      await submitProof(
+        params,
+        proofResult.proof,
+        proofResult.proofs,
+        sessionData.durationSeconds,
+      );
+    } catch (error) {
       setZkState(prev => ({
         ...prev,
-        error: new Error('Local proof verification failed — proof is invalid'),
+        error: error instanceof Error ? error : new Error('Proof submission failed'),
       }));
-      return;
     }
-
-    // Step 3: Submit to IncentiveEngine for on-chain verification + mint
-    await submitProof(
-      params,
-      proofResult.proof,
-      proofResult.proofs,
-      sessionData.durationSeconds,
-    );
   }, [generateProof, submitProof]);
   
   // Check if proof was already used (prevents replay)
@@ -217,13 +248,27 @@ export function useZKClaim() {
     return false;
   }, []);
   
+  // Clear stale claim/error + write/receipt state for a fresh attempt.
+  const reset = useCallback(() => {
+    resetTx();
+    setZkState({
+      isGeneratingProof: false,
+      privacyScore: 0,
+      privacyLevel: 'low',
+      isPending: false,
+      isSuccess: false,
+      error: null,
+    });
+  }, [resetTx]);
+
   return {
     // Actions
     generateProof,
     submitProof,
     claimWithZK,
     checkProofUsed,
-    
+    reset,
+
     // State
     isGeneratingProof: zkState.isGeneratingProof,
     proofResult: zkState.proofResult,
@@ -259,6 +304,10 @@ export function useHybridClaim() {
         avgPower?: number;
       }
     ) => {
+      if (!isLegacyRewardClaimsEnabled()) {
+        zkClaim.reset();
+        return;
+      }
       if (params.useZK && sessionData) {
         return zkClaim.claimWithZK(params, sessionData);
       } else {

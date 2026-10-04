@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Share2, Download, X } from "lucide-react";
 import { formatTime } from "@/app/lib/formatters";
+import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 
 interface ShareCardProps {
   className?: string;
@@ -14,6 +15,7 @@ interface ShareCardProps {
   agentName: string;
   riderName?: string;
   walrusBlobId?: string;
+  rideRecorded?: boolean;
 }
 
 export function ShareCardButton({
@@ -25,7 +27,9 @@ export function ShareCardButton({
   agentName,
   riderName = "Rider",
   walrusBlobId,
+  rideRecorded = false,
 }: ShareCardProps) {
+  const legacyEnabled = isLegacyRewardClaimsEnabled();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
@@ -90,7 +94,7 @@ export function ShareCardButton({
       { label: "POWER", value: `${avgPower}W` },
       { label: "HR", value: `${avgHeartRate}` },
       { label: "DURATION", value: formatTime(durationSec) },
-      { label: "SPIN", value: spinEarned },
+      ...(legacyEnabled ? [{ label: "SPIN", value: spinEarned }] : []),
     ];
     const statW = W / stats.length;
     stats.forEach((stat, i) => {
@@ -128,17 +132,19 @@ export function ShareCardButton({
     ctx.font = "bold 14px sans-serif";
     ctx.fillText(agentName, W - 24, 288);
 
-    // Soft saved badge (rider language — no infra names)
-    if (walrusBlobId) {
-      ctx.textAlign = "center";
-      ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
-      ctx.fillRect(W / 2 - 80, 305, 160, 24);
-      ctx.strokeStyle = "rgba(16, 185, 129, 0.3)";
-      ctx.strokeRect(W / 2 - 80, 305, 160, 24);
-      ctx.fillStyle = "#10b981";
-      ctx.font = "bold 9px sans-serif";
-      ctx.fillText("Ride data saved ✓", W / 2, 321);
-    }
+    const savedText = walrusBlobId
+      ? "Ride data saved ✓"
+      : rideRecorded
+        ? "Ride recorded on this device ✓"
+        : "Ride finished";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
+    ctx.fillRect(W / 2 - 110, 305, 220, 24);
+    ctx.strokeStyle = "rgba(16, 185, 129, 0.3)";
+    ctx.strokeRect(W / 2 - 110, 305, 220, 24);
+    ctx.fillStyle = "#10b981";
+    ctx.font = "bold 9px sans-serif";
+    ctx.fillText(savedText, W / 2, 321);
 
     // Footer — soft share framing
     ctx.fillStyle = "rgba(255,255,255,0.2)";
@@ -149,7 +155,7 @@ export function ShareCardButton({
     const url = canvas.toDataURL("image/png");
     setDataUrl(url);
     setShowPreview(true);
-  }, [effortScore, avgPower, avgHeartRate, durationSec, spinEarned, agentName, riderName, walrusBlobId]);
+  }, [effortScore, avgPower, avgHeartRate, durationSec, spinEarned, agentName, riderName, walrusBlobId, rideRecorded, legacyEnabled]);
 
   const download = () => {
     if (!dataUrl) return;
@@ -160,7 +166,13 @@ export function ShareCardButton({
   };
 
   const copyShareLink = () => {
-    const text = `🚴 Just scored ${effortScore}/1000 effort on SpinChain! ${avgPower}W avg power, ${formatTime(durationSec)} session. Earned ${spinEarned} SPIN. Ride data saved ✓`;
+    const earned = legacyEnabled ? ` Earned ${spinEarned} SPIN.` : "";
+    const saved = walrusBlobId
+      ? " Ride data saved ✓"
+      : rideRecorded
+        ? " Ride recorded on this device."
+        : " Ride finished.";
+    const text = `🚴 Just scored ${effortScore}/1000 effort on SpinChain! ${avgPower}W avg power, ${formatTime(durationSec)} session.${earned}${saved}`;
     navigator.clipboard.writeText(text);
   };
 

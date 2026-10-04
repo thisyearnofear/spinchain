@@ -5,6 +5,11 @@ vi.mock("../client", () => ({
   getWalrusClient: () => ({ retrieveJSON }),
 }));
 
+// Legacy-positive suite — publication policy mocked open.
+vi.mock("@/app/lib/privacy/publication-policy", () => ({
+  isPersonalDataPublicationAllowed: () => true,
+}));
+
 import {
   createInitialMemory,
   parseCoachMemory,
