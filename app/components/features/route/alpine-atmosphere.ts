@@ -37,6 +37,9 @@ export const ALPINE_FOG_FAR = 220;
 export const ALPINE_SKIRT_ALBEDO_GAIN = 4.4;
 export const ALPINE_SKIRT_EDGE_SHADE = 0.74;
 export const ALPINE_SKIRT_SUN_GAIN = 0.95;
+/** Wider than the neutral 0.42–1 fade so the visible rim is already haze. */
+export const ALPINE_SKIRT_FOG_START = 0.16;
+export const ALPINE_SKIRT_FOG_END = 0.72;
 
 export const ALPINE_SKY_RADIUS = 1800;
 export const ALPINE_HORIZON_SEGMENTS = 64;

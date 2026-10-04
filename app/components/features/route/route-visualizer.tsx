@@ -67,7 +67,7 @@ import { ProceduralBike, useCyclistPose, BIKE_DECK_OFFSET, RIG } from "./procedu
 import { ProgressInterpolator, dampFactor } from "@/app/lib/progress-interpolator";
 import { WorldSkybox } from "./world-skybox";
 import { buildRouteCurve } from "./route-curve";
-import { buildRouteSkirtGeometry, createSkirtMaterial, roadProfile, type SkirtLight } from "./route-skirt";
+import { SKIRT_EDGE_DROP, SKIRT_STEPS, buildRouteSkirtGeometry, createSkirtMaterial, roadProfile, type SkirtLight } from "./route-skirt";
 import { buildPropField, getPartGeometry, type PropPartField } from "./route-silhouettes";
 import {
   ALPINE_AMBIENT_COLOR,
@@ -76,6 +76,8 @@ import {
   ALPINE_POINT_COLOR,
   ALPINE_SKIRT_ALBEDO_GAIN,
   ALPINE_SKIRT_EDGE_SHADE,
+  ALPINE_SKIRT_FOG_END,
+  ALPINE_SKIRT_FOG_START,
   ALPINE_SKIRT_SUN_GAIN,
   ALPINE_SUN_COLOR,
   ALPINE_SUN_DIR,
@@ -428,7 +430,12 @@ function applyInstanceMatrices(mesh: THREE.InstancedMesh, matrices: Float32Array
 function RouteSkirt({ curve, theme }: { curve: CatmullRomCurve3; theme: VisualizerTheme }) {
   const styles = getTheme(theme);
   const { halfWidth } = roadProfile(theme);
-  const geometry = useMemo(() => buildRouteSkirtGeometry(curve, halfWidth), [curve, halfWidth]);
+  // Alpine's rim stays nearly level so the fade is a surface you can see.
+  // The other themes keep the steeper drop.
+  const geometry = useMemo(
+    () => buildRouteSkirtGeometry(curve, halfWidth, SKIRT_STEPS, theme === "alpine" ? 0.6 : SKIRT_EDGE_DROP),
+    [curve, halfWidth, theme],
+  );
   const light = useMemo<SkirtLight | undefined>(() => {
     if (theme !== "alpine") return undefined;
     return {
@@ -436,6 +443,8 @@ function RouteSkirt({ curve, theme }: { curve: CatmullRomCurve3; theme: Visualiz
       edgeShade: ALPINE_SKIRT_EDGE_SHADE,
       sunGain: ALPINE_SKIRT_SUN_GAIN,
       sunDir: ALPINE_SUN_DIR,
+      fogStart: ALPINE_SKIRT_FOG_START,
+      fogEnd: ALPINE_SKIRT_FOG_END,
     };
   }, [theme]);
   const material = useMemo(
@@ -1557,11 +1566,14 @@ function Scene({
         color={theme === "alpine" ? ALPINE_AMBIENT_COLOR : "#ffffff"}
       />
       {theme === "alpine" && (
-        <directionalLight
-          position={[ALPINE_SUN_DIR.x * 80, ALPINE_SUN_DIR.y * 80, ALPINE_SUN_DIR.z * 80]}
-          intensity={ALPINE_SUN_INTENSITY}
-          color={ALPINE_SUN_COLOR}
-        />
+        <>
+          <hemisphereLight args={["#e7f2ff", "#7d9a78", 0.45]} />
+          <directionalLight
+            position={[ALPINE_SUN_DIR.x * 80, ALPINE_SUN_DIR.y * 80, ALPINE_SUN_DIR.z * 80]}
+            intensity={ALPINE_SUN_INTENSITY}
+            color={ALPINE_SUN_COLOR}
+          />
+        </>
       )}
       <pointLight
         position={[10, 50, 10]}
@@ -1582,7 +1594,10 @@ function Scene({
       <fog
         attach="fog"
         args={[
-          reactive ? reactive.fogColor : styles.fog,
+          // Alpine keeps its haze color. Effort still closes the near plane
+          // (fogDensity). Letting the phase tint replace the haze turns the
+          // horizon into a dark cut.
+          theme === "alpine" ? styles.fog : reactive ? reactive.fogColor : styles.fog,
           reactive ? reactive.fogDensity : 40,
           theme === "alpine" ? ALPINE_FOG_FAR : 250,
         ]}
@@ -1650,11 +1665,7 @@ function Scene({
       <group position={[0, -10, 0]}>
         {/* Adaptive road geometry resolution: high=600, medium=250, low=100 */}
         {theme === "alpine" && (
-          <AlpineAtmosphere
-            curve={curve}
-            horizon={reactive ? reactive.fogColor : styles.fog}
-            zenith={reactive ? reactive.skyTopColor : styles.skyTop}
-          />
+          <AlpineAtmosphere curve={curve} horizon={styles.fog} zenith={styles.skyTop} />
         )}
         <RouteSkirt curve={curve} theme={theme} />
         <Road

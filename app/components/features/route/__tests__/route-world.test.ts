@@ -19,6 +19,8 @@ import {
   ALPINE_FOG_FAR,
   ALPINE_SKIRT_ALBEDO_GAIN,
   ALPINE_SKIRT_EDGE_SHADE,
+  ALPINE_SKIRT_FOG_END,
+  ALPINE_SKIRT_FOG_START,
   ALPINE_SKIRT_SUN_GAIN,
   ALPINE_SKY_FRAGMENT,
   ALPINE_SUN_DIR,
@@ -106,7 +108,7 @@ describe("route skirt", () => {
   it("dissolves the rim into the existing fog instead of cutting a hole", () => {
     expect(SKIRT_FRAGMENT_SHADER).toContain("fogColor");
     expect(SKIRT_FRAGMENT_SHADER).toContain("smoothstep(0.05, 0.85, edge)");
-    expect(SKIRT_FRAGMENT_SHADER).toContain("smoothstep(0.42, 1.0, edge)");
+    expect(SKIRT_FRAGMENT_SHADER).toContain("smoothstep(uFogStart, uFogEnd, edge)");
     // The renderer writes these every frame when material.fog is set.
     const material = createSkirtMaterial("#25473d", "#84cc16");
     expect(material.fog).toBe(true);
@@ -117,6 +119,8 @@ describe("route skirt", () => {
     expect(material.uniforms.uAlbedoGain.value).toBe(NEUTRAL_SKIRT_LIGHT.albedoGain);
     expect(material.uniforms.uEdgeShade.value).toBe(0.22);
     expect(material.uniforms.uSunGain.value).toBe(0);
+    expect(material.uniforms.uFogStart.value).toBe(0.42);
+    expect(material.uniforms.uFogEnd.value).toBe(1);
     material.dispose();
   });
 
@@ -136,10 +140,14 @@ describe("alpine atmosphere", () => {
       edgeShade: ALPINE_SKIRT_EDGE_SHADE,
       sunGain: ALPINE_SKIRT_SUN_GAIN,
       sunDir: ALPINE_SUN_DIR,
+      fogStart: ALPINE_SKIRT_FOG_START,
+      fogEnd: ALPINE_SKIRT_FOG_END,
     });
     expect(lit.uniforms.uAlbedoGain.value).toBeGreaterThan(1);
     expect(lit.uniforms.uEdgeShade.value).toBeGreaterThan(0.22);
     expect(lit.uniforms.uSunGain.value).toBeGreaterThan(0);
+    expect(lit.uniforms.uFogStart.value).toBeLessThan(0.42);
+    expect(lit.uniforms.uFogEnd.value).toBeLessThan(1);
     expect(lit.fog).toBe(true);
     lit.dispose();
 

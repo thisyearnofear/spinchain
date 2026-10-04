@@ -99,6 +99,7 @@ export function skirtSurfacePoint(
   lateral: number,
   roadHalfWidth: number,
   target: Vector3,
+  edgeDrop = SKIRT_EDGE_DROP,
 ): Vector3 {
   const uu = Number.isFinite(u) ? Math.min(1, Math.max(0, u)) : 0;
   curve.getPointAt(uu, _point);
@@ -110,7 +111,7 @@ export function skirtSurfacePoint(
   }
   if (!Number.isFinite(_point.x)) _point.set(0, 0, 0);
   const fi = frameIndex(uu, steps);
-  const drop = roadBottomOffset(frames.normals[fi], frames.binormals[fi], roadHalfWidth) + skirtEdgeDrop(skirtEdge(lateral));
+  const drop = roadBottomOffset(frames.normals[fi], frames.binormals[fi], roadHalfWidth) + skirtEdgeDrop(skirtEdge(lateral)) * (edgeDrop / SKIRT_EDGE_DROP);
   return target.set(
     _point.x + _side.x * lateral,
     _point.y + drop,
@@ -123,7 +124,12 @@ export function skirtSurfacePoint(
  * the outer vertices darken and fall away. One static mesh — nothing here
  * runs per frame.
  */
-export function buildRouteSkirtGeometry(curve: CatmullRomCurve3, roadHalfWidth: number, steps = SKIRT_STEPS): BufferGeometry {
+export function buildRouteSkirtGeometry(
+  curve: CatmullRomCurve3,
+  roadHalfWidth: number,
+  steps = SKIRT_STEPS,
+  edgeDrop = SKIRT_EDGE_DROP,
+): BufferGeometry {
   const widthSegments = SKIRT_WIDTH_SEGMENTS;
   const frames = curve.computeFrenetFrames(steps, true);
   const rings = steps + 1;
@@ -138,7 +144,7 @@ export function buildRouteSkirtGeometry(curve: CatmullRomCurve3, roadHalfWidth: 
       const acrossT = j / widthSegments;
       const edge = Math.abs(acrossT * 2 - 1);
       const lateral = (acrossT * 2 - 1) * SKIRT_HALF_WIDTH;
-      skirtSurfacePoint(curve, frames, steps, u, lateral, roadHalfWidth, point);
+      skirtSurfacePoint(curve, frames, steps, u, lateral, roadHalfWidth, point, edgeDrop);
       const idx = (i * across + j) * 3;
       positions[idx] = point.x;
       positions[idx + 1] = point.y;
@@ -200,6 +206,10 @@ export interface SkirtLight {
   edgeShade: number;
   sunGain: number;
   sunDir: Vector3;
+  /** Edge where the fog-color mix starts. Neutral is 0.42. */
+  fogStart: number;
+  /** Edge where the mix reaches the fog color. Neutral is 1. */
+  fogEnd: number;
 }
 
 export const NEUTRAL_SKIRT_LIGHT: SkirtLight = {
@@ -207,6 +217,8 @@ export const NEUTRAL_SKIRT_LIGHT: SkirtLight = {
   edgeShade: 0.22,
   sunGain: 0,
   sunDir: new Vector3(0, 1, 0),
+  fogStart: 0.42,
+  fogEnd: 1,
 };
 
 export const SKIRT_FRAGMENT_SHADER = /* glsl */ `
@@ -217,6 +229,8 @@ uniform vec3 uAccent;
 uniform float uAlbedoGain;
 uniform float uEdgeShade;
 uniform float uSunGain;
+uniform float uFogStart;
+uniform float uFogEnd;
 uniform vec3 uSunDir;
 varying float vEdge;
 varying vec3 vNormal;
@@ -234,7 +248,7 @@ void main() {
   #include <colorspace_fragment>
   #include <fog_fragment>
   #ifdef USE_FOG
-    gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, smoothstep(0.42, 1.0, edge));
+    gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, smoothstep(uFogStart, uFogEnd, edge));
   #endif
 }
 `;
@@ -256,6 +270,8 @@ export function createSkirtMaterial(
         uAlbedoGain: { value: light.albedoGain },
         uEdgeShade: { value: light.edgeShade },
         uSunGain: { value: light.sunGain },
+        uFogStart: { value: light.fogStart },
+        uFogEnd: { value: light.fogEnd },
         uSunDir: { value: light.sunDir.clone() },
       },
     ]),
