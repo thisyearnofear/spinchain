@@ -1313,7 +1313,6 @@ function Scene({
 }) {
   const curve = useRouteCurve(elevationProfile);
   const styles = getTheme(theme);
-  const lastBeatRef = useRef<number>(-1);
   const smoothedLookTargetRef = useRef(new Vector3());
   const smoothedShakeRef = useRef(new Vector3());
   const _shakeTargetVec = useRef(new Vector3());
@@ -1403,18 +1402,6 @@ function Scene({
       renderProgressRef.current = mapToCurveProgress(interp.sample(nowMs));
     }
     const curveProgress = renderProgressRef.current;
-
-    // --- 2. Beat tracking (no state needed) ---
-    storyBeats.forEach((beat, index) => {
-      if (
-        rawProgress >= beat.progress &&
-        lastBeatRef.current < index &&
-        Math.abs(rawProgress - beat.progress) < 0.02
-      ) {
-        lastBeatRef.current = index;
-      }
-    });
-    if (rawProgress < 0.01) lastBeatRef.current = -1;
 
     // --- 4. Chase camera ---
     // Time-based damping (1 - e^(-λ·dt)) so the follow feel is identical at

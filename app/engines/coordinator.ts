@@ -258,8 +258,10 @@ export class RideCoordinator {
       }
       useRideStore.setState({ elapsedTime: elapsed, rideProgress: progress });
 
-      // Drive the interval/coaching clock for both device paths
-      this.bus.emit("lifecycle:tick", { elapsed: elapsed, progress: progress });
+      // Drive the interval/coaching clock for both device paths. The store
+      // keeps progress as a percent for display; coaching consumes the route
+      // fraction, which is the unit StoryBeat.progress is authored in.
+      this.bus.emit("lifecycle:tick", { elapsed: elapsed, progress: progress / 100 });
     }, 1000);
 
     // Configure rewards engine
