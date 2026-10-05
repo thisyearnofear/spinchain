@@ -213,6 +213,108 @@ describe("CoachingEngine", () => {
 
       expect(handler).toHaveBeenCalledTimes(1);
     });
+
+    it("emits a beat the clock stepped past instead of losing it forever", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      engine.start({
+        storyBeats: [
+          { progress: 0.1, label: "Climb ahead!", type: "climb" },
+          { progress: 0.7, label: "Summit push!", type: "sprint" },
+        ],
+      });
+
+      // A route that moves fast can jump the fixed-width window the old
+      // matcher required, and the beat would never be spoken again.
+      engine.onTick(18, 0.0);
+      engine.onTick(19, 0.72);
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({ text: "Summit push!" }),
+      );
+    });
+
+    it("holds back a beat until the rider actually reaches it", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      engine.start({
+        storyBeats: [
+          { progress: 0.2, label: "Coastline Drag", type: "sprint" },
+          { progress: 0.6, label: "Skyline Climb", type: "climb" },
+        ],
+      });
+
+      engine.onTick(16, 0.016);
+      engine.onTick(60, 0.06);
+
+      expect(handler).not.toHaveBeenCalled();
+
+      engine.onTick(300, 0.62);
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({ text: "Skyline Climb" }),
+      );
+    });
+
+    it("speaks only the most advanced beat when one tick crosses several", () => {
+      const messages = vi.fn();
+      const sounds = vi.fn();
+      bus.on("coaching:message", messages);
+      bus.on("coaching:sound", sounds);
+
+      engine.start({
+        storyBeats: [
+          { progress: 0.1, label: "First", type: "climb" },
+          { progress: 0.4, label: "Second", type: "sprint" },
+          { progress: 0.8, label: "Third", type: "rest" },
+        ],
+      });
+
+      engine.onTick(10, 0.9);
+
+      expect(messages).toHaveBeenCalledTimes(1);
+      expect(messages).toHaveBeenCalledWith(
+        expect.objectContaining({ text: "Third" }),
+      );
+      // Passed-but-unspoken beats are spent, not queued: they would land
+      // long after the part of the route they described.
+      engine.onTick(11, 0.95);
+      expect(messages).toHaveBeenCalledTimes(1);
+    });
+
+    it("orders beats by progress, not by the order they were authored", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      engine.start({
+        storyBeats: [
+          { progress: 0.8, label: "Late", type: "sprint" },
+          { progress: 0.2, label: "Early", type: "climb" },
+        ],
+      });
+
+      engine.onTick(10, 0.25);
+      expect(handler).toHaveBeenCalledWith(expect.objectContaining({ text: "Early" }));
+
+      engine.onTick(20, 0.85);
+      expect(handler).toHaveBeenCalledWith(expect.objectContaining({ text: "Late" }));
+    });
+
+    it("resets fired beats when a new ride starts", () => {
+      const handler = vi.fn();
+      bus.on("coaching:message", handler);
+
+      const beats = [{ progress: 0.1, label: "Climb ahead!", type: "climb" }];
+      engine.start({ storyBeats: beats });
+      engine.onTick(10, 0.1);
+      expect(handler).toHaveBeenCalledTimes(1);
+
+      engine.start({ storyBeats: beats });
+      engine.onTick(10, 0.1);
+      expect(handler).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("effort-reactive cues", () => {

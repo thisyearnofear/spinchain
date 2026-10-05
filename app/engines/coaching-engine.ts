@@ -58,8 +58,12 @@ export class CoachingEngine {
   /** Last interval index to detect transitions */
   private lastIntervalIndex = -1;
 
-  /** Last spoken story beat key to avoid repeats */
-  private lastSpokenBeatKey: string | null = null;
+  /** Story beats, ascending by progress; rebuilt when the beat set changes */
+  private beatOrder: Array<{ progress: number; label: string; type: string }> = [];
+  private beatOrderSource: CoachingConfig["storyBeats"];
+
+  /** Indices in beatOrder already announced this ride */
+  private firedBeats = new Set<number>();
 
   /** Cadence drift tracking */
   private cadenceDriftMs = 0;
@@ -119,7 +123,9 @@ export class CoachingEngine {
     if (config) this.updateConfig(config);
     this.elapsedSeconds = 0;
     this.lastIntervalIndex = -1;
-    this.lastSpokenBeatKey = null;
+    this.firedBeats.clear();
+    this.beatOrder = [];
+    this.beatOrderSource = undefined;
     this.cadenceDriftMs = 0;
     this.lastCadenceCheckMs = 0;
     this.lastDriftNudgeKey = null;
@@ -163,7 +169,7 @@ export class CoachingEngine {
 
   // ─── External Data Updates ────────────────────────────────────
 
-  /** Called on every lifecycle tick with elapsed seconds */
+  /** Called on every lifecycle tick with elapsed seconds and route fraction (0–1) */
   onTick(elapsed: number, progress: number): void {
     if (this.disposed) return;
     this.elapsedSeconds = elapsed;
@@ -252,17 +258,28 @@ export class CoachingEngine {
     const beats = this.config.storyBeats;
     if (!beats || beats.length === 0) return;
 
-    // Find the first beat that matches current progress
-    const currentBeat = beats.find(
-      (beat) =>
-        progress >= beat.progress && progress < beat.progress + 0.03,
-    );
+    if (this.beatOrderSource !== beats) {
+      this.beatOrder = [...beats].sort((a, b) => a.progress - b.progress);
+      this.beatOrderSource = beats;
+      this.firedBeats.clear();
+    }
 
-    if (!currentBeat) return;
+    // Announce the most advanced beat the rider has reached. Matching a
+    // fixed-width window instead of a crossing would lose every beat the
+    // 1 Hz clock steps past, and the route can move a long way in one tick.
+    let due = -1;
+    for (let i = 0; i < this.beatOrder.length; i++) {
+      if (this.beatOrder[i].progress > progress) break;
+      if (!this.firedBeats.has(i)) due = i;
+    }
+    if (due < 0) return;
 
-    const beatKey = `${currentBeat.progress}-${currentBeat.label}`;
-    if (this.lastSpokenBeatKey === beatKey) return;
-    this.lastSpokenBeatKey = beatKey;
+    // Everything at or behind the rider is spent whether announced or not:
+    // a beat skipped while the world lagged must not fire late, out of sync
+    // with the part of the route it was written for.
+    for (let i = 0; i <= due; i++) this.firedBeats.add(i);
+
+    const currentBeat = this.beatOrder[due];
 
     // Emit sound for story beat type
     const soundMap: Record<string, string> = {

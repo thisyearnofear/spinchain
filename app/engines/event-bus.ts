@@ -22,6 +22,7 @@ export interface RideEvents {
   "ride:resumed": Record<string, never>;
   "ride:stopped": { summary: unknown | null };
 
+  /** `progress` is the route fraction (0–1), matching StoryBeat.progress. */
   "lifecycle:tick": { elapsed: number; progress: number };
   "lifecycle:complete": Record<string, never>;
 
