@@ -656,6 +656,11 @@ export default function LiveRidePage() {
   const demoStats = useRideModalStore((s) => s.demoStats);
   const isExitingRide = useRideModalStore((s) => s.isExitingRide);
 
+  // The start screen owns the pre-ride view; the HUD's compact stack (a 0 W
+  // power card) would otherwise sit on top of the Start button.
+  const showStartScreen =
+    !isRiding && !isStarting && !isPaused && !showCompletionScreen && !showActivation && !!classData;
+
   // ─── Loading / Not Found Gates ─────────────────────────────────
   if (isLoading && !isPracticeMode) {
     return (
@@ -730,14 +735,14 @@ export default function LiveRidePage() {
           isRiding={isRiding}
           showCompletionScreen={showCompletionScreen}
           flowTier={flow.flowTier}
-          suppressBottomStack={isRiding && useSimulator}
+          suppressBottomStack={(isRiding && useSimulator) || showStartScreen}
           rideDurationSec={(classData?.metadata?.duration ?? 45) * 60}
           isPracticeMode={isPracticeMode}
         />
       </SectionErrorBoundary>
 
       {/* ─── Start ride (preview) — visible before the ride is active ───── */}
-      {!isRiding && !isStarting && !isPaused && !showCompletionScreen && !showActivation && classData && (
+      {showStartScreen && (
         <RideStartScreen
           classData={classData}
           isPracticeMode={isPracticeMode}
@@ -747,6 +752,7 @@ export default function LiveRidePage() {
           onStart={handleStartFromScreen}
           practiceDurationSec={practiceDurationSec}
           onPracticeDurationChange={setPracticeDurationSec}
+          isTouch={deviceType === "mobile"}
         />
       )}
 

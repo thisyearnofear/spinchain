@@ -12,6 +12,8 @@ interface RideStartScreenProps {
   /** Practice-mode duration selector */
   practiceDurationSec?: number;
   onPracticeDurationChange?: (sec: number) => void;
+  /** Touch device: pedal with the on-screen L / R pads, no keyboard. */
+  isTouch?: boolean;
 }
 
 export function RideStartScreen({
@@ -23,6 +25,7 @@ export function RideStartScreen({
   onStart,
   practiceDurationSec = 45,
   onPracticeDurationChange,
+  isTouch = false,
 }: RideStartScreenProps) {
   const duration = classData.metadata?.duration ?? 45;
   const instructor = classData.metadata?.instructor;
@@ -81,7 +84,7 @@ export function RideStartScreen({
           {!canRender3d && <span className="text-[8px] font-bold uppercase tracking-widest opacity-60">Low GPU</span>}
         </button>
       </div>
-      <p className="pointer-events-none text-[10px] font-bold uppercase tracking-[0.3em] text-white/25">Press V to toggle · Preview updates instantly</p>
+      <p className="pointer-events-none text-[10px] font-bold uppercase tracking-[0.3em] text-white/25">{isTouch ? "Preview updates instantly" : "Press V to toggle · Preview updates instantly"}</p>
 
       <button
         onClick={onStart}
@@ -90,7 +93,7 @@ export function RideStartScreen({
       >
         Start Ride
         <span className="block text-[10px] font-bold uppercase tracking-[0.3em] text-black/60 mt-0.5">
-          Keyboard: ← → / A D
+          {isTouch ? "Tap L / R to pedal" : "Keyboard: ← → / A D"}
         </span>
       </button>
     </div>
