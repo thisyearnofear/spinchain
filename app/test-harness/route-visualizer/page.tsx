@@ -63,7 +63,11 @@ export default function TestHarnessRouteVisualizerPage() {
     "active-play-mobile": 0.5,
     finished: 1,
   };
-  const progress = progressMap[state] ?? 0;
+  const parseParam = (raw: string | null) => {
+    const n = Number(raw);
+    return raw !== null && Number.isFinite(n) ? n : null;
+  };
+  const progress = parseParam(searchParams.get("progress")) ?? progressMap[state] ?? 0;
 
   const modeMap: Record<string, "preview" | "ride" | "finished"> = {
     preview: "preview",
@@ -74,12 +78,20 @@ export default function TestHarnessRouteVisualizerPage() {
   };
   const mode = modeMap[state] ?? "preview";
 
-  // Deterministic stats per state
+  // Deterministic stats per state. ?intensity= overrides just the effort term,
+  // so a test can hold route position and everything else fixed while it sweeps
+  // how hard the rider is working — the wedge is "effort changes the world",
+  // and that claim needs a knob that changes only effort.
   const stats = useMemo(() => {
-    if (state === "finished") return { hr: 172, power: 280, cadence: 96, intensity: 1.4 };
-    if (state.startsWith("active-play")) return { hr: 165, power: 240, cadence: 90, intensity: 1.2 };
-    return { hr: 0, power: 0, cadence: 0, intensity: 0 };
-  }, [state]);
+    const base =
+      state === "finished"
+        ? { hr: 172, power: 280, cadence: 96, intensity: 1.4 }
+        : state.startsWith("active-play")
+          ? { hr: 165, power: 240, cadence: 90, intensity: 1.2 }
+          : { hr: 0, power: 0, cadence: 0, intensity: 0 };
+    const override = parseParam(searchParams.get("intensity"));
+    return override === null ? base : { ...base, intensity: override };
+  }, [state, searchParams]);
 
   return (
     <div className="fixed inset-0 bg-black">
