@@ -38,7 +38,6 @@ import {
 import { useMemo, useRef, useState, useEffect, useLayoutEffect, useSyncExternalStore, Suspense, type MutableRefObject } from "react";
 import {
   OrbitControls,
-  Environment,
   Stars,
   Html,
   PerspectiveCamera,
@@ -48,6 +47,7 @@ import {
   Clone,
   Text,
 } from "@react-three/drei";
+import { LocalEnvironment } from "./local-environment";
 import { getTheme, loadRemoteThemes, subscribeThemes, getThemeVersion } from "@/app/lib/themes/registry";
 import type { VisualizerTheme } from "./visualizer-theme";
 import { computeReactiveParams, type ReactiveParams } from "./world-reactivity";
@@ -1641,7 +1641,7 @@ function Scene({
           equirect texture; the mobile-safe tier. */}
       {panoUrl && <WorldSkybox url={panoUrl} />}
 
-      <Environment preset={styles.envPreset as React.ComponentProps<typeof Environment>["preset"]} />
+      <LocalEnvironment key={theme} sky={styles.skyTop} horizon={styles.horizonGlow} ground={styles.terrainColor} />
 
       {/* Dynamic atmospheric effects - disabled on low tier for performance */}
       <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} reactive={reactive} />
