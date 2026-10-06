@@ -1273,6 +1273,22 @@ function FlowCelebration({ effect }: FlowCelebrationProps) {
   );
 }
 
+
+/**
+ * Built-in theme lighting, served from /public/hdri (the same Poly Haven CC0
+ * files drei's presets point at). drei's `preset` prop fetches them from a
+ * third-party CDN inside the Suspense boundary that gates the whole canvas,
+ * so a blocked or offline CDN left the ride on "Loading 3D route…" forever.
+ * Presets outside this map (registry themes only) still use the CDN.
+ */
+const BUNDLED_ENV_HDRI: Record<string, string> = {
+  city: "/hdri/potsdamer_platz_1k.hdr",
+  forest: "/hdri/forest_slope_1k.hdr",
+  sunset: "/hdri/venice_sunset_1k.hdr",
+  apartment: "/hdri/lebombo_1k.hdr",
+  night: "/hdri/dikhololo_night_1k.hdr",
+};
+
 function Scene({
   elevationProfile,
   theme = "neon",
@@ -1523,7 +1539,11 @@ function Scene({
           equirect texture; the mobile-safe tier. */}
       {panoUrl && <WorldSkybox url={panoUrl} />}
 
-      <Environment preset={styles.envPreset as React.ComponentProps<typeof Environment>["preset"]} />
+      {BUNDLED_ENV_HDRI[styles.envPreset] ? (
+        <Environment files={BUNDLED_ENV_HDRI[styles.envPreset]} />
+      ) : (
+        <Environment preset={styles.envPreset as React.ComponentProps<typeof Environment>["preset"]} />
+      )}
 
       {/* Dynamic atmospheric effects - disabled on low tier for performance */}
       <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} reactive={reactive} />
