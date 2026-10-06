@@ -3,6 +3,7 @@ import { RideCoordinator } from "../coordinator";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { PRACTICE_WALL_DURATION_SEC } from "@/app/lib/practice-demo";
+import { DEMO_FINISH_COAST_TICKS } from "@/app/lib/ride-pace";
 import type { RideStartConfig } from "../types";
 
 /**
@@ -159,6 +160,18 @@ describe("RideCoordinator ride clock", () => {
     expect(useRideStore.getState().rideProgress).toBeCloseTo(
       ((scale + scale * 1.6) / durationSeconds) * 100,
     );
+  });
+
+  it("rolls a practice ride over the line when the clock ends short of the finish", async () => {
+    const durationSeconds = 60;
+    await startRide({ isPracticeMode: true });
+    // A rider who never gets the demo's effort over the pace floor.
+    coordinator!.telemetry.rawSnapshot.effort = 0;
+    while (useRideStore.getState().elapsedTime < durationSeconds) await tick();
+    expect(useRideStore.getState().rideProgress).toBeLessThan(100);
+
+    await tick(DEMO_FINISH_COAST_TICKS - 1);
+    expect(useRideStore.getState().rideProgress).toBe(100);
   });
 
   it("is the only writer of the ride clock, whatever ingest rate follows", async () => {

@@ -33,7 +33,7 @@ import {
   type RiderAnchors,
 } from "@/app/lib/ride-effort";
 import { PRACTICE_WALL_DURATION_SEC } from "@/app/lib/practice-demo";
-import { demoPace, nextLead } from "@/app/lib/ride-pace";
+import { nextDemoRouteSec, nextLead } from "@/app/lib/ride-pace";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
@@ -72,6 +72,8 @@ export class RideCoordinator {
   // The coaching/interval clock stays time-based (like a real class); only
   // position on the route responds to pedaling, so riders keep agency.
   private progressElapsed = 0;
+  /** Demo ticks since the class clock reached the duration (0 while it runs). */
+  private demoTicksPastClockEnd = 0;
 
   /**
    * How far ahead of the class clock this rider's route currently is, in
@@ -164,6 +166,7 @@ export class RideCoordinator {
       : 1;
     this.isPracticeRide = config.isPracticeMode;
     this.progressElapsed = 0;
+    this.demoTicksPastClockEnd = 0;
     this.routeLeadSec = 0;
     this.anchors = resolveAnchors({ profile: config.rider });
 
@@ -275,11 +278,13 @@ export class RideCoordinator {
         // The demo authors its own 0–1000 effort score, and the simulator
         // idle-settles at ~100, so <150 reads as "not pedaling": the world
         // stops rather than drifting. ~350 ≈ 1x (≈45s finish), up to 1.6x.
-        const factor = demoPace(snapshot.effort);
-        this.progressElapsed = Math.min(
-          this.progressElapsed + this.clockScale * factor,
-          this.durationSeconds,
-        );
+        // When the clock runs out the route rolls on to the finish line.
+        if (elapsed >= this.durationSeconds) this.demoTicksPastClockEnd++;
+        this.progressElapsed = nextDemoRouteSec(this.progressElapsed, snapshot.effort, {
+          clockScale: this.clockScale,
+          durationSec: this.durationSeconds,
+          ticksPastClockEnd: this.demoTicksPastClockEnd,
+        });
         progress = Math.min((this.progressElapsed / this.durationSeconds) * 100, 100);
       } else {
         // Read the intensity the rider's world is already drawn with instead of

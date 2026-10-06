@@ -3,8 +3,10 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   RIDE_PACE,
+  DEMO_FINISH_COAST_TICKS,
   demoPace,
   leadCapSec,
+  nextDemoRouteSec,
   nextLead,
 } from "../ride-pace";
 
@@ -211,6 +213,34 @@ describe("demoPace", () => {
     expect(demoPace(550)).toBe(1.6);
     expect(demoPace(1000)).toBe(1.6);
     expect(demoPace(5000)).toBe(1.6);
+  });
+});
+
+describe("nextDemoRouteSec", () => {
+  const ctx = { clockScale: 1, durationSec: 45 };
+
+  it("is demoPace while the clock runs: a stopped rider stays put", () => {
+    expect(nextDemoRouteSec(10, 100, { ...ctx, ticksPastClockEnd: 0 })).toBe(10);
+    expect(nextDemoRouteSec(10, 350, { ...ctx, ticksPastClockEnd: 0 })).toBe(11);
+    expect(nextDemoRouteSec(44.5, 1000, { ...ctx, ticksPastClockEnd: 0 })).toBe(45);
+  });
+
+  it("rolls a stopped rider to the finish once the clock has ended", () => {
+    let route = 6;
+    const seen: number[] = [];
+    for (let t = 1; t <= DEMO_FINISH_COAST_TICKS; t++) {
+      route = nextDemoRouteSec(route, 0, { ...ctx, ticksPastClockEnd: t });
+      seen.push(route);
+    }
+    expect(route).toBe(45);
+    for (let i = 1; i < seen.length; i++) expect(seen[i]).toBeGreaterThan(seen[i - 1]);
+  });
+
+  it("never slows a rider who is still pedaling past the clock", () => {
+    const coasted = nextDemoRouteSec(44, 0, { ...ctx, ticksPastClockEnd: 1 });
+    const pedaled = nextDemoRouteSec(44, 1000, { ...ctx, ticksPastClockEnd: 1 });
+    expect(pedaled).toBeGreaterThanOrEqual(coasted);
+    expect(pedaled).toBe(45);
   });
 });
 
