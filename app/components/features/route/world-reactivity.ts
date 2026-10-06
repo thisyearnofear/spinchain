@@ -128,6 +128,11 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
 /** Mix a phase color toward black — derives the world's dark variants
  *  (fog, sky, ambient) from the one shared phase palette. */
 function darken(hex: string, amount: number): string {
@@ -253,7 +258,10 @@ export function computeReactiveParams(
   // Post effects — bloom scales with the phase theme's bloom multiplier,
   // the same number the 2D background and HUD read.
   const bloomIntensity = Math.min(3.5, phaseTheme.bloomMultiplier * (0.4 + effort * 2.0));
-  const chromaticOffset = effort * 0.008; // 0 → 0.008
+  // Colour fringing is the sprint payoff, not ambient texture: visualEffort's
+  // 0.6 curve put a linear ramp at the visualizer's 0.0035 cap by ~44% effort,
+  // so the rider shimmered at rest. Hold it at zero until a hard push, then ramp.
+  const chromaticOffset = smoothstep(0.7, 1, effort) * (intervalPhase === "sprint" ? 0.0035 : 0.002);
   const vignetteDarkness = lerp(0.8, 1.0, effort); // 0.8 → 1.0
 
   return {
