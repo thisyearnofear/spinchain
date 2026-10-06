@@ -250,10 +250,12 @@ describe("the pace layer stays off the reward ledger", () => {
   // first attempt at rider-relative pacing pulled it into the ride loop, which
   // silently rewrote a progression ledger from a visual change. That boundary
   // is one import wide, so it is checked as a source fact rather than trusted.
+  // telemetry-engine is deliberately not in this list: ingest is where a paired
+  // bike's watts/beats legitimately become the persisted score (the ledger
+  // derivation), so it imports the calculator on purpose.
   const PACE_LAYER = [
     "app/lib/ride-pace.ts",
     "app/lib/ride-effort.ts",
-    "app/engines/telemetry-engine.ts",
     "app/engines/coordinator.ts",
   ];
 

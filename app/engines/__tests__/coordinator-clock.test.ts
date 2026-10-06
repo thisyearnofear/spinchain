@@ -357,9 +357,14 @@ describe("RideCoordinator ride clock", () => {
       expect(rideProgress).toBeLessThanOrEqual(clockPercent(second) + leadCapPct + 1e-9);
     }
 
-    // ...and none of it is allowed to reach the 0–1000 reward ledger.
-    expect(useTelemetryStore.getState().snapshot.effort).toBe(0);
-    expect(useTelemetryStore.getState().snapshot.intensity).toBeGreaterThan(1.15);
+    // ...and the ledger scores the ride on the absolute 0–1000 scale, derived
+    // from the watts the bike reported — the paired-bike path has no effort
+    // field of its own.
+    const snapshot = useTelemetryStore.getState().snapshot;
+    expect(snapshot.effort).toBe(
+      Math.round(calculateEffortScore({ heartRate: snapshot.heartRate, power: 250, durationSeconds: 0 })),
+    );
+    expect(snapshot.intensity).toBeGreaterThan(1.15);
   });
 
   it("finishes a power-only FTMS ride at the class clock and never before it", async () => {
@@ -408,7 +413,7 @@ describe("RideCoordinator ride clock", () => {
     expect(useRideStore.getState().elapsedTime).toBe(60);
   });
 
-  it("moves the world for an HR-only device without writing the effort ledger", async () => {
+  it("moves the world for an HR-only device and scores it on the effort ledger", async () => {
     const ride = await startRide({ rider: thresholdRider });
 
     for (let second = 1; second <= 60; second++) {
@@ -418,9 +423,11 @@ describe("RideCoordinator ride clock", () => {
       const snapshot = useTelemetryStore.getState().snapshot;
       // Zone 4-ish: enough to be class pace, derived with no watts in sight.
       expect(snapshot.intensity).toBeGreaterThan(0.95);
-      // The layering lock: effort stays zero for a device that never reported
-      // it, however much the route moves.
-      expect(snapshot.effort).toBe(0);
+      // No watts and no device effort field: the ledger score is derived on
+      // the absolute scale from the beats the strap reported.
+      expect(snapshot.effort).toBe(
+        Math.round(calculateEffortScore({ heartRate: 185, power: snapshot.power, durationSeconds: 0 })),
+      );
 
       const { elapsedTime, rideProgress } = useRideStore.getState();
       expect(rideProgress).toBeGreaterThanOrEqual(clockPercent(elapsedTime));
