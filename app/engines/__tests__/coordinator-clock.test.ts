@@ -4,6 +4,7 @@ import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { PRACTICE_WALL_DURATION_SEC } from "@/app/lib/practice-demo";
 import type { RideStartConfig } from "../types";
+import { calculateEffortScore } from "@/app/lib/rewards/calculator";
 
 /**
  * The coordinator's 1Hz sample timer is the only writer of elapsedTime and
@@ -197,18 +198,23 @@ describe("RideCoordinator ride clock", () => {
     expect(useRideStore.getState().rideProgress).toBeCloseTo((2 / 60) * 100);
   });
 
-  it("keeps BLE metrics out of the effort ledger", async () => {
+  it("scores BLE metrics on the absolute effort scale the ledger persists", async () => {
     const ride = await startRide();
     ride.ingestBleMetrics({ power: 220, heartRate: 158, cadence: 92 });
 
     const snapshot = ride.telemetry.rawSnapshot;
     expect(snapshot.power).toBe(220);
     expect(snapshot.heartRate).toBe(158);
-    // `effort` is the 0–1000 reward/progression scale, not a device field.
-    // Deriving it inside the ride loop would rewrite persisted progression
-    // (avg_effort, journey tiers, coach memory) from a visual change. A
-    // bike-driven effort score is separate work on the rewards side.
-    expect(snapshot.effort).toBe(0);
+    // `effort` is the 0–1000 reward/progression scale, not a device field, so
+    // it comes from the reward calculator with its absolute defaults — never
+    // the rider-relative anchors that drive the visual world. A paired bike
+    // used to persist avg_effort 0 here.
+    expect(snapshot.effort).toBe(
+      Math.round(calculateEffortScore({ heartRate: 158, power: 220, durationSeconds: 0 })),
+    );
+
+    await tick();
+    expect(ride.telemetry.samples.at(-1)?.effort).toBe(snapshot.effort);
   });
 
   it("passes simulator and keyboard effort through unchanged", async () => {

@@ -19,6 +19,7 @@ import type {
   RideTelemetryUpdate,
 } from "./types";
 import type { ChannelCapability } from "@/app/lib/ride-effort";
+import { calculateEffortScore } from "@/app/lib/rewards/calculator";
 import {
   calculateNextWBal,
   DEFAULT_WBAL_CONFIG,
@@ -174,6 +175,19 @@ export class TelemetryEngine {
       distance: update.distance ?? this.rawSnapshot.distance,
       timestamp: update.timestamp ?? Date.now(),
     });
+    // Real equipment reports watts and beats, never a score. Without this the
+    // persisted ledger saw `effort: 0` for every paired-bike ride. Derived on
+    // the same absolute 0–1000 scale the reward calculator and the simulator
+    // use, so device and demo rides land in the same journey tiers.
+    if (update.effort === undefined && (update.power !== undefined || update.heartRate !== undefined)) {
+      this.rawSnapshot.effort = Math.round(
+        calculateEffortScore({
+          heartRate: this.rawSnapshot.heartRate,
+          power: this.rawSnapshot.power,
+          durationSeconds: 0,
+        }),
+      );
+    }
   }
 
   /** Called directly for simulator updates (needs immediate UI feedback) */
