@@ -11,10 +11,10 @@ import {
   DATA_CONFIG
 } from './constants';
 import { BleParser, BleEncoder } from './parser';
+import { observeChannels } from './channels';
 import type {
   BleDevice,
   FitnessMetrics,
-  ChannelPresence,
   ConnectionStatus,
   BleError,
   BleServiceConfig,
@@ -310,34 +310,13 @@ export class BleService {
         speed: next.speed ?? current?.speed ?? 0,
         distance: next.distance ?? current?.distance ?? 0,
         timestamp: Date.now(),
-        channels: this.observeChannels(current?.channels, next),
+        channels: observeChannels(current?.channels, next),
       };
       this.state.metrics = merged;
       this.callbacks.onMetricsUpdate?.(merged);
     } catch (error) {
       this.handleError('PARSING_ERROR', (error as Error).message);
     }
-  }
-
-  /**
-   * Channels accumulate over the connection: FTMS folds speed, cadence and
-   * watts into one notification, heart rate arrives from a separate
-   * characteristic at its own rate, and a combined sensor may deliver them on
-   * different ticks. This has to be read before the `?? 0` fill above, which
-   * is what makes an absent channel indistinguishable from a zero one.
-   */
-  private observeChannels(
-    seen: ChannelPresence | undefined,
-    next: Partial<FitnessMetrics>
-  ): ChannelPresence {
-    const reported = (key: keyof ChannelPresence) =>
-      seen?.[key] === true || next[key] !== undefined;
-    return {
-      power: reported('power'),
-      cadence: reported('cadence'),
-      heartRate: reported('heartRate'),
-      speed: reported('speed'),
-    };
   }
 
   private startMetricsUpdates(): void {

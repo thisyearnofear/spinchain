@@ -5,6 +5,7 @@ import { BleClient } from '@capacitor-community/bluetooth-le';
 import { isNativeApp, hasNativeBluetooth } from './platform';
 import { bleService } from '../ble/service';
 import { BLE_SERVICES, BLE_CHARACTERISTICS } from '../ble/constants';
+import { observeChannels } from '../ble/channels';
 import { BleParser, BleEncoder } from '../ble/parser';
 import { ANALYTICS_EVENTS, trackEvent } from '../analytics/events';
 import { getHealthService, type HealthData } from './health';
@@ -385,6 +386,7 @@ class NativeBleService implements UnifiedBleService {
       speed: next.speed ?? current?.speed ?? 0,
       distance: next.distance ?? current?.distance ?? 0,
       timestamp: Date.now(),
+      channels: observeChannels(current?.channels, next),
     };
 
     this.callbacks.onMetricsUpdate?.(this.metrics);
