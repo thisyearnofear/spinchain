@@ -33,6 +33,7 @@ import {
   type RiderAnchors,
 } from "@/app/lib/ride-effort";
 import { PRACTICE_WALL_DURATION_SEC } from "@/app/lib/practice-demo";
+import { demoPace, nextLead } from "@/app/lib/ride-pace";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
@@ -71,6 +72,13 @@ export class RideCoordinator {
   // The coaching/interval clock stays time-based (like a real class); only
   // position on the route responds to pedaling, so riders keep agency.
   private progressElapsed = 0;
+
+  /**
+   * How far ahead of the class clock this rider's route currently is, in
+   * class-seconds. Route-only: nothing here moves the class clock, so a hard
+   * rider gets a head start and never a shorter class.
+   */
+  private routeLeadSec = 0;
 
   /**
    * What to measure this rider's watts against, and the ride's own power
@@ -156,6 +164,7 @@ export class RideCoordinator {
       : 1;
     this.isPracticeRide = config.isPracticeMode;
     this.progressElapsed = 0;
+    this.routeLeadSec = 0;
     this.anchors = resolveAnchors({ profile: config.rider });
 
     this.telemetry.start(routeCoordinates, this.durationSeconds);
@@ -251,30 +260,40 @@ export class RideCoordinator {
         });
       }
 
-      // Advance ride clock and progress for every ride. The coordinator's
-      // 1Hz timer is the single ride-clock writer (ARCHITECTURE.md Rule 6).
-      // The coaching/interval clock is always time-based (like a real class);
-      // practice/demo rides additionally scale ROUTE progress by effort so
-      // the world moves when — and only when — the rider pedals.
+      // Two clocks, one write each: `elapsed` is the class — intervals, cues,
+      // the moment the ride ends — and `progress` is the route the rider sees.
+      // Effort moves the route and never the class, and app/lib/ride-pace.ts
+      // keeps the route inside `elapsed ≤ route ≤ duration`: never behind the
+      // clock, never past the finish, never backwards. This timer stays the
+      // single writer of both (ARCHITECTURE.md Rule 6).
       const elapsed = Math.min(
         useRideStore.getState().elapsedTime + this.clockScale,
         this.durationSeconds,
       );
       let progress: number;
       if (this.isPracticeRide) {
-        // PedalSimulator idle-settles at effort ~100, so <150 reads as
-        // "stopped": the world halts until the rider actually pedals.
-        // Linear map so the world responds as soon as effort climbs:
-        // ~350 (steady pedaling) ≈ 1x (≈45s finish), hard pedaling up to 1.6x.
-        const effort = snapshot.effort; // 0–1000
-        const factor = effort < 150 ? 0 : Math.min((effort - 150) / 200, 1.6);
+        // The demo authors its own 0–1000 effort score, and the simulator
+        // idle-settles at ~100, so <150 reads as "not pedaling": the world
+        // stops rather than drifting. ~350 ≈ 1x (≈45s finish), up to 1.6x.
+        const factor = demoPace(snapshot.effort);
         this.progressElapsed = Math.min(
           this.progressElapsed + this.clockScale * factor,
           this.durationSeconds,
         );
         progress = Math.min((this.progressElapsed / this.durationSeconds) * 100, 100);
       } else {
-        progress = Math.min((elapsed / this.durationSeconds) * 100, 100);
+        // Read the intensity the rider's world is already drawn with instead of
+        // recomputing it: TelemetryEngine.commit() returns a copy, so the value
+        // the bridge derived lives on that copy, refreshed at ~10Hz against this
+        // tick's once per second.
+        const intensity = useTelemetryStore.getState().snapshot.intensity;
+        this.routeLeadSec = nextLead(this.routeLeadSec, intensity, {
+          clockScale: this.clockScale,
+          remainingSec: this.durationSeconds - elapsed,
+        });
+        // No clamp on the result: the lead is capped at a share of the route
+        // that is left, so elapsed + lead < duration until the clock ends.
+        progress = ((elapsed + this.routeLeadSec) / this.durationSeconds) * 100;
       }
       useRideStore.setState({ elapsedTime: elapsed, rideProgress: progress });
 

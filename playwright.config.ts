@@ -1,5 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// The webServer readiness probe is a plain HTTP request to loopback, and
+// Playwright routes it through HTTP_PROXY when one is set. Agent/sandbox shells
+// commonly export a local intercepting proxy, which answers those probe requests
+// 405 — Playwright then waits out the full webServer timeout (10 minutes here)
+// without starting a single browser, and the failure looks like a broken app.
+// Loopback is never a proxy's business, so keep it out of the way unless the
+// developer already pinned NO_PROXY themselves.
+process.env.NO_PROXY ||= "127.0.0.1,localhost";
+process.env.no_proxy ||= "127.0.0.1,localhost";
+
 export default defineConfig({
   testDir: "./tests",
   // Baselines render via SwiftShader (software WebGL), so they are stable
