@@ -1,8 +1,12 @@
 "use client";
 
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import { INTENSITY_RAMP } from "@/app/lib/phase-theme";
+import { useSensoryStore } from "@/app/stores/sensory-store";
+
+/** Strokes after which the ride-start panel tucks away: the rider has found the keys. */
+const AUTO_TUCK_STROKES = 12;
 
 interface KeyboardShortcutOverlayProps {
   /** Whether to show the overlay */
@@ -15,16 +19,35 @@ interface KeyboardShortcutOverlayProps {
  * KeyboardShortcutOverlay - Shows the keyboard controls while a simulator
  * ride is running.
  *
- * Unlike before, this no longer auto-dismisses after a few seconds: it stays
- * visible until the rider closes it (button or Esc), and can be re-opened via
- * the "Keys" control, so the controls are never "hidden" mid-ride.
+ * It stays up until the rider closes it (button or Esc) or, the first time it
+ * opens, until they've pedaled AUTO_TUCK_STROKES strokes — proof they've found
+ * the keys, so it stops covering the world. A panel re-opened via "Keys" stays
+ * until closed.
  */
 function KeyboardShortcutOverlayInternal({ show, onDismiss }: KeyboardShortcutOverlayProps) {
   const [visible, setVisible] = useState(false);
 
+  const hasAutoTucked = useRef(false);
+  // Parents pass an inline onDismiss; reading it through a ref keeps the
+  // stroke subscription (and its starting count) alive across re-renders.
+  const onDismissRef = useRef(onDismiss);
+  useEffect(() => {
+    onDismissRef.current = onDismiss;
+  }, [onDismiss]);
+
   useEffect(() => {
     setVisible(show);
   }, [show]);
+
+  useEffect(() => {
+    if (!visible || hasAutoTucked.current) return;
+    const startSeq = useSensoryStore.getState().strokeSeq;
+    return useSensoryStore.subscribe((state) => {
+      if (hasAutoTucked.current || state.strokeSeq - startSeq < AUTO_TUCK_STROKES) return;
+      hasAutoTucked.current = true;
+      onDismissRef.current?.();
+    });
+  }, [visible]);
 
   // Esc closes the overlay (controls stay discoverable via the Keys button)
   useEffect(() => {
