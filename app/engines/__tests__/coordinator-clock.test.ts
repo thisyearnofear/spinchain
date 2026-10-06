@@ -33,8 +33,16 @@ function browserStubs() {
     body: { classList: { add() {}, remove() {} } },
     createElement: () => ({ getContext: () => null }),
   });
-  vi.stubGlobal("requestAnimationFrame", () => 0);
-  vi.stubGlobal("cancelAnimationFrame", () => {});
+  // The commit loop is driven by requestAnimationFrame in production. Stubbing
+  // it to a no-op meant the telemetry store never received a committed snapshot,
+  // which is fine while nothing reads it — but route pacing now reads the same
+  // committed intensity the world is drawn from, so the loop has to run. Scheduling
+  // it as a timer keeps it on fake time: no runaway recursion, and TelemetryEngine's
+  // own throttle decides how many of those frames actually commit.
+  vi.stubGlobal("requestAnimationFrame", (callback: (time: number) => void) =>
+    setTimeout(() => callback(Date.now()), 16),
+  );
+  vi.stubGlobal("cancelAnimationFrame", (handle: number) => clearTimeout(handle));
 }
 
 function rideConfig(overrides: Partial<RideStartConfig> = {}): RideStartConfig {
@@ -269,5 +277,174 @@ describe("RideCoordinator ride clock", () => {
     // The 0–1000 absolute score the reward ledger and the circuit read is
     // whatever the device said, untouched by any of this.
     expect(snapshot.effort).toBe(900);
+  });
+
+  // ─── The class clock and the route are two different things ────
+  //
+  // A real bike used to have no say in where the rider was on the route, and
+  // the first attempt at fixing it (PR #50) bought that by speeding the class
+  // itself, which capped a power-only bike at a quarter pace and so never let
+  // it finish at all. What is locked below is the shape that avoids both: the
+  // class advances on time for everyone, the route follows the rider, and the
+  // route can only ever be a bounded head start ahead of the clock.
+
+  const clockPercent = (seconds: number, durationSeconds = 60) =>
+    (seconds / durationSeconds) * 100;
+
+  /** An FTMS bike with no strap: watts and nothing else. */
+  const wattsOnly = (powerW: number) => ({
+    power: powerW,
+    channels: { power: true, heartRate: false, cadence: false, speed: false },
+  });
+
+  /** A bike with no power meter, reporting a live heart rate. */
+  const heartRateOnly = (bpm: number) => ({
+    heartRate: bpm,
+    channels: { power: false, heartRate: true, cadence: false, speed: false },
+  });
+
+  function planConfig(
+    intervals: NonNullable<RideStartConfig["coachingConfig"]["workoutPlan"]>["intervals"],
+  ): RideStartConfig["coachingConfig"] {
+    return {
+      ...rideConfig().coachingConfig,
+      workoutPlan: {
+        ...rideConfig().coachingConfig.workoutPlan!,
+        id: "pace-plan",
+        name: "Pace",
+        intervals,
+        totalDuration: intervals.reduce((sum, i) => sum + i.durationSeconds, 0),
+      },
+    };
+  }
+
+  const thresholdRider = { ftp: 200, maxHr: 190, restingHr: 50 };
+
+  it("lets a power-only bike buy lead on the route without touching the class clock", async () => {
+    const ride = await startRide({ rider: thresholdRider });
+
+    for (let second = 1; second <= 10; second++) {
+      // 250 W against this rider's 200 W threshold is a hard ride.
+      ride.ingestBleMetrics(wattsOnly(250));
+      await tick();
+
+      const { elapsedTime, rideProgress } = useRideStore.getState();
+      // The class does not care how hard they are going.
+      expect(elapsedTime).toBe(second);
+      // The route does.
+      expect(rideProgress).toBeGreaterThan(clockPercent(second));
+      // Bounded: five percent of whatever route is left, not of the class.
+      const leadCapPct = clockPercent(0.05 * (60 - elapsedTime));
+      expect(rideProgress).toBeLessThanOrEqual(clockPercent(second) + leadCapPct + 1e-9);
+    }
+
+    // ...and none of it is allowed to reach the 0–1000 reward ledger.
+    expect(useTelemetryStore.getState().snapshot.effort).toBe(0);
+    expect(useTelemetryStore.getState().snapshot.intensity).toBeGreaterThan(1.15);
+  });
+
+  it("finishes a power-only FTMS ride at the class clock and never before it", async () => {
+    const ride = await startRide({ rider: thresholdRider });
+    let firstFinishSecond = 0;
+
+    for (let second = 1; second <= 60; second++) {
+      // 1.5× threshold for a whole class — a Cat 1 rider on a hard night.
+      ride.ingestBleMetrics(wattsOnly(300));
+      await tick();
+      const { rideProgress } = useRideStore.getState();
+      if (rideProgress >= 100 - 1e-9 && firstFinishSecond === 0) firstFinishSecond = second;
+      if (second < 60) expect(rideProgress).toBeLessThan(100);
+    }
+
+    // `rideProgress >= 100` is what both page.tsx and the analytics hook end a
+    // ride on, so it has to become true exactly once and on the last tick.
+    expect(firstFinishSecond).toBe(60);
+    expect(useRideStore.getState().elapsedTime).toBe(60);
+    expect(useRideStore.getState().rideProgress).toBeCloseTo(100, 6);
+  });
+
+  it("plays the cooldown to a rider who is already at the front", async () => {
+    const phases: string[] = [];
+    const ride = await startRide({
+      rider: thresholdRider,
+      coachingConfig: planConfig([
+        { phase: "warmup", durationSeconds: 20, coachCue: "Roll" },
+        { phase: "sprint", durationSeconds: 20, coachCue: "Go" },
+        { phase: "cooldown", durationSeconds: 20, coachCue: "Down" },
+      ]),
+    });
+    ride.bus.on("interval:changed", ({ phase }) => {
+      phases.push(phase);
+    });
+
+    for (let second = 1; second <= 60; second++) {
+      ride.ingestBleMetrics(wattsOnly(400));
+      await tick();
+    }
+
+    // Effort buys distance, never a skip: a rider holding maximum lead through
+    // the whole class still arrives at the cooldown, because the cooldown is a
+    // time the class takes, not a distance the route covers.
+    expect(phases).toEqual(["warmup", "sprint", "cooldown"]);
+    expect(useRideStore.getState().elapsedTime).toBe(60);
+  });
+
+  it("moves the world for an HR-only device without writing the effort ledger", async () => {
+    const ride = await startRide({ rider: thresholdRider });
+
+    for (let second = 1; second <= 60; second++) {
+      ride.ingestBleMetrics(heartRateOnly(185));
+      await tick();
+
+      const snapshot = useTelemetryStore.getState().snapshot;
+      // Zone 4-ish: enough to be class pace, derived with no watts in sight.
+      expect(snapshot.intensity).toBeGreaterThan(0.95);
+      // The layering lock: effort stays zero for a device that never reported
+      // it, however much the route moves.
+      expect(snapshot.effort).toBe(0);
+
+      const { elapsedTime, rideProgress } = useRideStore.getState();
+      expect(rideProgress).toBeGreaterThanOrEqual(clockPercent(elapsedTime));
+    }
+
+    expect(useRideStore.getState().rideProgress).toBeCloseTo(100, 6);
+  });
+
+  it("never runs the route backwards when a surge gives way to a rest", async () => {
+    const ride = await startRide({ rider: thresholdRider });
+    let previous = 0;
+    const schedule = [
+      ...Array.from({ length: 20 }, () => 300),
+      ...Array.from({ length: 20 }, () => 0), // stopped, at the top of their lead
+      ...Array.from({ length: 20 }, () => 320),
+    ];
+
+    for (const powerW of schedule) {
+      ride.ingestBleMetrics(wattsOnly(powerW));
+      await tick();
+      const { rideProgress } = useRideStore.getState();
+      // Stopping costs a rider their head start gradually. It must never hand
+      // it back as a step backwards: an interpolating marker or a latched story
+      // beat cannot un-see a crossing.
+      expect(rideProgress).toBeGreaterThanOrEqual(previous);
+      previous = rideProgress;
+    }
+
+    expect(previous).toBeLessThanOrEqual(100 + 1e-9);
+  });
+
+  it("carries a rider with no signal at all on the class clock", async () => {
+    await startRide();
+
+    for (let second = 1; second <= 60; second++) {
+      await tick();
+      const { elapsedTime, rideProgress } = useRideStore.getState();
+      // No evidence of effort is not evidence of rest: with no channels the
+      // rider stays exactly with the class, which is what a dead bike today
+      // does, and what keeps a dropout from looking like a penalty.
+      expect(rideProgress).toBeCloseTo(clockPercent(elapsedTime), 6);
+    }
+
+    expect(useRideStore.getState().rideProgress).toBeCloseTo(100, 6);
   });
 });
