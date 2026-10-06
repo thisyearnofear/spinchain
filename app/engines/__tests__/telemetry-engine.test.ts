@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventBus } from "../event-bus";
 import { TelemetryEngine } from "../telemetry-engine";
+import { calculateEffortScore } from "@/app/lib/rewards/calculator";
 
 /**
  * Helper: wait for async operations to settle
@@ -72,6 +73,31 @@ describe("TelemetryEngine", () => {
       engine.ingest({});
 
       expect(engine.rawSnapshot.heartRate).toBe(120);
+    });
+  });
+
+  describe("device effort", () => {
+    it("derives the absolute effort score from a paired bike's watts and beats", () => {
+      engine.ingest({ heartRate: 150, power: 200, channels: { power: true, heartRate: true, cadence: true, speed: false } });
+      const expected = Math.round(calculateEffortScore({ heartRate: 150, power: 200, durationSeconds: 0 }));
+      expect(engine.rawSnapshot.effort).toBe(expected);
+      expect(engine.rawSnapshot.effort).toBeGreaterThan(0);
+    });
+
+    it("lets a power-only bike earn effort without a heart-rate strap", () => {
+      engine.ingest({ power: 250 });
+      expect(engine.rawSnapshot.effort).toBeGreaterThan(0);
+    });
+
+    it("keeps an effort the source reports itself", () => {
+      engine.ingest({ heartRate: 150, power: 200, effort: 777 });
+      expect(engine.rawSnapshot.effort).toBe(777);
+    });
+
+    it("does not touch effort on a channel-only update", () => {
+      engine.ingestSimulator({ heartRate: 120, power: 150, cadence: 80, speed: 25, effort: 640 });
+      engine.ingest({ channels: { power: true, heartRate: true, cadence: true, speed: true } });
+      expect(engine.rawSnapshot.effort).toBe(640);
     });
   });
 
