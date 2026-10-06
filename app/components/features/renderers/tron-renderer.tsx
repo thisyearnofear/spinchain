@@ -19,7 +19,7 @@ export interface TronRendererProps {
   routeElevationProfile: number[];
   routeCoordinates: Array<{ lat: number; lng: number; ele?: number }>;
   currentRouteCoordinate: { lat: number; lng: number; ele?: number } | null;
-  telemetry: { heartRate: number; power: number; cadence: number };
+  telemetry: { heartRate: number; power: number; cadence: number; intensity: number };
   routeTheme: VisualizerTheme;
   storyBeats: StoryBeat[];
   avatarId?: string;
@@ -64,6 +64,7 @@ export const TronRenderer = memo(function TronRenderer(props: TronRendererProps)
           hr: props.telemetry.heartRate,
           power: props.telemetry.power,
           cadence: props.telemetry.cadence,
+          intensity: props.telemetry.intensity,
         }}
         storyBeats={props.storyBeats}
         avatarId={props.avatarId}

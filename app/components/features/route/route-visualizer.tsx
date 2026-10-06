@@ -80,6 +80,7 @@ export type RiderStats = {
   hr: number;
   power: number;
   cadence: number;
+  intensity: number;
 };
 
 const START_OFFSET = 0.05;
@@ -159,7 +160,7 @@ function useRouteCurve(elevationProfile: number[]) {
 function Road({
   curve,
   theme = "neon",
-  stats = { hr: 0, power: 0, cadence: 0 },
+  stats = { hr: 0, power: 0, cadence: 0, intensity: 0 },
   steps = 300,
   reactive = null,
 }: {
@@ -659,7 +660,7 @@ function RiderMarker({
   curve,
   progressRef,
   theme = "neon",
-  stats = { hr: 120, power: 150, cadence: 80 },
+  stats = { hr: 120, power: 150, cadence: 80, intensity: 0.75 },
   avatar,
   equipment,
   showYouLabel = false,
@@ -914,7 +915,7 @@ function SpeedLines({
   count = 20,
   theme = "neon",
   reactive = null,
-  stats = { power: 0, cadence: 0, hr: 0 },
+  stats = { power: 0, cadence: 0, hr: 0, intensity: 0 },
 }: {
   count?: number;
   theme?: VisualizerTheme;
@@ -952,7 +953,7 @@ function SpeedLines({
   );
 }
 
-function LineInstance({ line, color, reactive = null, stats = { power: 0, cadence: 0, hr: 0 } }: {
+function LineInstance({ line, color, reactive = null, stats = { power: 0, cadence: 0, hr: 0, intensity: 0 } }: {
   line: SpeedLineData;
   color: string;
   reactive?: ReactiveParams | null;
@@ -1279,7 +1280,7 @@ function Scene({
   mode = "preview",
   storyBeats = [],
   ghosts = [],
-  stats = { hr: 0, power: 0, cadence: 0 },
+  stats = { hr: 0, power: 0, cadence: 0, intensity: 0 },
   avatar,
   equipment,
   quality,
@@ -1649,7 +1650,7 @@ export default function RouteVisualizer({
   theme = "neon",
   progress = 0, // 0 to 1
   mode = "preview",
-  stats = { hr: 145, power: 210, cadence: 90 },
+  stats = { hr: 145, power: 210, cadence: 90, intensity: 1.05 },
   storyBeats = [],
   ghosts = [],
   className = "",

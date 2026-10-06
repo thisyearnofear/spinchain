@@ -22,7 +22,7 @@
 import { useRef, useCallback, useEffect, useMemo } from "react";
 import { RideCoordinator } from "./coordinator";
 import type { WorkoutSoundType } from "@/app/lib/elevenlabs";
-import type { RideStartConfig, TelemetrySnapshot } from "./types";
+import type { RideStartConfig, RideTelemetryUpdate } from "./types";
 
 export function useRideCoordinator() {
   const coordinatorRef = useRef<RideCoordinator | null>(null);
@@ -57,7 +57,7 @@ export function useRideCoordinator() {
    * Feeds BLE metrics into the coordinator's telemetry engine.
    * Safe to call before coordinator.start() — will be a no-op.
    */
-  const ingestBleMetrics = useCallback((metrics: Partial<TelemetrySnapshot>): void => {
+  const ingestBleMetrics = useCallback((metrics: RideTelemetryUpdate): void => {
     coordinatorRef.current?.telemetry.ingest(metrics);
   }, []);
 

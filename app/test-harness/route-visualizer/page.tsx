@@ -76,9 +76,9 @@ export default function TestHarnessRouteVisualizerPage() {
 
   // Deterministic stats per state
   const stats = useMemo(() => {
-    if (state === "finished") return { hr: 172, power: 280, cadence: 96 };
-    if (state.startsWith("active-play")) return { hr: 165, power: 240, cadence: 90 };
-    return { hr: 0, power: 0, cadence: 0 };
+    if (state === "finished") return { hr: 172, power: 280, cadence: 96, intensity: 1.4 };
+    if (state.startsWith("active-play")) return { hr: 165, power: 240, cadence: 90, intensity: 1.2 };
+    return { hr: 0, power: 0, cadence: 0, intensity: 0 };
   }, [state]);
 
   return (

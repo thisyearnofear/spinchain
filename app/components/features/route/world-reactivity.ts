@@ -1,4 +1,5 @@
 import { getTheme } from "@/app/lib/themes/registry";
+import { visualEffort } from "@/app/lib/ride-effort";
 
 /**
  * WorldReactivity — Makes the 3D ride world react to the rider's effort and phase.
@@ -135,12 +136,12 @@ function darken(hex: string, amount: number): string {
 
 export function computeReactiveParams(
   theme: VisualizerTheme,
-  stats: { power: number; hr: number; cadence: number },
+  stats: { power: number; hr: number; cadence: number; intensity: number },
   intervalPhase: IntervalPhase,
   progress: number,
 ): ReactiveParams {
   // ─── Normalized effort (0-1) ───────────────────────────────────
-  const effort = Math.min(1, (stats.power / 400) ** 0.6); // compressed curve
+  const effort = visualEffort(stats.intensity);
   const cadenceFactor = Math.min(1, stats.cadence / 120);
   const hrFactor = Math.min(1, stats.hr / 190);
 
@@ -220,7 +221,7 @@ export function computeReactiveParams(
   const speedLineOpacity = 0.3 + effort * 0.5; // 0.3 → 0.8
 
   // Rider: aura and trail intensify
-  const riderAuraOpacity = 0.05 + (stats.power / 2000) + (hrFactor * 0.1); // 0.05 → 0.55
+  const riderAuraOpacity = 0.05 + effort * 0.4 + (hrFactor * 0.1); // 0.05 → 0.55
   const riderAuraScale = 1 + effort * 0.5 + (hrFactor * 0.2); // 1.0 → 1.7
   const riderTrailColor = lerpColor(themeStyles.riderColor, phase.roadGlow, phaseInfluence * 0.5);
   const riderLightIntensity = 5 + effort * 15 + (hrFactor * 3); // 5 → 23

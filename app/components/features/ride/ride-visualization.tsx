@@ -77,10 +77,11 @@ export function RideVisualization({
   const heartRate = useTelemetryStore((s) => s.snapshot.heartRate);
   const power = useTelemetryStore((s) => s.snapshot.power);
   const cadence = useTelemetryStore((s) => s.snapshot.cadence);
+  const intensity = useTelemetryStore((s) => s.snapshot.intensity);
   const recentPowerHistory = useTelemetryStore((s) => s.recentPower);
 
-  const rendererStats = useMemo(() => ({ hr: heartRate, power, cadence }), [heartRate, power, cadence]);
-  const telemetryForTron = useMemo(() => ({ heartRate, power, cadence }), [heartRate, power, cadence]);
+  const rendererStats = useMemo(() => ({ hr: heartRate, power, cadence, intensity }), [heartRate, power, cadence, intensity]);
+  const telemetryForTron = useMemo(() => ({ heartRate, power, cadence, intensity }), [heartRate, power, cadence, intensity]);
 
   const currentInterval = useCoachingStore((s) => s.currentInterval);
 
@@ -139,7 +140,7 @@ export function RideVisualization({
             progress={routeProgress}
             currentPower={power}
             recentPower={recentPowerHistory}
-            ftp={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
+            powerThresholdW={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
             theme={routeTheme}
             stats={rendererStats}
             avatarId={searchParams.get("avatarId") || undefined}
@@ -201,7 +202,7 @@ export function RideVisualization({
           progress={routeProgress}
           currentPower={power}
           recentPower={recentPowerHistory}
-          ftp={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
+          powerThresholdW={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
           theme={routeTheme}
           stats={rendererStats}
           avatarId={searchParams.get("avatarId") || undefined}

@@ -70,14 +70,14 @@ export function installTestHooks(): void {
       case "preview":
         useRideStore.setState({ isActive: false, rideProgress: 0 });
         useTelemetryStore.setState({
-          snapshot: { heartRate: 0, power: 0, cadence: 0, speed: 0, effort: 0, wBal: 0, wBalPercentage: 0, currentGear: 1, gearRatio: 1, distance: 0, resistance: 0, timestamp: Date.now() },
+          snapshot: { heartRate: 0, power: 0, cadence: 0, speed: 0, effort: 0, intensity: 0, wBal: 0, wBalPercentage: 0, currentGear: 1, gearRatio: 1, distance: 0, resistance: 0, timestamp: Date.now() },
         });
         break;
       case "active-play":
       case "active-play-desktop":
         useRideStore.setState({ isActive: true, rideProgress: 50 });
         useTelemetryStore.setState({
-          snapshot: { heartRate: 165, power: 240, cadence: 90, speed: 28, effort: 750, wBal: 12000, wBalPercentage: 60, currentGear: 8, gearRatio: 2.5, distance: 5.2, resistance: 45, timestamp: Date.now() },
+          snapshot: { heartRate: 165, power: 240, cadence: 90, speed: 28, effort: 750, intensity: 1.5, wBal: 12000, wBalPercentage: 60, currentGear: 8, gearRatio: 2.5, distance: 5.2, resistance: 45, timestamp: Date.now() },
           history: {
             power: Array.from({ length: 60 }, (_, i) => 180 + Math.sin(i * 0.2) * 40 + (i > 30 ? 60 : 0)),
             cadence: Array.from({ length: 60 }, () => 88 + Math.random() * 4),
@@ -98,7 +98,7 @@ export function installTestHooks(): void {
       case "finished":
         useRideStore.setState({ isActive: false, rideProgress: 100 });
         useTelemetryStore.setState({
-          snapshot: { heartRate: 170, power: 280, cadence: 95, speed: 32, effort: 920, wBal: 8000, wBalPercentage: 40, currentGear: 12, gearRatio: 3.2, distance: 12.5, resistance: 60, timestamp: Date.now() },
+          snapshot: { heartRate: 170, power: 280, cadence: 95, speed: 32, effort: 920, intensity: 1.84, wBal: 8000, wBalPercentage: 40, currentGear: 12, gearRatio: 3.2, distance: 12.5, resistance: 60, timestamp: Date.now() },
         });
         break;
       case "pause-or-settings":

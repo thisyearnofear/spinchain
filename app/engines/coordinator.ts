@@ -25,7 +25,13 @@ import { VisualizationEngine } from "./visualization-engine";
 import { SuiEngine } from "./sui-engine";
 import { getLocalOracle, type LocalOracle } from "@/app/lib/zk/oracle";
 import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
-import type { RideStartConfig, TelemetrySnapshot } from "./types";
+import type { RideStartConfig, RideTelemetryUpdate } from "./types";
+import {
+  PowerObservation,
+  resolveAnchors,
+  ridingIntensity,
+  type RiderAnchors,
+} from "@/app/lib/ride-effort";
 import { PRACTICE_WALL_DURATION_SEC } from "@/app/lib/practice-demo";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
@@ -65,6 +71,13 @@ export class RideCoordinator {
   // The coaching/interval clock stays time-based (like a real class); only
   // position on the route responds to pedaling, so riders keep agency.
   private progressElapsed = 0;
+
+  /**
+   * What to measure this rider's watts against, and the ride's own power
+   * history that keeps sharpening it when they told us nothing.
+   */
+  private anchors: RiderAnchors = resolveAnchors();
+  private readonly powerObserved = new PowerObservation();
   private unsubTick: (() => void) | null = null;
   private eventUnsubs: Array<() => void> = [];
   private rafRunning = false;
@@ -143,6 +156,7 @@ export class RideCoordinator {
       : 1;
     this.isPracticeRide = config.isPracticeMode;
     this.progressElapsed = 0;
+    this.anchors = resolveAnchors({ profile: config.rider });
 
     this.telemetry.start(routeCoordinates, this.durationSeconds);
 
@@ -208,6 +222,12 @@ export class RideCoordinator {
       if (this.telemetry.samples.length > 5_400) {
         this.telemetry.samples.splice(0, this.telemetry.samples.length - 5_400);
       }
+
+      // Keep this rider's anchors honest. Wall-clock seconds, not class
+      // seconds: it is a physical average of work done, and a compressed demo
+      // ride must not calibrate a real person off four minutes of pedaling.
+      this.powerObserved.sample(snapshot.power, 1);
+      this.anchors = resolveAnchors({ profile: this.config?.rider, observed: this.powerObserved });
 
       // Feed LocalOracle for 10-min rolling buffer + Walrus encrypted backup
       this.oracle?.addTelemetry({
@@ -472,7 +492,7 @@ export class RideCoordinator {
   // ─── External Data Ingestion ─────────────────────────────────
 
   /** Direct ingestion point for BLE metrics (called from useRideCoordinator hook) */
-  ingestBleMetrics(metrics: Partial<TelemetrySnapshot>): void {
+  ingestBleMetrics(metrics: RideTelemetryUpdate): void {
     this.telemetry.ingest(metrics);
   }
 
@@ -486,6 +506,10 @@ export class RideCoordinator {
     distance?: number;
     timestamp?: number;
   }): void {
+    // The simulator models all three channels, so it is a full-signal device:
+    // without this the intensity path would have no capability to work with on
+    // a keyboard ride, and the demo world would go flat.
+    this.telemetry.ingest({ channels: { power: true, heartRate: true, cadence: true, speed: true } });
     this.telemetry.ingestSimulator(metrics);
     // Throttle commits the same way as the rAF loop (see onSimulatorTelemetry):
     // keyboard/on-screen pedal events can fire many times per second.
@@ -527,6 +551,18 @@ export class RideCoordinator {
   }
 
   private bridgeSnapshotToStore(snapshot: ReturnType<TelemetryEngine["commit"]>): void {
+    // One divide per commit, here and nowhere else: the frame loop and every
+    // visual consumer read `snapshot.intensity` rather than each inventing
+    // their own watts-to-effort constant. `effort` stays the absolute reward
+    // scale this must never touch.
+    snapshot.intensity = ridingIntensity(
+      snapshot.power,
+      snapshot.heartRate,
+      snapshot.cadence,
+      this.anchors,
+      this.telemetry.capability,
+    );
+
     const idx = this.coaching.currentIntervalIndex;
     const phase =
       this.coaching.coachingConfig.workoutPlan?.intervals?.[idx]?.phase ?? "";

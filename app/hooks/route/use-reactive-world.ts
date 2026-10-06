@@ -8,7 +8,7 @@ import type { FlowStateTier } from "@/app/lib/flow-state";
 
 interface ReactiveWorldParams {
   theme: VisualizerTheme;
-  stats: { hr: number; power: number; cadence: number };
+  stats: { hr: number; power: number; cadence: number; intensity: number };
   intervalPhase: IntervalPhase | null;
   progress: number;
   mode: "preview" | "ride" | "finished";

@@ -15,9 +15,11 @@
 import type { GhostState, GhostPerformance } from "@/app/lib/analytics/ghost-service";
 import type { RideRecordPoint } from "@/app/lib/analytics/ride-recorder";
 import type { WorkoutPlan, WorkoutInterval, IntervalPhase } from "@/app/lib/workout-plan";
+import type { ChannelPresence } from "@/app/lib/ble/types";
+import type { AnchorProfile } from "@/app/lib/ride-effort";
 
 // Re-export for consumers
-export type { GhostState, GhostPerformance, RideRecordPoint, WorkoutPlan, WorkoutInterval, IntervalPhase };
+export type { GhostState, GhostPerformance, RideRecordPoint, WorkoutPlan, WorkoutInterval, IntervalPhase, ChannelPresence };
 export type { WBalConfig } from "@/app/lib/analytics/physiological-models";
 
 // ─── Device ─────────────────────────────────────────────────────
@@ -40,6 +42,14 @@ export interface TelemetrySnapshot {
   cadence: number;
   speed: number;
   effort: number;
+  /**
+   * Rider-relative intensity, 0–2 where 1.0 is this rider's threshold. Computed
+   * per commit from the equipment's real channels, so it is never zero just
+   * because a bike has no watts. `effort` above is the separate absolute
+   * 0–1000 reward scale — do not conflate them; one backs the ledger and the
+   * other drives the world.
+   */
+  intensity: number;
   wBal: number;
   wBalPercentage: number;
   currentGear: number;
@@ -53,6 +63,15 @@ export interface TelemetryAverages {
   avgHr: number;
   avgPower: number;
   avgEffort: number;
+}
+
+/**
+ * What a device hands the engine. `channels` is the equipment's own report of
+ * what it can measure, and it is the only thing that separates "this rider is
+ * at zero watts" from "this bike cannot tell me watts" — both arrive as 0.
+ */
+export interface RideTelemetryUpdate extends Partial<TelemetrySnapshot> {
+  channels?: ChannelPresence;
 }
 
 export interface TelemetryHistory {
@@ -206,6 +225,12 @@ export interface RideStartConfig {
   rewardMode: RewardMode;
   coachingConfig: CoachingConfig;
   ghostBlobId?: string;
+  /**
+   * What we know about this rider's thresholds. Optional and expected to be
+   * absent: a ride must complete with no wallet and no signup, so the engine
+   * falls back to a stated default and then to the ride's own power.
+   */
+  rider?: AnchorProfile | null;
   /** Practice/demo: wall-clock length of the compressed ride in seconds.
    *  Defaults to PRACTICE_WALL_DURATION_SEC (45) when omitted. */
   practiceWallDurationSec?: number;

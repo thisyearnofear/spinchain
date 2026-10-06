@@ -32,6 +32,21 @@ export interface FitnessMetrics {
   currentGear?: number; // 1 to totalGears
   gearRatio?: number; // Front/Rear ratio
   timestamp: number; // Unix timestamp
+  /**
+   * Which channels this device has actually notified since it connected.
+   * Needed because the numeric fields are zero-filled: `power: 0` on a bike
+   * that reports watts means the rider stopped pedaling, and on a bike with no
+   * watts channel it means the number will never arrive. Same zero, opposite
+   * facts, and only the rider's own equipment can tell them apart.
+   */
+  channels?: ChannelPresence;
+}
+
+export interface ChannelPresence {
+  power: boolean;
+  cadence: boolean;
+  heartRate: boolean;
+  speed: boolean;
 }
 
 // Connection status states

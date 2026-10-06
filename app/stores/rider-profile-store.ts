@@ -15,6 +15,11 @@ export interface InjuryInfo {
   severity: "minor" | "moderate" | "severe";
 }
 
+/**
+ * Heart-rate ceilings per training zone, in bpm. `ZONE_HRR` in
+ * app/lib/ride-effort is the same ladder the ride loop reads from; this shape
+ * is what gets persisted and synced.
+ */
 export interface TrainingZones {
   zone1: number; // Recovery (50-60% maxHR)
   zone2: number; // Endurance (60-70% maxHR)
@@ -168,63 +173,6 @@ export function getAdaptiveDifficulty(
   }
 
   return base;
-}
-
-/**
- * Compute training zones from max heart rate using the Karvonen formula
- * (uses resting HR if available for more accurate zones).
- */
-export function computeTrainingZones(maxHr: number, restingHr?: number | null): TrainingZones {
-  const rhr = restingHr ?? 0;
-  const hrr = maxHr - rhr; // Heart rate reserve
-
-  return {
-    zone1: Math.round(rhr + hrr * 0.55), // 50-60%
-    zone2: Math.round(rhr + hrr * 0.65), // 60-70%
-    zone3: Math.round(rhr + hrr * 0.75), // 70-80%
-    zone4: Math.round(rhr + hrr * 0.85), // 80-90%
-    zone5: Math.round(rhr + hrr * 0.95), // 90-100%
-  };
-}
-
-/**
- * Get FTP-based power zones (if FTP is known).
- * Returns watts for each zone boundary.
- */
-export function computePowerZones(ftp: number): {
-  zone1: number; // Active recovery (<55% FTP)
-  zone2: number; // Endurance (56-75% FTP)
-  zone3: number; // Tempo (76-90% FTP)
-  zone4: number; // Threshold (91-105% FTP)
-  zone5: number; // VO2Max (106-120% FTP)
-} {
-  return {
-    zone1: Math.round(ftp * 0.50),
-    zone2: Math.round(ftp * 0.65),
-    zone3: Math.round(ftp * 0.83),
-    zone4: Math.round(ftp * 0.98),
-    zone5: Math.round(ftp * 1.13),
-  };
-}
-
-/**
- * Estimate FTP from recent ride data using the 95% of 20-min power rule.
- * Falls back to a bodyweight-based estimate if no power data is available.
- */
-export function estimateFtpFromRides(
-  recentAvgPower: number,
-  weightKg: number | null,
-): number | null {
-  if (recentAvgPower > 0) {
-    // If we have avg power from recent rides, estimate FTP as ~75% of avg
-    // (avg power over a ride is typically 60-80% of FTP for endurance rides)
-    return Math.round(recentAvgPower / 0.75);
-  }
-  // Rough heuristic: 2.5-3.0 W/kg for untrained, up to 5+ for elite
-  if (weightKg && weightKg > 0) {
-    return Math.round(weightKg * 2.5);
-  }
-  return null;
 }
 
 export function getRecommendedDuration(profile: Partial<RiderProfile>): number {
