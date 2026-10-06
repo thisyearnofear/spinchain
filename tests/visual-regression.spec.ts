@@ -1,3 +1,4 @@
+import { inflateSync } from "node:zlib";
 import { test, expect } from "@playwright/test";
 
 test.setTimeout(60_000);
@@ -40,30 +41,9 @@ async function gotoWithHarness(page: import("@playwright/test").Page, url: strin
   await page.waitForFunction(() => typeof (window as unknown as { __THREE_GAME_TEST_HOOKS__?: unknown }).__THREE_GAME_TEST_HOOKS__ !== "undefined", { timeout: 10_000 }).catch(() => {});
   // Give R3F a couple frames to render demand loop
   await page.waitForTimeout(1500);
-  // Ensure canvas is non-blank (smoke check similar to inspect-threejs-canvas.mjs)
-  const canvasCount = await page.locator("canvas").count();
-  if (canvasCount > 0) {
-    // Wait for first non-blank frame
-    await page.waitForFunction(
-      () => {
-        const canvases = Array.from(document.querySelectorAll("canvas"));
-        return canvases.some((c) => {
-          try {
-            const ctx = (c as HTMLCanvasElement).getContext("2d") || (c as HTMLCanvasElement).getContext("webgl") || (c as HTMLCanvasElement).getContext("webgl2");
-            if (!ctx) return false;
-            // For WebGL, check via toDataURL non-blank; for 2d, check pixel data
-            if (ctx instanceof WebGLRenderingContext || ctx instanceof WebGL2RenderingContext) {
-              return true; // assume WebGL canvas is rendering
-            }
-            return true;
-          } catch {
-            return false;
-          }
-        });
-      },
-      { timeout: 5_000 },
-    ).catch(() => {});
-  }
+  // Canvas mount only; whether it actually drew is asserted by the smoke test
+  // below, not assumed here.
+  await page.locator("canvas").first().waitFor({ state: "attached", timeout: 5_000 }).catch(() => {});
   // Pause for deterministic screenshot (freeze drift/parallax)
   await page.evaluate(() => {
     const hooks = (window as unknown as { __THREE_GAME_TEST_HOOKS__?: { setPausedForScreenshot: (b: boolean) => void } }).__THREE_GAME_TEST_HOOKS__;
@@ -87,8 +67,86 @@ test("visual — active-play @ mobile", async ({ page }) => {
   await expect(page).toHaveScreenshot(`active-play-mobile.png`, { fullPage: false });
 });
 
+/**
+ * Decode an 8-bit RGB/RGBA PNG (what Playwright screenshots are) with node's
+ * zlib and summarise it: distinct colours at 5 bits/channel and luma range.
+ */
+function pixelStats(png: Buffer) {
+  const width = png.readUInt32BE(16);
+  const height = png.readUInt32BE(20);
+  const bitDepth = png[24];
+  const colorType = png[25];
+  if (bitDepth !== 8 || (colorType !== 2 && colorType !== 6)) {
+    throw new Error(`unsupported PNG: depth ${bitDepth}, colour type ${colorType}`);
+  }
+  const bpp = colorType === 6 ? 4 : 3;
+  const idat: Buffer[] = [];
+  for (let off = 8; off < png.length; ) {
+    const len = png.readUInt32BE(off);
+    const type = png.toString("ascii", off + 4, off + 8);
+    if (type === "IDAT") idat.push(png.subarray(off + 8, off + 8 + len));
+    off += 12 + len;
+  }
+  const raw = inflateSync(Buffer.concat(idat));
+  const stride = width * bpp;
+  const prev = Buffer.alloc(stride);
+  const row = Buffer.alloc(stride);
+  const colors = new Set<number>();
+  let min = 255;
+  let max = 0;
+  for (let y = 0; y < height; y++) {
+    const base = y * (stride + 1);
+    const filter = raw[base];
+    for (let x = 0; x < stride; x++) {
+      const v = raw[base + 1 + x];
+      const a = x >= bpp ? row[x - bpp] : 0;
+      const b = prev[x];
+      const c = x >= bpp ? prev[x - bpp] : 0;
+      let pred = 0;
+      if (filter === 1) pred = a;
+      else if (filter === 2) pred = b;
+      else if (filter === 3) pred = (a + b) >> 1;
+      else if (filter === 4) {
+        const p = a + b - c;
+        const pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+        pred = pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+      }
+      row[x] = (v + pred) & 0xff;
+    }
+    for (let x = 0; x < stride; x += bpp * 7) {
+      const r = row[x], g = row[x + 1], bl = row[x + 2];
+      colors.add(((r >> 3) << 10) | ((g >> 3) << 5) | (bl >> 3));
+      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+      if (lum < min) min = lum;
+      if (lum > max) max = lum;
+    }
+    row.copy(prev);
+  }
+  return { width, height, distinctColors: colors.size, lumaRange: max - min };
+}
+
 test("canvas is non-blank smoke", async ({ page }) => {
+  // SwiftShader under parallel workers can take a while to parse the HDR and
+  // compile shaders before the first real frame.
+  test.setTimeout(120_000);
+  // Live loop, not paused=1: the paused harness never draws a frame (its
+  // baselines cover page chrome over the empty canvas, not the 3D scene), so
+  // only an unpaused canvas can prove WebGL actually renders the route.
   await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123");
-  const canvasCount = await page.locator("canvas").count();
-  expect(canvasCount).toBeGreaterThan(0);
+  const canvas = page.locator("canvas").first();
+  await expect(canvas).toBeVisible();
+  // An undrawn canvas shows only the CSS gradient behind it (~40–110 colours
+  // at 5 bits/channel). A drawn route scene has sky, terrain, route, glow and
+  // fog: well over a thousand. 400 sits clear of both.
+  let stats = { width: 0, height: 0, distinctColors: 0, lumaRange: 0 };
+  await expect
+    .poll(async () => {
+      // Viewport, not canvas.screenshot(): the first <canvas> isn't
+      // necessarily the WebGL one, and the composited page is what riders see.
+      stats = pixelStats(await page.screenshot());
+      return stats.distinctColors;
+    }, { message: "canvas never drew the scene", timeout: 75_000 })
+    .toBeGreaterThan(400);
+  expect(stats.width).toBeGreaterThan(0);
+  expect(stats.lumaRange, `canvas has no contrast: ${JSON.stringify(stats)}`).toBeGreaterThan(40);
 });
