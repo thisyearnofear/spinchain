@@ -108,12 +108,15 @@ export function useRideTutorial(opts?: { isPracticeMode?: boolean; walletConnect
     // Skip tutorial for veterans or if already seen (unless setup=true)
     if (config.tutorialFrequency === 'none' && !searchParams.get("setup")) return;
     if (hasSeenTutorial && !searchParams.get("setup")) return;
+    // The practice start screen is its own onboarding; a HUD tour over it
+    // blurs the world and points at panels that don't exist until Start.
+    if (opts?.isPracticeMode && !searchParams.get("setup")) return;
     
     const frame = window.requestAnimationFrame(() => {
       modalStore.getState().setShowTutorial(true);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [modalStore]);
+  }, [modalStore, opts?.isPracticeMode]);
 
   const nextStep = useCallback(() => {
     const currentStep = modalStore.getState().tutorialStep;
