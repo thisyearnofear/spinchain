@@ -84,6 +84,21 @@ import {
   ALPINE_SUN_INTENSITY,
 } from "./alpine-atmosphere";
 import { AlpineAtmosphere } from "./alpine-view";
+import {
+  NEON_AMBIENT_COLOR,
+  NEON_AMBIENT_GAIN,
+  NEON_FOG_FAR,
+  NEON_HEMI_GROUND,
+  NEON_HEMI_INTENSITY,
+  NEON_HEMI_SKY,
+  NEON_KEY_COLOR,
+  NEON_KEY_DIR,
+  NEON_KEY_INTENSITY,
+  NEON_POINT_COLOR,
+  NEON_SKIRT_EDGE_DROP,
+  neonSkirtLight,
+} from "./neon-atmosphere";
+import { NeonAtmosphere } from "./neon-view";
 
 // Import StoryBeat types from gpx-uploader for consistency
 import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../../../routes/builder/gpx-uploader";
@@ -430,22 +445,26 @@ function applyInstanceMatrices(mesh: THREE.InstancedMesh, matrices: Float32Array
 function RouteSkirt({ curve, theme }: { curve: CatmullRomCurve3; theme: VisualizerTheme }) {
   const styles = getTheme(theme);
   const { halfWidth } = roadProfile(theme);
-  // Alpine's rim stays nearly level so the fade is a surface you can see.
+  // Alpine and neon keep a shallow rim so the fade is a surface you can see.
   // The other themes keep the steeper drop.
+  const edgeDrop = theme === "alpine" ? 0.6 : theme === "neon" ? NEON_SKIRT_EDGE_DROP : SKIRT_EDGE_DROP;
   const geometry = useMemo(
-    () => buildRouteSkirtGeometry(curve, halfWidth, SKIRT_STEPS, theme === "alpine" ? 0.6 : SKIRT_EDGE_DROP),
-    [curve, halfWidth, theme],
+    () => buildRouteSkirtGeometry(curve, halfWidth, SKIRT_STEPS, edgeDrop),
+    [curve, halfWidth, edgeDrop],
   );
   const light = useMemo<SkirtLight | undefined>(() => {
-    if (theme !== "alpine") return undefined;
-    return {
-      albedoGain: ALPINE_SKIRT_ALBEDO_GAIN,
-      edgeShade: ALPINE_SKIRT_EDGE_SHADE,
-      sunGain: ALPINE_SKIRT_SUN_GAIN,
-      sunDir: ALPINE_SUN_DIR,
-      fogStart: ALPINE_SKIRT_FOG_START,
-      fogEnd: ALPINE_SKIRT_FOG_END,
-    };
+    if (theme === "alpine") {
+      return {
+        albedoGain: ALPINE_SKIRT_ALBEDO_GAIN,
+        edgeShade: ALPINE_SKIRT_EDGE_SHADE,
+        sunGain: ALPINE_SKIRT_SUN_GAIN,
+        sunDir: ALPINE_SUN_DIR,
+        fogStart: ALPINE_SKIRT_FOG_START,
+        fogEnd: ALPINE_SKIRT_FOG_END,
+      };
+    }
+    if (theme === "neon") return neonSkirtLight();
+    return undefined;
   }, [theme]);
   const material = useMemo(
     () => createSkirtMaterial(styles.terrainColor, styles.terrainAccent, light),
@@ -1562,8 +1581,11 @@ function Scene({
     <>
       <PerspectiveCamera makeDefault position={[0, 100, 100]} fov={60} rotation={[-Math.PI / 3, 0, 0]} />
       <ambientLight
-        intensity={(reactive ? reactive.ambientIntensity : 0.5) * (theme === "alpine" ? ALPINE_AMBIENT_GAIN : 1)}
-        color={theme === "alpine" ? ALPINE_AMBIENT_COLOR : "#ffffff"}
+        intensity={
+          (reactive ? reactive.ambientIntensity : 0.5) *
+          (theme === "alpine" ? ALPINE_AMBIENT_GAIN : theme === "neon" ? NEON_AMBIENT_GAIN : 1)
+        }
+        color={theme === "alpine" ? ALPINE_AMBIENT_COLOR : theme === "neon" ? NEON_AMBIENT_COLOR : "#ffffff"}
       />
       {theme === "alpine" && (
         <>
@@ -1572,6 +1594,16 @@ function Scene({
             position={[ALPINE_SUN_DIR.x * 80, ALPINE_SUN_DIR.y * 80, ALPINE_SUN_DIR.z * 80]}
             intensity={ALPINE_SUN_INTENSITY}
             color={ALPINE_SUN_COLOR}
+          />
+        </>
+      )}
+      {theme === "neon" && (
+        <>
+          <hemisphereLight args={[NEON_HEMI_SKY, NEON_HEMI_GROUND, NEON_HEMI_INTENSITY]} />
+          <directionalLight
+            position={[NEON_KEY_DIR.x * 80, NEON_KEY_DIR.y * 80, NEON_KEY_DIR.z * 80]}
+            intensity={NEON_KEY_INTENSITY}
+            color={NEON_KEY_COLOR}
           />
         </>
       )}
@@ -1587,19 +1619,21 @@ function Scene({
                 ? "#ff00ff"
                 : theme === "alpine"
                   ? ALPINE_POINT_COLOR
-                  : "#9b7bff"
+                  : theme === "neon"
+                    ? NEON_POINT_COLOR
+                    : "#9b7bff"
         }
         castShadow={quality?.shadows}
       />
       <fog
         attach="fog"
         args={[
-          // Alpine keeps its haze color. Effort still closes the near plane
-          // (fogDensity). Letting the phase tint replace the haze turns the
-          // horizon into a dark cut.
-          theme === "alpine" ? styles.fog : reactive ? reactive.fogColor : styles.fog,
+          // Alpine and neon keep their own haze. Effort still closes the near
+          // plane (fogDensity). A phase tint in place of that haze turns the
+          // skirt's far edge into a cut.
+          theme === "alpine" || theme === "neon" ? styles.fog : reactive ? reactive.fogColor : styles.fog,
           reactive ? reactive.fogDensity : 40,
-          theme === "alpine" ? ALPINE_FOG_FAR : 250,
+          theme === "alpine" ? ALPINE_FOG_FAR : theme === "neon" ? NEON_FOG_FAR : 250,
         ]}
       />
 
@@ -1666,6 +1700,9 @@ function Scene({
         {/* Adaptive road geometry resolution: high=600, medium=250, low=100 */}
         {theme === "alpine" && (
           <AlpineAtmosphere curve={curve} horizon={styles.fog} zenith={styles.skyTop} />
+        )}
+        {theme === "neon" && (
+          <NeonAtmosphere curve={curve} horizon={styles.fog} zenith={styles.skyTop} />
         )}
         <RouteSkirt curve={curve} theme={theme} />
         <Road
