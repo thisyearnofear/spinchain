@@ -197,7 +197,7 @@ forge script src/deploy.s.sol:DeployScript --rpc-url https://api.avax-test.netwo
 | `IncentiveEngine` | `0x69800d3ABda003b7aA6038831715a4aCb736403d` | legacy experiment |
 | `ClassFactory` | `0x035026f85CCbC273160669FBe9Ba5Dc147D0Bd9b` | legacy experiment |
 | `HonkVerifier` (real ZK) | `0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B` | verifies committed fixture proofs (confirmed 2026-10-04) |
-| `EffortThresholdVerifier` | `0xBbc32cc3b8AF9BaeD8D77E3bf4fC69141b0c9dA4` | **broken** — wrong public-input slice, reverts on real proofs |
+| `EffortThresholdVerifier` | `0xBbc32cc3b8AF9BaeD8D77E3bf4fC69141b0c9dA4` | **broken** — wrong public-input slice, reverts on real proofs (checked by `contracts/evm/test/EffortThresholdVerifierFujiTripwire.t.sol`; `FUJI_RPC_URL=… pnpm test:contracts` also re-reads the chain) |
 | `TreasurySplitter` | `0x00a1e5688AF26c724155BfEe100fF23d387850AB` | legacy experiment |
 | `BiometricOracle` | `0x038fca8A26F9065f12F831C0600f30d8C90AFCFD` | placeholder forwarder; CRE not adopted |
 
