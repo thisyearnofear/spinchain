@@ -5,3 +5,9 @@ allowBuilds:
   sharp: false
   unrs-resolver: false
   utf-8-validate: false
+overrides:
+  # braces has no patched release (GHSA-vfj7-8cjw-p6xm). This plugin only
+  # calls globSync(pattern, { onlyDirectories }), which tinyglobby matches.
+  "@next/eslint-plugin-next>fast-glob": "npm:tinyglobby@^0.2.15"
+  # viem pins ws exactly; force the patched 8.x line.
+  "ws@>=8.0.0 <8.21.0": "^8.21.0"
