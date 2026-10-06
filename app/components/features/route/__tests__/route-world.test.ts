@@ -215,8 +215,10 @@ describe("alpine atmosphere", () => {
   it("does not walk the sky or the ridge from the frame loop", () => {
     const atmosphere = readFileSync(new URL("../alpine-atmosphere.ts", import.meta.url), "utf8");
     const view = readFileSync(new URL("../alpine-view.tsx", import.meta.url), "utf8");
+    const shared = readFileSync(new URL("../theme-atmosphere.tsx", import.meta.url), "utf8");
     expect(atmosphere).not.toContain("useFrame");
     expect(view).not.toContain("useFrame");
+    expect(shared).not.toContain("useFrame");
   });
 });
 
