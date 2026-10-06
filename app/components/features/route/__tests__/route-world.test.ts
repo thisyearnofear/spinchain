@@ -434,7 +434,9 @@ describe("neon atmosphere", () => {
     expect(atmosphere).not.toContain("useFrame");
     expect(view).not.toContain("useFrame");
     expect(view).not.toMatch(/new (Vector3|Color|Float32Array|Matrix4)/);
-    expect(view).toContain("useMemo(() => buildNeonSkylineGeometry(curve)");
+    const shared = readFileSync(new URL("../theme-atmosphere.tsx", import.meta.url), "utf8");
+    expect(view).toContain("buildHorizonGeometry: buildNeonSkylineGeometry");
+    expect(shared).toContain("useMemo(() => kit.buildHorizonGeometry(curve)");
     expect(atmosphere).not.toContain("children.forEach");
     expect(visualizer).toContain("NeonAtmosphere");
     expect(visualizer).toContain("AlpineAtmosphere");
