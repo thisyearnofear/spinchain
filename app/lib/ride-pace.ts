@@ -104,3 +104,33 @@ export function nextLead(
 export function demoPace(effort: number): number {
   return effort < 150 ? 0 : Math.min((effort - 150) / 200, 1.6);
 }
+
+/**
+ * Once the demo's class clock has run out, the route rolls the rest of the way
+ * to the finish within this many ticks. Without it a rider who eased off sees
+ * the clock stop at the duration and the marker sit short of the line forever:
+ * the ride looks frozen, and nothing tells them how to end it.
+ */
+export const DEMO_FINISH_COAST_TICKS = 3;
+
+/**
+ * Keyboard-demo route position for one tick, in class-seconds. While the clock
+ * runs, effort alone moves the route (`demoPace`). After the clock ends,
+ * pedaling still counts, but the route never takes longer than
+ * `DEMO_FINISH_COAST_TICKS` to reach the finish.
+ */
+export function nextDemoRouteSec(
+  routeSec: number,
+  effort: number,
+  {
+    clockScale,
+    durationSec,
+    ticksPastClockEnd,
+  }: { clockScale: number; durationSec: number; ticksPastClockEnd: number },
+): number {
+  const pedaled = routeSec + clockScale * demoPace(effort);
+  if (ticksPastClockEnd <= 0) return Math.min(pedaled, durationSec);
+  const ticksLeft = Math.max(1, DEMO_FINISH_COAST_TICKS - ticksPastClockEnd + 1);
+  const coasted = routeSec + (durationSec - routeSec) / ticksLeft;
+  return Math.min(Math.max(pedaled, coasted), durationSec);
+}
