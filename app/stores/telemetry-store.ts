@@ -86,6 +86,7 @@ export const selectPower = (s: TelemetryState) => s.snapshot.power;
 export const selectCadence = (s: TelemetryState) => s.snapshot.cadence;
 export const selectSpeed = (s: TelemetryState) => s.snapshot.speed;
 export const selectEffort = (s: TelemetryState) => s.snapshot.effort;
+export const selectIntensity = (s: TelemetryState) => s.snapshot.intensity;
 export const selectDistance = (s: TelemetryState) => s.snapshot.distance;
 export const selectWBal = (s: TelemetryState) => s.snapshot.wBal;
 export const selectWBalPercentage = (s: TelemetryState) => s.snapshot.wBalPercentage;

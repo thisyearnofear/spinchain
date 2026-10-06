@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { m, AnimatePresence } from "framer-motion";
-import { useTelemetryStore, selectPower, selectEffort } from "@/app/stores/telemetry-store";
+import { useTelemetryStore, selectIntensity } from "@/app/stores/telemetry-store";
 import { useCoachingStore, selectCurrentInterval } from "@/app/stores/coaching-store";
 import type { FlowStateTier } from "@/app/lib/flow-state";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
@@ -15,18 +15,17 @@ import {
  * EffortDelightOverlay — the two curated wedge delight moments.
  *
  * DOM-only, pointer-events-none, stacked above the 3D world but below HUD.
- * Fitness is the input: sprint watts hold the beam, flow tier 3+ opens the ring.
+ * Fitness is the input: effort above the rider's own threshold holds the beam, flow tier 3+ opens the ring.
  * Respects reduced-motion via framer-motion's global MotionConfig (user).
  */
 export function EffortDelightOverlay({ flowTier = 0 }: { flowTier?: FlowStateTier }) {
-  const power = useTelemetryStore(selectPower);
-  const effort = useTelemetryStore(selectEffort);
+  const intensity = useTelemetryStore(selectIntensity);
   const currentInterval = useCoachingStore(selectCurrentInterval);
   const phase = (currentInterval?.phase ?? null) as IntervalPhase;
 
   const beam = useMemo(
-    () => getSprintBeamState(phase, power, effort),
-    [phase, power, effort],
+    () => getSprintBeamState(phase, intensity),
+    [phase, intensity],
   );
   const unlock = useMemo(() => getFlowUnlockParams(flowTier), [flowTier]);
 
