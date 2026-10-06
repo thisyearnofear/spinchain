@@ -63,7 +63,14 @@ jobs:
           curl -fSL --retry 3 -o "$RUNNER_TEMP/noir.tar.gz" \
             "https://github.com/noir-lang/noir/releases/download/v${NOIR_VERSION}/noir-x86_64-unknown-linux-gnu.tar.gz"
           tar -xzf "$RUNNER_TEMP/noir.tar.gz" -C "$RUNNER_TEMP/noir"
+          # `GITHUB_PATH` only prepends for the *following* steps, so the
+          # `nargo --version` below found nothing (run 37396721050: exit 127 on
+          # a successful download). Asserting the binary also means a broken
+          # installer fails here, with this message, rather than four seconds
+          # later in an unrelated step.
+          test -x "$RUNNER_TEMP/noir/nargo"
           echo "$RUNNER_TEMP/noir" >> "$GITHUB_PATH"
+          export PATH="$RUNNER_TEMP/noir:$PATH"
           nargo --version
 
       - name: Compile circuit
