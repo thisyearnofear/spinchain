@@ -11,6 +11,39 @@ updates:
     commit-message:
       prefix: "deps"
       prefix-development: "deps-dev"
+    groups:
+      # The Capacitor toolchain (cli/core/ios/android) must move as a unit —
+      # a lone CLI bump produces a mismatched native project (see #27).
+      capacitor:
+        patterns:
+          - "@capacitor/*"
+          - "@capacitor-community/*"
+      three-stack:
+        patterns:
+          - "three"
+          - "@react-three/*"
+          - "@types/three"
+          - "postprocessing"
+      web3:
+        patterns:
+          - "viem"
+          - "wagmi"
+          - "@rainbow-me/*"
+          - "ethers"
+          - "@mysten/*"
+      # Devtools move together for minors/patches; majors stay separate PRs
+      # so a breaking bump (e.g. @types/node) doesn't hide in the batch.
+      devtools:
+        patterns:
+          - "eslint*"
+          - "@types/*"
+          - "typescript"
+          - "vitest"
+          - "@playwright/*"
+          - "@testing-library/*"
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: github-actions
     directory: /
