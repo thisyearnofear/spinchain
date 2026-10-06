@@ -90,18 +90,32 @@ test("a paired bike's numbers reach the ride and the ride still completes", asyn
 
   // Now pedal to the end. The device feed keeps arriving on the way, because a
   // real bike does not stop reporting when the rider starts working.
+  // Mobile viewports ignore the keyboard and show tap targets instead, so tap
+  // them for real (touch events with a touch point, as a finger produces).
   const completion = page.getByTestId("ride-completion");
+  const pedalL = page.getByRole("button", { name: /^Left L$/ });
+  const pedalR = page.getByRole("button", { name: /^Right R$/ });
   const deadline = Date.now() + 200_000;
   let done = false;
   for (let batch = 0; !done && Date.now() < deadline; batch++) {
+    const touchPedals = await pedalL.isVisible().catch(() => false);
     for (let i = 0; i < 20 && !done; i++) {
       if (i % 8 === 0) {
         await push(page, { power: 245 + (batch % 40), cadence: 92, timestamp: Date.now(), channels: { power: true, cadence: true, speed: true, heartRate: true } });
       }
-      await page.keyboard.press(i % 2 === 0 ? "ArrowLeft" : "ArrowRight");
+      if (touchPedals) {
+        const pedal = i % 2 === 0 ? pedalL : pedalR;
+        if (!(await pedal.isVisible().catch(() => false))) break;
+        // Bounded: the pedals unmount the instant the ride ends, and an
+        // unbounded tap would wait out the test on a detached button.
+        if (!(await pedal.tap({ timeout: 2_000 }).then(() => true, () => false))) break;
+      } else {
+        await page.keyboard.press(i % 2 === 0 ? "ArrowLeft" : "ArrowRight");
+      }
       await page.waitForTimeout(100);
       done = await completion.isVisible().catch(() => false);
     }
+    if (!done) done = await completion.isVisible().catch(() => false);
   }
   await expect(completion, "the ride must complete with device telemetry interleaved").toBeVisible({
     timeout: 15_000,
