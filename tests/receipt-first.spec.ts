@@ -132,6 +132,8 @@ test.beforeEach(async ({ page }) => {
 
 test("demo ride completes with a durable local receipt and zero public writes", async ({ page }, testInfo) => {
   test.setTimeout(180_000);
+  const pageErrors: string[] = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e).slice(0, 200)));
 
   const response = await page.goto("/rider/ride/demo", { waitUntil: "domcontentloaded" });
   expect(response, "demo ride navigation must succeed").not.toBeNull();
@@ -153,8 +155,8 @@ test("demo ride completes with a durable local receipt and zero public writes", 
   await startButton.click();
   await expect(startButton).toBeHidden({ timeout: 15_000 });
 
-  // Drive the real demo clock with keyboard pedaling until the completion
-  // screen mounts — no store injection, no clock skips.
+  // Drive the real demo clock with pedal input until the completion screen
+  // mounts — no store injection, no clock skips.
   const completion = page.getByTestId("ride-completion");
   // Desktop pedals via the keyboard; mobile shows tap targets instead.
   const pedalL = page.getByRole("button", { name: /^Left L$/ });
@@ -168,7 +170,10 @@ test("demo ride completes with a durable local receipt and zero public writes", 
       if (touchPedals) {
         const pedal = i % 2 === 0 ? pedalL : pedalR;
         if (!(await pedal.isVisible().catch(() => false))) break;
-        await pedal.dispatchEvent("touchstart");
+        // A real tap, not a synthetic touchstart: dispatchEvent produced an
+        // empty touch list no browser emits, which crashed the handler.
+        // Bounded, because the pedals unmount the instant the ride ends.
+        if (!(await pedal.tap({ timeout: 2_000 }).then(() => true, () => false))) break;
         await page.waitForTimeout(120);
       } else {
         await page.keyboard.press(i % 2 === 0 ? "ArrowLeft" : "ArrowRight");
@@ -235,4 +240,11 @@ test("demo ride completes with a durable local receipt and zero public writes", 
   );
   expect(walletCalls).not.toContain("eth_sendTransaction");
   expect(walletCalls).not.toContain("eth_sendRawTransaction");
+
+  // Uncaught errors fail the receipt path too. The one tolerated pair is the
+  // loopback policy killing drei's <Environment preset> HDR fetch from a CDN
+  // (route-visualizer.tsx) — the same carve-out device-ingest.spec.ts makes.
+  const offlineCdnAsset = /potsdamer_platz_1k\.hdr|^TypeError: Failed to fetch$/i;
+  const unexpected = pageErrors.filter((e) => !offlineCdnAsset.test(e));
+  expect(unexpected, `unexpected page errors during the ride: ${unexpected}`).toEqual([]);
 });
