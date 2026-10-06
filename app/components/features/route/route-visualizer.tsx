@@ -35,7 +35,7 @@ import {
   VignetteEffect,
   type EffectComposer as PostprocessingComposer,
 } from "postprocessing";
-import { useMemo, useRef, useState, useEffect, useSyncExternalStore, Suspense, type MutableRefObject } from "react";
+import { useMemo, useRef, useState, useEffect, useLayoutEffect, useSyncExternalStore, Suspense, type MutableRefObject } from "react";
 import {
   OrbitControls,
   Environment,
@@ -66,6 +66,24 @@ import { AnimatedModel } from "./animated-model";
 import { ProceduralBike, useCyclistPose, BIKE_DECK_OFFSET, RIG } from "./procedural-cyclist";
 import { ProgressInterpolator, dampFactor } from "@/app/lib/progress-interpolator";
 import { WorldSkybox } from "./world-skybox";
+import { buildRouteCurve } from "./route-curve";
+import { SKIRT_EDGE_DROP, SKIRT_STEPS, buildRouteSkirtGeometry, createSkirtMaterial, roadProfile, type SkirtLight } from "./route-skirt";
+import { buildPropField, getPartGeometry, type PropPartField } from "./route-silhouettes";
+import {
+  ALPINE_AMBIENT_COLOR,
+  ALPINE_AMBIENT_GAIN,
+  ALPINE_FOG_FAR,
+  ALPINE_POINT_COLOR,
+  ALPINE_SKIRT_ALBEDO_GAIN,
+  ALPINE_SKIRT_EDGE_SHADE,
+  ALPINE_SKIRT_FOG_END,
+  ALPINE_SKIRT_FOG_START,
+  ALPINE_SKIRT_SUN_GAIN,
+  ALPINE_SUN_COLOR,
+  ALPINE_SUN_DIR,
+  ALPINE_SUN_INTENSITY,
+} from "./alpine-atmosphere";
+import { AlpineAtmosphere } from "./alpine-view";
 
 // Import StoryBeat types from gpx-uploader for consistency
 import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../../../routes/builder/gpx-uploader";
@@ -111,50 +129,8 @@ function Model({ url, scale = 1, rotation = [0, 0, 0], position = [0, 0, 0] }: {
   return <Clone object={scene} scale={scale} rotation={rotation} position={position} />;
 }
 
-/**
- * Generates a mock route curve based on elevation data/seeds
- */
-const DEFAULT_ELEVATION_PROFILE = [120, 180, 140, 210, 260, 220, 280, 240, 300, 260, 320, 280];
-
 function useRouteCurve(elevationProfile: number[]) {
-  return useMemo(() => {
-    // Sanitize: replace non-finite values, fall back to defaults if empty
-    const rawProfile = elevationProfile.length > 0 ? elevationProfile : DEFAULT_ELEVATION_PROFILE;
-    const profile = rawProfile.map(v => (Number.isFinite(v) ? v : 0));
-
-    const points: Vector3[] = [];
-    const radius = 50;
-    const steps = 150;
-
-    // Use i < steps (NOT i <= steps) to avoid a duplicate start/end point.
-    // A closed CatmullRomCurve3 handles the loop itself; a repeated endpoint
-    // produces a zero-length segment whose tangent is NaN, which propagates into
-    // ExtrudeGeometry and TubeGeometry vertex positions.
-    for (let i = 0; i < steps; i++) {
-      const t = i / steps;
-      const angle = t * Math.PI * 4; // 2 full circles
-
-      const r = radius + Math.sin(t * Math.PI * 6) * 15;
-      const x = Math.cos(angle) * r;
-      const z = Math.sin(angle) * r;
-
-      // Wrap elevation cyclically so the closed-loop seam blends smoothly
-      const u = t * profile.length;
-      const elevIndex = Math.floor(u) % profile.length;
-      const nextElevIndex = (elevIndex + 1) % profile.length;
-      const elevAlpha = u - Math.floor(u);
-
-      const h1 = profile[elevIndex] ?? 0;
-      const h2 = profile[nextElevIndex] ?? 0;
-      const height = MathUtils.lerp(h1, h2, elevAlpha);
-
-      points.push(new Vector3(x, height / 4, z));
-    }
-
-    const curve = new CatmullRomCurve3(points, true, "centripetal");
-    curve.arcLengthDivisions = 600;
-    return curve;
-  }, [elevationProfile]);
+  return useMemo(() => buildRouteCurve(elevationProfile), [elevationProfile]);
 }
 
 function Road({
@@ -233,8 +209,7 @@ function Road({
 
   const geometry = useMemo(() => {
     const shape = new Shape();
-    const width = theme === "rainbow" ? 4 : 2.5;
-    const height = 0.5;
+    const { halfWidth: width, height } = roadProfile(theme);
 
     // Create a trapezoid road profile
     shape.moveTo(-width, 0);
@@ -440,89 +415,165 @@ function FinishLine({ curve, theme = "neon" }: { curve: CatmullRomCurve3; theme?
   );
 }
 
-function PropManager({ theme = "neon", curve, stats, reactive = null }: { theme?: VisualizerTheme; curve: CatmullRomCurve3; stats: RiderStats; reactive?: ReactiveParams | null }) {
-  const themeData = getTheme(theme);
-  const propConfig = themeData.props;
-  const meshGroupRef = useRef<Group>(null);
+const _instanceMatrix = new THREE.Matrix4();
+
+function applyInstanceMatrices(mesh: THREE.InstancedMesh, matrices: Float32Array, count: number) {
+  for (let i = 0; i < count; i++) {
+    _instanceMatrix.fromArray(matrices, i * 16);
+    mesh.setMatrixAt(i, _instanceMatrix);
+  }
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+  mesh.computeBoundingSphere();
+}
+
+function RouteSkirt({ curve, theme }: { curve: CatmullRomCurve3; theme: VisualizerTheme }) {
+  const styles = getTheme(theme);
+  const { halfWidth } = roadProfile(theme);
+  // Alpine's rim stays nearly level so the fade is a surface you can see.
+  // The other themes keep the steeper drop.
+  const geometry = useMemo(
+    () => buildRouteSkirtGeometry(curve, halfWidth, SKIRT_STEPS, theme === "alpine" ? 0.6 : SKIRT_EDGE_DROP),
+    [curve, halfWidth, theme],
+  );
+  const light = useMemo<SkirtLight | undefined>(() => {
+    if (theme !== "alpine") return undefined;
+    return {
+      albedoGain: ALPINE_SKIRT_ALBEDO_GAIN,
+      edgeShade: ALPINE_SKIRT_EDGE_SHADE,
+      sunGain: ALPINE_SKIRT_SUN_GAIN,
+      sunDir: ALPINE_SUN_DIR,
+      fogStart: ALPINE_SKIRT_FOG_START,
+      fogEnd: ALPINE_SKIRT_FOG_END,
+    };
+  }, [theme]);
+  const material = useMemo(
+    () => createSkirtMaterial(styles.terrainColor, styles.terrainAccent, light),
+    [styles.terrainColor, styles.terrainAccent, light],
+  );
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => material.dispose(), [material]);
+
+  return <mesh geometry={geometry} material={material} frustumCulled />;
+}
+
+/**
+ * Effort glow for the one lit part of a neon/rainbow silhouette.
+ * Writes a single emissiveIntensity. No per-instance material walk.
+ */
+function BreathingMaterial({
+  color,
+  roughness,
+  metalness,
+  theme,
+  stats,
+  reactive,
+}: {
+  color: string;
+  roughness: number;
+  metalness: number;
+  theme: VisualizerTheme;
+  stats: RiderStats;
+  reactive: ReactiveParams | null;
+}) {
+  const ref = useRef<MeshStandardMaterial>(null);
 
   useFrame((state) => {
-    if (!meshGroupRef.current) return;
-
+    const mat = ref.current;
+    if (!mat) return;
     const pulseBase = 1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.05;
-    meshGroupRef.current.children.forEach((child) => {
-      const mesh = child as Mesh;
-      if (mesh.material) {
-        const mat = mesh.material as MeshStandardMaterial;
-        if (theme === 'neon' || theme === 'rainbow') {
-          let baseIntensity = theme === 'neon' ? 0.5 : 0.8;
-          // World reactivity: props pulse harder during sprints
-          if (reactive) {
-            baseIntensity = reactive.propEmissiveIntensity;
-            // Extra pulse at the phase's rhythm (computePhaseTheme pulseMs)
-            const beat = (state.clock.elapsedTime * 1000) % reactive.pulseMs;
-            if (beat < reactive.pulseMs / 2) {
-              baseIntensity *= 1.25;
-            }
-          }
-          mat.emissiveIntensity = baseIntensity + (pulseBase - 1) * 2;
-        }
-      }
-    });
-  });
-  // Deterministic random using index as seed (avoids Math.random during render)
-  const seededRandom = (seed: number) => {
-    const x = Math.sin(seed * 9999) * 10000;
-    return x - Math.floor(x);
-  };
-
-  const propPoints = useMemo(() => {
-    if (!propConfig) return [];
-    const points = [];
-    for (let i = 0; i < propConfig.count; i++) {
-      const p = seededRandom(i);
-      const point = curve.getPointAt(p);
-      const tangent = curve.getTangentAt(p);
-      const side = new Vector3().crossVectors(tangent, new Vector3(0, 1, 0)).normalize();
-
-      // Alternate sides, move out from road
-      const dist = 8 + seededRandom(i + 1000) * 15;
-      const offset = side.multiplyScalar(i % 2 === 0 ? dist : -dist);
-
-      points.push({
-        id: `${propConfig.type}-${i}`,
-        position: [point.x + offset.x, point.y + offset.y + (propConfig.type === 'building' ? propConfig.scale[1] / 2 : 0), point.z + offset.z] as [number, number, number],
-        rotation: [0, seededRandom(i + 2000) * Math.PI, 0] as [number, number, number],
-        scale: [
-          propConfig.scale[0] * (0.8 + seededRandom(i + 3000) * 0.4),
-          propConfig.scale[1] * (0.5 + seededRandom(i + 4000) * 1.5),
-          propConfig.scale[2] * (0.8 + seededRandom(i + 5000) * 0.4),
-        ] as [number, number, number],
-      });
+    let baseIntensity = theme === "neon" ? 0.5 : 0.8;
+    if (reactive) {
+      baseIntensity = reactive.propEmissiveIntensity;
+      const beat = (state.clock.elapsedTime * 1000) % reactive.pulseMs;
+      if (beat < reactive.pulseMs / 2) baseIntensity *= 1.25;
     }
-    return points;
-  }, [curve, propConfig]);
-
-  if (!propConfig) return null;
+    mat.emissiveIntensity = baseIntensity + (pulseBase - 1) * 2;
+  });
 
   return (
-    <group ref={meshGroupRef}>
-      {propPoints.map((p) => (
-        <mesh key={p.id} position={p.position} rotation={p.rotation} scale={p.scale}>
-          {propConfig.type === 'building' ? (
-            <boxGeometry />
-          ) : propConfig.type === 'tree' ? (
-            <coneGeometry args={[1, 4, 8]} />
-          ) : propConfig.type === 'rock' ? (
-            <dodecahedronGeometry />
-          ) : (
-            <sphereGeometry />
-          )}
-          <meshStandardMaterial
-            color={propConfig.color}
-            emissive={propConfig.color}
-            emissiveIntensity={theme === 'neon' ? 0.5 : 0.1}
-          />
-        </mesh>
+    <meshStandardMaterial
+      ref={ref}
+      color={color}
+      emissive={color}
+      emissiveIntensity={theme === "neon" ? 0.5 : 0.8}
+      roughness={roughness}
+      metalness={metalness}
+    />
+  );
+}
+
+function PropInstances({
+  part,
+  theme,
+  stats,
+  reactive,
+}: {
+  part: PropPartField;
+  theme: VisualizerTheme;
+  stats: RiderStats;
+  reactive: ReactiveParams | null;
+}) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const geometry = useMemo(() => getPartGeometry(part), [part]);
+
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    applyInstanceMatrices(mesh, part.matrices, part.count);
+  }, [part]);
+
+  const breathe = part.breathes && (theme === "neon" || theme === "rainbow");
+
+  return (
+    <instancedMesh ref={meshRef} args={[geometry, undefined, part.count]} frustumCulled>
+      {breathe ? (
+        <BreathingMaterial
+          color={part.color}
+          roughness={part.roughness}
+          metalness={part.metalness}
+          theme={theme}
+          stats={stats}
+          reactive={reactive}
+        />
+      ) : (
+        <meshStandardMaterial
+          color={part.color}
+          emissive={part.color}
+          emissiveIntensity={part.emissive}
+          roughness={part.roughness}
+          metalness={part.metalness}
+        />
+      )}
+    </instancedMesh>
+  );
+}
+
+function PropField({
+  theme = "neon",
+  curve,
+  stats,
+  reactive = null,
+}: {
+  theme?: VisualizerTheme;
+  curve: CatmullRomCurve3;
+  stats: RiderStats;
+  reactive?: ReactiveParams | null;
+}) {
+  const propConfig = getTheme(theme).props;
+  const { halfWidth } = roadProfile(theme);
+  const field = useMemo(
+    () => (propConfig ? buildPropField(curve, propConfig, halfWidth) : null),
+    [curve, propConfig, halfWidth],
+  );
+
+  if (!field) return null;
+
+  return (
+    <group>
+      {field.parts.map((part) => (
+        <PropInstances key={part.id} part={part} theme={theme} stats={stats} reactive={reactive} />
       ))}
     </group>
   );
@@ -1510,14 +1561,47 @@ function Scene({
   return (
     <>
       <PerspectiveCamera makeDefault position={[0, 100, 100]} fov={60} rotation={[-Math.PI / 3, 0, 0]} />
-      <ambientLight intensity={reactive ? reactive.ambientIntensity : 0.5} />
+      <ambientLight
+        intensity={(reactive ? reactive.ambientIntensity : 0.5) * (theme === "alpine" ? ALPINE_AMBIENT_GAIN : 1)}
+        color={theme === "alpine" ? ALPINE_AMBIENT_COLOR : "#ffffff"}
+      />
+      {theme === "alpine" && (
+        <>
+          <hemisphereLight args={["#e7f2ff", "#7d9a78", 0.45]} />
+          <directionalLight
+            position={[ALPINE_SUN_DIR.x * 80, ALPINE_SUN_DIR.y * 80, ALPINE_SUN_DIR.z * 80]}
+            intensity={ALPINE_SUN_INTENSITY}
+            color={ALPINE_SUN_COLOR}
+          />
+        </>
+      )}
       <pointLight
         position={[10, 50, 10]}
         intensity={reactive ? reactive.pointLightIntensity : 1}
-        color={reactive ? reactive.pointLightColor : (theme === "mars" ? "#ef4444" : theme === "rainbow" ? "#ff00ff" : "#9b7bff")}
+        color={
+          reactive
+            ? reactive.pointLightColor
+            : theme === "mars"
+              ? "#ef4444"
+              : theme === "rainbow"
+                ? "#ff00ff"
+                : theme === "alpine"
+                  ? ALPINE_POINT_COLOR
+                  : "#9b7bff"
+        }
         castShadow={quality?.shadows}
       />
-      <fog attach="fog" args={[reactive ? reactive.fogColor : styles.fog, reactive ? reactive.fogDensity : 40, 250]} />
+      <fog
+        attach="fog"
+        args={[
+          // Alpine keeps its haze color. Effort still closes the near plane
+          // (fogDensity). Letting the phase tint replace the haze turns the
+          // horizon into a dark cut.
+          theme === "alpine" ? styles.fog : reactive ? reactive.fogColor : styles.fog,
+          reactive ? reactive.fogDensity : 40,
+          theme === "alpine" ? ALPINE_FOG_FAR : 250,
+        ]}
+      />
 
       {/* Generated-world panorama (World Labs pipeline) — one static
           equirect texture; the mobile-safe tier. */}
@@ -1580,6 +1664,10 @@ function Scene({
 
       <group position={[0, -10, 0]}>
         {/* Adaptive road geometry resolution: high=600, medium=250, low=100 */}
+        {theme === "alpine" && (
+          <AlpineAtmosphere curve={curve} horizon={styles.fog} zenith={styles.skyTop} />
+        )}
+        <RouteSkirt curve={curve} theme={theme} />
         <Road
           curve={curve}
           theme={theme}
@@ -1587,7 +1675,7 @@ function Scene({
           steps={performanceTier === "high" ? 600 : performanceTier === "medium" ? 250 : 100}
           reactive={reactive}
         />
-        <PropManager theme={theme} curve={curve} stats={stats} reactive={reactive} />
+        <PropField theme={theme} curve={curve} stats={stats} reactive={reactive} />
         <FinishLine curve={curve} theme={theme} />
         <WelcomeSign theme={theme} name={userDisplayName} curve={curve} />
 
