@@ -26,6 +26,7 @@ import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useUIStore } from "@/app/stores/ui-store";
+import type { RideTelemetryUpdate } from "@/app/engines/types";
 
 declare global {
   interface Window {
@@ -35,6 +36,15 @@ declare global {
       setPausedForScreenshot(paused: boolean): void;
       setReducedMotion(enabled: boolean): void;
       hideDebugUi(hidden: boolean): void;
+      /**
+       * Feed one device-shaped telemetry update through the same entry point a
+       * real bike uses (`coordinator.ingestBleMetrics`). Store-writing hooks can
+       * prove a picture renders, but only this proves that what a device
+       * reports is what moves the world. Returns false when no ride page is
+       * mounted — note it says nothing about whether a ride has *started*, so
+       * pair it with something the rider would see.
+       */
+      pushTelemetry(metrics: RideTelemetryUpdate): boolean;
     };
     __SPINCHAIN_TEST_HOOKS__?: Window["__THREE_GAME_TEST_HOOKS__"];
     __SPINCHAIN_SEED__?: number;
@@ -43,6 +53,20 @@ declare global {
 }
 
 let installed = false;
+let telemetryIngest: ((metrics: RideTelemetryUpdate) => void) | null = null;
+
+/**
+ * Called by the mounted ride page so `pushTelemetry` reaches a live coordinator.
+ * Returns the disposer; a detached ingest would silently drive nothing.
+ */
+export function registerTelemetryIngest(
+  ingest: (metrics: RideTelemetryUpdate) => void,
+): () => void {
+  telemetryIngest = ingest;
+  return () => {
+    if (telemetryIngest === ingest) telemetryIngest = null;
+  };
+}
 
 export function installTestHooks(): void {
   if (typeof window === "undefined") return;
@@ -53,7 +77,7 @@ export function installTestHooks(): void {
   if (process.env.NODE_ENV === "production") {
     try {
       const params = new URLSearchParams(window.location.search);
-      if (!params.get("testState") && !params.get("state")) return;
+      if (!params.get("testState") && !params.get("state") && !params.get("testHooks")) return;
     } catch {
       return;
     }
@@ -136,6 +160,11 @@ export function installTestHooks(): void {
     hideDebugUi(hidden: boolean) {
       document.documentElement.setAttribute("data-hide-debug-ui", String(hidden));
       document.documentElement.style.setProperty("--debug-ui-display", hidden ? "none" : "");
+    },
+    pushTelemetry(metrics: RideTelemetryUpdate): boolean {
+      if (!telemetryIngest) return false;
+      telemetryIngest(metrics);
+      return true;
     },
   };
 

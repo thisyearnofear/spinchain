@@ -37,6 +37,7 @@ import { RideHudControls } from "../../../components/features/ride/ride-hud-cont
 import type { RewardMode } from "../../../hooks/rewards/use-rewards";
 import { useWakeLock } from "../../../hooks/use-wake-lock";
 import { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
+import { registerTelemetryIngest } from "@/app/lib/test-hooks";
 import { useHaptic } from "../../../hooks/use-haptic";
 import {
   type WorkoutPlan,
@@ -116,6 +117,14 @@ export default function LiveRidePage() {
   useEffect(() => {
     coordinatorRef.current = coordinator;
   }, [coordinator]);
+  // Hands the test hooks the same ingest entry point a paired bike uses, so a
+  // browser run can prove device telemetry moves the world. Through the ref
+  // because `coordinator` is a fresh object each render; inert when the hooks
+  // are not installed.
+  useEffect(
+    () => registerTelemetryIngest((metrics) => coordinatorRef.current.ingestBleMetrics(metrics)),
+    [],
+  );
 
   // ─── Panel State ───────────────────────────────────────────────
   const panelState = usePanelState(deviceType);
