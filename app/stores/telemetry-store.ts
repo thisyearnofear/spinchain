@@ -20,6 +20,7 @@ const INITIAL_SNAPSHOT: TelemetrySnapshot = {
   cadence: 0,
   speed: 0,
   effort: 0,
+  intensity: 0,
   wBal: 0,
   wBalPercentage: 100,
   currentGear: 10,

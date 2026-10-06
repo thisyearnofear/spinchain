@@ -149,6 +149,15 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
     const { session, elapsedTime } = useRideStore.getState();
     const isResuming = isResumableRide(session, elapsedTime, classId);
 
+    // Read once at ride start: these are the rider's stated thresholds, and a
+    // ride that changes its own mind mid-way would move the world under them.
+    const profile = useRiderProfile.getState();
+    const rider = {
+      ftp: profile.ftp,
+      maxHr: profile.maxHr,
+      restingHr: profile.restingHr,
+    };
+
     coordinator.startRide({
       classId,
       classData: classData ? {
@@ -172,6 +181,7 @@ export function useRideLifecycle(params: UseRideLifecycleParams) {
       },
       ghostBlobId: classData?.metadata?.route?.walrusBlobId,
       practiceWallDurationSec,
+      rider,
     }).catch((err: unknown) => console.warn("[Ride] Coordinator start failed:", err));
 
     isRidingRef.current = true;

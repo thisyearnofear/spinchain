@@ -19,9 +19,9 @@ export interface FocusRendererProps {
   progress: number;
   currentPower: number;
   recentPower: number[];
-  ftp: number;
+  powerThresholdW: number;
   theme: VisualizerTheme;
-  stats: { hr: number; power: number; cadence: number };
+  stats: { hr: number; power: number; cadence: number; intensity: number };
   avatarId?: string;
   equipmentId?: string;
   routeName: string;
@@ -70,7 +70,7 @@ export const FocusRenderer = memo(function FocusRenderer(props: FocusRendererPro
         progress={props.progress}
         currentPower={props.currentPower}
         recentPower={props.recentPower}
-        ftp={props.ftp}
+        ftp={props.powerThresholdW}
         theme={props.theme}
         stats={props.stats}
         avatarId={props.avatarId}

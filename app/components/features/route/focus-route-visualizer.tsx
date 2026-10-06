@@ -14,6 +14,7 @@ import { CollapseToggle } from "@/app/components/features/common/collapse-toggle
 import type { PanelState, PanelKey, PanelPositions, DesktopPanelKey } from "@/app/hooks/ui/use-panel-state";
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import { ProgressInterpolator } from "@/app/lib/progress-interpolator";
+import { visualEffort } from "@/app/lib/ride-effort";
 
 const RiveRider = dynamic(
   () => import("@/app/components/features/ride/rive-rider").then((m) => m.RiveRider),
@@ -183,7 +184,7 @@ export default function FocusRouteVisualizer({
   recentPower,
   ftp = 200,
   theme = "neon",
-  stats = { hr: 0, power: 0, cadence: 0 },
+  stats = { hr: 0, power: 0, cadence: 0, intensity: 0 },
   avatarId,
   equipmentId,
   routeName = "Focus Route",
@@ -321,11 +322,7 @@ export default function FocusRouteVisualizer({
     const last = recentPower[recentPower.length - 1] ?? 0;
     return last - first;
   }, [recentPower]);
-  const avgRecentPower = useMemo(() => {
-    if (!recentPower || recentPower.length === 0) return displayedPower;
-    return recentPower.reduce((sum, sample) => sum + sample, 0) / recentPower.length;
-  }, [displayedPower, recentPower]);
-  const effortRatio = ftp > 0 ? avgRecentPower / ftp : 0;
+  const effortRatio = visualEffort(stats.intensity);
   const routeStroke = clamp(18 + effortRatio * 10, 18, 30);
   const routeHalo = clamp(28 + effortRatio * 18, 28, 48);
   const currentZone = getPowerZone(displayedPower, ftp);
@@ -870,7 +867,7 @@ export default function FocusRouteVisualizer({
                   <div
                     className="focus-route-sync h-full rounded-full transition-all duration-300"
                     style={{
-                      width: `${clamp(((intervalPhase === "sprint" ? stats.cadence / 120 : displayedPower / Math.max(ftp, 1)) * 100), 0, 100)}%`,
+                      width: `${clamp(((intervalPhase === "sprint" ? stats.cadence / 120 : stats.intensity) * 100), 0, 100)}%`,
                       background: `linear-gradient(90deg, ${styles.lineColor} 0%, ${phaseAccent} 100%)`,
                       ...routeSyncStyle,
                     }}

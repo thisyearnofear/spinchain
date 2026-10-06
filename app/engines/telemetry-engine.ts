@@ -16,7 +16,9 @@ import type {
   DeviceType,
   PerformanceTier,
   MultiGhostState,
+  RideTelemetryUpdate,
 } from "./types";
+import type { ChannelCapability } from "@/app/lib/ride-effort";
 import {
   calculateNextWBal,
   DEFAULT_WBAL_CONFIG,
@@ -38,6 +40,7 @@ const INITIAL_SNAPSHOT: TelemetrySnapshot = {
   cadence: 0,
   speed: 0,
   effort: 0,
+  intensity: 0,
   wBal: DEFAULT_WBAL_CONFIG.wPrime,
   wBalPercentage: 100,
   currentGear: 10,
@@ -110,6 +113,7 @@ export class TelemetryEngine {
     this.routeCoordinates = routeCoords;
     this.totalDurationSeconds = durationSeconds ?? 45 * 60;
     this.rawSnapshot = { ...INITIAL_SNAPSHOT };
+    this.observedChannels = { power: false, heartRate: false, cadence: false };
     this.ridePoints.length = 0;
     this.samples.length = 0;
     this.wBal = DEFAULT_WBAL_CONFIG.wPrime;
@@ -137,8 +141,30 @@ export class TelemetryEngine {
 
   // ─── Data Ingestion ──────────────────────────────────────────
 
+  /**
+   * Which channels the connected equipment has actually reported. Everything
+   * that reads effort through a zero has to answer "zero watts, or no watts at
+   * all?" first, and only the device knows.
+   */
+  private observedChannels: ChannelCapability = {
+    power: false,
+    heartRate: false,
+    cadence: false,
+  };
+
+  get capability(): ChannelCapability {
+    return this.observedChannels;
+  }
+
   /** Called by device engine when BLE data arrives */
-  ingest(update: Partial<TelemetrySnapshot>): void {
+  ingest(update: RideTelemetryUpdate): void {
+    if (update.channels) {
+      this.observedChannels = {
+        power: this.observedChannels.power || update.channels.power,
+        heartRate: this.observedChannels.heartRate || update.channels.heartRate,
+        cadence: this.observedChannels.cadence || update.channels.cadence,
+      };
+    }
     Object.assign(this.rawSnapshot, {
       heartRate: update.heartRate ?? this.rawSnapshot.heartRate,
       power: update.power ?? this.rawSnapshot.power,

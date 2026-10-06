@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RideCoordinator } from "../coordinator";
 import { useRideStore } from "@/app/stores/ride-store";
+import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { PRACTICE_WALL_DURATION_SEC } from "@/app/lib/practice-demo";
 import type { RideStartConfig } from "../types";
 
@@ -233,5 +234,40 @@ describe("RideCoordinator ride clock", () => {
     expect(ride.telemetry.rawSnapshot.effort).toBe(350);
     await tick();
     expect(useRideStore.getState().elapsedTime).toBe(2);
+  });
+
+  it("records which channels a bike actually reports", async () => {
+    const ride = await startRide();
+    // Nothing has arrived yet, so nothing is known: with no evidence either way
+    // no channel can be assumed to exist.
+    expect(ride.telemetry.capability).toEqual({ power: false, heartRate: false, cadence: false });
+
+    // An FTMS bike with no strap: watts notifications only.
+    ride.ingestBleMetrics({ power: 210, channels: { power: true, heartRate: false, cadence: true, speed: true } });
+    expect(ride.telemetry.capability).toEqual({ power: true, heartRate: false, cadence: true });
+
+    // Channels accumulate — heart rate arrives on its own characteristic, on
+    // its own tick, and a later packet that omits it does not un-discover it.
+    ride.ingestBleMetrics({ heartRate: 152, channels: { power: false, heartRate: true, cadence: false, speed: false } });
+    expect(ride.telemetry.capability).toEqual({ power: true, heartRate: true, cadence: true });
+  });
+
+  it("computes rider-relative intensity without touching the effort ledger", async () => {
+    const ride = await startRide({ rider: { ftp: 200, maxHr: 190, restingHr: 50 } });
+    ride.ingestSimulatorMetrics({
+      heartRate: 150,
+      power: 200,
+      cadence: 90,
+      speed: 28,
+      effort: 900,
+    });
+
+    const snapshot = useTelemetryStore.getState().snapshot;
+    // 200 W against this rider's 200 W threshold is threshold pace.
+    expect(snapshot.intensity).toBeGreaterThan(0.9);
+    expect(snapshot.intensity).toBeLessThan(1.1);
+    // The 0–1000 absolute score the reward ledger and the circuit read is
+    // whatever the device said, untouched by any of this.
+    expect(snapshot.effort).toBe(900);
   });
 });
