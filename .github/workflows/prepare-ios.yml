@@ -1,8 +1,9 @@
 name: Prepare iOS Build
 
+# Dispatch-only. This job prepares the native iOS shell for Xcode Cloud; it is
+# not a signal about a push to main, and running it on every push turned a
+# manual release step into a permanent red badge on main.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -16,7 +17,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
         with:
-          version: 10
+          version: 10.33.2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -24,20 +25,41 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
+      # No --ignore-scripts: the postinstall step copies the Rive wasm runtime,
+      # and a shell prepared without it builds and then fails at runtime.
       - name: Install dependencies
-        run: pnpm install --ignore-scripts
+        run: pnpm install
 
       - name: Security audit
         run: pnpm audit --audit-level=high
         continue-on-error: true
 
-      - name: Build Next.js app
-        run: pnpm build
+      # The app loads the deployed site over the network (Capacitor
+      # remote-server mode) because Next.js cannot static-export 33 API routes.
+      # In that mode webDir content is never loaded, but the Capacitor CLI still
+      # validates that the directory named in capacitor.config.ts exists — so
+      # this creates it, and does not pretend to build a web bundle nobody uses.
+      - name: Verify remote server URL is configured
         env:
-          NEXT_PUBLIC_RPC_URL: ${{ secrets.NEXT_PUBLIC_RPC_URL }}
-          NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID }}
+          CAPACITOR_SERVER_URL: ${{ vars.CAPACITOR_SERVER_URL }}
+        run: |
+          if [ -z "$CAPACITOR_SERVER_URL" ]; then
+            echo "::error::CAPACITOR_SERVER_URL repo variable is not set. Set it to the deployed app origin (e.g. https://spinchain.vercel.app) — the iOS shell loads the app from there."
+            exit 1
+          fi
+          case "$CAPACITOR_SERVER_URL" in
+            https://*) ;;
+            *) echo "::error::CAPACITOR_SERVER_URL must be an https:// origin, got: $CAPACITOR_SERVER_URL"; exit 1 ;;
+          esac
+
+      - name: Prepare webDir for remote-server mode
+        run: |
+          mkdir -p out
+          printf '<!doctype html><meta charset="utf-8"><title>SpinChain</title>' > out/index.html
 
       - name: Sync Capacitor
+        env:
+          CAPACITOR_SERVER_URL: ${{ vars.CAPACITOR_SERVER_URL }}
         run: pnpm exec cap sync ios
 
       - name: Upload iOS project
@@ -48,14 +70,18 @@ jobs:
           retention-days: 2
 
       - name: Create deployment tag
-        if: github.event_name == 'workflow_dispatch'
         run: |
-          echo "ios-build-ready" >> $GITHUB_STEP_SUMMARY
-          echo "## iOS Build Ready" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The iOS project has been prepared. To build with Xcode Cloud:" >> $GITHUB_STEP_SUMMARY
-          echo "1. Open Xcode" >> $GITHUB_STEP_SUMMARY
-          echo "2. Go to Xcode > Settings > Accounts" >> $GITHUB_STEP_SUMMARY
-          echo "3. Add your Apple Developer account" >> $GITHUB_STEP_SUMMARY
-          echo "4. Open the workspace: ios/App.xcworkspace" >> $GITHUB_STEP_SUMMARY
-          echo "5. Product > Archive to start Xcode Cloud build" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## iOS Build Ready"
+            echo ""
+            echo "Shell configured to load \`$CAPACITOR_SERVER_URL\`."
+            echo ""
+            echo "To build with Xcode Cloud:"
+            echo "1. Open Xcode"
+            echo "2. Go to Xcode > Settings > Accounts"
+            echo "3. Add your Apple Developer account"
+            echo "4. Open the workspace: ios/App.xcworkspace"
+            echo "5. Product > Archive to start Xcode Cloud build"
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          CAPACITOR_SERVER_URL: ${{ vars.CAPACITOR_SERVER_URL }}

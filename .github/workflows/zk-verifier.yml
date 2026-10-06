@@ -1,23 +1,28 @@
 name: ZK Verifier Generation
 
 on:
-  push:
-    paths:
-      - 'circuits/**'
   pull_request:
     paths:
       - 'circuits/**'
+      - 'contracts/evm/UltraVerifier.sol'
+      - '.github/workflows/zk-verifier.yml'
   workflow_dispatch:
 
 jobs:
   generate-verifier:
-    name: Compile Circuit & Generate Solidity Verifier
+    name: Compile Circuit & Check Committed Verifier
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # TODO(ci): these installs are unpinned — `noirup` and `bb` from master.
+      # That means the same circuit can generate different Solidity on two
+      # different days, so a "matches the committed verifier" pass is weaker
+      # than it looks. Pinning `bb` to a release tag is the fix; it needs the
+      # tag this circuit was actually generated with, which nothing currently
+      # records.
       - name: Install Nargo
         run: |
           curl -L https://noirup.dev | bash
@@ -42,25 +47,28 @@ jobs:
 
       - name: Generate Solidity verifier
         working-directory: circuits/effort_threshold
-        run: bb contract -k target/vk -o ../../contracts/evm/UltraVerifier.sol
+        # Into target/, which circuits/*/target/ already gitignores: the
+        # committed verifier must not be the output path, or nothing would tell
+        # a stale verifier apart from a freshly generated one.
+        run: bb contract -k target/vk -o target/UltraVerifier.generated.sol
 
-      - name: Verify output exists
-        run: test -f contracts/evm/UltraVerifier.sol && echo "UltraVerifier.sol generated successfully"
-
-      - name: Commit generated verifier
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      # This used to commit straight to main on every circuits/** push. A job
+      # that rewrites a money-gating verifier on main with no review is not a
+      # check, it is a second write path around one.
+      - name: Fail if the committed verifier is stale
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add contracts/evm/UltraVerifier.sol
-          git diff --staged --quiet || git commit \
-            --trailer "Co-authored-by: Junie <junie@jetbrains.com>" \
-            -m "ci: regenerate UltraVerifier.sol from Noir circuit [skip ci]"
-          git push
+          if ! diff -q contracts/evm/UltraVerifier.sol circuits/effort_threshold/target/UltraVerifier.generated.sol >/dev/null; then
+            echo "::error::contracts/evm/UltraVerifier.sol does not match what this circuit generates. Commit the regenerated file from the uploaded artifact."
+            diff -u contracts/evm/UltraVerifier.sol circuits/effort_threshold/target/UltraVerifier.generated.sol | head -60 || true
+            exit 1
+          fi
+          echo "Committed UltraVerifier.sol matches the circuit."
 
       - name: Upload verifier artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ultra-verifier-sol
-          path: contracts/evm/UltraVerifier.sol
+          path: circuits/effort_threshold/target/UltraVerifier.generated.sol
+          if-no-files-found: ignore
           retention-days: 90

@@ -33,12 +33,17 @@ jobs:
 
       # Ratchet: lint only the app TS/TSX changed in this PR. This blocks any
       # NEW error (including react-hooks/rules-of-hooks — the crash that has
-      # shipped twice) without failing on the ~48 pre-existing errors that are
-      # tracked separately. Full-project lint is available via `pnpm lint`.
+      # shipped twice). A full-project run is clean of errors today (warnings
+      # only) and is available via `pnpm lint`.
       - name: Lint changed files
         if: github.event_name == 'pull_request'
+        env:
+          # Event fields go through the environment, never into the command: a
+          # branch name may contain shell metacharacters, and `${{ }}` expansion
+          # happens before the shell sees the line.
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          BASE="origin/${{ github.base_ref }}"
+          BASE="origin/$BASE_REF"
           FILES=$(git diff --name-only --diff-filter=ACM "$BASE"...HEAD -- 'app/**/*.ts' 'app/**/*.tsx')
           if [ -z "$FILES" ]; then
             echo "No changed app TS/TSX files to lint."
@@ -48,6 +53,21 @@ jobs:
           echo "$FILES"
           # shellcheck disable=SC2086
           pnpm exec eslint $FILES
+
+      # Reward gate tripwire. Live claims are not approved — the deployed
+      # verifier wrapper rejects real proofs, and the app-side gate needs the
+      # literal string "true" AND chain 43113 (app/lib/rewards/legacy-policy.ts),
+      # so absent means off. Every committed reference currently says false; this
+      # fails the day one of them stops saying so. It cannot see Vercel's project
+      # variables, which is a deploy-time check, not a repo check.
+      - name: Legacy reward claims stay gated off
+        run: |
+          if grep -rEn 'ENABLE_LEGACY_REWARD_CLAIMS[^a-zA-Z0-9]*[Tt]rue' \
+              .env.example .env.local.template playwright.config.ts .github; then
+            echo "::error::NEXT_PUBLIC_ENABLE_LEGACY_REWARD_CLAIMS must stay false until the deployed verifier accepts real proofs."
+            exit 1
+          fi
+          echo "Legacy claim gate is off in every committed reference."
 
       - name: Typecheck
         run: pnpm exec tsc --noEmit
@@ -126,6 +146,17 @@ jobs:
       - name: Run verifier tests
         working-directory: contracts/evm
         run: forge test --match-contract 'EffortThresholdVerifier.*'
+
+      # Tripwire on the live Fuji deployment. `E2EFujiDeployment.t.sol` has
+      # always existed and has never run in CI: it needs an explicit
+      # --fork-url, and its comment claiming foundry.toml supplies one is
+      # wrong — without the flag the fork is inactive and 6 of its 7 tests fail
+      # with "no code", which is how a checked fact became a README sentence.
+      # Pinned to a block so the result cannot drift with chain state; bump
+      # FORK_BLOCK alongside a new deployment. Public RPC, no secrets.
+      - name: Verify deployed contracts on Fuji fork
+        working-directory: contracts/evm
+        run: forge test --match-contract 'E2EFujiDeployment' --fork-url fuji --fork-block-number 59084300 -vv
 
   rive:
     name: Rive verify + goldens
