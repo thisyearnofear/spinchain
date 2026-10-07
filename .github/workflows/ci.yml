@@ -168,10 +168,12 @@ jobs:
           path: .next/standalone
 
       # PLAYWRIGHT_PREBUILT tells webServer to run .next/standalone/server.js
-      # instead of rebuilding (see playwright.config.ts).
+      # instead of rebuilding (see playwright.config.ts). Visual-regression is
+      # excluded — the dedicated e2e-visual job runs it without contention.
       - name: E2E gate
         env:
           PLAYWRIGHT_PREBUILT: "1"
+          PLAYWRIGHT_NO_VISUAL: "1"
         run: pnpm test:e2e --shard=${{ matrix.shard }}/6
 
       - name: Upload shard report
@@ -183,9 +185,61 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # Snapshot baselines are the most timing-sensitive spec — a parallel
+  # SwiftShader neighbor starves the finished scene under the drawn-scene
+  # threshold (observed as a 3/3-retry failure on a busy shard). It gets its
+  # own runner at workers:1; cost is the fixed ~2min setup, stability is the
+  # point.
+  e2e-visual:
+    name: Visual regression
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.2
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Download app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build
+          path: .next/standalone
+
+      - name: Visual gate
+        env:
+          PLAYWRIGHT_PREBUILT: "1"
+          PLAYWRIGHT_WORKERS: "1"
+        run: pnpm exec playwright test tests/visual-regression.spec.ts
+
+      - name: Upload shard report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-visual
+          path: blob-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
   e2e-report:
     name: Merge Playwright report
-    needs: e2e
+    needs: [e2e, e2e-visual]
     if: always()
     runs-on: ubuntu-latest
 
