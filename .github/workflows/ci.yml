@@ -119,11 +119,14 @@ jobs:
           cp -r .next/static .next/standalone/.next/static
           cp -r public .next/standalone/public
 
+      # include-hidden-files: the standalone bundle's own `.next` dir is a
+      # hidden path — without this the upload silently drops ~85MB of it.
       - name: Upload app artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-build
           path: .next/standalone/
+          include-hidden-files: true
           retention-days: 1
           if-no-files-found: error
 
