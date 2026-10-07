@@ -19,6 +19,7 @@ import {
   getAudioMixer,
   VoiceSettings,
 } from '@/app/lib/elevenlabs';
+import { hasConsent } from '@/app/lib/privacy/consent';
 
 export interface UseCoachVoiceOptions {
   personality?: 'zen' | 'drill' | 'data';
@@ -85,6 +86,14 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
     text: string,
     emotion?: 'calm' | 'focused' | 'intense' | 'celebratory'
   ) => {
+    if (!hasConsent('ai_voice')) {
+      // Local browser voice only; coach text stays on the device.
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+      }
+      return;
+    }
     if (!isConfigured) {
       // Lazily re-check (throttled to once per 15s) so a temporarily
       // unavailable server self-heals without remounting the hook.

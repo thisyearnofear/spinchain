@@ -58,6 +58,7 @@ import { useRideMilestones } from "@/app/hooks/ride/use-ride-milestones";
 import { useRideMusicFlow } from "@/app/hooks/ride/use-ride-music-flow";
 import { usePrPursuit } from "@/app/hooks/ride/use-pr-pursuit";
 import { RideAiTelemetryBridge } from "@/app/components/features/ride/ride-ai-telemetry-bridge";
+import { AiVoiceConsentPrompt } from "@/app/components/features/ride/ai-voice-consent-prompt";
 import { useRiderName } from "@/app/hooks/common/use-profile";
 
 export default function LiveRidePage() {
@@ -693,6 +694,7 @@ export default function LiveRidePage() {
         elapsedTime={elapsedTime}
         coordinatorRef={coordinatorRef}
       />
+      {!isRiding && !showCompletionScreen && <AiVoiceConsentPrompt />}
 
       <SectionErrorBoundary title="ride visualization">
         <RideVisualization
