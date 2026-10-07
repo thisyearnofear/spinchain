@@ -1296,6 +1296,64 @@ function CanvasContextLossHandler({ onLostForGood }: { onLostForGood?: () => voi
   return null;
 }
 
+/**
+ * Visual-harness clock for a frameloop="never" canvas. Steps the scene a fixed
+ * number of fixed-size frames through R3F's advance(), so every useFrame sees
+ * the same state.clock and delta sequence on every run: damped motion settles
+ * and the last frame is the real scene, identical run to run. Marks
+ * <html data-harness-clock="settled"> once that frame is drawn.
+ *
+ * A resize or a restored context clears the drawing buffer, and with no loop
+ * running nothing would paint it back, so both redraw the settled instant.
+ */
+const HARNESS_FRAMES = 30;
+const HARNESS_STEP_S = 0.1;
+const HARNESS_SETTLED_AT_S = HARNESS_FRAMES * HARNESS_STEP_S;
+
+function FixedHarnessClock() {
+  const advance = useThree((s) => s.advance);
+  const gl = useThree((s) => s.gl);
+  const size = useThree((s) => s.size);
+  const dpr = useThree((s) => s.viewport.dpr);
+  const settledRef = useRef(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.harnessClock = "stepping";
+    let frame = 0;
+    let rafId = requestAnimationFrame(function step() {
+      frame += 1;
+      advance(frame * HARNESS_STEP_S);
+      if (frame < HARNESS_FRAMES) {
+        rafId = requestAnimationFrame(step);
+        return;
+      }
+      settledRef.current = true;
+      root.dataset.harnessClock = "settled";
+    });
+    return () => {
+      cancelAnimationFrame(rafId);
+      settledRef.current = false;
+      delete root.dataset.harnessClock;
+    };
+  }, [advance]);
+
+  useEffect(() => {
+    if (settledRef.current) advance(HARNESS_SETTLED_AT_S);
+  }, [advance, size.width, size.height, dpr]);
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const onRestored = () => {
+      if (settledRef.current) advance(HARNESS_SETTLED_AT_S);
+    };
+    canvas.addEventListener("webglcontextrestored", onRestored, false);
+    return () => canvas.removeEventListener("webglcontextrestored", onRestored, false);
+  }, [advance, gl]);
+
+  return null;
+}
+
 // ─── Flow Celebration ───────────────────────────────────────────────
 // Triggers celebration particles when flow tier increases
 
@@ -1823,7 +1881,7 @@ export default function RouteVisualizer({
   intervalPhase?: IntervalPhase;
   flowTier?: FlowStateTier;
   contextPalette?: ContextPalette;
-  /** Freeze the render loop after first frame (visual-test determinism). */
+  /** Visual harness: render a fixed-clock frame sequence, then hold the last frame. */
   paused?: boolean;
   /** False while this layer is hidden (2D view on top) — no frames rendered. */
   active?: boolean;
@@ -1918,8 +1976,8 @@ export default function RouteVisualizer({
             }
           }}
           dpr={effectiveQuality.pixelRatio}
-          // "never" freezes the loop entirely — used by the visual harness
-          // so Playwright can capture a stable frame for screenshot diffs.
+          // "never" hands the loop to FixedHarnessClock in the visual
+          // harness, so Playwright diffs a real, reproducible frame.
           // Inactive (hidden behind 2D) also stops the loop — otherwise the
           // invisible scene keeps rendering post-processing at full rate.
           frameloop={paused || !active ? "never" : "demand"}
@@ -1928,6 +1986,7 @@ export default function RouteVisualizer({
           <CanvasContextLossHandler
             onLostForGood={onWebglUnavailable && (() => onWebglUnavailable("context-lost"))}
           />
+          {paused && active && <FixedHarnessClock />}
           {mode === "ride" && !paused && active && <FrameRateLimiter fps={effectiveQuality.fps} />}
           <Scene
             elevationProfile={elevationProfile}

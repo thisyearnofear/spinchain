@@ -1,7 +1,23 @@
 import { inflateSync } from "node:zlib";
 import { test, expect } from "@playwright/test";
 
-test.setTimeout(60_000);
+// SwiftShader compiles every shader on the first frame, and the fixed
+// harness clock then draws 30 more before it settles.
+test.setTimeout(150_000);
+
+// Particles and a few decorations place themselves with Math.random() at
+// mount. Seed it (mulberry32) so the scene is the same scene every run.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    let a = 123;
+    Math.random = () => {
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  });
+});
 
 /**
  * Visual Regression Harness — SpinChain adaptation of threejs-qa-release
@@ -21,9 +37,9 @@ test.setTimeout(60_000);
  *   pnpm exec playwright test tests/visual-regression.spec.ts
  */
 
-// paused=1 freezes the R3F frameloop (RouteVisualizer paused prop) so
-// toHaveScreenshot can capture a stable frame; without it the animated
-// scene never produces two identical screenshots and the assertion times out.
+// paused=1 hands the R3F loop to FixedHarnessClock (route-visualizer.tsx):
+// a fixed number of fixed-step frames, then the last one is held. Every run
+// renders the same real 3D frame, so the baselines diff the scene itself.
 const STATES = [
   { name: "preview", url: "/test-harness/route-visualizer?testState=preview&seed=123&paused=1", fullPage: true },
   { name: "active-play", url: "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1", fullPage: true },
@@ -39,11 +55,12 @@ async function gotoWithHarness(page: import("@playwright/test").Page, url: strin
   await page.waitForTimeout(1000);
   // Wait for Next.js hydration + TestHooks install + Canvas mount
   await page.waitForFunction(() => typeof (window as unknown as { __THREE_GAME_TEST_HOOKS__?: unknown }).__THREE_GAME_TEST_HOOKS__ !== "undefined", { timeout: 10_000 }).catch(() => {});
-  // Give R3F a couple frames to render demand loop
-  await page.waitForTimeout(1500);
-  // Canvas mount only; whether it actually drew is asserted by the smoke test
-  // below, not assumed here.
-  await page.locator("canvas").first().waitFor({ state: "attached", timeout: 5_000 }).catch(() => {});
+  await page.locator("canvas").first().waitFor({ state: "attached", timeout: 30_000 });
+  if (url.includes("paused=1")) {
+    await page.waitForSelector('html[data-harness-clock="settled"]', { state: "attached", timeout: 120_000 });
+  } else {
+    await page.waitForTimeout(1500);
+  }
   // Pause for deterministic screenshot (freeze drift/parallax)
   await page.evaluate(() => {
     const hooks = (window as unknown as { __THREE_GAME_TEST_HOOKS__?: { setPausedForScreenshot: (b: boolean) => void } }).__THREE_GAME_TEST_HOOKS__;
@@ -52,9 +69,21 @@ async function gotoWithHarness(page: import("@playwright/test").Page, url: strin
   await page.waitForTimeout(300);
 }
 
+/**
+ * A baseline of an undrawn canvas would pass forever; refuse to diff one.
+ * Undrawn harness frames measured 37–113 colours; the darkest drawn state
+ * (preview: top-down route at night) ~280, ride states 850+. 200 splits them.
+ */
+async function expectDrawnScene(page: import("@playwright/test").Page) {
+  const stats = pixelStats(await page.screenshot());
+  expect(stats.distinctColors, `harness frame is not a drawn scene: ${JSON.stringify(stats)}`).toBeGreaterThan(200);
+  expect(stats.lumaRange, `harness frame has no contrast: ${JSON.stringify(stats)}`).toBeGreaterThan(40);
+}
+
 for (const { name, url } of STATES) {
   test(`visual — ${name} @ desktop`, async ({ page }) => {
     await gotoWithHarness(page, url);
+    await expectDrawnScene(page);
     await expect(page).toHaveScreenshot(`${name}-desktop.png`, { fullPage: false });
   });
 }
@@ -64,6 +93,7 @@ test("visual — active-play @ mobile", async ({ page }) => {
   // When run on desktop project, it will still pass but use desktop viewport — the
   // config's second project ensures true mobile coverage.
   await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1");
+  await expectDrawnScene(page);
   await expect(page).toHaveScreenshot(`active-play-mobile.png`, { fullPage: false });
 });
 
@@ -129,9 +159,8 @@ test("canvas is non-blank smoke", async ({ page }) => {
   // SwiftShader under parallel workers can take a while to parse the HDR and
   // compile shaders before the first real frame.
   test.setTimeout(120_000);
-  // Live loop, not paused=1: the paused harness never draws a frame (its
-  // baselines cover page chrome over the empty canvas, not the 3D scene), so
-  // only an unpaused canvas can prove WebGL actually renders the route.
+  // Live loop, not paused=1: the baselines above prove the fixed-clock path
+  // draws; this proves the production demand loop does too.
   await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123");
   const canvas = page.locator("canvas").first();
   await expect(canvas).toBeVisible();
