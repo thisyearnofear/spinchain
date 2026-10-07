@@ -65,7 +65,7 @@ jobs:
       - name: Legacy reward claims stay gated off
         run: |
           if grep -rEn 'ENABLE_LEGACY_REWARD_CLAIMS[^a-zA-Z0-9]*[Tt]rue' \
-              .env.example .env.local.template playwright.config.ts .github; then
+              .env.example .env.local.template playwright.config.ts tests/e2e.env .github; then
             echo "::error::NEXT_PUBLIC_ENABLE_LEGACY_REWARD_CLAIMS must stay false until the deployed verifier accepts real proofs."
             exit 1
           fi
@@ -77,9 +77,64 @@ jobs:
       - name: Test
         run: pnpm exec vitest run
 
-  e2e:
-    name: Build + wedge/browser smoke (Playwright)
+  # Build once, then fan the Playwright suite out across shards that all
+  # serve the same artifact — the build is ~1/3 of gate time and was being
+  # repeated in every job. NEXT_PUBLIC_* vars are inlined at build time, so
+  # the build job sources the same loopback env file the webServer gets.
+  build:
+    name: Build app artifact
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.2
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Production build
+        env:
+          BUILD_STANDALONE: "1"
+        run: |
+          set -a
+          . tests/e2e.env
+          set +a
+          pnpm build
+
+      # Standalone output omits public/ and .next/static by design — copy them
+      # in so the artifact is fully self-contained.
+      - name: Assemble standalone artifact
+        run: |
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-build
+          path: .next/standalone/
+          retention-days: 1
+          if-no-files-found: error
+
+  e2e:
+    name: Playwright shard ${{ matrix.shard }}/4
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1", "2", "3", "4"]
 
     steps:
       - name: Checkout
@@ -103,10 +158,75 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      # Production build + wedge guard + browser smoke on desktop and mobile
-      # (projects are defined in playwright.config.ts).
+      - name: Download app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build
+          path: .next/standalone
+
+      # PLAYWRIGHT_PREBUILT tells webServer to run .next/standalone/server.js
+      # instead of rebuilding (see playwright.config.ts).
       - name: E2E gate
-        run: pnpm test:e2e
+        env:
+          PLAYWRIGHT_PREBUILT: "1"
+        run: pnpm test:e2e --shard=${{ matrix.shard }}/4
+
+      - name: Upload shard report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  e2e-report:
+    name: Merge Playwright report
+    needs: e2e
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.2
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          path: all-blob-reports
+          merge-multiple: true
+
+      - name: Merge blob reports
+        run: |
+          if [ -z "$(ls -A all-blob-reports)" ]; then
+            echo "No shard reports — build or shards failed upstream."
+            exit 0
+          fi
+          pnpm exec playwright merge-reports --reporter=html ./all-blob-reports
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
 
   contracts:
     name: EVM verifier tests (forge v1.5.1)
