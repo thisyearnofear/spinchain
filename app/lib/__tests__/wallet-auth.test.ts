@@ -154,6 +154,9 @@ const db = vi.hoisted(() => {
   return { state, client };
 });
 
+// Ownership flow under a granted cloud_history consent; denial is covered in rides-api.test.ts.
+vi.mock("@/app/lib/privacy/consent-server", () => ({ hasServerConsent: async () => true }));
+
 vi.mock("@/app/lib/supabase/client", () => ({
   getServerClient: () => db.client,
   isSupabaseConfigured: () => true,

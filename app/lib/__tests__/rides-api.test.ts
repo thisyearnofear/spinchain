@@ -9,6 +9,8 @@ const OTHER = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 const db = vi.hoisted(() => ({
   inserted: [] as Record<string, unknown>[],
   insertError: null as { code?: string; message?: string } | null,
+  cloudConsent: true,
+  deletes: [] as string[][],
 }));
 
 vi.mock("@/app/lib/auth/session", () => ({
@@ -20,7 +22,18 @@ vi.mock("@/app/lib/auth/session", () => ({
 vi.mock("@/app/lib/supabase/client", () => ({
   isSupabaseConfigured: () => true,
   getServerClient: () => ({
-    from: () => ({
+    from: (table: string) => table === "rider_consents" ? ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: db.cloudConsent ? { granted: true, policy_version: "consent-v1" } : null,
+              error: null,
+            }),
+          }),
+        }),
+      }),
+    }) : ({
       insert: (row: Record<string, unknown>) => {
         db.inserted.push(row);
         return {
@@ -40,12 +53,22 @@ vi.mock("@/app/lib/supabase/client", () => ({
         }),
       }),
       update: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ select: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) }) }),
-      delete: () => ({ eq: () => ({ eq: async () => ({ error: null }) }) }),
+      delete: () => ({
+        eq: (col: string, val: string) => {
+          const chain = Promise.resolve({ error: null }) as Promise<{ error: null }> & { eq: unknown };
+          chain.eq = async (col2: string, val2: string) => {
+            db.deletes.push([col, val, col2, val2]);
+            return { error: null };
+          };
+          void chain.then(() => { if (col === "rider_address") db.deletes.push([col, val]); });
+          return chain;
+        },
+      }),
     }),
   }),
 }));
 
-import { POST, GET } from "@/app/api/rides/route";
+import { POST, GET, DELETE } from "@/app/api/rides/route";
 import { createRideReceipt } from "@/app/lib/analytics/ride-receipt";
 import { createCanonicalRideSummary } from "@/app/lib/analytics/ride-history";
 
@@ -140,5 +163,32 @@ describe("POST /api/rides — receipt roundtrip", () => {
       headers: { authorization: "Bearer owner-token" },
     })));
     expect(authed.status).toBe(200);
+  });
+});
+
+describe("cloud_history consent (server re-check)", () => {
+  beforeEach(() => {
+    db.inserted = [];
+    db.insertError = null;
+    db.cloudConsent = true;
+    db.deletes = [];
+  });
+
+  it("POST is refused with 403 and nothing stored without consent", async () => {
+    db.cloudConsent = false;
+    const s = summaryWith();
+    const res = await post({ id: "ride-1", idempotency_key: s.idempotencyKey, summary: s });
+    expect(res.status).toBe(403);
+    expect(db.inserted).toHaveLength(0);
+  });
+
+  it("DELETE ?all=true removes only this rider's cloud rides", async () => {
+    const res = await DELETE(new NextRequest(new Request("http://localhost/api/rides?all=true", {
+      method: "DELETE",
+      headers: { authorization: "Bearer owner-token" },
+    })));
+    expect(res.status).toBe(200);
+    await Promise.resolve();
+    expect(db.deletes).toContainEqual(["rider_address", OWNER]);
   });
 });
