@@ -11,6 +11,7 @@ describe("VisualizationEngine", () => {
     // Mock the GPU probe to return a consistent high-end result
     vi.mock("@/app/lib/gpu-probe", () => ({
       probeGpu: () => ({
+        webgl: true,
         webgl2: true,
         webgpu: false,
         renderer: "Apple GPU",

@@ -18,7 +18,12 @@ export type GpuVendor =
   | "amd"
   | "unknown";
 
+/** Why the 3D layer was handed back to 2D Focus for this page session. */
+export type WebglUnavailableReason = "no-webgl" | "init-failed" | "context-lost";
+
 export interface GpuCapability {
+  /** Any WebGL context (1 or 2) could be created */
+  webgl: boolean;
   /** WebGL 2 is available */
   webgl2: boolean;
   /** WebGPU is available (Chrome 113+, Edge 113+) */
@@ -53,6 +58,7 @@ export function probeGpu(): GpuCapability {
   if (cached && typeof window !== "undefined") return cached;
 
   const ctx = createWebglCtx();
+  const webgl = !!ctx;
   const webgl2 = !!(ctx && typeof (ctx as WebGL2RenderingContext).texStorage2D === "function");
 
   const renderer = getRendererString(ctx);
@@ -76,9 +82,10 @@ export function probeGpu(): GpuCapability {
   const canPostProcess = !isLowEnd && webgl2 && maxTextureSize >= 8192;
 
   const recommendedMode: GpuCapability["recommendedMode"] =
-    isLowEnd || (!webgl2 && maxTextureSize < 2048) ? "focus-2d" : "tron-3d";
+    !webgl || isLowEnd || (!webgl2 && maxTextureSize < 2048) ? "focus-2d" : "tron-3d";
 
   const cap: GpuCapability = {
+    webgl,
     webgl2,
     webgpu: detectWebGpu(),
     renderer,

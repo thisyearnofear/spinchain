@@ -6,6 +6,8 @@ interface RideHudControlsProps {
   onToggleViewMode: () => void;
   effectiveIsFocus: boolean;
   canRender3d: boolean;
+  /** WebGL can't run on this device: the 2D/3D toggle is inert. */
+  threeDUnavailable?: boolean;
   onShowKeyboardHints: () => void;
 }
 
@@ -15,6 +17,7 @@ export function RideHudControls({
   onToggleViewMode,
   effectiveIsFocus,
   canRender3d,
+  threeDUnavailable = false,
   onShowKeyboardHints,
 }: RideHudControlsProps) {
   return (
@@ -52,16 +55,19 @@ export function RideHudControls({
 
           <button
             onClick={onToggleViewMode}
-            className={`flex items-center gap-1.5 rounded-full border backdrop-blur-xl px-3 py-1.5 text-[10px] font-bold transition-colors ${
+            disabled={threeDUnavailable}
+            className={`disabled:cursor-not-allowed disabled:opacity-60 flex items-center gap-1.5 rounded-full border backdrop-blur-xl px-3 py-1.5 text-[10px] font-bold transition-colors ${
               !canRender3d && effectiveIsFocus
                 ? "border-amber-500/30 bg-amber-500/10 text-amber-200/70 hover:text-amber-100"
                 : "border-white/15 bg-black/60 text-white/60 hover:text-white"
             }`}
-            title={!canRender3d ? "Try immersive 3D anyway — will auto-switch back if slow (V)" : `Switch to ${effectiveIsFocus ? "immersive 3D" : "2D focus"} (V)`}
+            title={threeDUnavailable ? "This browser couldn't start WebGL, so this ride uses 2D Focus" : !canRender3d ? "Try immersive 3D anyway — will auto-switch back if slow (V)" : `Switch to ${effectiveIsFocus ? "immersive 3D" : "2D focus"} (V)`}
             aria-label={`Switch to ${effectiveIsFocus ? "immersive 3D" : "2D focus"} view`}
           >
             {effectiveIsFocus ? "3D" : "2D"}
-            {!canRender3d && effectiveIsFocus && <span className="text-[8px] opacity-60">&middot; Low GPU</span>}
+            {!canRender3d && effectiveIsFocus && (
+              <span className="text-[8px] opacity-60">&middot; {threeDUnavailable ? "No WebGL" : "Low GPU"}</span>
+            )}
           </button>
         </>
       )}

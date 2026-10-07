@@ -6,6 +6,7 @@ import type { VisualizerTheme } from "@/app/components/features/route/route-visu
 import type { StoryBeat } from "@/app/components/features/route/route-visualizer";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
 import type { FlowStateTier } from "@/app/lib/flow-state";
+import type { WebglUnavailableReason } from "@/app/lib/gpu-probe";
 
 // Dynamic import — R3F bundle is heavy and only loaded when needed
 const RouteVisualizer = dynamic(
@@ -32,6 +33,8 @@ export interface TronRendererProps {
   flowTier?: FlowStateTier;
   /** False while the 3D layer is hidden behind the 2D view — stops the render loop. */
   active?: boolean;
+  /** 3D can't run here — the parent should switch to 2D Focus. */
+  onWebglUnavailable?: (reason: WebglUnavailableReason) => void;
 }
 
 /**
@@ -76,6 +79,7 @@ export const TronRenderer = memo(function TronRenderer(props: TronRendererProps)
         intervalPhase={props.intervalPhase}
         flowTier={props.flowTier}
         active={props.active ?? true}
+        onWebglUnavailable={props.onWebglUnavailable}
       />
     </Suspense>
   );

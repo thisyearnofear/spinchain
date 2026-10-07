@@ -17,6 +17,8 @@ interface RideStartScreenProps {
   isPracticeMode: boolean;
   effectiveIsFocus: boolean;
   canRender3d: boolean;
+  /** WebGL can't run on this device: 3D is shown but can't be picked. */
+  threeDUnavailable?: boolean;
   onToggleViewMode: () => void;
   onStart: () => void;
   /** Practice-mode duration selector */
@@ -33,6 +35,7 @@ export function RideStartScreen({
   isPracticeMode,
   effectiveIsFocus,
   canRender3d,
+  threeDUnavailable = false,
   onToggleViewMode,
   onStart,
   practiceDurationSec = 45,
@@ -89,12 +92,18 @@ export function RideStartScreen({
         </button>
         <button
           onClick={() => { if (effectiveIsFocus) onToggleViewMode(); }}
-          className={`rounded-full px-4 py-1.5 text-xs font-black transition-colors flex items-center gap-1.5 ${!effectiveIsFocus ? "bg-white text-black shadow" : "text-white/60 hover:text-white"}`}
+          disabled={threeDUnavailable}
+          title={threeDUnavailable ? "This browser couldn't start WebGL, so this ride uses 2D Focus" : undefined}
+          className={`rounded-full px-4 py-1.5 text-xs font-black transition-colors flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-50 ${!effectiveIsFocus ? "bg-white text-black shadow" : "text-white/60 enabled:hover:text-white"}`}
           aria-pressed={!effectiveIsFocus}
           aria-label="Switch to immersive 3D view"
         >
           3D Immersive
-          {!canRender3d && <span className="text-[8px] font-bold uppercase tracking-widest opacity-60">Low GPU</span>}
+          {(threeDUnavailable || !canRender3d) && (
+            <span className="text-[8px] font-bold uppercase tracking-widest opacity-60">
+              {threeDUnavailable ? "No WebGL" : "Low GPU"}
+            </span>
+          )}
         </button>
       </div>
       <p className="pointer-events-none text-[10px] font-bold uppercase tracking-[0.3em] text-white/25">{isTouch ? "Preview updates instantly" : "Press V to toggle · Preview updates instantly"}</p>

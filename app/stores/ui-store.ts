@@ -12,6 +12,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import type { WebglUnavailableReason } from "@/app/lib/gpu-probe";
 
 type HudMode = "full" | "compact" | "minimal";
 type ViewMode = "immersive" | "focus";
@@ -35,6 +36,8 @@ interface UIState {
   isTrainingMode: boolean;
   deviceType: DeviceType;
   orientation: "portrait" | "landscape";
+  /** Set once 3D can't run this session; pins viewMode to focus. Not persisted. */
+  webglUnavailable: WebglUnavailableReason | null;
 }
 
 interface UIActions {
@@ -42,6 +45,7 @@ interface UIActions {
   cycleHudMode: () => void;
   setViewMode: (mode: ViewMode) => void;
   toggleViewMode: () => void;
+  markWebglUnavailable: (reason: WebglUnavailableReason) => void;
   setWidgetsMode: (mode: WidgetMode) => void;
   cycleWidgetsMode: () => void;
   setWidgetsVisible: (visible: boolean) => void;
@@ -78,6 +82,7 @@ const initialState: UIState = {
   isTrainingMode: false,
   deviceType: "desktop",
   orientation: "landscape",
+  webglUnavailable: null,
 };
 
 export const useUIStore = create<UIState & UIActions>()(
@@ -91,11 +96,15 @@ export const useUIStore = create<UIState & UIActions>()(
         const next = hudMode === "full" ? "compact" : hudMode === "compact" ? "minimal" : "full";
         set({ hudMode: next });
       },
-      setViewMode: (mode) => set({ viewMode: mode }),
+      setViewMode: (mode) =>
+        set({ viewMode: get().webglUnavailable ? "focus" : mode }),
       toggleViewMode: () => {
-        const { viewMode } = get();
+        const { viewMode, webglUnavailable } = get();
+        if (webglUnavailable) return set({ viewMode: "focus" });
         set({ viewMode: viewMode === "immersive" ? "focus" : "immersive" });
       },
+      markWebglUnavailable: (reason) =>
+        set({ webglUnavailable: get().webglUnavailable ?? reason, viewMode: "focus" }),
       setWidgetsMode: (mode) => set({ widgetsMode: mode }),
       cycleWidgetsMode: () => {
         const { widgetsMode } = get();
@@ -124,7 +133,7 @@ export const useUIStore = create<UIState & UIActions>()(
       resetPrefs: () =>
         set({
           hudMode: initialState.hudMode,
-          viewMode: initialState.viewMode,
+          viewMode: get().webglUnavailable ? "focus" : initialState.viewMode,
           widgetsMode: initialState.widgetsMode,
         }),
 
