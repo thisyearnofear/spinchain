@@ -187,13 +187,17 @@ jobs:
 
   # Snapshot baselines are the most timing-sensitive spec — a parallel
   # SwiftShader neighbor starves the finished scene under the drawn-scene
-  # threshold (observed as a 3/3-retry failure on a busy shard). It gets its
-  # own runner at workers:1; cost is the fixed ~2min setup, stability is the
-  # point.
+  # threshold (observed as a 3/3-retry failure on a busy shard). They get
+  # dedicated runners at workers:1, themselves sharded — a single serial
+  # worker made this job the 10min tail.
   e2e-visual:
-    name: Visual regression
+    name: Visual regression ${{ matrix.shard }}/3
     needs: build
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1", "2", "3"]
 
     steps:
       - name: Checkout
@@ -226,13 +230,13 @@ jobs:
         env:
           PLAYWRIGHT_PREBUILT: "1"
           PLAYWRIGHT_WORKERS: "1"
-        run: pnpm exec playwright test tests/visual-regression.spec.ts
+        run: pnpm exec playwright test tests/visual-regression.spec.ts --shard=${{ matrix.shard }}/3
 
       - name: Upload shard report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: blob-report-visual
+          name: blob-report-visual-${{ matrix.shard }}
           path: blob-report/
           retention-days: 7
           if-no-files-found: ignore
