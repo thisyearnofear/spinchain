@@ -430,7 +430,7 @@ cd contracts/evm && forge test --match-contract E2EFujiDeployment --fork-url fuj
 
 ### Gas Benchmark Results (historical — mock verifier)
 
-The legacy `ZKGasBenchmark` test measures `MockVerifier` stub costs, not Honk verification — it does not establish real-verifier gas performance. Prior per-chunk tables, durations, and savings percentages are removed; no performance claim is made. A real-verifier benchmark is a phase-5 task.
+The legacy `ZKGasBenchmark` test measures `MockVerifier` stub costs, not Honk verification. Real-verifier numbers now exist in `Phase5Benchmark.t.sol` (real proof fixture): `HonkVerifier.verify` ≈1.19M gas, `AchievementRedeemerV2.redeem` ≈142k cold gas — see `docs/PHASE-5-PILOT.md` for methodology. Honk verification is not in the redeem path; `redeem()` is ERC-20-transfer-priced.
 ---
 
 ## 8. Security
@@ -490,7 +490,7 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 
 **What's done**: phases 0–4 of the old wedge plan; local hardening (auth, ownership, CTA, Noir compat, receipt status) and phase-1 public-write boundary + `RideReceiptV1` verified locally (366 tests, clean typecheck/build) — **deployed 2026-10-04 as application release `a3c7e37`**. The Fuji contracts above are legacy experiments — **claims are not approved**: the deployed wrapper rejects real proofs and the app-side legacy-claim gate exists locally (prod env flag `false`).
 
-**What's missing for users**: phase-2 consent (code + `rider_consents` table live 2026-10-07); `source-attested` provenance; phase-3 provider/provenance interface; phase-5 real-verifier benchmarks + operator-approved testnet deployment; legal/policy review. Phase-4 `AchievementRedeemerV2` design + tests are merged (no deploy, by design). User browser/real-device feedback on the live build is pending.
+**What's missing for users**: phase-2 consent (code + `rider_consents` table live 2026-10-07); `source-attested` provenance; phase-3 provider/provenance interface; operator-approved Fuji deployment + dogfood (phase-5 pilot code complete — `docs/PHASE-5-PILOT.md`); legal/policy review. User browser/real-device feedback on the live build is pending.
 
 ### Scale Risks (Must Fix Before Features)
 
@@ -510,7 +510,8 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 - [x] **Phase 2 consent controls** — merged 2026-10-07: separate consents for cloud history / third-party AI / voice / instructor live view / public export + durable outbox. `20261007_rider_consents.sql` applied to production Supabase 2026-10-07 — consent enforcement is live
 - [x] **Fix Vercel env names** — canonical `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `GEMINI_API_KEY` added to production 2026-10-04 (values copied from the legacy cloud vars; legacy names preserved); code reads `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `GEMINI_API_KEY`
 - [x] **Phase 4 `AchievementRedeemerV2` design+tests** — merged 2026-10-07 (`docs/ACHIEVEMENT-REDEEMER-V2.md`); no deploy by design
-- [ ] **Phase 3 & 5** — verification-provider interface/pilot, real-verifier benchmarks, operator-approved testnet deploy
+- [ ] **Phase 3** — verification-provider interface + studio/wearable pilot
+- [ ] **Phase 5** — pilot code complete (benchmarks, boundary matrix, deploy script, issuer sign route, flagged redeem flow; `docs/PHASE-5-PILOT.md`); awaiting operator Fuji deploy + integrated dogfood
 - [ ] **Legal/policy review** — Apple 3.1.1/5.1, EDPB, jurisdictional review for any tradable reward; no health claims without validation
 - [ ] Load testing — pending testnet deployment
 - [ ] Security audit — pre-mainnet
@@ -522,7 +523,7 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 - [ ] Sign in before a second ride → that wallet-owned ride saves to the private account; no public write observed. Earlier guest rides remain device-local and are not automatically reassigned.
 - [ ] Reload/other device while signed into the same wallet → wallet-owned history recovers via the private account path (not legacy public blobs)
 - [ ] No automatic proof generation on stop; no raw-sample fabrication
-- [ ] (Future claim path — phase 5 only): signed receipt → redeemer → `redemption confirmed`, distinct from progression
+- [ ] (Claim path — phase-5 pilot, wired 2026-10-07): issuer-signed receipt → `redeem()` → `redemption confirmed`, distinct from progression. Requires `PILOT_REDEEM_ENABLED` + deployed redeemer — see `docs/PHASE-5-PILOT.md`
 
 ### Mainnet (not part of this release)
 
@@ -606,7 +607,7 @@ The former multi-chain mainnet migration checklist is retired. Do not publish pe
 
 ### Not Yet Launch-Ready
 
-- Live value-bearing claims — the deployed Fuji wrapper is broken and the redeemer is designed but undeployed (phase-4 `AchievementRedeemerV2` merged 2026-10-07); claims stay off until phase 5
+- Live value-bearing claims — the deployed Fuji wrapper is broken and `AchievementRedeemerV2` is Fuji-pending (deploy script + flags merged 2026-10-07); claims stay off until the operator deploys and approves
 - Granular consent + recovery jobs implemented and live 2026-10-07 (phase 2, `rider_consents` applied); encryption/retention controls remain unfinished; the phase-1 public publishing boundary is deployed.
 - Consent transfer controls for third-party AI/TTS biometric context implemented and deployed (phase 2); no "privacy-ready" claim until legal review completes
 - `ride_summaries.summary` migration applied 2026-10-04 — canonical summary roundtrip enabled server-side (client shipped in `a3c7e37`); `rider_consents` migration (phase 2) applied 2026-10-07
