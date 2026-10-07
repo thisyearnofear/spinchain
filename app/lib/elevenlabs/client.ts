@@ -8,6 +8,7 @@
  * - CLEAN: No API keys on client - all proxied through /api/ai/elevenlabs/*
  */
 
+import { hasConsent, ConsentRequiredError } from '@/app/lib/privacy/consent';
 import { ELEVENLABS_CONFIG } from './constants';
 import { TTSRequest, SoundEffectRequest, AvatarVideoRequest } from './types';
 
@@ -22,6 +23,7 @@ function getRequestKey(type: string, params: unknown): string {
  * Generate speech from text (TTS) via server route
  */
 export async function generateSpeech(request: TTSRequest): Promise<ArrayBuffer> {
+  if (!hasConsent('ai_voice')) throw new ConsentRequiredError('ai_voice');
   const key = getRequestKey('tts', request);
   
   if (pendingRequests.has(key)) {
@@ -56,6 +58,7 @@ export async function generateSpeech(request: TTSRequest): Promise<ArrayBuffer> 
  * Generate speech with streaming (for real-time) via server route
  */
 export async function* generateSpeechStream(request: TTSRequest): AsyncGenerator<Uint8Array> {
+  if (!hasConsent('ai_voice')) throw new ConsentRequiredError('ai_voice');
   const response = await fetch(ELEVENLABS_CONFIG.ttsRoute, {
     method: 'POST',
     headers: {

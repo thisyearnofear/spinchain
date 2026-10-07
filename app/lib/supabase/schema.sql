@@ -10,6 +10,7 @@
 --   gyms                  — gym registry with calibration profiles
 --   bike_calibrations     — per-bike power/HR calibration offsets
 --   live_telemetry        — real-time rider telemetry for instructor live view
+--   rider_consents        — granular per-scope rider consent (Phase 2)
 
 -- ============================================================================
 -- Extensions
@@ -361,3 +362,17 @@ create policy "Anyone can update a class"
   using (true);
 
 create index if not exists classes_created_at_idx on classes (created_at desc);
+
+-- ============================================================================
+-- Rider Consents (see migrations/20261007_rider_consents.sql)
+-- ============================================================================
+create table if not exists rider_consents (
+  address text not null,
+  scope text not null check (scope in ('cloud_history', 'ai_voice', 'instructor_live', 'public_export')),
+  granted boolean not null default false,
+  policy_version text not null,
+  updated_at timestamptz not null default now(),
+  primary key (address, scope)
+);
+
+alter table rider_consents enable row level security;

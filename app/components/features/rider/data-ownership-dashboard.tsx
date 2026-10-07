@@ -9,6 +9,7 @@ import { useRiderProfile, toProfilePayload } from "@/app/stores/rider-profile-st
 import { useProfileSync, persistProfileToWalrus, getProfileBlobId } from "@/app/lib/walrus/profile-persistence";
 import { useAccount } from "wagmi";
 import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
+import { ConsentControls } from "./consent-controls";
 
 export function DataOwnershipDashboard() {
   const { address } = useAccount();
@@ -125,6 +126,8 @@ export function DataOwnershipDashboard() {
             </p>
           </div>
         </div>
+
+        <ConsentControls />
 
         {/* Storage breakdown */}
         <div className="grid gap-4 md:grid-cols-2 mb-6">
@@ -281,7 +284,7 @@ export function DataOwnershipDashboard() {
         <div className="mt-4 flex items-start gap-2 text-[10px] text-white/30">
           <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
           <p>
-            Local data stays in this browser and is not encrypted — account and consent controls are still being built.
+            Local data stays in this browser and is not encrypted. Nothing leaves this device for a choice above until you turn it on.
             Exporting downloads a JSON backup. Deleting clears data on this device only — any legacy public backups remain until they expire.
           </p>
         </div>

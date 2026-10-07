@@ -3,6 +3,7 @@ import { apiError, apiOk } from "@/app/lib/api/response";
 import { getServerClient } from "@/app/lib/supabase/client";
 import { verifySession } from "@/app/lib/auth/session";
 import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
+import { hasServerConsent } from "@/app/lib/privacy/consent-server";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,9 @@ export async function POST(request: NextRequest) {
   const payload = await getAuthPayload(request);
   if (!payload) {
     return apiError("Unauthorized", "FORBIDDEN", 401);
+  }
+  if (!(await hasServerConsent(client, payload.address, "instructor_live"))) {
+    return apiError("Instructor live view consent required", "FORBIDDEN", 403);
   }
 
   let body: {
