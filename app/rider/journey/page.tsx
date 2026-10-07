@@ -48,6 +48,7 @@ import { useProfileSyncEffect } from "../../hooks/common/use-profile-sync";
 import { composeCoachArc } from "../../lib/journey/coach-arc";
 import { listCachedCoachMemories } from "../../lib/walrus/coach-memory";
 import { isLegacyRewardClaimsEnabled } from "../../lib/rewards/legacy-policy";
+import { RedeemPilotChip } from "../../components/features/rider/redeem-pilot-chip";
 import { useRiderProfile, mapCoachPersonalityToEngine } from "../../stores/rider-profile-store";
 import { getTheme } from "../../lib/themes/registry";
 import { experienceManager } from "../../lib/experience-level";
@@ -523,6 +524,12 @@ function JourneyContent() {
                               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/50">
                                 Not independently verified
                               </span>
+                            )}
+                            {ride.receipt && (
+                              <RedeemPilotChip
+                                rideId={ride.id}
+                                durationSec={ride.durationSec}
+                              />
                             )}
                           </div>
                         </div>

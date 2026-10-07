@@ -79,7 +79,7 @@ Phase gates per the approved plan (see IMPLEMENTATION-PLAN):
 - [x] Phase 2 (merged 2026-10-07): private account save/outbox/recoverable jobs + granular consent (cloud history, third-party AI/voice/instructor live view, public achievement export are separate consents) — `20261007_rider_consents.sql` applied to production Supabase 2026-10-07; consent enforcement is live
 - [ ] Phase 3: explicit verification-provider interface/provenance; studio/wearable pilot before any CRE/zkTLS adoption; third-party AI/TTS biometric context needs the same user consent
 - [x] Phase 4 (merged 2026-10-07): AchievementRedeemerV2 + ClaimRegistry design + Foundry tests (signed receipt + nullifier redeemer); no numeric payout promises; deployment gated on phase 5
-- [ ] Phase 5: real-verifier benchmarks, boundary matrix, local full loop, documented migration, operator-approved testnet deployment, integrated production dogfood on testnets
+- [ ] Phase 5 (code complete 2026-10-07, deploy pending): real-verifier benchmarks (Honk ~1.19M / redeem ~142k gas), boundary matrix + runbook (`docs/PHASE-5-PILOT.md`), issuer signing route + flagged redeem flow merged; awaiting operator-approved Fuji deployment + integrated dogfood
 - [ ] Reviews are separate concerns, all pending before monetization: (a) EDPB privacy — minimization, retention, erasure (encrypted data is still personal data); (b) Apple platform rules — 3.1.1 digital-goods/NFT, 5.1 third-party AI/health-sharing consent; (c) jurisdictional financial review for any tradable/cash reward. No health/diagnostic claims without validation. Details: `plans/wedge-contract-research.md` §§5–7.
 
 ## Security
