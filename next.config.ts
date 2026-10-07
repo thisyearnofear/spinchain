@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // CI only: emit .next/standalone so the built app ships to Playwright
+  // shards as a single artifact (BUILD_STANDALONE=1). Left off locally so
+  // `next start` keeps working — it cannot serve a standalone build.
+  output: process.env.BUILD_STANDALONE === "1" ? "standalone" : undefined,
   // The Next.js dev-mode indicator (floating button, top-left) was mistaken
   // for an app bug during the ride activation countdown investigation.
   // Dev-only either way; hidden to keep the corner of the viewport clean.
