@@ -22,7 +22,7 @@ export default function TestHarnessRouteVisualizerPage() {
   const theme = (searchParams.get("theme") as VisualizerTheme) || "neon";
   const quality =
     (searchParams.get("quality") as "low" | "medium" | "high" | null) || "high";
-  // paused=1 freezes the R3F loop so Playwright can diff a stable frame
+  // paused=1 hands the R3F loop to FixedHarnessClock: fixed-step frames, last one held
   const paused = searchParams.get("paused") === "1" || searchParams.get("paused") === "true";
 
   // Deterministic route — same for all harness states so diffs are only visual state, not route
