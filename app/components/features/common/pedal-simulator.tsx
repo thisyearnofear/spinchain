@@ -338,47 +338,6 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
     // "how hard am I going" signal.
     const zone = cadenceToIntensity(cadence);
 
-    // Animated crank SVG
-    const CrankVisual = ({ size = 80 }: { size?: number }) => {
-        const r = size / 2;
-        const armLen = r * 0.52;
-        const ringR = r - 7;
-        const circ = 2 * Math.PI * ringR;
-        const pct = Math.min(cadence / 120, 1);
-        const lx = r + Math.cos((crankDeg + 180) * Math.PI / 180) * armLen;
-        const ly = r + Math.sin((crankDeg + 180) * Math.PI / 180) * armLen;
-        const rx = r + Math.cos(crankDeg * Math.PI / 180) * armLen;
-        const ry = r + Math.sin(crankDeg * Math.PI / 180) * armLen;
-
-        return (
-            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                {/* Background disc */}
-                <circle cx={r} cy={r} r={r - 2} fill="rgba(0,0,0,0.45)" stroke="rgba(255,255,255,0.07)" strokeWidth="1.5" />
-                {/* Track ring */}
-                <circle cx={r} cy={r} r={ringR} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4" />
-                {/* Cadence progress ring */}
-                <circle
-                    cx={r} cy={r} r={ringR}
-                    fill="none"
-                    stroke={zone.color}
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    strokeDasharray={`${circ * pct} ${circ}`}
-                    strokeDashoffset={circ * 0.25}
-                    style={{ transition: 'stroke-dasharray 0.3s ease, stroke 0.4s ease' }}
-                />
-                {/* Crank arms */}
-                <line x1={r} y1={r} x2={lx} y2={ly} stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
-                <line x1={r} y1={r} x2={rx} y2={ry} stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
-                {/* Pedal dots */}
-                <circle cx={lx} cy={ly} r="5" fill={activeLeg === 'left' ? '#60a5fa' : 'rgba(255,255,255,0.35)'} style={{ transition: 'fill 0.1s' }} />
-                <circle cx={rx} cy={ry} r="5" fill={activeLeg === 'right' ? '#4ade80' : 'rgba(255,255,255,0.35)'} style={{ transition: 'fill 0.1s' }} />
-                {/* Hub */}
-                <circle cx={r} cy={r} r="5" fill="white" opacity="0.85" />
-            </svg>
-        );
-    };
-
     // ── MOBILE ───────────────────────────────────────────────────────────────
     if (deviceType === 'mobile') {
         return (
@@ -405,7 +364,7 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
 
                     {/* Crank + cadence */}
                     <div className="flex items-center justify-center gap-5 mb-3">
-                        <CrankVisual size={68} />
+                        <CrankVisual size={68} cadence={cadence} crankDeg={crankDeg} activeLeg={activeLeg} color={zone.color} />
                         <div className="text-center">
                             <p className="text-4xl font-bold tabular-nums leading-none" style={{ color: zone.color, transition: 'color 0.4s' }}>
                                 {cadence}
@@ -532,7 +491,7 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                     </div>
                 )}
 
-                <CrankVisual size={60} />
+                <CrankVisual size={60} cadence={cadence} crankDeg={crankDeg} activeLeg={activeLeg} color={zone.color} />
 
                 <div className="text-center min-w-[48px]">
                     <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: zone.color, transition: 'color 0.4s' }}>
@@ -626,5 +585,52 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                 )}
             </div>
         </div>
+    );
+}
+
+// Animated crank SVG. Module-level so its state isn't reset every render.
+function CrankVisual({ size = 80, cadence, crankDeg, activeLeg, color }: {
+    size?: number;
+    cadence: number;
+    crankDeg: number;
+    activeLeg: Leg;
+    color: string;
+}) {
+    const r = size / 2;
+    const armLen = r * 0.52;
+    const ringR = r - 7;
+    const circ = 2 * Math.PI * ringR;
+    const pct = Math.min(cadence / 120, 1);
+    const lx = r + Math.cos((crankDeg + 180) * Math.PI / 180) * armLen;
+    const ly = r + Math.sin((crankDeg + 180) * Math.PI / 180) * armLen;
+    const rx = r + Math.cos(crankDeg * Math.PI / 180) * armLen;
+    const ry = r + Math.sin(crankDeg * Math.PI / 180) * armLen;
+
+    return (
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            {/* Background disc */}
+            <circle cx={r} cy={r} r={r - 2} fill="rgba(0,0,0,0.45)" stroke="rgba(255,255,255,0.07)" strokeWidth="1.5" />
+            {/* Track ring */}
+            <circle cx={r} cy={r} r={ringR} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4" />
+            {/* Cadence progress ring */}
+            <circle
+                cx={r} cy={r} r={ringR}
+                fill="none"
+                stroke={color}
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={`${circ * pct} ${circ}`}
+                strokeDashoffset={circ * 0.25}
+                style={{ transition: 'stroke-dasharray 0.3s ease, stroke 0.4s ease' }}
+            />
+            {/* Crank arms */}
+            <line x1={r} y1={r} x2={lx} y2={ly} stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
+            <line x1={r} y1={r} x2={rx} y2={ry} stroke="rgba(255,255,255,0.55)" strokeWidth="3" strokeLinecap="round" />
+            {/* Pedal dots */}
+            <circle cx={lx} cy={ly} r="5" fill={activeLeg === 'left' ? '#60a5fa' : 'rgba(255,255,255,0.35)'} style={{ transition: 'fill 0.1s' }} />
+            <circle cx={rx} cy={ry} r="5" fill={activeLeg === 'right' ? '#4ade80' : 'rgba(255,255,255,0.35)'} style={{ transition: 'fill 0.1s' }} />
+            {/* Hub */}
+            <circle cx={r} cy={r} r="5" fill="white" opacity="0.85" />
+        </svg>
     );
 }

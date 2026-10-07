@@ -2,7 +2,7 @@
 // persistRide — local-first durable save boundary tests.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 
 const suiAccount = vi.hoisted(() => ({ current: null as { address: string } | null }));
 const walrusPersist = vi.hoisted(() => vi.fn(async () => "blob-id"));
@@ -17,6 +17,10 @@ vi.mock("@/app/lib/walrus/ride-persistence", () => ({
   persistRideSummaryToWalrus: walrusPersist,
 }));
 
+vi.mock("@/app/lib/supabase/client", () => ({
+  isSupabaseConfigured: () => true,
+}));
+
 vi.mock("@/app/hooks/common/use-supabase-sync", () => ({
   saveRideToSupabase: cloudSave,
   RIDE_HISTORY_UPDATED_EVENT: "spinchain:ride-history-updated",
@@ -28,6 +32,8 @@ import {
   STORAGE_KEYS,
 } from "@/app/lib/analytics/ride-history";
 import type { RideSummary } from "@/app/lib/analytics/ride-history";
+import { readOutbox } from "@/app/lib/sync/outbox";
+import { CONSENT_POLICY_VERSION, CONSENT_STORAGE_KEY } from "@/app/lib/privacy/consent";
 
 const CLASS_ID = "class-1";
 const SESSION_ID = "session-abc";
@@ -187,5 +193,29 @@ describe("persistRide — durable local save first", () => {
     expect(record?.receipt?.sessionId).toBe(SESSION_ID);
     expect(record?.receipt?.receiptId).toBe(SESSION_ID);
     expect(record?.receipt?.telemetryCommitment).toBeNull();
+  });
+
+  it("queues a durable cloud job held until consent; never calls the cloud without it", async () => {
+    await callPersist();
+    const jobs = readOutbox();
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({ kind: "cloud_history.upsert", rideId: SESSION_ID, status: "held_consent" });
+    expect(cloudSave).not.toHaveBeenCalled();
+  });
+
+  it("guest rides never enter the cloud outbox", async () => {
+    await callPersist(params({ address: "guest-1234" }));
+    expect(readOutbox()).toHaveLength(0);
+  });
+
+  it("with consent, the job drains to the cloud and is marked done", async () => {
+    localStorage.setItem(
+      CONSENT_STORAGE_KEY,
+      JSON.stringify({ cloud_history: { granted: true, policyVersion: CONSENT_POLICY_VERSION, updatedAt: 1 } }),
+    );
+    await callPersist();
+    await waitFor(() => expect(readOutbox()[0]?.status).toBe("done"));
+    expect(cloudSave).toHaveBeenCalledTimes(1);
+    expect((cloudSave.mock.calls[0] as unknown[])[0]).toMatchObject({ id: SESSION_ID });
   });
 });

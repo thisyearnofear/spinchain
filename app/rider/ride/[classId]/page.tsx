@@ -368,13 +368,19 @@ export default function LiveRidePage() {
       coordinatorRef.current.getCoordinator()?.telemetry.samples.map(({ hr }) => hr) ?? [],
   });
 
-  const simulatorHook = useRideSimulator({
+  // Shared between the simulator/analytics hooks and the lifecycle hook; owned
+  // here so no hook hands a ref back through its return value.
+  const isRidingRef = useRef(false);
+  const trackedCompletionRef = useRef(false);
+  const swipeRef = useRef<HTMLDivElement>(null);
+
+  useRideSimulator({
     isRiding,
+    isRidingRef,
     isTrainingMode,
     isGuestMode,
     isPracticeMode,
   });
-  const isRidingRef = simulatorHook.isRidingRef;
 
   const analyticsHook = useRideAnalytics({
     classId,
@@ -384,6 +390,7 @@ export default function LiveRidePage() {
     bleConnected,
     useSimulator,
     playSound,
+    trackedCompletionRef,
   });
 
   useEffect(() => {
@@ -427,8 +434,8 @@ export default function LiveRidePage() {
     rewards: rewardsHook.rewards,
     coordinator,
     coordinatorRef,
-    isRidingRef: simulatorHook.isRidingRef,
-    trackedCompletionRef: analyticsHook.trackedCompletionRef,
+    isRidingRef,
+    trackedCompletionRef,
     playSound,
     stopAudio,
     speak,
@@ -643,7 +650,7 @@ export default function LiveRidePage() {
     useRideStore.setState({ rideProgress: 0, elapsedTime: 0, isActive: false, isPaused: false, isStarting: false });
     useTelemetryStore.getState().reset();
     milestones.reset();
-    analyticsHook.trackedCompletionRef.current = false;
+    analyticsHook.resetCompletionTracking();
     setActivationComplete(false);
     setShowActivation(true);
   }, [analyticsHook, milestones, rewardsHook]);
@@ -663,7 +670,8 @@ export default function LiveRidePage() {
   }, [isRiding, useSimulator, deviceType]);
 
   // ─── Swipe gesture support (mobile) ─────────────────────────────
-  const swipe = useSwipeGesture({
+  useSwipeGesture({
+    ref: swipeRef,
     onSwipeDown: () => {
       // Dismiss transient modals on swipe down
       if (useRideModalStore.getState().showKeyboardHints) {
@@ -720,7 +728,7 @@ export default function LiveRidePage() {
   // ─── Render ────────────────────────────────────────────────────
   return (
     <div
-      ref={swipe.ref}
+      ref={swipeRef}
       className="fixed inset-0 bg-black"
       style={{ height: deviceType === "mobile" ? `${viewportHeight}px` : "100vh" }}
     >
@@ -873,7 +881,7 @@ export default function LiveRidePage() {
           null
         }
         hasData={!!classData}
-        loadProgress={Math.min(1, (Date.now() - loadStartedAt) / 5000)}
+        loadStartedAt={loadStartedAt}
         loadTotal={5000}
         reducedMotion={reducedMotion}
       />

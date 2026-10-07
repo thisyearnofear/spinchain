@@ -256,11 +256,14 @@ export function useFlowState(
   hr: number,
   hrResting: number,
 ) {
-  // performance.now() is intentionally captured once per mount; ref keeps it stable.
-  const sessionStart = useRef(performance.now());
+  // Session clock origin, captured on mount (and reset by resetSession).
+  const sessionStart = useRef(0);
+  useEffect(() => {
+    sessionStart.current = performance.now();
+  }, []);
 
   // Flow state tracking
-  const [flowState, setFlowState] = useState<FlowState>({
+  const [flowState, setFlowState] = useState<FlowState>(() => ({
     tier: 0,
     score: 0,
     consistency: 0,
@@ -268,7 +271,7 @@ export function useFlowState(
     trajectory: 0,
     previousTier: 0,
     enteredNewTierAt: performance.now(),
-  });
+  }));
 
   const [events, setEvents] = useState<FlowStateEvent[]>([]);
   const [milestones, setMilestones] = useState<number[]>([]);
@@ -356,7 +359,9 @@ export function useFlowState(
   const targetPower = useCoachingStore((s) => s.currentInterval?.targetPower ?? null);
   const intervalTarget = targetPower ? Math.round((targetPower[0] + targetPower[1]) / 2) : null;
   const intervalTargetRef = useRef(intervalTarget);
-  intervalTargetRef.current = intervalTarget;
+  useEffect(() => {
+    intervalTargetRef.current = intervalTarget;
+  }, [intervalTarget]);
 
   const tick = useCallback(() => {
     if (!powerHistoryRef.current.length) return;

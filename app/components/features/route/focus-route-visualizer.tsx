@@ -357,6 +357,9 @@ export default function FocusRouteVisualizer({
   // Initial / per-render placement; the rAF loop takes over from here.
   const riderPosition = positionOnRoute(
     points,
+    // Intentional render-time sample: the rAF loop below owns motion and writes
+    // the DOM directly; this only seeds placement (and paused visual baselines).
+    // eslint-disable-next-line react-hooks/refs, react-hooks/purity
     interpolatorRef.current.sample(typeof performance !== "undefined" ? performance.now() : 0),
     padX,
     routeBottom,

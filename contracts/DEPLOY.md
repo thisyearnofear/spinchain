@@ -163,7 +163,7 @@ The frontend reads all addresses from these env vars via `app/lib/contracts.ts` 
 | Contract            | Reason                                                         |
 |---------------------|----------------------------------------------------------------|
 | `DemandSurgeHook`   | Requires Uniswap v4-core/v4-periphery — parked until a funded use case |
-| `AchievementRedeemerV2` | Phase-4 design only — no implementation yet               |
+| `AchievementRedeemerV2` | Implemented + Foundry-tested, **not deployed** — see `docs/ACHIEVEMENT-REDEEMER-V2.md`; economics/ABI approval + operator sign-off still required |
 
 ---
 
@@ -187,7 +187,7 @@ bb write_solidity_verifier -k target/vk -o ../../contracts/evm/src-honk/HonkVeri
 
 Mainnet is out of scope until the phased plan completes. Remaining prerequisites:
 
-- [ ] `AchievementRedeemerV2` spec, implementation, and tests (phase 4)
+- [ ] `AchievementRedeemerV2` economics/ABI approval (design, implementation, and tests landed — `docs/ACHIEVEMENT-REDEEMER-V2.md`)
 - [ ] Real-verifier gas benchmarks (existing figures are MockVerifier-based)
 - [ ] Security audit of contracts before any real-value deployment
 - [ ] Legal/policy review (Apple 3.1.1/5.1, EDPB, reward jurisdiction)
