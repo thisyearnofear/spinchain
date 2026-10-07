@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRewardsStore } from "@/app/stores/rewards-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 
 interface UseRideSimulatorParams {
   isRiding: boolean;
+  /** Owned by the caller so it can be shared with the lifecycle hook. */
+  isRidingRef: React.MutableRefObject<boolean>;
   isTrainingMode: boolean;
   isGuestMode: boolean;
   isPracticeMode: boolean;
@@ -13,11 +15,11 @@ interface UseRideSimulatorParams {
 
 export function useRideSimulator({
   isRiding,
+  isRidingRef,
   isTrainingMode,
   isGuestMode,
 }: UseRideSimulatorParams) {
-  const isRidingRef = useRef(false);
-  useEffect(() => { isRidingRef.current = isRiding; }, [isRiding]);
+  useEffect(() => { isRidingRef.current = isRiding; }, [isRiding, isRidingRef]);
 
   const [simulatedSpin, setSimulatedSpin] = useState(0);
   const shouldSimulate = isRiding && (isTrainingMode || isGuestMode);
@@ -45,8 +47,4 @@ export function useRideSimulator({
   // rideProgress for every ride mode (device, keyboard sim, practice) —
   // see coordinator.ts. A previous time-scaled clock driver lived here but
   // was dead code (never invoked by the page) and has been removed.
-
-  return {
-    isRidingRef,
-  };
 }

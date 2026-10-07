@@ -35,6 +35,8 @@ export interface SwipeOptions {
   ignoreElements?: string;
   /** Disable all gestures */
   disabled?: boolean;
+  /** Optional caller-owned container ref (otherwise one is created) */
+  ref?: React.RefObject<HTMLDivElement | null>;
 }
 
 export interface SwipeResult {
@@ -56,9 +58,11 @@ export function useSwipeGesture(options: SwipeOptions = {}): SwipeResult {
     maxSwipeDuration = 300,
     ignoreElements = "button, a, input, select, textarea, [data-ignore-swipe]",
     disabled = false,
+    ref: externalRef,
   } = options;
 
-  const ref = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement>(null);
+  const ref = externalRef ?? internalRef;
   const [touchStart, setTouchStart] = useState<{ x: number; y: number; time: number } | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
   const [swipeStartPos, setSwipeStartPos] = useState({ x: 0, y: 0 });
@@ -151,7 +155,7 @@ export function useSwipeGesture(options: SwipeOptions = {}): SwipeResult {
       el.removeEventListener("touchmove", handleTouchMove);
       el.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [disabled, handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [disabled, handleTouchStart, handleTouchMove, handleTouchEnd, ref]);
 
   return { ref, dismiss: () => onSwipeDown?.(), isSwiping };
 }

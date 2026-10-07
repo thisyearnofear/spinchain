@@ -15,13 +15,6 @@ const eslintConfig = defineConfig([
       }],
       // Allow setState in useEffect - common pattern for initialization
       "react-hooks/set-state-in-effect": "off",
-      // React Compiler rules that eslint-plugin-react-hooks 7.1 promoted to
-      // errors. Kept visible as warnings until the flagged files are migrated.
-      "react-hooks/purity": "warn",
-      "react-hooks/refs": "warn",
-      "react-hooks/immutability": "warn",
-      "react-hooks/static-components": "warn",
-      "react-hooks/preserve-manual-memoization": "warn",
       // Allow any in test files and some lib files (needed for dynamic typing)
       "@typescript-eslint/no-explicit-any": "off",
       // Allow unescaped entities in JSX (common pattern)

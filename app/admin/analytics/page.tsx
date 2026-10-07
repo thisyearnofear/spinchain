@@ -84,13 +84,19 @@ export default function AnalyticsDashboard() {
     };
   }, [summary]);
 
+  // Relative times tick once a minute instead of reading the clock in render.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const formatTimestamp = (ts: number) => {
     const date = new Date(ts);
     return date.toLocaleTimeString() + ' ' + date.toLocaleDateString();
   };
 
   const formatRelativeTime = (ts: number) => {
-    const now = Date.now();
     const diff = now - ts;
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);

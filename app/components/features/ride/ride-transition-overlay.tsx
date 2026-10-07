@@ -57,7 +57,9 @@ interface RideTransitionOverlayProps {
   /** Whether to show loading at all (can skip if data preloaded) */
   hasData: boolean;
   /** Loading time remaining (ms) */
-  loadProgress: number;
+  loadProgress?: number;
+  /** Epoch ms when loading began; when set, the overlay ticks progress itself. */
+  loadStartedAt?: number;
   /** Total expected load time (ms) */
   loadTotal: number;
   /** Whether reduced motion is preferred */
@@ -86,6 +88,7 @@ export function RideTransitionOverlay({
   routeLabel,
   hasData,
   loadProgress,
+  loadStartedAt,
   loadTotal,
   reducedMotion,
 }: RideTransitionOverlayProps) {
@@ -93,6 +96,17 @@ export function RideTransitionOverlay({
     hasData ? "none" : "loading",
   );
   const [skipEnabled, setSkipEnabled] = useState(false);
+
+  const [loadNow, setLoadNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (loadStartedAt === undefined || internalState !== "loading") return;
+    const id = setInterval(() => setLoadNow(Date.now()), 100);
+    return () => clearInterval(id);
+  }, [loadStartedAt, internalState]);
+  const effectiveLoadProgress =
+    loadStartedAt !== undefined
+      ? Math.min(1, Math.max(0, loadNow - loadStartedAt) / loadTotal)
+      : (loadProgress ?? 0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -181,7 +195,7 @@ export function RideTransitionOverlay({
       <AnimatePresence mode="wait">
         {internalState === "loading" && (
           <LoadingTransition
-            progress={loadProgress}
+            progress={effectiveLoadProgress}
             total={loadTotal}
             onSkip={onSkipActivation}
             skipEnabled={skipEnabled}

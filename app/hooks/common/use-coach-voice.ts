@@ -82,6 +82,14 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
     } as VoiceSettings;
   }, [personality, intensity]);
 
+  const stop = useCallback(() => {
+    if (currentLayerId.current) {
+      mixerRef.current.stopLayer(currentLayerId.current);
+      currentLayerId.current = null;
+    }
+    setIsSpeaking(false);
+  }, []);
+
   const speak = useCallback(async (
     text: string,
     emotion?: 'calm' | 'focused' | 'intense' | 'celebratory'
@@ -181,16 +189,7 @@ export function useCoachVoice(options: UseCoachVoiceOptions = {}): UseCoachVoice
     } finally {
       setIsLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConfigured, personality, intensity, getVoiceSettings]);
-
-  const stop = useCallback(() => {
-    if (currentLayerId.current) {
-      mixerRef.current.stopLayer(currentLayerId.current);
-      currentLayerId.current = null;
-    }
-    setIsSpeaking(false);
-  }, []);
+  }, [isConfigured, personality, intensity, getVoiceSettings, stop]);
 
   return {
     speak,
