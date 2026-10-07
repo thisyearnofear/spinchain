@@ -1,0 +1,77 @@
+name: iOS Build
+
+# Builds the native shell for the simulator so Capacitor/plugin upgrades can't
+# land with an iOS side that was never compiled (pod install needs macOS).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'capacitor.config.ts'
+      - '.github/workflows/ios-build.yml'
+  pull_request:
+    paths:
+      - 'ios/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'capacitor.config.ts'
+      - '.github/workflows/ios-build.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulator:
+    name: pod install + xcodebuild (simulator)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      LANG: en_US.UTF-8
+      # Remote-server mode, as in prepare-ios.yml; the URL only affects the
+      # generated capacitor.config.json, not whether the shell compiles.
+      CAPACITOR_SERVER_URL: https://spinchain.vercel.app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.2
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare webDir for remote-server mode
+        run: |
+          mkdir -p out
+          printf '<!doctype html><meta charset="utf-8"><title>SpinChain</title>' > out/index.html
+
+      - name: Sync Capacitor (runs pod install)
+        run: pnpm exec cap sync ios
+
+      - name: Fail if Podfile.lock pods drifted
+        run: |
+          if git diff -U0 ios/App/Podfile.lock | grep -E '^[-+] ' | grep -v 'COCOAPODS:'; then
+            echo "::error::ios/App/Podfile.lock is stale. Run pnpm exec cap sync ios on macOS and commit it."
+            exit 1
+          fi
+
+      - name: Build for simulator
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 200
