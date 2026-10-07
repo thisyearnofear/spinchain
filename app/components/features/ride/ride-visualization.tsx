@@ -70,6 +70,8 @@ export function RideVisualization({
   const viewMode = useUIStore((s) => s.viewMode);
   const deviceType = useUIStore((s) => s.deviceType);
   const isPracticeMode = useUIStore((s) => s.isPracticeMode);
+  const webglUnavailable = useUIStore((s) => s.webglUnavailable);
+  const markWebglUnavailable = useUIStore((s) => s.markWebglUnavailable);
 
   const isRiding = useRideStore((s) => s.isActive);
   const rideProgress = useRideStore((s) => s.rideProgress);
@@ -92,6 +94,7 @@ export function RideVisualization({
 
   useEffect(() => {
     const probe = probeGpu();
+    if (!probe.webgl) markWebglUnavailable("no-webgl");
     const quality = getQualitySettings(probe);
     setLocalRenderConfig({
       mode: probe.recommendedMode,
@@ -111,15 +114,15 @@ export function RideVisualization({
     void import("@/app/components/features/route/route-visualizer");
     void import("@/app/components/features/route/focus-route-visualizer");
     setHasPreloaded(true);
-  }, []);
+  }, [markWebglUnavailable]);
 
   const renderConfig = visualizationConfig ?? localRenderConfig;
 
   // Respect the user's viewMode choice — allow forcing 3D even when the
   // probe recommends focus. The engine will auto-degrade back to 2D if FPS
-  // stays <25, so the override is safe.
+  // stays <25, so the override is safe. Without WebGL there is no override.
   const effectiveMode: RenderMode =
-    viewMode === "focus" ? "focus-2d" : "tron-3d";
+    viewMode === "focus" || webglUnavailable ? "focus-2d" : "tron-3d";
 
   const routeProgress = isRiding || rideProgress > 0 ? rideProgress / 100 : 0;
   const visualizerMode: "preview" | "ride" | "finished" =
@@ -179,6 +182,7 @@ export function RideVisualization({
             userDisplayName={undefined}
             intervalPhase={(currentInterval?.phase ?? undefined) as IntervalPhase | undefined}
             flowTier={flowTier}
+            onWebglUnavailable={markWebglUnavailable}
           />
         )}
       </div>
@@ -228,7 +232,9 @@ export function RideVisualization({
 
       {/* Tron (3D) — stacked, always mounted after probe (low-end still gets
            low quality; auto-degrade will bail out if FPS poor). `active` stops
-           its render loop while hidden so it doesn't compete with 2D. */}
+           its render loop while hidden so it doesn't compete with 2D. Never
+           mounted once WebGL is known not to work: there is no canvas to show. */}
+      {!webglUnavailable && (
       <m.div
         className="absolute inset-0"
         initial={false}
@@ -255,8 +261,10 @@ export function RideVisualization({
           intervalPhase={(currentInterval?.phase ?? undefined) as IntervalPhase | undefined}
           flowTier={flowTier}
           active={!isFocus}
+          onWebglUnavailable={markWebglUnavailable}
         />
       </m.div>
+      )}
     </div>
   );
 }

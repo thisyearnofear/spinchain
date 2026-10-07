@@ -135,14 +135,19 @@ export default function LiveRidePage() {
     if (typeof window === "undefined") return null;
     try { return probeGpu(); } catch { return null; }
   }, []);
-  const canRender3d = gpuProbe ? gpuProbe.recommendedMode === "tron-3d" : true;
-  const effectiveIsFocus = viewMode === "focus";
+  const webglUnavailable = useUIStore((s) => s.webglUnavailable);
+  const canRender3d = !webglUnavailable && (gpuProbe ? gpuProbe.recommendedMode === "tron-3d" : true);
+  const effectiveIsFocus = viewMode === "focus" || !!webglUnavailable;
   const handleToggleViewMode = useCallback(() => {
+    if (webglUnavailable) {
+      haptic.trigger("warning");
+      return;
+    }
     // Allow override on low-end — VisualizationEngine will auto-degrade back
     // to Focus if FPS stays <25 for 15s, so trying 3D is safe.
     haptic.trigger(canRender3d ? "light" : "warning");
     toggleViewMode();
-  }, [canRender3d, haptic, toggleViewMode]);
+  }, [canRender3d, haptic, toggleViewMode, webglUnavailable]);
   const hudMode = useUIStore((s) => s.hudMode);
   const setHudMode = useUIStore((s) => s.setHudMode);
   const toggleQuietHud = useCallback(
@@ -748,6 +753,7 @@ export default function LiveRidePage() {
           isPracticeMode={isPracticeMode}
           effectiveIsFocus={effectiveIsFocus}
           canRender3d={canRender3d}
+          threeDUnavailable={!!webglUnavailable}
           onToggleViewMode={handleToggleViewMode}
           onStart={handleStartFromScreen}
           practiceDurationSec={practiceDurationSec}
@@ -798,6 +804,7 @@ export default function LiveRidePage() {
           onToggleViewMode={handleToggleViewMode}
           effectiveIsFocus={effectiveIsFocus}
           canRender3d={canRender3d}
+          threeDUnavailable={!!webglUnavailable}
           onShowKeyboardHints={() => useRideModalStore.getState().setShowKeyboardHints(true)}
         />
       )}

@@ -21,6 +21,7 @@ import {
   BackSide,
 } from "three";
 import * as THREE from "three";
+import type { WebglUnavailableReason } from "@/app/lib/gpu-probe";
 import {
   EffectComposer,
   Bloom,
@@ -1264,15 +1265,30 @@ function FrameRateLimiter({ fps }: { fps: number }) {
   return null;
 }
 
-function CanvasContextLossHandler() {
+const CONTEXT_RESTORE_GRACE_MS = 3000;
+
+function CanvasContextLossHandler({ onLostForGood }: { onLostForGood?: () => void }) {
   const { gl, invalidate } = useThree();
+  const onLostForGoodRef = useRef(onLostForGood);
+  useEffect(() => {
+    onLostForGoodRef.current = onLostForGood;
+  });
   useEffect(() => {
     const canvas = gl.domElement;
-    const onLost = (e: Event) => e.preventDefault();
-    const onRestored = () => invalidate();
+    let graceTimer: ReturnType<typeof setTimeout> | undefined;
+    const onLost = (e: Event) => {
+      e.preventDefault();
+      clearTimeout(graceTimer);
+      graceTimer = setTimeout(() => onLostForGoodRef.current?.(), CONTEXT_RESTORE_GRACE_MS);
+    };
+    const onRestored = () => {
+      clearTimeout(graceTimer);
+      invalidate();
+    };
     canvas.addEventListener("webglcontextlost", onLost, false);
     canvas.addEventListener("webglcontextrestored", onRestored, false);
     return () => {
+      clearTimeout(graceTimer);
       canvas.removeEventListener("webglcontextlost", onLost, false);
       canvas.removeEventListener("webglcontextrestored", onRestored, false);
     };
@@ -1789,6 +1805,7 @@ export default function RouteVisualizer({
   contextPalette,
   paused = false,
   active = true,
+  onWebglUnavailable,
 }: {
   elevationProfile?: number[];
   theme?: VisualizerTheme;
@@ -1810,6 +1827,8 @@ export default function RouteVisualizer({
   paused?: boolean;
   /** False while this layer is hidden (2D view on top) — no frames rendered. */
   active?: boolean;
+  /** WebGL failed to start, or the context was lost and never restored. */
+  onWebglUnavailable?: (reason: WebglUnavailableReason) => void;
 }) {
   const adaptiveQuality = useAdaptiveQuality();
 
@@ -1876,14 +1895,27 @@ export default function RouteVisualizer({
         </div>
       }>
         <Canvas
-          gl={{
-            alpha: true,
-            // The EffectComposer owns AA on high/medium (4x MSAA inside the
-            // composer on high); native MSAA on the default framebuffer is
-            // discarded on that path and only costs fill-rate. Low tier runs
-            // no composer, so it keeps native AA.
-            antialias: effectiveQuality.fps === 30,
-            powerPreference: "high-performance",
+          gl={(defaults) => {
+            try {
+              return new THREE.WebGLRenderer({
+                ...defaults,
+                alpha: true,
+                // The EffectComposer owns AA on high/medium (4x MSAA inside the
+                // composer on high); native MSAA on the default framebuffer is
+                // discarded on that path and only costs fill-rate. Low tier runs
+                // no composer, so it keeps native AA.
+                antialias: effectiveQuality.fps === 30,
+                powerPreference: "high-performance",
+              });
+            } catch (err) {
+              // The probe passed but this context didn't (blocklisted GPU,
+              // context limit). Hand the ride to 2D and park R3F's configure()
+              // rather than let it reject unhandled — this layer unmounts next.
+              console.warn("[RouteVisualizer] WebGL unavailable, falling back to 2D:", err);
+              onWebglUnavailable?.("init-failed");
+              // R3F awaits this at runtime; its type only admits a Renderer.
+              return new Promise<never>(() => {}) as unknown as THREE.WebGLRenderer;
+            }
           }}
           dpr={effectiveQuality.pixelRatio}
           // "never" freezes the loop entirely — used by the visual harness
@@ -1893,7 +1925,9 @@ export default function RouteVisualizer({
           frameloop={paused || !active ? "never" : "demand"}
           performance={{ min: 0.5 }}
         >
-          <CanvasContextLossHandler />
+          <CanvasContextLossHandler
+            onLostForGood={onWebglUnavailable && (() => onWebglUnavailable("context-lost"))}
+          />
           {mode === "ride" && !paused && active && <FrameRateLimiter fps={effectiveQuality.fps} />}
           <Scene
             elevationProfile={elevationProfile}
