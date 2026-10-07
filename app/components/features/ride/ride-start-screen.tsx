@@ -1,6 +1,16 @@
 "use client";
 
+import { Bluetooth, BluetoothConnected, BluetoothSearching } from "lucide-react";
 import type { ClassWithRoute } from "@/app/hooks/evm/use-class-data";
+
+export interface RideStartBike {
+  connected: boolean;
+  pending: boolean;
+  failed: boolean;
+  name?: string;
+  onConnect: () => void;
+  onDisconnect: () => void;
+}
 
 interface RideStartScreenProps {
   classData: ClassWithRoute;
@@ -14,6 +24,8 @@ interface RideStartScreenProps {
   onPracticeDurationChange?: (sec: number) => void;
   /** Touch device: pedal with the on-screen L / R pads, no keyboard. */
   isTouch?: boolean;
+  /** Bluetooth pairing; omitted where this browser has no Bluetooth. */
+  bike?: RideStartBike;
 }
 
 export function RideStartScreen({
@@ -26,6 +38,7 @@ export function RideStartScreen({
   practiceDurationSec = 45,
   onPracticeDurationChange,
   isTouch = false,
+  bike,
 }: RideStartScreenProps) {
   const duration = classData.metadata?.duration ?? 45;
   const instructor = classData.metadata?.instructor;
@@ -86,6 +99,47 @@ export function RideStartScreen({
       </div>
       <p className="pointer-events-none text-[10px] font-bold uppercase tracking-[0.3em] text-white/25">{isTouch ? "Preview updates instantly" : "Press V to toggle · Preview updates instantly"}</p>
 
+      {bike && (
+        <div className="pointer-events-auto flex flex-col items-center gap-1.5">
+          {bike.connected ? (
+            <div className="flex items-center gap-1 rounded-full border border-emerald-400/30 bg-black/60 backdrop-blur-xl p-1 pl-3">
+              <BluetoothConnected className="h-3.5 w-3.5 text-emerald-300" aria-hidden />
+              <span className="px-1.5 text-xs font-black text-white" data-testid="bike-status">
+                {bike.name ?? "Bike"} connected
+              </span>
+              <button
+                onClick={bike.onDisconnect}
+                className="rounded-full px-3 py-1.5 text-xs font-bold text-white/60 hover:text-white transition-colors"
+                aria-label="Disconnect bike"
+              >
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={bike.onConnect}
+              disabled={bike.pending}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl px-4 py-2 text-xs font-black text-white/80 hover:text-white transition-colors disabled:cursor-wait disabled:opacity-60"
+              aria-label="Connect bike"
+            >
+              {bike.pending ? (
+                <BluetoothSearching className="h-3.5 w-3.5 animate-pulse" aria-hidden />
+              ) : (
+                <Bluetooth className="h-3.5 w-3.5" aria-hidden />
+              )}
+              {bike.pending ? "Searching for bike…" : "Connect bike"}
+            </button>
+          )}
+          {bike.failed && !bike.connected && !bike.pending && (
+            <p className="text-[10px] font-bold text-amber-300/80" role="status">
+              {isPracticeMode
+                ? "Couldn't connect — you can still pedal with the keyboard"
+                : "Couldn't connect — check the bike is awake and nearby"}
+            </p>
+          )}
+        </div>
+      )}
+
       <button
         onClick={onStart}
         className="pointer-events-auto group relative rounded-full bg-[color:var(--accent)] px-10 py-4 text-base font-black text-black shadow-[0_0_60px_var(--glow)] hover:scale-105 hover:bg-[color:var(--accent-strong)] active:scale-95 transition-[transform,background-color]"
@@ -93,7 +147,7 @@ export function RideStartScreen({
       >
         Start Ride
         <span className="block text-[10px] font-bold uppercase tracking-[0.3em] text-black/60 mt-0.5">
-          {isTouch ? "Tap L / R to pedal" : "Keyboard: ← → / A D"}
+          {bike?.connected ? "Pedal your bike to ride" : isTouch ? "Tap L / R to pedal" : "Keyboard: ← → / A D"}
         </span>
       </button>
     </div>
