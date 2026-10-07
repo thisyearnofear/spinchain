@@ -19,7 +19,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // 2 on CI: overlaps wall-clock waits (fake-bike ride, timers). More risks
+  // SwiftShader CPU thrash on 4-vCPU runners, which flakes the WebGL specs.
+  workers: process.env.CI ? 2 : undefined,
   timeout: 60_000,
   reporter: [["html", { open: "never" }], ["list"]],
   use: {
