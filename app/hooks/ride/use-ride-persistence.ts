@@ -16,7 +16,8 @@ import {
 } from "@/app/lib/analytics/ride-history";
 import { createRideReceipt } from "@/app/lib/analytics/ride-receipt";
 import { persistRideSummaryToWalrus } from "@/app/lib/walrus/ride-persistence";
-import { saveRideToSupabase, RIDE_HISTORY_UPDATED_EVENT } from "@/app/hooks/common/use-supabase-sync";
+import { RIDE_HISTORY_UPDATED_EVENT } from "@/app/hooks/common/use-supabase-sync";
+import { drainCloudOutbox, enqueueCloudHistory } from "@/app/lib/sync/cloud-history";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
@@ -148,8 +149,10 @@ export function useRidePersistence() {
 
     const saved = saveRideSummary(canonicalSummary);
 
-    // Mirror to Supabase (fire-and-forget — localStorage remains primary for UI)
-    void saveRideToSupabase(canonicalSummary);
+    // Durable cloud mirror: queued in the outbox (held until cloud_history
+    // consent) and drained from the app root, so it survives leaving this screen.
+    enqueueCloudHistory(canonicalSummary);
+    void drainCloudOutbox();
 
     window.dispatchEvent(new CustomEvent(RIDE_HISTORY_UPDATED_EVENT));
 

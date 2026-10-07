@@ -39,6 +39,7 @@ import { backgroundManager } from './lib/mobile-bridge/background';
 import { flushAnalytics } from './lib/analytics/events';
 import { TestHooksProvider } from './lib/test-hooks';
 import { WalletAuthProvider } from './hooks/common/use-wallet-auth';
+import { OutboxDrainer } from './lib/sync/outbox-drainer';
 
 // ... (existing code)
 
@@ -164,6 +165,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <MotionConfig reducedMotion="user">
           <ToastProvider>
             <TestHooksProvider>
+              <OutboxDrainer />
               <InnerProviders>
                 {children}
               </InnerProviders>
