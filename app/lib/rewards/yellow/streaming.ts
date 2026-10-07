@@ -97,6 +97,9 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
   // Refs for interval management
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastTelemetryRef = useRef<TelemetryPoint | null>(null);
+  // Latest sendUpdateInternal for the interval set up in startStreaming, which
+  // otherwise captured the first render's closure (channel still null).
+  const sendUpdateRef = useRef<((t: TelemetryPoint) => Promise<unknown>) | null>(null);
   const signUpdateRef = useRef<UpdateSigner | null>(null);
 
   // Cleanup on unmount
@@ -166,7 +169,7 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
         // Start periodic updates
         intervalRef.current = setInterval(() => {
           if (lastTelemetryRef.current) {
-            void sendUpdateInternal(lastTelemetryRef.current);
+            void sendUpdateRef.current?.(lastTelemetryRef.current);
           }
         }, STREAMING_INTERVAL);
       } catch (err) {
@@ -176,7 +179,6 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
         throw error;
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
@@ -289,6 +291,10 @@ export function useYellowStreaming(): UseYellowStreamingReturn {
     },
     [streamState.accumulated, channel],
   );
+
+  useEffect(() => {
+    sendUpdateRef.current = sendUpdateInternal;
+  }, [sendUpdateInternal]);
 
   /**
    * Send a telemetry update (public API)

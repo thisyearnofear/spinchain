@@ -24,7 +24,7 @@
  * - Respects reduced-motion preference
  */
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { useSensoryStore } from "@/app/stores/sensory-store";
 import { useRideStore } from "@/app/stores/ride-store";
@@ -42,6 +42,23 @@ interface RideActivationSequenceProps {
 const COUNTDOWN_DURATION = 4; // seconds (3-2-1-GO)
 const ROUTE_REVEAL_DURATION = 3000; // ms for phase 1
 const COUNTDOWN_START = ROUTE_REVEAL_DURATION;
+
+
+// Deterministic pseudo-random so particle layout is pure and SSR-stable.
+function seeded(i: number, k: number): number {
+  const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+const AMBIENT_PARTICLES = Array.from({ length: 20 }, (_, i) => ({
+  size: 2 + seeded(i, 1) * 4,
+  left: `${seeded(i, 2) * 100}%`,
+  top: `${seeded(i, 3) * 100}%`,
+  opacity: 0.3 + seeded(i, 4) * 0.3,
+  y: -(30 + seeded(i, 5) * 40),
+  duration: 2 + seeded(i, 6) * 3,
+  delay: seeded(i, 7) * 2,
+}));
 
 export function RideActivationSequence({
   onRideStarted,
@@ -61,23 +78,13 @@ export function RideActivationSequence({
   const [phase, setPhase] = useState<"route-reveal" | "countdown" | "go">("route-reveal");
   const [countdownNumber, setCountdownNumber] = useState<number | null>(null);
   const [showNumber, setShowNumber] = useState(false);
-  const startTimeRef = useRef(Date.now());
+  const [startTime] = useState(() => Date.now());
   const hapticRef = useRef<((type: HapticType) => void) | null>(null);
   const reducedMotion = useReducedMotion();
 
   // Determine accent color from interval phase
   const theme = computePhaseTheme(intervalPhase ?? null, 500);
   const accentColor = theme.color;
-
-  // ─── Phase transitions ──────────────────────────────────────────
-  useEffect(() => {
-    const elapsed = Date.now() - startTimeRef.current;
-
-    if (elapsed >= COUNTDOWN_START && phase === "route-reveal") {
-      setPhase("countdown");
-      startCountdown();
-    }
-  }, [phase, intervalPhase]);
 
   // ─── Countdown logic ────────────────────────────────────────────
   const startCountdown = useCallback(() => {
@@ -115,6 +122,16 @@ export function RideActivationSequence({
     setTimeout(tick, reducedMotion ? 200 : 500);
   }, [setCountdownPhase, onRideStarted, reducedMotion]);
 
+  // ─── Phase transitions ──────────────────────────────────────────
+  useEffect(() => {
+    const elapsed = Date.now() - startTime;
+
+    if (elapsed >= COUNTDOWN_START && phase === "route-reveal") {
+      setPhase("countdown");
+      startCountdown();
+    }
+  }, [phase, intervalPhase, startTime]);
+
   // ─── Skip handler ───────────────────────────────────────────────
   const handleSkip = useCallback(() => {
     resetCountdown();
@@ -127,26 +144,12 @@ export function RideActivationSequence({
   useEffect(() => {
     if (reducedMotion) return;
     const interval = setInterval(() => {
-      setElapsed(Date.now() - startTimeRef.current);
+      setElapsed(Date.now() - startTime);
     }, 50);
     return () => clearInterval(interval);
-  }, [reducedMotion]);
+  }, [reducedMotion, startTime]);
 
   const showSkip = elapsed > 2000;
-
-  const ambientParticles = useMemo(
-    () =>
-      Array.from({ length: 20 }).map(() => ({
-        size: 2 + Math.random() * 4,
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        opacity: 0.3 + Math.random() * 0.3,
-        y: -(30 + Math.random() * 40),
-        duration: 2 + Math.random() * 3,
-        delay: Math.random() * 2,
-      })),
-    [],
-  );
 
   return (
     <div
@@ -163,7 +166,7 @@ export function RideActivationSequence({
           animate={{ opacity: 1 }}
           transition={{ duration: 1.5 }}
         >
-          {ambientParticles.map((particle, i) => (
+          {AMBIENT_PARTICLES.map((particle, i) => (
             <m.div
               key={i}
               className="absolute rounded-full"

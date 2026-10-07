@@ -58,7 +58,9 @@ export function useLLMCoaching({
   // Mirror all mutable inputs into a ref so callLLM stays referentially
   // stable and the polling interval is never torn down by re-renders.
   const propsRef = useRef({ enabled, systemPromptCid, targetHeartRate, personality, getBus });
-  propsRef.current = { enabled, systemPromptCid, targetHeartRate, personality, getBus };
+  useEffect(() => {
+    propsRef.current = { enabled, systemPromptCid, targetHeartRate, personality, getBus };
+  });
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current !== null) {

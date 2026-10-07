@@ -14,6 +14,8 @@ interface UseRideAnalyticsParams {
   bleConnected: boolean;
   useSimulator: boolean;
   playSound: (type: unknown) => void;
+  /** Owned by the caller so it can be shared with the lifecycle hook. */
+  trackedCompletionRef: React.MutableRefObject<boolean>;
 }
 
 export function useRideAnalytics({
@@ -24,9 +26,9 @@ export function useRideAnalytics({
   bleConnected,
   useSimulator,
   playSound,
+  trackedCompletionRef,
 }: UseRideAnalyticsParams) {
   const trackedEntryViewRef = useRef(false);
-  const trackedCompletionRef = useRef(false);
   const trackedLiveTelemetryRef = useRef(false);
   const trackedMilestoneRef = useRef(false);
   const haptic = useHaptic();
@@ -45,7 +47,7 @@ export function useRideAnalytics({
       source: bleConnected ? "live-bike" : isPracticeMode && useSimulator ? "simulator" : "estimated",
       practiceMode: isPracticeMode,
     });
-  }, [bleConnected, classId, isPracticeMode, rideProgress, useSimulator]);
+  }, [bleConnected, classId, isPracticeMode, rideProgress, useSimulator, trackedCompletionRef]);
 
   useEffect(() => {
     if (!isRiding || trackedMilestoneRef.current) return;
@@ -81,6 +83,5 @@ export function useRideAnalytics({
   return {
     trackLiveTelemetry,
     resetCompletionTracking,
-    trackedCompletionRef,
   };
 }

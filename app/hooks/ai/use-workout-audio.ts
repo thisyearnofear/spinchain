@@ -179,7 +179,7 @@ export function useWorkoutAudio(): UseWorkoutAudioReturn {
     playSound,
     playCountdown,
     stopAll,
-    isPlaying: isPlaying || activeLayers.current.size > 0,
+    isPlaying,
     isConfigured,
     preloadSounds,
     setMusicSpeed,
