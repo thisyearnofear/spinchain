@@ -151,30 +151,34 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
   // Action methods - defined before useEffect to avoid reference issues
   const scanAndConnect = useCallback(async (): Promise<boolean> => {
     setIsPending(true);
-    toast.loading('Scanning for devices...', 'Looking for fitness equipment');
+    const loadingId = toast.loading('Scanning for devices...', 'Looking for fitness equipment');
     trackEvent(ANALYTICS_EVENTS.TELEMETRY_CONNECT_CTA_CLICKED, { mode: 'scan' });
     
     try {
       const connectedDevice = await ble.scanAndConnect();
       setIsPending(false);
+      toast.dismiss(loadingId);
       return !!connectedDevice;
     } catch {
       setIsPending(false);
+      toast.dismiss(loadingId);
       return false;
     }
   }, [ble, toast]);
 
   const connect = useCallback(async (): Promise<boolean> => {
     setIsPending(true);
-    toast.loading('Connecting to device...', 'Please wait');
+    const loadingId = toast.loading('Connecting to device...', 'Please wait');
     trackEvent(ANALYTICS_EVENTS.TELEMETRY_CONNECT_CTA_CLICKED, { mode: 'connect' });
     
     try {
       const connectedDevice = await ble.connect();
       setIsPending(false);
+      toast.dismiss(loadingId);
       return !!connectedDevice;
     } catch {
       setIsPending(false);
+      toast.dismiss(loadingId);
       return false;
     }
   }, [ble, toast]);
@@ -207,15 +211,17 @@ export function useBleData(options: UseBleDataOptions = {}): UseBleDataReturn {
     }
     
     setIsPending(true);
-    toast.loading('Quick connecting...', `Connecting to ${saved[0].name}`);
+    const loadingId = toast.loading('Quick connecting...', `Connecting to ${saved[0].name}`);
     trackEvent(ANALYTICS_EVENTS.TELEMETRY_CONNECT_CTA_CLICKED, { mode: 'quick-connect' });
     
     try {
       const connected = await ble.autoConnect();
       setIsPending(false);
+      toast.dismiss(loadingId);
       return connected;
     } catch {
       setIsPending(false);
+      toast.dismiss(loadingId);
       return false;
     }
   }, [ble, toast]);
