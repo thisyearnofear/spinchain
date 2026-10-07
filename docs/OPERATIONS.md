@@ -53,10 +53,10 @@ Open [http://localhost:3210](http://localhost:3210) (dev server is pinned to por
 - Testnet/pre-launch. Live at https://spinchain.vercel.app/ (application release `a3c7e37` live 2026-10-04). **Direction approved 2026-10-04: receipt-first** — progression is independent of any chain; optional settlement is a future phase. See `plans/wedge-contract-research.md`.
 - Demo content gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` — off by default.
 - Production verifier state (read-only `eth_call` preflight 2026-10-04): deployed `EffortThresholdVerifier` `0xBbc32cc3…c9dA4` **rejects real proofs** (revert `0xfa066593` — wrong public-input slice); underlying `HonkVerifier` `0xF2a33f6e…641B` accepts the committed fixture proof. Corrected wrapper exists locally, **not deployed**; no adapter/redeploy is the next step — `AchievementRedeemerV2` design (phase 4) comes first. Engine/wrapper owner: deployer `0x29FA…F1Cd` (~1.98 AVAX Fuji).
-- Supabase `spinchain` (`avcihfixqlofvkpvwmiq`, us-east-2) ACTIVE_HEALTHY; **`ride_summaries.summary` column APPLIED 2026-10-04 — additive `jsonb` nullable migration (`app/lib/supabase/migrations/20261004_ride_summary.sql`), verified on the same project.** **`rider_consents` table migration (`app/lib/supabase/migrations/20261007_rider_consents.sql`) is REQUIRED for phase-2 consent enforcement — PENDING; without it `hasServerConsent` denies cloud sync (fails safe) and consent PUTs return 500.**
+- Supabase `spinchain` (`avcihfixqlofvkpvwmiq`, us-east-2) ACTIVE_HEALTHY; **`ride_summaries.summary` column APPLIED 2026-10-04 — additive `jsonb` nullable migration (`app/lib/supabase/migrations/20261004_ride_summary.sql`), verified on the same project.** **`rider_consents` table migration (`app/lib/supabase/migrations/20261007_rider_consents.sql`) APPLIED 2026-10-07 via the Supabase CLI (`db query --linked`), columns verified — consent PUTs and consent-gated cloud sync are live.**
 - Phase-0 auth/ownership/CTA/Noir/receipt fixes and phase-1 public-write boundary + `RideReceiptV1` are live on prod (`a3c7e37`, deployed 2026-10-04) — 506 unit / 53 files + Foundry real-verifier tests green locally.
 - Phase 2 merged to main 2026-10-07: granular rider consent (four scopes, `consent-v1`, client + server enforcement) and a durable cloud-history outbox. Phase 4 `AchievementRedeemerV2` + `ClaimRegistry` design and Foundry tests also merged 2026-10-07 (design doc + tests only, no deploy — see `docs/ACHIEVEMENT-REDEEMER-V2.md`).
-- Missing for general users: consent migration + deployment of the phase-2 build, legal review, and integrated real-device validation. Phase-1 public-write blocking is deployed; controlled production feedback is user-owned.
+- Missing for general users: legal review and integrated real-device validation (phase-2 consent code + `rider_consents` are live). Phase-1 public-write blocking is deployed; controlled production feedback is user-owned.
 
 ---
 
@@ -490,7 +490,7 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 
 **What's done**: phases 0–4 of the old wedge plan; local hardening (auth, ownership, CTA, Noir compat, receipt status) and phase-1 public-write boundary + `RideReceiptV1` verified locally (366 tests, clean typecheck/build) — **deployed 2026-10-04 as application release `a3c7e37`**. The Fuji contracts above are legacy experiments — **claims are not approved**: the deployed wrapper rejects real proofs and the app-side legacy-claim gate exists locally (prod env flag `false`).
 
-**What's missing for users**: phase-2 consent migration + deployment (code merged 2026-10-07; `rider_consents` table pending on prod); `source-attested` provenance; phase-3 provider/provenance interface; phase-5 real-verifier benchmarks + operator-approved testnet deployment; legal/policy review. Phase-4 `AchievementRedeemerV2` design + tests are merged (no deploy, by design). User browser/real-device feedback on the live build is pending.
+**What's missing for users**: phase-2 consent (code + `rider_consents` table live 2026-10-07); `source-attested` provenance; phase-3 provider/provenance interface; phase-5 real-verifier benchmarks + operator-approved testnet deployment; legal/policy review. Phase-4 `AchievementRedeemerV2` design + tests are merged (no deploy, by design). User browser/real-device feedback on the live build is pending.
 
 ### Scale Risks (Must Fix Before Features)
 
@@ -498,8 +498,8 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 |------|----------|--------|
 | localStorage as primary store | **High** | Ride history, profile, panel state, analytics — all in localStorage. 200-ride cap is arbitrary. Data lost on browser clear. |
 | Mocked instructor analytics | **High** | `attendanceRate: 0.85`, `repeatRiderRate: 0.35` — hardcoded |
-| No durable account layer | **High** | Supabase project provisioned; durable outbox + recoverable jobs implemented 2026-10-07 (phase 2), pending consent-migration deployment. Durable account relationships beyond wallet-auth remain thin. |
-| Personal-data privacy and consent | **High** | Phase 1 blocks the covered Walrus, Sui, relay, and live-telemetry publishing paths. Third-party AI/voice consent controls implemented (phase 2, pending prod migration); localStorage is device-local and NOT encrypted. |
+| No durable account layer | **High** | Supabase project provisioned; durable outbox + recoverable jobs implemented and consent enforcement live 2026-10-07 (phase 2). Durable account relationships beyond wallet-auth remain thin. |
+| Personal-data privacy and consent | **High** | Phase 1 blocks the covered Walrus, Sui, relay, and live-telemetry publishing paths. Third-party AI/voice consent controls live (phase 2, deployed 2026-10-07); localStorage is device-local and NOT encrypted. |
 | No auth (historical) | Medium | Session-bound wallet auth deployed in `a3c7e37`; live prod enforces signed sessions |
 
 ### Pre-Launch Checklist
@@ -507,7 +507,7 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 - [x] **Redeploy Vercel from HEAD** (2026-10-03, historical committed tree — not the current uncommitted work); CLI deploys remain the path
 - [x] **Phase 1 privacy boundary** — deployed 2026-10-04 (`a3c7e37`): no public personal-data writes; local durable `RideReceiptV1`
 - [x] **`ride_summaries.summary` migration** applied to production Supabase 2026-10-04 (additive, nullable `jsonb`)
-- [x] **Phase 2 consent controls** — merged 2026-10-07: separate consents for cloud history / third-party AI / voice / instructor live view / public export + durable outbox. **Pending**: apply `20261007_rider_consents.sql` to production Supabase before consent enforcement works live
+- [x] **Phase 2 consent controls** — merged 2026-10-07: separate consents for cloud history / third-party AI / voice / instructor live view / public export + durable outbox. `20261007_rider_consents.sql` applied to production Supabase 2026-10-07 — consent enforcement is live
 - [x] **Fix Vercel env names** — canonical `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `GEMINI_API_KEY` added to production 2026-10-04 (values copied from the legacy cloud vars; legacy names preserved); code reads `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `GEMINI_API_KEY`
 - [x] **Phase 4 `AchievementRedeemerV2` design+tests** — merged 2026-10-07 (`docs/ACHIEVEMENT-REDEEMER-V2.md`); no deploy by design
 - [ ] **Phase 3 & 5** — verification-provider interface/pilot, real-verifier benchmarks, operator-approved testnet deploy
@@ -534,9 +534,9 @@ The former multi-chain mainnet migration checklist is retired. Do not publish pe
 
 **Merged:** 12 PRs in dependency order — granular rider consent (`consent-v1`, four scopes, client + server enforcement), durable cloud-history outbox (`spinchain:outbox:v1` + `OutboxDrainer`), Connect-bike UI on the ride start screen, fake-BLE-bike e2e (`tests/fake-bike.spec.ts`), WebGL→2D Focus fallback, `AchievementRedeemerV2` + `ClaimRegistry` design/Foundry tests (no deploy), visual-harness fixed clock, iOS simulator CI (`macos-latest`), Xcode Cloud post-clone fix, Capacitor 8 Podfile.lock, React Compiler cleanups, moderate/low audit fixes.
 
-**Required operator action — pending:** apply `app/lib/supabase/migrations/20261007_rider_consents.sql` to production Supabase (`avcihfixqlofvkpvwmiq`). Without it `hasServerConsent` denies all consent-gated writes (fails safe: cloud sync stops, consent PUTs 500). Auto-deploys from main mean the consent code is live before the table — acceptable fail-closed behavior, but consent UI will not persist grants until the migration lands.
+**Operator action — completed 2026-10-07:** `app/lib/supabase/migrations/20261007_rider_consents.sql` applied to production Supabase (`avcihfixqlofvkpvwmiq`) via `supabase db query --linked`; columns verified (`address`, `scope`, `granted`, `policy_version`, `updated_at`). Consent PUTs and consent-gated cloud sync are live.
 
-**Verification:** every PR merged on full green CI (CI, react-doctor, EVM verifier, Rive goldens, iOS xcodebuild where relevant); 506 unit tests / 53 files locally. The E2E gate (`pnpm test:e2e`, 8 specs × 2 projects, `workers: 1`) now takes ~20–29 min — flagged as a scaling concern.
+**Verification:** every PR merged on full green CI (CI, react-doctor, EVM verifier, Rive goldens, iOS xcodebuild where relevant); 506 unit tests / 53 files locally. The E2E gate is now build-once + shard: a standalone artifact is built once, then 6 Playwright shards plus 3 dedicated `workers: 1` visual-regression shards serve it (~6.5 min wall vs ~20–29 min serial).
 
 #### 2026-10-04 — Phase 1 deployed (22:27 UTC)
 
@@ -607,9 +607,9 @@ The former multi-chain mainnet migration checklist is retired. Do not publish pe
 ### Not Yet Launch-Ready
 
 - Live value-bearing claims — the deployed Fuji wrapper is broken and the redeemer is designed but undeployed (phase-4 `AchievementRedeemerV2` merged 2026-10-07); claims stay off until phase 5
-- Granular consent + recovery jobs implemented 2026-10-07 (phase 2, pending `rider_consents` prod migration); encryption/retention controls remain unfinished; the phase-1 public publishing boundary is deployed.
-- Consent transfer controls for third-party AI/TTS biometric context implemented (phase 2); no "privacy-ready" claim until deployed + reviewed
-- `ride_summaries.summary` migration applied 2026-10-04 — canonical summary roundtrip enabled server-side (client shipped in `a3c7e37`); `rider_consents` migration (phase 2) pending
+- Granular consent + recovery jobs implemented and live 2026-10-07 (phase 2, `rider_consents` applied); encryption/retention controls remain unfinished; the phase-1 public publishing boundary is deployed.
+- Consent transfer controls for third-party AI/TTS biometric context implemented and deployed (phase 2); no "privacy-ready" claim until legal review completes
+- `ride_summaries.summary` migration applied 2026-10-04 — canonical summary roundtrip enabled server-side (client shipped in `a3c7e37`); `rider_consents` migration (phase 2) applied 2026-10-07
 - Browser-level E2E covers wedge/auth paths; the integrated production dogfood loop is a phase-5 user task
 - Legal/policy review (Apple 3.1.1/5.1, EDPB, reward jurisdiction) outstanding
 
@@ -633,9 +633,9 @@ All providers handle: route generation, narrative creation, chat, coaching, and 
 ### Privacy Features
 
 - **ZK proofs** reveal only three public outputs (`threshold_met`, `seconds_above`, `effort_score`); class/rider/threshold/min-duration are attached metadata, not proven inputs. ZK is an optional future privacy layer over issuer-bound commitments — not trustless physical-effort verification.
-- **Boundary status**: public personal-data publication is disabled (phase-1 build, `a3c7e37`); granular third-party/AI consent is implemented in code (phase 2, merged 2026-10-07) and pending the `rider_consents` production migration. Until consent deploys and a review completes, do not claim privacy-ready. localStorage is device-local and not encrypted; legacy public blobs remain readable (migration-only, owner-scoped).
+- **Boundary status**: public personal-data publication is disabled (phase-1 build, `a3c7e37`); granular third-party/AI consent is live (phase 2, `rider_consents` applied 2026-10-07). Until legal review completes, do not claim privacy-ready. localStorage is device-local and not encrypted; legacy public blobs remain readable (migration-only, owner-scoped).
 - **Provenance classes**: `simulated` / `device-observed` / `estimated` on `RideReceiptV1`; `source-attested` is reserved and cannot be client-declared. FTMS is a transport protocol, not attestation.
 
 ---
 
-*Last updated: 2026-10-04*
+*Last updated: 2026-10-07*

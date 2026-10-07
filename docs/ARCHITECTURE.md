@@ -104,7 +104,7 @@ Derived from the saved summary + stable session id; carried as an optional field
 ### Privacy boundary (phase 1 → 2)
 
 - Phase 1 (deployed 2026-10-04, `a3c7e37`) closes **public** publication: telemetry, ride summaries, rider profiles, coach memory, and Sui ride anchors stop being written publicly. Public world/route asset publishing stays.
-- Phase 2 (implemented 2026-10-07) closes **consent transfer**: cloud history, third-party AI/voice, instructor live view, and public achievement export are separate granular consents (`app/lib/privacy/consent.ts` + `consent-server.ts`, policy version `consent-v1`, all off by default). Third-party AI/TTS calls now throw `ConsentRequiredError` without an `ai_voice` grant — privacy-ready still requires the production `rider_consents` migration and legal review.
+- Phase 2 (implemented 2026-10-07) closes **consent transfer**: cloud history, third-party AI/voice, instructor live view, and public achievement export are separate granular consents (`app/lib/privacy/consent.ts` + `consent-server.ts`, policy version `consent-v1`, all off by default). Third-party AI/TTS calls now throw `ConsentRequiredError` without an `ai_voice` grant — the `rider_consents` migration is applied (2026-10-07); privacy-ready still requires legal review.
 - Ordinary progression is not cash or transferable SPIN; tradable/cash rewards require jurisdictional legal review (EDPB privacy rules (minimization/retention/erasure — encrypted data is still personal data), Apple platform rules (3.1.1 digital goods/NFT, 5.1 health/AI consent), and jurisdictional financial review are separate concerns — see research doc §§5–7). A `RideReceiptV1` is a record, not a medical measurement or attestation certificate.
 
 ### Current vs planned chain systems
