@@ -33,7 +33,7 @@ Local gate evidence: 366 unit tests across 42 files pass; `tsc --noEmit` clean; 
 - File areas: ride completion/summary persistence (`app/lib/analytics/*`), receipt builder (`RideReceiptV1` type + derivation), write gates on telemetry/summary/profile/coach-memory/Sui-anchor call sites, journey/history status rendering.
 - Acceptance: a completed ride persists locally with a durable receipt BEFORE background work; zero public personal-data requests and zero automatic proof/chain writes fire in browser E2E (negative privacy gates); legacy reads remain owner-scoped; local rule-based coach memory and shipped assets unchanged.
 
-### Phase 2 — Private account sync + consent (implemented 2026-10-07; prod migration pending)
+### Phase 2 — Private account sync + consent (implemented + prod migration applied 2026-10-07)
 
 - Private account save/outbox/recoverable jobs; durable pending proof/receipt state independent of the finish screen.
 - Granular, separate consents: cloud history, third-party AI/voice, instructor live view, public achievement export.
