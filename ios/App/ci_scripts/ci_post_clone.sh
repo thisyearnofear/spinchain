@@ -1,36 +1,37 @@
 #!/bin/sh
+set -e
 
-# Xcode Cloud post-clone script
-# This runs after Xcode Cloud clones the repository
+# Xcode Cloud post-clone script. Mirrors .github/workflows/prepare-ios.yml:
+# the shell loads the deployed site (Capacitor remote-server mode) because
+# Next.js cannot static-export the API routes, so no web bundle is built.
 
-# Install Node.js if not available
-if ! command -v node &> /dev/null; then
-    echo "Installing Node.js..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-    apt-get install -y nodejs
+if [ -z "$CAPACITOR_SERVER_URL" ]; then
+    echo "error: set CAPACITOR_SERVER_URL in the Xcode Cloud workflow environment (e.g. https://spinchain.vercel.app)."
+    exit 1
 fi
+case "$CAPACITOR_SERVER_URL" in
+    https://*) ;;
+    *) echo "error: CAPACITOR_SERVER_URL must be an https:// origin, got: $CAPACITOR_SERVER_URL"; exit 1 ;;
+esac
 
-# Install pnpm if not available
-if ! command -v pnpm &> /dev/null; then
-    echo "Installing pnpm..."
-    npm install -g pnpm
-fi
+export HOMEBREW_NO_AUTO_UPDATE=1
+export LANG=en_US.UTF-8
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
-# Install dependencies
-echo "Installing dependencies..."
-pnpm install
+brew install node@22
+export PATH="$(brew --prefix node@22)/bin:$PATH"
+command -v pod >/dev/null 2>&1 || brew install cocoapods
 
-# Build Next.js app
-echo "Building Next.js app..."
-pnpm build
+cd "${CI_PRIMARY_REPOSITORY_PATH:-$(dirname "$0")/../../..}"
 
-# Sync Capacitor
-echo "Syncing Capacitor..."
+corepack enable
+pnpm install --frozen-lockfile
+
+# The Capacitor CLI still requires webDir to exist in remote-server mode.
+mkdir -p out
+printf '<!doctype html><meta charset="utf-8"><title>SpinChain</title>' > out/index.html
+
+# Runs pod install for ios/App.
 pnpm exec cap sync ios
-
-# Install CocoaPods dependencies
-echo "Installing CocoaPods dependencies..."
-cd ios/App
-pod install
 
 echo "Post-clone setup complete!"
