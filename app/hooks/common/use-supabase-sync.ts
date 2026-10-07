@@ -7,6 +7,7 @@ import { useWalletAuth } from "@/app/hooks/common/use-wallet-auth";
 import { EVM_ADDRESS_RE, SUI_ADDRESS_RE } from "@/app/lib/auth/types";
 import type { RideSummary } from "@/app/lib/analytics/ride-history";
 import { normalizeSummaryForRead } from "@/app/lib/analytics/ride-summary-normalize";
+import { hasConsent, useConsent } from "@/app/lib/privacy/consent";
 
 /** Dispatched on window after cloud hydration mutates local history. */
 export const RIDE_HISTORY_UPDATED_EVENT = "spinchain:ride-history-updated";
@@ -18,6 +19,7 @@ export const RIDE_HISTORY_UPDATED_EVENT = "spinchain:ride-history-updated";
  * owned address, or the live session does not match ride.riderId.
  */
 export async function saveRideToSupabase(ride: RideSummary): Promise<boolean> {
+  if (!hasConsent("cloud_history")) return false;
   if (!isSupabaseConfigured()) return false;
   const riderId = ride.riderId?.toLowerCase();
   if (!riderId || (!EVM_ADDRESS_RE.test(riderId) && !SUI_ADDRESS_RE.test(riderId))) {
@@ -91,11 +93,13 @@ async function syncOwnedLocalRides(
  * called from use-ride-persistence after localStorage save.
  *
  * Hydration and writes require a verified session matching the connected
- * wallet; a bare wallet connection is not enough.
+ * wallet and the rider's cloud_history consent; a bare wallet connection is
+ * not enough.
  */
 export function useSupabaseSync() {
   const { address } = useAccount();
   const { session } = useWalletAuth();
+  const [cloudConsent] = useConsent("cloud_history");
   const hydratedForRef = useRef<string | null>(null);
   const generationRef = useRef(0);
 
@@ -103,6 +107,7 @@ export function useSupabaseSync() {
     address &&
     session &&
     session.address === address.toLowerCase() &&
+    cloudConsent &&
     isSupabaseConfigured()
       ? address.toLowerCase()
       : null;
