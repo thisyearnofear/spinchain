@@ -43,7 +43,7 @@ Click **Start Demo Ride — No Wallet Needed**. 3s activation. Pedal (← → ke
 | Blockchain? | Avalanche + Sui testnet experiments exist in the background. The ride works without them; no wallet is a prerequisite. |
 | ZK? | Browser-side effort proofs exist in the testnet experiment; live claims are not approved (deployed Fuji wrapper rejects real proofs; app-side legacy gate deployed, off in prod env) — a receipt-first redesign is approved. Details in ARCHITECTURE. |
 | Rewards? | Rides earn progression — visuals, milestones, history. Token redemption is a future, separately designed path; no free SPIN is promised. |
-| Data? | Completed rides save locally on the device. Private cloud sync and consent controls are being built; nothing is claimed private-by-default yet. |
+| Data? | Completed rides save locally on the device. Private cloud sync runs behind an explicit cloud-history consent with a durable outbox — opt-in only, nothing is claimed private-by-default yet. |
 | Hardware? | FTMS / cycling-power / heart-rate BLE devices; specific models (IC4/C6/M3i candidates) require validation. Keyboard simulator is always available. |
 
 **One-Click Demo URL:**

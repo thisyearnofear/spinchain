@@ -74,7 +74,7 @@ Rider never sees these words. Built in parallel, never blocking the ride. Direct
 | Ledger | Contains | Status vocabulary |
 |--------|----------|-------------------|
 | **Local runtime** | Transient in-memory engine state (telemetry, flow, world) | — |
-| **Durable progression** | Completed ride record + `RideReceiptV1` — device-local first (localStorage, NOT encrypted), then session-gated Supabase account sync (granular consent controls planned in phase 2) | "saved on device" / "cloud save pending" / "saved to account" |
+| **Durable progression** | Completed ride record + `RideReceiptV1` — device-local first (localStorage, NOT encrypted), then session-gated Supabase account sync behind the `cloud_history` consent via a durable outbox (`app/lib/sync/outbox.ts`, phase 2) | "saved on device" / "cloud save pending" / "saved to account" |
 | **Optional campaign settlement** | Future bounded, funded redeemer over a signed receipt + nullifier | "redemption confirmed" |
 
 Receipt `verification.status` is a separate axis from where the record is stored — a receipt can be `unverified` regardless of ledger location. Cloud-save job state is separate from chain anchoring/proof state. Legacy reads are migration-only and auth-owner-scoped (phase 1, deployed) — old blobs are never retroactively declared private/deleted.
@@ -104,7 +104,7 @@ Derived from the saved summary + stable session id; carried as an optional field
 ### Privacy boundary (phase 1 → 2)
 
 - Phase 1 (deployed 2026-10-04, `a3c7e37`) closes **public** publication: telemetry, ride summaries, rider profiles, coach memory, and Sui ride anchors stop being written publicly. Public world/route asset publishing stays.
-- Phase 2 closes **consent transfer**: cloud history, third-party AI/voice, instructor live view, and public achievement export are separate granular consents. Third-party AI/TTS currently send biometric context — consent required before claiming privacy-ready.
+- Phase 2 (implemented 2026-10-07) closes **consent transfer**: cloud history, third-party AI/voice, instructor live view, and public achievement export are separate granular consents (`app/lib/privacy/consent.ts` + `consent-server.ts`, policy version `consent-v1`, all off by default). Third-party AI/TTS calls now throw `ConsentRequiredError` without an `ai_voice` grant — privacy-ready still requires the production `rider_consents` migration and legal review.
 - Ordinary progression is not cash or transferable SPIN; tradable/cash rewards require jurisdictional legal review (EDPB privacy rules (minimization/retention/erasure — encrypted data is still personal data), Apple platform rules (3.1.1 digital goods/NFT, 5.1 health/AI consent), and jurisdictional financial review are separate concerns — see research doc §§5–7). A `RideReceiptV1` is a record, not a medical measurement or attestation certificate.
 
 ### Current vs planned chain systems

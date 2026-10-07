@@ -33,7 +33,7 @@ Local gate evidence: 366 unit tests across 42 files pass; `tsc --noEmit` clean; 
 - File areas: ride completion/summary persistence (`app/lib/analytics/*`), receipt builder (`RideReceiptV1` type + derivation), write gates on telemetry/summary/profile/coach-memory/Sui-anchor call sites, journey/history status rendering.
 - Acceptance: a completed ride persists locally with a durable receipt BEFORE background work; zero public personal-data requests and zero automatic proof/chain writes fire in browser E2E (negative privacy gates); legacy reads remain owner-scoped; local rule-based coach memory and shipped assets unchanged.
 
-### Phase 2 — Private account sync + consent (planned)
+### Phase 2 — Private account sync + consent (implemented 2026-10-07; prod migration pending)
 
 - Private account save/outbox/recoverable jobs; durable pending proof/receipt state independent of the finish screen.
 - Granular, separate consents: cloud history, third-party AI/voice, instructor live view, public achievement export.
@@ -45,7 +45,7 @@ Local gate evidence: 366 unit tests across 42 files pass; `tsc --noEmit` clean; 
 - Same user consent required before claiming privacy-ready for LLM coaching context and personalized TTS.
 - General real-bike launch stays blocked until controls + audit; no medical/diagnostic claims.
 
-### Phase 4 — AchievementRedeemerV2 design + tests (planned; NOT phase-1 code)
+### Phase 4 — AchievementRedeemerV2 design + tests (implemented 2026-10-07; design + tests only, no deploy)
 
 Issuer auth; recipient/session/class + policy binding; EIP-712 domain (version/chain/contract); stable consumed nullifier; lifetime expiry; per-campaign and per-user budgets; gas-payer allowlist; incident pause + signer rotation with governance policy. Semantic replay registry survives verifier changes. Initial signed receipts carry honest SpinChain-issuer trust; a later ZK envelope may bind proof to the same receipt. Scoring/economics/ABI remain a separately approved spec — no numeric payout promises.
 
