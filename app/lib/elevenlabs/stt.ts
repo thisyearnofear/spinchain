@@ -11,6 +11,7 @@
  */
 
 import { ELEVENLABS_CONFIG } from "./constants";
+import { hasConsent, ConsentRequiredError } from "@/app/lib/privacy/consent";
 
 export interface STTRequest {
   audioData: Blob | ArrayBuffer;
@@ -87,6 +88,7 @@ export interface ParsedCommand {
 export async function transcribeAudio(
   request: STTRequest,
 ): Promise<TranscriptionResult | null> {
+  if (!hasConsent("ai_voice")) throw new ConsentRequiredError("ai_voice");
   try {
     const formData = new FormData();
 

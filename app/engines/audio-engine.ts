@@ -25,6 +25,7 @@ import {
   type VoiceSettings,
   type WorkoutSoundType,
 } from "@/app/lib/elevenlabs";
+import { hasConsent } from "@/app/lib/privacy/consent";
 import { checkElevenLabsConfigured } from "@/app/lib/elevenlabs/client";
 
 export interface AudioEngineConfig {
@@ -159,6 +160,11 @@ export class AudioEngine {
     text: string,
     emotion?: "calm" | "focused" | "intense" | "celebratory",
   ): Promise<void> {
+    // Without ai_voice consent, coach text never leaves the device.
+    if (!hasConsent("ai_voice")) {
+      if (this.config.systemFallback) this.speakWithSystemVoice(text, emotion);
+      return;
+    }
     if (this.disposed) return;
 
     // If a previous config check failed (e.g. server briefly unavailable),
@@ -301,6 +307,7 @@ export class AudioEngine {
    * Fire-and-forget; failures are silently skipped.
    */
   async prewarm(texts: string[]): Promise<void> {
+    if (!hasConsent("ai_voice")) return;
     if (this.disposed || !this.isConfigured) return;
     const unique = [...new Set(texts.filter((t) => t && t.trim().length > 0))].slice(0, 12);
     const voice = COACH_VOICES[this.config.personality];

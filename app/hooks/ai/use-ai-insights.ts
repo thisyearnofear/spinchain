@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { hasConsent } from "@/app/lib/privacy/consent";
 
 export interface RideAnalysis {
   summary: string;
@@ -65,6 +66,10 @@ function useAIRequest() {
   const [error, setError] = useState<string | null>(null);
 
   const call = useCallback(async <T,>(url: string, body?: Record<string, unknown>): Promise<T | null> => {
+    if (!hasConsent("ai_voice")) {
+      setError("AI insights are off. Turn on AI coaching & voice in Data & Privacy to use them.");
+      return null;
+    }
     setIsLoading(true);
     setError(null);
     try {
