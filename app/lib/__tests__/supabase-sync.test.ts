@@ -46,6 +46,14 @@ import {
 } from "@/app/lib/analytics/ride-history";
 import { createRideReceipt } from "@/app/lib/analytics/ride-receipt";
 import type { RideSummary } from "@/app/lib/analytics/ride-history";
+import { CONSENT_POLICY_VERSION, CONSENT_STORAGE_KEY } from "@/app/lib/privacy/consent";
+
+function grantCloudHistory() {
+  localStorage.setItem(
+    CONSENT_STORAGE_KEY,
+    JSON.stringify({ cloud_history: { granted: true, policyVersion: CONSENT_POLICY_VERSION, updatedAt: 1 } }),
+  );
+}
 
 function ride(riderId: string, id = `ride-${Math.random().toString(36).slice(2)}`): RideSummary {
   return createCanonicalRideSummary({
@@ -78,6 +86,14 @@ describe("saveRideToSupabase identity gate", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     localStorage.clear();
+    grantCloudHistory();
+  });
+
+  it("never calls fetch without cloud_history consent, even for a matching owner", async () => {
+    localStorage.clear();
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(okJson({ session: { address: A } }));
+    expect(await saveRideToSupabase(ride(A))).toBe(false);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("never calls fetch for guest or malformed rider ids", async () => {
@@ -143,6 +159,7 @@ describe("useSupabaseSync hydration fencing", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     localStorage.clear();
+    grantCloudHistory();
     wallet.address = undefined;
     wallet.sessionAddress = null;
   });
@@ -374,5 +391,16 @@ describe("useSupabaseSync hydration fencing", () => {
     await waitFor(() => expect(posts.length).toBe(2));
     const ids = posts.map((p) => p.id);
     expect(ids.sort()).toEqual(["owned-anchored", "owned-idle"]);
+  });
+
+  it("neither hydrates nor backfills without cloud_history consent", async () => {
+    localStorage.clear();
+    localStorage.setItem(STORAGE_KEYS.rideHistory, JSON.stringify([ride(A, "owned")]));
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(okJson({ rides: [] }));
+    wallet.address = A;
+    wallet.sessionAddress = A;
+    renderHook(() => useSupabaseSync());
+    await flush();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

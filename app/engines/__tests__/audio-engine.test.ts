@@ -3,6 +3,9 @@ import { EventBus } from "../event-bus";
 import { AudioEngine } from "../audio-engine";
 
 // Mock ElevenLabs modules
+// Consent itself is covered in consent.test.ts; these tests exercise the granted path.
+vi.mock("@/app/lib/privacy/consent", () => ({ hasConsent: () => true }));
+
 vi.mock("@/app/lib/elevenlabs", () => ({
   getAudioMixer: () => ({
     initialize: vi.fn().mockResolvedValue(undefined),

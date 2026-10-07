@@ -7,6 +7,7 @@ import { useAiInstructor } from "@/app/hooks/ai/use-ai-instructor";
 import { useLLMCoaching } from "@/app/hooks/ai/use-llm-coaching";
 import { usePushLiveTelemetry } from "@/app/hooks/common/use-live-telemetry";
 import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
+import { useConsent } from "@/app/lib/privacy/consent";
 import { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 import type { ClassWithRoute } from "@/app/hooks/evm/use-class-data";
 import type { WorkoutInterval } from "@/app/lib/workout-plan";
@@ -99,8 +100,10 @@ export function RideAiTelemetryBridge({
 
   // ─── LLM Coaching (periodic AI-powered coaching via /api/ai/chat) ──
   const aiMeta = classData?.metadata?.ai as { systemPromptCid?: string } | undefined;
+  const [aiVoiceConsent] = useConsent("ai_voice");
+  const [liveConsent] = useConsent("instructor_live");
   useLLMCoaching({
-    enabled: isRiding,
+    enabled: isRiding && aiVoiceConsent,
     personality: "data",
     systemPromptCid: aiMeta?.systemPromptCid,
     getBus: () => coordinatorRef.current?.getCoordinator()?.bus ?? null,
@@ -108,7 +111,7 @@ export function RideAiTelemetryBridge({
 
   // ─── Push live telemetry to server for instructor view (throttled) ───
   const { pushTelemetry, clearTelemetry } = usePushLiveTelemetry(
-    isPersonalDataPublicationAllowed() && isRiding && !isPracticeMode ? classId : null,
+    isPersonalDataPublicationAllowed() && liveConsent && isRiding && !isPracticeMode ? classId : null,
   );
   useEffect(() => {
     if (!isRiding) return;

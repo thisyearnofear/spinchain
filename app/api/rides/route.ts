@@ -3,6 +3,7 @@ import { apiError, apiOk } from "@/app/lib/api/response";
 import { getServerClient } from "@/app/lib/supabase/client";
 import { verifySession } from "@/app/lib/auth/session";
 import { normalizeSummaryForWrite } from "@/app/lib/analytics/ride-summary-normalize";
+import { hasServerConsent } from "@/app/lib/privacy/consent-server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
  * GET  /api/rides?limit=50&offset=0 — list rides for authenticated rider
  * POST /api/rides — save a ride summary
  * DELETE /api/rides?id=xxx — delete a ride
+ * DELETE /api/rides?all=true — delete every cloud ride for this rider
  */
 
 interface RideSummaryRow {
@@ -89,6 +91,10 @@ export async function POST(request: NextRequest) {
   const client = getServerClient();
   if (!client) {
     return apiError("Database not configured", "NOT_CONFIGURED", 503);
+  }
+
+  if (!(await hasServerConsent(client, payload.address, "cloud_history"))) {
+    return apiError("Cloud history consent required", "FORBIDDEN", 403);
   }
 
   let body: Partial<RideSummaryRow>;
@@ -200,6 +206,17 @@ export async function DELETE(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
+  if (searchParams.get("all") === "true") {
+    const { error } = await client
+      .from("ride_summaries")
+      .delete()
+      .eq("rider_address", payload.address);
+    if (error) {
+      return apiError("Failed to delete rides", "INTERNAL_ERROR", 500, error.message);
+    }
+    return apiOk({ deleted: true, all: true });
+  }
+
   const id = searchParams.get("id");
   if (!id) {
     return apiError("Missing ride id", "MISSING_FIELD", 400);
