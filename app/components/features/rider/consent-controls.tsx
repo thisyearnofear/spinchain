@@ -1,11 +1,65 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Trash2 } from "lucide-react";
+import { useMemo, useState, useSyncExternalStore } from "react";
+import { Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useConsent, type ConsentScope } from "@/app/lib/privacy/consent";
 import { isPersonalDataPublicationAllowed } from "@/app/lib/privacy/publication-policy";
 import { useWalletAuth } from "@/app/hooks/common/use-wallet-auth";
+import {
+  getOutboxSummary,
+  OUTBOX_CHANGED_EVENT,
+  OUTBOX_STORAGE_KEY,
+  retryOutboxJobs,
+  type OutboxSummary,
+} from "@/app/lib/sync/outbox";
+import { drainCloudOutbox } from "@/app/lib/sync/cloud-history";
+
+function subscribeOutbox(onChange: () => void) {
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === OUTBOX_STORAGE_KEY) onChange();
+  };
+  window.addEventListener(OUTBOX_CHANGED_EVENT, onChange);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(OUTBOX_CHANGED_EVENT, onChange);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function useOutboxSummary(): OutboxSummary | null {
+  const raw = useSyncExternalStore(subscribeOutbox, () => JSON.stringify(getOutboxSummary()), () => "null");
+  return useMemo(() => JSON.parse(raw) as OutboxSummary | null, [raw]);
+}
+
+function CloudBackupStatus() {
+  const summary = useOutboxSummary();
+  if (!summary) return null;
+  const stuck = summary.failed + summary.dead;
+  if (summary.pending + summary.held + stuck === 0) return null;
+  const parts = [
+    summary.pending > 0 && `${summary.pending} uploading`,
+    summary.held > 0 && `${summary.held} waiting for cloud history consent`,
+    stuck > 0 && `${stuck} failed`,
+  ].filter(Boolean);
+  return (
+    <div className="flex items-center gap-3 pt-2 text-[11px] text-white/50">
+      <span>Cloud backup: {parts.join(" · ")}</span>
+      {stuck > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            retryOutboxJobs();
+            void drainCloudOutbox();
+          }}
+          className="inline-flex items-center gap-1 rounded-full border border-white/20 px-2.5 py-1 font-semibold text-white/80 hover:bg-white/10"
+        >
+          <RotateCcw className="w-3 h-3" /> Retry now
+        </button>
+      )}
+    </div>
+  );
+}
 
 const SCOPES: Array<{ scope: ConsentScope; title: string; detail: string }> = [
   {
@@ -114,6 +168,7 @@ export function ConsentControls() {
           <ConsentRow key={s.scope} {...s} />
         ))}
       </div>
+      <CloudBackupStatus />
       {signedIn && !cloudGranted && <DeleteCloudRides />}
     </div>
   );

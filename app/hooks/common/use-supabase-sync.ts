@@ -61,7 +61,7 @@ export async function saveRideToSupabase(ride: RideSummary): Promise<boolean> {
   }
 }
 
-/** Retry cloud save for all local rides owned by this wallet. */
+/** Queue (or revive) a durable cloud upload for every local ride owned by this wallet. */
 async function syncOwnedLocalRides(
   ownerAddress: string,
   isStale: () => boolean,
@@ -73,10 +73,10 @@ async function syncOwnedLocalRides(
     const pending = rides.filter(
       (ride) => ride.riderId === ownerAddress.toLowerCase(),
     );
-    for (const ride of pending) {
-      if (isStale()) return;
-      await saveRideToSupabase(ride);
-    }
+    const { enqueueCloudHistory, drainCloudOutbox } = await import("@/app/lib/sync/cloud-history");
+    if (isStale()) return;
+    for (const ride of pending) enqueueCloudHistory(ride, { revive: true });
+    await drainCloudOutbox();
   } catch {
     // Best-effort backfill; local storage remains source of truth.
   }
