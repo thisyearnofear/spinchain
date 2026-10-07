@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, useSyncExternalStore } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useClass } from "../../../hooks/evm/use-class-data";
 import { usePracticeConfig } from "../../../hooks/ride/use-practice-config";
@@ -59,6 +59,14 @@ import { useRideMusicFlow } from "@/app/hooks/ride/use-ride-music-flow";
 import { usePrPursuit } from "@/app/hooks/ride/use-pr-pursuit";
 import { RideAiTelemetryBridge } from "@/app/components/features/ride/ride-ai-telemetry-bridge";
 import { useRiderName } from "@/app/hooks/common/use-profile";
+
+const noopSubscribe = () => () => {};
+
+/** Web Bluetooth in the browser, or the Capacitor BLE plugin in the app. */
+function hasBluetoothTransport(): boolean {
+  const w = window as Window & { Capacitor?: { isNativePlatform?: () => boolean } };
+  return "bluetooth" in navigator || w.Capacitor?.isNativePlatform?.() === true;
+}
 
 export default function LiveRidePage() {
   const params = useParams();
@@ -213,12 +221,38 @@ export default function LiveRidePage() {
     coordinator.ingestBleMetrics(metrics);
     if (metrics.heartRate || metrics.power) trackLiveTelemetryRef.current();
   }, [coordinator]);
-  const { isConnected: bleConnected } = useBleData({ onSuccess: handleBleMetrics, silent: true });
-  const [useSimulator, setUseSimulator] = useState(() => {
+  const {
+    isConnected: bleConnected,
+    device: bleDevice,
+    isPending: blePending,
+    error: bleError,
+    scanAndConnect: scanForBike,
+    disconnect: disconnectBike,
+    clearError: clearBleError,
+  } = useBleData({ onSuccess: handleBleMetrics, silent: true });
+  // Where the ride falls back to when no bike is paired: the keyboard
+  // simulator for practice/demo rides, nothing (the no-bike modal) for classes.
+  const simulatorByDefault = useMemo(() => {
     if (typeof window === "undefined") return false;
     const urlParams = new URLSearchParams(window.location.search);
     return isPracticeMode || urlParams.get("demo") === "true" || urlParams.get("sim") === "true";
-  });
+  }, [isPracticeMode]);
+  const [useSimulator, setUseSimulator] = useState(() => simulatorByDefault && !bleConnected);
+  const canPairBike = useSyncExternalStore(
+    noopSubscribe,
+    hasBluetoothTransport,
+    () => false,
+  );
+  // A paired bike replaces the simulator: otherwise its fixed idle effort
+  // would be averaged into the ride alongside the bike's real effort.
+  const handleConnectBike = useCallback(async () => {
+    clearBleError();
+    if (await scanForBike()) setUseSimulator(false);
+  }, [clearBleError, scanForBike]);
+  const handleDisconnectBike = useCallback(() => {
+    disconnectBike();
+    setUseSimulator(simulatorByDefault);
+  }, [disconnectBike, simulatorByDefault]);
 
   useEffect(() => {
     useUIStore.setState({ deviceType, orientation, bleConnected, useSimulator, isPracticeMode });
@@ -753,6 +787,18 @@ export default function LiveRidePage() {
           practiceDurationSec={practiceDurationSec}
           onPracticeDurationChange={setPracticeDurationSec}
           isTouch={deviceType === "mobile"}
+          bike={
+            canPairBike
+              ? {
+                  connected: bleConnected,
+                  pending: blePending,
+                  failed: !!bleError,
+                  name: bleDevice?.name,
+                  onConnect: handleConnectBike,
+                  onDisconnect: handleDisconnectBike,
+                }
+              : undefined
+          }
         />
       )}
 
