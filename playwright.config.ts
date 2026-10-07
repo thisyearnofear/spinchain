@@ -34,7 +34,17 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   // 2 on CI: overlaps wall-clock waits (fake-bike ride, timers). More risks
   // SwiftShader CPU thrash on 4-vCPU runners, which flakes the WebGL specs.
-  workers: process.env.CI ? 2 : undefined,
+  // PLAYWRIGHT_WORKERS overrides both — the dedicated visual job runs it at 1
+  // so the snapshot baselines never contend for software-rendered frames.
+  workers: process.env.PLAYWRIGHT_WORKERS
+    ? Number(process.env.PLAYWRIGHT_WORKERS)
+    : process.env.CI
+      ? 2
+      : undefined,
+  // CI runs visual-regression in its own job (a shared worker pool thrashes
+  // SwiftShader enough to drop the finished scene under the drawn-scene
+  // threshold). Shards set PLAYWRIGHT_NO_VISUAL to exclude it.
+  testIgnore: process.env.PLAYWRIGHT_NO_VISUAL ? /visual-regression/ : [],
   timeout: 60_000,
   // Blob on CI so the sharded jobs' results merge into one HTML report
   // (playwright merge-reports); html stays for local runs.

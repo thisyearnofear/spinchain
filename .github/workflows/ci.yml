@@ -131,13 +131,13 @@ jobs:
           if-no-files-found: error
 
   e2e:
-    name: Playwright shard ${{ matrix.shard }}/4
+    name: Playwright shard ${{ matrix.shard }}/6
     needs: build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: ["1", "2", "3", "4"]
+        shard: ["1", "2", "3", "4", "5", "6"]
 
     steps:
       - name: Checkout
@@ -168,11 +168,13 @@ jobs:
           path: .next/standalone
 
       # PLAYWRIGHT_PREBUILT tells webServer to run .next/standalone/server.js
-      # instead of rebuilding (see playwright.config.ts).
+      # instead of rebuilding (see playwright.config.ts). Visual-regression is
+      # excluded — the dedicated e2e-visual job runs it without contention.
       - name: E2E gate
         env:
           PLAYWRIGHT_PREBUILT: "1"
-        run: pnpm test:e2e --shard=${{ matrix.shard }}/4
+          PLAYWRIGHT_NO_VISUAL: "1"
+        run: pnpm test:e2e --shard=${{ matrix.shard }}/6
 
       - name: Upload shard report
         if: always()
@@ -183,9 +185,65 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # Snapshot baselines are the most timing-sensitive spec — a parallel
+  # SwiftShader neighbor starves the finished scene under the drawn-scene
+  # threshold (observed as a 3/3-retry failure on a busy shard). They get
+  # dedicated runners at workers:1, themselves sharded — a single serial
+  # worker made this job the 10min tail.
+  e2e-visual:
+    name: Visual regression ${{ matrix.shard }}/3
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1", "2", "3"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.2
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Download app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build
+          path: .next/standalone
+
+      - name: Visual gate
+        env:
+          PLAYWRIGHT_PREBUILT: "1"
+          PLAYWRIGHT_WORKERS: "1"
+        run: pnpm exec playwright test tests/visual-regression.spec.ts --shard=${{ matrix.shard }}/3
+
+      - name: Upload shard report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-visual-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
   e2e-report:
     name: Merge Playwright report
-    needs: e2e
+    needs: [e2e, e2e-visual]
     if: always()
     runs-on: ubuntu-latest
 
