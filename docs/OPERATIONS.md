@@ -488,7 +488,7 @@ Do not bypass the hook — fix the flagged content instead.
 
 SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coaching (rule-based + LLM), Walrus-anchored telemetry, on-chain class contracts, Supabase-backed persistence, instructor-rider loop, personalized onboarding. Direction as of 2026-10-04: **receipt-first** — see `plans/wedge-contract-research.md` and `docs/IMPLEMENTATION-PLAN.md` phase list.
 
-**What's done**: phases 0–4 of the old wedge plan; local hardening (auth, ownership, CTA, Noir compat, receipt status) and phase-1 public-write boundary + `RideReceiptV1` verified locally (366 tests, clean typecheck/build) — **deployed 2026-10-04 as application release `a3c7e37`**. The Fuji contracts above are legacy experiments — **claims are not approved**: the deployed wrapper rejects real proofs and the app-side legacy-claim gate exists locally (prod env flag `false`).
+**What's done**: phases 0–5 — local hardening, phase-1 public-write boundary + `RideReceiptV1` (deployed `a3c7e37`), phase-2 consent + outbox (live in prod), phase-3 verification-provider interface (`spinchain.cloud-observed.v1`), phase-4 redeemer design+tests, and the phase-5 Fuji pilot deployed + dogfooded 2026-10-07 with prod env flags live (`docs/PHASE-5-PILOT.md`). The legacy Fuji contracts remain disabled experiments — legacy claims stay off.
 
 **What's missing for users**: `source-attested` provenance (phase-3 provider interface merged — only `spinchain.cloud-observed.v1` registered; studio/wearable providers pending); legal/policy review. Phase-5 pilot deployed + dogfooded on Fuji 2026-10-07 (`docs/PHASE-5-PILOT.md`). User browser/real-device feedback on the live build is pending.
 
@@ -607,11 +607,11 @@ The former multi-chain mainnet migration checklist is retired. Do not publish pe
 
 ### Not Yet Launch-Ready
 
-- Live value-bearing claims — the deployed Fuji wrapper is broken and `AchievementRedeemerV2` is Fuji-pending (deploy script + flags merged 2026-10-07); claims stay off until the operator deploys and approves
+- Live value-bearing claims — the legacy Fuji wrapper is broken and stays off; the phase-5 `AchievementRedeemerV2` pilot is deployed on Fuji (testnet PSPIN, no value) but a real-asset launch still needs legal review + audit
 - Granular consent + recovery jobs implemented and live 2026-10-07 (phase 2, `rider_consents` applied); encryption/retention controls remain unfinished; the phase-1 public publishing boundary is deployed.
 - Consent transfer controls for third-party AI/TTS biometric context implemented and deployed (phase 2); no "privacy-ready" claim until legal review completes
 - `ride_summaries.summary` migration applied 2026-10-04 — canonical summary roundtrip enabled server-side (client shipped in `a3c7e37`); `rider_consents` migration (phase 2) applied 2026-10-07
-- Browser-level E2E covers wedge/auth paths; the integrated production dogfood loop is a phase-5 user task
+- Browser-level E2E covers wedge/auth paths; the integrated production dogfood loop ran 2026-10-07 (prod app → issuer sign → Fuji redeem, `docs/PHASE-5-PILOT.md` evidence)
 - Legal/policy review (Apple 3.1.1/5.1, EDPB, reward jurisdiction) outstanding
 
 ### AI Integration

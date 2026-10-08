@@ -75,7 +75,7 @@ Rider never sees these words. Built in parallel, never blocking the ride. Direct
 |--------|----------|-------------------|
 | **Local runtime** | Transient in-memory engine state (telemetry, flow, world) | — |
 | **Durable progression** | Completed ride record + `RideReceiptV1` — device-local first (localStorage, NOT encrypted), then session-gated Supabase account sync behind the `cloud_history` consent via a durable outbox (`app/lib/sync/outbox.ts`, phase 2) | "saved on device" / "cloud save pending" / "saved to account" |
-| **Optional campaign settlement** | Future bounded, funded redeemer over a signed receipt + nullifier | "redemption confirmed" |
+| **Optional campaign settlement** | Deployed on Fuji (phase-5 pilot): `ClaimRegistry` + `AchievementRedeemerV2` over issuer-signed EIP-712 receipts + stable nullifier; `PilotSpinToken` campaign asset. Full record: [PHASE-5-PILOT.md](PHASE-5-PILOT.md) | "redemption confirmed" |
 
 Receipt `verification.status` is a separate axis from where the record is stored — a receipt can be `unverified` regardless of ledger location. Cloud-save job state is separate from chain anchoring/proof state. Legacy reads are migration-only and auth-owner-scoped (phase 1, deployed) — old blobs are never retroactively declared private/deleted.
 
@@ -101,6 +101,10 @@ type RideReceiptV1 = {
 
 Derived from the saved summary + stable session id; carried as an optional field on `RideSummary`. V1 carries **no** raw samples, score proof, or cryptographic attestation — it is a record, not a certificate. `source-attested` provenance is reserved and cannot be client-declared. No issuer secret (e.g. EIP-712 key) ever lives on the client.
 
+### Verification providers (phase 3, merged 2026-10-07)
+
+`app/lib/verification/provider.ts` defines the provider interface — `verified`/`rejected`/`unavailable` decisions with a `VerifiedSession` (provider-derived `sessionId`/`classId`, provenance, duration) and a verbatim `trustStatement`. Registered providers own eligibility; `POST /api/redeem/sign` delegates to them and returns attestation metadata (provider, provenance, trust statement) alongside the EIP-712 signature. First provider `spinchain.cloud-observed.v1` approves rides observed via consented `cloud_history` sync — it attests *recorded existence*, never telemetry integrity. Studio/wearable providers register under the same interface when a partner feed exists; no CRE/zkTLS adoption before then.
+
 ### Privacy boundary (phase 1 → 2)
 
 - Phase 1 (deployed 2026-10-04, `a3c7e37`) closes **public** publication: telemetry, ride summaries, rider profiles, coach memory, and Sui ride anchors stop being written publicly. Public world/route asset publishing stays.
@@ -111,9 +115,9 @@ Derived from the saved summary + stable session id; carried as an optional field
 
 | System | Current (testnet experiment) | Planned |
 |--------|------------------------------|---------|
-| Avalanche Fuji | `IncentiveEngine`, ERC-20 SPIN, deployed wrapper + HonkVerifier. **Deployed wrapper is broken**: forwards wrong public-input slice (verified on-chain 2026-10-04); underlying Honk verifies fixture proofs. Corrected wrapper code exists locally, NOT deployed. | `AchievementRedeemerV2`: issuer-signed typed receipt + stable consumed nullifier, EIP-712 domain binding, expiry, campaign/user budgets, gas-payer allowlist, pause/rotation. Design phase 4 — no redeploy/adapter now. |
+| Avalanche Fuji | `IncentiveEngine`, ERC-20 SPIN, deployed wrapper + HonkVerifier. **Deployed wrapper is broken**: forwards wrong public-input slice (verified on-chain 2026-10-04); underlying Honk verifies fixture proofs. Corrected wrapper code exists locally, NOT deployed. **Deployed and dogfooded 2026-10-07**: `ClaimRegistry` `0x53C1F0b6…`, `AchievementRedeemerV2` `0x0F00848C…`, `PilotSpinToken` `0x3DC82882…` — issuer-signed typed receipt + stable consumed nullifier, EIP-712 domain binding, expiry, campaign/user budgets, gas-payer allowlist, pause/rotation. Pilot UI flagged live on prod (`NEXT_PUBLIC_PILOT_REDEEM_ENABLED`) for Fuji wallets. | `source-attested` provider issuers (studio/wearable) — phase-3 interface merged, external pilot pending. |
 | Sui testnet | `RiderStats` PTB, `TelemetryAnchor` Walrus blob ids | Phase 1 (deployed): ALL personal ride telemetry/anchor writes DISABLED — no private on-chain writes; anchoring optional future |
-| ZK `effort_threshold` | Noir circuit + `@aztec/bb.js` UltraHonk. **Only 3 public outputs** (`threshold_met`, `seconds_above`, `effort_score`); threshold/minDuration/classId/rider are attached metadata, NOT proven. Proof-hash replay key ≠ stable session nullifier. FTMS is transport, not attestation. | Optional privacy layer over issuer-bound commitment; real-verifier benchmarks in phase 5 |
+| ZK `effort_threshold` | Noir circuit + `@aztec/bb.js` UltraHonk. **Only 3 public outputs** (`threshold_met`, `seconds_above`, `effort_score`); threshold/minDuration/classId/rider are attached metadata, NOT proven. Proof-hash replay key ≠ stable session nullifier. FTMS is transport, not attestation. Real-verifier benchmark measured 2026-10-07: ~1.19M gas (`Phase5Benchmark.t.sol`). | Optional privacy layer over issuer-bound commitment |
 | Yellow channels | Parked until a funded use case exists | — |
 
 Legacy gas benchmarks used MockVerifier (the "364k/9-chunk" figures are not real-verifier measurements).

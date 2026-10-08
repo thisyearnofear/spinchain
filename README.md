@@ -2,7 +2,7 @@
 
 SpinChain is a Next.js + Capacitor prototype for AI-assisted spin classes: effort drives real-time world/flow/coaching changes in the foreground, with optional future achievement settlement in the background.
 
-Current state: testnet/demo stage, live on Vercel at https://spinchain.vercel.app/. Direction approved 2026-10-04: **receipt-first architecture** — ride completion and progression are saved independently of any chain; value-bearing redemption is an optional, separately-approved future layer. Phase 2 (granular consent + durable outbox) and phase 4 (`AchievementRedeemerV2` design + tests) landed on main 2026-10-07, and the `rider_consents` production migration was applied the same day — consent enforcement is live. The app is not ready for general users: real-bike launch stays blocked pending legal review and real-device validation.
+Current state: testnet/demo stage, live on Vercel at https://spinchain.vercel.app/. Direction approved 2026-10-04: **receipt-first architecture** — ride completion and progression are saved independently of any chain; value-bearing redemption is an optional, separately-approved future layer. Phases 0–5 are complete on testnet: consent enforcement is live (`rider_consents` applied), the verification-provider interface is merged (phase 3), and the phase-5 pilot — `ClaimRegistry` + `AchievementRedeemerV2` issuer-signed receipt redemption — is deployed and dogfooded on Avalanche Fuji with the flagged UI live on prod (`docs/PHASE-5-PILOT.md`). The app is not ready for general users: real-bike launch stays blocked pending legal review and real-device validation.
 
 ---
 
