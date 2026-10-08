@@ -5,6 +5,11 @@ import { apiError, apiOk } from "@/app/lib/api/response";
 import { verifySession } from "@/app/lib/auth/session";
 import { getServerClient } from "@/app/lib/supabase/client";
 import { AVALANCHE_FUJI } from "@/app/lib/contracts";
+import "@/app/lib/verification/providers/cloud-observed";
+import {
+  getVerificationProvider,
+  DEFAULT_PROVIDER_ID,
+} from "@/app/lib/verification/provider";
 import {
   PILOT_CAMPAIGN_ID,
   PILOT_POLICY_HASH,
@@ -14,8 +19,6 @@ import {
   REDEEMER_EIP712_DOMAIN_NAME,
   REDEEMER_EIP712_VERSION,
   RECEIPT_EIP712_TYPES,
-  deriveRideSessionId,
-  deriveRideClassId,
 } from "@/app/lib/rewards/pilot-redeemer";
 
 export const dynamic = "force-dynamic";
@@ -24,14 +27,10 @@ export const dynamic = "force-dynamic";
  * POST /api/redeem/sign — phase-5 testnet pilot issuer.
  *
  * Signs an EIP-712 Receipt for AchievementRedeemerV2.redeem on Fuji.
- *
- * Pilot policy (spinchain.pilot.policy.v1):
- * - caller holds a wallet session; the recipient is always the session wallet
- * - the ride exists server-side via cloud_history sync — the issuer only
- *   approves sessions it observed (never client-asserted telemetry)
- * - ride elapsed_time >= 10 min
- * - one redemption per (campaign, session) enforced on-chain via the
- *   ClaimRegistry nullifier; budget/cap enforced by the campaign
+ * Eligibility is delegated to the registered verification provider
+ * (phase-3 interface): today `spinchain.cloud-observed.v1` approves rides
+ * the server saw via consented cloud-history sync — it never signs for
+ * client-asserted telemetry.
  */
 export async function POST(request: NextRequest) {
   if (process.env.PILOT_REDEEM_ENABLED !== "true") {
@@ -66,34 +65,30 @@ export async function POST(request: NextRequest) {
   if (typeof body?.rideId !== "string" || !body.rideId) {
     return apiError("Missing ride id", "MISSING_FIELD", 400);
   }
-  const rideId = body.rideId;
 
   const client = getServerClient();
   if (!client) {
     return apiError("Database not configured", "NOT_CONFIGURED", 503);
   }
 
-  // The issuer only signs for rides it can see: the row must exist in cloud
-  // history and belong to this wallet. A rider without cloud_history consent
-  // gets 403 — honest state, not a dead button.
-  const { data: ride, error } = await client
-    .from("ride_summaries")
-    .select("id, rider_address, class_id, elapsed_time, completed_at")
-    .eq("id", rideId)
-    .eq("rider_address", payload.address)
-    .maybeSingle();
+  const provider = getVerificationProvider(DEFAULT_PROVIDER_ID);
+  if (!provider) {
+    return apiError("No verification provider registered", "NOT_CONFIGURED", 503);
+  }
 
-  if (error) {
-    return apiError("Failed to look up ride", "INTERNAL_ERROR", 500, error.message);
+  const decision = await provider.verify(
+    { riderAddress: payload.address, rideId: body.rideId },
+    { db: client },
+  );
+  if (decision.status === "unavailable") {
+    return apiError(decision.reason, "INTERNAL_ERROR", 500);
   }
-  if (!ride) {
-    return apiError(
-      "Ride not found in cloud history — sync must complete (cloud_history consent) before the issuer can approve it",
-      "FORBIDDEN",
-      403,
-    );
+  if (decision.status === "rejected") {
+    return apiError(decision.reason, "FORBIDDEN", 403);
   }
-  if ((ride.elapsed_time ?? 0) < PILOT_MIN_RIDE_SEC) {
+
+  const { session } = decision;
+  if (session.elapsedTimeSec < PILOT_MIN_RIDE_SEC) {
     return apiError(
       `Ride below pilot minimum (${PILOT_MIN_RIDE_SEC}s)`,
       "VALIDATION_FAILED",
@@ -104,8 +99,8 @@ export async function POST(request: NextRequest) {
   const now = BigInt(Math.floor(Date.now() / 1000));
   const receipt = {
     recipient: payload.address as Address,
-    sessionId: deriveRideSessionId(ride.id),
-    classId: deriveRideClassId(ride.class_id),
+    sessionId: session.sessionId,
+    classId: session.classId,
     policyHash: PILOT_POLICY_HASH,
     campaignId: PILOT_CAMPAIGN_ID,
     amount: PILOT_AMOUNT,
@@ -135,5 +130,11 @@ export async function POST(request: NextRequest) {
     },
     issuer: issuer.address,
     signature,
+    attestation: {
+      provider: provider.id,
+      label: provider.label,
+      provenance: session.provenance,
+      trustStatement: provider.trustStatement,
+    },
   });
 }

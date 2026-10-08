@@ -490,7 +490,7 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 
 **What's done**: phases 0–4 of the old wedge plan; local hardening (auth, ownership, CTA, Noir compat, receipt status) and phase-1 public-write boundary + `RideReceiptV1` verified locally (366 tests, clean typecheck/build) — **deployed 2026-10-04 as application release `a3c7e37`**. The Fuji contracts above are legacy experiments — **claims are not approved**: the deployed wrapper rejects real proofs and the app-side legacy-claim gate exists locally (prod env flag `false`).
 
-**What's missing for users**: phase-2 consent (code + `rider_consents` table live 2026-10-07); `source-attested` provenance; phase-3 provider/provenance interface; operator-approved Fuji deployment + dogfood (phase-5 pilot code complete — `docs/PHASE-5-PILOT.md`); legal/policy review. User browser/real-device feedback on the live build is pending.
+**What's missing for users**: `source-attested` provenance (phase-3 provider interface merged — only `spinchain.cloud-observed.v1` registered; studio/wearable providers pending); legal/policy review. Phase-5 pilot deployed + dogfooded on Fuji 2026-10-07 (`docs/PHASE-5-PILOT.md`). User browser/real-device feedback on the live build is pending.
 
 ### Scale Risks (Must Fix Before Features)
 
@@ -510,8 +510,8 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 - [x] **Phase 2 consent controls** — merged 2026-10-07: separate consents for cloud history / third-party AI / voice / instructor live view / public export + durable outbox. `20261007_rider_consents.sql` applied to production Supabase 2026-10-07 — consent enforcement is live
 - [x] **Fix Vercel env names** — canonical `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `GEMINI_API_KEY` added to production 2026-10-04 (values copied from the legacy cloud vars; legacy names preserved); code reads `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `GEMINI_API_KEY`
 - [x] **Phase 4 `AchievementRedeemerV2` design+tests** — merged 2026-10-07 (`docs/ACHIEVEMENT-REDEEMER-V2.md`); no deploy by design
-- [ ] **Phase 3** — verification-provider interface + studio/wearable pilot
-- [ ] **Phase 5** — pilot code complete (benchmarks, boundary matrix, deploy script, issuer sign route, flagged redeem flow; `docs/PHASE-5-PILOT.md`); awaiting operator Fuji deploy + integrated dogfood
+- [x] **Phase 3** — verification-provider interface merged 2026-10-07 (`spinchain.cloud-observed.v1` registered); studio/wearable provider pilot remains external
+- [x] **Phase 5** — Fuji pilot deployed + dogfooded 2026-10-07 (`docs/PHASE-5-PILOT.md` deployment record); prod env flags set on Vercel (testnet contracts only)
 - [ ] **Legal/policy review** — Apple 3.1.1/5.1, EDPB, jurisdictional review for any tradable reward; no health claims without validation
 - [ ] Load testing — pending testnet deployment
 - [ ] Security audit — pre-mainnet
