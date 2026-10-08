@@ -19,7 +19,7 @@ export function AiVoiceConsentPrompt() {
     <div
       role="dialog"
       aria-label="AI coaching and voice"
-      className="pointer-events-auto fixed bottom-24 left-1/2 z-50 w-[min(92vw,26rem)] -translate-x-1/2 rounded-2xl border border-white/10 bg-black/80 p-4 text-white shadow-xl backdrop-blur"
+      className="pointer-events-auto fixed bottom-5 left-4 z-50 w-[min(92vw,26rem)] rounded-2xl border border-white/10 bg-black/80 p-4 text-white shadow-xl backdrop-blur sm:bottom-6 sm:left-6"
     >
       <p className="text-sm font-semibold">Use the AI coach voice?</p>
       <p className="mt-1 text-[11px] text-white/50">

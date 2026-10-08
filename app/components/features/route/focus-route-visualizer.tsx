@@ -385,6 +385,10 @@ export default function FocusRouteVisualizer({
         if (overlay) {
           overlay.style.left = `${(pos.x / width) * 100}%`;
           overlay.style.top = `${(pos.y / height) * 100}%`;
+          // transform-origin sits at the wheel-contact point (~90% down the
+          // artboard) so slope rotation pivots the wheels around the road,
+          // not the box center.
+          overlay.style.transformOrigin = "50% 90%";
           overlay.style.transform = `translate(-50%, -90%) rotate(${pos.rotation}deg)`;
         }
         riderGlowRef.current?.setAttribute(
@@ -734,6 +738,7 @@ export default function FocusRouteVisualizer({
           left: `${(riderPosition.x / width) * 100}%`,
           top: `${(riderPosition.y / height) * 100}%`,
           transform: `translate(-50%, -90%) rotate(${riderPosition.rotation}deg)`,
+          transformOrigin: "50% 90%",
           filter: "drop-shadow(0 0 10px rgba(251,191,36,0.35))",
         }}
       >
