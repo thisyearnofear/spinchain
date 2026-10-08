@@ -157,11 +157,16 @@ issuer authorized, lifetime 604800s, budget funded.
    `0x14ed5630…f2876` —
    the app's EIP-712 signature verified on-chain; `Redeemed` emitted;
    balance 3010 → 3020 PSPIN; budget 990 → 980.
+3. **Production app** (spinchain.vercel.app, pilot flags set on Vercel):
+   session → consent → ride sync → sign → `redeem()` tx
+   `0xb3c1c0b0…1c84a`; `Redeemed` emitted; budget 980 → 970.
+   The pilot UI is live for Fuji-connected wallets.
 
 ## Non-goals
 
-- No production deployment, no value-bearing token, no user-facing launch.
+- No mainnet deployment, no value-bearing token, no general-user rewards launch — the pilot UI on production targets Fuji testnet only.
 - No claim that the pilot validates real-bike telemetry or provenance.
 - Legacy `IncentiveEngine` claim path remains disabled and untouched.
 
-Remaining before this phase closes: the operator deploy + dogfood above.
+Phase 5 closed 2026-10-07: deployed, verified, and dogfooded at contract,
+local-app, and production-app levels on Fuji.
