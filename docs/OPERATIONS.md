@@ -513,7 +513,7 @@ SpinChain has a working ride engine: BLE telemetry, 3D visualization, AI coachin
 - [x] **Phase 3** — verification-provider interface merged 2026-10-07 (`spinchain.cloud-observed.v1` registered); studio/wearable provider pilot remains external
 - [x] **Phase 5** — Fuji pilot deployed + dogfooded 2026-10-07 (`docs/PHASE-5-PILOT.md` deployment record); prod env flags set on Vercel (testnet contracts only)
 - [ ] **Legal/policy review** — Apple 3.1.1/5.1, EDPB, jurisdictional review for any tradable reward; no health claims without validation
-- [ ] Load testing — pending testnet deployment
+- [ ] Load testing — pending (testnet pilot deployed 2026-10-07)
 - [ ] Security audit — pre-mainnet
 
 ### Production dogfooding checklist (integrated testnet loop — user runs)
