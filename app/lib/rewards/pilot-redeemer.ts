@@ -68,6 +68,13 @@ export interface SignedRedeemPayload {
   receipt: Omit<RedeemReceipt, "amount"> & { amount: string };
   issuer: Address;
   signature: `0x${string}`;
+  /** Phase-3 attestation metadata from the verification provider. */
+  attestation?: {
+    provider: string;
+    label: string;
+    provenance: string;
+    trustStatement: string;
+  };
 }
 
 /**

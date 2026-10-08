@@ -20,6 +20,7 @@ const db = vi.hoisted(() => ({
     class_id: string;
     elapsed_time: number;
     completed_at: string | null;
+    summary: { telemetrySource?: string } | null;
   } | null,
   queryError: null as { message: string } | null,
 }));
@@ -66,6 +67,7 @@ const RIDE = {
   class_id: "class-7",
   elapsed_time: 1800,
   completed_at: null,
+  summary: { telemetrySource: "live-bike" },
 };
 
 function req(body: unknown, token?: string) {
@@ -140,6 +142,10 @@ describe("POST /api/redeem/sign", () => {
     expect(body.receipt.expiresAt - body.receipt.issuedAt).toBe(
       PILOT_RECEIPT_TTL_SEC,
     );
+
+    expect(body.attestation.provider).toBe("spinchain.cloud-observed.v1");
+    expect(body.attestation.provenance).toBe("device-observed");
+    expect(body.attestation.trustStatement).toContain("not independently verified");
 
     // The signature must recover to the issuer under the exact on-chain domain.
     const domain = {

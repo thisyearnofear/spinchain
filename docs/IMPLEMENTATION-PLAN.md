@@ -39,9 +39,9 @@ Local gate evidence: 366 unit tests across 42 files pass; `tsc --noEmit` clean; 
 - Granular, separate consents: cloud history, third-party AI/voice, instructor live view, public achievement export.
 - Account auth beyond EOA (passkeys/embedded wallets) later; no smart-wallet compatibility promise on the existing EOA path.
 
-### Phase 3 — Verification-provider interface + pilot (planned)
+### Phase 3 — Verification-provider interface + pilot (interface implemented 2026-10-07; external pilot pending)
 
-- Explicit verification-provider interface with provenance classes; studio/wearable pilot before any CRE/zkTLS adoption.
+- Explicit verification-provider interface with provenance classes — `app/lib/verification/provider.ts` (`verified`/`rejected`/`unavailable` decisions, verbatim `trustStatement`, provenance classes `provider-attested`/`device-observed`/`simulated`/`estimated`). First impl `spinchain.cloud-observed.v1` approves rides the server saw via consented sync; `/api/redeem/sign` delegates eligibility to it and returns attestation metadata. Studio/wearable provider pilots remain an operator/partnership step before any CRE/zkTLS adoption.
 - Same user consent required before claiming privacy-ready for LLM coaching context and personalized TTS.
 - General real-bike launch stays blocked until controls + audit; no medical/diagnostic claims.
 

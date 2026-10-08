@@ -11,6 +11,9 @@ export interface RedemptionRecord {
   nullifier: `0x${string}`;
   txHash: `0x${string}`;
   confirmedAt: number;
+  /** Verification provider that issued the signature (phase-3 attestation). */
+  provider?: string;
+  provenance?: string;
 }
 
 const REDEMPTIONS_KEY = "spinchain:redemptions:v1";

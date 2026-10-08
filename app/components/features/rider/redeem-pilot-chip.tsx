@@ -36,6 +36,8 @@ export function RedeemPilotChip({
   const [record, setRecord] = useState<RedemptionRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
+  const [attestation, setAttestation] =
+    useState<SignedRedeemPayload["attestation"]>(undefined);
 
   useEffect(() => {
     setRecord(getRedemption(rideId));
@@ -50,6 +52,8 @@ export function RedeemPilotChip({
         nullifier: rideNullifier(deriveRideSessionId(rideId)),
         txHash: hash,
         confirmedAt: Date.now(),
+        provider: attestation?.provider,
+        provenance: attestation?.provenance,
       };
       saveRedemption(rec);
       setRecord(rec);
@@ -64,6 +68,11 @@ export function RedeemPilotChip({
         href={`https://testnet.snowtrace.io/tx/${record.txHash}`}
         target="_blank"
         rel="noreferrer"
+        title={
+          record.provider
+            ? `Approved by ${record.provider} (${record.provenance ?? "unknown provenance"})`
+            : "Issuer-approved testnet redemption"
+        }
         className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 font-semibold text-emerald-200"
       >
         Redemption confirmed ✓
@@ -92,6 +101,7 @@ export function RedeemPilotChip({
         return;
       }
       const payload = data as SignedRedeemPayload;
+      setAttestation(payload.attestation);
       tx.write({
         address: contract,
         abi: ACHIEVEMENT_REDEEMER_V2_ABI,
