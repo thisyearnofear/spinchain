@@ -49,11 +49,11 @@ Local gate evidence: 366 unit tests across 42 files pass; `tsc --noEmit` clean; 
 
 Issuer auth; recipient/session/class + policy binding; EIP-712 domain (version/chain/contract); stable consumed nullifier; lifetime expiry; per-campaign and per-user budgets; gas-payer allowlist; incident pause + signer rotation with governance policy. Semantic replay registry survives verifier changes. Initial signed receipts carry honest SpinChain-issuer trust; a later ZK envelope may bind proof to the same receipt. Scoring/economics/ABI remain a separately approved spec — no numeric payout promises.
 
-### Phase 5 — Validation then operator-approved testnet deployment (code complete 2026-10-07; deploy pending)
+### Phase 5 — Validation then operator-approved testnet deployment (DEPLOYED + dogfooded on Fuji 2026-10-07)
 
 Measured real-verifier benchmarks (legacy "364k/45min" figures used MockVerifier and are not real-verifier measurements; real Honk `verify` ≈1.19M gas, `redeem` ≈142k — `Phase5Benchmark.t.sol`), contract boundary matrix, local full loop, documented migration, then operator-approved testnet deployment and an integrated production dogfood pass on testnets.
 
-Implemented: Fuji deploy script (`deploy-phase5-pilot.s.sol`), issuer signing route `POST /api/redeem/sign` (session auth → synced-ride policy → EIP-712), journey-page redeem flow behind `NEXT_PUBLIC_PILOT_REDEEM_ENABLED`, local redemption store, vitest coverage. Full spec/runbook: `docs/PHASE-5-PILOT.md`. Remaining: operator deploy + dogfood.
+Delivered: Fuji deploy script (`deploy-phase5-pilot.s.sol`), issuer signing route `POST /api/redeem/sign` (session auth → provider-verified ride → EIP-712), journey-page redeem flow behind `NEXT_PUBLIC_PILOT_REDEEM_ENABLED`, local redemption store, vitest coverage. Deployed `ClaimRegistry`/`AchievementRedeemerV2`/`PilotSpinToken` on Fuji; dogfooded at contract, local-app, and production-app levels (prod env flags live). Deployment record + evidence: `docs/PHASE-5-PILOT.md`.
 
 ### Parked / gates
 
