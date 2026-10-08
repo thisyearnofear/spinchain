@@ -168,4 +168,5 @@ issuer authorized, lifetime 604800s, budget funded.
 - No claim that the pilot validates real-bike telemetry or provenance.
 - Legacy `IncentiveEngine` claim path remains disabled and untouched.
 
-Remaining before this phase closes: the operator deploy + dogfood above.
+Phase 5 closed 2026-10-07: deployed, verified, and dogfooded at contract,
+local-app, and production-app levels on Fuji.
