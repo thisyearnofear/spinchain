@@ -1,6 +1,7 @@
 # Phase 5 — Fuji Pilot: Issuer-Signed Receipt Redemption
 
-Status: **code complete, awaiting operator deployment** (2026-10-07).
+Status: **deployed to Fuji + dogfooded** (2026-10-07). Production/mainnet
+remains out of scope.
 
 This document is the operator-facing spec for the phase-5 testnet pilot:
 `ClaimRegistry` + `AchievementRedeemerV2` on Avalanche Fuji, fed by a
@@ -48,7 +49,7 @@ the 32-case boundary suite is `contracts/evm/test/AchievementRedeemerV2.t.sol`.
 | Max receipt lifetime | 7 days (contract `maxReceiptLifetime`) |
 | Campaign window | deploy time → +90 days |
 | Min ride duration | 600 s (issuer-side policy) |
-| Asset | Fuji SpinToken `0xA2DA94dE3AB8a90D62A1b1897E0e96DBda0F494f` |
+| Asset | `PilotSpinToken` `0x3DC8288228d2E916F41c05Ea04caF86d131d7243` (fresh; Fuji SpinToken mint is locked to the legacy IncentiveEngine) |
 | EIP-712 domain | `SpinChain AchievementRedeemer` v2, chain `43113`, verifying contract |
 | Nullifier | `keccak256(abi.encode(keccak256("spinchain.achievement.nullifier.v1"), campaignId, sessionId))` |
 
@@ -86,14 +87,14 @@ separate future settlement track. `redeem()` itself is ERC-20-transfer-priced.
 
 ```bash
 cd contracts/evm
-source ../../.env.local   # or export the vars
-export ISSUER_ADDRESS=0x…
-forge script src/deploy-phase5-pilot.s.sol --rpc-url fuji --broadcast --verify
+export ISSUER_ADDRESS=0x…   # public address of REDEEMER_ISSUER_PRIVATE_KEY
+forge script src/deploy-phase5-pilot.s.sol --rpc-url fuji --broadcast
 ```
 
 The script deploys `ClaimRegistry`, deploys `AchievementRedeemerV2`, sets the
 redeemer as the registry's sole writer, configures issuer/guardian/gas-payer,
-creates the campaign, mints + funds the budget, and prints every address.
+deploys `PilotSpinToken` (or uses `PILOT_ASSET`), creates the campaign, and
+funds it from the deployer balance. Prints every address.
 
 ### Post-deploy verification
 
@@ -124,6 +125,38 @@ Then set `NEXT_PUBLIC_ACHIEVEMENT_REDEEMER_ADDRESS=<redeemer>`,
 - Kill the pilot: `setCampaignActive(campaignId, false)` + turn both app
   flags off. `withdrawUnspent` returns the remaining budget after the
   campaign ends/deactivates.
+
+## Deployment record (Fuji 43113, 2026-10-07)
+
+| Contract | Address |
+|---|---|
+| `ClaimRegistry` | `0x53C1F0b6E740F1F8A91352B6169F67Daf2Fa64E1` |
+| `AchievementRedeemerV2` | `0x0F00848CA2aA4493C6A6C89ED0FD3128Cc31d204` |
+| `PilotSpinToken` (PSPIN) | `0x3DC8288228d2E916F41c05Ea04caF86d131d7243` |
+
+Owner + guardian: `0xdf36fF75df0DD320b8D2d2Bf2cb7fE61F383A13D` (deployer).
+Issuer: `0x854B53F166BB25B7E6a79345D9e77d7078621026`. No gas payer
+configured (recipients self-submit). Campaign funded 1,000 PSPIN; deployer
+retains ~3,000 for refills.
+
+Deploy txs (broadcast log `broadcast/deploy-phase5-pilot.s.sol/43113/`):
+registry `0x4e1d6e8a…`, redeemer `0x0e7b567f…`, setWriter `0xd40d7d53…`,
+setIssuer `0x7cd0ed53…`, setGuardian `0xafc316ab…`, token `0x0300e004…`,
+createCampaign `0xcf1e338c…`, approve `0x80d37500…`, fund `0x3a76568f…`.
+
+Post-deploy verified on-chain: registry wired, redeemer is sole writer,
+issuer authorized, lifetime 604800s, budget funded.
+
+### Dogfood evidence
+
+1. **Contract-level** (`dogfood-phase5-pilot.s.sol`): issuer-signed receipt
+   redeemed on Fuji — nullifier `0x88e2faad…`, recipient +10 PSPIN. Replay
+   via eth_call reverted `AlreadyConsumed` (`0x6f47ab5f`).
+2. **App-level** (dev server): wallet session → `cloud_history` consent →
+   `POST /api/rides` (≥10 min) → `POST /api/redeem/sign` → `redeem()` tx
+   `0x14ed5630…f2876` —
+   the app's EIP-712 signature verified on-chain; `Redeemed` emitted;
+   balance 3010 → 3020 PSPIN; budget 990 → 980.
 
 ## Non-goals
 
