@@ -56,6 +56,12 @@ from live ride state.
 4. Export `.riv` → save as `rider.riv` in this folder (or author `rive/rider/scene.rml` and run `pnpm rive:build`).
 5. Reload the live ride page — the avatar replaces the fallback orb.
 
+**Rotation convention**: Rive renders rotations clockwise-positive. The rider
+rig was originally authored counter-clockwise-positive (every limb/crank
+rotation inverted; re-posed 2026-10-08). Always check pose changes with
+`rive . --screenshot` before shipping rig edits — a clean `verify` does not
+catch a backwards pose.
+
 ## Submission notes (Rive Interactive Character Challenge)
 
 - The character is part of the product: it reacts to real telemetry, interval
