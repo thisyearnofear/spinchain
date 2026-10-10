@@ -6,7 +6,7 @@ import { FadeIn, StaggerContainer } from "@/app/components/ui/scroll-animations"
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { EffortAuraCanvas } from "@/app/components/ui/effort-aura-canvas";
+import { RiveEffortAura } from "@/app/components/features/ride/rive-effort-aura";
 
 if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
 
@@ -97,7 +97,7 @@ export function HowItWorksSection() {
 
       <div className="relative mt-10 overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-4 md:p-6">
         <div className="absolute inset-0 opacity-40">
-          <EffortAuraCanvas intensity={scrubProgress} />
+          <RiveEffortAura intensity={scrubProgress} isSprint={scrubProgress > 0.85} />
         </div>
         <div className="relative mb-3 flex items-center justify-between">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70">
