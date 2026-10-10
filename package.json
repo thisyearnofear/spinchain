@@ -30,7 +30,7 @@
   },
   "pnpm": {
     "overrides": {
-      "@rive-app/canvas": "2.44.1"
+      "@rive-app/canvas": "2.44.2"
     }
   },
   "dependencies": {

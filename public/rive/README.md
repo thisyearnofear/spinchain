@@ -29,10 +29,11 @@ WASM runtime is self-hosted (`rive.wasm` here, copied by
 **Versions**: scenes are built with the Rive CLI (`rive update` keeps it
 current; 1.5.1 as of 2026-10-10). The web runtime is
 `@rive-app/react-canvas` 4.36.0 with a `pnpm.overrides` pin of
-`@rive-app/canvas` **2.44.1** — the first web runtime with pointer-listener
-mouse-button support (Rive Editor 0.9.104). Remove the override once
-react-canvas depends on ≥2.44.1 (checked 2026-10-10: the latest react-canvas
-is still 4.36.0, pinning canvas 2.44.0 — the override stays; re-check with
+`@rive-app/canvas` **2.44.2** — first pointer-listener mouse-button support
+landed in 2.44.1 (Rive Editor 0.9.104); 2.44.2's wasm is byte-identical to
+2.44.1's (JS-layer fixes only). Remove the override once react-canvas depends
+on ≥2.44.1 (checked 2026-10-10: the latest react-canvas is still 4.36.0,
+pinning canvas 2.44.0 — the override stays; re-check with
 `npm view @rive-app/react-canvas dependencies`).
 
 ## Pointer listeners (rider)
@@ -47,23 +48,26 @@ is still 4.36.0, pinning canvas 2.44.0 — the override stays; re-check with
   `celebrateClick` `StateMachineTrigger` input (`ListenerTriggerChange` →
   `TransitionTriggerCondition`).
 
-**Web-runtime button-filter bug**: `@rive-app/canvas` 2.44.1 ignores
-`pointerButtonValue` on `ListenerInputTypePointerButton` — every mouse button
-matches a *primary* listener and a *secondary* one never fires at all
-(verified in-app against both the self-hosted and CDN wasm). The scene still
-declares both listeners for editor fidelity, but in the browser the
-`TapRider` listener fires on left AND right clicks; `RiveRider` records the
-button from `onPointerDownCapture` and dispatches: left → host callback
-(panel), right → `celebrateInput.fire()` from JS. Re-check this on every
-runtime bump — when the filter works, the right-click can go back to being
-pure in-scene feedback.
+**Web-runtime button-filter bug**: `@rive-app/canvas` 2.44.1 **and 2.44.2**
+ignore `pointerButtonValue` on `ListenerInputTypePointerButton` (re-verified
+on 2.44.2, 2026-10-10, against a two-listener repro scene) — every mouse
+button matches a *primary* listener and a *secondary* one never fires at all.
+The scene still declares both listeners for editor fidelity, but in the
+browser the `TapRider` listener fires on left AND right clicks; `RiveRider`
+records the button from `onPointerDownCapture` and dispatches: left → host
+callback (panel), right → `celebrateInput.fire()` from JS. Re-check this on
+every runtime bump — when the filter works, the right-click can go back to
+being pure in-scene feedback.
 
-**Why not a VM trigger for either?** A `ListenerViewModelChange` write to a
-`BindablePropertyTrigger` sets the stored uint but never sets the runtime's
-fired state — no trigger comparator ever sees it (verified headless on CLI
-1.5.1 / runtime 2.44.1 with a minimal repro). Boolean writes and
-`ListenerTriggerChange` on input triggers both work. This is the one place a
-legacy input is used, deliberately.
+**Listener → VM trigger writes: works, but needs an instance default.** An
+earlier note here claimed these never fire comparators — that was wrong.
+The repro was missing a `ViewModelInstanceTrigger` entry for the trigger
+property in the `ViewModelInstance` block; with no instance value, the
+listener write lands nowhere and no comparator ever sees it. Declare
+`<ViewModelInstanceTrigger propertyValue="0" viewModelPropertyId="…"/>` and
+the write fires transitions correctly (verified on 2.44.1 and 2.44.2).
+`riderTapped` stays a boolean anyway: the host must discriminate buttons
+itself (bug above), and the write→observe→reset round-trip is proven.
 
 Pointer-events policy: canvases stay `pointer-events-none` everywhere unless
 a mount passes `onTapped` (only `ride-hud-overlay-v2.tsx` does), which also
