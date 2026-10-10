@@ -3,12 +3,13 @@
 Sources live in `rive/<name>/scene.rml`; shipped files here are built with
 `pnpm rive:build` (verify: `pnpm rive:verify`). All state machines are driven
 by **view-model properties** (legacy `StateMachine*` inputs are deprecated and
-not used). Wrappers use `autoBind: true` + the `useViewModel*` hooks from
-`@rive-app/react-canvas`.
+not used — one deliberate exception: the rider's right-click `celebrateClick`
+input trigger, see "Pointer listeners"). Wrappers use `autoBind: true` + the
+`useViewModel*` hooks from `@rive-app/react-canvas`.
 
 | Asset | State machine / view model | Properties |
 |---|---|---|
-| `rider.riv` | `Ride` / `Ride` | `isRiding`, `cadence`, `effort` (0–1), `isSprint`, `isRecovery`, `isSpeaking`, `isReady`, `isFatigued` (booleans/numbers), `rewardPulse`, `prPulse`, `finishPulse` (triggers) |
+| `rider.riv` | `Ride` / `Ride` | `isRiding`, `cadence`, `effort` (0–1), `isSprint`, `isRecovery`, `isSpeaking`, `isReady`, `isFatigued`, `riderTapped` (booleans/numbers), `rewardPulse`, `prPulse`, `finishPulse` (triggers) |
 | `effort-aura.riv` | `Aura` / `Aura` | `intensity` (0–1), `isSprint`, `flowPulse` |
 | `coach-orb.riv` | `Coach` / `Coach` | `emotion` (0 calm…3 celebratory), `isSpeaking`, `celebrate` |
 | `flow-badge.riv` | `Badge` / `Badge` | `flowTier` (0–4), `streak`, `milestone`, `levelUp` |
@@ -24,6 +25,64 @@ All wrappers are lazy-loaded via `next/dynamic` at their mount sites, and the
 WASM runtime is self-hosted (`rive.wasm` here, copied by
 `scripts/copy-rive-wasm.mjs` on postinstall, wired via
 `rive-runtime.ts` → `RuntimeLoader.setWasmUrl`).
+
+**Versions**: scenes are built with the Rive CLI (`rive update` keeps it
+current; 1.5.1 as of 2026-10-10). The web runtime is
+`@rive-app/react-canvas` 4.36.0 with a `pnpm.overrides` pin of
+`@rive-app/canvas` **2.44.1** — the first web runtime with pointer-listener
+mouse-button support (Rive Editor 0.9.104). Remove the override once
+react-canvas depends on ≥2.44.1.
+
+## Pointer listeners (rider)
+
+`rive/rider/scene.rml` has two `StateMachineListener`s on an invisible
+`RiderHitArea` shape — the app's first interactive Rive surface:
+
+- **Left-click** (primary) writes the `riderTapped` **boolean**; `RiveRider`
+  observes it via `useViewModelInstanceBoolean`, resets it to `false`, and the
+  ride HUD opens the data-ownership panel.
+- **Right-click** (secondary) plays the FX-layer small burst via the
+  `celebrateClick` `StateMachineTrigger` input (`ListenerTriggerChange` →
+  `TransitionTriggerCondition`).
+
+**Web-runtime button-filter bug**: `@rive-app/canvas` 2.44.1 ignores
+`pointerButtonValue` on `ListenerInputTypePointerButton` — every mouse button
+matches a *primary* listener and a *secondary* one never fires at all
+(verified in-app against both the self-hosted and CDN wasm). The scene still
+declares both listeners for editor fidelity, but in the browser the
+`TapRider` listener fires on left AND right clicks; `RiveRider` records the
+button from `onPointerDownCapture` and dispatches: left → host callback
+(panel), right → `celebrateInput.fire()` from JS. Re-check this on every
+runtime bump — when the filter works, the right-click can go back to being
+pure in-scene feedback.
+
+**Why not a VM trigger for either?** A `ListenerViewModelChange` write to a
+`BindablePropertyTrigger` sets the stored uint but never sets the runtime's
+fired state — no trigger comparator ever sees it (verified headless on CLI
+1.5.1 / runtime 2.44.1 with a minimal repro). Boolean writes and
+`ListenerTriggerChange` on input triggers both work. This is the one place a
+legacy input is used, deliberately.
+
+Pointer-events policy: canvases stay `pointer-events-none` everywhere unless
+a mount passes `onTapped` (only `ride-hud-overlay-v2.tsx` does), which also
+suppresses the browser context menu over the canvas.
+
+**`.riv` URL-cache poisoning (all wrappers)**: the web runtime caches imported
+`.riv` files by URL and `react-canvas` destroys the cache entry when an
+instance unmounts. Any later instance loading the same URL — a remount, or
+the ride page's loading→HUD rider swap sharing `/rive/rider.riv` — gets a
+file whose **state-machine trigger transitions silently stop firing** while
+VM booleans and listeners keep working (verified on 2.44.1). `rive-runtime.ts`
+exports `useRivSrc(base)`, which gives every instance a cache-busted URL.
+React's dev-only StrictMode double-mount defeats per-component nonce values
+(the remount reuses the same state), so `next.config.ts` sets
+`reactStrictMode: false` — production never double-mounts; this trades a dev
+lint-equivalent for Rive correctness.
+
+**Early Access caveat**: strokes use `position="inside|outside"` (0.9.104 EA,
+Rive Renderer only). Older runtimes draw them centered — safe here because we
+ship both the `.riv` and the WASM, but don't open these files in older
+viewers expecting identical rings.
 
 Until a `.riv` exists here, each wrapper renders a graceful fallback (or
 nothing, for the aura) so the app stays shippable.

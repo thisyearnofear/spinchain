@@ -12,7 +12,7 @@
  * Falls back to children (initials) until the .riv is ready.
  */
 
-import "./rive-runtime";
+import { useRivSrc } from "./rive-runtime";
 import { useEffect } from "react";
 import {
   useRive,
@@ -50,8 +50,9 @@ export function RiveCoachOrb({
   className = "",
   fallback = null,
 }: RiveCoachOrbProps) {
+  const rivSrc = useRivSrc(RIVE_SRC);
   const { rive, RiveComponent } = useRive({
-    src: RIVE_SRC,
+    src: rivSrc,
     stateMachines: STATE_MACHINE,
     autoplay: true,
     autoBind: true,

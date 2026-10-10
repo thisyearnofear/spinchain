@@ -16,7 +16,7 @@
  * Source: rive/flow-badge/scene.rml → public/rive/flow-badge.riv
  */
 
-import "./rive-runtime";
+import { useRivSrc } from "./rive-runtime";
 import { useEffect, useRef, type ReactNode } from "react";
 import {
   useRive,
@@ -53,8 +53,9 @@ export function RiveFlowBadge({
   height = 120,
   className = "",
 }: RiveFlowBadgeProps) {
+  const rivSrc = useRivSrc(RIVE_SRC);
   const { rive, RiveComponent } = useRive({
-    src: RIVE_SRC,
+    src: rivSrc,
     stateMachines: STATE_MACHINE,
     autoplay: true,
     autoBind: true,

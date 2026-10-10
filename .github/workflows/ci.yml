@@ -373,6 +373,11 @@ jobs:
         run: |
           export PATH="$HOME/.rive/bin:$PATH"
           rive rive/rider --data="isRiding=true" --data-dump=- | grep -q '"changed": true'
+          # Pointer listeners (Rive 0.9.104): a synthetic left-click must fire
+          # the scene's TapRider listener (writes riderTapped=true), and the
+          # button-filtered listeners must survive into the built scene.
+          rive rive/rider --pointer="click@84,82" --advance=5 --data-dump=- | grep -A4 '"name": "riderTapped"' | grep -q '"value": true'
+          rive inspect rive/rider --summary | grep -q ListenerInputTypePointerButton
           rive rive/effort-aura --data="intensity=0.9" --data-dump=- | grep -q '"changed": true'
           rive rive/coach-orb --data="emotion=2" --data-dump=- | grep -q '"changed": true'
           rive rive/flow-badge --data="flowTier=3" --data-dump=- | grep -q '"changed": true'

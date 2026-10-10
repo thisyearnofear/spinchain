@@ -19,7 +19,7 @@
             </Shape>
             <Shape name="Halo" id="0:23">
                 <Ellipse width="116" height="116" originX="0.5" originY="0.5" name="Path"/>
-                <Stroke thickness="5" name="Stroke"><SolidColor colorValue="FF6D7CFF" name="Color" id="0:26"/></Stroke>
+                <Stroke thickness="5" position="inside" name="Stroke"><SolidColor colorValue="FF6D7CFF" name="Color" id="0:26"/></Stroke>
             </Shape>
         </Node>
 

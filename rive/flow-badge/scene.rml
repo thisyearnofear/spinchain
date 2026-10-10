@@ -16,7 +16,7 @@
             </Shape>
             <Shape name="Ring" id="0:23">
                 <Ellipse width="80" height="80" originX="0.5" originY="0.5" name="Path"/>
-                <Stroke thickness="5" name="Stroke"><SolidColor colorValue="FF38BDF8" name="Color" id="0:26"/></Stroke>
+                <Stroke thickness="5" position="outside" name="Stroke"><SolidColor colorValue="FF38BDF8" name="Color" id="0:26"/></Stroke>
             </Shape>
         </Node>
 

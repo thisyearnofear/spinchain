@@ -36,6 +36,14 @@ const RiveRider = dynamic(
   () => import("./rive-rider").then((m) => m.RiveRider),
   { ssr: false },
 );
+// Data panel opened by clicking the rider — lazy so the ride chunk stays lean.
+const DataOwnershipDashboard = dynamic(
+  () =>
+    import("@/app/components/features/rider/data-ownership-dashboard").then(
+      (m) => m.DataOwnershipDashboard,
+    ),
+  { ssr: false },
+);
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore, selectEffort, selectPower, selectHeartRate, selectCadence, selectGhostState, selectMultiGhostState } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
@@ -199,6 +207,8 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
 
   // ─── Expansion state ────────────────────────────────────────────
   const [expanded, setExpanded] = useState(false);
+  // Rider left-click (Rive pointer listener) opens the data-ownership panel.
+  const [dataPanelOpen, setDataPanelOpen] = useState(false);
 
   // ─── Flow state label ─────────────────────────────────────────
   const showFlowBadge = flowTier >= 1;
@@ -359,11 +369,51 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
 
       {/* ─── Live rider avatar (Rive) ───────────────────────────────
           The rider's on-bike self: pedals at the rider's cadence, leans
-          with effort, celebrates PRs/rewards. Anchored bottom-left, clear
+          with effort, celebrates PRs/rewards. Left-click (Rive pointer
+          listener → riderTapped trigger) opens the data-ownership panel;
+          right-click celebrates in-scene. Anchored bottom-left, clear
           of the centered bottom stack; scaled down on small screens. */}
       <div className="pointer-events-none fixed bottom-28 left-4 z-40 origin-bottom-left scale-75 md:bottom-24 md:left-6 md:scale-100">
-        <RiveRider size={140} />
+        <RiveRider size={140} onTapped={() => setDataPanelOpen(true)} />
       </div>
+
+      <AnimatePresence>
+        {dataPanelOpen && (
+          <m.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            onClick={() => setDataPanelOpen(false)}
+            role="dialog"
+            aria-label="Your data"
+          >
+            <m.div
+              className="max-h-[80vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl"
+              initial={{ y: 24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 24, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-black uppercase tracking-widest text-white">
+                  Your data
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setDataPanelOpen(false)}
+                  className="rounded-full border border-white/20 px-3 py-1 text-xs font-bold text-white/70 hover:bg-white/10"
+                >
+                  Close
+                </button>
+              </div>
+              <DataOwnershipDashboard />
+            </m.div>
+          </m.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Compact HUD (single metric) ───────────────────────────── */}
       {!suppressBottomStack && (expanded ? null : (

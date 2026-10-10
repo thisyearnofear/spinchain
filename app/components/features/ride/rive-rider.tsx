@@ -22,6 +22,10 @@
  *   rewardPulse : trigger — fire on each reward stream tick / claim
  *   prPulse     : trigger — fire when the rider beats their power PR (big burst)
  *   finishPulse : trigger — fire once per finished ride (small burst)
+ *   riderTapped : boolean — scene → host: set true by the rider's left-click
+ *               pointer listener (the host resets it); right-click is handled
+ *               fully in-scene (a listener trigger input plays the small
+ *               burst). Listener writes can't fire VM triggers, hence boolean.
  *
  * Source: rive/rider/scene.rml → public/rive/rider.riv. While the .riv is
  * still loading (or missing), a lightweight CSS fallback renders instead so
@@ -35,10 +39,11 @@
  * ─────────────────────────────────────────────────────────────────────
  */
 
-import "./rive-runtime";
+import { useRivSrc } from "./rive-runtime";
 import { useEffect, useRef } from "react";
 import {
   useRive,
+  useStateMachineInput,
   useViewModel,
   useViewModelInstance,
   useViewModelInstanceBoolean,
@@ -65,13 +70,18 @@ export interface RiveRiderProps {
    *  completion screen. Skipped when a PR was beaten, because the store
    *  subscription already fires the bigger PR burst in that case. */
   celebrateFinishOnMount?: boolean;
+  /** Host callback for the scene's left-click pointer listener. Providing it
+   *  makes the canvas interactive (pointer events on, context menu
+   *  suppressed); without it the rider stays click-through as before. */
+  onTapped?: () => void;
 }
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
-export function RiveRider({ size = 160, className = "", ready = false, fatigued = false, celebrateFinishOnMount = false }: RiveRiderProps) {
+export function RiveRider({ size = 160, className = "", ready = false, fatigued = false, celebrateFinishOnMount = false, onTapped }: RiveRiderProps) {
+  const rivSrc = useRivSrc(RIVE_SRC);
   const { rive, RiveComponent } = useRive({
-    src: RIVE_SRC,
+    src: rivSrc,
     stateMachines: STATE_MACHINE,
     autoplay: true,
     autoBind: true,
@@ -90,6 +100,44 @@ export function RiveRider({ size = 160, className = "", ready = false, fatigued 
   const { setValue: setIsReady } = useViewModelInstanceBoolean("isReady", viewModelInstance);
   const { setValue: setIsFatigued } = useViewModelInstanceBoolean("isFatigued", viewModelInstance);
   const { trigger: fireFinishPulse } = useViewModelInstanceTrigger("finishPulse", viewModelInstance);
+
+  // ─── Scene → host: the rider's pointer listener writes this boolean ──
+  // (Listeners can't fire view-model triggers — a written trigger never sets
+  // the runtime's fired state — so the tap signal is a boolean the host
+  // consumes and resets.)
+  //
+  // The web runtime (2.44.1) ignores ListenerInputTypePointerButton's
+  // pointerButtonValue: every button matches a "primary" listener and a
+  // "secondary" one never fires (verified against both the self-hosted wasm
+  // and the CDN runtime). So the scene's TapRider listener fires on left AND
+  // right clicks, and button discrimination happens here: last pointer button
+  // decides whether a tap opens the panel (left) or plays the in-scene
+  // celebrate burst (right, via the celebrateClick input trigger the FX layer
+  // already transitions on).
+  const onTappedRef = useRef(onTapped);
+  useEffect(() => {
+    onTappedRef.current = onTapped;
+  });
+  const lastButtonRef = useRef(0);
+  const celebrateInput = useStateMachineInput(rive, STATE_MACHINE, "celebrateClick");
+  const { value: tapped, setValue: setTapped } = useViewModelInstanceBoolean("riderTapped", viewModelInstance);
+  const tapFiredRef = useRef(false);
+  useEffect(() => {
+    if (!tapped) {
+      tapFiredRef.current = false;
+      return;
+    }
+    if (tapFiredRef.current) return;
+    tapFiredRef.current = true;
+    setTapped?.(false);
+    const rightButton = lastButtonRef.current === 2;
+    lastButtonRef.current = 0;
+    if (rightButton) {
+      celebrateInput?.fire();
+    } else {
+      onTappedRef.current?.();
+    }
+  }, [tapped, setTapped, celebrateInput]);
 
   // Latest VM setters, so store subscriptions registered once can always
   // reach the current view-model instance without re-subscribing.
@@ -199,16 +247,38 @@ export function RiveRider({ size = 160, className = "", ready = false, fatigued 
   // RiveComponent must always mount (it owns the canvas the runtime loads
   // into); the CSS fallback overlays it until the .riv is ready, and stays
   // permanently if the asset is missing.
+  const interactive = Boolean(onTapped);
   return (
     <div
-      className={`relative pointer-events-none ${className}`}
+      className={`relative ${interactive ? "pointer-events-auto" : "pointer-events-none"} ${className}`}
       style={{ width: size, height: size }}
-      aria-label="Live rider avatar"
-      role="img"
+      aria-label={interactive ? "Rider avatar — click to see your data" : "Live rider avatar"}
+      role={interactive ? "button" : "img"}
+      tabIndex={interactive ? 0 : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onTapped?.();
+              }
+            }
+          : undefined
+      }
+      onPointerDownCapture={
+        interactive
+          ? (e) => {
+              lastButtonRef.current = e.button;
+            }
+          : undefined
+      }
+      onContextMenu={interactive ? (e) => e.preventDefault() : undefined}
     >
       {/* className on RiveComponent suppresses its inline style — sizing
           has to live in the class list or the canvas stays 0×0. */}
-      <RiveComponent className="pointer-events-none h-full w-full select-none" />
+      <RiveComponent
+        className={`h-full w-full select-none ${interactive ? "cursor-pointer" : "pointer-events-none"}`}
+      />
       {!rive && <RiveRiderFallback size={size} />}
     </div>
   );

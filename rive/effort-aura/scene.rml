@@ -12,7 +12,7 @@
         <Node x="200" y="200" name="Aura" id="0:20">
             <Shape name="HotRing" id="0:31" opacity="0">
                 <Ellipse width="170" height="170" originX="0.5" originY="0.5" name="Path"/>
-                <Stroke thickness="10" name="Stroke"><SolidColor colorValue="FFFB7185" name="Color"/></Stroke>
+                <Stroke thickness="10" position="outside" name="Stroke"><SolidColor colorValue="FFFB7185" name="Color"/></Stroke>
             </Shape>
             <Shape name="Mid" id="0:23" opacity="0.6">
                 <Ellipse width="220" height="220" originX="0.5" originY="0.5" name="Path"/>

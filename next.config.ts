@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // @rive-app/canvas caches imported .riv files by URL and destroys the entry
+  // when an instance unmounts; React 19's dev-only StrictMode double-mount
+  // (mount → unmount → remount, same URL) therefore hands the live instance a
+  // poisoned file — state-machine trigger transitions silently stop and loads
+  // can hang. Production builds never double-mount, so this only trades a dev
+  // lint-equivalent for Rive correctness in the ride HUD (see public/rive/README.md).
+  reactStrictMode: false,
   // CI only: emit .next/standalone so the built app ships to Playwright
   // shards as a single artifact (BUILD_STANDALONE=1). Left off locally so
   // `next start` keeps working — it cannot serve a standalone build.

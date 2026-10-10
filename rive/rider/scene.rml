@@ -192,7 +192,17 @@
             <Stroke thickness="6" name="Stroke"><SolidColor colorValue="FF334155" name="Color"/></Stroke>
         </Shape>
 
+        <!-- Invisible hit area for the pointer listeners below. -->
+        <Shape x="84" y="82" name="RiderHitArea" id="0:97">
+            <Rectangle width="112" height="125" cornerRadiusTL="12" originX="0.5" originY="0.5" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="00FFFFFF" name="Color"/></Fill>
+        </Shape>
+
         <StateMachine name="Ride" id="0:7">
+            <!-- Deprecated input trigger: the only trigger a listener write can
+                 actually fire (VM-trigger writes from listeners never set the
+                 runtime's fired state). Right-click celebrate. -->
+            <StateMachineTrigger name="celebrateClick" id="0:99"/>
             <StateMachineLayer name="Main" id="0:8">
                 <AnyState x="560" y="-140">
                     <!-- 1. Sprint posture wins over everything. -->
@@ -330,6 +340,10 @@
                             <TransitionValueTriggerComparator/>
                         </TransitionViewModelCondition>
                     </StateTransition>
+                    <!-- Right-click on the rider → small burst (listener-driven). -->
+                    <StateTransition stateToId="0:55" duration="150" interpolationType="linear">
+                        <TransitionTriggerCondition inputId="0:99"/>
+                    </StateTransition>
                     <!-- PR beaten → big burst. -->
                     <StateTransition stateToId="0:17" duration="150" interpolationType="linear">
                         <TransitionViewModelCondition>
@@ -397,6 +411,25 @@
                 <AnimationState x="160" y="260" animationId="0:66" id="0:18"/>
                 <AnimationState x="340" y="260" animationId="0:67" id="0:19"/>
             </StateMachineLayer>
+
+            <!-- Pointer listeners (Rive 0.9.104 button filter). TapRider writes
+                 riderTapped for the host app. NOTE: web runtimes (2.44.1) ignore
+                 pointerButtonValue — every button matches "primary" and
+                 "secondary" never fires — so the host discriminates the button
+                 and fires celebrateClick for right-clicks. RightClickRider is
+                 kept for native/editor runtimes where the filter does work. -->
+            <StateMachineListener targetId="0:97" name="TapRider">
+                <ListenerInputTypePointerButton listenerTypeValue="up" pointerButtonValue="primary"/>
+                <ListenerViewModelChange>
+                    <BindablePropertyBoolean propertyValue="true">
+                        <DataBindContext sourcePathIds="0:80-0:98" propertyKey="634" direction="true"/>
+                    </BindablePropertyBoolean>
+                </ListenerViewModelChange>
+            </StateMachineListener>
+            <StateMachineListener targetId="0:97" name="RightClickRider">
+                <ListenerInputTypePointerButton listenerTypeValue="down" pointerButtonValue="secondary"/>
+                <ListenerTriggerChange inputId="0:99"/>
+            </StateMachineListener>
         </StateMachine>
 
         <!--
@@ -1036,7 +1069,9 @@
         <ViewModelPropertyBoolean name="isReady" id="0:91"/>
         <ViewModelPropertyBoolean name="isFatigued" id="0:92"/>
         <ViewModelPropertyTrigger name="finishPulse" id="0:93"/>
+        <ViewModelPropertyBoolean name="riderTapped" id="0:98"/>
         <ViewModelInstance exports="true" name="Default" id="0:89">
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:98"/>
             <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:81"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:82"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:83"/>

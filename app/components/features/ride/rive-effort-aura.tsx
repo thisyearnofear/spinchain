@@ -15,7 +15,7 @@
  * via imperative subscriptions (no React re-renders at telemetry rate).
  */
 
-import "./rive-runtime";
+import { useRivSrc } from "./rive-runtime";
 import { useEffect, useRef } from "react";
 import {
   useRive,
@@ -48,8 +48,9 @@ export function RiveEffortAura({
   pulseKey = 0,
   className = "",
 }: RiveEffortAuraProps) {
+  const rivSrc = useRivSrc(RIVE_SRC);
   const { rive, RiveComponent } = useRive({
-    src: RIVE_SRC,
+    src: rivSrc,
     stateMachines: STATE_MACHINE,
     autoplay: true,
     autoBind: true,
