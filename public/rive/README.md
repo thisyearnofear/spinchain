@@ -31,7 +31,9 @@ current; 1.5.1 as of 2026-10-10). The web runtime is
 `@rive-app/react-canvas` 4.36.0 with a `pnpm.overrides` pin of
 `@rive-app/canvas` **2.44.1** — the first web runtime with pointer-listener
 mouse-button support (Rive Editor 0.9.104). Remove the override once
-react-canvas depends on ≥2.44.1.
+react-canvas depends on ≥2.44.1 (checked 2026-10-10: the latest react-canvas
+is still 4.36.0, pinning canvas 2.44.0 — the override stays; re-check with
+`npm view @rive-app/react-canvas dependencies`).
 
 ## Pointer listeners (rider)
 

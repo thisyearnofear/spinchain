@@ -209,6 +209,14 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
   const [expanded, setExpanded] = useState(false);
   // Rider left-click (Rive pointer listener) opens the data-ownership panel.
   const [dataPanelOpen, setDataPanelOpen] = useState(false);
+  useEffect(() => {
+    if (!dataPanelOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDataPanelOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [dataPanelOpen]);
 
   // ─── Flow state label ─────────────────────────────────────────
   const showFlowBadge = flowTier >= 1;
