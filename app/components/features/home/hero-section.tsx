@@ -6,7 +6,10 @@ import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
 import { MorphCTA } from "@/app/components/ui/morph-cta";
 import { useExperience } from "@/app/lib/experience-level";
 import dynamic from "next/dynamic";
+import { m } from "framer-motion";
 import { Flame, Play } from "lucide-react";
+import { EASE_SMOOTH } from "@/app/lib/motion";
+import { usePrefersReducedMotion } from "@/app/hooks/use-prefers-reduced-motion";
 
 // Lazy-load: keeps the Rive JS runtime (~335 KB) + WASM bootstrap out of the
 // landing page's initial bundle.
@@ -36,8 +39,19 @@ function CoachGreeting() {
 
 export function HeroSection() {
   const { totalRides, currentTier } = useExperience();
+  const reduced = usePrefersReducedMotion();
   // Honest signal: show the rider's current tier, not an aspirational +1.
   const flowTier = Math.min(4, currentTier);
+
+  // First-impression entrance: H1 → subcopy → CTA → highlights, 60 ms apart.
+  const rise = (delay: number) =>
+    reduced
+      ? {}
+      : {
+          initial: { opacity: 0, y: 12 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.3, delay, ease: EASE_SMOOTH },
+        };
 
   return (
     <header className="flex flex-col items-start justify-between gap-6 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-6 shadow-[0_20px_80px_rgba(0,0,0,0.15)] md:gap-8 md:px-8 md:py-8">
@@ -63,7 +77,10 @@ export function HeroSection() {
         )}
 
         {/* Character + heading — RiveRider beside H1 for first-time visitors */}
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6 md:mb-6">
+        <m.div
+          className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6 md:mb-6"
+          {...rise(0)}
+        >
           {/* Nova (RiveRider): eager bounce in ready state for first-timers */}
           {totalRides === 0 && (
             <div className="shrink-0 mx-auto sm:mx-0">
@@ -81,27 +98,36 @@ export function HeroSection() {
             </h1>
             {totalRides === 0 && <CoachGreeting />}
           </div>
-        </div>
+        </m.div>
 
-        <p className="mx-auto max-w-2xl px-4 text-base font-medium leading-relaxed text-[color:var(--muted)] md:text-lg lg:text-xl">
+        <m.p
+          className="mx-auto max-w-2xl px-4 text-base font-medium leading-relaxed text-[color:var(--muted)] md:text-lg lg:text-xl"
+          {...rise(0.06)}
+        >
           Pedal harder. The road glows hotter. The fog thickens. The world
           transforms with every watt. Try a free demo — no wallet or signup
           needed.
-        </p>
+        </m.p>
 
-        <div
+        <m.div
           className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row"
           data-testid="primary-cta"
+          {...rise(0.12)}
         >
           <MorphCTA href={getDemoRideUrl({ name: "Demo Ride" })}>
             <Play className="h-4 w-4 fill-current" />
             Try a Demo Ride
           </MorphCTA>
-        </div>
+        </m.div>
 
       </div>
 
-      <div className="w-full rounded-b-2xl py-5 md:py-6" role="region" aria-label="Quick start highlights">
+      <m.div
+        className="w-full rounded-b-2xl py-5 md:py-6"
+        role="region"
+        aria-label="Quick start highlights"
+        {...rise(0.18)}
+      >
         <div className="flex flex-wrap justify-center gap-8 md:gap-12">
           {[
             { label: "No wallet", value: "Demo ride" },
@@ -118,7 +144,7 @@ export function HeroSection() {
             </div>
           ))}
         </div>
-      </div>
+      </m.div>
     </header>
   );
 }

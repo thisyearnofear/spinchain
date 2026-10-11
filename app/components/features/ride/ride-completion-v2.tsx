@@ -28,7 +28,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { m, AnimatePresence } from "framer-motion";
-import { modalTransition } from "@/app/lib/motion";
+import { modalTransition, EASE_SMOOTH, springSoft } from "@/app/lib/motion";
+import { usePrefersReducedMotion } from "@/app/hooks/use-prefers-reduced-motion";
 import { formatTime } from "@/app/lib/formatters";
 import { toPracticeWallElapsed } from "@/app/lib/practice-demo";
 import { useCoachingStore } from "@/app/stores/coaching-store";
@@ -368,11 +369,20 @@ export function RideCompletionV2({
       {/* Atmospheric glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-amber-500/8 blur-[120px] rounded-full pointer-events-none" />
 
-      {/* ─── Phase 1: CELEBRATION ────────────────────────────────── */}
-      {completionPhase === "celebration" && (
+      {/* ─── Phase 1 → 2: celebration hands off to the stats column
+          with a blur-masked exit, not a hard cut at 2500 ms ─────── */}
+      <AnimatePresence mode="wait">
+      {completionPhase === "celebration" ? (
         <m.div
+          key="celebration"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
+          exit={{
+            opacity: 0,
+            scale: 0.98,
+            filter: "blur(2px)",
+            transition: { duration: 0.25, ease: EASE_SMOOTH },
+          }}
           transition={{ ...modalTransition, delay: 0.1 }}
           className="relative w-full max-w-md flex flex-col items-center text-center"
         >
@@ -416,7 +426,7 @@ export function RideCompletionV2({
               gets the small celebration; a beaten PR gets the big one via
               the coaching store. */}
           <m.div
-            initial={{ opacity: 0, scale: 0.6, y: 10 }}
+            initial={{ opacity: 0, scale: 0.94, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.15, type: "spring", stiffness: 260, damping: 18 }}
             className="mb-1"
@@ -485,17 +495,16 @@ export function RideCompletionV2({
             </div>
           </m.div>
         </m.div>
-      )}
-
-      {/* ─── Phase 2: STATS ────────────────────────────────────────
-          Progressive disclosure: one hero moment, one line of truth,
-          everything else a tap away. The column scrolls so nothing is
-          ever unreachable (the action bar floats over the bottom). */}
-      {completionPhase === "stats" && (
+      ) : (
+        /* ─── Phase 2: STATS ────────────────────────────────────────
+        Progressive disclosure: one hero moment, one line of truth,
+        everything else a tap away. The column scrolls so nothing is
+        ever unreachable (the action bar floats over the bottom). */
         <m.div
+          key="stats"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.35, ease: EASE_SMOOTH }}
           className="relative w-full max-w-lg h-full max-h-full flex flex-col"
         >
           <h2 id="completion-title" className="sr-only">
@@ -516,9 +525,9 @@ export function RideCompletionV2({
                   style={{ backgroundColor: MILESTONE_TIERS[heroMilestone.tier].bgColor }}
                 />
                 <m.div
-                  initial={{ scale: 0, rotate: -20 }}
+                  initial={{ scale: 0.92, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 16 }}
+                  transition={{ delay: 0.15, ...springSoft }}
                   className="relative mb-2"
                 >
                   <TierIcon tier={heroMilestone.tier} className="h-12 w-12" />
@@ -769,6 +778,7 @@ export function RideCompletionV2({
           </div>
         </m.div>
       )}
+      </AnimatePresence>
 
       {/* ─── Phase 3: ACTIONS (persistent bottom bar) ──────────────
           pointer-events pass through the wrapper so the stats column can
@@ -885,9 +895,32 @@ function InlineStat({
   unit: string;
   highlight?: boolean;
 }) {
+  const reduced = usePrefersReducedMotion();
+  const numeric = typeof value === "number";
+  const target = numeric ? value : 0;
+  const [shown, setShown] = useState(reduced || !numeric ? target : 0);
+
+  useEffect(() => {
+    if (reduced || !numeric) {
+      setShown(target);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const durationMs = 800;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setShown(Math.round(target * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [reduced, numeric, target]);
+
   return (
     <span className={`whitespace-nowrap text-xl font-black tabular-nums tracking-tight ${highlight ? "text-amber-300" : "text-white"}`}>
-      {value}
+      {numeric ? shown : value}
       {unit && <span className="ml-1 text-[10px] font-semibold uppercase tracking-wider text-white/60">{unit}</span>}
     </span>
   );

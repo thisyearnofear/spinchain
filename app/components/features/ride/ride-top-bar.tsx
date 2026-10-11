@@ -194,9 +194,19 @@ export const RideTopBar = memo(function RideTopBar({
               </svg>
             </button>
             {showMoreMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowMoreMenu(false)} />
-                <div className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-white/10 bg-black/95 p-1 min-w-[180px] shadow-xl">
+              <div className="fixed inset-0 z-40" onClick={() => setShowMoreMenu(false)} />
+            )}
+            <AnimatePresence>
+              {showMoreMenu && (
+                <m.div
+                  key="more-menu"
+                  initial={{ opacity: 0, scale: 0.97, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
+                  transition={{ duration: 0.15, ease: EASE_SMOOTH }}
+                  style={{ transformOrigin: "top right" }}
+                  className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-white/10 bg-black/95 p-1 min-w-[180px] shadow-xl"
+                >
                   {showPreRideSetup && walletConnected && !isPracticeMode && (
                     <button
                       onClick={() => { onSetUseSimulator(!useSimulator); setShowMoreMenu(false); }}
@@ -227,9 +237,9 @@ export const RideTopBar = memo(function RideTopBar({
                   >
                     Reset preferences
                   </button>
-                </div>
-              </>
-            )}
+                </m.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* View Mode Toggle */}

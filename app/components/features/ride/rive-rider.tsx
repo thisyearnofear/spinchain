@@ -44,6 +44,7 @@
  */
 
 import { useRivSrc, useRiveReducedMotion } from "./rive-runtime";
+import { usePrefersReducedMotion } from "@/app/hooks/use-prefers-reduced-motion";
 import { useEffect, useRef } from "react";
 import {
   useRive,
@@ -197,15 +198,40 @@ export function RiveRider({ size = 160, className = "", ready = false, fatigued 
   });
 
   // ─── Telemetry: cadence + effort (up to 10 Hz, no React renders) ──
+  // Store commits only move a TARGET; a rAF eases current→target at 3/s —
+  // the same damping constant the 3D cyclist uses (route-visualizer
+  // dampFactor(3, delta)) — so the rider *responds* instead of *refreshes*.
+  const telemetryTargetRef = useRef({ cadence: 0, effort: 0 });
   useEffect(() => {
     const apply = () => {
       const s = useTelemetryStore.getState();
-      driversRef.current.setCadence?.(selectCadence(s) ?? 0);
-      driversRef.current.setEffort?.(clamp01((selectEffort(s) ?? 0) / 1000));
+      telemetryTargetRef.current.cadence = selectCadence(s) ?? 0;
+      telemetryTargetRef.current.effort = clamp01((selectEffort(s) ?? 0) / 1000);
     };
     apply();
     return useTelemetryStore.subscribe(apply);
   }, []);
+
+  const reducedMotion = usePrefersReducedMotion();
+  useEffect(() => {
+    if (reducedMotion) return;
+    let raf = 0;
+    let last = performance.now();
+    const current = { ...telemetryTargetRef.current };
+    const tick = (now: number) => {
+      const delta = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      const t = telemetryTargetRef.current;
+      const k = 1 - Math.exp(-3 * delta);
+      current.cadence += (t.cadence - current.cadence) * k;
+      current.effort += (t.effort - current.effort) * k;
+      driversRef.current.setCadence?.(current.cadence);
+      driversRef.current.setEffort?.(current.effort);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [reducedMotion]);
 
   // ─── Ride active state ───────────────────────────────────────────
   useEffect(() => {
