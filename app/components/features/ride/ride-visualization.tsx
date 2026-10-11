@@ -12,6 +12,7 @@ import type { HapticType } from "@/app/hooks/use-haptic";
 import type { StoryBeat } from "@/app/components/features/route/route-visualizer";
 import { TronRenderer } from "@/app/components/features/renderers/tron-renderer";
 import { FocusRenderer } from "@/app/components/features/renderers/focus-renderer";
+import { EnhancedFlowBackground } from "@/app/components/features/ride/enhanced-flow-background";
 import type { VisualizationConfig, RenderMode } from "@/app/engines/types";
 import type { FlowStateTier } from "@/app/lib/flow-state";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
@@ -218,6 +219,11 @@ export function RideVisualization({
 
   return (
     <div className="absolute inset-0">
+      {/* Phase tint behind the transparent 3D canvas; self-gates on
+          isRiding/viewMode. Mounted here per the original renderer design —
+          the import was lost in the 8194be43a shell thinning. */}
+      <EnhancedFlowBackground />
+
       {/* Focus (2D) — stacked, crossfades with 3D. Keep mounted for instant toggle. */}
       <m.div
         className="absolute inset-0"
