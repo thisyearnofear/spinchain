@@ -14,7 +14,8 @@
  * imports this module for its side effect.
  */
 import { useEffect, useState } from "react";
-import { RuntimeLoader } from "@rive-app/react-canvas";
+import { EventType, RuntimeLoader } from "@rive-app/react-canvas";
+import type { Rive as RiveInstance } from "@rive-app/react-canvas";
 import { usePrefersReducedMotion } from "@/app/hooks/use-prefers-reduced-motion";
 
 RuntimeLoader.setWasmUrl("/rive/rive.wasm");
@@ -23,19 +24,30 @@ RuntimeLoader.setWasmUrl("/rive/rive.wasm");
  * Reduced motion for the WASM canvas: Rive's render loop is invisible to both
  * MotionConfig and the CSS blanket rule, so stop the loop itself and hold a
  * static pose frame. Restarts if the preference flips back.
+ *
+ * The `rive` instance exists before its .riv has loaded, and react-canvas
+ * autoplays on load — so a stop() that lands first is undone. Re-apply on the
+ * runtime's "load" event (our listener registers after react-canvas's, so it
+ * runs last) and after any late load.
  */
 export function useRiveReducedMotion(
-  rive: { stop(): void; play(): void; drawFrame(): void } | null | undefined,
+  rive: RiveInstance | null | undefined,
 ): void {
   const reduced = usePrefersReducedMotion();
   useEffect(() => {
     if (!rive) return;
-    if (reduced) {
+    if (!reduced) {
+      rive.play();
+      return;
+    }
+    const hold = () => {
       rive.stop();
       rive.drawFrame();
-    } else {
-      rive.play();
-    }
+    };
+    hold();
+    if (!rive.on) return;
+    rive.on(EventType.Load, hold);
+    return () => rive.off?.(EventType.Load, hold);
   }, [rive, reduced]);
 }
 
