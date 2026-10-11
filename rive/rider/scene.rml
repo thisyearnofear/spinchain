@@ -45,9 +45,9 @@
                 </Bone>
             </RootBone>
 
-            <!-- Torso assembly: Lean (data-bound to effort) ∘ Pose (keyed per state). -->
+            <!-- Torso assembly: EffortPose joystick leans TorsoLean (2D pose
+                 range, Step 3), state-machine animations pose TorsoPose. -->
             <Node x="62" y="76" name="TorsoLean" id="0:35">
-                <DataBindContext sourcePathIds="0:80-0:83" propertyKey="15" converterId="0:90"/>
                 <Node x="0" y="0" rotation="-2.3166" name="TorsoPose" id="0:36">
                     <Shape x="0" y="0" name="Torso" id="0:22">
                         <Rectangle width="12" height="35" cornerRadiusTL="6" originX="0.5" originY="0" name="Path"/>
@@ -442,6 +442,15 @@
             </StateMachineListener>
         </StateMachine>
 
+        <!-- EffortPose: 2D upper-body control. x = cadence (relaxed → locked-in
+             arms), y = effort (upright casual → aggro crouch); VM numbers map
+             through range converters onto −1..1, each axis scrubbing its pose
+             range animation. No handleSourceId — x/y are inputs here. -->
+        <Joystick name="EffortPose" id="0:104" xId="0:105" yId="0:106">
+            <DataBindContext sourcePathIds="0:80-0:82" propertyKey="299" converterId="0:107"/>
+            <DataBindContext sourcePathIds="0:80-0:83" propertyKey="300" converterId="0:90"/>
+        </Joystick>
+
         <!--
           Legs are IK-driven: KneeF/KneeR carry IKConstraints (parentBoneCount=1,
           two-bone solve) targeting AnkleTargetF/R — child bones at the crank
@@ -578,6 +587,44 @@
                 </KeyedProperty>
             </KeyedObject>
         </LinearAnimation>
+        <!-- Pose RANGE for the EffortPose joystick x axis (cadence 0–140 →
+             −1..1): frame 0 relaxed commuter arms, frame 60 locked-in race
+             arms. A range, not motion — the joystick scrubs it, nothing plays
+             it. First arm keys in the project; hands stay at the bar because
+             both joints bend the same direction by small amounts. -->
+        <LinearAnimation duration="60" name="TorsoCadenceRange" id="0:105">
+            <KeyedObject objectId="0:38">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="1.7473" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.62" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:39">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0.15" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.32" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- Pose RANGE for the joystick y axis (effort 0–1 → −1..1; handle up
+             = frame 0 = upright casual): torso leans forward, head
+             counter-rotates to keep the eyes on the road. -->
+        <LinearAnimation duration="60" name="TorsoEffortRange" id="0:106">
+            <KeyedObject objectId="0:35">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.18" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:37">
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.14" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
         <!-- Recovery: pedals parked, slow breathing sag, sat back up. -->
         <LinearAnimation duration="96" loopValue="loop" name="Recovery" id="0:69">
             <KeyedObject objectId="0:20">
@@ -739,7 +786,8 @@
     </Artboard>
 
     <!-- effort 0–1 → extra torso lean 0–0.18 rad -->
-    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="0" maxOutput="0.18" clampLower="true" clampUpper="true" name="EffortToLean" id="0:90"/>
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="-1" maxOutput="1" clampLower="true" clampUpper="true" name="EffortToPoseY" id="0:90"/>
+    <DataConverterRangeMapper minInput="0" maxInput="140" minOutput="-1" maxOutput="1" clampLower="true" clampUpper="true" name="CadenceToPoseX" id="0:107"/>
 
     <ViewModel defaultInstanceId="0:89" name="Ride" id="0:80">
         <ViewModelPropertyBoolean name="isRiding" id="0:81"/>
