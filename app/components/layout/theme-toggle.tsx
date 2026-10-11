@@ -16,7 +16,7 @@ export function ThemeToggle() {
     >
       <div className={`
         relative w-14 h-8 rounded-full p-1
-        transition-all duration-500 ease-spring
+        transition-[transform,background-color,box-shadow] duration-300 ease-smooth
         ${isDark 
           ? 'bg-slate-800 shadow-inner shadow-black/50' 
           : 'bg-sky-200 shadow-inner shadow-sky-300/50'
@@ -69,7 +69,7 @@ export function ThemeToggle() {
         {/* Thumb */}
         <div className={`
           relative w-6 h-6 rounded-full
-          transform transition-all duration-500 ease-spring
+          transform transition-[transform,background-color] duration-300 ease-smooth
           ${isDark
             ? 'translate-x-6 bg-indigo-400'
             : 'translate-x-0 bg-gradient-to-br from-amber-300 to-orange-400'

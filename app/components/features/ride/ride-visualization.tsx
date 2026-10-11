@@ -17,6 +17,7 @@ import type { FlowStateTier } from "@/app/lib/flow-state";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
 import { useEffect, useMemo, useState } from "react";
 import { m } from "framer-motion";
+import { EASE_SMOOTH } from "@/app/lib/motion";
 import { probeGpu, getQualitySettings } from "@/app/lib/gpu-probe";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
@@ -222,7 +223,7 @@ export function RideVisualization({
         className="absolute inset-0"
         initial={false}
         animate={{ opacity: isFocus ? 1 : 0 }}
-        transition={{ duration: 0.22, ease: "easeInOut" }}
+        transition={{ duration: 0.22, ease: EASE_SMOOTH }}
         style={{ pointerEvents: isFocus ? "auto" : "none" }}
         aria-hidden={!isFocus}
       >
@@ -265,7 +266,7 @@ export function RideVisualization({
         className="absolute inset-0"
         initial={false}
         animate={{ opacity: isFocus ? 0 : 1 }}
-        transition={{ duration: 0.22, ease: "easeInOut" }}
+        transition={{ duration: 0.22, ease: EASE_SMOOTH }}
         style={{ pointerEvents: isFocus ? "none" : "auto" }}
         aria-hidden={isFocus}
       >

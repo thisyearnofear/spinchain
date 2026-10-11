@@ -28,7 +28,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { m, AnimatePresence } from "framer-motion";
-import { modalTransition, EASE_SMOOTH, springSoft } from "@/app/lib/motion";
+import { modalTransition, EASE_SMOOTH, springSoft, springSnappy } from "@/app/lib/motion";
 import { usePrefersReducedMotion } from "@/app/hooks/use-prefers-reduced-motion";
 import { formatTime } from "@/app/lib/formatters";
 import { toPracticeWallElapsed } from "@/app/lib/practice-demo";
@@ -287,7 +287,7 @@ export function RideCompletionV2({
         data-testid="ride-completion"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        transition={{ duration: 0.5, ease: EASE_SMOOTH }}
         className="absolute inset-0 z-10 flex items-center justify-center pointer-events-auto p-4 overflow-hidden"
         role="dialog"
         aria-modal="true"
@@ -356,7 +356,7 @@ export function RideCompletionV2({
       data-testid="ride-completion"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.5, ease: EASE_SMOOTH }}
       className="absolute inset-0 z-10 flex items-center justify-center pointer-events-auto p-4 overflow-hidden"
       role="dialog"
       aria-modal="true"
@@ -416,7 +416,7 @@ export function RideCompletionV2({
                 transition={{
                   duration: p.duration,
                   delay: p.delay,
-                  ease: "easeOut",
+                  ease: EASE_SMOOTH,
                 }}
               />
             ))}
@@ -428,7 +428,7 @@ export function RideCompletionV2({
           <m.div
             initial={{ opacity: 0, scale: 0.94, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ delay: 0.15, type: "spring", stiffness: 260, damping: 18 }}
+            transition={{ delay: 0.15, ...springSoft }}
             className="mb-1"
           >
             <RiveRider size={132} celebrateFinishOnMount />
@@ -447,7 +447,7 @@ export function RideCompletionV2({
               className="text-5xl font-black text-white tracking-tighter"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 20 }}
+              transition={{ delay: 0.3, ...springSnappy }}
             >
               DONE
             </m.h2>
@@ -517,7 +517,7 @@ export function RideCompletionV2({
               <m.div
                 initial={{ opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                transition={springSoft}
                 className="relative mb-6 text-center"
               >
                 <div
@@ -652,7 +652,7 @@ export function RideCompletionV2({
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.25, ease: "easeOut" }}
+                      transition={{ duration: 0.25, ease: EASE_SMOOTH }}
                       className="overflow-hidden"
                     >
                       <div className="mt-2 max-h-52 space-y-1.5 overflow-y-auto pr-1 [scrollbar-width:thin]">

@@ -109,7 +109,7 @@ export function CoachChannel({ className = "" }: { className?: string }) {
               <div
                 style={{
                   opacity: isSpeaking ? 1 : 0.5,
-                  transition: "opacity 300ms cubic-bezier(0.22, 1, 0.36, 1)",
+                  transition: "opacity 300ms var(--ease-smooth)",
                 }}
               >
                 <m.div

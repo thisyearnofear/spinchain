@@ -29,7 +29,7 @@
 import { memo, useMemo, useState, useRef, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
-import { EASE_SMOOTH, springSoft } from "@/app/lib/motion";
+import { EASE_MOVE, EASE_SMOOTH, springSoft } from "@/app/lib/motion";
 
 // Lazy-load the Rive rider: keeps the Rive JS runtime + WASM bootstrap out of
 // the ride page's initial chunk; the character pops in once ready.
@@ -93,11 +93,10 @@ interface RideHUDOverlayV2Props {
 // telemetry commit; pass the hoisted references instead. Keyframe arrays are
 // plain number[] (not `as const`) so they satisfy framer-motion's mutable
 // AnimationTarget without a copy at the call site.
-const EASE_IN_OUT = "easeInOut" as const;
 const BASE_GLOW_KEYFRAMES: number[] = [0.6, 0.9, 0.6];
 const SPRINT_EDGE_KEYFRAMES: number[] = [0.3, 0.8, 0.3];
 const PULSE_KEYFRAMES: number[] = [1, 1.4, 1];
-const SPRINT_EDGE_TRANSITION = { duration: 0.6, repeat: Infinity, ease: EASE_IN_OUT } as const;
+const SPRINT_EDGE_TRANSITION = { duration: 0.6, repeat: Infinity, ease: EASE_MOVE } as const;
 
 // Flow tiers — hoisted so the celebration overlay and the badge share one
 // source (and so the celebration effect can read them without re-creating).
@@ -275,7 +274,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
           transition={{
             duration: ambient.pulseRate / 1000,
             repeat: Infinity,
-            ease: EASE_IN_OUT,
+            ease: EASE_MOVE,
           }}
         />
 
@@ -333,7 +332,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                   duration: p.duration,
                   repeat: Infinity,
                   delay: p.delay,
-                  ease: "easeOut",
+                  ease: EASE_SMOOTH,
                 }}
               />
             ))}
@@ -517,8 +516,8 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                   // Tier changes (falls included) settle over 300 ms instead of
                   // teleporting to the new color.
                   transition:
-                    "border-color 300ms cubic-bezier(0.22, 1, 0.36, 1), " +
-                    "background-color 300ms cubic-bezier(0.22, 1, 0.36, 1)",
+                    "border-color 300ms var(--ease-smooth), " +
+                    "background-color 300ms var(--ease-smooth)",
                 }}
               >
                 {/* Flow fire/pulse icon */}

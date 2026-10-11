@@ -189,7 +189,7 @@ export function RideActivationSequence({
                 duration: particle.duration,
                 repeat: Infinity,
                 delay: particle.delay,
-                ease: "easeOut",
+                ease: EASE_MOVE,
               }}
             />
           ))}

@@ -82,7 +82,6 @@
 :root {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
-  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -118,6 +117,9 @@ body {
 }
 .ease-in-out {
   transition-timing-function: var(--ease-in-out);
+}
+.ease-smooth {
+  transition-timing-function: var(--ease-smooth);
 }
 
 /* Glass morphism utility */
@@ -396,18 +398,21 @@ body {
    transitions-dev — motion tokens and CSS transitions
    ========================================================================== */
 :root {
+  /* Single source for the smooth deceleration curve (motion.ts EASE_SMOOTH
+     mirrors this value). Component tokens below reference it. */
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   /* Menu dropdown */
   --dropdown-open-dur: 250ms;
   --dropdown-close-dur: 150ms;
   --dropdown-pre-scale: 0.97;
   --dropdown-closing-scale: 0.99;
-  --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dropdown-ease: var(--ease-smooth);
   /* Modal open / close */
   --modal-open-dur: 250ms;
   --modal-close-dur: 150ms;
   --modal-scale: 0.96;
   --modal-scale-close: 0.96;
-  --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --modal-ease: var(--ease-smooth);
   /* Icon swap */
   --icon-swap-dur: 250ms;
   --icon-swap-blur: 2px;
@@ -424,7 +429,7 @@ body {
   --acc-expand: 250ms;
   --acc-collapse: 250ms;
   --acc-chevron: 250ms;
-  --acc-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --acc-ease: var(--ease-smooth);
   /* Success check */
   --check-opacity-dur: 500ms;
   --check-rotate-dur: 500ms;
@@ -435,14 +440,14 @@ body {
   --check-blur-from: 10px;
   --check-path-dur: 500ms;
   --check-path-delay: 80ms;
-  --check-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --check-ease-opacity: cubic-bezier(0.22, 1, 0.36, 1);
-  --check-ease-rotate: cubic-bezier(0.22, 1, 0.36, 1);
+  --check-ease-out: var(--ease-smooth);
+  --check-ease-opacity: var(--ease-smooth);
+  --check-ease-rotate: var(--ease-smooth);
   --check-ease-bob: cubic-bezier(0.34, 1.35, 0.64, 1);
-  --check-ease-path: cubic-bezier(0.22, 1, 0.36, 1);
+  --check-ease-path: var(--ease-smooth);
   /* Tabs sliding */
   --tabs-dur: 250ms;
-  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tabs-ease: var(--ease-smooth);
 }
 
 /* --- Modal open / close --- */

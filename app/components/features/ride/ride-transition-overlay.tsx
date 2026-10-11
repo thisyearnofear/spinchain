@@ -502,7 +502,7 @@ function ActivationTransition({
           data-testid="activation-go-flash"
           initial={{ opacity: reducedMotion ? 0.35 : 0.7 }}
           animate={{ opacity: 0 }}
-          transition={{ duration: reducedMotion ? 0.18 : 0.65, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: reducedMotion ? 0.18 : 0.65, ease: EASE_SMOOTH }}
           style={{
             background: `radial-gradient(circle at 50% 45%, ${accent}cc 0%, ${accent}33 28%, transparent 62%)`,
           }}

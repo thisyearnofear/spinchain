@@ -3,7 +3,6 @@ export const EASE_SMOOTH = [0.22, 1, 0.36, 1] as const;
 export const EASE_MOVE: [number, number, number, number] = [0.77, 0, 0.175, 1];
 export const EASE_EASE_OUT = "easeOut" as const;
 export const EASE_EASE_IN_OUT = "easeInOut" as const;
-export const EASE_SPRING_BOB = [0.34, 1.35, 0.64, 1] as const;
 
 export const modalTransition = {
   duration: 0.25,

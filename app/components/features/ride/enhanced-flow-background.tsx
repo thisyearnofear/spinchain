@@ -237,7 +237,7 @@ export function EnhancedFlowBackground() {
           transition={{
             duration: 0.5,
             repeat: Infinity,
-            ease: "easeInOut",
+            ease: EASE_MOVE,
           }}
         />
       )}
