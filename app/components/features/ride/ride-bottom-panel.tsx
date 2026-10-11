@@ -1,7 +1,8 @@
 "use client";
 
 import { memo, useCallback, useRef, useState } from "react";
-import { m, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence, useMotionValue, animate } from "framer-motion";
+import type { AnimationPlaybackControls } from "framer-motion";
 import { RideControls } from "./ride-controls";
 import type { WorkoutPlan, IntervalPhase } from "@/app/lib/workout-plan";
 import type {
@@ -14,9 +15,21 @@ import { useRideStore, selectRidePhase } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useUIStore } from "@/app/stores/ui-store";
-import { EASE_SMOOTH } from "@/app/lib/motion";
+import { EASE_SMOOTH, springSnappy } from "@/app/lib/motion";
 import { Brain } from "lucide-react";
 import type { HapticType } from "@/app/hooks/use-haptic";
+
+// Drag bounds for the desktop widget tray: 0 = parked, -200 = fully raised.
+const DRAG_MIN_Y = -200;
+
+// Rubber-band resistance past the bounds (iOS-style): travel beyond the range
+// only counts 25%. Replaces the hard Math.min/max wall that stopped the panel
+// dead against the pointer.
+function rubberBand(y: number): number {
+  if (y > 0) return y * 0.25;
+  if (y < DRAG_MIN_Y) return DRAG_MIN_Y + (y - DRAG_MIN_Y) * 0.25;
+  return y;
+}
 
 interface RideBottomPanelProps {
   workoutPlan: WorkoutPlan | null;
@@ -76,13 +89,19 @@ export const RideBottomPanel = memo(function RideBottomPanel({
 
   const isWidgetsMinimized = widgetsMode === "minimized";
   const isWidgetsCollapsed = widgetsMode === "collapsed";
-  const [desktopOffset, setDesktopOffset] = useState({ x: 0, y: 0 });
-  const dragRef = useRef<{
-    startX: number;
+  // Drag offset lives in a motion value: pointermove writes it 1:1 (no React
+  // re-render, no CSS transition smear), and the release snap is a spring that
+  // carries the pointer velocity.
+  const dragY = useMotionValue(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragMeta = useRef<{
     startY: number;
-    pointerX: number;
     pointerY: number;
+    lastY: number;
+    lastT: number;
+    velocity: number; // px/s
   } | null>(null);
+  const snapControls = useRef<AnimationPlaybackControls | null>(null);
 
   const handleDragStart = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -90,17 +109,19 @@ export const RideBottomPanel = memo(function RideBottomPanel({
       const target = event.target as HTMLElement;
       if (target.closest('button, a, [role="button"], input, select, textarea'))
         return;
-      dragRef.current = {
-        startX: desktopOffset.x,
-        startY: desktopOffset.y,
-        pointerX: event.clientX,
+      snapControls.current?.stop();
+      dragMeta.current = {
+        startY: dragY.get(),
         pointerY: event.clientY,
+        lastY: dragY.get(),
+        lastT: event.timeStamp,
+        velocity: 0,
       };
+      setIsDragging(true);
       event.currentTarget.setPointerCapture(event.pointerId);
     },
     [
-      desktopOffset.x,
-      desktopOffset.y,
+      dragY,
       deviceType,
       isRiding,
       isWidgetsMinimized,
@@ -109,25 +130,38 @@ export const RideBottomPanel = memo(function RideBottomPanel({
 
   const handleDragMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!dragRef.current) return;
-      const deltaY = event.clientY - dragRef.current.pointerY;
-      // Constrain to vertical-only, max 200px up
-      const newY = Math.min(0, Math.max(-200, dragRef.current.startY + deltaY));
-      setDesktopOffset({
-        x: 0,
-        y: newY,
-      });
+      const meta = dragMeta.current;
+      if (!meta) return;
+      const rawY = meta.startY + (event.clientY - meta.pointerY);
+      const y = rubberBand(rawY);
+      const dt = event.timeStamp - meta.lastT;
+      if (dt > 0) {
+        meta.velocity = ((y - meta.lastY) / dt) * 1000;
+        meta.lastY = y;
+        meta.lastT = event.timeStamp;
+      }
+      dragY.set(y);
     },
-    [],
+    [dragY],
   );
 
   const handleDragEnd = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!dragRef.current) return;
-      dragRef.current = null;
+      const meta = dragMeta.current;
+      if (!meta) return;
+      dragMeta.current = null;
+      setIsDragging(false);
       event.currentTarget.releasePointerCapture(event.pointerId);
+      // Snap to the nearest detent (parked or fully raised) with a spring that
+      // carries the pointer velocity at release.
+      const current = dragY.get();
+      const target = current < DRAG_MIN_Y / 2 ? DRAG_MIN_Y : 0;
+      snapControls.current = animate(dragY, target, {
+        ...springSnappy,
+        velocity: meta.velocity,
+      });
     },
-    [],
+    [dragY],
   );
 
   const isActivePhase = phase === "active" || phase === "paused";
@@ -174,16 +208,17 @@ export const RideBottomPanel = memo(function RideBottomPanel({
     );
   }
 
-  const containerClass = `absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom transition-all duration-300 ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${phase === "preRide" && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""}`;
+  const usesDesktopDrag = deviceType !== "mobile" && isRiding;
+  // transition only while NOT dragging (and property-scoped, never `all`):
+  // during drag the motion value tracks the pointer 1:1.
+  const containerClass = `absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto safe-bottom ${isRiding && useSimulator && deviceType === "mobile" ? "pb-52 pt-3 px-3" : "p-3 sm:p-6"} ${phase === "preRide" && deviceType === "desktop" ? "sm:max-h-[50vh] sm:flex sm:flex-col" : ""} ${isDragging ? "" : "transition-[padding] duration-300"}`;
   const containerStyle = {
     zIndex: Z_LAYERS.widgets,
-    ...(deviceType !== "mobile" && isRiding
-      ? { transform: `translate(${desktopOffset.x}px, ${desktopOffset.y}px)` }
-      : {}),
+    ...(usesDesktopDrag ? { y: dragY } : {}),
   } as const;
 
   return (
-    <div className={containerClass} style={containerStyle}>
+    <m.div className={containerClass} style={containerStyle}>
       <div className={`max-w-7xl mx-auto ${phase === "preRide" && deviceType === "desktop" ? "overflow-y-auto flex-1 min-h-0" : ""}`}>
         <AnimatePresence mode="wait">
           {/* ─── Pre-ride: Setup + Start ─── */}
@@ -293,7 +328,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
                               style={{ width: `${widthPct}%` }}
                             >
                               <div
-                                className={`h-full origin-left transition-transform duration-300 ${phaseColor} ${
+                                className={`h-full origin-left transition-transform duration-300 ease-linear ${phaseColor} ${
                                   isComplete ? "opacity-90" : isCurrent ? "opacity-75" : "opacity-20"
                                 }`}
                                 style={{ transform: `scaleX(${isCurrent ? intervalProgress : isComplete ? 1 : 0})` }}
@@ -303,7 +338,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
                         })
                       ) : (
                         <div
-                          className="h-full origin-left bg-gradient-to-r from-amber-400 to-yellow-500 transition-transform duration-300"
+                          className="h-full origin-left bg-gradient-to-r from-amber-400 to-yellow-500 transition-transform duration-300 ease-linear"
                           style={{ transform: `scaleX(${rideProgress / 100})` }}
                         />
                       )}
@@ -402,7 +437,7 @@ export const RideBottomPanel = memo(function RideBottomPanel({
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </m.div>
   );
 });
 

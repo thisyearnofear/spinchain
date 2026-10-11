@@ -26,10 +26,12 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { m, AnimatePresence } from "framer-motion";
+import { EASE_MOVE, EASE_SMOOTH, springSoft } from "@/app/lib/motion";
 import { useSensoryStore } from "@/app/stores/sensory-store";
 import { useRideStore } from "@/app/stores/ride-store";
 import { computePhaseTheme, phaseLabel, type IntervalPhase } from "@/app/lib/phase-theme";
 import type { HapticType } from "@/app/hooks/use-haptic";
+
 
 interface RideActivationSequenceProps {
   onRideStarted: () => void;
@@ -221,13 +223,13 @@ export function RideActivationSequence({
               className="relative"
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.8, duration: 0.8, type: "spring" }}
+              transition={{ delay: 0.4, ...springSoft }}
             >
               <m.div
                 className="w-24 h-24 rounded-full blur-2xl"
                 style={{ backgroundColor: theme.color, opacity: 0.3 }}
                 animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
-                transition={{ duration: 3, repeat: Infinity }}
+                transition={{ duration: 3, repeat: Infinity, ease: EASE_MOVE }}
               />
               <div
                 className="absolute inset-0 m-auto w-16 h-16 rounded-full border-2"
@@ -250,7 +252,7 @@ export function RideActivationSequence({
                   className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: theme.color }}
                   animate={{ scale: [1, 1.3, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
+                  transition={{ duration: 2, repeat: Infinity, ease: EASE_MOVE }}
                 />
                 <p className="text-sm font-bold text-white/70 tracking-wide">
                   {phaseLabel(intervalPhase)} session
@@ -263,21 +265,23 @@ export function RideActivationSequence({
 
       {/* ─── Phase 2: Countdown ────────────────────────────────────── */}
       {phase === "countdown" && countdownNumber !== null && (
-        <div className="relative pointer-events-auto">
+        // AnimatePresence keyed by the number so each digit's exit actually
+        // plays (it was dead: a bare wrapper never runs exit animations).
+        <AnimatePresence mode="wait">
           <m.div
             key={countdownNumber}
-            initial={{ opacity: 0, scale: 0.3 }}
+            initial={{ opacity: 0, scale: 0.92 }}
             animate={{
               opacity: 1,
               scale: 1,
               y: countdownNumber === 1 ? [-5, 0] : [0, 5],
             }}
-            exit={{ opacity: 0, scale: 1.5 }}
+            exit={{ opacity: 0, scale: 1.5, transition: { duration: 0.15 } }}
             transition={{
               duration: reducedMotion ? 0.15 : 0.3,
-              ease: [0.22, 1, 0.36, 1],
+              ease: EASE_SMOOTH,
             }}
-            className="flex flex-col items-center"
+            className="relative pointer-events-auto flex flex-col items-center"
           >
             {/* Number */}
             <p
@@ -302,7 +306,7 @@ export function RideActivationSequence({
               </m.p>
             )}
           </m.div>
-        </div>
+        </AnimatePresence>
       )}
 
       {/* ─── Phase 3: GO ───────────────────────────────────────────── */}
@@ -310,7 +314,7 @@ export function RideActivationSequence({
         <m.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.4, ease: EASE_SMOOTH }}
           className="flex flex-col items-center pointer-events-auto"
         >
           <m.p

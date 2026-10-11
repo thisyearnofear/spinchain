@@ -29,6 +29,7 @@
 import { memo, useMemo, useState, useRef, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
+import { EASE_SMOOTH, springSoft } from "@/app/lib/motion";
 
 // Lazy-load the Rive rider: keeps the Rive JS runtime + WASM bootstrap out of
 // the ride page's initial chunk; the character pops in once ready.
@@ -87,15 +88,15 @@ interface RideHUDOverlayV2Props {
   isPracticeMode?: boolean;
 }
 
-// Module-scope stable animation config. Passing fresh keyframe arrays / transition
-// objects inline on every render makes framer-motion treat them as new targets and
-// restart each repeat:Infinity animation — so the ambient loops strobed at the
-// telemetry commit rate. Hoisted references stay stable across renders.
+// Module-scope stable animation config. Spreading these into fresh arrays at
+// each render (`[...KEYFRAMES]`) re-creates the target identity on every
+// telemetry commit; pass the hoisted references instead. Keyframe arrays are
+// plain number[] (not `as const`) so they satisfy framer-motion's mutable
+// AnimationTarget without a copy at the call site.
 const EASE_IN_OUT = "easeInOut" as const;
-const BASE_GLOW_KEYFRAMES = [0.6, 0.9, 0.6] as const;
-const SPRINT_EDGE_KEYFRAMES = [0.3, 0.8, 0.3] as const;
-const PULSE_KEYFRAMES = [1, 1.4, 1] as const;
-const INTENSITY_PULSE_TRANSITION = { duration: 2, repeat: Infinity, ease: EASE_IN_OUT } as const;
+const BASE_GLOW_KEYFRAMES: number[] = [0.6, 0.9, 0.6];
+const SPRINT_EDGE_KEYFRAMES: number[] = [0.3, 0.8, 0.3];
+const PULSE_KEYFRAMES: number[] = [1, 1.4, 1];
 const SPRINT_EDGE_TRANSITION = { duration: 0.6, repeat: Infinity, ease: EASE_IN_OUT } as const;
 
 // Flow tiers — hoisted so the celebration overlay and the badge share one
@@ -270,7 +271,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
           style={{
             background: `radial-gradient(ellipse at 50% 50%, ${ambient.bg} 0%, transparent 70%)`,
           }}
-          animate={{ opacity: [...BASE_GLOW_KEYFRAMES] }}
+          animate={{ opacity: BASE_GLOW_KEYFRAMES }}
           transition={{
             duration: ambient.pulseRate / 1000,
             repeat: Infinity,
@@ -278,7 +279,10 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
           }}
         />
 
-        {/* Intensity-based radial pulse */}
+        {/* Intensity-based radial pulse. Spring targets (not keyframes with
+            embedded live intensity): keyframes built from a changing value
+            restart the loop from zero each time intensity crosses a quantized
+            step; springs retarget smoothly mid-motion instead. */}
         {ambient.intensity > 0.5 && (
           <m.div
             className="absolute inset-0"
@@ -286,10 +290,10 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
               background: `radial-gradient(circle at 50% 50%, ${ambient.glow} 0%, transparent 50%)`,
             }}
             animate={{
-              scale: [1, 1 + ambient.intensity * 0.15, 1],
-              opacity: ambient.intensity * 0.5,
+              scale: 1 + qIntensity * 0.15,
+              opacity: qIntensity * 0.5,
             }}
-            transition={INTENSITY_PULSE_TRANSITION}
+            transition={springSoft}
           />
         )}
 
@@ -300,7 +304,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
             style={{
               boxShadow: `inset 0 0 80px 20px ${ambient.color}${Math.round(ambient.screenPulseOpacity * 255).toString(16).padStart(2, "0")}`,
             }}
-            animate={{ opacity: [...SPRINT_EDGE_KEYFRAMES] }}
+            animate={{ opacity: SPRINT_EDGE_KEYFRAMES }}
             transition={SPRINT_EDGE_TRANSITION}
           />
         )}
@@ -341,6 +345,9 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
       <AnimatePresence>
         {tierCelebration !== null && (
           <m.div
+            // Keyed by tier so consecutive rises (1→2→3) inside the 1.4 s
+            // celebration window remount and replay instead of merging.
+            key={tierCelebration}
             className="fixed inset-0 z-[60] pointer-events-none flex items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 0.4, 0] }}
@@ -352,8 +359,8 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
           >
             <m.div
               className="rounded-3xl border backdrop-blur-xl px-10 py-6 text-center"
-              initial={{ scale: 0.6, opacity: 0 }}
-              animate={{ scale: [0.6, 1.15, 1], opacity: [0, 1, 1, 0] }}
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: [0.92, 1.15, 1], opacity: [0, 1, 1, 0] }}
               transition={{ duration: 1.2, times: [0, 0.3, 0.8, 1] }}
               style={{
                 borderColor: `${FLOW_COLORS[tierCelebration]}60`,
@@ -426,21 +433,28 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
       {/* ─── Compact HUD (single metric) ───────────────────────────── */}
       {!suppressBottomStack && (expanded ? null : (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-3">
-          {/* Phase badge */}
+          {/* Phase badge. The glow is a pre-rendered boxShadow layer whose
+              *opacity* animates — animating boxShadow itself repaints on every
+              frame over the live WebGL scene. */}
           <m.div
-            className="flex items-center gap-2 rounded-full px-4 py-1.5 border backdrop-blur-xl"
+            className="relative flex items-center gap-2 rounded-full px-4 py-1.5 border backdrop-blur-xl"
             style={{
               borderColor: `${theme.color}30`,
               backgroundColor: `${theme.color}10`,
             }}
-            animate={{
-              boxShadow: ambient.intensity > 0.5 ? `0 0 30px ${theme.color}20` : "none",
-            }}
           >
+            <m.div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-full"
+              style={{ boxShadow: `0 0 30px ${theme.color}20` }}
+              initial={false}
+              animate={{ opacity: Math.max(0, (qIntensity - 0.5) * 2) }}
+              transition={{ duration: 0.3, ease: EASE_SMOOTH }}
+            />
             <m.div
               className="w-1.5 h-1.5 rounded-full"
               style={{ backgroundColor: theme.color }}
-              animate={{ scale: [...PULSE_KEYFRAMES] }}
+              animate={{ scale: PULSE_KEYFRAMES }}
               transition={{ duration: ambient.pulseRate / 1000, repeat: Infinity }}
             />
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
@@ -460,7 +474,7 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
                   style={{ backgroundColor: theme.color }}
                   initial={false}
                   animate={{ scaleX: rideProgress / 100 }}
-                  transition={{ type: "tween", duration: 0.5 }}
+                  transition={{ duration: 0.5, ease: "linear" }}
                 />
               </div>
               {isPracticeMode ? (
@@ -493,12 +507,18 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
             {showFlowBadge && (
               <m.div
                 className="flex items-center gap-2 rounded-full px-3 py-1 border backdrop-blur-xl"
-                initial={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2, ease: EASE_SMOOTH }}
                 style={{
                   borderColor: `${FLOW_COLORS[flowTier]}30`,
                   backgroundColor: `${FLOW_COLORS[flowTier]}10`,
+                  // Tier changes (falls included) settle over 300 ms instead of
+                  // teleporting to the new color.
+                  transition:
+                    "border-color 300ms cubic-bezier(0.22, 1, 0.36, 1), " +
+                    "background-color 300ms cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
               >
                 {/* Flow fire/pulse icon */}
@@ -532,9 +552,18 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
             // tween target doesn't change on every single-watt telemetry fluctuation.
             animate={{
               scale: 1 + (Math.round(primaryMetric.value / 10) * 10 > 200 ? (Math.round(primaryMetric.value / 10) * 10 - 200) * 0.0003 : 0),
-              boxShadow: ambient.intensity > 0.5 ? `0 0 60px ${theme.color}15` : "none",
             }}
           >
+            {/* Pre-rendered glow — animate opacity, not boxShadow (paint-bound
+                over the live WebGL scene). */}
+            <m.div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-[2rem]"
+              style={{ boxShadow: `0 0 60px ${theme.color}15` }}
+              initial={false}
+              animate={{ opacity: Math.max(0, (qIntensity - 0.5) * 2) }}
+              transition={{ duration: 0.3, ease: EASE_SMOOTH }}
+            />
             {/* Accent top line */}
             <div
               className="absolute top-0 left-0 w-full h-px"
@@ -564,10 +593,11 @@ export const RideHUDOverlayV2 = memo(function RideHUDOverlayV2({
             {theme.intensity > 0.3 && (
               <div className="absolute bottom-2 left-8 right-8 h-0.5 bg-white/5 rounded-full overflow-hidden">
                 <m.div
-                  className="h-full rounded-full"
+                  className="h-full rounded-full origin-left"
                   style={{ backgroundColor: theme.color }}
+                  initial={false}
                   animate={{ scaleX: theme.intensity }}
-                  transition={{ type: "tween", duration: 0.3 }}
+                  transition={{ duration: 0.3, ease: "linear" }}
                 />
               </div>
             )}

@@ -12,6 +12,14 @@
 import { useState, useCallback } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX, Mic, MicOff } from "lucide-react";
+import { EASE_SMOOTH } from "@/app/lib/motion";
+
+// Stable module-scope loop config for the enabled-glow child.
+const GLOW_LOOP = {
+  duration: 2,
+  repeat: Infinity,
+  ease: EASE_SMOOTH,
+} as const;
 
 interface VoiceToggleProps {
   isEnabled: boolean;
@@ -68,15 +76,26 @@ export function VoiceToggle({
         `}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        animate={isEnabled ? {
-          boxShadow: [
-            "0 0 0px rgba(99, 102, 241, 0)",
-            "0 0 20px rgba(99, 102, 241, 0.5)",
-            "0 0 0px rgba(99, 102, 241, 0)",
-          ]
-        } : {}}
-        transition={{ duration: 2, repeat: Infinity }}
+        // The node itself animates scale only, at press-feedback budget —
+        // the node-level 2s/repeat transition used to run hover/press at 2s.
+        transition={{ duration: 0.15, ease: EASE_SMOOTH }}
       >
+        {/* Enabled glow: its own absolutely-positioned child so the infinite
+            boxShadow loop never contaminates the button's transitions. */}
+        {isEnabled && (
+          <m.span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-full"
+            animate={{
+              boxShadow: [
+                "0 0 0px rgba(99, 102, 241, 0)",
+                "0 0 20px rgba(99, 102, 241, 0.5)",
+                "0 0 0px rgba(99, 102, 241, 0)",
+              ],
+            }}
+            transition={GLOW_LOOP}
+          />
+        )}
         <AnimatePresence mode="wait">
           {isEnabled ? (
             <m.div

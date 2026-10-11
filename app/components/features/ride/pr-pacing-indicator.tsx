@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { Zap, TrendingUp, Flame } from "lucide-react";
+import { springSnappy } from "@/app/lib/motion";
 import { getPRs, getRideHistory } from "@/app/lib/analytics/ride-history";
 
 /**
@@ -27,21 +28,30 @@ export function PrPacingIndicator({
   }, []);
 
   const [showFlash, setShowFlash] = useState(false);
+  // PR events counted, not just a boolean: the flash is keyed on the count so
+  // a second (and third) PR in one ride re-celebrates instead of being deduped.
+  const [prCount, setPrCount] = useState(0);
   const lastEffortRef = useRef(0);
 
   useEffect(() => {
     if (!isActive || !prs) return;
-
-    // Trigger flash when effort crosses PR threshold
-    if (currentEffort > 0 && prs.bestEffort > 0) {
-      if (currentEffort >= prs.bestEffort && lastEffortRef.current < prs.bestEffort) {
-        setShowFlash(true);
-        const timer = setTimeout(() => setShowFlash(false), 2000);
-        return () => clearTimeout(timer);
-      }
+    if (
+      currentEffort > 0 &&
+      prs.bestEffort > 0 &&
+      currentEffort >= prs.bestEffort &&
+      lastEffortRef.current < prs.bestEffort
+    ) {
+      setPrCount((c) => c + 1);
     }
     lastEffortRef.current = currentEffort;
   }, [currentEffort, prs, isActive]);
+
+  useEffect(() => {
+    if (prCount === 0) return;
+    setShowFlash(true);
+    const timer = setTimeout(() => setShowFlash(false), 2000);
+    return () => clearTimeout(timer);
+  }, [prCount]);
 
   if (!isActive || !prs || prs.bestEffort === 0) return null;
 
@@ -81,6 +91,7 @@ export function PrPacingIndicator({
       <AnimatePresence>
         {showFlash && (
           <m.div
+            key={`pr-flash-${prCount}`}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.1 }}
@@ -98,34 +109,44 @@ export function PrPacingIndicator({
       </AnimatePresence>
 
       <div className="flex items-center gap-2">
-        {effortLabel && (
-          <m.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`flex items-center gap-1.5 rounded-full border bg-black/60 px-3 py-1 backdrop-blur ${
-              effortAtPR ? "border-emerald-500/40" : "border-amber-500/30"
-            }`}
-          >
-            <effortLabel.icon className={`w-3 h-3 ${effortLabel.color}`} />
-            <span className={`text-[10px] font-black uppercase tracking-widest ${effortLabel.color}`}>
-              {effortLabel.text}
-            </span>
-          </m.div>
-        )}
-        {powerLabel && (
-          <m.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`flex items-center gap-1.5 rounded-full border bg-black/60 px-3 py-1 backdrop-blur ${
-              powerAtPR ? "border-emerald-500/40" : "border-amber-500/30"
-            }`}
-          >
-            <powerLabel.icon className={`w-3 h-3 ${powerLabel.color}`} />
-            <span className={`text-[10px] font-black uppercase tracking-widest ${powerLabel.color}`}>
-              {powerLabel.text}
-            </span>
-          </m.div>
-        )}
+        {/* Chips swap "X% to PR" ↔ "NEW PR!" through AnimatePresence keyed on the
+            at/near state (not the % text — that would remount every commit). */}
+        <AnimatePresence mode="popLayout" initial={false}>
+          {effortLabel && (
+            <m.div
+              key={effortAtPR ? "effort-at" : "effort-near"}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={springSnappy}
+              className={`flex items-center gap-1.5 rounded-full border bg-black/60 px-3 py-1 backdrop-blur ${
+                effortAtPR ? "border-emerald-500/40" : "border-amber-500/30"
+              }`}
+            >
+              <effortLabel.icon className={`w-3 h-3 ${effortLabel.color}`} />
+              <span className={`text-[10px] font-black uppercase tracking-widest ${effortLabel.color}`}>
+                {effortLabel.text}
+              </span>
+            </m.div>
+          )}
+          {powerLabel && (
+            <m.div
+              key={powerAtPR ? "power-at" : "power-near"}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={springSnappy}
+              className={`flex items-center gap-1.5 rounded-full border bg-black/60 px-3 py-1 backdrop-blur ${
+                powerAtPR ? "border-emerald-500/40" : "border-amber-500/30"
+              }`}
+            >
+              <powerLabel.icon className={`w-3 h-3 ${powerLabel.color}`} />
+              <span className={`text-[10px] font-black uppercase tracking-widest ${powerLabel.color}`}>
+                {powerLabel.text}
+              </span>
+            </m.div>
+          )}
+        </AnimatePresence>
       </div>
     </>
   );

@@ -12,14 +12,33 @@
 
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
-import { m, AnimatePresence } from "framer-motion";
+import { useMemo, useRef, useState, useEffect } from "react";
 import type { RewardStreamState, RewardMode } from "../../../lib/rewards";
 import { formatReward, getStreamingStatus, calculateStreamingRate } from "../../../lib/rewards";
 
 // ============================================================================
 // Types
 // ============================================================================
+
+/**
+ * Opacity-only "value changed" pulse, throttled to ≤1/s.
+ * The old key={amount} full spring remount jittered the number at the stream's
+ * update cadence (slot-machine effect); a static tabular-nums value with a
+ * rare opacity dip reads as ticking instead of shaking.
+ */
+function useAmountPulse(amount: string): boolean {
+  const [pulsing, setPulsing] = useState(false);
+  const lastPulseRef = useRef(0);
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastPulseRef.current < 1000) return;
+    lastPulseRef.current = now;
+    setPulsing(true);
+    const t = setTimeout(() => setPulsing(false), 180);
+    return () => clearTimeout(t);
+  }, [amount]);
+  return pulsing;
+}
 
 interface YellowRewardTickerProps {
   /** Current stream state from useRewards */
@@ -96,6 +115,7 @@ interface CompactTickerProps {
 }
 
 function CompactTicker({ amount, symbol, status, className }: CompactTickerProps) {
+  const pulsing = useAmountPulse(amount);
   return (
     <div
       className={`
@@ -116,14 +136,11 @@ function CompactTicker({ amount, symbol, status, className }: CompactTickerProps
 
       {/* Amount */}
       <div className="flex items-baseline gap-1.5">
-        <m.span
-          key={amount}
-          initial={{ opacity: 0.5, y: -5, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="text-xl font-black text-white tracking-tighter"
+        <span
+          className={`text-xl font-black text-white tracking-tighter tabular-nums transition-opacity duration-200 ${pulsing ? "opacity-60" : "opacity-100"}`}
         >
           {amount}
-        </m.span>
+        </span>
         <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{symbol}</span>
       </div>
 
@@ -161,6 +178,7 @@ function FullTicker({
   lastUpdate,
   className,
 }: FullTickerProps) {
+  const pulsing = useAmountPulse(amount);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -207,20 +225,14 @@ function FullTicker({
         </div>
       </div>
 
-      {/* Main amount */}
+      {/* Main amount — tabular-nums stops the digits shifting width as they
+          tick; opacity-only pulse (≤1/s) instead of a full spring remount. */}
       <div className="flex items-baseline gap-2.5 mb-2 relative z-10">
-        <AnimatePresence mode="wait">
-          <m.span
-            key={amount}
-            initial={{ opacity: 0.5, scale: 0.9, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 1.1, y: -10 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="text-4xl font-black text-white tracking-tighter drop-shadow-lg"
-          >
-            {amount}
-          </m.span>
-        </AnimatePresence>
+        <span
+          className={`text-4xl font-black text-white tracking-tighter tabular-nums drop-shadow-lg transition-opacity duration-200 ${pulsing ? "opacity-60" : "opacity-100"}`}
+        >
+          {amount}
+        </span>
         <span className="text-sm font-bold text-yellow-500/80 uppercase tracking-widest">{symbol}</span>
       </div>
 
@@ -232,19 +244,8 @@ function FullTicker({
         )}
       </div>
 
-      {/* Tactical Progress Visualizer */}
-      <div className="relative h-1 w-full bg-white/5 rounded-full overflow-hidden mb-3">
-        <div className="absolute inset-0 bg-yellow-500/5" />
-        <m.div
-          className="h-full bg-gradient-to-r from-yellow-600 via-amber-400 to-yellow-300 relative"
-          initial={{ width: "0%" }}
-          animate={{ width: `${Math.min((updateCount % 8) * 12.5, 100)}%` }}
-          transition={{ duration: 0.8, ease: "circOut" }}
-        >
-          {/* Animated glow on progress head */}
-          <div className="absolute right-0 top-0 h-full w-4 bg-white/40 blur-sm" />
-        </m.div>
-      </div>
+      {/* Fake "(updateCount % 8)" progress gauge deleted — it animated toward
+          nothing real, which reads as broken faster than no gauge at all. */}
 
       {/* Footer / Meta Info */}
       <div className="flex items-center justify-between text-[9px] font-bold text-white/20 uppercase tracking-widest relative z-10">

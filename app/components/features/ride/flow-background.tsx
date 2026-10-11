@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import { m } from "framer-motion";
+import { springSoft } from "@/app/lib/motion";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore, selectEffort, selectCadence } from "@/app/stores/telemetry-store";
 import { useCoachingStore, selectCurrentInterval } from "@/app/stores/coaching-store";
@@ -32,8 +34,11 @@ function FlowBackgroundInner() {
     return "#fbbf24";
   }, [currentInterval?.phase]);
 
-  const baseOpacity = 0.1 + intensity * 0.2;
-  const scale = 1 + intensity * 0.3;
+  // Quantized: live intensity re-renders at the telemetry commit rate; opacity
+  // (CSS transition) and spring scale both handle small steps smoothly.
+  const qIntensity = Math.round(intensity * 10) / 10;
+  const baseOpacity = 0.1 + qIntensity * 0.2;
+  const scale = 1 + qIntensity * 0.3;
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden -z-20 opacity-30">
@@ -43,22 +48,34 @@ function FlowBackgroundInner() {
       />
 
       {PARTICLES.map((p) => (
-        <div
+        // Outer div owns the intensity scale (spring — retargets mid-motion);
+        // inner keeps the float keyframes. One transform per element: an inline
+        // scale on the animated element is dead code (keyframes overwrite it).
+        <m.div
           key={p.id}
-          className="absolute rounded-full blur-[60px]"
+          className="absolute"
           style={{
-            width: p.size,
-            height: p.size,
             left: `${p.x}%`,
             top: `${p.y}%`,
-            backgroundColor: bgColor,
             opacity: baseOpacity,
-            transform: `scale(${scale})`,
-            animation: `flow-float ${p.duration}s ease-in-out infinite`,
-            animationDelay: `${p.delay}s`,
-            willChange: "transform",
+            transition: "opacity 600ms var(--ease-out)",
           }}
-        />
+          initial={false}
+          animate={{ scale }}
+          transition={springSoft}
+        >
+          <div
+            className="rounded-full blur-[60px]"
+            style={{
+              width: p.size,
+              height: p.size,
+              backgroundColor: bgColor,
+              animation: `flow-float ${p.duration}s ease-in-out infinite`,
+              animationDelay: `${p.delay}s`,
+              willChange: "transform",
+            }}
+          />
+        </m.div>
       ))}
 
       {intensity > 0.7 && (

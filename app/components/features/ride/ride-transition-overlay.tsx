@@ -23,6 +23,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { m, AnimatePresence } from "framer-motion";
+import { EASE_MOVE, EASE_SMOOTH } from "@/app/lib/motion";
 import { useSensoryStore } from "@/app/stores/sensory-store";
 import { worldImageFor } from "@/app/lib/themes/theme-images";
 import { haptic } from "@/app/hooks/use-haptic";
@@ -30,6 +31,7 @@ import {
   playCountdownTickSfx,
   playGoStingerSfx,
 } from "@/app/lib/ceremony-sfx";
+
 
 export type RideTransitionState =
   | "none"
@@ -262,13 +264,14 @@ function LoadingTransition({
           Loading your route
         </p>
 
-        {/* Progress bar */}
+        {/* Progress bar — scaleX (transform, GPU) not width (layout). Progress
+            is monotonic, so the tween is linear: no ease chasing the value. */}
         <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
           <m.div
-            className="h-full bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full"
-            initial={{ width: "0%" }}
-            animate={{ width: `${Math.min(100, (progress / total) * 100)}%` }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="h-full w-full origin-left bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full"
+            initial={false}
+            animate={{ scaleX: Math.min(1, progress / total) }}
+            transition={{ duration: 0.3, ease: "linear" }}
           />
         </div>
 
@@ -447,18 +450,18 @@ function ActivationTransition({
               reducedMotion
                 ? { duration: 0.2 }
                 : goPhase
-                  ? { duration: 0.65, ease: [0.22, 1, 0.36, 1] }
+                  ? { duration: 0.65, ease: EASE_SMOOTH }
                   : {
                       opacity: { duration: 0.7 },
                       scale: {
                         duration: 4.5,
-                        ease: "linear",
+                        ease: EASE_MOVE,
                         repeat: Infinity,
                         repeatType: "mirror",
                       },
                       y: {
                         duration: 4.5,
-                        ease: "linear",
+                        ease: EASE_MOVE,
                         repeat: Infinity,
                         repeatType: "mirror",
                       },
@@ -511,12 +514,20 @@ function ActivationTransition({
         {visible && countdown > 0 && !reducedMotion && (
           <m.div
             key={countdown}
+            // Asymmetric: the digit's entrance is deliberate (0.35s), its exit
+            // snaps (0.15s). 0.55+0.55 in mode="wait" summed to 1.1s > the 700ms
+            // tick, so digits trailed their own SFX/haptic beat.
             initial={{ opacity: 0, scale: 0.5, y: 20 }}
             animate={{ opacity: 1, scale: [0.92, 1.08, 1], y: 0 }}
-            exit={{ opacity: 0, scale: 1.5, y: -20 }}
+            exit={{
+              opacity: 0,
+              scale: 1.5,
+              y: -20,
+              transition: { duration: 0.15, ease: EASE_SMOOTH },
+            }}
             transition={{
-              duration: 0.55,
-              ease: [0.22, 1, 0.36, 1],
+              duration: 0.35,
+              ease: EASE_SMOOTH,
               times: [0, 0.45, 1],
             }}
             className="relative z-10 flex flex-col items-center"
@@ -531,7 +542,7 @@ function ActivationTransition({
                   `0 0 50px ${accent}40`,
                 ],
               }}
-              transition={{ duration: 0.7, ease: "easeInOut" }}
+              transition={{ duration: 0.55, ease: EASE_MOVE }}
               style={{ color: accent }}
             >
               {countdown}
@@ -549,15 +560,15 @@ function ActivationTransition({
         {visible && (countdown === 0 || reducedMotion) && goPhase && (
           <m.div
             key="go"
-            initial={{ opacity: 0, scale: reducedMotion ? 0.92 : 0.4 }}
+            initial={{ opacity: 0, scale: 0.92 }}
             animate={{
               opacity: reducedMotion ? [0, 1, 0.85] : [0, 1, 1],
-              scale: reducedMotion ? [0.92, 1, 1] : [0.4, 1.25, 1],
+              scale: reducedMotion ? [0.92, 1, 1] : [0.92, 1.25, 1],
             }}
             exit={{ opacity: 0, scale: 1.6 }}
             transition={{
               duration: reducedMotion ? 0.18 : 0.5,
-              ease: [0.22, 1, 0.36, 1],
+              ease: EASE_SMOOTH,
             }}
             className="relative z-10 flex flex-col items-center"
           >

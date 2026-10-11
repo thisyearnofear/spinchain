@@ -21,9 +21,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { m, AnimatePresence } from "framer-motion";
+import { EASE_MOVE, EASE_SMOOTH } from "@/app/lib/motion";
 import { useCoachingStore, selectLastCoachMessage, selectIsSpeaking } from "@/app/stores/coaching-store";
 import { useSensoryStore } from "@/app/stores/sensory-store";
 import { computePhaseTheme, type IntervalPhase } from "@/app/lib/phase-theme";
+
+// Module-scope stable loop configs: a fresh transition object or a
+// duration that flips with isSpeaking restarts the repeat:Infinity loop
+// from zero on every telemetry commit.
+const ACCENT_LOOP = { duration: 2, repeat: Infinity, ease: EASE_MOVE } as const;
+const DOT_LOOP = { duration: 1.5, repeat: Infinity, ease: EASE_MOVE } as const;
 
 export function CoachChannel({ className = "" }: { className?: string }) {
   const message = useCoachingStore(selectLastCoachMessage);
@@ -67,7 +74,7 @@ export function CoachChannel({ className = "" }: { className?: string }) {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.3, ease: EASE_SMOOTH }}
             className="relative"
           >
             {/* Glow behind the card */}
@@ -96,18 +103,22 @@ export function CoachChannel({ className = "" }: { className?: string }) {
               whileHover={{ scale: expanded ? 1 : 0.99 }}
               whileTap={{ scale: 0.98 }}
             >
-              {/* Accent bar at top */}
-              <m.div
-                className="h-0.5 w-full"
-                style={{ backgroundColor: theme.color }}
-                animate={{
-                  opacity: isSpeaking ? [0.4, 1, 0.4] : 0.5,
+              {/* Accent bar at top — ONE constant pulse loop; isSpeaking dims
+                  via an opacity transition instead of swapping keyframes/duration
+                  (the swap restarted the loop on every flip). */}
+              <div
+                style={{
+                  opacity: isSpeaking ? 1 : 0.5,
+                  transition: "opacity 300ms cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
-                transition={{
-                  duration: isSpeaking ? 2 : 1,
-                  repeat: isSpeaking ? Infinity : 0,
-                }}
-              />
+              >
+                <m.div
+                  className="h-0.5 w-full"
+                  style={{ backgroundColor: theme.color }}
+                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  transition={ACCENT_LOOP}
+                />
+              </div>
 
               <div className="px-4 py-3">
                 {/* Header */}
@@ -117,13 +128,8 @@ export function CoachChannel({ className = "" }: { className?: string }) {
                     style={{
                       backgroundColor: theme.color,
                     }}
-                    animate={{
-                      scale: isSpeaking ? [1, 1.5, 1] : 1,
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: isSpeaking ? Infinity : 0,
-                    }}
+                    animate={{ scale: [1, 1.5, 1] }}
+                    transition={DOT_LOOP}
                   />
                   <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">
                     Coach
@@ -135,26 +141,34 @@ export function CoachChannel({ className = "" }: { className?: string }) {
                   )}
                 </div>
 
-                {expanded ? (
-                  /* Expanded: full message */
-                  <m.p
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="text-sm text-white/80 leading-relaxed pl-4 border-l-2"
-                    style={{
-                      borderColor: `${theme.color}40`,
-                    }}
-                  >
-                    {message}
-                  </m.p>
-                ) : (
-                  /* Compact: first line only */
-                  <p className="text-sm text-white/70 pl-4 border-l-2">
-                    {firstLine}
-                  </p>
-                )}
+                {/* Expand/collapse swap: AnimatePresence so the exit actually
+                    plays; the expanded paragraph is keyed by message so a new
+                    message re-reveals. No height:"auto" tween — layout property;
+                    spring on transform/opacity instead. */}
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {expanded ? (
+                    <m.p
+                      key={`full-${message}`}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 4 }}
+                      transition={{ type: "spring", duration: 0.3, bounce: 0 }}
+                      className="text-sm text-white/80 leading-relaxed pl-4 border-l-2"
+                      style={{
+                        borderColor: `${theme.color}40`,
+                      }}
+                    >
+                      {message}
+                    </m.p>
+                  ) : (
+                    <p
+                      key="compact"
+                      className="text-sm text-white/70 pl-4 border-l-2"
+                    >
+                      {firstLine}
+                    </p>
+                  )}
+                </AnimatePresence>
 
                 {/* Expand hint */}
                 {!expanded && (
