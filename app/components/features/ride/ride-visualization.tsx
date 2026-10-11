@@ -76,11 +76,37 @@ export function RideVisualization({
   const isRiding = useRideStore((s) => s.isActive);
   const rideProgress = useRideStore((s) => s.rideProgress);
 
-  const heartRate = useTelemetryStore((s) => s.snapshot.heartRate);
-  const power = useTelemetryStore((s) => s.snapshot.power);
-  const cadence = useTelemetryStore((s) => s.snapshot.cadence);
-  const intensity = useTelemetryStore((s) => s.snapshot.intensity);
-  const recentPowerHistory = useTelemetryStore((s) => s.recentPower);
+  // 1 Hz mirror of live telemetry for React-level props (stats text, sparkline,
+  // tier-keyed effects). Subscribing at the 10 Hz commit rate re-rendered the
+  // whole 3D tree — the contract in app/rider/ride/[classId]/page.tsx:111–114
+  // forbids it. Anything needing fresher values reads
+  // useTelemetryStore.getState() inside its own useFrame/rAF (the established
+  // pattern, e.g. route-visualizer.tsx:846).
+  const [telemetrySlow, setTelemetrySlow] = useState(() => {
+    const s = useTelemetryStore.getState();
+    return {
+      heartRate: s.snapshot.heartRate,
+      power: s.snapshot.power,
+      cadence: s.snapshot.cadence,
+      intensity: s.snapshot.intensity,
+      recentPower: s.recentPower,
+    };
+  });
+  useEffect(() => {
+    const id = setInterval(() => {
+      const s = useTelemetryStore.getState();
+      setTelemetrySlow({
+        heartRate: s.snapshot.heartRate,
+        power: s.snapshot.power,
+        cadence: s.snapshot.cadence,
+        intensity: s.snapshot.intensity,
+        recentPower: s.recentPower,
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  const { heartRate, power, cadence, intensity } = telemetrySlow;
+  const recentPowerHistory = telemetrySlow.recentPower;
 
   const rendererStats = useMemo(() => ({ hr: heartRate, power, cadence, intensity }), [heartRate, power, cadence, intensity]);
   const telemetryForTron = useMemo(() => ({ heartRate, power, cadence, intensity }), [heartRate, power, cadence, intensity]);

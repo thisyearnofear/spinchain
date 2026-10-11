@@ -74,17 +74,21 @@ export function RideProgress({
                 className="relative h-full border-r border-black/30 last:border-r-0"
                 style={{ width: `${widthPct}%` }}
               >
+                {/* scaleX, not width: layout-free, and linear — the value only
+                    ever increases, an ease chase reads as speed wobble. */}
                 <div
-                  className={`h-full transition-all duration-300 ${phaseColor} ${
+                  className={`h-full w-full origin-left transition-transform duration-300 ease-linear ${phaseColor} ${
                     isComplete ? "opacity-100" : isCurrent ? "opacity-80" : "opacity-20"
                   }`}
-                  style={{ width: isCurrent ? `${intervalProgress * 100}%` : isComplete ? "100%" : "0%" }}
+                  style={{ transform: `scaleX(${isCurrent ? intervalProgress : isComplete ? 1 : 0})` }}
                 />
                 {isCurrent && (
                   <div
-                    className="absolute top-0 right-0 bottom-0 w-0.5 bg-white animate-pulse"
-                    style={{ left: `${intervalProgress * 100}%` }}
-                  />
+                    className="pointer-events-none absolute inset-0 transition-transform duration-300 ease-linear"
+                    style={{ transform: `translateX(${intervalProgress * 100}%)` }}
+                  >
+                    <div className="absolute top-0 bottom-0 left-0 w-0.5 bg-white animate-pulse" />
+                  </div>
                 )}
               </div>
             );
@@ -92,8 +96,8 @@ export function RideProgress({
         ) : (
           // Simple progress bar for free ride
           <div
-            className="h-full bg-gradient-to-r from-amber-400 to-yellow-500 transition-all duration-300"
-            style={{ width: `${rideProgress}%` }}
+            className="h-full w-full origin-left bg-gradient-to-r from-amber-400 to-yellow-500 transition-transform duration-300 ease-linear"
+            style={{ transform: `scaleX(${rideProgress / 100})` }}
           />
         )}
       </div>

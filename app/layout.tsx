@@ -70,6 +70,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Rive wasm is ~1.9 MB and was fetched only when a ride mounted;
+            preloading it here means the runtime is parsed by the time the
+            activation ceremony starts. */}
+        <link rel="preload" href="/rive/rive.wasm" as="fetch" crossOrigin="anonymous" />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${outfit.variable} ${jetbrainsMono.variable} antialiased`}>

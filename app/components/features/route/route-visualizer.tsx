@@ -1158,6 +1158,12 @@ function BeatMarker({
   );
 }
 
+// Module-scope scratch vectors (procedural-cyclist.tsx pattern): getPointAt/
+// getTangentAt allocate a Vector3 per call, one per ghost rider per frame.
+const _ghostPoint = new THREE.Vector3();
+const _ghostTangent = new THREE.Vector3();
+const _ghostLookAt = new THREE.Vector3();
+
 function GhostRider({
   curve,
   progress,
@@ -1174,15 +1180,15 @@ function GhostRider({
 
   useFrame(() => {
     if (!groupRef.current) return;
-    const point = curve.getPointAt(progress);
+    const point = curve.getPointAt(progress, _ghostPoint);
     // Guard: degenerate curve positions produce NaN; skip the frame rather than
     // propagating garbage coordinates to child geometries.
     if (!Number.isFinite(point.x) || !Number.isFinite(point.y) || !Number.isFinite(point.z)) return;
-    const tangent = curve.getTangentAt(progress);
+    const tangent = curve.getTangentAt(progress, _ghostTangent);
     groupRef.current.position.copy(point);
     groupRef.current.position.y += 1.2;
-    const lookAt = point.clone().add(tangent);
-    groupRef.current.lookAt(lookAt);
+    _ghostLookAt.copy(point).add(tangent);
+    groupRef.current.lookAt(_ghostLookAt);
   });
 
   return (
@@ -1975,7 +1981,7 @@ export default function RouteVisualizer({
               return new Promise<never>(() => {}) as unknown as THREE.WebGLRenderer;
             }
           }}
-          dpr={effectiveQuality.pixelRatio}
+          dpr={mode === "preview" ? Math.min(effectiveQuality.pixelRatio, 1.5) : effectiveQuality.pixelRatio}
           // "never" hands the loop to FixedHarnessClock in the visual
           // harness, so Playwright diffs a real, reproducible frame.
           // Inactive (hidden behind 2D) also stops the loop — otherwise the
@@ -1987,7 +1993,11 @@ export default function RouteVisualizer({
             onLostForGood={onWebglUnavailable && (() => onWebglUnavailable("context-lost"))}
           />
           {paused && active && <FixedHarnessClock />}
-          {mode === "ride" && !paused && active && <FrameRateLimiter fps={effectiveQuality.fps} />}
+          {/* Preview pages sat on the full-quality tier; cap them at 30 fps —
+              a cinematic drift doesn't need native refresh. */}
+          {(mode === "ride" || mode === "preview") && !paused && active && (
+            <FrameRateLimiter fps={mode === "ride" ? effectiveQuality.fps : 30} />
+          )}
           <Scene
             elevationProfile={elevationProfile}
             theme={theme}

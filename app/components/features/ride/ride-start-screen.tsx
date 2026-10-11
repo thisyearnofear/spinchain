@@ -1,7 +1,16 @@
 "use client";
 
+import { useEffect } from "react";
 import { Bluetooth, BluetoothConnected, BluetoothSearching } from "lucide-react";
 import type { ClassWithRoute } from "@/app/hooks/evm/use-class-data";
+
+let worldPreloaded = false;
+function preloadWorld() {
+  if (worldPreloaded) return;
+  worldPreloaded = true;
+  void import("@/app/components/features/route/route-visualizer");
+  void import("@/app/components/features/route/focus-route-visualizer");
+}
 
 export interface RideStartBike {
   connected: boolean;
@@ -45,6 +54,17 @@ export function RideStartScreen({
 }: RideStartScreenProps) {
   const duration = classData.metadata?.duration ?? 45;
   const instructor = classData.metadata?.instructor;
+
+  // Warm the world chunks while the rider is still reading this card, so the
+  // GO beat doesn't stall on a chunk fetch.
+  useEffect(() => {
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(preloadWorld, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = window.setTimeout(preloadWorld, 1500);
+    return () => window.clearTimeout(id);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[65] flex flex-col items-center justify-center gap-6 pointer-events-none px-4">
@@ -151,6 +171,8 @@ export function RideStartScreen({
 
       <button
         onClick={onStart}
+        onPointerEnter={preloadWorld}
+        onFocus={preloadWorld}
         className="pointer-events-auto group relative rounded-full bg-[color:var(--accent)] px-10 py-4 text-base font-black text-black shadow-[0_0_60px_var(--glow)] hover:scale-105 hover:bg-[color:var(--accent-strong)] active:scale-95 transition-[transform,background-color]"
         aria-label="Start ride"
       >

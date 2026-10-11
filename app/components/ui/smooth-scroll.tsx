@@ -33,17 +33,25 @@ export function SmoothScrollProvider({ children }: SmoothScrollProps) {
     // Connect Lenis to GSAP ScrollTrigger
     lenis.on("scroll", ScrollTrigger.update);
 
-    // Use GSAP ticker for smooth animation
-    gsap.ticker.add((time) => {
+    // Hold the exact callback reference: the old cleanup removed `lenis.raf`
+    // (a different function than the added anonymous arrow), so the ticker
+    // kept driving a destroyed Lenis every frame, app-wide.
+    const raf = (time: number) => {
       lenis.raf(time * 1000);
-    });
+    };
+    gsap.ticker.add(raf);
 
     gsap.ticker.lagSmoothing(0);
 
     // Cleanup
     return () => {
+      gsap.ticker.remove(raf);
+      // GSAP's documented ticker defaults, so later consumers don't inherit
+      // the disabled lag smoothing.
+      gsap.ticker.lagSmoothing(500, 33);
+      lenis.off("scroll", ScrollTrigger.update);
       lenis.destroy();
-      gsap.ticker.remove(lenis.raf);
+      lenisRef.current = null;
     };
   }, []);
 

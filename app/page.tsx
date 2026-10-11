@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { m, useMotionValue, useSpring } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import {
   RiderQuiz,
@@ -25,9 +26,14 @@ import { WorldsSection } from "@/app/components/features/home/worlds-section";
 function HomeContent() {
   const searchParams = useSearchParams();
   const [showQuiz, setShowQuiz] = useState(false);
-  // Follow-cursor gradient: write straight to the DOM so mousemove never
-  // re-renders the landing tree.
-  const gradientRef = useRef<HTMLDivElement>(null);
+  // Follow-cursor glow: an oversized, statically-painted gradient layer moved
+  // with a damped spring on transform (GPU composite). The old handler rewrote
+  // a full-viewport `background` string on every mousemove — a viewport-wide
+  // paint per event — and transition-all animated every property of it.
+  const glowX = useMotionValue(0);
+  const glowY = useMotionValue(0);
+  const springX = useSpring(glowX, { duration: 0.7, bounce: 0 });
+  const springY = useSpring(glowY, { duration: 0.7, bounce: 0 });
   const profile = useRiderProfile();
   const riderStats = useRiderStats();
   const hasProfile = profile.createdAt !== null;
@@ -62,18 +68,26 @@ function HomeContent() {
   // Own effect: quiz boot paths used to return before attaching this listener,
   // so the follow-cursor glow died after the quiz closed.
   useEffect(() => {
+    let frame = 0;
+    let pendingX = 0;
+    let pendingY = 0;
     const handleMouseMove = (e: MouseEvent) => {
-      const el = gradientRef.current;
-      if (!el) return;
-      const x = (e.clientX / window.innerWidth) * 100;
-      const y = (e.clientY / window.innerHeight) * 100;
-      el.style.background = `radial-gradient(circle at ${x}% ${y}%, var(--gradient-from) 0%, transparent 50%),
-                             radial-gradient(circle at 80% 20%, var(--gradient-to) 0%, transparent 40%)`;
+      pendingX = e.clientX - window.innerWidth / 2;
+      pendingY = e.clientY - window.innerHeight / 2;
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        glowX.set(pendingX);
+        glowY.set(pendingY);
+      });
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [glowX, glowY]);
 
   const handleQuizComplete = () => {
     setShowQuiz(false);
@@ -88,15 +102,29 @@ function HomeContent() {
         />
       )}
 
-      {/* Animated background gradient */}
-      <div
-        ref={gradientRef}
-        className="fixed inset-0 pointer-events-none transition-all duration-700 ease-out"
-        style={{
-          background: `radial-gradient(circle at 50% 50%, var(--gradient-from) 0%, transparent 50%),
-                       radial-gradient(circle at 80% 20%, var(--gradient-to) 0%, transparent 40%)`,
-        }}
-      />
+      {/* Background gradients: the cursor layer is a static 150vmax radial
+          gradient centered on the viewport, offset by the spring — only
+          transform changes as the mouse moves. The second gradient is fixed. */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <m.div
+          className="absolute h-[150vmax] w-[150vmax]"
+          style={{
+            left: "calc(50% - 75vmax)",
+            top: "calc(50% - 75vmax)",
+            x: springX,
+            y: springY,
+            background:
+              "radial-gradient(circle, var(--gradient-from) 0%, transparent 50%)",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 80% 20%, var(--gradient-to) 0%, transparent 40%)",
+          }}
+        />
+      </div>
 
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-16 md:gap-20 px-6 pb-20 pt-10 lg:px-12">
         <FadeIn>
