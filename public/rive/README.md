@@ -93,6 +93,51 @@ viewers expecting identical rings.
 Until a `.riv` exists here, each wrapper renders a graceful fallback (or
 nothing, for the aura) so the app stays shippable.
 
+## Rider rig (bones + IK) and EffortPose joystick
+
+The rider's legs are **rigged, not baked** (since 2026-10-10):
+
+- `HipF`/`HipR` are `RootBone`s at the hip (62,76); `KneeF`/`KneeR` are child
+  `Bone`s each carrying an `IKConstraint` with `parentBoneCount="1"` — the
+  two-bone knee solve. Rive places a child bone at its parent bone's tip
+  automatically (`Bone` has no x/y properties — authoring one is a build
+  error).
+- The solve targets `AnkleTargetF`/`AnkleTargetR`: zero-length `Bone`s parented
+  to the crank `RootBone`s, which puts them exactly at the pedal axles. Keying
+  a crank rotation therefore sweeps the foot through the real pedal circle and
+  the legs follow procedurally — no leg keyframes anywhere in the scene.
+- Limbs are rigid shapes parented to bones (rectangles drawn along +x), not a
+  skin/mesh — at this art scale bone-parenting is indistinguishable and keeps
+  the scene diffable.
+- Both pedals' IK chains share the hip point, so the rear leg stays visually
+  behind (darker palette) via draw order, and `invertDirection` is not needed —
+  knees bend forward (rider faces +x). If a future edit flips a knee backwards,
+  that attribute is the fix.
+- All cadence tiers share ONE `PedalIK` revolution animation; the Main-layer
+  `AnimationState speed` (1 / 1.33 / 1.6 — authorable but NOT bindable) scales
+  the cycle, so crank keys carry mid-sweep frames to stop +π→−π rotation
+  interpolation collapsing. `SprintIK` keeps a distinct aggro flavour.
+  Idle/Ready/Fatigued/Recovery leave the legs entirely to the solver.
+
+`EffortPose` is a **`Joystick`** — the app's first 2D VM-driven pose control.
+Its `x`/`y` (−1..1) are bound to the `cadence`/`effort` VM numbers through
+`DataConverterRangeMapper`s (`CadenceToPoseX` 0–140→−1..1, `EffortToPoseY`
+0–1→−1..1 — the same bind pattern the old effort→lean converter used; the
+joystick replaced that binding). Each axis *scrubs* a pose-range
+`LinearAnimation` — authored as ranges, not motion, and **y = −1 is frame 0
+(handle up = upright casual pose first)**:
+
+- `TorsoEffortRange` (yId): upright → aggro crouch; keys `TorsoLean` rotation
+  0→0.18 rad and `HeadNode` −0→−0.14 counter-rotation (eyes stay on the road).
+- `TorsoCadenceRange` (xId): relaxed commuter arms → locked-in race arms; the
+  project's first arm keys (`ArmNode`/`ForearmNode`).
+
+Ownership rule that keeps this stable: the joystick writes `TorsoLean` +
+arm/head nodes, the state-machine layer writes `TorsoPose` + cranks + bob —
+**no node is written by two systems**. `handleSourceId` is deliberately unset
+(it would turn x/y into outputs and clobber the bindings). At `effort=0` the
+render is byte-identical to the pre-joystick pose.
+
 ## Rive editor contract (rider)
 
 Build a character in the Rive editor with a **state machine named `Ride`**
@@ -102,8 +147,8 @@ from live ride state.
 | Property      | Type     | Source                  | Drives                                  |
 |---------------|----------|-------------------------|-----------------------------------------|
 | `isRiding`    | bool     | ride store `isActive`   | active vs idle posture                  |
-| `cadence`     | number   | telemetry `cadence`     | pedal loop tier (Easy ≤70, Tempo 71–95, Fast ≥96 RPM) |
-| `effort`      | number   | telemetry `effort`      | normalized 0–1 → torso lean bind (0–0.18 rad) |
+| `cadence`     | number   | telemetry `cadence`     | pedal loop tier (Easy ≤70, Tempo 71–95, Fast ≥96 RPM) + EffortPose joystick x arm pose |
+| `effort`      | number   | telemetry `effort`      | normalized 0–1 → EffortPose joystick y torso lean range (0–0.18 rad) |
 | `isSprint`    | bool     | interval phase `sprint` | sprint pose, forward lean               |
 | `isRecovery`  | bool     | interval phase recovery | relaxed posture, deep breath            |
 | `isSpeaking`  | bool     | coaching `isSpeaking`   | mouth / gesture while coach talks       |

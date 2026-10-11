@@ -22,10 +22,14 @@
  *   rewardPulse : trigger — fire on each reward stream tick / claim
  *   prPulse     : trigger — fire when the rider beats their power PR (big burst)
  *   finishPulse : trigger — fire once per finished ride (small burst)
- *   riderTapped : boolean — scene → host: set true by the rider's left-click
- *               pointer listener (the host resets it); right-click is handled
- *               fully in-scene (a listener trigger input plays the small
- *               burst). Listener writes can't fire VM triggers, hence boolean.
+ *   riderTapped : boolean — scene → host: set true by the rider's pointer
+ *               listener on ANY button (the web runtime ignores the button
+ *               filter — see below); the host reads the last button, opens
+ *               the panel on left and fires celebrateClick on right. It stays
+ *               a boolean (not a VM trigger — those DO fire from listeners
+ *               given an instance default) because the host must discriminate
+ *               the button itself and the write→observe→reset round-trip is
+ *               proven.
  *
  * Source: rive/rider/scene.rml → public/rive/rider.riv. While the .riv is
  * still loading (or missing), a lightweight CSS fallback renders instead so
@@ -102,14 +106,15 @@ export function RiveRider({ size = 160, className = "", ready = false, fatigued 
   const { trigger: fireFinishPulse } = useViewModelInstanceTrigger("finishPulse", viewModelInstance);
 
   // ─── Scene → host: the rider's pointer listener writes this boolean ──
-  // (Listeners can't fire view-model triggers — a written trigger never sets
-  // the runtime's fired state — so the tap signal is a boolean the host
-  // consumes and resets.)
+  // (The tap signal is a boolean the host consumes and resets. VM-trigger
+  // writes from listeners work too — re-verified on 2.44.2 — but need a
+  // ViewModelInstanceTrigger default and buy nothing here.)
   //
-  // The web runtime (2.44.1) ignores ListenerInputTypePointerButton's
-  // pointerButtonValue: every button matches a "primary" listener and a
-  // "secondary" one never fires (verified against both the self-hosted wasm
-  // and the CDN runtime). So the scene's TapRider listener fires on left AND
+  // The web runtime (2.44.1 and 2.44.2) ignores
+  // ListenerInputTypePointerButton's pointerButtonValue: every button matches
+  // a "primary" listener and a "secondary" one never fires (verified against
+  // both the self-hosted wasm and the CDN runtime). So the scene's TapRider
+  // listener fires on left AND
   // right clicks, and button discrimination happens here: last pointer button
   // decides whether a tap opens the panel (left) or plays the in-scene
   // celebrate burst (right, via the celebrateClick input trigger the FX layer

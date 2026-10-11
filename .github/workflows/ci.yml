@@ -378,6 +378,19 @@ jobs:
           # button-filtered listeners must survive into the built scene.
           rive rive/rider --pointer="click@84,82" --advance=5 --data-dump=- | grep -A4 '"name": "riderTapped"' | grep -q '"value": true'
           rive inspect rive/rider --summary | grep -q ListenerInputTypePointerButton
+          # The rig must survive edits: legs are IK-solved, so the constraints
+          # and crank-tip targets can never silently vanish from the scene.
+          rive inspect rive/rider --summary | grep -q IKConstraint
+          # IK pedal cycle: two frames mid-stroke must differ (crank keyed,
+          # legs solved). A frozen rig (lost keys/state) renders identical.
+          rive rive/rider --data="isRiding=true" --data="cadence=120" --advance=10 --screenshot=/tmp/pedal-a.png
+          rive rive/rider --data="isRiding=true" --data="cadence=120" --advance=25 --screenshot=/tmp/pedal-b.png
+          ! cmp -s /tmp/pedal-a.png /tmp/pedal-b.png
+          # Joystick pose binding: effort drives the torso range, so low- and
+          # high-effort renders must differ. Breaks if x/y bindings die.
+          rive rive/rider --data="isRiding=true" --data="effort=0.05" --advance=20 --screenshot=/tmp/pose-low.png
+          rive rive/rider --data="isRiding=true" --data="effort=0.95" --advance=20 --screenshot=/tmp/pose-high.png
+          ! cmp -s /tmp/pose-low.png /tmp/pose-high.png
           rive rive/effort-aura --data="intensity=0.9" --data-dump=- | grep -q '"changed": true'
           rive rive/coach-orb --data="emotion=2" --data-dump=- | grep -q '"changed": true'
           rive rive/flow-badge --data="flowTier=3" --data-dump=- | grep -q '"changed": true'
