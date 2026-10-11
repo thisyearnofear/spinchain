@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback } from "react";
+import { sfxEnabled } from "@/app/lib/sfx-pref";
 
 /**
  * useUIClickSound — Subtle synthesized UI click sounds via Web Audio API.
  *
  * No external assets or API calls. Generates a short percussive click
- * using an oscillator + gain envelope. Respects prefers-reduced-motion
- * (also silences sound for accessibility).
+ * using an oscillator + gain envelope. Muted via the dedicated sfx
+ * preference (app/lib/sfx-pref), not prefers-reduced-motion.
  *
  * Usage:
  *   const click = useUIClickSound();
@@ -31,22 +32,8 @@ function getCtx(): AudioContext | null {
 }
 
 export function useUIClickSound() {
-  const enabledRef = useRef(true);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    enabledRef.current = !mq.matches;
-
-    const handler = (e: MediaQueryListEvent) => {
-      enabledRef.current = !e.matches;
-    };
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-
   const play = useCallback((variant: ClickVariant = "default") => {
-    if (!enabledRef.current) return;
+    if (!sfxEnabled()) return;
 
     const ctx = getCtx();
     if (!ctx) return;

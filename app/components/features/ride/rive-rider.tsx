@@ -43,7 +43,7 @@
  * ─────────────────────────────────────────────────────────────────────
  */
 
-import { useRivSrc } from "./rive-runtime";
+import { useRivSrc, useRiveReducedMotion } from "./rive-runtime";
 import { useEffect, useRef } from "react";
 import {
   useRive,
@@ -92,6 +92,8 @@ export function RiveRider({ size = 160, className = "", ready = false, fatigued 
   });
   const viewModel = useViewModel(rive);
   const viewModelInstance = useViewModelInstance(viewModel, { rive });
+
+  useRiveReducedMotion(rive);
 
   const { setValue: setIsRiding } = useViewModelInstanceBoolean("isRiding", viewModelInstance);
   const { setValue: setCadence } = useViewModelInstanceNumber("cadence", viewModelInstance);

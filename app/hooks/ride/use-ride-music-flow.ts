@@ -7,6 +7,7 @@ import { useFlowState, type FlowStateEvent } from "@/app/lib/flow-state";
 import { musicEngine } from "@/app/lib/music-engine";
 import { useHaptic } from "@/app/hooks/use-haptic";
 import { useSensorySync } from "@/app/hooks/ride/use-sensory-sync";
+import { useIntervalAudioCues } from "@/app/hooks/ride/use-interval-audio";
 import type { WorkoutInterval } from "@/app/lib/workout-plan";
 
 /**
@@ -101,6 +102,9 @@ export function useRideMusicFlow({
 
   // Sensory sync (audio + visual + haptic choreography).
   useSensorySync();
+
+  // Interval phase beeps — the cue player existed but had no call site.
+  useIntervalAudioCues(currentInterval?.phase ?? null, isRiding);
 
   return flow;
 }

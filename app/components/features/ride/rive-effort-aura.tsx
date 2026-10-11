@@ -15,7 +15,7 @@
  * via imperative subscriptions (no React re-renders at telemetry rate).
  */
 
-import { useRivSrc } from "./rive-runtime";
+import { useRivSrc, useRiveReducedMotion } from "./rive-runtime";
 import { useEffect, useRef } from "react";
 import {
   useRive,
@@ -57,6 +57,8 @@ export function RiveEffortAura({
   });
   const viewModel = useViewModel(rive);
   const viewModelInstance = useViewModelInstance(viewModel, { rive });
+
+  useRiveReducedMotion(rive);
 
   const { setValue: setIntensity } = useViewModelInstanceNumber("intensity", viewModelInstance);
   const { setValue: setIsSprint } = useViewModelInstanceBoolean("isSprint", viewModelInstance);

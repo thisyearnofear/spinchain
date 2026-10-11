@@ -13,10 +13,31 @@
  * This must run before any Rive instance is created, so every Rive wrapper
  * imports this module for its side effect.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RuntimeLoader } from "@rive-app/react-canvas";
+import { usePrefersReducedMotion } from "@/app/hooks/use-prefers-reduced-motion";
 
 RuntimeLoader.setWasmUrl("/rive/rive.wasm");
+
+/**
+ * Reduced motion for the WASM canvas: Rive's render loop is invisible to both
+ * MotionConfig and the CSS blanket rule, so stop the loop itself and hold a
+ * static pose frame. Restarts if the preference flips back.
+ */
+export function useRiveReducedMotion(
+  rive: { stop(): void; play(): void; drawFrame(): void } | null | undefined,
+): void {
+  const reduced = usePrefersReducedMotion();
+  useEffect(() => {
+    if (!rive) return;
+    if (reduced) {
+      rive.stop();
+      rive.drawFrame();
+    } else {
+      rive.play();
+    }
+  }, [rive, reduced]);
+}
 
 /**
  * Per-instance cache-busted .riv URL.

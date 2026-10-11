@@ -12,7 +12,7 @@
  * Falls back to children (initials) until the .riv is ready.
  */
 
-import { useRivSrc } from "./rive-runtime";
+import { useRivSrc, useRiveReducedMotion } from "./rive-runtime";
 import { useEffect } from "react";
 import {
   useRive,
@@ -59,6 +59,8 @@ export function RiveCoachOrb({
   });
   const viewModel = useViewModel(rive);
   const viewModelInstance = useViewModelInstance(viewModel, { rive });
+
+  useRiveReducedMotion(rive);
 
   const { setValue: setEmotion } = useViewModelInstanceNumber("emotion", viewModelInstance);
   const { setValue: setIsSpeaking } = useViewModelInstanceBoolean("isSpeaking", viewModelInstance);

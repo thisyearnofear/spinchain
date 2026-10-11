@@ -128,14 +128,28 @@ body {
 }
 
 /* ─── Accessibility: Reduced motion ─────────────────────────── */
+/* Targeted, not a blanket nuke: keyframe loops and movement transitions
+   are killed, but opacity/color changes stay (short) so hover/focus/state
+   feedback doesn't disappear. Delays are zeroed so delayed animations
+   don't jump-blank-jump. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
+  }
+  /* Position/size/transform transitions become instant; paint-only
+     properties keep a 150 ms settle. */
+  *,
+  *::before,
+  *::after {
+    transition-property: opacity, color, background-color, border-color,
+      box-shadow, fill, stroke, text-decoration-color, outline-color;
+    transition-duration: 150ms !important;
   }
 }
 

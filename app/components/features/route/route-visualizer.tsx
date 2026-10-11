@@ -3,6 +3,7 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useAdaptiveQuality } from "@/app/lib/responsive";
 import { useFlowCelebration } from "@/app/hooks/route/use-flow-celebration";
+import { usePrefersReducedMotion } from "@/app/hooks/use-prefers-reduced-motion";
 import { useReactiveWorld } from "@/app/hooks/route/use-reactive-world";
 import { useSensoryStore } from "@/app/stores/sensory-store";
 import {
@@ -498,10 +499,16 @@ function BreathingMaterial({
   reactive: ReactiveParams | null;
 }) {
   const ref = useRef<MeshStandardMaterial>(null);
+  const reduced = usePrefersReducedMotion();
 
   useFrame((state) => {
     const mat = ref.current;
     if (!mat) return;
+    // Reduced motion: hold a static intensity instead of pulsing every frame.
+    if (reduced) {
+      mat.emissiveIntensity = theme === "neon" ? 0.5 : 0.8;
+      return;
+    }
     const pulseBase = 1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.05;
     let baseIntensity = theme === "neon" ? 0.5 : 0.8;
     if (reactive) {
@@ -1072,9 +1079,10 @@ function LineInstance({ line, color, reactive = null, stats = { power: 0, cadenc
 function FloatingParticles({ theme = "neon", stats, reactive = null }: { theme?: VisualizerTheme; stats: RiderStats; reactive?: ReactiveParams | null }) {
   const styles = getTheme(theme);
   const starsRef = useRef<Points>(null);
+  const reduced = usePrefersReducedMotion();
 
   useFrame(() => {
-    if (!starsRef.current) return;
+    if (!starsRef.current || reduced) return;
     let speed = 0.5 + (stats.power / 200);
     // World reactivity: stars rotate faster during sprints
     if (reactive) {
@@ -1095,7 +1103,7 @@ function FloatingParticles({ theme = "neon", stats, reactive = null }: { theme?:
       factor={6}
       saturation={theme === 'rainbow' ? 1 : 0}
       fade
-      speed={reactive ? reactive.sparkleSpeed : 1}
+      speed={reduced ? 0 : reactive ? reactive.sparkleSpeed : 1}
     />
   );
 }

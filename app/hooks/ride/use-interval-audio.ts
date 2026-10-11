@@ -13,8 +13,12 @@ import type { IntervalPhase } from "@/app/lib/workout-plan";
  * - warmup: gentle rising tone (start)
  *
  * Uses shared AudioContext from use-ui-click-sound pattern.
- * Respects prefers-reduced-motion (silenced for accessibility).
+ * Muted via the dedicated sfx preference (app/lib/sfx-pref) — NOT
+ * prefers-reduced-motion, which is visual and would strip the cues
+ * reduced-motion riders rely on.
  */
+
+import { sfxEnabled } from "@/app/lib/sfx-pref";
 
 let sharedCtx: AudioContext | null = null;
 
@@ -55,19 +59,9 @@ function playTone(freq: number, duration: number, delay: number = 0, type: Oscil
 
 export function useIntervalAudioCues(phase: IntervalPhase | null, isActive: boolean) {
   const lastPhaseRef = useRef<IntervalPhase | null>(null);
-  const enabledRef = useRef(true);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    enabledRef.current = !mq.matches;
-    const handler = (e: MediaQueryListEvent) => { enabledRef.current = !e.matches; };
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-
-  useEffect(() => {
-    if (!isActive || !enabledRef.current) return;
+    if (!isActive || !sfxEnabled()) return;
     if (!phase || phase === lastPhaseRef.current) return;
 
     // Skip the very first phase (ride start) — let the countdown handle it

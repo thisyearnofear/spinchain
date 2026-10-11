@@ -16,7 +16,7 @@
  * Source: rive/flow-badge/scene.rml → public/rive/flow-badge.riv
  */
 
-import { useRivSrc } from "./rive-runtime";
+import { useRivSrc, useRiveReducedMotion } from "./rive-runtime";
 import { useEffect, useRef, type ReactNode } from "react";
 import {
   useRive,
@@ -62,6 +62,8 @@ export function RiveFlowBadge({
   });
   const viewModel = useViewModel(rive);
   const viewModelInstance = useViewModelInstance(viewModel, { rive });
+
+  useRiveReducedMotion(rive);
 
   const { setValue: setFlowTier } = useViewModelInstanceNumber("flowTier", viewModelInstance);
   const { setValue: setStreak } = useViewModelInstanceNumber("streak", viewModelInstance);
