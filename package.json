@@ -42,7 +42,7 @@
     "@capacitor/core": "8.5.2",
     "@capacitor/haptics": "8.0.2",
     "@capacitor/ios": "8.5.2",
-    "@chainlink/cre-sdk": "1.1.4",
+    "@chainlink/cre-sdk": "1.23.0",
     "@erc7824/nitrolite": "0.5.3",
     "@google/generative-ai": "^0.24.1",
     "@gsap/react": "2.1.2",
