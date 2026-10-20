@@ -14,7 +14,7 @@ import {
 } from "three";
 import { SKIRT_STEPS, skirtSurfacePoint } from "./route-skirt";
 
-export type PropType = "building" | "tree" | "rock" | "blossom" | "crystal";
+export type PropType = "building" | "tree" | "rock" | "blossom" | "crystal" | "tuft";
 export type PropShape = "box" | "cylinder" | "cone" | "sphere" | "dodecahedron" | "octahedron";
 
 export interface PropConfig {
@@ -79,6 +79,11 @@ export const SILHOUETTES: Record<PropType, readonly SilhouettePart[]> = {
     { shape: "octahedron", args: [0.4], position: [0, 0.28, 0], rotation: R0, scale: S, shade: 0.62, emissive: 0.25, roughness: 0.18, metalness: 0.2, breathes: false },
     { shape: "octahedron", args: [0.72], position: [0, 1.2, 0], rotation: R0, scale: [0.38, 1.45, 0.38], shade: 1, emissive: 0.8, roughness: 0.12, metalness: 0.28, breathes: true },
     { shape: "octahedron", args: [0.36], position: [0.32, 0.72, 0], rotation: [0, 0, 0.42], scale: [0.55, 1.15, 0.55], shade: 0.8, emissive: 0.4, roughness: 0.14, metalness: 0.24, breathes: false },
+  ],
+  tuft: [
+    { shape: "cone", args: [0.075, 0.85, 4], position: [0, 0.42, 0], rotation: R0, scale: S, shade: 1, emissive: 0.05, roughness: 0.92, metalness: 0, breathes: false },
+    { shape: "cone", args: [0.06, 0.6, 4], position: [0.16, 0.28, 0.09], rotation: [0, 0, 0.3], scale: S, shade: 0.82, emissive: 0.04, roughness: 0.92, metalness: 0, breathes: false },
+    { shape: "cone", args: [0.05, 0.5, 4], position: [-0.14, 0.24, -0.07], rotation: [0, 0, -0.36], scale: S, shade: 0.7, emissive: 0.03, roughness: 0.92, metalness: 0, breathes: false },
   ],
 };
 
@@ -205,6 +210,69 @@ export function buildPropField(
       config.scale[0] * (0.8 + seededRandom(i + 3000) * 0.4),
       config.scale[1] * (0.5 + seededRandom(i + 4000) * 1.5),
       config.scale[2] * (0.8 + seededRandom(i + 5000) * 0.4),
+    );
+    _propMatrix.compose(_propPos, _propQuat, _propScale);
+
+    for (let p = 0; p < spec.length; p++) {
+      const part = spec[p];
+      _euler.set(part.rotation[0], part.rotation[1], part.rotation[2]);
+      _localMatrix.compose(
+        _localPos.set(part.position[0], part.position[1], part.position[2]),
+        _localQuat.setFromEuler(_euler),
+        _localScale.set(part.scale[0], part.scale[1], part.scale[2]),
+      );
+      _outMatrix.multiplyMatrices(_propMatrix, _localMatrix);
+      _outMatrix.toArray(parts[p].matrices, i * 16);
+    }
+  }
+
+  return { type: config.type, parts };
+}
+
+/**
+ * Ground cover — Bruno's looped band, applied to this world's roadside.
+ *
+ * Denser and much closer to the road than `propOrigin` (2.5–12 lateral vs
+ * 8–23) so the tufts hug the rider's path, and jittered with a different
+ * seed offset so tufts and props never coincide. One silhouette ("tuft"),
+ * built once per curve/theme; the frame loop never touches it — the sway is
+ * the same wind uniform the props read.
+ */
+export function buildGroundCoverField(
+  curve: CatmullRomCurve3,
+  config: PropConfig,
+  roadHalfWidth: number,
+): PropField {
+  const spec = SILHOUETTES[config.type];
+  const count = Math.max(0, Math.floor(config.count));
+  const frames = curve.computeFrenetFrames(SKIRT_STEPS, true);
+  const parts: PropPartField[] = spec.map((part, partIndex) => ({
+    id: `${config.type}-cover-${partIndex}`,
+    shape: part.shape,
+    args: part.args,
+    color: shadeHex(config.color, part.shade),
+    emissive: part.emissive,
+    roughness: part.roughness,
+    metalness: part.metalness,
+    breathes: part.breathes,
+    matrices: new Float32Array(count * 16),
+    count,
+  }));
+
+  for (let i = 0; i < count; i++) {
+    const u = seededRandom(i + 5000);
+    const side = i % 2 === 0 ? 1 : -1;
+    // Bias toward the near range: 60% of tufts within the first third of
+    // the band, the rest scattered out to the far edge.
+    const spread = Math.pow(seededRandom(i + 6000), 1.6);
+    const lateral =
+      side * (2.5 + spread * 9.5) * (roadHalfWidth > 8 ? 1 : 0.85);
+    skirtSurfacePoint(curve, frames, SKIRT_STEPS, u, lateral, roadHalfWidth, _propPos);
+    _propQuat.setFromAxisAngle(WORLD_UP, seededRandom(i + 7000) * Math.PI * 2);
+    _propScale.set(
+      config.scale[0] * (0.75 + seededRandom(i + 8000) * 0.5),
+      config.scale[1] * (0.55 + seededRandom(i + 9000) * 0.9),
+      config.scale[2] * (0.75 + seededRandom(i + 10000) * 0.5),
     );
     _propMatrix.compose(_propPos, _propQuat, _propScale);
 

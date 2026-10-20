@@ -169,7 +169,7 @@ experiences; **P1** are compounding; **P2** are the bigger projects.
 | 1 ✅ | **Wind on every world.** Vertex sway injected into the instanced prop material; gusts from a cheap sin-sum; amplitude scaled by the prop's own height. | ★★★★★ | ~0 cost (one uniform) | M | `route-silhouettes.ts` + a shared wind material |
 | 2 ✅ | **Radial blur speed effect.** Custom `Effect`; strength tracks rider speed. | ★★★★★ | cheap (few taps, one pass) | S | `route-visualizer.tsx` post stack |
 | 3 ✅ | **Adaptive pixel ratio.** `PerformanceMonitor` from R3F scales DPR before we fall back to 2D. | ★★★ | **negative cost** — more devices render 3D | S | `route-visualizer.tsx` canvas |
-| 4 | **Height fog.** `onBeforeCompile` world-Y fog on the shared materials; horizon fog on the sky dome. | ★★★★ | ~0 | M | new `atmosphere-fog.ts` |
+| 4 ✅ | **Height fog.** `onBeforeCompile` world-Y fog on the shared materials; horizon fog on the sky dome. | ★★★★ | ~0 | M | new `atmosphere-fog.ts` |
 | 5 ✅ | **Procedural wind + tyre audio.** Web Audio filtered noise; gain and filter track cadence and speed. | ★★★★★ | CPU-audio only | M | new `app/lib/ambient-audio.ts` |
 
 > ✅ = shipped. Implementation notes for the shipped items are below.
@@ -253,6 +253,68 @@ experiences; **P1** are compounding; **P2** are the bigger projects.
   the rider (and the baseline suite is unaffected because the harness runs with no progression
   seed → tier `none`).
 
+#### Shipped-item implementation notes (2026-10-20, second pass)
+
+- **Height fog (`app/components/features/route/atmosphere-fog.ts`).**
+  The Sleepers vertical dimension of the haze: fragments in a low world-Y band mix toward the
+  theme's fog colour, weighted by view distance — near road crisp, far road melts into mist.
+  Mechanics that mattered:
+  1. The patch latches onto `#include <fog_vertex>` (vertex, last chunk of main — `transformed`,
+     `instanceMatrix` and `mvPosition` are all in scope) and `#include <fog_fragment>` (fragment),
+     and **preserves the include lines** it matches. That is what lets it *chain* with
+     `applyWind`: wind fully inlines `project_vertex`, so a fog patch that also replaced
+     `project_vertex` would find nothing (its guard warning would fire) — fog deliberately never
+     touches that chunk. Order at the material: `applyHeightFog(m)` then `applyWind(m)`.
+  2. `modelMatrix * instanceMatrix * vec4(transformed, 1.0)` recomputes world Y instead of reusing
+     `worldPosition` — that chunk's *inclusion* is conditional, so the variable is not guaranteed
+     to exist. Wind is horizontal-only, so world Y is stable regardless of the sway.
+  3. One shared uniform object per channel (`HEIGHT_FOG_UNIFORMS`) + a `HeightFogTuner` effect that
+     re-points them at the theme's haze per world (planet worlds lift the whole band 4 units for
+     their higher terrain). Applied to every prop material **and the road surface** — the latter in
+     `useLayoutEffect` on the mesh ref (the patch must land before the renderer's first compile;
+     after that it is lost to the program cache). The skirt is left alone: it already fades into
+     the haze by its own gradient, and fogging it too would double the wash.
+
+- **Ground cover band (`route-silhouettes.ts` tuft + `GroundCoverField`).**
+  A fourth PropType ("tuft": three thin cones) and a dedicated `buildGroundCoverField` that hugs
+  the road (lateral 2.5–12 vs the props' 8–23, biased 60% into the near third) and draws from its
+  own seed offsets (+5000..+10000) so tufts interleave with props instead of coinciding with them.
+  It reuses `PropInstances` wholesale — one extra instanced draw call per part, matrices uploaded
+  once, and the sway is the same wind uniform (`WIND_FACTORS.tuft = 1.05`). Count scales by tier
+  (high ×1 / medium ×0.55 / low ×0.3) — unlike the props, which stay static. Every world opts in
+  via an optional `groundCover` entry in `visualizer-theme.ts` (and `ThemeDefinition` in the theme
+  registry).
+
+- **Context palette wired (`context-palette.ts` + `ride-visualization.tsx` + tron renderer).**
+  `RideVisualization` owns `useContextAware()` (one palette refresh/minute — its re-render
+  cadence, not telemetry's) and passes the palette through `TronRenderer` into RouteVisualizer.
+  The rule throughout is **blend, don't replace**: 50% toward the palette sky (`mixHex` file
+  helper), 35% into the fog/haze, <=25% into the ambient/point lights, plus a soft-light world tint
+  overlay above both the 3D canvas and the DOM. Preview mode is exempt — the browser presents the
+  authored look; `mode === "ride"` only. Rain/snow intensities remain unwired (no particle system
+  yet) — documented scope.
+  **Determinism:** the palette derives from the wall clock, which would make screenshot baselines
+  drift depending on when the suite ran. `generateContextProfile` now honours a
+  `window.__SPINCHAIN_FREEZE_CONTEXT__` override (checked at generate time, not module init), and
+  `installTestHooks` freezes dusk/cloudy/autumn — visible in the active-play baseline as a warm
+  low-sun cast, reproducible at any hour.
+
+- **Shader warm-up (`ShaderWarmUp` in `route-visualizer.tsx`).**
+  `gl.compileAsync(scene, camera)` fire-and-forget in a mount effect, with `compile` as the sync
+  fallback for older three. The ride's opening frame no longer pays for compiling the wind, fog,
+  road and post-stack programs. Nothing renders differently → all baselines untouched.
+
+- **Swirling transition (`swirl-reveal.tsx`).**
+  Sleepers' threshold-texture reveal applied to the activation → ride handoff: a canvas-2D veil
+  (deep plum + phase accent) whose coverage falls along a domain-warped deterministic noise field
+  — the dissolve unwinds as a slow vortex while the GO flash lights it. Chosen as **DOM canvas,
+  not a WebGL pass** on purpose: the crossfade spans the 3D canvas *and* the 2D Focus layer, and
+  the mask is ~37k pixel writes/frame at 256×144, GPU-scaled. It renders only while `goPhase` and
+  not reduced-motion (the existing quick fade owns that path); the `activation-go-flash` test-id
+  div is retained so the transition overlay's unit test is untouched. Two timing contracts: the
+  reveal finishes (620 ms) before the parent's handoff unmount (~650 ms + exit fade), and its own
+  240 ms CSS fade clears the last vanishing pixels.
+
 #### Verification used for both
 
 `onBeforeCompile`-patched shaders were confirmed on the GPU by recording
@@ -261,16 +323,24 @@ sources (wind: `windSway`; radial: /strength/i on the *material* shader). Visual
 `tests/visual-regression.spec.ts` — note that a single state can silently skip the composer on the
 medium tier; check the tier when a post-effect appears missing.
 
+**Baseline-regen gotcha:** `--update-snapshots` only rewrites baselines that *fail* comparison or
+are missing. The second-pass look (height fog, ground-cover tufts, dusk cast) stayed under the
+suite's tolerance (`maxDiffPixelRatio: 0.02`, `threshold: 0.2`), so a plain update run rewrote
+nothing while "passing" against stale pre-arc baselines — confirmed via snapshot mtimes and
+`git status`. When a look change is legitimate, **delete the affected PNGs first** and let the
+update run re-capture them; the second-pass baselines (active-play/finished/preview, both
+projects) were regenerated that way and the parallel re-run then reproduces them exactly.
+
 ### P1 — compounding
 
 | # | Change | Why | Effort |
 |---|--------|-----|--------|
-| 6 | **Ground cover band.** Instanced tufts/blades/rocks looping to fill the camera's view (Bruno's trick) — one draw call, one geometry. | The world stops being a road on a plane | M |
-| 7 | **Wire the existing context palette.** Time-of-day + weather tint the sky, fog and lights. The code exists; it is unused. | The world's time is the rider's time | M |
+| 6 ✅ | **Ground cover band.** Instanced tufts/blades/rocks looping to fill the camera's view (Bruno's trick) — one draw call, one geometry. | The world stops being a road on a plane | M |
+| 7 ✅ | **Wire the existing context palette.** Time-of-day + weather tint the sky, fog and lights. The code exists; it is unused. | The world's time is the rider's time | M |
 | 8 ✅ | **Render the aura tier.** The ladder grants an aura per rank; it is declared and never drawn. Close the progression → cosmetic loop. | Ladder payoff becomes visible in the world | M |
-| 9 | **Shader warm-up.** `compileAsync` on the world shaders so the first ride frame does not hitch. | Removes a visible stall at ride start | S |
+| 9 ✅ | **Shader warm-up.** `compileAsync` on the world shaders so the first ride frame does not hitch. | Removes a visible stall at ride start | S |
 | 10 | **Diegetic bike readout.** The interval target and flow tier projected in-world; the DOM HUD keeps the facts. | The world becomes the primary display | L |
-| 11 | **Swirling transition.** The Sleepers threshold-texture reveal, reused for the pre-ride → ride handoff. | The current transition is a cut | M |
+| 11 ✅ | **Swirling transition.** The Sleepers threshold-texture reveal, reused for the pre-ride → ride handoff. | The current transition is a cut | M |
 
 ### P2 — the bigger projects
 

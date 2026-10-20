@@ -84,6 +84,17 @@ export function getSeason(month: number): 'spring' | 'summer' | 'autumn' | 'wint
 export function generateContextProfile(
   location?: { lat?: number; lng?: number },
 ): ContextProfile {
+  // Visual-harness freeze: test hooks install a fixed profile so screenshots
+  // are reproducible regardless of the wall clock. Checked at generate time
+  // (not module init) so the freeze can be installed by hooks at page mount,
+  // before any component needs a profile.
+  const frozen =
+    typeof window !== "undefined"
+      ? (window as { __SPINCHAIN_FREEZE_CONTEXT__?: ContextProfile })
+          .__SPINCHAIN_FREEZE_CONTEXT__
+      : undefined;
+  if (frozen) return frozen;
+
   const now = new Date();
   const hour = now.getHours();
   const month = now.getMonth();

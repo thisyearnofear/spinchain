@@ -51,6 +51,12 @@ export interface ThemeDefinition {
     count: number;
     scale: [number, number, number];
   };
+  /** Roadmap #6 — the roadside tuft band. Optional: worlds without one keep bare skirt. */
+  groundCover?: {
+    color: string;
+    count: number;
+    scale: [number, number, number];
+  };
 }
 
 const BUILTIN = VISUALIZER_THEMES as unknown as Record<string, ThemeDefinition>;

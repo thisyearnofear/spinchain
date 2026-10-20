@@ -27,6 +27,7 @@ import { EASE_MOVE, EASE_SMOOTH } from "@/app/lib/motion";
 import { useSensoryStore } from "@/app/stores/sensory-store";
 import { worldImageFor } from "@/app/lib/themes/theme-images";
 import { haptic } from "@/app/hooks/use-haptic";
+import { SwirlReveal } from "@/app/components/features/ride/swirl-reveal";
 import {
   playCountdownTickSfx,
   playGoStingerSfx,
@@ -494,7 +495,10 @@ function ActivationTransition({
         transition={{ duration: reducedMotion ? 0.15 : 0.55 }}
       />
 
-      {/* GO flash — dissolves into the live 3D world (parent unmounts ~700ms) */}
+      {/* GO flash — dissolves into the live 3D world (parent unmounts ~700ms).
+          The swirl reveal (roadmap #11) draws the dissolve *texture* — a
+          slow vortex of the phase accent unwinding off the world — under the
+          flash's light. Reduced motion keeps only the flash. */}
       {goPhase && (
         <m.div
           key="go-flash"
@@ -505,9 +509,9 @@ function ActivationTransition({
           transition={{ duration: reducedMotion ? 0.18 : 0.65, ease: EASE_SMOOTH }}
           style={{
             background: `radial-gradient(circle at 50% 45%, ${accent}cc 0%, ${accent}33 28%, transparent 62%)`,
-          }}
-        />
+          }}        />
       )}
+      {goPhase && !reducedMotion && <SwirlReveal accentColor={accent} />}
 
       {/* Countdown number → GO launch beat */}
       <AnimatePresence mode="wait">

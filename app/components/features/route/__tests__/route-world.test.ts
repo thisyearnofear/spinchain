@@ -51,8 +51,10 @@ import {
 } from "../neon-atmosphere";
 import {
   SILHOUETTES,
+  buildGroundCoverField,
   buildPropField,
   propOrigin,
+  seededRandom,
   silhouetteBaseY,
   type PropType,
   type SilhouettePart,
@@ -249,6 +251,7 @@ describe("route silhouettes", () => {
     rock: ["dodecahedron", "dodecahedron", "dodecahedron"],
     blossom: ["cylinder", "sphere", "sphere"],
     crystal: ["octahedron", "octahedron", "octahedron"],
+    tuft: ["cone", "cone", "cone"],
   };
 
   it("builds one instanced silhouette per theme, planted on the skirt", () => {
@@ -296,6 +299,38 @@ describe("route silhouettes", () => {
         expect(horizontal).toBeGreaterThanOrEqual(8);
         expect(horizontal).toBeLessThanOrEqual(23);
         expect(expected.y).toBeLessThan(onCurve.y);
+      }
+    }
+  });
+});
+
+describe("ground cover band", () => {
+  it("plants tufts in the close roadside band, denser than the props, deterministically", () => {
+    for (const name of Object.keys(VISUALIZER_THEMES) as Array<keyof typeof VISUALIZER_THEMES>) {
+      const theme = VISUALIZER_THEMES[name];
+      const groundCover = theme.groundCover;
+      expect(groundCover).toBeDefined();
+      if (!groundCover) continue;
+      const halfWidth = roadProfile(name).halfWidth;
+      const field = buildGroundCoverField(
+        curve,
+        { type: "tuft", color: groundCover.color, count: groundCover.count, scale: groundCover.scale },
+        halfWidth,
+      );
+      expect(field.parts).toHaveLength(3);
+
+      for (const index of [0, 5, 44]) {
+        const contact = groundContact(field.parts[0].matrices, index, SILHOUETTES.tuft[0]);
+        const u = seededRandom(index + 5000);
+        const onCurve = curve.getPointAt(u - Math.floor(u));
+        const horizontal = Math.hypot(contact.x - onCurve.x, contact.z - onCurve.z);
+        // The band hug: closer than the silhouette props ever come (8–23),
+        // and never on the tarmac — the narrow-road scale factor bottoms the
+        // band out at 2.5 * 0.85 = 2.125 lateral.
+        expect(horizontal).toBeGreaterThanOrEqual(2.0);
+        expect(horizontal).toBeLessThanOrEqual(23.5);
+        // Planted below the road surface line, on the skirt's fall.
+        expect(contact.y).toBeLessThan(onCurve.y);
       }
     }
   });

@@ -30,6 +30,11 @@ export const VISUALIZER_THEMES = {
       count: 40,
       scale: [2, 8, 2] as [number, number, number],
     },
+    groundCover: {
+      color: "#4fd1c5",
+      count: 240,
+      scale: [1.1, 1.2, 1.1] as [number, number, number],
+    },
   },
   alpine: {
     fog: "#caccf0",
@@ -59,6 +64,11 @@ export const VISUALIZER_THEMES = {
       color: "#22543d",
       count: 120,
       scale: [0.5, 2, 0.5] as [number, number, number],
+    },
+    groundCover: {
+      color: "#56803b",
+      count: 340,
+      scale: [1.3, 1.6, 1.3] as [number, number, number],
     },
   },
   mars: {
@@ -90,6 +100,11 @@ export const VISUALIZER_THEMES = {
       count: 80,
       scale: [1, 1, 1] as [number, number, number],
     },
+    groundCover: {
+      color: "#b45309",
+      count: 160,
+      scale: [1.2, 0.8, 1.2] as [number, number, number],
+    },
   },
   anime: {
     fog: "#ffdeeb",
@@ -120,6 +135,11 @@ export const VISUALIZER_THEMES = {
       count: 200,
       scale: [0.3, 0.3, 0.3] as [number, number, number],
     },
+    groundCover: {
+      color: "#fda4af",
+      count: 300,
+      scale: [1.6, 1.4, 1.6] as [number, number, number],
+    },
   },
   rainbow: {
     fog: "#1a0b2e",
@@ -149,6 +169,11 @@ export const VISUALIZER_THEMES = {
       color: "#00ffff",
       count: 60,
       scale: [0.5, 3, 0.5] as [number, number, number],
+    },
+    groundCover: {
+      color: "#a855f7",
+      count: 200,
+      scale: [1, 1.1, 1] as [number, number, number],
     },
   },
 } as const;

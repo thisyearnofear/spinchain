@@ -85,6 +85,20 @@ export function installTestHooks(): void {
 
   installed = true;
 
+  // Freeze the contextual palette so time-of-day/weather tinting (roadmap
+  // P1 #7) is reproducible in screenshots: a real clock would make the
+  // active-play baseline drift depending on when the suite ran. Dusk + over
+  // + autumn — a moody but sanctioned look at every hour of the day.
+  (window as unknown as { __SPINCHAIN_FREEZE_CONTEXT__?: unknown }).__SPINCHAIN_FREEZE_CONTEXT__ =
+    {
+      timeOfDay: "dusk",
+      ambientLux: 8000,
+      weather: "cloudy",
+      temperature: 14,
+      season: "autumn",
+      location: null,
+    };
+
   const setState = (name: string) => {
     const rideStore = useRideStore.getState();
     const telemetryStore = useTelemetryStore.getState();

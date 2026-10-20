@@ -19,6 +19,7 @@ import type { IntervalPhase } from "@/app/lib/phase-theme";
 import { useEffect, useMemo, useState } from "react";
 import { m } from "framer-motion";
 import { EASE_SMOOTH } from "@/app/lib/motion";
+import { useContextAware } from "@/app/lib/context-palette";
 import { probeGpu, getQualitySettings } from "@/app/lib/gpu-probe";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
@@ -77,6 +78,10 @@ export function RideVisualization({
 
   const isRiding = useRideStore((s) => s.isActive);
   const rideProgress = useRideStore((s) => s.rideProgress);
+
+  // The rider's conditions → world tint (roadmap P1 #7). Refreshes once a
+  // minute; that re-render cadence is the palette's, not telemetry's.
+  const { palette: contextPalette } = useContextAware();
 
   // 1 Hz mirror of live telemetry for React-level props (stats text, sparkline,
   // tier-keyed effects). Subscribing at the 10 Hz commit rate re-rendered the
@@ -210,6 +215,7 @@ export function RideVisualization({
             userDisplayName={undefined}
             intervalPhase={(currentInterval?.phase ?? undefined) as IntervalPhase | undefined}
             flowTier={flowTier}
+            contextPalette={contextPalette}
             onWebglUnavailable={markWebglUnavailable}
           />
         )}
@@ -293,6 +299,7 @@ export function RideVisualization({
           userDisplayName={undefined}
           intervalPhase={(currentInterval?.phase ?? undefined) as IntervalPhase | undefined}
           flowTier={flowTier}
+          contextPalette={contextPalette}
           active={!isFocus}
           onWebglUnavailable={markWebglUnavailable}
         />

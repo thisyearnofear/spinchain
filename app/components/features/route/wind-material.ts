@@ -39,6 +39,7 @@ export const WIND_FACTORS: Record<string, number> = {
   crystal: 0.22,
   rock: 0,
   building: 0,
+  tuft: 1.05,
 };
 
 export function windFactorFor(propType: string): number {

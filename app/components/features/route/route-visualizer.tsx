@@ -104,11 +104,13 @@ import {
 import { NeonAtmosphere } from "./neon-view";
 import { PlanetAtmosphere } from "./planet-view";
 import { PLANET_PROFILES, type PlanetProfile } from "./planetary-atmosphere";
+import { buildGroundCoverField } from "./route-silhouettes";
 import { applyWind, windFactorFor } from "./wind-material";
 import { WindDriver } from "./wind-driver";
 import { RadialBlurEffect } from "./radial-blur-effect";
 import { RankAura } from "./rank-aura";
 import { useProgression } from "@/app/lib/progression";
+import { applyHeightFog, HEIGHT_FOG_UNIFORMS } from "./atmosphere-fog";
 
 // Import StoryBeat types from gpx-uploader for consistency
 import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../../../routes/builder/gpx-uploader";
@@ -251,6 +253,16 @@ function Road({
     sanitizeGeometry(geo);
     return geo;
   }, [curve, theme, steps]);
+
+  // Height fog on the road surface — patched in a layout effect so it lands
+  // before the renderer compiles the material on the first frame (same
+  // discipline as the prop materials; patching after first compile is lost
+  // to the program cache).
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- once per mount; the JSX material instance survives theme changes
+  useLayoutEffect(() => {
+    const mat = meshRef.current?.material as THREE.MeshStandardMaterial | undefined;
+    if (mat) applyHeightFog(mat);
+  }, []);
 
   return (
     <group>
@@ -572,6 +584,10 @@ function PropInstances({
       roughness: part.roughness,
       metalness: part.metalness,
     });
+    // Height fog first, then wind — both chain through onBeforeCompile, and
+    // the wind patch's `project_vertex` inline must be the *last* writer of
+    // that include (the fog patch deliberately never touches it).
+    applyHeightFog(m);
     if (windFactor > 0) applyWind(m, { factor: windFactor });
     return m;
     // `part` is rebuilt whenever the prop field is rebuilt; `breathe` and
@@ -632,6 +648,116 @@ function PropField({
       ))}
     </group>
   );
+}
+
+/**
+ * GroundCoverField — the looped roadside band (roadmap P1 #6).
+ *
+ * One extra silhouette ("tuft") instanced along the skirt, hugging the road
+ * closely enough that the rider passes through it, but jittered with its own
+ * seed offsets so it interleaves with the silhouette props rather than
+ * repeating them. Count scales with the performance tier — the tuft triangles
+ * are tiny, but SwiftShader still pays for every vertex, and software-rendered
+ * phones get the short band first.
+ */
+function GroundCoverField({
+  theme = "neon",
+  curve,
+  tier = "high",
+}: {
+  theme?: VisualizerTheme;
+  curve: CatmullRomCurve3;
+  tier?: "high" | "medium" | "low";
+}) {
+  const styles = getTheme(theme);
+  const groundCover = styles.groundCover as
+    | { color: string; count: number; scale: readonly [number, number, number] }
+    | undefined;
+  const { halfWidth } = roadProfile(theme);
+  const tierScale = tier === "high" ? 1 : tier === "medium" ? 0.55 : 0.3;
+
+  const field = useMemo(
+    () =>
+      groundCover
+        ? buildGroundCoverField(
+            curve,
+            {
+              type: "tuft",
+              color: groundCover.color,
+              count: Math.max(24, Math.floor(groundCover.count * tierScale)),
+              scale: groundCover.scale,
+            },
+            halfWidth,
+          )
+        : null,
+    [curve, groundCover, halfWidth, tierScale],
+  );
+
+  if (!field || !groundCover) return null;
+
+  return (
+    <group>
+      {field.parts.map((part) => (
+        <PropInstances
+          key={part.id}
+          part={part}
+          theme={theme}
+          stats={{ hr: 0, power: 0, cadence: 0, intensity: 0 }}
+          reactive={null}
+          propType={field.type}
+        />
+      ))}
+    </group>
+  );
+}
+
+/**
+ * HeightFogTuner — one effect that points the shared fog uniforms at the
+ * active theme's haze. Every fogged material references the same uniform
+ * objects, so a theme switch is a single write per channel.
+ */
+function HeightFogTuner({ theme }: { theme: VisualizerTheme }) {
+  useEffect(() => {
+    const styles = getTheme(theme);
+    HEIGHT_FOG_UNIFORMS.uHFogColor.value.set(styles.fog);
+    // The planet worlds' terrain sits higher; lift the band with it.
+    const planetProfile = PLANET_PROFILES[theme] as PlanetProfile | undefined;
+    const lift = planetProfile ? 4 : 0;
+    HEIGHT_FOG_UNIFORMS.uHFogYNear.value = 0.5 + lift * 0.4;
+    HEIGHT_FOG_UNIFORMS.uHFogYFar.value = 22 + lift;
+    HEIGHT_FOG_UNIFORMS.uHFogStrength.value = theme === "neon" ? 0.9 : 0.85;
+  }, [theme]);
+  return null;
+}
+
+/**
+ * ShaderWarmUp — compile the world's shader programs before the first
+ * visible frame (roadmap #9). The ride's opening frame used to pay for
+ * compiling 3–5 custom shaders (wind, height fog, the reactive road, the
+ * post stack) — a visible hitch exactly at the moment that matters most.
+ * `compileAsync` walks the scene graph and compiles every program without
+ * drawing; fire-and-forget, failures harmless (the frame compiler is the
+ * fallback).
+ */
+function ShaderWarmUp() {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
+  useEffect(() => {
+    const anyGl = gl as unknown as {
+      compileAsync?: (scene: THREE.Scene, camera: THREE.Camera) => Promise<void>;
+      compile?: (scene: THREE.Scene, camera: THREE.Camera) => void;
+    };
+    try {
+      const r = anyGl.compileAsync
+        ? anyGl.compileAsync(scene, camera)
+        : (anyGl.compile?.(scene, camera), null);
+      if (r) r.catch(() => {});
+    } catch {
+      // Warm-up is best-effort; the normal frame path compiles on demand.
+    }
+  }, [gl, scene, camera]);
+  return null;
 }
 
 function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive = null, mode = "ride" }: { theme: VisualizerTheme; stats: RiderStats; performanceTier?: "high" | "medium" | "low"; reactive?: ReactiveParams | null; mode?: VisualizerMode }) {
@@ -1491,6 +1617,27 @@ function FlowCelebration({ effect }: FlowCelebrationProps) {
   );
 }
 
+/**
+ * Mix two `#rrggbb` colours by ratio (0 = a, 1 = b). Local to the context
+ * palette wiring — the style registry stores plain hex and the palette
+ * stores plain hex, so no alpha handling is needed here.
+ */
+function mixHex(a: string, b: string, ratio: number): string {
+  const parse = (c: string) => {
+    const n = c.replace("#", "");
+    return [
+      parseInt(n.slice(0, 2), 16),
+      parseInt(n.slice(2, 4), 16),
+      parseInt(n.slice(4, 6), 16),
+    ] as const;
+  };
+  const [r1, g1, b1] = parse(a);
+  const [r2, g2, b2] = parse(b);
+  const mix = (x: number, y: number) =>
+    Math.round(x + (y - x) * ratio).toString(16).padStart(2, "0");
+  return `#${mix(r1, r2)}${mix(g1, g2)}${mix(b1, b2)}`;
+}
+
 function Scene({
   elevationProfile,
   theme = "neon",
@@ -1539,6 +1686,28 @@ function Scene({
   const smoothedShakeRef = useRef(new Vector3());
   const _shakeTargetVec = useRef(new Vector3());
 
+  // The context palette (roadmap P1 #7): time-of-day and weather tint the
+  // world the rider is standing in. Blend, don't replace — each world keeps
+  // its art direction; the palette shifts it toward the rider's real
+  // conditions (50% into the sky, 35% into the haze, <=25% into the lights).
+  // Preview is exempt: the browser should present the authored look.
+  const context = useMemo(() => {
+    if (!contextPalette || mode === "preview") return null;
+    return {
+      skyTop: mixHex(styles.skyTop, contextPalette.skyTop, 0.5),
+      skyBottom: mixHex(styles.skyBottom, contextPalette.skyBottom, 0.5),
+      horizonGlow: mixHex(styles.horizonGlow, contextPalette.horizonGlow, 0.5),
+      fogColor: mixHex(styles.fog, contextPalette.fogColor, 0.35),
+      fogDensity: contextPalette.fogDensity,
+      ambientMul: Math.min(1.25, Math.max(0.7, 0.7 + 0.55 * contextPalette.ambientIntensity)),
+      pointColor: mixHex(
+        theme === "alpine" ? ALPINE_POINT_COLOR : theme === "neon" ? NEON_POINT_COLOR : planetProfile ? planetProfile.pointColor : "#9b7bff",
+        contextPalette.pointLightColor,
+        0.4,
+      ),
+      pointMul: contextPalette.pointLightIntensity,
+    };
+  }, [contextPalette, mode, theme, styles]);
   const currentFlowEffect = useFlowCelebration(flowTier);
 
   // Mouse parallax — subtle camera offset based on pointer position
@@ -1768,6 +1937,7 @@ function Scene({
       <ambientLight
         intensity={
           (reactive ? reactive.ambientIntensity : 0.5) *
+          (context ? context.ambientMul : 1) *
           (theme === "alpine"
             ? ALPINE_AMBIENT_GAIN
             : theme === "neon"
@@ -1828,28 +1998,40 @@ function Scene({
       )}
       <pointLight
         position={[10, 50, 10]}
-        intensity={reactive ? reactive.pointLightIntensity : 1}
+        intensity={
+          (reactive ? reactive.pointLightIntensity : 1) *
+          (context ? context.pointMul : 1)
+        }
         color={
           reactive
             ? reactive.pointLightColor
-            : theme === "alpine"
-              ? ALPINE_POINT_COLOR
-              : theme === "neon"
-                ? NEON_POINT_COLOR
-                : planetProfile
-                  ? planetProfile.pointColor
-                  : "#9b7bff"
+            : context
+              ? context.pointColor
+              : theme === "alpine"
+                ? ALPINE_POINT_COLOR
+                : theme === "neon"
+                  ? NEON_POINT_COLOR
+                  : planetProfile
+                    ? planetProfile.pointColor
+                    : "#9b7bff"
         }
         castShadow={quality?.shadows}
       />
       <fog
         attach="fog"
         args={[
-          // Alpine and neon keep their own haze. Effort still closes the near
-          // plane (fogDensity). A phase tint in place of that haze turns the
-          // skirt's far edge into a cut.
-          theme === "alpine" || theme === "neon" ? styles.fog : reactive ? reactive.fogColor : styles.fog,
-          reactive ? reactive.fogDensity : 40,
+          // Alpine and neon keep their own haze base; the context palette
+          // bends it (not replaces it) toward the rider's conditions.
+          theme === "alpine" || theme === "neon"
+            ? context
+              ? context.fogColor
+              : styles.fog
+            : reactive
+              ? reactive.fogColor
+              : context
+                ? context.fogColor
+                : styles.fog,
+          reactive ? reactive.fogDensity : (context ? context.fogDensity : 40),
           theme === "alpine"
             ? ALPINE_FOG_FAR
             : theme === "neon"
@@ -1864,7 +2046,7 @@ function Scene({
           equirect texture; the mobile-safe tier. */}
       {panoUrl && <WorldSkybox url={panoUrl} />}
 
-      <LocalEnvironment key={theme} sky={styles.skyTop} horizon={styles.horizonGlow} ground={styles.terrainColor} />
+      <LocalEnvironment key={theme} sky={context ? context.skyTop : styles.skyTop} horizon={context ? context.horizonGlow : styles.horizonGlow} ground={styles.terrainColor} />
 
       {/* Dynamic atmospheric effects - disabled on low tier for performance */}
       <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} reactive={reactive} mode={mode} />
@@ -1922,16 +2104,16 @@ function Scene({
       <group position={[0, -10, 0]}>
         {/* Adaptive road geometry resolution: high=600, medium=250, low=100 */}
         {theme === "alpine" && (
-          <AlpineAtmosphere curve={curve} horizon={styles.fog} zenith={styles.skyTop} />
+          <AlpineAtmosphere curve={curve} horizon={context ? context.fogColor : styles.fog} zenith={context ? context.skyTop : styles.skyTop} />
         )}
         {theme === "neon" && (
-          <NeonAtmosphere curve={curve} horizon={styles.fog} zenith={styles.skyTop} />
+          <NeonAtmosphere curve={curve} horizon={context ? context.fogColor : styles.fog} zenith={context ? context.skyTop : styles.skyTop} />
         )}
         {planetProfile && (
           <PlanetAtmosphere
             curve={curve}
-            horizon={styles.fog}
-            zenith={styles.skyTop}
+            horizon={context ? context.fogColor : styles.fog}
+            zenith={context ? context.skyTop : styles.skyTop}
             world={theme}
           />
         )}
@@ -1944,6 +2126,13 @@ function Scene({
           reactive={reactive}
         />
         <PropField theme={theme} curve={curve} stats={stats} reactive={reactive} />
+        {/* Ground cover — the looped roadside band (roadmap P1 #6). */}
+        <GroundCoverField theme={theme} curve={curve} tier={performanceTier} />
+        {/* Height fog — one shared uniform object per channel; this only
+            re-points them at the theme's haze color. (roadmap P0 #4) */}
+        <HeightFogTuner theme={theme} />
+        {/* Compile the world's programs before the first frame (roadmap #9). */}
+        <ShaderWarmUp />
         {/* Wind — the world moves because the rider does. One uniform write
             per frame; the sway itself lives in the vertex shader. */}
         <WindDriver speedFactor={Math.min(1, stats.power / 450)} />
@@ -2099,8 +2288,16 @@ export default function RouteVisualizer({
     return computeReactiveParams(theme, stats, intervalPhase, progress);
   }, [theme, stats, intervalPhase, progress, mode]);
 
-  const skyTopStyle = reactiveParams ? reactiveParams.skyTopColor : styles.skyTop;
-  const skyBottomStyle = reactiveParams ? reactiveParams.skyBottomColor : styles.skyBottom;
+  const skyTopStyle = reactiveParams
+    ? reactiveParams.skyTopColor
+    : contextPalette && mode === "ride"
+      ? mixHex(styles.skyTop, contextPalette.skyTop, 0.5)
+      : styles.skyTop;
+  const skyBottomStyle = reactiveParams
+    ? reactiveParams.skyBottomColor
+    : contextPalette && mode === "ride"
+      ? mixHex(styles.skyBottom, contextPalette.skyBottom, 0.5)
+      : styles.skyBottom;
 
   return (
     <div
@@ -2109,13 +2306,16 @@ export default function RouteVisualizer({
         background: `linear-gradient(to bottom, ${skyTopStyle}, ${skyBottomStyle})`,
       }}
     >
-      {/* Horizon glow layer behind canvas — reactive with phase */}
+      {/* Horizon glow layer behind canvas — reactive with phase, and bent
+          toward the rider's real conditions by the context palette */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background: reactiveParams
             ? `radial-gradient(ellipse at 50% 80%, ${reactiveParams.fogColor}66 0%, transparent 50%)`
-            : `radial-gradient(ellipse at 50% 80%, ${styles.horizonGlow}44 0%, transparent 50%)`,
+            : contextPalette && mode === "ride"
+              ? `radial-gradient(ellipse at 50% 80%, ${mixHex(styles.horizonGlow, contextPalette.horizonGlow, 0.5)}44 0%, transparent 50%)`
+              : `radial-gradient(ellipse at 50% 80%, ${styles.horizonGlow}44 0%, transparent 50%)`,
         }}
       />
 
@@ -2206,6 +2406,21 @@ export default function RouteVisualizer({
           />
         </Canvas>
       </Suspense>
+
+      {/* World tint from the context palette (roadmap #7) — rides the whole
+          composition in soft-light so the 3D and DOM layers shift season
+          together without flattening either. Ride mode only; preview shows
+          the authored look. */}
+      {mode === "ride" && contextPalette && contextPalette.worldTintOpacity > 0 && (
+        <div
+          className="pointer-events-none absolute inset-0 z-[2]"
+          style={{
+            background: contextPalette.worldTint,
+            opacity: contextPalette.worldTintOpacity,
+            mixBlendMode: "soft-light",
+          }}
+        />
+      )}
 
       {/* Overlay UI — only show in preview mode to avoid duplicating the ride HUD */}
       {mode === "preview" && (
