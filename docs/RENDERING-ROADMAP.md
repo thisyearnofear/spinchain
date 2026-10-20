@@ -1,7 +1,8 @@
 # Rendering & Immersion Research
 
 > **Status**: ACTIVE — design research and a prioritised plan for the 3D world.
-> **Created**: 2026-10-20 · **Last updated**: 2026-10-20 (items 1 and 2 shipped)
+> **Created**: 2026-10-20 · **Last updated**: 2026-10-20 (P0 shipped; P1 #6–9, #11 shipped ·
+> remaining: P1 #10 diegetic bike readout, then the P2 backlog)
 > **Scope**: how to make SpinChain's world more **immersive**, **performant**, **delightful** and
 > **captivating** using current techniques from game development and real-time web rendering.
 > **See also**: [WEDGE.md](./WEDGE.md) (the core loop this serves), [PROGRESSION.md](./PROGRESSION.md)
@@ -51,6 +52,9 @@ The foundation is stronger than it looks. Grounded in `app/components/features/r
   through refs (not re-created per telemetry commit).
 
 **The gaps, honestly named:**
+
+> Gap status: everything below except the diegetic layer and the TSL port shipped on 2026-10-20 —
+> see §4's ✅ marks and implementation notes. The table is kept as the original brief.
 
 | Gap | Evidence |
 |-----|----------|
@@ -174,7 +178,7 @@ experiences; **P1** are compounding; **P2** are the bigger projects.
 
 > ✅ = shipped. Implementation notes for the shipped items are below.
 
-#### Shipped-item implementation notes (2026-10-20)
+#### Shipped-item implementation notes (2026-10-20, commit `7280d95d6` + `9d6b16234`)
 
 - **Wind (`app/components/features/route/wind-material.ts` + `wind-driver.tsx`).**
   The patch runs through `onBeforeCompile` on the *imperatively created* prop materials
@@ -253,7 +257,7 @@ experiences; **P1** are compounding; **P2** are the bigger projects.
   the rider (and the baseline suite is unaffected because the harness runs with no progression
   seed → tier `none`).
 
-#### Shipped-item implementation notes (2026-10-20, second pass)
+#### Shipped-item implementation notes (2026-10-20, second pass, commit `21d7714a5`)
 
 - **Height fog (`app/components/features/route/atmosphere-fog.ts`).**
   The Sleepers vertical dimension of the haze: fragments in a low world-Y band mix toward the
