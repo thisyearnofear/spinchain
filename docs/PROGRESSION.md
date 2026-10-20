@@ -45,6 +45,12 @@ journey, not a grind.
 `RANKS` in `app/lib/progression.ts` is the single source of truth. Colours, blurbs, aura tiers and
 thresholds all live there.
 
+The aura tier is not just a table cell — it renders in the world (`app/components/features/route/
+rank-aura.tsx`). `RankAura` sits inside the rider marker and draws the tier as light: a shimmer
+(ember), an orbit (flow), a vertical light pillar (surge), a taller pillar with a counter-orbit
+(apex). Colours come from the rank emblem itself, so the ladder pays out where the rider spends
+their time.
+
 ---
 
 ## Where XP comes from

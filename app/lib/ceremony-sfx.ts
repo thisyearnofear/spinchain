@@ -10,6 +10,15 @@
 
 let sharedCtx: AudioContext | null = null;
 
+/**
+ * The one AudioContext for the whole app's local sound. ceremony-sfx owns it;
+ * ambient-audio reuses the same instance so we never hit the browser's
+ * per-origin context cap while a ride is running.
+ */
+export function getSharedAudioContext(): AudioContext | null {
+  return getCtx();
+}
+
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!sharedCtx) {

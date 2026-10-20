@@ -168,9 +168,9 @@ experiences; **P1** are compounding; **P2** are the bigger projects.
 |---|--------|--------|------|--------|-------|
 | 1 ✅ | **Wind on every world.** Vertex sway injected into the instanced prop material; gusts from a cheap sin-sum; amplitude scaled by the prop's own height. | ★★★★★ | ~0 cost (one uniform) | M | `route-silhouettes.ts` + a shared wind material |
 | 2 ✅ | **Radial blur speed effect.** Custom `Effect`; strength tracks rider speed. | ★★★★★ | cheap (few taps, one pass) | S | `route-visualizer.tsx` post stack |
-| 3 | **Adaptive pixel ratio.** `PerformanceMonitor` from R3F scales DPR before we fall back to 2D. | ★★★ | **negative cost** — more devices render 3D | S | `route-visualizer.tsx` canvas |
+| 3 ✅ | **Adaptive pixel ratio.** `PerformanceMonitor` from R3F scales DPR before we fall back to 2D. | ★★★ | **negative cost** — more devices render 3D | S | `route-visualizer.tsx` canvas |
 | 4 | **Height fog.** `onBeforeCompile` world-Y fog on the shared materials; horizon fog on the sky dome. | ★★★★ | ~0 | M | new `atmosphere-fog.ts` |
-| 5 | **Procedural wind + tyre audio.** Web Audio filtered noise; gain and filter track cadence and speed. | ★★★★★ | CPU-audio only | M | new `app/lib/ambient-audio.ts` |
+| 5 ✅ | **Procedural wind + tyre audio.** Web Audio filtered noise; gain and filter track cadence and speed. | ★★★★★ | CPU-audio only | M | new `app/lib/ambient-audio.ts` |
 
 > ✅ = shipped. Implementation notes for the shipped items are below.
 
@@ -210,6 +210,49 @@ experiences; **P1** are compounding; **P2** are the bigger projects.
   the software-WebGL finished-state baseline into intermittent black frames under parallel SwiftShader
   contention. The tier is fps-adaptive, so hardware sustaining ~60 fps still earns the effect.
 
+- **Adaptive pixel ratio (`route-visualizer.tsx`, roadmap #3).**
+  drei's `PerformanceMonitor` walks the Canvas `dpr` in 0.25 steps between 1 and the tier ceiling,
+  starting from the static tier ratio. Two gates keep it honest:
+  1. It mounts **only on the high tier** (`effectiveQuality.fps === 60`) in ride mode while active
+     and unpaused — medium/low run `FrameRateLimiter` at 45/30 fps *by design*, and a monitor
+     staring at a capped clock would permanently decline.
+  2. `bounds` are tied to the 60 fps target (~55 lower), and `onFallback` (repeated flip-flop)
+     parks the dpr at `base − 0.5` instead of letting resolution swaps oscillate.
+  Any `quality`/`mode` switch resets the measurement. In the paused visual harness the monitor
+  never mounts, so the baselines are untouched. Verified: typecheck/lint/unit + the visual suite
+  green on this tree in parallel (and the suite also flaking on `main` in parallel under the same
+  environment — the flake is contention, not a look change).
+
+- **Ambient effort audio (`app/lib/ambient-audio.ts`, roadmap #5).**
+  Two synthesized noise layers, no samples: wind (white noise → bandpass; gain and center
+  frequency track speed/power; a 0.13 Hz LFO sweeps the filter so gusts breathe with zero
+  main-thread work) and tyre hum (brown noise → lowpass; gain follows cadence/speed, `playbackRate`
+  revs with cadence). The contract it must keep:
+  1. **Starts only from a user gesture** (ride start), so autoplay policies are satisfied.
+  2. **Sound has its own switch** — gated by `sfxEnabled()` (`spinchain:sfx:v1`), *not* by
+     prefers-reduced-motion (that is a visual preference; silencing useful audio cues under it
+     was a past bug, see `sfx-pref.ts`).
+  3. `setTargetAtTime` everywhere (no zipper noise), peaks held under the music (~wind 0.085,
+     tyre 0.065), façade in/out on start/stop with an 800 ms teardown so a fast stop→start never
+     clicks (the pending teardown timer is cancelled by a re-start).
+  It shares the app's single `AudioContext` via re-exported `getSharedAudioContext()` from
+  `ceremony-sfx.ts` — never hit the browser's per-origin context cap mid-ride. Wired into
+  `use-ride-music-flow.ts`: lifecycle follows `isRiding`; levels ride the existing telemetry
+  subscription (a no-op while the graph isn't built).
+
+- **Rank aura (`app/components/features/route/rank-aura.tsx`, P1 #8).**
+  `RankAura` mounts inside `RiderMarker` and subscribes to `useProgression()` — rank changes are
+  rare (rank-ups), so the subscription costs nothing at telemetry rate. Presentation by tier:
+  ember = a shimmer, flow = an orbit, surge = + a vertical light pillar, apex = + a taller pillar
+  and a counter-orbiting second sparkle layer. Colors come from `RANKS[n].color` (the rank's own
+  identity), never the theme. Two small hard-won details: the early return for `tier === "none"`
+  sits **after** `useFrame` (rules-of-hooks), and the sparkle scales/pillar radius are fixed
+  integers — drei `Sparkles` reallocates its buffer when a scale prop changes size-class, and the
+  budget only changes at rank-up, so buffers never churn mid-ride. Verified on the GPU with a
+  seeded-apex screenshot through the paused harness: sparkle orbit + pillar visibly render around
+  the rider (and the baseline suite is unaffected because the harness runs with no progression
+  seed → tier `none`).
+
 #### Verification used for both
 
 `onBeforeCompile`-patched shaders were confirmed on the GPU by recording
@@ -224,7 +267,7 @@ medium tier; check the tier when a post-effect appears missing.
 |---|--------|-----|--------|
 | 6 | **Ground cover band.** Instanced tufts/blades/rocks looping to fill the camera's view (Bruno's trick) — one draw call, one geometry. | The world stops being a road on a plane | M |
 | 7 | **Wire the existing context palette.** Time-of-day + weather tint the sky, fog and lights. The code exists; it is unused. | The world's time is the rider's time | M |
-| 8 | **Render the aura tier.** The ladder grants an aura per rank; it is declared and never drawn. Close the progression → cosmetic loop. | Ladder payoff becomes visible in the world | M |
+| 8 ✅ | **Render the aura tier.** The ladder grants an aura per rank; it is declared and never drawn. Close the progression → cosmetic loop. | Ladder payoff becomes visible in the world | M |
 | 9 | **Shader warm-up.** `compileAsync` on the world shaders so the first ride frame does not hitch. | Removes a visible stall at ride start | S |
 | 10 | **Diegetic bike readout.** The interval target and flow tier projected in-world; the DOM HUD keeps the facts. | The world becomes the primary display | L |
 | 11 | **Swirling transition.** The Sleepers threshold-texture reveal, reused for the pre-ride → ride handoff. | The current transition is a cut | M |

@@ -5,6 +5,7 @@ import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useFlowState, type FlowStateEvent } from "@/app/lib/flow-state";
 import { musicEngine } from "@/app/lib/music-engine";
+import { startAmbientAudio, stopAmbientAudio, updateAmbientAudio } from "@/app/lib/ambient-audio";
 import { useHaptic } from "@/app/hooks/use-haptic";
 import { useSensorySync } from "@/app/hooks/ride/use-sensory-sync";
 import { useIntervalAudioCues } from "@/app/hooks/ride/use-interval-audio";
@@ -41,9 +42,28 @@ export function useRideMusicFlow({
     () =>
       useTelemetryStore.subscribe((s) => {
         setInputsRef.current(s.snapshot.power, s.snapshot.heartRate);
+        // Ambient soundscape rides the same tick — it no-ops while the
+        // audio graph isn't built (i.e. not riding), so no extra guard.
+        updateAmbientAudio({
+          cadence: s.snapshot.cadence,
+          power: s.snapshot.power,
+          speed: s.snapshot.speed,
+        });
       }),
     [],
   );
+
+  // Ambient audio lifecycle: ride start = user gesture, so autoplay policies
+  // are satisfied. The SFX switch (its own switch, not reduced-motion's job)
+  // is checked inside startAmbientAudio.
+  useEffect(() => {
+    if (isRiding) {
+      startAmbientAudio();
+    } else {
+      stopAmbientAudio();
+    }
+    return () => stopAmbientAudio();
+  }, [isRiding]);
 
   // Register flow event handler → coach channel + haptic + music.
   const registerFlowEventHandler = flow.registerFlowEventHandler;

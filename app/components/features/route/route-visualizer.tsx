@@ -48,6 +48,7 @@ import {
   useGLTF,
   Clone,
   Text,
+  PerformanceMonitor,
 } from "@react-three/drei";
 import { LocalEnvironment } from "./local-environment";
 import { getTheme, loadRemoteThemes, subscribeThemes, getThemeVersion } from "@/app/lib/themes/registry";
@@ -106,6 +107,8 @@ import { PLANET_PROFILES, type PlanetProfile } from "./planetary-atmosphere";
 import { applyWind, windFactorFor } from "./wind-material";
 import { WindDriver } from "./wind-driver";
 import { RadialBlurEffect } from "./radial-blur-effect";
+import { RankAura } from "./rank-aura";
+import { useProgression } from "@/app/lib/progression";
 
 // Import StoryBeat types from gpx-uploader for consistency
 import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../../../routes/builder/gpx-uploader";
@@ -831,6 +834,10 @@ function RiderMarker({
     return () => clearTimeout(timeout);
   }, [prBeaten]);
 
+  // The ladder's cosmetic payoff: the aura tier the rider's rank grants.
+  // Rank changes are rare (rank-up moments), so subscribing here is cheap.
+  const { aura: auraTier, rank: rankDef } = useProgression();
+
   // Clip selection for pipeline-generated riders (Mint) — one shared
   // vocabulary for the whole product (app/lib/character-state.ts).
   const isRiding = useRideStore((s) => s.isActive);
@@ -1009,6 +1016,9 @@ function RiderMarker({
         <ringGeometry args={[1.3, 1.9, 48]} />
         <meshBasicMaterial color={styles.riderColor} transparent opacity={0.2} depthWrite={false} toneMapped={false} />
       </mesh>
+
+      {/* The rank's aura — the ladder paid out in light. */}
+      <RankAura tier={auraTier} color={rankDef.color} cadenceRef={cadenceRef} />
 
       <pointLight
         ref={lightRef}
@@ -2064,6 +2074,18 @@ export default function RouteVisualizer({
     return adaptiveQuality;
   }, [quality, adaptiveQuality]);
 
+  // Adaptive pixel ratio (#3 on the rendering roadmap). The monitor only
+  // mounts on the high tier (60fps target) — medium/low run FrameRateLimiter
+  // at 45/30fps by design, and a monitor staring at a capped clock would
+  // permanently decline. Starts at the static tier ratio; the monitor walks
+  // it in 0.25 steps between 1 and the tier ceiling. `null` = not yet adapted.
+  const [adaptiveDpr, setAdaptiveDpr] = useState<number | null>(null);
+  const baseDpr = effectiveQuality.pixelRatio;
+  useEffect(() => {
+    // Quality/mode switches invalidate the earlier measurement.
+    setAdaptiveDpr(null);
+  }, [quality, mode]);
+
   // eslint-disable-next-line react-hooks/exhaustive-deps -- themeVersion re-reads the registry after remote themes load
   const styles = useMemo(() => getTheme(theme), [theme, themeVersion]);
 
@@ -2125,7 +2147,11 @@ export default function RouteVisualizer({
               return new Promise<never>(() => {}) as unknown as THREE.WebGLRenderer;
             }
           }}
-          dpr={mode === "preview" ? Math.min(effectiveQuality.pixelRatio, 1.5) : effectiveQuality.pixelRatio}
+          dpr={
+            mode === "preview"
+              ? Math.min(effectiveQuality.pixelRatio, 1.5)
+              : (adaptiveDpr ?? effectiveQuality.pixelRatio)
+          }
           // "never" hands the loop to FixedHarnessClock in the visual
           // harness, so Playwright diffs a real, reproducible frame.
           // Inactive (hidden behind 2D) also stops the loop — otherwise the
@@ -2141,6 +2167,25 @@ export default function RouteVisualizer({
               a cinematic drift doesn't need native refresh. */}
           {(mode === "ride" || mode === "preview") && !paused && active && (
             <FrameRateLimiter fps={mode === "ride" ? effectiveQuality.fps : 30} />
+          )}
+          {/* DPR governor (roadmap #3): high tier only, ride only. Bounds are
+              tied to the 60fps target — sustained >55fps earns a dpr step up,
+              <55 drops one. On repeated flip-flopping the monitor locks
+              (fallback=true) and we park at a conservative value instead of
+              oscillating resolution swaps. Cheap, reversible, and turns the
+              static "this device gets dpr 1 forever" decision into a live
+              negotiation — which is how marginal-but-not-falling-over devices
+              get to keep the composer. */}
+          {mode === "ride" && active && !paused && baseDpr > 1 && (
+            <PerformanceMonitor
+              ms={250}
+              iterations={8}
+              bounds={(rate) => [Math.max(50, Math.min(rate, 60) * 0.88), 65]}
+              flipflops={4}
+              onIncline={() => setAdaptiveDpr((d) => Math.min(baseDpr, (d ?? baseDpr) + 0.25))}
+              onDecline={() => setAdaptiveDpr((d) => Math.max(1, (d ?? baseDpr) - 0.25))}
+              onFallback={() => setAdaptiveDpr(Math.max(1, baseDpr - 0.5))}
+            />
           )}
           <Scene
             elevationProfile={elevationProfile}
