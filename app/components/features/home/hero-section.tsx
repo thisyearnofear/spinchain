@@ -10,6 +10,7 @@ import { m } from "framer-motion";
 import { Flame, Play } from "lucide-react";
 import { EASE_SMOOTH } from "@/app/lib/motion";
 import { usePrefersReducedMotion } from "@/app/hooks/use-prefers-reduced-motion";
+import { ProgressionStrip } from "@/app/components/features/progression/progression-strip";
 
 // Lazy-load: keeps the Rive JS runtime (~335 KB) + WASM bootstrap out of the
 // landing page's initial bundle.
@@ -119,6 +120,9 @@ export function HeroSection() {
             Try a Demo Ride
           </MorphCTA>
         </m.div>
+
+        {/* The game, visible before the ride. */}
+        <ProgressionStrip />
 
       </div>
 

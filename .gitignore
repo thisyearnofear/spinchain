@@ -112,6 +112,11 @@ skills/
 .impeccable/
 .kilo/
 
+# Next.js dev-server generated agent rule files — regenerated on every
+# `next dev` run, never hand-edited, so they are not part of the changeset.
+AGENTS.md
+CLAUDE.md
+
 # External repos
 /remix-glassmorphism-analytics-/
 

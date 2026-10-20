@@ -39,14 +39,15 @@ interface AnimatedClassCardProps {
   isConnected: boolean;
   onPreview: () => void;
   onJoin: () => void;
-  theme?: "neon" | "alpine" | "mars" | "ocean";
+  theme?: "neon" | "alpine" | "mars" | "anime" | "rainbow";
 }
 
 const themeColors = {
   neon: { primary: "#6d7cff", secondary: "#9b7bff", bg: "rgba(109, 124, 255, 0.1)" },
   alpine: { primary: "#6ef3c6", secondary: "#4ade80", bg: "rgba(110, 243, 198, 0.1)" },
   mars: { primary: "#ff6b6b", secondary: "#f97316", bg: "rgba(255, 107, 107, 0.1)" },
-  ocean: { primary: "#4ecdc4", secondary: "#06b6d4", bg: "rgba(78, 205, 196, 0.1)" },
+  anime: { primary: "#ff90b3", secondary: "#fb7185", bg: "rgba(255, 144, 179, 0.1)" },
+  rainbow: { primary: "#00ffff", secondary: "#ff00ff", bg: "rgba(0, 255, 255, 0.1)" },
 };
 
 // Generate unique elevation path based on class name

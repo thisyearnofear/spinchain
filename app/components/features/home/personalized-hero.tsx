@@ -15,6 +15,7 @@ import { useRiderName } from "@/app/hooks/common/use-profile";
 import { useRiderStats } from "@/app/hooks/common/use-rider-stats";
 import Link from "next/link";
 import { Flame, Trophy, Bike, Zap, Target } from "lucide-react";
+import { ProgressionStrip } from "@/app/components/features/progression/progression-strip";
 
 const RiveRider = dynamic(
   () => import("@/app/components/features/ride/rive-rider").then((m) => m.RiveRider),
@@ -70,12 +71,15 @@ export function PersonalizedHero() {
               </p>
             </div>
           ) : (
-            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
-              <StatPill icon={<Flame className="w-4 h-4 text-orange-400" />} label="Streak" value={`${streak.daily}d`} highlight={streak.daily > 0} />
-              <StatPill icon={<Bike className="w-4 h-4 text-indigo-400" />} label="Rides" value={totalRides.toString()} />
-              <StatPill icon={<Zap className="w-4 h-4 text-yellow-400" />} label="Best Power" value={`${prs.bestPower}W`} />
-              <StatPill icon={<Trophy className="w-4 h-4 text-emerald-400" />} label="Best Effort" value={`${prs.bestEffort}`} />
-            </div>
+            <>
+              <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
+                <StatPill icon={<Flame className="w-4 h-4 text-orange-400" />} label="Streak" value={`${streak.daily}d`} highlight={streak.daily > 0} />
+                <StatPill icon={<Bike className="w-4 h-4 text-indigo-400" />} label="Rides" value={totalRides.toString()} />
+                <StatPill icon={<Zap className="w-4 h-4 text-yellow-400" />} label="Best Power" value={`${prs.bestPower}W`} />
+                <StatPill icon={<Trophy className="w-4 h-4 text-emerald-400" />} label="Best Effort" value={`${prs.bestEffort}`} />
+              </div>
+              <ProgressionStrip />
+            </>
           )}
 
           <div className="mt-2 w-full max-w-md rounded-2xl border border-[color:var(--accent)]/20 bg-[color:var(--accent)]/5 p-4">

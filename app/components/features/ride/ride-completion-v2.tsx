@@ -42,6 +42,12 @@ import { getEffortTier, getRideHistory } from "@/app/lib/analytics/ride-history"
 import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import type { RewardClaimStatus } from "@/app/lib/rewards";
+import {
+  NextRankTeaser,
+  ProgressionReceipt,
+  RankUpMoment,
+} from "@/app/components/features/progression/progression-reward";
+import { useProgressionCelebration } from "@/app/stores/progression-store";
 
 // Tier identity is carried by MILESTONE_TIERS colors; the glyph is a
 // lucide icon per tier (no emoji-as-icon per the design craft floor).
@@ -263,13 +269,16 @@ export function RideCompletionV2({
     return `Session analysis: ${formatTime(displayElapsed)} duration, ${avgPower}W avg power, ${avgHeartRate} BPM avg HR. ${hrEfficiency ? `Efficiency ratio: ${hrEfficiency}. ` : ""}Effort score ${avgEffort}/1000 (${effortTier}). ${effortTier === "elite" ? "Performance logged — recommending threshold increase." : `Target: push above ${avgEffort < 500 ? 500 : 800} next ride.`}`;
   }, [agentPersonality, avgPower, avgHeartRate, avgEffort, displayElapsed]);
 
-  // Auto-advance to stats after celebration
+  // Auto-advance to stats after celebration. A rank-up needs longer on
+  // screen — the moment is the reward, so it gets room to land.
+  const hasRankUp = useProgressionCelebration((s) => !!s.lastRankUp);
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setCompletionPhase("stats");
-    }, 2500);
+    const timer = setTimeout(
+      () => setCompletionPhase("stats"),
+      hasRankUp ? 4600 : 2500,
+    );
     return () => clearTimeout(timer);
-  }, []);
+  }, [hasRankUp]);
 
   // Track completion view
   useEffect(() => {
@@ -323,6 +332,12 @@ export function RideCompletionV2({
                 : "Ride finished — history could not be saved on this device"}
             </span>
           )}
+
+          {/* Progression payoff — a rank-up gets the moment, every ride gets
+              the receipt. */}
+          <RankUpMoment className="mt-2" />
+          <ProgressionReceipt className="mt-1" />
+          <NextRankTeaser className="mt-1" />
           <div className="w-full flex flex-col gap-2 mt-2">
             <a
               href="/rider/journey"
@@ -468,6 +483,9 @@ export function RideCompletionV2({
               </m.div>
             )}
           </AnimatePresence>
+
+          {/* Rank up — the ladder's payoff moment. */}
+          <RankUpMoment className="mt-4" />
 
           {/* Duration + Phase */}
           <m.div
@@ -623,9 +641,15 @@ export function RideCompletionV2({
               )}
             </div>
 
+            {/* Progression — the XP this ride paid out, and where it leaves
+                the rider on the ladder. */}
+            <div className="mb-4">
+              <ProgressionReceipt />
+              <NextRankTeaser className="mt-2" />
+            </div>
+
             {/* Milestones — compact summary, full list one tap away */}
-            {earnedMilestones.length > 0 && (
-              <div className="mb-4">
+            {earnedMilestones.length > 0 && (              <div className="mb-4">
                 <button
                   onClick={() => setShowMilestones((v) => !v)}
                   aria-expanded={showMilestones}

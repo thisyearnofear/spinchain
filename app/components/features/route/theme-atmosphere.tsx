@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo } from "react";
 import type { BufferGeometry, CatmullRomCurve3, Material, ShaderMaterial } from "three";
+import { SkyTimeKeeper } from "./sky-time-keeper";
 
 /**
  * What a theme supplies to get a sky dome and a horizon band. The sky
@@ -10,6 +11,12 @@ import type { BufferGeometry, CatmullRomCurve3, Material, ShaderMaterial } from 
 export interface AtmosphereKit {
   name: string;
   horizonName: string;
+  /**
+   * When true the sky material may expose a `uTime` uniform, which this
+   * component advances once per frame. Worlds with moving air (dust bands,
+   * aurora ribbons) use it; static skies leave it off.
+   */
+  animated?: boolean;
   buildHorizonGeometry: (curve: CatmullRomCurve3) => BufferGeometry;
   createHorizonMaterial: () => Material;
   createSkyGeometry: () => BufferGeometry;
@@ -53,6 +60,9 @@ export function ThemeAtmosphere({
 
   return (
     <group name={`${kit.name}-atmosphere`}>
+      {kit.animated === true ? (
+        <SkyTimeKeeper material={skyMaterial} />
+      ) : null}
       <mesh
         name={`${kit.name}-sky`}
         geometry={skyGeometry}

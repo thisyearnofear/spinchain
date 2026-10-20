@@ -79,6 +79,28 @@ Rider never sees these words. Built in parallel, never blocking the ride. Direct
 
 Receipt `verification.status` is a separate axis from where the record is stored — a receipt can be `unverified` regardless of ledger location. Cloud-save job state is separate from chain anchoring/proof state. Legacy reads are migration-only and auth-owner-scoped (phase 1, deployed) — old blobs are never retroactively declared private/deleted.
 
+### The rank ladder (foreground, shipped 2026-10-20)
+
+The ladder is a **game** ledger, not a settlement ledger — it never gates value, never syncs to an
+account, and never touches a chain. It is device-local like the durable-progression ledger, but it
+is a different thing: where "durable progression" means *the ride was recorded*, the ladder means
+*what the ride earned*.
+
+| Ledger | Contains | Key | Status vocabulary |
+|--------|----------|-----|-------------------|
+| **Rank ladder** | Append-only XP entries with per-component breakdowns, derived from ride telemetry | `spinchain:progression:v1` | "1.3k XP" / "Flow Rider" / "37 XP to Surge" |
+
+Full detail: [PROGRESSION.md](PROGRESSION.md). Source: `app/lib/progression.ts`.
+
+Two properties matter for the architecture:
+
+1. **Derived, not duplicated.** XP is computed from data the ride already produced (duration,
+   average power, average effort, flow minutes, peak flow tier, milestone count, streak). There is
+   no second source of truth for effort, so the ladder can never disagree with the ride record.
+2. **Backfilled, not re-asked.** A rider who was here before the ladder existed reconstructs a
+   starting total from `spinchain:rides:history:v2` on first mount. The backfill only ever
+   under-counts — flow and milestone history are not invented.
+
 ### RideReceiptV1 (deployed: `app/lib/analytics/ride-receipt.ts`, release `a3c7e37`)
 
 ```ts

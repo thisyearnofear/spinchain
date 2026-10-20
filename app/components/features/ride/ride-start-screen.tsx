@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { Bluetooth, BluetoothConnected, BluetoothSearching } from "lucide-react";
+import {
+  Bluetooth,
+  BluetoothConnected,
+  BluetoothSearching,
+  Lock,
+  MapPin,
+} from "lucide-react";
 import type { ClassWithRoute } from "@/app/hooks/evm/use-class-data";
 
 let worldPreloaded = false;
@@ -37,6 +43,16 @@ interface RideStartScreenProps {
   isTouch?: boolean;
   /** Bluetooth pairing; omitted where this browser has no Bluetooth. */
   bike?: RideStartBike;
+  /** Label of the world the rider is about to enter. */
+  worldLabel?: string;
+  /** Set when the rider's rank has not yet opened this world. */
+  worldLocked?: {
+    label: string;
+    rankIndex: number;
+    xpRemaining: number;
+  } | null;
+  /** Fallback action when the chosen world is still locked. */
+  onRideElsewhere?: () => void;
 }
 
 export function RideStartScreen({
@@ -51,6 +67,9 @@ export function RideStartScreen({
   onPracticeDurationChange,
   isTouch = false,
   bike,
+  worldLabel,
+  worldLocked = null,
+  onRideElsewhere,
 }: RideStartScreenProps) {
   const duration = classData.metadata?.duration ?? 45;
   const instructor = classData.metadata?.instructor;
@@ -68,6 +87,17 @@ export function RideStartScreen({
 
   return (
     <div className="fixed inset-0 z-[65] flex flex-col items-center justify-center gap-6 pointer-events-none px-4">
+      {/* Scrim — the live 3D world now renders behind this screen, so the
+          card needs its own contrast floor to stay readable. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(125% 90% at 50% 45%, rgba(3,6,14,0.10) 0%, rgba(3,6,14,0.40) 55%, rgba(3,6,14,0.72) 100%)",
+        }}
+      />
+
       <div className="pointer-events-auto w-full max-w-sm rounded-2xl border border-white/10 bg-black/70 backdrop-blur-xl px-6 py-5 text-center">
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[color:var(--accent)]/80 mb-2">
           {isPracticeMode ? "Practice Ride" : "Class"}
@@ -79,6 +109,12 @@ export function RideStartScreen({
           {instructor ? `${instructor} · ` : ""}
           {isPracticeMode ? `${practiceDurationSec}s demo` : `${duration} min`}
         </p>
+        {worldLabel ? (
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/70">
+            <MapPin className="h-3 w-3" aria-hidden="true" />
+            {worldLabel}
+          </p>
+        ) : null}
       </div>
 
       {/* Practice duration selector */}
@@ -173,14 +209,49 @@ export function RideStartScreen({
         onClick={onStart}
         onPointerEnter={preloadWorld}
         onFocus={preloadWorld}
-        className="pointer-events-auto group relative rounded-full bg-[color:var(--accent)] px-10 py-4 text-base font-black text-black shadow-[0_0_60px_var(--glow)] hover:scale-105 hover:bg-[color:var(--accent-strong)] active:scale-95 transition-[transform,background-color]"
-        aria-label="Start ride"
+        disabled={!!worldLocked}
+        className="pointer-events-auto group relative rounded-full bg-[color:var(--accent)] px-10 py-4 text-base font-black text-black shadow-[0_0_60px_var(--glow)] hover:scale-105 hover:bg-[color:var(--accent-strong)] active:scale-95 transition-[transform,background-color] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+        aria-label={worldLocked ? "This world is locked" : "Start ride"}
       >
-        Start Ride
+        {worldLocked ? "World Locked" : "Start Ride"}
         <span className="block text-[10px] font-bold uppercase tracking-[0.3em] text-black/60 mt-0.5">
-          {bike?.connected ? "Pedal your bike to ride" : isTouch ? "Tap L / R to pedal" : "Keyboard: ← → / A D"}
+          {worldLocked
+            ? "Earn your way in"
+            : bike?.connected
+              ? "Pedal your bike to ride"
+              : isTouch
+                ? "Tap L / R to pedal"
+                : "Keyboard: ← → / A D"}
         </span>
       </button>
+
+      {/* Locked world: say exactly what it takes, and offer a rideable road
+          instead of a dead end. */}
+      {worldLocked ? (
+        <div className="pointer-events-auto flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-white/12 bg-black/70 px-5 py-4 text-center backdrop-blur-xl">
+          <div className="flex items-center gap-2">
+            <Lock className="h-4 w-4 text-white/60" aria-hidden="true" />
+            <span className="text-xs font-black uppercase tracking-[0.18em] text-white/70">
+              {worldLocked.label}
+            </span>
+          </div>
+          <p className="text-xs leading-relaxed text-white/60">
+            Opens at rank {worldLocked.rankIndex + 1} —{" "}
+            <span className="font-bold text-white/85">
+              {worldLocked.xpRemaining.toLocaleString()} XP
+            </span>{" "}
+            to go.
+          </p>
+          {onRideElsewhere ? (
+            <button
+              onClick={onRideElsewhere}
+              className="rounded-full border border-white/20 bg-white/5 px-5 py-2 text-xs font-bold text-white/85 transition-colors hover:bg-white/10"
+            >
+              Ride Neon City instead
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

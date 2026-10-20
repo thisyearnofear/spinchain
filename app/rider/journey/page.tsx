@@ -51,6 +51,13 @@ import { isLegacyRewardClaimsEnabled } from "../../lib/rewards/legacy-policy";
 import { RedeemPilotChip } from "../../components/features/rider/redeem-pilot-chip";
 import { useRiderProfile, mapCoachPersonalityToEngine } from "../../stores/rider-profile-store";
 import { getTheme } from "../../lib/themes/registry";
+import { RANKS, formatXp, formatXpExact, useProgression } from "../../lib/progression";
+import {
+  RankEmblem,
+  RankLadder,
+  RankProgressBar,
+  UnlockGrid,
+} from "../../components/features/progression/rank-card";
 import { experienceManager } from "../../lib/experience-level";
 import type { CharacterState } from "../../lib/character-state";
 
@@ -76,6 +83,7 @@ function JourneyContent() {
   const [walrusLoaded, setWalrusLoaded] = useState(false);
   const { address } = useAccount();
   const isCompletedLanding = searchParams.get("completed") === "true";
+  const progression = useProgression();
 
   useProfileSyncEffect();
   useSupabaseSync();
@@ -223,6 +231,7 @@ function JourneyContent() {
     rides.length === 0
       ? "—"
       : `${rides.length} ride${rides.length === 1 ? "" : "s"} · ${badges.length} badge${badges.length === 1 ? "" : "s"} · last ${new Date(rides[0].completedAt).toLocaleDateString()}`;
+  const progressionSummary = `${progression.rank.title} · ${formatXp(progression.totalXp)} XP`;
 
   return (
     <div
@@ -295,6 +304,64 @@ function JourneyContent() {
 
         {/* The walls — folded until asked. */}
         <div className="border-b border-white/10">
+          <RoomSection title="Progression" summary={progressionSummary}>
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+              <div className="flex flex-wrap items-center gap-6">
+                <RankEmblem rank={progression.rank} size={72} />
+                <div className="min-w-[220px] flex-1">
+                  <div
+                    className="text-[11px] font-black uppercase tracking-[0.2em]"
+                    style={{ color: progression.rank.color }}
+                  >
+                    Rank {progression.rank.index + 1} of {RANKS.length}
+                  </div>
+                  <h2 className="mt-1 text-2xl font-black text-white tracking-tight">
+                    {progression.rank.title}
+                  </h2>
+                  <p className="mt-1 text-xs text-white/50">
+                    {progression.rank.blurb}
+                  </p>
+                </div>
+                <div className="min-w-[220px] flex-1">
+                  <div className="mb-2 flex items-baseline justify-between text-[11px] font-semibold text-white/60">
+                    <span className="tabular-nums">
+                      {formatXpExact(progression.totalXp)} XP
+                    </span>
+                    <span className="tabular-nums">
+                      {progression.next
+                        ? `${formatXpExact(progression.xpToNext)} to ${progression.next.name}`
+                        : "Top of the ladder"}
+                    </span>
+                  </div>
+                  <RankProgressBar
+                    progress={progression.progress}
+                    color={progression.rank.color}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-lg font-bold text-white">Unlocks</h2>
+              <p className="mt-1 text-xs text-white/40">
+                Worlds, rider auras and titles the ladder opens up
+              </p>
+              <div className="mt-4">
+                <UnlockGrid />
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-lg font-bold text-white">Rank ladder</h2>
+              <p className="mt-1 text-xs text-white/40">
+                Ten ranks, from Spark to Singularity
+              </p>
+              <div className="mt-4">
+                <RankLadder />
+              </div>
+            </div>
+          </RoomSection>
+
           <RoomSection title="Your week" summary={weekSummary}>
             <div className="rounded-3xl border border-cyan-400/20 bg-cyan-500/10 p-6">
               <h3 className="text-lg font-bold text-white">Weekly Goal</h3>

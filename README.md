@@ -31,6 +31,8 @@ Open [http://localhost:3210](http://localhost:3210)
 | Feature | Description |
 |---------|-------------|
 | **Rider + Instructor UI** | Landing, rider, instructor, route builder, and analytics screens |
+| **Rank Ladder** | Ten named ranks from Spark to Singularity, XP earned from effort/flow/milestones, visible on every rider surface — worlds unlock as you climb (`docs/PROGRESSION.md`) |
+| **Reactive Worlds** | Five art-directed 3D worlds (Neon City, Summit Pass, Red Expanse, Toon Valley, Spectrum Run) that respond to your effort in real time |
 | **Wallet Integration** | EVM wallet connection via RainbowKit/Wagmi |
 | **Route Visualization** | GPX and route-preview flows with themed class cards |
 | **BLE + Mobile Foundation** | Capacitor setup, bike pairing from the ride start screen (Web Bluetooth + native), WebGL→2D fallback when the GPU can't run |
@@ -42,6 +44,8 @@ Open [http://localhost:3210](http://localhost:3210)
 ## Status
 
 - Launch readiness: not ready — general real-bike launch stays blocked until a legal review is done and real-device validation passes (consent controls are live)
+- Rank ladder (shipped 2026-10-20): a ten-rank XP ladder derived from what each ride already recorded (time, effort, power, flow, milestones, streak), with an append-only local ledger (`spinchain:progression:v1`), a backfill from the existing ride history so pre-existing riders don't restart at zero, and world unlocks that gate on rank but never re-lock a world the rider has ridden — `docs/PROGRESSION.md`
+- Worlds (shipped 2026-10-20): Neon City and Summit Pass had bespoke art direction; Red Expanse, Toon Valley and Spectrum Run now do too (own sky shaders, ridge silhouettes, lighting and fog). The pre-ride screen renders the live world behind the card instead of a black void, and interval phases no longer swap the world out from under the rider
 - Network posture: Avalanche Fuji + Sui testnet for existing experiments; no chain migration planned
 - Direction: receipt-first. Foreground ride → completion/progression saved locally → optional private account sync → optional future campaign settlement. Three separate ledgers: local runtime, private account progression, optional settlement. "Progress saved", "verification pending", and "redemption confirmed" are never interchangeable.
 - Phase 2 (merged 2026-10-07): four granular consents (`cloud_history`, `ai_voice`, `instructor_live`, `public_export`, all off by default, `consent-v1` policy version) enforced client- and server-side, plus a durable outbox (`spinchain:outbox:v1`) that retries cloud-history uploads instead of dropping them. Production migration `app/lib/supabase/migrations/20261007_rider_consents.sql` applied 2026-10-07 — consent enforcement is live.
@@ -60,6 +64,7 @@ Open [http://localhost:3210](http://localhost:3210)
 | Doc | Description |
 |-----|-------------|
 | [WEDGE](docs/WEDGE.md) | The wedge: effort → visual transformation. Feature discipline, guardrails, anti-examples. **Read first.** |
+| [PROGRESSION](docs/PROGRESSION.md) | The rank ladder: XP sources, the ledger, world gates, and where the ladder surfaces. |
 | [IMPLEMENTATION-PLAN](docs/IMPLEMENTATION-PLAN.md) | Phased, actionable plan aligned to the approved receipt-first direction. |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Foreground engine/renderer facts plus the ledger/privacy boundary model. |
 | [OPERATIONS](docs/OPERATIONS.md) | Local setup, test commands, production preflight findings, dogfooding checklist. |

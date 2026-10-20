@@ -16,6 +16,7 @@ import { AnimatedClassCard } from "../components/features/class/animated-class-c
 import { EmptyState } from "../components/features/common/empty-state";
 import { RiderHero } from "../components/features/rider/rider-hero";
 import { GamificationBar } from "../components/features/common/gamification-bar";
+import { RiderProgressPanel } from "../components/features/rider/progression-panel";
 import { PrimaryCTA } from "../components/features/common/primary-cta";
 import { useMilestones } from "../lib/milestones";
 import { useRiderStats } from "../hooks/common/use-rider-stats";
@@ -254,13 +255,16 @@ export default function RiderPage() {
         {/* 1. Gamification Bar — visible game signals on the front door */}
         <GamificationBar />
 
-        {/* 2. Hero — personalized greeting */}
+        {/* 2. Progression — the ladder, the weekly goal, the next unlock */}
+        <RiderProgressPanel />
+
+        {/* 3. Hero — personalized greeting */}
         <RiderHero initialGreeting={heroGreeting} weeklyLoad={weeklyLoad} hasRides={totalRides > 0} />
 
-        {/* 3. ONE Primary CTA — the dominant action */}
+        {/* 4. ONE Primary CTA — the dominant action */}
         <PrimaryCTA isConnected={isConnected} nextClass={nextClassForCta} hasRides={totalRides > 0} />
 
-        {/* 4. Browse All Classes — collapsed by default, pushed below the fold */}
+        {/* 5. Browse All Classes — collapsed by default, pushed below the fold */}
         <div id="classes" className="scroll-mt-8">
           <button
             onClick={() => setShowClasses(!showClasses)}
@@ -335,14 +339,15 @@ export default function RiderPage() {
               {!isLoading && !error && filteredClasses.length > 0 && (
                 <div className="grid gap-6 md:grid-cols-2">
                   {filteredClasses.map((classData, index) => {
-                    const themes: ("neon" | "alpine" | "mars" | "ocean")[] = [
+                    const themes: ("neon" | "alpine" | "mars" | "anime" | "rainbow")[] = [
                       "neon",
                       "alpine",
                       "mars",
-                      "ocean",
+                      "anime",
+                      "rainbow",
                     ];
                     const metadataTheme = classData.metadata?.route?.theme;
-                    const theme = metadataTheme === "neon" || metadataTheme === "alpine" || metadataTheme === "mars"
+                    const theme = metadataTheme === "neon" || metadataTheme === "alpine" || metadataTheme === "mars" || metadataTheme === "anime" || metadataTheme === "rainbow"
                       ? metadataTheme
                       : themes[index % themes.length];
 

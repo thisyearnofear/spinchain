@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback, useSyncExternalStore } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useClass } from "../../../hooks/evm/use-class-data";
+import { useClass, getDemoRideUrl } from "../../../hooks/evm/use-class-data";
 import { usePracticeConfig } from "../../../hooks/ride/use-practice-config";
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore } from "@/app/stores/telemetry-store";
@@ -39,10 +39,7 @@ import { useWakeLock } from "../../../hooks/use-wake-lock";
 import { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 import { registerTelemetryIngest } from "@/app/lib/test-hooks";
 import { useHaptic } from "../../../hooks/use-haptic";
-import {
-  type WorkoutPlan,
-  PHASE_TO_THEME,
-} from "../../../lib/workout-plan";
+import { type WorkoutPlan } from "../../../lib/workout-plan";
 import { resolveRideWorkoutPlan } from "@/app/lib/agent/resolve-ride-plan";
 import { loadClassPlanRemote } from "@/app/lib/classes/class-store";
 import { SectionErrorBoundary } from "../../../components/layout/error-boundary";
@@ -60,6 +57,9 @@ import { usePrPursuit } from "@/app/hooks/ride/use-pr-pursuit";
 import { RideAiTelemetryBridge } from "@/app/components/features/ride/ride-ai-telemetry-bridge";
 import { AiVoiceConsentPrompt } from "@/app/components/features/ride/ai-voice-consent-prompt";
 import { useRiderName } from "@/app/hooks/common/use-profile";
+import { getTheme } from "@/app/lib/themes/registry";
+import { useWorldAccess } from "@/app/lib/progression";
+import type { VisualizerTheme } from "@/app/components/features/route/visualizer-theme";
 
 const noopSubscribe = () => () => {};
 
@@ -320,9 +320,21 @@ export default function LiveRidePage() {
     );
     return routeCoordinates[index] ?? null;
   }, [routeCoordinates, routeProgress]);
-  const routeTheme = currentInterval
-    ? PHASE_TO_THEME[currentInterval.phase]
-    : (classData?.metadata?.route.theme as "neon" | "alpine" | "mars" | "anime" | "rainbow") || "neon";
+  // The world stays the world the rider chose. Interval phases used to swap
+  // the entire theme mid-ride (warmup → alpine, sprint → mars), which threw
+  // away the rider's choice, made the world gallery a promise the ride
+  // didn't keep, and quietly bypassed the rank gates on worlds. The phase
+  // still shapes the ride — fog, road glow, props and speed lines all run
+  // through the reactive layer — it just no longer replaces the place.
+  const worldTheme = (classData?.metadata?.route.theme as VisualizerTheme) || "neon";
+  const routeTheme = worldTheme;
+  const worldLabel = getTheme(worldTheme).worldLabel;
+  // Worlds gate on rank. A locked world still renders behind the card — the
+  // rider sees what they are working toward — but the ride itself waits
+  // until the ladder opens the door.
+  const worldAccess = useWorldAccess();
+  const worldUnlock = worldAccess.unlockFor(worldTheme);
+  const worldLocked = !worldAccess.isUnlocked(worldTheme);
 
   // ─── Wallet / Guest / Training Mode ────────────────────────────
   const { isConnected: walletConnected, address } = useAccount();
@@ -471,6 +483,7 @@ export default function LiveRidePage() {
     telemetryAverages,
     flow,
     reducedMotion,
+    world: routeTheme,
   });
   useEffect(() => {
     if (completedRideId) {
@@ -664,9 +677,17 @@ export default function LiveRidePage() {
   // On mobile the PedalSimulator shows touch buttons instead, so keyboard
   // hints are irrelevant and suppressed.
   useEffect(() => {
-    if (isRiding && useSimulator && deviceType !== "mobile") {
-      useRideModalStore.getState().setShowKeyboardHints(true);
-    }
+    if (!isRiding || !useSimulator || deviceType === "mobile") return;
+    const store = useRideModalStore.getState();
+    if (store.showKeyboardHints) return;
+    store.setShowKeyboardHints(true);
+    // The panel is large and it was covering a third of the world on every
+    // ride, so it retires on its own. The "Keys" button in the HUD controls
+    // and the hint on the start screen both keep it reachable.
+    const timer = setTimeout(() => {
+      useRideModalStore.getState().setShowKeyboardHints(false);
+    }, 6500);
+    return () => clearTimeout(timer);
   }, [isRiding, useSimulator, deviceType]);
 
   // ─── Swipe gesture support (mobile) ─────────────────────────────
@@ -689,10 +710,6 @@ export default function LiveRidePage() {
     if (showCompletionScreen) return "completion";
     return "riding";
   })();
-
-  // Keyboard hints: no page-level auto-dismiss — they persist until the user
-  // dismisses them (Esc / button) so controls stay discoverable. The overlay
-  // itself handles its own intro fade; we don't fight it with a second timer.
 
   // ─── Modal store reads (hoisted before early returns — rules of hooks) ─
   const showExitConfirm = useRideModalStore((s) => s.showExitConfirm);
@@ -803,6 +820,19 @@ export default function LiveRidePage() {
           practiceDurationSec={practiceDurationSec}
           onPracticeDurationChange={setPracticeDurationSec}
           isTouch={deviceType === "mobile"}
+          worldLabel={worldLabel}
+          worldLocked={
+            worldLocked && worldUnlock
+              ? {
+                  label: worldUnlock.label,
+                  rankIndex: worldUnlock.rankIndex,
+                  xpRemaining: worldAccess.xpRemainingFor(worldTheme),
+                }
+              : null
+          }
+          onRideElsewhere={() =>
+            router.push(getDemoRideUrl({ name: "Demo Ride" }))
+          }
           bike={
             canPairBike
               ? {

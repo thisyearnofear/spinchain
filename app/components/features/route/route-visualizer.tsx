@@ -101,6 +101,8 @@ import {
   neonSkirtLight,
 } from "./neon-atmosphere";
 import { NeonAtmosphere } from "./neon-view";
+import { PlanetAtmosphere } from "./planet-view";
+import { PLANET_PROFILES, type PlanetProfile } from "./planetary-atmosphere";
 
 // Import StoryBeat types from gpx-uploader for consistency
 import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../../../routes/builder/gpx-uploader";
@@ -970,7 +972,7 @@ function RiderMarker({
 
       {/* Label — only visible during active ride */}
       {showYouLabel && (
-        <Html position={[0, 3.9, 0]} center transform sprite distanceFactor={6} zIndexRange={[5, 0]} className="pointer-events-none">
+        <Html position={[0, 2.7, 0]} center transform sprite distanceFactor={6} zIndexRange={[5, 0]} className="pointer-events-none">
           <div className="flex flex-col items-center gap-1 pointer-events-none">
             <div className="whitespace-nowrap rounded-full bg-black/70 px-2 py-1 text-[11px] font-bold text-white border border-white/30 shadow-lg">
               YOU
@@ -1472,6 +1474,9 @@ function Scene({
 }) {
   const curve = useRouteCurve(elevationProfile);
   const styles = getTheme(theme);
+  // Bespoke art direction for the worlds that are not a city at night or a
+  // mountain at noon. `undefined` for alpine/neon, which have their own.
+  const planetProfile = PLANET_PROFILES[theme] as PlanetProfile | undefined;
   const smoothedLookTargetRef = useRef(new Vector3());
   const smoothedShakeRef = useRef(new Vector3());
   const _shakeTargetVec = useRef(new Vector3());
@@ -1481,6 +1486,10 @@ function Scene({
   // Mouse parallax — subtle camera offset based on pointer position
   const mouseParallaxRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
   const driftTimeRef = useRef(0);
+  // First-frame camera placement: the preview camera starts at the default
+  // overhead position, so it snaps to the route once instead of flying in
+  // from the sky.
+  const cameraPlacedRef = useRef(false);
 
   // Get performance tier for adaptive quality - use quality.fps as proxy if available
   const performanceTier = quality?.fps === 30 ? "low" : quality?.fps === 45 ? "medium" : "high";
@@ -1500,6 +1509,7 @@ function Scene({
   // rebuild geometry whose args arrays have new references.  We use mutable refs for
   // the hot path and only push to React state at ~10fps for HTML overlay elements.
   const previewProgressRef = useRef(START_OFFSET);
+  const previewDirectionRef = useRef(1);
   const renderProgressRef = useRef(
     mode === "preview" ? START_OFFSET : mapToCurveProgress(progress),
   );
@@ -1538,7 +1548,17 @@ function Scene({
     // --- 1. Compute raw progress ---
     let rawProgress: number;
     if (mode === "preview") {
-      previewProgressRef.current = (previewProgressRef.current + delta * 0.05) % 1;
+      // Ping-pong, not wrap: a wrap teleports the camera back to the start
+      // of the route in one frame and the preview spends seconds flying
+      // back across the map.
+      previewProgressRef.current += delta * 0.018 * previewDirectionRef.current;
+      if (previewProgressRef.current > 0.96) {
+        previewProgressRef.current = 0.96;
+        previewDirectionRef.current = -1;
+      } else if (previewProgressRef.current < 0.04) {
+        previewProgressRef.current = 0.04;
+        previewDirectionRef.current = 1;
+      }
       rawProgress = previewProgressRef.current;
     } else {
       rawProgress = progress;
@@ -1563,9 +1583,13 @@ function Scene({
     const curveProgress = renderProgressRef.current;
 
     // --- 4. Chase camera ---
-    // Time-based damping (1 - e^(-λ·dt)) so the follow feel is identical at
-    // 30/60/120Hz. λ values reproduce the old per-frame factors at 60fps.
-    if (mode !== "preview") {
+    // Preview used to skip the camera entirely, which left the default
+    // [0, 100, 100] overhead camera pointing at empty sky — the pre-ride
+    // screen showed a black void instead of the world you were about to
+    // enter. Preview now flies the same chase camera along the route at a
+    // slower, wider, more cinematic offset.
+    {
+      const isPreview = mode === "preview";
       const safeCurveP = Number.isFinite(curveProgress)
         ? Math.max(0, Math.min(curveProgress, 1))
         : START_OFFSET;
@@ -1589,31 +1613,46 @@ function Scene({
       side.crossVectors(tangent, up).normalize();
 
       // Aim just above/ahead of the rider so the cyclist sits mid-frame,
-      // clear of the bottom HUD.
-      look.copy(riderPos).addScaledVector(tangent, 1.5);
-      look.y += 1.2;
+      // clear of the bottom HUD. Preview looks further down the road so the
+      // establishing shot reads as a landscape, not a portrait of the rider.
+      look.copy(riderPos).addScaledVector(tangent, isPreview ? 6 : 1.5);
+      look.y += isPreview ? 1.8 : 1.2;
       // riderPos becomes the camera target: behind, slightly to the side,
       // above. Closer than before (was 14 back / 10 up) so the cyclist
-      // reads as a person on a bike, not a dot.
+      // reads as a person on a bike, not a dot. Preview pulls back further
+      // and higher so the road ahead reads as a landscape, not a chase.
       const targetCamPos = riderPos
-        .addScaledVector(tangent, -10)
-        .addScaledVector(side, 2.5);
-      targetCamPos.y += 6.5;
+        .addScaledVector(tangent, isPreview ? -12 : -10)
+        .addScaledVector(side, isPreview ? 3 : 2.5);
+      targetCamPos.y += isPreview ? 4.2 : 6.5;
 
-      const follow = dampFactor(mode === "ride" ? 3.7 : 2.4, delta);
-      state.camera.position.lerp(targetCamPos, follow);
+      const follow = dampFactor(isPreview ? 1.4 : mode === "ride" ? 3.7 : 2.4, delta);
+      // Only preview snaps on its first frame — the ride and finished modes
+      // have always eased in from the default camera, and the visual
+      // baselines depend on that.
+      if (isPreview && !cameraPlacedRef.current) {
+        cameraPlacedRef.current = true;
+        state.camera.position.copy(targetCamPos);
+        smoothedLookTargetRef.current.copy(look);
+      } else {
+        state.camera.position.lerp(targetCamPos, follow);
+      }
 
       if (!isFiniteVector3(smoothedLookTargetRef.current) || smoothedLookTargetRef.current.lengthSq() === 0) {
         smoothedLookTargetRef.current.copy(look);
       } else {
-        smoothedLookTargetRef.current.lerp(look, dampFactor(mode === "ride" ? 7.7 : 5, delta));
+        smoothedLookTargetRef.current.lerp(look, dampFactor(isPreview ? 2.2 : mode === "ride" ? 7.7 : 5, delta));
       }
       state.camera.lookAt(smoothedLookTargetRef.current);
 
       const cam = state.camera as ThreePerspectiveCamera;
       if (cam.fov !== undefined) {
-        let targetFov = 60;
-        if (reactive) {
+        let targetFov: number;
+        if (isPreview) {
+          // Wider lens for the pre-ride establishing shot — the point is to
+          // show the world the rider is about to enter.
+          targetFov = 68;
+        } else if (reactive) {
           targetFov = reactive.fovTarget;
         } else {
           targetFov = 60 + Math.min(25, (stats.power / 400) * 20);
@@ -1671,9 +1710,23 @@ function Scene({
       <ambientLight
         intensity={
           (reactive ? reactive.ambientIntensity : 0.5) *
-          (theme === "alpine" ? ALPINE_AMBIENT_GAIN : theme === "neon" ? NEON_AMBIENT_GAIN : 1)
+          (theme === "alpine"
+            ? ALPINE_AMBIENT_GAIN
+            : theme === "neon"
+              ? NEON_AMBIENT_GAIN
+              : planetProfile
+                ? planetProfile.ambientGain
+                : 1)
         }
-        color={theme === "alpine" ? ALPINE_AMBIENT_COLOR : theme === "neon" ? NEON_AMBIENT_COLOR : "#ffffff"}
+        color={
+          theme === "alpine"
+            ? ALPINE_AMBIENT_COLOR
+            : theme === "neon"
+              ? NEON_AMBIENT_COLOR
+              : planetProfile
+                ? planetProfile.ambientColor
+                : "#ffffff"
+        }
       />
       {theme === "alpine" && (
         <>
@@ -1695,21 +1748,39 @@ function Scene({
           />
         </>
       )}
+      {planetProfile && (
+        <>
+          <hemisphereLight
+            args={[
+              planetProfile.hemiSky,
+              planetProfile.hemiGround,
+              planetProfile.hemiIntensity,
+            ]}
+          />
+          <directionalLight
+            position={[
+              planetProfile.sunDir.x * 80,
+              planetProfile.sunDir.y * 80,
+              planetProfile.sunDir.z * 80,
+            ]}
+            intensity={planetProfile.keyIntensity}
+            color={planetProfile.keyColor}
+          />
+        </>
+      )}
       <pointLight
         position={[10, 50, 10]}
         intensity={reactive ? reactive.pointLightIntensity : 1}
         color={
           reactive
             ? reactive.pointLightColor
-            : theme === "mars"
-              ? "#ef4444"
-              : theme === "rainbow"
-                ? "#ff00ff"
-                : theme === "alpine"
-                  ? ALPINE_POINT_COLOR
-                  : theme === "neon"
-                    ? NEON_POINT_COLOR
-                    : "#9b7bff"
+            : theme === "alpine"
+              ? ALPINE_POINT_COLOR
+              : theme === "neon"
+                ? NEON_POINT_COLOR
+                : planetProfile
+                  ? planetProfile.pointColor
+                  : "#9b7bff"
         }
         castShadow={quality?.shadows}
       />
@@ -1721,7 +1792,13 @@ function Scene({
           // skirt's far edge into a cut.
           theme === "alpine" || theme === "neon" ? styles.fog : reactive ? reactive.fogColor : styles.fog,
           reactive ? reactive.fogDensity : 40,
-          theme === "alpine" ? ALPINE_FOG_FAR : theme === "neon" ? NEON_FOG_FAR : 250,
+          theme === "alpine"
+            ? ALPINE_FOG_FAR
+            : theme === "neon"
+              ? NEON_FOG_FAR
+              : planetProfile
+                ? planetProfile.fogFar
+                : 250,
         ]}
       />
 
@@ -1791,6 +1868,14 @@ function Scene({
         )}
         {theme === "neon" && (
           <NeonAtmosphere curve={curve} horizon={styles.fog} zenith={styles.skyTop} />
+        )}
+        {planetProfile && (
+          <PlanetAtmosphere
+            curve={curve}
+            horizon={styles.fog}
+            zenith={styles.skyTop}
+            world={theme}
+          />
         )}
         <RouteSkirt curve={curve} theme={theme} />
         <Road

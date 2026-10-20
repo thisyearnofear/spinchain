@@ -9,6 +9,7 @@ import { isLegacyRewardClaimsEnabled } from "@/app/lib/rewards/legacy-policy";
 import { useUIStore } from "@/app/stores/ui-store";
 import type { RewardMode } from "@/app/hooks/rewards/use-rewards";
 import { EASE_SMOOTH } from "@/app/lib/motion";
+import { formatXp, useProgression } from "@/app/lib/progression";
 
 interface RideTopBarProps {
   className: string;
@@ -58,6 +59,9 @@ export const RideTopBar = memo(function RideTopBar({
   const toggleViewMode = useUIStore((s) => s.toggleViewMode);
   const cycleHudMode = useUIStore((s) => s.cycleHudMode);
 
+  const progression = useProgression();
+  const rank = progression.rank;
+
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +100,23 @@ export const RideTopBar = memo(function RideTopBar({
                 <span className="inline-flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[10px] text-white/60 shrink-0">
                   <span className={`h-1.5 w-1.5 rounded-full ${telemetryColor}`} />
                   {telemetryLabel}
+                </span>
+                {/* The rider's rank, live in the ride. Keeps the ladder
+                    present while the effort is doing the work. */}
+                <span
+                  className="hidden md:inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] shrink-0"
+                  style={{
+                    borderColor: `${rank.color}55`,
+                    background: `${rank.color}1f`,
+                    color: rank.color,
+                  }}
+                  title={`${rank.title} · ${formatXp(progression.totalXp)} XP`}
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ background: rank.color, boxShadow: `0 0 6px ${rank.color}` }}
+                  />
+                  {rank.name}
                 </span>
               </m.div>
             ) : (

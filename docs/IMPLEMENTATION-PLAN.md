@@ -62,6 +62,21 @@ Delivered: Fuji deploy script (`deploy-phase5-pilot.s.sol`), issuer signing rout
 - Chainlink CRE: new docs still require deployment approval; repository workflow is mockRequest + placeholder wearable URL — not a deploy toggle. Avalanche ACP-209 is Proposed, not proof of Fuji 7702 support.
 - The 10-rider "want again" signal is a qualitative product hypothesis, not statistical evidence.
 
+### Foreground work — the game layer (shipped 2026-10-20)
+
+Independent of the settlement track, the foreground loop needed a spine. Delivered:
+
+- **Rank ladder** ([PROGRESSION.md](./PROGRESSION.md)) — ten named ranks, XP derived from what a ride already recorded, append-only local ledger, backfill from existing ride history, world unlocks that gate on rank but never re-lock a ridden world. Visible on the landing hero, rider dashboard, journey page, ride top bar, completion screen and worlds gallery.
+- **Completion payoff** — a per-ride XP receipt with a component breakdown, and a full-screen rank-up moment that holds the celebration phase open long enough to land.
+- **Worlds** — bespoke art direction for Red Expanse, Toon Valley and Spectrum Run (own sky shaders, ridge silhouettes, lighting, fog) alongside the existing Neon City and Summit Pass. The pre-ride screen renders the live world behind the card instead of a black void.
+- **Wedge corrections** — interval phases no longer swap the visualizer theme mid-ride (it discarded the rider's chosen world and bypassed the world gates); the keyboard-controls panel no longer covers a third of the world on every practice ride.
+
+Still open on this track:
+
+- [ ] Earned character costumes on the journey page (the ladder is the delivery mechanism; the assets are not ready).
+- [ ] Aura tiers rendered on the rider in the 3D world — the tiers are declared per rank but the rider still wears one aura.
+- [ ] Ghost riders are still a moat, not foreground. The solo ride must stay complete without them.
+
 
 ---
 

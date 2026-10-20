@@ -5,6 +5,8 @@ import { useTelemetryStore } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { milestonesAndStreaks, type SessionMilestone } from "@/app/lib/milestones";
 import { experienceManager } from "@/app/lib/experience-level";
+import { progressionStore, RANKS } from "@/app/lib/progression";
+import { useProgressionCelebration } from "@/app/stores/progression-store";
 import { STORAGE_KEYS } from "@/app/lib/analytics/ride-history";
 import { haptic } from "@/app/hooks/use-haptic";
 import { playFirstHitSfx } from "@/app/lib/ceremony-sfx";
@@ -46,6 +48,7 @@ export function useRideMilestones({
   telemetryAverages,
   flow,
   reducedMotion = false,
+  world,
 }: {
   isRiding: boolean;
   elapsedTime: number;
@@ -53,6 +56,8 @@ export function useRideMilestones({
   telemetryAverages: TelemetryAverages;
   flow: ReturnType<typeof useFlowState>;
   reducedMotion?: boolean;
+  /** The world the ride happened in — a ridden world stays unlocked. */
+  world?: string;
 }) {
   const maxPowerRef = useRef(0);
   const maxHRRef = useRef(0);
@@ -140,7 +145,41 @@ export function useRideMilestones({
     }
 
     experienceManager.recordRide();
-  }, [elapsedTime, telemetryAverages, flow]);
+
+    // ── Progression award ────────────────────────────────────────
+    // XP is derived from what the ride actually did (time, effort, power,
+    // flow, milestones, streak). The ledger append is the only write; the
+    // celebration store carries the event to the completion screen.
+    const memory = milestonesAndStreaks.getMemory();
+    const todayKey = new Date().toISOString().split("T")[0];
+    const milestoneCount =
+      memory.rides[todayKey]?.milestones?.length ?? newMilestones.length;
+
+    const award = progressionStore.award(
+      {
+        durationSec: elapsedTime,
+        avgPower: telemetryAverages.avgPower || 0,
+        avgEffort: telemetryAverages.avgEffort || 0,
+        flowMinutes: flow.totalFlowMinutes,
+        peakFlowTier: flow.flowTier,
+        milestoneCount,
+        streakDays: milestonesAndStreaks.getCurrentStreak(),
+      },
+      undefined,
+      world,
+    );
+
+    useProgressionCelebration.getState().recordAward(
+      award.entry,
+      award.rankedUp
+        ? {
+            entry: award.entry,
+            from: RANKS[award.previousRankIndex],
+            to: award.state.rank,
+          }
+        : null,
+    );
+  }, [elapsedTime, telemetryAverages, flow, world]);
 
   useEffect(() => {
     if (showCompletionScreen) {

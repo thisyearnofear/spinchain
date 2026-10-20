@@ -441,7 +441,11 @@ describe("neon atmosphere", () => {
     expect(visualizer).toContain("NeonAtmosphere");
     expect(visualizer).toContain("AlpineAtmosphere");
     expect(visualizer).toContain('theme === "alpine" || theme === "neon"');
-    expect(visualizer).toContain('theme === "neon" ? NEON_FOG_FAR : 250');
+    // Fog far plane: alpine and neon keep their own, and the planetary
+    // worlds carry their own too — none of them fall through to the
+    // neutral 250.
+    expect(visualizer).toContain("NEON_FOG_FAR");
+    expect(visualizer).toContain("planetProfile.fogFar");
     expect(visualizer).toContain("BreathingMaterial");
     // Skyline geometry is built in the view's useMemo, not from the visualizer
     // frame loop. The one allowed neon/rainbow pulse still writes a single

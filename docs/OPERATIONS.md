@@ -531,6 +531,31 @@ The former multi-chain mainnet migration checklist is retired. Do not publish pe
 
 ### Session Log
 
+#### 2026-10-20 — Rank ladder + world art direction
+
+**Shipped:** the rider-facing rank ladder (ten ranks, XP derived from ride telemetry, append-only
+local ledger, backfill from existing ride history, world unlocks that never re-lock a ridden world —
+`docs/PROGRESSION.md`); the ladder surfaced on the landing hero, rider dashboard, journey page, ride
+top bar, completion screen and worlds gallery; bespoke atmospheres for Red Expanse, Toon Valley and
+Spectrum Run alongside the existing Neon City and Summit Pass; the pre-ride screen now renders the
+live world behind the card instead of a black void; interval phases no longer swap the visualizer
+theme mid-ride.
+
+**Also fixed:** the keyboard-controls panel no longer auto-opens and covers a third of the world on
+every desktop practice ride (it retires after 6.5s); the rider's "YOU" marker sat too high above
+the rider; the class-card theme list referenced a non-existent `ocean` theme.
+
+**Verification:** `tsc --noEmit` clean; ESLint 0 errors; 545 unit tests / 57 files pass (20 new
+progression tests); production build green; Playwright visual-regression 10/10 and the functional
+E2E suite 18/18 pass across desktop + mobile. The two `preview` visual baselines were regenerated —
+the pre-ride camera now frames the world instead of empty sky, which changes that frame. The
+`ride`/`finished` baselines were deliberately left untouched, and a camera-damping regression caught
+during this work (the `finished` mode's easing was changed by accident) was fixed rather than
+re-baselined.
+
+**Not deployed:** this entry records a merged change, not a production deployment. No Vercel deploy
+or contract operation was performed.
+
 #### 2026-10-07 — Phase 2 + phase-4 design merged to main
 
 **Merged:** 12 PRs in dependency order — granular rider consent (`consent-v1`, four scopes, client + server enforcement), durable cloud-history outbox (`spinchain:outbox:v1` + `OutboxDrainer`), Connect-bike UI on the ride start screen, fake-BLE-bike e2e (`tests/fake-bike.spec.ts`), WebGL→2D Focus fallback, `AchievementRedeemerV2` + `ClaimRegistry` design/Foundry tests (no deploy), visual-harness fixed clock, iOS simulator CI (`macos-latest`), Xcode Cloud post-clone fix, Capacitor 8 Podfile.lock, React Compiler cleanups, moderate/low audit fixes.

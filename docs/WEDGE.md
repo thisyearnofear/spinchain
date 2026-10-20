@@ -32,6 +32,10 @@ The flow state engine, milestones, streaks, and experience level are built and d
 
 **Rule**: Every landing page and rider dashboard must surface at least one gamification signal within the first viewport: streak count, current flow tier, milestone progress, or experience level badge.
 
+**Now implemented** by the rank ladder ([PROGRESSION.md](./PROGRESSION.md)): a ten-rank XP ladder is the primary signal, shown on the landing hero, the rider dashboard, the journey page, the ride's top bar, the completion screen, and the worlds gallery. The other signals (streak, flow minutes, milestones) ride alongside it.
+
+**The ladder is the spine of the game** — a new surface that shows progression should read from `app/lib/progression.ts` rather than inventing its own count. If two surfaces disagree about where a rider stands, that is a bug.
+
 ### Rider-Facing Language Only
 
 The rider never needs to know about:
@@ -117,6 +121,7 @@ These decisions violated the wedge and should be corrected:
 | "Preview" badge on reward system | Partial gamification is worse than none | Make real or remove |
 | Onboarding quiz before the first ride | Friction before the core loop | Show quiz *after* first ride, or integrate it into the ride |
 | Landing page: wallet connect + demo + checklist + banner + network status | Too many competing CTAs | One CTA. One message. One ride. |
+| Interval phases swapping the whole visualizer theme mid-ride (`PHASE_TO_THEME`) | Discarded the rider's chosen world, made the world gallery a promise the ride didn't keep, and quietly bypassed the rank gates on worlds. | **Fixed 2026-10-20** — the world stays the world; the phase shapes it through the reactive layer (fog, road glow, props, speed lines) instead of replacing it. |
 
 ---
 

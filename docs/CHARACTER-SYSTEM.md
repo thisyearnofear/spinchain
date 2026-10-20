@@ -67,7 +67,14 @@ Done. 3D avatar in the route world (`RiderMarker` → `AnimatedModel`, state-cro
 The highest-emotion 90 seconds in the product. The character is present in the celebration phase beside the coach's debrief — fist-pumping the PR, or calmly present after a disciplined easy ride. Celebration first, stats second, infrastructure last (existing design principle — the character anchors Phase 1).
 
 ### Act 4 — Between rides (`/rider/journey`)
-Progression made flesh. Instead of XP bars alone, the character *is* the progression artifact: earned kits, new animation clips, aura tiers. The Mint pipeline (`scripts/mint/generate-rider.mjs`) is the content factory for this — unlockable clips and models are the reward inventory. **Not yet implemented — see roadmap.**
+Progression made flesh. Instead of XP bars alone, the character *is* the progression artifact: earned kits, new animation clips, aura tiers. The Mint pipeline (`scripts/mint/generate-rider.mjs`) is the content factory for this — unlockable clips and models are the reward inventory.
+
+**Partly implemented (2026-10-20)** — the rank ladder ([PROGRESSION.md](./PROGRESSION.md)) is the
+progression artifact now: ten named ranks, each granting an **aura tier** and unlocking a world.
+The aura is declared on the rank (`RANKS[].aura`) and the journey page renders the full ladder and
+the unlock inventory. What is still parked is the *character costume* layer (earned kits, new
+clips, the "Volt" archetype as a first unlock) — the ladder gives it somewhere to live, but the
+models are not in yet.
 
 ---
 
@@ -94,8 +101,14 @@ Foreground (ships with Phase 2 delight):
 - [x] Shared `CharacterState` vocabulary (`app/lib/character-state.ts`)
 - [x] Celebration tiers: `finishPulse` every finish, `prPulse` for PRs only
 
+Foreground (shipped 2026-10-20, the progression layer):
+- [x] Rank ladder with ten named ranks, aura tiers and world unlocks (`docs/PROGRESSION.md`)
+- [x] Ladder visible on every rider surface (landing, dashboard, journey, ride, completion)
+- [x] Rank-up moment and per-ride XP receipt in the completion sequence
+- [x] Fair gates: a world the rider has ridden is never re-locked
+
 Parked until 10-rider validation (do not build):
-- [ ] Journey-page character progression (earned cosmetics/clips; Volt as first unlock candidate)
+- [ ] Journey-page character *costumes* (earned kits/clips; Volt as first unlock candidate) — the ladder is the delivery mechanism, the assets are not ready
 - [ ] World Labs environments (needs `WLT_API_KEY`; mobile-benchmark first)
 - [ ] Pedaling clip for the 3D avatar (blocked on Mint catalog)
 - [ ] Between-ride coach arc expansion beyond current `CoachArcCard`
