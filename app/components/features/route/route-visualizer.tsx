@@ -103,6 +103,9 @@ import {
 import { NeonAtmosphere } from "./neon-view";
 import { PlanetAtmosphere } from "./planet-view";
 import { PLANET_PROFILES, type PlanetProfile } from "./planetary-atmosphere";
+import { applyWind, windFactorFor } from "./wind-material";
+import { WindDriver } from "./wind-driver";
+import { RadialBlurEffect } from "./radial-blur-effect";
 
 // Import StoryBeat types from gpx-uploader for consistency
 import type { StoryBeat as GpxStoryBeat, StoryBeatType } from "../../../routes/builder/gpx-uploader";
@@ -483,28 +486,32 @@ function RouteSkirt({ curve, theme }: { curve: CatmullRomCurve3; theme: Visualiz
 
 /**
  * Effort glow for the one lit part of a neon/rainbow silhouette.
- * Writes a single emissiveIntensity. No per-instance material walk.
+ *
+ * Animates the emissive intensity of a prop material. It does not own the
+ * material — `PropInstances` builds it imperatively so the wind patch lands
+ * before the first compile, and this component only writes one uniform per
+ * frame.
  */
 function BreathingMaterial({
-  color,
-  roughness,
-  metalness,
   theme,
   stats,
   reactive,
+  materialRef,
 }: {
-  color: string;
-  roughness: number;
-  metalness: number;
   theme: VisualizerTheme;
   stats: RiderStats;
   reactive: ReactiveParams | null;
+  /**
+   * The material to animate, held in a ref. The React Compiler forbids
+   * mutating a value that arrived as a plain prop, and a ref is the
+   * sanctioned way to express "this object is mutated elsewhere".
+   */
+  materialRef: React.RefObject<THREE.MeshStandardMaterial | null>;
 }) {
-  const ref = useRef<MeshStandardMaterial>(null);
   const reduced = usePrefersReducedMotion();
 
   useFrame((state) => {
-    const mat = ref.current;
+    const mat = materialRef.current;
     if (!mat) return;
     // Reduced motion: hold a static intensity instead of pulsing every frame.
     if (reduced) {
@@ -521,16 +528,7 @@ function BreathingMaterial({
     mat.emissiveIntensity = baseIntensity + (pulseBase - 1) * 2;
   });
 
-  return (
-    <meshStandardMaterial
-      ref={ref}
-      color={color}
-      emissive={color}
-      emissiveIntensity={theme === "neon" ? 0.5 : 0.8}
-      roughness={roughness}
-      metalness={metalness}
-    />
-  );
+  return null;
 }
 
 function PropInstances({
@@ -538,11 +536,13 @@ function PropInstances({
   theme,
   stats,
   reactive,
+  propType,
 }: {
   part: PropPartField;
   theme: VisualizerTheme;
   stats: RiderStats;
   reactive: ReactiveParams | null;
+  propType: string;
 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const geometry = useMemo(() => getPartGeometry(part), [part]);
@@ -555,26 +555,42 @@ function PropInstances({
 
   const breathe = part.breathes && (theme === "neon" || theme === "rainbow");
 
+  // The material is built imperatively so the wind patch lands *before* the
+  // renderer ever sees it. Patching a JSX-created material afterwards races
+  // the first compile — and if the program is already cached, the patch is
+  // silently lost.
+  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null);
+  const windFactor = windFactorFor(propType);
+  const material = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(part.color),
+      emissive: new THREE.Color(part.color),
+      emissiveIntensity: breathe ? (theme === "neon" ? 0.5 : 0.8) : part.emissive,
+      roughness: part.roughness,
+      metalness: part.metalness,
+    });
+    if (windFactor > 0) applyWind(m, { factor: windFactor });
+    return m;
+    // `part` is rebuilt whenever the prop field is rebuilt; `breathe` and
+    // `theme` are stable for a given field.
+  }, [part, breathe, theme, windFactor]);
+
+  // Publish the material to the breathing animator. Written in an effect, not
+  // during render — the React Compiler rejects ref writes in the render phase.
+  useLayoutEffect(() => {
+    materialRef.current = material;
+  }, [material]);
+
   return (
-    <instancedMesh ref={meshRef} args={[geometry, undefined, part.count]} frustumCulled>
+    <instancedMesh ref={meshRef} args={[geometry, material, part.count]} frustumCulled>
       {breathe ? (
         <BreathingMaterial
-          color={part.color}
-          roughness={part.roughness}
-          metalness={part.metalness}
           theme={theme}
           stats={stats}
           reactive={reactive}
+          materialRef={materialRef}
         />
-      ) : (
-        <meshStandardMaterial
-          color={part.color}
-          emissive={part.color}
-          emissiveIntensity={part.emissive}
-          roughness={part.roughness}
-          metalness={part.metalness}
-        />
-      )}
+      ) : null}
     </instancedMesh>
   );
 }
@@ -602,13 +618,20 @@ function PropField({
   return (
     <group>
       {field.parts.map((part) => (
-        <PropInstances key={part.id} part={part} theme={theme} stats={stats} reactive={reactive} />
+        <PropInstances
+          key={part.id}
+          part={part}
+          theme={theme}
+          stats={stats}
+          reactive={reactive}
+          propType={field.type}
+        />
       ))}
     </group>
   );
 }
 
-function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive = null }: { theme: VisualizerTheme; stats: RiderStats; performanceTier?: "high" | "medium" | "low"; reactive?: ReactiveParams | null }) {
+function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive = null, mode = "ride" }: { theme: VisualizerTheme; stats: RiderStats; performanceTier?: "high" | "medium" | "low"; reactive?: ReactiveParams | null; mode?: VisualizerMode }) {
   // Live values go through refs and are written onto the effect instances
   // in useFrame. @react-three/postprocessing recreates an effect whenever
   // its props change (args memoized on JSON.stringify(props)), and the
@@ -629,7 +652,8 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
     bloom: BloomEffect | null;
     chromatic: ChromaticAberrationEffect | null;
     vignette: VignetteEffect | null;
-  }>({ composer: null, bloom: null, chromatic: null, vignette: null });
+    radialBlur: RadialBlurEffect | null;
+  }>({ composer: null, bloom: null, chromatic: null, vignette: null, radialBlur: null });
 
   const intensityMultiplier = performanceTier === "low" ? 0 : performanceTier === "medium" ? 0.5 : 1;
   const noiseOpacity = theme === 'neon' ? 0.03 * intensityMultiplier : 0;
@@ -640,13 +664,14 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
     const cache = effectsCacheRef.current;
     if (cache.composer !== composer || (!cache.bloom && !cache.chromatic)) {
       cache.composer = composer;
-      cache.bloom = cache.chromatic = cache.vignette = null;
+      cache.bloom = cache.chromatic = cache.vignette = cache.radialBlur = null;
       for (const pass of composer.passes) {
         const passEffects = (pass as unknown as { effects?: unknown[] }).effects ?? [];
         for (const fx of passEffects) {
           if (fx instanceof BloomEffect) cache.bloom = fx;
           else if (fx instanceof ChromaticAberrationEffect) cache.chromatic = fx;
           else if (fx instanceof VignetteEffect) cache.vignette = fx;
+          else if (fx instanceof RadialBlurEffect) cache.radialBlur = fx;
         }
       }
     }
@@ -677,7 +702,22 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
     if (cache.vignette && r) {
       cache.vignette.darkness += (r.vignetteDarkness - cache.vignette.darkness) * k;
     }
+    if (cache.radialBlur) {
+      // Peripheral blur is the speed cue. It only runs during a ride — the
+      // pre-ride preview is a slow establishing shot and must stay crisp.
+      const speedTarget =
+        mode !== "ride"
+          ? 0
+          : Math.min(0.055, Math.max(0, s.power - 120) / 9000);
+      cache.radialBlur.strength += (speedTarget - cache.radialBlur.strength) * k;
+    }
   });
+
+  // Built once; only its uniform changes (driven from the frame loop below).
+  const radialBlurEffect = useMemo(
+    () => new RadialBlurEffect({ strength: 0 }),
+    [],
+  );
 
   // Effect elements depend only on tier/theme — stable across telemetry.
   const effects = useMemo(() => {
@@ -700,12 +740,20 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
         opacity={noiseOpacity}
         blendFunction={BlendFunction.OVERLAY}
       />,
+      // Peripheral blur — the speed cue. Rendered as a plain primitive (the
+      // same route the built-in effects take) with the instance built here, so
+      // the composer's child scan sees the Effect object directly. It only
+      // mounts on the high tier: a full-frame convolution pass is the single
+      // heaviest item in this stack, and the low tiers (software WebGL in the
+      // visual suite, low-tier phones) cannot afford it. The tier is
+      // fps-adaptive, so hardware that sustains 60fps still earns the effect.
+      ...(performanceTier === "high" ? [<primitive key="radial-blur" object={radialBlurEffect} />] : []),
     ];
     if (performanceTier !== "medium") {
       e.push(<Vignette key="vignette" eskil={false} offset={0.15} darkness={0.8} />);
     }
     return e;
-  }, [intensityMultiplier, noiseOpacity, performanceTier]);
+  }, [intensityMultiplier, noiseOpacity, performanceTier, radialBlurEffect]);
 
   if (performanceTier === "low" || effects.length === 0) return null;
 
@@ -1809,7 +1857,7 @@ function Scene({
       <LocalEnvironment key={theme} sky={styles.skyTop} horizon={styles.horizonGlow} ground={styles.terrainColor} />
 
       {/* Dynamic atmospheric effects - disabled on low tier for performance */}
-      <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} reactive={reactive} />
+      <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} reactive={reactive} mode={mode} />
 
       {/* Conditionally render expensive effects */}
       {particleCount > 100 && <FloatingParticles theme={theme} stats={stats} reactive={reactive} />}
@@ -1886,6 +1934,9 @@ function Scene({
           reactive={reactive}
         />
         <PropField theme={theme} curve={curve} stats={stats} reactive={reactive} />
+        {/* Wind — the world moves because the rider does. One uniform write
+            per frame; the sway itself lives in the vertex shader. */}
+        <WindDriver speedFactor={Math.min(1, stats.power / 450)} />
         <FinishLine curve={curve} theme={theme} />
         <WelcomeSign theme={theme} name={userDisplayName} curve={curve} />
 
