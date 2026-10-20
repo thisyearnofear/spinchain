@@ -53,8 +53,8 @@ The foundation is stronger than it looks. Grounded in `app/components/features/r
 
 **The gaps, honestly named:**
 
-> Gap status: everything below except the diegetic layer and the TSL port shipped on 2026-10-20 —
-> see §4's ✅ marks and implementation notes. The table is kept as the original brief.
+> Gap status: all of these shipped on 2026-10-20 except the TSL port and the deeper P2 items
+> (§4 states exactly what is left, in order). The table is kept as the original brief.
 
 | Gap | Evidence |
 |-----|----------|
@@ -127,6 +127,8 @@ the E2E suite. We should not rebuild it. But we can add a **diegetic layer** —
 on the bike computer in the 3D world — that carries the *flavour* (your interval target, your flow
 tier) while the DOM HUD keeps carrying the *facts*. The world becomes the primary display and the
 overlay becomes the accessible secondary.
+
+*(Shipped 2026-10-20 as `bike-computer.tsx` — implementation notes in §4, third pass.)*
 
 **Achievement → cosmetic reward.** Bruno unlocks vehicle skins from achievements. Our rank ladder
 already unlocks worlds; it should also unlock something the rider *wears*. The aura tier already
@@ -339,8 +341,8 @@ projects) were regenerated that way and the parallel re-run then reproduces them
 
 - **Diegetic bike readout (`bike-computer.tsx`, new; wired through `RiderMarker`).**
   A stem-top computer carries the *flavour*: the interval target ("250 W") and the live flow tier,
-  with the tier projected as a small chip stacked under the YOU label — Space-X-of-you style, same
-  DOM grammar (`<Html center transform sprite distanceFactor={6} zIndexRange={[5, 0]}
+  with the tier projected as a small chip stacked under the YOU label — the same DOM grammar as
+  the YOU label (`<Html center transform sprite distanceFactor={6} zIndexRange={[5, 0]}
   pointer-events-none>`), so it inherits the same stacking and pointer discipline. Deliberate
   decisions:
   1. **Arena of two scars:** the HoloHUD was removed from this very group because a mini-map
@@ -390,6 +392,27 @@ remained byte-identical (verified: `git status` listed exactly the active-play f
 | 13 | **Procedural ground-cover system with compute** | Bruno's grass at scale, GPU-driven | L |
 | 14 | **Shared world conditions** (all riders in a class see the same weather/time) | Bruno's social proof mechanic | L (needs a server) |
 | 15 | **Texture pipeline: KTX2/ETC1S + DRACO for the world art** | The 5 world JPGs are the only textures in the app | S |
+
+**Remaining-work ordering** (the P0 and P1 programs above are complete):
+
+1. **#15 texture pipeline (S)** — next up. The only S-sized item left; no product decisions
+   involved. The 5 world-art JPGs (~300–400 KB each) become KTX2/ETC1S GPU-compressed textures;
+   DRACO/Meshopt waits until any procedural geometry is ever replaced by baked geometry. Win:
+   lower upload/GPU-memory cost on mobile; the `low` tier keeps every existing gate.
+2. **#13 compute-driven ground cover (L)** — scales the roadside tuft band toward Bruno's 78k-blade
+   grass, looping to fill the camera view. GPU-driven rendering (and the compute option) is tied to
+   the TSL/WebGPU story, so the GLSL-first version of this (more instances, cheaper per-instance)
+   ships first and needs no platform port.
+3. **#14 shared world conditions (L — needs a server)** — the palette becomes an input rather than
+   a computation: the coordinator/server publishes weather + time-of-day per class, all riders see
+   the same conditions (Bruno's social-proof mechanic). Blocked on an infrastructure decision, not
+   on rendering work — pickup when server work is scheduled.
+4. **#12 TSL port (XL)** — the platform project. Unlocks WebGPU and compute-shader particles
+   (which #13's full form wants). Do not start casually: it is a staged migration of the four
+   custom-shader files, not a patch — see §5.
+
+Entry rule unchanged (§6): no effect ships without a measured frame-time cost on the high tier, a
+measured cost on the mobile tier, and a tier-disciplined degradation path.
 
 ---
 

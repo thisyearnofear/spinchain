@@ -42,13 +42,31 @@ Flow tiers (consistency near target over time):
 
 | Tier | Name | Delay | Visual |
 |------|------|-------|--------|
-| 0 | Calm | — | 1.0x |
+| 0 | baseline (unlabeled) | — | 1.0x |
 | 1 | Focused | 8s | 1.2x |
 | 2 | Flow | 15s | 1.5x |
 | 3 | Super Flow | 25s | 1.8x |
 | 4 | Mastery | 35s | 2.2x |
 
 Score = consistency 40% + trajectory 25% + duration 20% + HR zone 15%.
+
+Tier 0 is the baseline, not a named state: the HUD badge hides it (`FLOW_LABELS[0] = ""`) and the
+diegetic readout prints **STEADY** on the rider's own color. Tiers 1–4 share one vocabulary
+(`FLOW_LABELS` / `FLOW_COLORS` in `app/lib/flow-state.ts`) across the HUD badge, the celebration
+overlay and the 3D world.
+
+### World immersion layer (3D, shipped 2026-10-20 — spec + scar history in [RENDERING-ROADMAP.md](./RENDERING-ROADMAP.md))
+
+Vertex-shader wind and height fog are injected into the shared prop/road materials via
+`onBeforeCompile` (call order matters: `applyHeightFog` first, `applyWind` second — wind inlines
+`project_vertex`, fog must never touch it). The roadside band carries instanced ground-cover tufts
+driven by the same wind uniform. Speed reads as speed (roadmap): radial blur + adaptive DPR ride
+the 60fps high tier. The context palette (time-of-day + season) tints the scene in `mode === "ride"`
+only — preview keeps the authored look. Ambient effort audio (procedural wind/tyre noise tracking
+cadence/power) starts with the ride and is gated by `sfxEnabled()`, not reduced-motion. The rank
+ladder's aura tier renders as light around the rider (`rank-aura.tsx`), and the diegetic bike
+computer (`bike-computer.tsx`) projects the interval target + flow tier in-world while the DOM HUD
+keeps the facts. Every effect is tier-gated: `low` must degrade cleanly, never break.
 
 ### Delight moments (only two — curated, not a sandbox)
 
@@ -153,7 +171,9 @@ Budget: <3 re-renders/s, telemetry commit 2-4Hz, probe <50ms, switch <100ms, 0 T
 ```
 app/engines/  coordinator, telemetry, device, coaching, audio, rewards, sui, social, visualization + renderers/
 app/stores/   ride, coaching, ui, sensory, ride-modal
-app/lib/      flow-state, phase-theme, milestones, experience-level, context-palette, gpu-probe, themes/registry
+app/lib/      flow-state, phase-theme, milestones, experience-level, context-palette, progression, ambient-audio, gpu-probe, themes/registry
 ```
 
-*Last updated: 2026-10-04 — slimmed to foreground/background. Deleted duplicated §5 tail, collapsed chain/ZK/Yellow detail to appendix with OPERATIONS pointers.*
+*Last updated: 2026-10-20 — added the shipped 3D world-immersion layer (§1) + flow-tier vocabulary
+note; file map refreshed. P0/P1 rendering work complete — pending items live in
+[RENDERING-ROADMAP.md](./RENDERING-ROADMAP.md) §4 ("Remaining-work ordering").*
