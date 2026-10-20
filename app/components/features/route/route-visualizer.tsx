@@ -67,6 +67,7 @@ export type { VisualizerTheme } from "./visualizer-theme";
 import { EQUIPMENT, WORLDS, resolveAvatar, type AvatarAsset, type EquipmentAsset } from "../../../lib/selection-library";
 import { AnimatedModel } from "./animated-model";
 import { ProceduralBike, useCyclistPose, BIKE_DECK_OFFSET, RIG } from "./procedural-cyclist";
+import { BikeComputer } from "./bike-computer";
 import { ProgressInterpolator, dampFactor } from "@/app/lib/progress-interpolator";
 import { WorldSkybox } from "./world-skybox";
 import { buildRouteCurve } from "./route-curve";
@@ -921,6 +922,9 @@ function RiderMarker({
   avatar,
   equipment,
   showYouLabel = false,
+  showReadout = false,
+  readoutProjected = false,
+  flowTier = 0,
   reactive = null,
   intervalPhase = null,
 }: {
@@ -931,6 +935,9 @@ function RiderMarker({
   avatar?: AvatarAsset;
   equipment?: EquipmentAsset;
   showYouLabel?: boolean;
+  showReadout?: boolean;
+  readoutProjected?: boolean;
+  flowTier?: FlowStateTier;
   reactive?: ReactiveParams | null;
   intervalPhase?: IntervalPhase | null;
 }) {
@@ -963,6 +970,11 @@ function RiderMarker({
   // The ladder's cosmetic payoff: the aura tier the rider's rank grants.
   // Rank changes are rare (rank-up moments), so subscribing here is cheap.
   const { aura: auraTier, rank: rankDef } = useProgression();
+
+  // Diegetic readout data (roadmap #10): the interval's target power straight
+  // from the coaching store. Interval transitions are rare — same cheap-sub
+  // argument as the rank aura. Tier arrives as a prop (Scene's flowTier).
+  const intervalTargetPower = useCoachingStore((s) => s.currentInterval?.targetPower ?? null);
 
   // Clip selection for pipeline-generated riders (Mint) — one shared
   // vocabulary for the whole product (app/lib/character-state.ts).
@@ -1087,6 +1099,17 @@ function RiderMarker({
             frameColor={styles.lineColor}
             accentColor={styles.riderColor}
           />
+          {/* Diegetic bike readout (roadmap #10) — stem-top computer carrying
+              the interval target + flow tier. Ride mode only (the authored
+              preview look stays untouched); legacy presentations skip it. */}
+          {showReadout && (
+            <BikeComputer
+              targetPower={intervalTargetPower}
+              flowTier={flowTier}
+              fallbackColor={styles.riderColor}
+              projected={readoutProjected}
+            />
+          )}
           <AnimatedModel
             url={avatar.modelUrl}
             clips={avatar.clips}
@@ -2147,6 +2170,9 @@ function Scene({
           avatar={avatar}
           equipment={equipment}
           showYouLabel={mode === "ride"}
+          showReadout={mode === "ride"}
+          readoutProjected={performanceTier !== "low"}
+          flowTier={flowTier}
           reactive={reactive}
           intervalPhase={intervalPhase}
         />

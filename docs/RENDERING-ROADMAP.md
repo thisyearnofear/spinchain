@@ -1,8 +1,8 @@
 # Rendering & Immersion Research
 
 > **Status**: ACTIVE — design research and a prioritised plan for the 3D world.
-> **Created**: 2026-10-20 · **Last updated**: 2026-10-20 (P0 shipped; P1 #6–9, #11 shipped ·
-> remaining: P1 #10 diegetic bike readout, then the P2 backlog)
+> **Created**: 2026-10-20 · **Last updated**: 2026-10-20 (P0 shipped; P1 #6–11 shipped
+> complete · next: the P2 backlog)
 > **Scope**: how to make SpinChain's world more **immersive**, **performant**, **delightful** and
 > **captivating** using current techniques from game development and real-time web rendering.
 > **See also**: [WEDGE.md](./WEDGE.md) (the core loop this serves), [PROGRESSION.md](./PROGRESSION.md)
@@ -335,6 +335,42 @@ nothing while "passing" against stale pre-arc baselines — confirmed via snapsh
 update run re-capture them; the second-pass baselines (active-play/finished/preview, both
 projects) were regenerated that way and the parallel re-run then reproduces them exactly.
 
+#### Shipped-item implementation notes (2026-10-20, third pass, P1 #10)
+
+- **Diegetic bike readout (`bike-computer.tsx`, new; wired through `RiderMarker`).**
+  A stem-top computer carries the *flavour*: the interval target ("250 W") and the live flow tier,
+  with the tier projected as a small chip stacked under the YOU label — Space-X-of-you style, same
+  DOM grammar (`<Html center transform sprite distanceFactor={6} zIndexRange={[5, 0]}
+  pointer-events-none>`), so it inherits the same stacking and pointer discipline. Deliberate
+  decisions:
+  1. **Arena of two scars:** the HoloHUD was removed from this very group because a mini-map
+     point light bloomed into a white blob and it occluded the rider — so the readout mounts *no*
+     lights and *no* emissive (the device face is a dim unlit `MeshBasicMaterial` plane), and the
+     chip sits at the bars, not mid-air over the rider's head.
+  2. **Payload only, facts stay in the DOM HUD:** the chip shows `tier label · headline watts`;
+     ranges/chord of cadence/remaining time stay in the bottom panel. `buildReadout` is a pure,
+     unit-tested function; the component subscribes *only* to the coaching store's
+     `currentInterval.targetPower` (interval transitions are rare — same cheap-sub argument as
+     the rank aura) and to nothing per-frame (no `useFrame`, asserted by a source-text test).
+     Tier 0 reads "STEADY" on the rider's own color — baseline is not a flow state, so no
+     FLOW color is invented for it.
+  3. **One shared vocabulary:** `FLOW_LABELS`/`FLOW_COLORS` moved to `flow-state.ts`, now
+     imported by the HUD badge/celebration (`ride-hud-overlay-v2`) and `use-reactive-world`
+     (whose `flowColor` needed a `|| null` — the canonical tier-0 entry is `""`, not `null`).
+  4. **Gates:** mounts only in `mode === "ride"` on the procedural-bike rig (preview and finished
+     keep their authored look — only the 4 active-play baselines changed); the *projection* is
+     capped off on the `low` tier (`readoutProjected={performanceTier !== "low"}`), where the
+     device still exists so the silhouette stays stable; nothing animates, so reduced-motion has
+     nothing to disable.
+  5. **Data shape honesty:** the workout-plan type stores `targetPower` as `[min, max]` but the
+     test harness casts a bare `250` in — `buildReadout` accepts both (`Array.isArray` branch),
+     which is what the "the harness drives the readout in the screenshot" verification relies on.
+
+**Baseline-regen gotcha, second instance (recorded because it repeats):** the readout also passed
+against stale baselines under tolerance — a chip-sized look change is *too small to trip* the 2%
+diff but new UI, so the 4 `active-play` PNGs were deleted and re-captured; preview/finished
+remained byte-identical (verified: `git status` listed exactly the active-play files).
+
 ### P1 — compounding
 
 | # | Change | Why | Effort |
@@ -343,7 +379,7 @@ projects) were regenerated that way and the parallel re-run then reproduces them
 | 7 ✅ | **Wire the existing context palette.** Time-of-day + weather tint the sky, fog and lights. The code exists; it is unused. | The world's time is the rider's time | M |
 | 8 ✅ | **Render the aura tier.** The ladder grants an aura per rank; it is declared and never drawn. Close the progression → cosmetic loop. | Ladder payoff becomes visible in the world | M |
 | 9 ✅ | **Shader warm-up.** `compileAsync` on the world shaders so the first ride frame does not hitch. | Removes a visible stall at ride start | S |
-| 10 | **Diegetic bike readout.** The interval target and flow tier projected in-world; the DOM HUD keeps the facts. | The world becomes the primary display | L |
+| 10 ✅ | **Diegetic bike readout.** The interval target and flow tier projected in-world; the DOM HUD keeps the facts. | The world becomes the primary display | L |
 | 11 ✅ | **Swirling transition.** The Sleepers threshold-texture reveal, reused for the pre-ride → ride handoff. | The current transition is a cut | M |
 
 ### P2 — the bigger projects

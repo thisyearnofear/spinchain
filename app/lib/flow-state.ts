@@ -27,6 +27,13 @@ import { useCoachingStore } from "@/app/stores/coaching-store";
 
 export type FlowStateTier = 0 | 1 | 2 | 3 | 4;
 
+/** Presentation vocabulary for the tier, shared by the HUD badge, the
+ *  celebration overlay and the diegetic bike readout — one source, so the
+ *  DOM HUD and the 3D world never disagree. Label [0] and color [0] are ""
+ *  on purpose: tier 0 is the baseline, not a named state. */
+export const FLOW_LABELS = ["", "Focused", "Flow", "Super Flow", "Mastery"] as const;
+export const FLOW_COLORS = ["", "#34d399", "#f59e0b", "#f97316", "#ef4444"] as const;
+
 export interface FlowState {
   tier: FlowStateTier;
   score: number;        // 0.0-1.0 composite score

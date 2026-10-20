@@ -48,6 +48,7 @@ const DataOwnershipDashboard = dynamic(
 import { useRideStore } from "@/app/stores/ride-store";
 import { useTelemetryStore, selectEffort, selectPower, selectHeartRate, selectCadence, selectGhostState, selectMultiGhostState } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
+import { FLOW_LABELS, FLOW_COLORS } from "@/app/lib/flow-state";
 import { useRewardsStore } from "@/app/stores/rewards-store";
 import { useUIStore } from "@/app/stores/ui-store";
 import { useSensoryStore, useSensoryEvent } from "@/app/stores/sensory-store";
@@ -98,10 +99,8 @@ const SPRINT_EDGE_KEYFRAMES: number[] = [0.3, 0.8, 0.3];
 const PULSE_KEYFRAMES: number[] = [1, 1.4, 1];
 const SPRINT_EDGE_TRANSITION = { duration: 0.6, repeat: Infinity, ease: EASE_MOVE } as const;
 
-// Flow tiers — hoisted so the celebration overlay and the badge share one
-// source (and so the celebration effect can read them without re-creating).
-const FLOW_LABELS = ["", "Focused", "Flow", "Super Flow", "Mastery"];
-const FLOW_COLORS = ["", "#34d399", "#f59e0b", "#f97316", "#ef4444"];
+// Flow tiers live in @/app/lib/flow-state (FLOW_LABELS / FLOW_COLORS) so the
+// HUD and the 3D world share one vocabulary.
 
 /** MM:SS clock formatting for the ride clock chip. */
 function formatClock(sec: number): string {

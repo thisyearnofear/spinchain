@@ -5,6 +5,7 @@ import { computeReactiveParams } from "@/app/components/features/route/world-rea
 import type { VisualizerTheme } from "@/app/components/features/route/visualizer-theme";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
 import type { FlowStateTier } from "@/app/lib/flow-state";
+import { FLOW_COLORS } from "@/app/lib/flow-state";
 
 interface ReactiveWorldParams {
   theme: VisualizerTheme;
@@ -32,14 +33,10 @@ export function useReactiveWorld({
   const FLOW_SCALING = [1, 1.2, 1.5, 1.8, 2.2];
   const flowScale = FLOW_SCALING[flowTier] ?? 1;
 
-  const FLOW_COLORS = [
-    null,
-    "#34d399",
-    "#f59e0b",
-    "#f97316",
-    "#ef4444",
-  ] as const;
-  const flowColor = FLOW_COLORS[flowTier] ?? null;
+// Tier vocabulary from the flow engine — the same constants the HUD badge and
+// the diegetic bike readout render. Tier 0's entry is "" so compare with `||`
+// (not `??`) when mapping to a nullable color.
+const flowColor = (FLOW_COLORS[flowTier] as string) || null;
   const showFlowEffects = flowTier >= 1;
 
   const reactive = useMemo(() => {

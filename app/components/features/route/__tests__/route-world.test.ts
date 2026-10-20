@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Euler, Matrix4, Quaternion, Vector3 } from "three";
 import { VISUALIZER_THEMES } from "../visualizer-theme";
+import { buildReadout } from "../bike-computer";
+import { FLOW_COLORS } from "@/app/lib/flow-state";
 import { buildRouteCurve } from "../route-curve";
 import {
   NEUTRAL_SKIRT_LIGHT,
@@ -487,5 +489,51 @@ describe("neon atmosphere", () => {
     // emissive uniform.
     expect(visualizer).not.toContain("buildNeonSkylineGeometry");
     expect(view).not.toContain("children.forEach");
+  });
+});
+
+describe("diegetic bike readout", () => {
+  it("formats watt ranges, bare numbers (the harness casts one in), and free rides", () => {
+    expect(buildReadout([200, 300], 0, "#74c0fc")).toEqual({
+      headline: "250 W",
+      tierLabel: "STEADY",
+      accent: "#74c0fc",
+    });
+    expect(buildReadout([180, 220], 2, "#fallback").headline).toBe("200 W");
+    expect(buildReadout(249.4, 3, "#fallback").headline).toBe("249 W");
+    expect(buildReadout(null, 1, "#fallback").headline).toBe("FREE RIDE");
+  });
+
+  it("swaps the accent to the tier's color and names the baseline STEADY", () => {
+    const low = buildReadout([100, 200], 1, "#fallback");
+    const high = buildReadout([100, 200], 4, "#fallback");
+    expect(low.tierLabel).toBe("Focused");
+    expect(low.accent).toBe(FLOW_COLORS[1]);
+    expect(high.tierLabel).toBe("Mastery");
+    expect(high.accent).toBe(FLOW_COLORS[4]);
+    // Tier 0 has no flow identity — it stays on the rider's own color.
+    expect(buildReadout([100, 200], 0, "#rider").accent).toBe("#rider");
+  });
+
+  it("stays presentation-only: no frame loop, no telemetry read, no scene lights", () => {
+    const source = readFileSync(new URL("../bike-computer.tsx", import.meta.url), "utf8");
+    expect(source).not.toContain("useFrame");
+    expect(source).not.toContain("useTelemetryStore");
+    expect(source).not.toContain("pointLight");
+    // Mounted only in ride mode; the projection is capped off on the low tier,
+    // and the device + chip ride the same rider group the YOU label does.
+    const visualizer = readFileSync(new URL("../route-visualizer.tsx", import.meta.url), "utf8");
+    expect(visualizer).toContain('showReadout={mode === "ride"}');
+    expect(visualizer).toContain('readoutProjected={performanceTier !== "low"}');
+  });
+
+  it("shares the tier vocabulary with the HUD and the world reaction, not copies of it", () => {
+    const hud = readFileSync(new URL("../../ride/ride-hud-overlay-v2.tsx", import.meta.url), "utf8");
+    const reactive = readFileSync(new URL("../../../../hooks/route/use-reactive-world.ts", import.meta.url), "utf8");
+    expect(hud).toContain('from "@/app/lib/flow-state"');
+    expect(reactive).toContain('from "@/app/lib/flow-state"');
+    expect(hud).not.toMatch(/const FLOW_LABELS =/);
+    const bias = reactive.match(/FLOW_COLORS\[flowTier\] as string.+\|\| null/);
+    expect(bias).not.toBeNull();
   });
 });
