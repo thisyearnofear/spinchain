@@ -32,6 +32,26 @@ See postmortem: React #185 (66 commits fixing setState-in-RAF). Don't repeat it.
 
 `frameloop="demand"` pauses hidden renderer. Same `routeElevationProfile` drives both.
 
+### World system (worlds vs modes)
+
+A **world** is a place; a **mode** is a presentation variant inside one. The rule: if a change
+needs a new asset class (prop silhouette, ground treatment, sky kit, its own sound) it is a
+world; if it is only palette / post / camera / reactivity it is a mode.
+
+Schema in `app/lib/themes/world-definition.ts`; registry in `app/lib/themes/worlds/`; resolution
+(`world → mode's palette → renderer default`) in `app/lib/themes/worlds/resolved.ts`. The five
+legacy looks are modelled as **modes of one Tron world**, so the world slot is free for places
+that are genuinely not vector-neon (underworld, cloud realm, concrete jungle, rainforest).
+
+Nothing renders differently yet — this landed as schema only. The real blocker is that the
+renderer branches on the theme **name** in 54 places; each of those must become a field the
+world owns before a new world is a data insert rather than a code change across four files.
+Full plan and the migration order: [WORLD-SYSTEM.md](./WORLD-SYSTEM.md).
+
+A **world** is also where generated content enters (`hero` slot): a Mint world / World Labs
+mesh / PINOC environment is a *backdrop*, never the reactive world — a splat cannot take wind,
+height fog or the effort-reactivity. The `Splat / AIGen` renderer row above stays parked.
+
 ### Adaptive UX (where the wedge lives)
 
 Single source of truth: `computePhaseTheme(phase, effort)` in `app/lib/phase-theme.ts` → `{ color, glow, intensity, pulseRate, bloom }`. HUD, background, 3D scene, particles all read it. Never add a parallel color table (see [THEME-PIPELINE.md](./THEME-PIPELINE.md)).

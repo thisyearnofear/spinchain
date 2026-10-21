@@ -17,6 +17,13 @@ Three layers:
 | Theme registry | `app/lib/themes/registry.ts` (`getTheme` / `loadRemoteThemes`) | Runtime merge of built-in + remote |
 | Remote themes | Supabase `visualizer_themes` table | Fetched once per browser session on visualizer mount |
 
+> **A theme is a palette, not a world.** This pipeline adds *moods*. It cannot add *places* —
+> a palette has no field for "the ground here is lava" or "there are three kinds of plant
+> here". Places live one level up, in the world system
+> ([WORLD-SYSTEM.md](./WORLD-SYSTEM.md), `app/lib/themes/world-definition.ts`), where the five
+> built-in looks are modelled as **modes of one Tron world**. Modes reference a theme by name,
+> so everything below keeps working unchanged.
+
 ## Rule: One Color Vocabulary
 
 World reactivity (`world-reactivity.ts`) derives every phase color from
