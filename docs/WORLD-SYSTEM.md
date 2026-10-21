@@ -98,8 +98,12 @@ The schema is not the hard part. The hard part is that the renderer branches on 
 | `route-visualizer.tsx` | 24 |
 | `focus-route-visualizer.tsx` | 9 |
 | `world-reactivity.ts` | 5 |
+| `selection-garage.tsx` | 5 |
 | `route-skirt.ts` | 1 |
-| `route-visualizer.tsx` (2D variant) | 15 |
+| `use-class-data.ts` | 1 |
+| `api/ai/generate-route/route.ts` | 1 |
+| `route-world.test.ts` | 1 |
+| **total** | **54** |
 
 Every one of those is a decision that should be *data* in a world definition. `theme === "neon"`
 deciding the skirt edge drop, the skirt light colour, whether a prop breathes, whether the
