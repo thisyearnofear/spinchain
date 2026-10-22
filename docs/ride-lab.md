@@ -84,3 +84,12 @@ stays paused. Hiding the tab pauses playback; it stays paused on return.
 - WebGL failure or context loss shows a fallback with Retry (re-probes)
   and links to the concept board / current ride demo.
 - This is a prototype route — no production FPS or performance claims.
+
+## Status
+
+**Development tool only.** The lab exists to compare spatial compositions
+before production work — its controls (study/camera/effects/DPR, scrub,
+share links, diagnostics hook, concept board) are instrumentation, not a
+user experience. It lives under `/test-harness/` and is never linked from
+product UI. Keep it for the next spatial experiment (e.g. Neon); don't
+present it to riders.

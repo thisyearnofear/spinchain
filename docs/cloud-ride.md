@@ -69,3 +69,23 @@ Query params: `?view=play|cinema&effort=cruise|build|push&t=0..45&paused=0|1`.
   With the composer off this is the single scene pass; no FPS claims.
 - Prototype assets: metaball clouds are shaded solids, not volumetrics; the
   bike is handmade support geometry. Not finished production art.
+
+## Product direction
+
+This sequence is more than a visual test — it's the prototype for a
+user-facing **free ride**: a Cloud Kingdom session with no intervals,
+targets or coach, where the world alone responds to pedalling. Two
+plausible homes:
+
+- **A relaxing ride mode** — cruise at any pace; the world breathes with
+  your effort. Mostly session-layer work: drop goals and coaching, let the
+  scenery carry the experience.
+- **A first-touch experience** — a short authored ride (~45s) to hand a
+  new rider or share as a link before they commit to a real session.
+
+Open design question: the authored sequence is scripted, peaking around
+25s. A real free ride needs interest *distributed* along the route and
+scaled by effort rather than timed — a rider cruising thirty minutes
+shouldn't see one reveal then an empty horizon. The production world's
+deterministic landmarks are a start, but pacing a goal-less ride is a
+design problem, not just removing the goal UI.
