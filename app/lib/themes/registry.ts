@@ -46,20 +46,23 @@ export interface ThemeDefinition {
   terrainFrontScale: number;
   patternOpacity: number;
   routeDashOpacity: number;
-  props: {
-    type: "building" | "tree" | "rock" | "blossom" | "crystal" | "cloud";
+  /**
+   * The world's silhouette prop set. Optional since the authored Cloud
+   * Kingdom ships its own dressing (metaball cumulus) instead of a shared
+   * silhouette. Remote themes still must declare one — they render the
+   * shared kit.
+   */
+  props?: {
+    type: "building" | "tree" | "rock" | "blossom" | "crystal";
     color: string;
     count: number;
     scale: [number, number, number];
   };
   /** Roadmap #6 — the roadside tuft band. Optional: worlds without one keep bare skirt. */
   groundCover?: {
-    /**
-     * Which silhouette the roadside band is built from. Defaults to "tuft"
-     * (the grass tufts every legacy world uses); a world may pick another —
-     * the Cloud world fills the verge with little puffs.
-     */
-    type?: "tuft" | "cloud";
+    /** Which silhouette the roadside band is built from. Today only the
+     *  grass tufts every world shares. */
+    type?: "tuft";
     color: string;
     count: number;
     scale: [number, number, number];
@@ -93,10 +96,10 @@ const themes = new Map<string, ThemeDefinition>(Object.entries(BUILTIN));
 
 // ─── Validation ─────────────────────────────────────────────────────
 
-const PROP_TYPES = new Set(["building", "tree", "rock", "blossom", "crystal", "cloud"]);
+const PROP_TYPES = new Set(["building", "tree", "rock", "blossom", "crystal"]);
 
 /** Silhouettes the roadside band may be built from. */
-const GROUND_COVER_TYPES = new Set(["tuft", "cloud"]);
+const GROUND_COVER_TYPES = new Set(["tuft"]);
 
 // drei v10 <Environment> presets — anything else throws during render.
 const ENV_PRESETS = new Set([

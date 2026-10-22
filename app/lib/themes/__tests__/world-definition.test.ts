@@ -128,13 +128,17 @@ describe("tron world modes", () => {
 });
 
 describe("cloud world", () => {
-  it("mirrors the cloud theme's props, so the world and the theme cannot drift", () => {
+  it("declares the authored kit honestly — no silhouette props on either side", () => {
     const theme = VISUALIZER_THEMES.cloud;
     const world = getWorld("cloud");
-    expect(world.props![0].type).toBe(theme.props.type);
-    expect(world.props![0].count).toBe(theme.props.count);
-    expect(world.props![0].color).toBe(theme.props.color);
-    expect(world.atmosphereKit).toBe(theme.atmosphere);
+    // The world's dressing is the metaball cumulus layout in cloud-ride/,
+    // which the silhouette schema cannot express — neither side claims one.
+    expect(world.props).toBeUndefined();
+    expect("props" in theme).toBe(false);
+    // The sky is the authored cumulus shader, not the planet "sun" kit. The
+    // theme keeps `atmosphere: "sun"` for the 2D focus view's sun glow.
+    expect(world.atmosphereKit).toBe("cumulus");
+    expect(theme.atmosphere).toBe("sun");
   });
 
   it("gives the cloud theme its own ground", () => {

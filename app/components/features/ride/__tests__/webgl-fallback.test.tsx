@@ -52,8 +52,8 @@ vi.mock("@/app/components/features/renderers/focus-renderer", () => ({
 }));
 
 vi.mock("@/app/components/features/renderers/tron-renderer", () => ({
-  TronRenderer: ({ onWebglUnavailable }: { onWebglUnavailable?: (r: string) => void }) => (
-    <button data-testid="tron" onClick={() => onWebglUnavailable?.("init-failed")} />
+  TronRenderer: ({ onWebglUnavailable, worldMode }: { onWebglUnavailable?: (r: string) => void; worldMode?: string }) => (
+    <button data-testid="tron" data-world-mode={worldMode} onClick={() => onWebglUnavailable?.("init-failed")} />
   ),
 }));
 
@@ -129,6 +129,19 @@ describe("WebGL → 2D Focus fallback", () => {
     expect(useUIStore.getState().viewMode).toBe("focus");
     useUIStore.getState().markWebglUnavailable("init-failed");
     expect(useUIStore.getState().webglUnavailable).toBe("context-lost");
+  });
+
+  it("forwards worldMode to the persistent 3D layer", async () => {
+    const localProps = { ...props, routeTheme: "cloud", worldMode: "cotton" } as Props;
+    let utils!: ReturnType<typeof render>;
+    await act(async () => {
+      utils = render(<RideVisualization {...localProps} />);
+    });
+    expect(screen.getByTestId("tron").getAttribute("data-world-mode")).toBe("cotton");
+    await act(async () => {
+      utils.rerender(<RideVisualization {...{ ...localProps, worldMode: "sugar" }} />);
+    });
+    expect(screen.getByTestId("tron").getAttribute("data-world-mode")).toBe("sugar");
   });
 
   it("does not persist the unavailable flag", () => {

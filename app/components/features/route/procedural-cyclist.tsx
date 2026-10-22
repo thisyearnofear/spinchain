@@ -367,6 +367,7 @@ export function useCyclistPose(
   rigRef: MutableRefObject<Group | null>,
   phaseRef: MutableRefObject<number>,
   leanRef?: MutableRefObject<number>,
+  freezeReferenceImmediately = false,
 ) {
   return useMemo(
     () => (character: Object3D) => {
@@ -381,7 +382,7 @@ export function useCyclistPose(
       // below are then applied to a stable base.
       if (!bones.frozen) {
         bones.frames += 1;
-        if (bones.frames >= FREEZE_AFTER_FRAMES) {
+        if (freezeReferenceImmediately || bones.frames >= FREEZE_AFTER_FRAMES) {
           bones.frozen = bones.torso.map((bone) => ({
             bone,
             quaternion: bone.quaternion.clone(),
@@ -440,6 +441,6 @@ export function useCyclistPose(
         rotateBoneWorld(arm.end, _q.setFromAxisAngle(_dir, HAND_ROLL * arm.side));
       }
     },
-    [rigRef, phaseRef, leanRef],
+    [rigRef, phaseRef, leanRef, freezeReferenceImmediately],
   );
 }

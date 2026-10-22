@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import RouteVisualizer from "@/app/components/features/route/route-visualizer";
 import { generateRouteData, createPracticeClassMetadata } from "@/app/hooks/evm/use-class-data";
 import type { VisualizerTheme } from "@/app/components/features/route/visualizer-theme";
+import { getDefaultThemeName } from "@/app/lib/themes/worlds";
 
 /**
  * The harness is driven entirely by query parameters, so it can never be a
@@ -28,7 +29,10 @@ export default function TestHarnessRouteVisualizerPage() {
   const searchParams = useSearchParams();
   const state = searchParams.get("testState") || searchParams.get("state") || "preview";
   const seed = Number(searchParams.get("seed") || "123");
-  const theme = (searchParams.get("theme") as VisualizerTheme) || "neon";
+  const theme = (searchParams.get("theme") as VisualizerTheme) || (getDefaultThemeName() as VisualizerTheme);
+  const worldMode = searchParams.get("worldMode") || undefined;
+  // Cloud Kingdom only: authored chase framing (play | cinema).
+  const worldView = searchParams.get("view") === "cinema" ? ("cinema" as const) : undefined;
   const quality =
     (searchParams.get("quality") as "low" | "medium" | "high" | null) || "high";
   // paused=1 hands the R3F loop to FixedHarnessClock: fixed-step frames, last one held
@@ -107,6 +111,8 @@ export default function TestHarnessRouteVisualizerPage() {
       <RouteVisualizer
         elevationProfile={elevationProfile}
         theme={theme}
+        worldMode={worldMode}
+        worldView={worldView}
         progress={progress}
         mode={mode}
         stats={stats}

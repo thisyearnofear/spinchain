@@ -254,7 +254,6 @@ describe("route silhouettes", () => {
     blossom: ["cylinder", "sphere", "sphere"],
     crystal: ["octahedron", "octahedron", "octahedron"],
     tuft: ["cone", "cone", "cone"],
-    cloud: ["sphere", "sphere", "sphere"],
   };
 
   it("builds one instanced silhouette per theme, planted on the skirt", () => {
@@ -263,17 +262,26 @@ describe("route silhouettes", () => {
     expect(VISUALIZER_THEMES.mars.props.count).toBe(80);
     expect(VISUALIZER_THEMES.anime.props.count).toBe(200);
     expect(VISUALIZER_THEMES.rainbow.props.count).toBe(60);
-    expect(VISUALIZER_THEMES.cloud.props.count).toBe(60);
+    // The Cloud Kingdom owns no silhouette: its dressing is the authored
+    // metaball layout, not a shared prop set.
+    expect("props" in VISUALIZER_THEMES.cloud).toBe(false);
 
     for (const name of Object.keys(VISUALIZER_THEMES) as Array<keyof typeof VISUALIZER_THEMES>) {
-      const config = VISUALIZER_THEMES[name].props;
+      const theme = VISUALIZER_THEMES[name] as (typeof VISUALIZER_THEMES)["neon"] & {
+        props?: { type: PropType; color: string; count: number; scale: readonly [number, number, number] };
+      };
+      const config = theme.props;
+      if (!config) {
+        expect(name).toBe("cloud");
+        continue;
+      }
       const spec = SILHOUETTES[config.type];
       expect(spec.map((part) => part.shape)).toEqual(shapes[config.type]);
-      // At most one part of a silhouette breathes. The Cloud puff breathes its
-      // crown, like the building's cap and the crystal's shard.
+      // At most one part of a silhouette breathes — the building's cap and
+      // the crystal's shard.
       expect(spec.filter((part) => part.breathes).length).toBeLessThanOrEqual(1);
       expect(spec.filter((part) => part.breathes)).toHaveLength(
-        config.type === "building" || config.type === "crystal" || config.type === "cloud" ? 1 : 0,
+        config.type === "building" || config.type === "crystal" ? 1 : 0,
       );
 
       const base = silhouetteBaseY(config.type);
@@ -314,10 +322,16 @@ describe("route silhouettes", () => {
 describe("ground cover band", () => {
   it("plants tufts in the close roadside band, denser than the props, deterministically", () => {
     for (const name of Object.keys(VISUALIZER_THEMES) as Array<keyof typeof VISUALIZER_THEMES>) {
-      const theme = VISUALIZER_THEMES[name];
+      const theme = VISUALIZER_THEMES[name] as (typeof VISUALIZER_THEMES)["neon"] & {
+        groundCover?: { color: string; count: number; scale: readonly [number, number, number] };
+      };
       const groundCover = theme.groundCover;
-      expect(groundCover).toBeDefined();
-      if (!groundCover) continue;
+      // Every world that renders the shared skirt kit carries the tuft band.
+      // The Cloud Kingdom is exempt — it renders the authored kit instead.
+      if (!groundCover) {
+        expect(name).toBe("cloud");
+        continue;
+      }
       const halfWidth = roadProfile(name).halfWidth;
       const field = buildGroundCoverField(
         curve,
@@ -540,5 +554,268 @@ describe("diegetic bike readout", () => {
     expect(hud).not.toMatch(/const FLOW_LABELS =/);
     const bias = reactive.match(/FLOW_COLORS\[flowTier\] as string.+\|\| null/);
     expect(bias).not.toBeNull();
+  });
+});
+
+// ─── Ride lab (test-harness experiment) ────────────────────────────
+import {
+  DEFAULT_OPTIONS,
+  DURATION,
+  buildLabCurve,
+  labSideAt,
+  parseLabOptions,
+  parseLabTime,
+} from "../ride-lab/config";
+import { LAB_ROAD_WIDTH, buildLabEdgeTrims, buildLabRoadGeometry } from "../ride-lab/lab-geometry";
+import { buildNeonField } from "../ride-lab/lab-worlds";
+
+describe("ride lab", () => {
+  const curve = buildLabCurve();
+  const road = buildLabRoadGeometry(curve, { top: "#b7aacb", underside: "#5d4f78", side: "#7d6f96" });
+
+  it("sweeps a ~3.8-wide deck with finite vertices and up-facing top", () => {
+    const pos = road.getAttribute("position");
+    const nor = road.getAttribute("normal");
+    // First two verts are station 0's top-left / top-right.
+    const tl = new Vector3(pos.getX(0), pos.getY(0), pos.getZ(0));
+    const tr = new Vector3(pos.getX(1), pos.getY(1), pos.getZ(1));
+    expect(tl.distanceTo(tr)).toBeCloseTo(LAB_ROAD_WIDTH, 5);
+    // Top face normal is world-up — the ribbon never banks.
+    expect(nor.getX(0)).toBeCloseTo(0, 5);
+    expect(nor.getY(0)).toBeCloseTo(1, 5);
+    expect(nor.getZ(0)).toBeCloseTo(0, 5);
+    for (let i = 0; i < pos.count; i++) {
+      expect(Number.isFinite(pos.getX(i))).toBe(true);
+      expect(Number.isFinite(pos.getY(i))).toBe(true);
+      expect(Number.isFinite(pos.getZ(i))).toBe(true);
+    }
+  });
+
+  it("winds both edge trims up — geometric normals, not attributes", () => {
+    const trims = buildLabEdgeTrims(curve);
+    const pos = trims.getAttribute("position");
+    // Two strips × SEGMENTS quads × 2 triangles; strip 0 is sign −1,
+    // strip 1 is sign +1. Sample a triangle from each half.
+    const triCount = pos.count / 3;
+    const half = triCount / 2;
+    const a = new Vector3();
+    const b = new Vector3();
+    const c = new Vector3();
+    const ab = new Vector3();
+    const ac = new Vector3();
+    for (const [name, tri] of [["left", 10], ["right", half + 10]] as const) {
+      a.set(pos.getX(tri * 3), pos.getY(tri * 3), pos.getZ(tri * 3));
+      b.set(pos.getX(tri * 3 + 1), pos.getY(tri * 3 + 1), pos.getZ(tri * 3 + 1));
+      c.set(pos.getX(tri * 3 + 2), pos.getY(tri * 3 + 2), pos.getZ(tri * 3 + 2));
+      ab.subVectors(b, a);
+      ac.subVectors(c, a);
+      const n = new Vector3().crossVectors(ab, ac);
+      expect(n.y, `${name} edge strip should face up`).toBeGreaterThan(0);
+    }
+  });
+
+  it("parses only whitelisted params; everything else falls back", () => {
+    const bad = new URLSearchParams("world=cyberpunk&study=mega&camera=drone&effects=yes&effort=max&dpr=2");
+    expect(parseLabOptions(bad)).toEqual(DEFAULT_OPTIONS);
+    const good = new URLSearchParams("world=neon&study=landmark&camera=first&effects=1&effort=push&dpr=1.5");
+    expect(parseLabOptions(good)).toEqual({
+      world: "neon",
+      study: "landmark",
+      camera: "first",
+      effects: true,
+      effort: "push",
+      dpr: 1.5,
+    });
+  });
+
+  it("clamps time to the 45s window and reads paused honestly", () => {
+    expect(parseLabTime(new URLSearchParams("t=999")).t).toBe(DURATION);
+    expect(parseLabTime(new URLSearchParams("t=-5")).t).toBe(0);
+    expect(parseLabTime(new URLSearchParams("t=banana")).t).toBe(0);
+    expect(parseLabTime(new URLSearchParams("t=12.5&paused=1"))).toEqual({ t: 12.5, paused: true });
+    expect(parseLabTime(new URLSearchParams("paused=0")).paused).toBe(false);
+    // Garbage paused values must not silently force autoplay.
+    expect(parseLabTime(new URLSearchParams("paused=maybe")).paused).toBeNull();
+    expect(parseLabTime(new URLSearchParams("")).paused).toBeNull();
+  });
+
+  it("keeps the base city under the neon passage walls", () => {
+    const field = buildNeonField("passage", curve);
+    const base = buildNeonField("ribbon", curve);
+    // Passage must ADD walls on top of the base towers, never replace them.
+    expect(field.towers.length).toBeGreaterThan(base.towers.length);
+    expect(field.citySignals.length).toBe(base.citySignals.length);
+  });
+
+  it("spans passage beams across the road, not along it", () => {
+    const field = buildNeonField("passage", curve);
+    expect(field.beams.length).toBeGreaterThan(0);
+    for (const beam of field.beams) {
+      // Beam local X (its long axis) after yaw must be ~perpendicular to
+      // the route tangent — i.e. roughly parallel to the side vector.
+      // Find the closest anchor on the curve to measure the local tangent.
+      let bestU = 0;
+      let bestD = Infinity;
+      const p = new Vector3();
+      for (let i = 0; i <= 200; i++) {
+        curve.getPointAt(i / 200, p);
+        const d = p.distanceTo(beam.position);
+        if (d < bestD) {
+          bestD = d;
+          bestU = i / 200;
+        }
+      }
+      const tangent = curve.getTangentAt(bestU, new Vector3());
+      const side = labSideAt(curve, bestU, new Vector3());
+      // Local X in world after yaw = (cos yaw, 0, -sin yaw).
+      const localX = new Vector3(Math.cos(beam.yaw), 0, -Math.sin(beam.yaw));
+      expect(Math.abs(localX.dot(tangent)), "beam long axis should be ~perpendicular to the route").toBeLessThan(0.2);
+      expect(Math.abs(localX.dot(side))).toBeGreaterThan(0.8);
+    }
+  });
+});
+
+// ─── Cloud ride sequence (authored 45s route) ──────────────────────
+import { buildCloudGeometry, buildCloudLayout } from "../cloud-ride/cloud-world";
+import {
+  buildCloudRoadGeometry,
+  cloudFrameAt,
+  CLOUD_ROAD_SEGMENTS,
+  CLOUD_ROAD_WIDTH,
+  type CloudFrame,
+} from "../cloud-ride/cloud-geometry";
+import {
+  CLOUD_DURATION,
+  makeCloudCurve,
+  revealAt,
+  sequenceProgress,
+  parseCloudOptions,
+  parseCloudTime,
+} from "../cloud-ride/sequence";
+
+describe("cloud ride", () => {
+  const curve = makeCloudCurve();
+  const road = buildCloudRoadGeometry(curve, false);
+
+  it("lays the authored world on the production curve too", () => {
+    // The same buildCloudLayout drives /rider/ride — run it on the real
+    // closed route curve and check every placement is finite and sane.
+    const prodCurve = buildRouteCurve([]);
+    const layout = buildCloudLayout(prodCurve);
+    expect(layout.sea.length).toBeGreaterThan(0);
+    expect(layout.towers.length).toBeGreaterThan(0);
+    for (const p of [...layout.sea, ...layout.towers, ...layout.islands]) {
+      for (const v of [p.position.x, p.position.y, p.position.z, p.scale.x, p.scale.y, p.scale.z]) {
+        expect(Number.isFinite(v)).toBe(true);
+      }
+      expect(p.scale.x).toBeGreaterThan(0);
+    }
+    // Landmark arches exist on both halves of a ride.
+    expect(layout.towers.some((t) => t.period > 0)).toBe(true);
+  });
+
+  it("sweeps a 5.2-wide deck: finite verts, correct top winding", () => {
+    const pos = road.getAttribute("position");
+    const idx = road.getIndex()!;
+    for (let i = 0; i < pos.count; i += 37) {
+      expect(Number.isFinite(pos.getX(i))).toBe(true);
+      expect(Number.isFinite(pos.getY(i))).toBe(true);
+      expect(Number.isFinite(pos.getZ(i))).toBe(true);
+    }
+    // N faces per station — the profile loop is closed.
+    const N = 12;
+    expect(idx.count).toBe(CLOUD_ROAD_SEGMENTS * N * 6);
+    // Geometric normal from the ACTUAL index triangles on the top face
+    // (profile j=0→j=1 is the deck's top edge) at start/mid/end.
+    const a = new Vector3(), b = new Vector3(), c = new Vector3(), ab = new Vector3(), ac = new Vector3();
+    for (const station of [0, 200, 399]) {
+      const triBase = station * N * 6; // first two tris of this station's first face
+      const [i0, i1, i2] = [idx.getX(triBase), idx.getX(triBase + 1), idx.getX(triBase + 2)];
+      a.set(pos.getX(i0), pos.getY(i0), pos.getZ(i0));
+      b.set(pos.getX(i1), pos.getY(i1), pos.getZ(i1));
+      c.set(pos.getX(i2), pos.getY(i2), pos.getZ(i2));
+      ab.subVectors(b, a);
+      ac.subVectors(c, a);
+      const n = new Vector3().crossVectors(ab, ac);
+      expect(n.y, `top face at station ${station} should face up`).toBeGreaterThan(0);
+    }
+    // Width from actual profile extrema projected on the frame side.
+    // Frame at the SAME station as the verts being measured (u = 0).
+    const f: CloudFrame = { point: new Vector3(), tangent: new Vector3(), side: new Vector3(), up: new Vector3(), bank: 0 };
+    cloudFrameAt(curve, 0, f, false);
+    let min = Infinity, max = -Infinity;
+    const p = new Vector3();
+    for (let j = 0; j < N; j++) {
+      p.set(pos.getX(j), pos.getY(j), pos.getZ(j)).sub(f.point);
+      const lat = p.dot(f.side);
+      min = Math.min(min, lat);
+      max = Math.max(max, lat);
+    }
+    expect(max - min).toBeCloseTo(CLOUD_ROAD_WIDTH, 4);
+    expect(CLOUD_ROAD_WIDTH).toBeCloseTo(5.2);
+  });
+
+  it("derives a consistent banked frame; bank stays continuous", () => {
+    const f: CloudFrame = { point: new Vector3(), tangent: new Vector3(), side: new Vector3(), up: new Vector3(), bank: 0 };
+    cloudFrameAt(curve, 0.3, f, true);
+    expect(Math.abs(f.bank)).toBeLessThanOrEqual(0.08);
+    expect(f.side.length()).toBeCloseTo(1, 5);
+    expect(Math.abs(f.side.dot(f.tangent))).toBeLessThan(0.01);
+    cloudFrameAt(curve, 0.3, f, false);
+    expect(f.bank).toBe(0);
+    // No snapped banks: adjacent stations never jump more than .025 rad.
+    const g: CloudFrame = { point: new Vector3(), tangent: new Vector3(), side: new Vector3(), up: new Vector3(), bank: 0 };
+    cloudFrameAt(curve, 0, g, true);
+    for (let i = 1; i <= 400; i++) {
+      const u = i / 400;
+      const prev = g.bank;
+      cloudFrameAt(curve, u, g, true);
+      expect(Math.abs(g.bank - prev), `bank step near u=${u}`).toBeLessThanOrEqual(0.025);
+    }
+  });
+
+  it("builds continuous cloud geometry with finite bounds", () => {
+    const g = buildCloudGeometry(14, 31);
+    const pos = g.getAttribute("position");
+    expect(pos.count).toBeGreaterThan(0);
+    for (let i = 0; i < pos.count; i += 97) {
+      expect(Number.isFinite(pos.getX(i))).toBe(true);
+      expect(Number.isFinite(pos.getY(i))).toBe(true);
+      expect(Number.isFinite(pos.getZ(i))).toBe(true);
+      expect(Math.abs(pos.getX(i))).toBeLessThanOrEqual(1.001);
+    }
+    g.dispose();
+  });
+
+  it("clamps/monotonically maps the sequence", () => {
+    expect(sequenceProgress(0)).toBeCloseTo(0.065, 6);
+    expect(sequenceProgress(45)).toBeCloseTo(0.935, 6);
+    for (const t of [0, 9, 21, 29, 45]) {
+      const v = sequenceProgress(t);
+      expect(v).toBeGreaterThanOrEqual(0.065);
+      expect(v).toBeLessThanOrEqual(0.935);
+    }
+    expect(sequenceProgress(-10)).toBe(sequenceProgress(0));
+    expect(sequenceProgress(99)).toBe(sequenceProgress(45));
+    expect(sequenceProgress(30)).toBeGreaterThan(sequenceProgress(10));
+  });
+
+  it("reveals smoothly and clamps at both ends", () => {
+    expect(revealAt(0)).toBe(0);
+    expect(revealAt(19)).toBe(0);
+    expect(revealAt(25)).toBe(1);
+    expect(revealAt(45)).toBe(1);
+    const mid = revealAt(22);
+    expect(mid).toBeGreaterThan(0);
+    expect(mid).toBeLessThan(1);
+  });
+
+  it("parses cloud params safely", () => {
+    expect(parseCloudOptions(new URLSearchParams("view=cinema&effort=push"), false)).toEqual({ view: "cinema", effort: "push", reducedMotion: false });
+    expect(parseCloudOptions(new URLSearchParams("view=drone&effort=max"), true)).toEqual({ view: "play", effort: "cruise", reducedMotion: true });
+    expect(parseCloudTime(new URLSearchParams("t=50")).t).toBe(CLOUD_DURATION);
+    expect(parseCloudTime(new URLSearchParams("t=x")).t).toBe(0);
+    expect(parseCloudTime(new URLSearchParams("paused=1")).paused).toBe(true);
+    expect(parseCloudTime(new URLSearchParams("paused=maybe")).paused).toBeNull();
   });
 });

@@ -1,8 +1,8 @@
 # The World System
 
-> **Status**: ACTIVE — schema landed 2026-10-21; **the Cloud Kingdom shipped the same day**
-> as the first world that is not Tron. The renderer still draws the same five worlds
-> pixel-for-pixel (visual regression 10/10 green).
+> **Status**: ACTIVE — schema landed 2026-10-21; the Cloud Kingdom shipped the same day,
+> and later adopted the authored cloud-ride kit as its production look (the shared
+> extrude road, skirt, silhouette puffs and spore sparkles no longer render there).
 > **Created**: 2026-10-21
 > **See also**: [ARCHITECTURE.md](./ARCHITECTURE.md) (current renderer facts),
 > [THEME-PIPELINE.md](./THEME-PIPELINE.md) (the palette pipeline this builds on),
@@ -114,10 +114,10 @@ what it actually took.
 
 | Slot | Value | What it cost |
 |---|---|---|
-| Sky | the planet shader's pastel daylight style (its shader already draws cotton cloud bands) | a palette — no new shader |
-| Ground | a cloud sea the road floats over | a new `ground.kind` |
-| Props | a "cloud" silhouette: three overlapping spheres, the crown one breathing | a new silhouette |
-| Roadside | little puffs instead of grass tufts | `groundCover.type` — data |
+| Sky | the authored cumulus shader (camera-following dome, `atmosphereKit: "cumulus"`) | the cloud-ride sky material |
+| Ground | a metaball cumulus sea with cathedral towers and arches | `buildCloudLayout` + `buildCloudGeometry` |
+| Road | a banked, rounded lilac ribbon with mint pulse piping | `buildCloudRoadGeometry` / `CloudRoad` |
+| Rider | toon Mint on a chunky mint bike with a coral scarf | `CloudRiderRig` on the shared banked frame |
 | Modes | Cotton Candy / Sugar Rush — same place, different weather | two entries |
 
 **It cost two theme-name branches.** The whole world — sky, ground, silhouette, roadside

@@ -41,6 +41,8 @@ interface RideVisualizationProps {
   routeTheme: VisualizerTheme;
   /** Which mode of the world presents it — a mood inside a place. */
   worldMode?: string;
+  /** Cloud Kingdom only: "play" (default) or "cinema" chase framing. */
+  worldView?: "play" | "cinema";
   searchParams: URLSearchParams;
   panelState: PanelState;
   panelPositions: PanelPositions;
@@ -61,6 +63,7 @@ export function RideVisualization({
   classData,
   routeTheme,
   worldMode,
+  worldView,
   searchParams,
   panelState,
   panelPositions,
@@ -210,6 +213,7 @@ export function RideVisualization({
             telemetry={telemetryForTron}
             routeTheme={routeTheme}
             worldMode={worldMode}
+            worldView={worldView}
             storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
             avatarId={searchParams.get("avatarId") || undefined}
             equipmentId={searchParams.get("equipmentId") || undefined}
@@ -294,6 +298,8 @@ export function RideVisualization({
           currentRouteCoordinate={currentRouteCoordinate}
           telemetry={telemetryForTron}
           routeTheme={routeTheme}
+          worldMode={worldMode}
+          worldView={worldView}
           storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
           avatarId={searchParams.get("avatarId") || undefined}
           equipmentId={searchParams.get("equipmentId") || undefined}

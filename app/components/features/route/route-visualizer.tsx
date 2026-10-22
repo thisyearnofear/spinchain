@@ -110,6 +110,10 @@ import { PLANET_PROFILES, type PlanetProfile } from "./planetary-atmosphere";
 import { buildGroundCoverField } from "./route-silhouettes";
 import { applyWind, windFactorFor } from "./wind-material";
 import { WindDriver } from "./wind-driver";
+import { CloudLiveWorld } from "./cloud-ride/cloud-live";
+import { CloudRiderRig } from "./cloud-ride/cloud-rider";
+import { cloudFrameAt, type CloudFrame } from "./cloud-ride/cloud-geometry";
+import { CLOUD_VIEWS, type CloudView } from "./cloud-ride/sequence";
 import { RadialBlurEffect } from "./radial-blur-effect";
 import { RankAura } from "./rank-aura";
 import { useProgression } from "@/app/lib/progression";
@@ -681,7 +685,7 @@ function GroundCoverField({
 }) {
   const styles = getTheme(theme);
   const groundCover = styles.groundCover as
-    | { type?: "tuft" | "cloud"; color: string; count: number; scale: readonly [number, number, number] }
+    | { type?: "tuft"; color: string; count: number; scale: readonly [number, number, number] }
     | undefined;
   const { halfWidth } = roadProfile(theme);
   const tierScale = tier === "high" ? 1 : tier === "medium" ? 0.55 : 0.3;
@@ -693,7 +697,7 @@ function GroundCoverField({
             curve,
             {
               // The band's silhouette is the world's choice — grass tufts for
-              // every legacy world, little puffs for the Cloud world.
+              // every world today.
               type: groundCover.type ?? "tuft",
               color: groundCover.color,
               count: Math.max(24, Math.floor(groundCover.count * tierScale)),
@@ -934,6 +938,18 @@ function BeatFlare({ progress, beatProgress, color }: { progress: number, beatPr
   );
 }
 
+// Module-scope scratch for the cloud rider's banked frame (no per-frame
+// allocations — same discipline as the ghost/scratch vectors below).
+const _riderCloudFrame: CloudFrame = {
+  point: new Vector3(),
+  tangent: new Vector3(),
+  side: new Vector3(),
+  up: new Vector3(),
+  bank: 0,
+};
+const _riderNeg = new Vector3();
+const _riderBasis = new THREE.Matrix4();
+
 function RiderMarker({
   curve,
   progressRef,
@@ -963,6 +979,9 @@ function RiderMarker({
 }) {
   const groupRef = useRef<Group>(null);
   const rigRef = useRef<Group>(null);
+  const bodyRef = useRef<Group>(null);
+  const isCloudWorld = theme === "cloud";
+  const reducedMotion = usePrefersReducedMotion();
   const styles = getTheme(theme);
 
   const haloRef = useRef<Mesh>(null);
@@ -1016,6 +1035,10 @@ function RiderMarker({
   const wheelAngleRef = useRef(0);
   const leanRef = useRef(0);
   const cadenceRef = useRef(0);
+  // Cloud rider kit inputs: seconds clock for the scarf, eased effort for
+  // scarf flutter and the body rock.
+  const cloudTimeRef = useRef(0);
+  const cloudEffortRef = useRef(0);
   const poseCyclist = useCyclistPose(rigRef, pedalPhaseRef, leanRef);
 
   // Road deck height along the curve. Road is an ExtrudeGeometry whose
@@ -1029,6 +1052,20 @@ function RiderMarker({
 
     const progress = progressRef.current;
     const { point, tangent, look } = scratch.current;
+
+    if (isCloudWorld) {
+      // The cloud deck banks (±0.08 rad): the rider must ride the SAME
+      // banked frame the road/dashes were built from, or the wheels float
+      // off the deck through every turn.
+      cloudFrameAt(curve, progress, _riderCloudFrame, !reducedMotion);
+      point.copy(_riderCloudFrame.point);
+      tangent.copy(_riderCloudFrame.tangent);
+      if (isNaN(point.x) || isNaN(point.y) || isNaN(point.z)) return;
+      _riderNeg.copy(_riderCloudFrame.side).negate();
+      _riderBasis.makeBasis(_riderNeg, _riderCloudFrame.up, _riderCloudFrame.tangent);
+      groupRef.current.quaternion.setFromRotationMatrix(_riderBasis);
+      groupRef.current.position.copy(point).addScaledVector(_riderCloudFrame.up, BIKE_DECK_OFFSET + 0.025);
+    } else {
     curve.getPointAt(progress, point);
     curve.getTangentAt(progress, tangent);
 
@@ -1044,6 +1081,7 @@ function RiderMarker({
       // Legacy presentation (picked equipment / static avatar).
       groupRef.current.position.y += equipment?.type === "vehicle" ? 2.5 : 1.5;
     }
+    }
 
     // getTangentAt can return NaN independently of getPointAt near a closed
     // curve's near-zero-length segments (most likely right at ride start,
@@ -1051,7 +1089,8 @@ function RiderMarker({
     // into lookAt() sets a NaN rotation quaternion, which NaN-poisons this
     // group's world matrix — and <Trail> below samples that world position
     // every frame, baking the NaN into its geometry.
-    if (Number.isFinite(tangent.x) && Number.isFinite(tangent.y) && Number.isFinite(tangent.z)) {
+    // (The cloud branch already set the quaternion from the banked frame.)
+    if (!isCloudWorld && Number.isFinite(tangent.x) && Number.isFinite(tangent.y) && Number.isFinite(tangent.z)) {
       // lookAt() takes a WORLD-space target, but curve points are in the
       // route group's space (offset [0,-10,0]). Passing the local point aimed
       // the rider at a spot ~10 units overhead and pitched it almost
@@ -1075,6 +1114,16 @@ function RiderMarker({
     // Effort tucks the rider a little lower over the bars.
     const effortLean = Math.min(0.18, Math.max(0, (s.power - 150) / 1500));
     leanRef.current += (effortLean - leanRef.current) * dampFactor(2, delta);
+
+    if (isCloudWorld) {
+      // Scarf clock + effort (the same eased 0–1 the cloud world reads) and
+      // the small body rock that lives on the body group, not the rig.
+      cloudTimeRef.current = state.clock.elapsedTime;
+      const target = Math.min(1, (s.power || 0) / 300);
+      cloudEffortRef.current += (target - cloudEffortRef.current) * dampFactor(4, delta);
+      const rock = reducedMotion ? 0 : Math.sin(pedalPhaseRef.current) * 0.02 * cloudEffortRef.current;
+      if (bodyRef.current) bodyRef.current.rotation.z = rock;
+    }
 
     // Ground halo breathes with cadence and effort.
     const r = reactiveRef.current;
@@ -1104,14 +1153,43 @@ function RiderMarker({
           drei <Trail> sizes its buffer from length×10, so the old
           power-derived fractional length produced NaN geometry and
           "vertex buffer not big enough" errors every frame. */}
+      {/* The authored cloud rider has no light trail — its motion cue is
+          the mint pulse on the deck piping. */}
+      {!isCloudWorld && (
       <Trail width={1.4} length={18} color={trailColor} attenuation={(t) => t * t}>
         <mesh position={rideProceduralBike ? [0, 0.35, -1.1] : [0, 0, 0]} visible={false}>
           <boxGeometry args={[0.01, 0.01, 0.01]} />
           <meshBasicMaterial />
         </mesh>
       </Trail>
+      )}
 
-      {rideProceduralBike && avatar ? (
+      {rideProceduralBike && avatar && isCloudWorld ? (
+        // The authored Cloud Kingdom rider: chunky mint bike, toon-shaded
+        // Mint clone, coral scarf — placed on the banked cloud frame above.
+        <CloudRiderRig
+          rigRef={rigRef}
+          bodyRef={bodyRef}
+          phaseRef={pedalPhaseRef}
+          wheelAngleRef={wheelAngleRef}
+          leanRef={leanRef}
+          effortRef={cloudEffortRef}
+          timeRef={cloudTimeRef}
+          reducedMotion={reducedMotion}
+          url={avatar.clips?.find((c) => c.name === "idle")?.url}
+        >
+          {/* Same diegetic readout the standard bike carries — it sits on
+              the stem in rig space, which the cloud bike shares. */}
+          {showReadout && (
+            <BikeComputer
+              targetPower={intervalTargetPower}
+              flowTier={flowTier}
+              fallbackColor={styles.riderColor}
+              projected={readoutProjected}
+            />
+          )}
+        </CloudRiderRig>
+      ) : rideProceduralBike && avatar ? (
         <group ref={rigRef} scale={1.25}>
           <ProceduralBike
             phaseRef={pedalPhaseRef}
@@ -1180,11 +1258,14 @@ function RiderMarker({
       )}
 
       {/* Effort halo on the road under the bike (was a radius-2 sphere that
-          swallowed the rider from the chase camera). */}
+          swallowed the rider from the chase camera). The cloud rider carries
+          the authored soft contact shadow inside its rig instead. */}
+      {!isCloudWorld && (
       <mesh ref={haloRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
         <ringGeometry args={[1.3, 1.9, 48]} />
         <meshBasicMaterial color={styles.riderColor} transparent opacity={0.2} depthWrite={false} toneMapped={false} />
       </mesh>
+      )}
 
       {/* The rank's aura — the ladder paid out in light. */}
       <RankAura tier={auraTier} color={rankDef.color} cadenceRef={cadenceRef} />
@@ -1698,6 +1779,7 @@ function Scene({
   contextPalette,
   panoUrl,
   worldMode,
+  worldView,
 }: {
   elevationProfile: number[];
   theme?: VisualizerTheme;
@@ -1711,6 +1793,8 @@ function Scene({
   panoUrl?: string;
   /** Which mode of the world presents it. Undefined = the world's default. */
   worldMode?: string;
+  /** Cloud Kingdom only: authored chase framing. Default "play". */
+  worldView?: string;
   quality?: {
     pixelRatio: number;
     shadows: boolean;
@@ -1724,10 +1808,18 @@ function Scene({
   contextPalette?: ContextPalette;
 }) {
   const curve = useRouteCurve(elevationProfile);
+  const curveLength = useMemo(() => curve.getLength(), [curve]);
   const styles = getTheme(theme);
+  const isCloudWorld = theme === "cloud";
+  // The authored cloud chase camera: "play" is the approved framing, "cinema"
+  // the wide study view. Unknown/absent values stay on play.
+  const cloudView: CloudView = worldView === "cinema" ? "cinema" : "play";
   // Bespoke art direction for the worlds that are not a city at night or a
-  // mountain at noon. `undefined` for alpine/neon, which have their own.
-  const planetProfile = PLANET_PROFILES[theme] as PlanetProfile | undefined;
+  // mountain at noon. `undefined` for alpine/neon, which have their own — and
+  // for the Cloud Kingdom, which renders the authored cloud-ride kit instead
+  // of the planet sky kit.
+  const planetProfile = isCloudWorld ? undefined : (PLANET_PROFILES[theme] as PlanetProfile | undefined);
+  const reducedMotion = usePrefersReducedMotion();
   const smoothedLookTargetRef = useRef(new Vector3());
   const smoothedShakeRef = useRef(new Vector3());
   const _shakeTargetVec = useRef(new Vector3());
@@ -1889,16 +1981,34 @@ function Scene({
       // Aim just above/ahead of the rider so the cyclist sits mid-frame,
       // clear of the bottom HUD. Preview looks further down the road so the
       // establishing shot reads as a landscape, not a portrait of the rider.
-      look.copy(riderPos).addScaledVector(tangent, isPreview ? 6 : 1.5);
-      look.y += isPreview ? 1.8 : 1.2;
+      // The Cloud Kingdom rides the authored play framing (CLOUD_VIEWS) — a
+      // low, close chase looking far down the road — instead of the legacy
+      // spectator offset.
+      const cloudSpec = isCloudWorld && !isPreview ? CLOUD_VIEWS[cloudView] : null;
+      if (cloudSpec) {
+        // lookAhead is arc-length units ahead on the route, not a tangent
+        // multiple — it keeps pointing down the road through tight turns.
+        curve.getPointAt(
+          Math.min(1, safeCurveP + cloudSpec.lookAhead / curveLength),
+          look,
+        );
+        look.y += -10 + cloudSpec.lookHeight;
+      } else {
+        look.copy(riderPos).addScaledVector(tangent, isPreview ? 6 : 1.5);
+        look.y += isPreview ? 1.8 : 1.2;
+      }
       // riderPos becomes the camera target: behind, slightly to the side,
       // above. Closer than before (was 14 back / 10 up) so the cyclist
       // reads as a person on a bike, not a dot. Preview pulls back further
       // and higher so the road ahead reads as a landscape, not a chase.
-      const targetCamPos = riderPos
-        .addScaledVector(tangent, isPreview ? -12 : -10)
-        .addScaledVector(side, isPreview ? 3 : 2.5);
-      targetCamPos.y += isPreview ? 4.2 : 6.5;
+      const targetCamPos = cloudSpec
+        ? riderPos
+            .addScaledVector(tangent, -cloudSpec.back)
+            .addScaledVector(side, cloudSpec.side)
+        : riderPos
+            .addScaledVector(tangent, isPreview ? -12 : -10)
+            .addScaledVector(side, isPreview ? 3 : 2.5);
+      targetCamPos.y += cloudSpec ? cloudSpec.height : isPreview ? 4.2 : 6.5;
 
       const follow = dampFactor(isPreview ? 1.4 : mode === "ride" ? 3.7 : 2.4, delta);
       // Only preview snaps on its first frame — the ride and finished modes
@@ -1926,6 +2036,10 @@ function Scene({
           // Wider lens for the pre-ride establishing shot — the point is to
           // show the world the rider is about to enter.
           targetFov = 68;
+        } else if (cloudSpec) {
+          // The authored cloud look fixes the lens per view — the sprint
+          // tunnel-vision would fight the low chase framing.
+          targetFov = cloudSpec.fov;
         } else if (reactive) {
           targetFov = reactive.fovTarget;
         } else {
@@ -2064,6 +2178,10 @@ function Scene({
         }
         castShadow={quality?.shadows}
       />
+      {/* The Cloud Kingdom owns its fog inside CloudWorldScene (authored
+          near/far and warmth-driven colour) — the shared scene fog would
+          overwrite it. */}
+      {!isCloudWorld && (
       <fog
         attach="fog"
         args={[
@@ -2088,6 +2206,7 @@ function Scene({
                 : 250,
         ]}
       />
+      )}
 
       {/* Generated-world panorama (World Labs pipeline) — one static
           equirect texture; the mobile-safe tier. */}
@@ -2101,11 +2220,13 @@ function Scene({
       {/* Conditionally render expensive effects */}
       {particleCount > 100 && <FloatingParticles theme={theme} stats={stats} reactive={reactive} />}
 
-      {mode === "ride" && speedLineCount > 0 && (
+      {/* Speed lines / spore sparkles are Tron-kit dressing — the authored
+          cloud world carries its own wisps and pulse instead. */}
+      {mode === "ride" && speedLineCount > 0 && !isCloudWorld && (
         <SpeedLines count={speedLineCount} theme={theme} reactive={reactive} stats={stats} />
       )}
 
-      {sparkleCount > 0 && (
+      {sparkleCount > 0 && !isCloudWorld && (
         <Sparkles
           count={sparkleCount}
           scale={100}
@@ -2164,17 +2285,32 @@ function Scene({
             world={theme}
           />
         )}
-        <RouteSkirt curve={curve} theme={theme} />
-        <Road
-          curve={curve}
-          theme={theme}
-          stats={stats}
-          steps={performanceTier === "high" ? 600 : performanceTier === "medium" ? 250 : 100}
-          reactive={reactive}
-        />
-        <PropField theme={theme} curve={curve} stats={stats} reactive={reactive} />
-        {/* Ground cover — the looped roadside band (roadmap P1 #6). */}
-        <GroundCoverField theme={theme} curve={curve} tier={performanceTier} />
+        {/* The Cloud Kingdom renders the authored cloud-ride kit: banked
+            lilac ribbon + mint pulse piping + metaball cumulus, driven by
+            the ride clock and the rider's real progress/effort — not the
+            shared extrude road, skirt, silhouette props or cover band. */}
+        {isCloudWorld ? (
+          <CloudLiveWorld
+            curve={curve}
+            stats={stats}
+            progressRef={renderProgressRef}
+            reducedMotion={reducedMotion}
+          />
+        ) : (
+          <>
+            <RouteSkirt curve={curve} theme={theme} />
+            <Road
+              curve={curve}
+              theme={theme}
+              stats={stats}
+              steps={performanceTier === "high" ? 600 : performanceTier === "medium" ? 250 : 100}
+              reactive={reactive}
+            />
+            <PropField theme={theme} curve={curve} stats={stats} reactive={reactive} />
+            {/* Ground cover — the looped roadside band (roadmap P1 #6). */}
+            <GroundCoverField theme={theme} curve={curve} tier={performanceTier} />
+          </>
+        )}
         {/* Height fog — one shared uniform object per channel; this only
             re-points them at the theme's haze color. (roadmap P0 #4) */}
         <HeightFogTuner theme={theme} />
@@ -2265,6 +2401,7 @@ export default function RouteVisualizer({
   active = true,
   onWebglUnavailable,
   worldMode,
+  worldView,
 }: {
   elevationProfile?: number[];
   theme?: VisualizerTheme;
@@ -2294,6 +2431,12 @@ export default function RouteVisualizer({
    * the world's default mode for this theme.
    */
   worldMode?: string;
+  /**
+   * Cloud Kingdom only: which authored chase framing the ride camera uses —
+   * "play" (default, the approved low chase) or "cinema" (the wide study
+   * view). Other worlds ignore it; preview keeps its own cinematic camera.
+   */
+  worldView?: "play" | "cinema";
 }) {
   const adaptiveQuality = useAdaptiveQuality();
 
@@ -2462,6 +2605,7 @@ export default function RouteVisualizer({
             contextPalette={contextPalette}
             panoUrl={world?.panoUrl}
             worldMode={worldMode}
+            worldView={worldView}
           />
         </Canvas>
       </Suspense>

@@ -25,6 +25,8 @@ export interface TronRendererProps {
   routeTheme: VisualizerTheme;
   /** Which mode of the world presents it — a mood inside a place. */
   worldMode?: string;
+  /** Cloud Kingdom only: "play" (default) or "cinema" chase framing. */
+  worldView?: "play" | "cinema";
   storyBeats: StoryBeat[];
   avatarId?: string;
   equipmentId?: string;
@@ -67,6 +69,7 @@ export const TronRenderer = memo(function TronRenderer(props: TronRendererProps)
         elevationProfile={props.routeElevationProfile}
         theme={props.routeTheme}
         worldMode={props.worldMode}
+        worldView={props.worldView}
         progress={props.progress}
         mode={props.mode}
         stats={{

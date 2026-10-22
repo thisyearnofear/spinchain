@@ -772,6 +772,7 @@ export default function LiveRidePage() {
           classData={classData}
           routeTheme={routeTheme}
           worldMode={worldMode}
+          worldView={searchParams.get("view") === "cinema" ? "cinema" : undefined}
           searchParams={searchParams}
           panelState={panelState.state}
           panelPositions={panelState.positions}

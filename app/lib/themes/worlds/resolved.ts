@@ -61,6 +61,9 @@ function atmosphereFromTheme(theme: ThemeDefinition): AtmosphereKitId {
 }
 
 function propsFromTheme(theme: ThemeDefinition): WorldPropSet[] {
+  // A theme may own no silhouette at all (the authored Cloud Kingdom's
+  // dressing is its metaball layout, not a shared prop set).
+  if (!theme.props) return [];
   return [
     {
       type: theme.props.type,

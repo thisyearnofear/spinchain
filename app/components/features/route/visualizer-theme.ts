@@ -181,28 +181,31 @@ export const VISUALIZER_THEMES = {
     },
   },
   /**
-   * Cloud Kingdom — the soft one. Cotton sky (the planet shader's pastel
-   * daylight style already draws the cloud bands), white puff props that bob,
-   * and a pastel road that glows pink. This is the first *world* built on the
-   * world/mode schema rather than a recolour of Tron: it has its own sky
-   * profile, its own silhouette and its own ground kind.
+   * Cloud Kingdom — the authored world. Since the harmonization it renders
+   * the cloud-ride kit: a banked lilac ribbon with mint pulse piping, an
+   * instanced metaball cumulus sea/cathedral, and the camera-following sky
+   * shader — none of the shared road/skirt/silhouette kit. The palette below
+   * is therefore decoration and furniture only: page gradient, the 2D focus
+   * view (which still draws its sun glow off `atmosphere: "sun"`), the finish
+   * arch, welcome sign and readout accents. It has no `props`/`groundCover`:
+   * the world's dressing is the metaball layout, not silhouette parts.
    */
   cloud: {
-    fog: "#ffe3f2",
-    roadColor: "#c9b8e8",
-    roadEmissive: "#ff9fd2",
+    fog: "#d4d7ed",
+    roadColor: "#dcc6f2",
+    roadEmissive: "#9be8db",
     roadEmissiveIntensity: 0.1,
-    lineColor: "#8ad7ff",
+    lineColor: "#9be8db",
     riderColor: "#ffffff",
     grid: false,
     stars: false,
     envPreset: "dawn" as const,
-    particleColor: "#ffd6f2",
-    skyTop: "#9ed4ff",
-    skyBottom: "#ffe6f5",
-    horizonGlow: "#ffb3e0",
-    terrainColor: "#ffd9ef",
-    terrainAccent: "#c9b6ff",
+    particleColor: "#fff8f4",
+    skyTop: "#69b7f3",
+    skyBottom: "#ffe9ce",
+    horizonGlow: "#fff0d2",
+    terrainColor: "#e9e6f6",
+    terrainAccent: "#c9bbec",
     panelColor: "rgba(88, 60, 130, 0.62)",
     worldLabel: "Cloud Kingdom",
     atmosphere: "sun" as const,
@@ -210,23 +213,6 @@ export const VISUALIZER_THEMES = {
     terrainFrontScale: 0.58,
     patternOpacity: 0.05,
     routeDashOpacity: 0.28,
-    breathes: true,
-    breatheEmissive: 0.4,
-    // A shallow rim: the cloud sea has to read as a surface you can see
-    // across, not a plateau with a drop beside the road.
-    skirtEdgeDrop: 0.6,
-    props: {
-      type: "cloud" as const,
-      color: "#ffffff",
-      count: 60,
-      scale: [1.9, 1.5, 1.9] as [number, number, number],
-    },
-    groundCover: {
-      type: "cloud" as const,
-      color: "#d6ecff",
-      count: 180,
-      scale: [1.0, 0.7, 1.0] as [number, number, number],
-    },
   },
 } as const;
 

@@ -37,7 +37,8 @@ export type AtmosphereKitId =
   | "mist"      // alpine-atmosphere
   | "dust"      // planetary-atmosphere
   | "sun"       // planetary-atmosphere
-  | "prism";    // planetary-atmosphere
+  | "prism"     // planetary-atmosphere
+  | "cumulus";  // cloud-ride — authored sky shader + metaball sea, not ThemeAtmosphere
 
 /**
  * Post-processing weights a mode can set. Every field is a multiplier on the

@@ -1,0 +1,107 @@
+.page {
+  position: relative;
+  height: 100svh;
+  overflow: hidden;
+  background: #241c33;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+.stage { position: absolute; inset: 0; }
+.stage canvas { display: block; }
+
+.hud {
+  position: absolute; top: 12px; left: 12px; z-index: 4;
+  color: #fff; text-shadow: 0 1px 8px rgba(40,20,60,.45);
+  pointer-events: none;
+  background: rgba(36,28,51,.55);
+  border-radius: 10px; padding: 8px 12px;
+  max-width: calc(100% - 120px);
+}
+.hud h1 { font-size: 17px; font-weight: 700; margin: 0; }
+.chapter { font-size: 12px; color: #ffe9ce; margin-top: 2px; }
+.tag { font-size: 10px; opacity: .75; margin-top: 2px; }
+
+.topRight { position: absolute; top: 12px; right: 12px; z-index: 4; display: flex; gap: 8px; }
+.topRight button {
+  min-height: 44px; padding: 0 14px; border: 0; border-radius: 10px;
+  background: rgba(36,28,51,.72); color: #f4edff; font-size: 12px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.topRight button[aria-pressed="true"] { background: #ffd9a0; color: #241c33; }
+
+.dock {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px; z-index: 4;
+  display: flex; flex-direction: column; gap: 6px;
+  width: min(720px, calc(100vw - 24px));
+  background: rgba(30,22,45,.82); border-radius: 14px; padding: 8px;
+  color: #f4edff;
+}
+.dock button {
+  min-height: 44px; min-width: 44px; border: 0; border-radius: 10px;
+  background: #ffd9a0; color: #241c33; font-size: 12px; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0 10px;
+}
+.transport {
+  display: grid;
+  grid-template-columns: 80px 44px minmax(40px, 1fr) 60px;
+  gap: 6px; align-items: center;
+}
+.effortRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) 96px;
+  gap: 6px; align-items: center;
+}
+.chip { background: rgba(255,255,255,.12) !important; color: #f4edff !important; }
+.chip[aria-pressed="true"] { background: #9be8db !important; color: #241c33 !important; }
+.seek { width: 100%; height: 44px; accent-color: #9be8db; }
+.time { font-size: 11px; font-variant-numeric: tabular-nums; text-align: center; }
+.readout { font-size: 11px; color: #ffe9ce; font-variant-numeric: tabular-nums; text-align: center; }
+.readout small { display: block; font-size: 9px; color: #c9b8e8; }
+.effortNote { font-size: 10px; color: #c9b8e8; text-align: center; }
+
+.backLink {
+  position: absolute; bottom: 14px; left: 16px; z-index: 4;
+  color: #f4edff; font-size: 12px; text-decoration: none;
+  background: rgba(36,28,51,.72); padding: 8px 12px; border-radius: 10px; min-height: 44px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.showBtn {
+  position: absolute; top: 14px; right: 16px; z-index: 6;
+  min-height: 44px; padding: 0 14px; border: 0; border-radius: 10px;
+  background: #fbf7f2; color: #241c33; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.fallback {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  background: #241c33; color: #f4edff; text-align: center; padding: 24px;
+}
+.fallback p { max-width: 42ch; color: #c9b8e8; font-size: 14px; line-height: 1.5; }
+.fallback button {
+  min-height: 44px; padding: 0 16px; border: 0; border-radius: 10px;
+  background: #ffd9a0; color: #241c33; font-weight: 700; cursor: pointer;
+}
+.shareRow { position: absolute; bottom: 14px; right: 16px; z-index: 4; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.shareRow button {
+  min-height: 44px; padding: 0 14px; border: 0; border-radius: 10px;
+  background: rgba(36,28,51,.72); color: #f4edff; font-size: 12px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.shareInput {
+  width: 240px; min-height: 40px; border-radius: 8px; border: 1px solid #8a7ba8;
+  background: #171226; color: #f4edff; font-size: 11px; padding: 0 8px;
+}
+.shareStatus { font-size: 11px; color: #9be8db; min-height: 14px; }
+.page :focus-visible { outline: 2px solid #ffd9a0; outline-offset: 2px; }
+
+@media (max-width: 760px) {
+  .hud { top: 12px; left: 12px; }
+  .topRight {
+    top: 94px; left: 12px; right: 12px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  }
+  .topRight button { font-size: 11px; padding: 0 6px; justify-content: center; }
+  .backLink { top: 12px; right: 64px; left: auto; bottom: auto; }
+  .backLabel { display: none; }
+  .shareRow { top: 12px; right: 12px; bottom: auto; align-items: flex-end; }
+  .shareLabel { display: none; }
+  .shareInput { width: min(240px, calc(100vw - 24px)); }
+}

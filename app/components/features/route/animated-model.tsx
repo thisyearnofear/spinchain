@@ -16,7 +16,7 @@
  * scene would animate an object that never mounts.
  */
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import {
@@ -54,6 +54,12 @@ export interface AnimatedModelProps {
    * (cloned) character root — for procedural overrides such as IK.
    */
   onAfterUpdate?: (root: Object3D) => void;
+  /**
+   * Optional external animation clock (seconds). When provided the mixer is
+   * DRIVEN (`setTime`) instead of advanced by wall-clock delta — used by the
+   * ride lab so a paused frame always shows the identical pose.
+   */
+  timeRef?: MutableRefObject<number>;
 }
 
 function hasSkinnedMesh(root: Object3D): boolean {
@@ -73,6 +79,7 @@ export function AnimatedModel({
   rotation = [0, 0, 0],
   position = [0, 0, 0],
   onAfterUpdate,
+  timeRef,
 }: AnimatedModelProps) {
   // No dedupe: useGLTF caches by URL, and keeping the array parallel to
   // [base, ...clips] lets clipMap below index by position.
@@ -145,7 +152,8 @@ export function AnimatedModel({
   }, [onAfterUpdate]);
 
   useFrame((_, delta) => {
-    mixer?.update(delta * timeScaleRef.current);
+    if (timeRef) mixer?.setTime(timeRef.current);
+    else mixer?.update(delta * timeScaleRef.current);
     if (renderObject && afterUpdateRef.current) afterUpdateRef.current(renderObject);
   });
 
