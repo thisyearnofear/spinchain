@@ -254,6 +254,7 @@ describe("route silhouettes", () => {
     blossom: ["cylinder", "sphere", "sphere"],
     crystal: ["octahedron", "octahedron", "octahedron"],
     tuft: ["cone", "cone", "cone"],
+    cloud: ["sphere", "sphere", "sphere"],
   };
 
   it("builds one instanced silhouette per theme, planted on the skirt", () => {
@@ -262,13 +263,17 @@ describe("route silhouettes", () => {
     expect(VISUALIZER_THEMES.mars.props.count).toBe(80);
     expect(VISUALIZER_THEMES.anime.props.count).toBe(200);
     expect(VISUALIZER_THEMES.rainbow.props.count).toBe(60);
+    expect(VISUALIZER_THEMES.cloud.props.count).toBe(60);
 
     for (const name of Object.keys(VISUALIZER_THEMES) as Array<keyof typeof VISUALIZER_THEMES>) {
       const config = VISUALIZER_THEMES[name].props;
       const spec = SILHOUETTES[config.type];
       expect(spec.map((part) => part.shape)).toEqual(shapes[config.type]);
+      // At most one part of a silhouette breathes. The Cloud puff breathes its
+      // crown, like the building's cap and the crystal's shard.
+      expect(spec.filter((part) => part.breathes).length).toBeLessThanOrEqual(1);
       expect(spec.filter((part) => part.breathes)).toHaveLength(
-        config.type === "building" || config.type === "crystal" ? 1 : 0,
+        config.type === "building" || config.type === "crystal" || config.type === "cloud" ? 1 : 0,
       );
 
       const base = silhouetteBaseY(config.type);

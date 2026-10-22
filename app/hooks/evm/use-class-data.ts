@@ -214,7 +214,7 @@ function createFallbackMetadataFromDemo(demoClass: CuratedClass): EnhancedClassM
       theme,
       checksum: `demo-checksum-${demoClass.address.slice(2, 8)}`,
       storyBeatsCount: storyBeatLabels.length,
-      terrainTags: theme === "alpine" ? ["climb", "mountain"] : theme === "mars" ? ["desert", "rolling"] : ["urban", "tempo"],
+      terrainTags: theme === "alpine" ? ["climb", "mountain"] : theme === "mars" ? ["desert", "rolling"] : theme === "cloud" ? ["rolling", "float"] : ["urban", "tempo"],
       storyBeatLabels,
     },
     ai: {

@@ -1,4 +1,5 @@
 import { getTheme } from "@/app/lib/themes/registry";
+import type { WorldModeReactivity } from "@/app/lib/themes/world-definition";
 import { visualEffort } from "@/app/lib/ride-effort";
 import { ALPINE_POINT_COLOR } from "./alpine-atmosphere";
 import { NEON_POINT_COLOR } from "./neon-atmosphere";
@@ -146,7 +147,20 @@ export function computeReactiveParams(
   stats: { power: number; hr: number; cadence: number; intensity: number },
   intervalPhase: IntervalPhase,
   progress: number,
+  /**
+   * How this *mode* of the world reacts to effort. Undefined or neutral
+   * weights leave the world's own curve alone, so a mode that does not care
+   * about reactivity changes nothing.
+   */
+  modeReactivity?: WorldModeReactivity,
 ): ReactiveParams {
+  // ─── Mode weights ──────────────────────────────────────────────
+  // A mode scales the world's response to effort: how fast the fog closes
+  // in, how hot the road glows, how wide the field of view opens.
+  const fogGain = modeReactivity?.fogGain ?? 1;
+  const glowGain = modeReactivity?.glowGain ?? 1;
+  const speedGain = modeReactivity?.speedGain ?? 1;
+
   // ─── Normalized effort (0-1) ───────────────────────────────────
   const effort = visualEffort(stats.intensity);
   const cadenceFactor = Math.min(1, stats.cadence / 120);
@@ -192,7 +206,7 @@ export function computeReactiveParams(
   // Road: color and intensity
   const roadGlowColor = lerpColor(themeStyles.roadEmissive, phase.roadGlow, phaseInfluence);
   const roadBaseEmissive = 0.2 + effort * 0.8; // 0.2 → 1.0
-  const roadGlowIntensity = 0.2 + cadenceFactor * 0.3 + (intervalPhase === "sprint" ? effort * 0.5 : 0);
+  const roadGlowIntensity = (0.2 + cadenceFactor * 0.3 + (intervalPhase === "sprint" ? effort * 0.5 : 0)) * glowGain;
 
   // Lighting
   const ambientIntensity = lerp(0.5, 0.3, effort); // dim ambient during high effort for more contrast
@@ -211,7 +225,7 @@ export function computeReactiveParams(
   const pointLightIntensity = lerp(1, 2.5, effort);
 
   // Fog: denser during high effort, phase-colored
-  const fogDensity = lerp(40, 20, effort); // closer fog = more intensity
+  const fogDensity = lerp(40, 20, effort) * fogGain; // closer fog = more intensity
   const fogColor = lerpColor(themeStyles.fog, phase.fog, phaseInfluence);
 
   // Sky gradient
@@ -227,13 +241,14 @@ export function computeReactiveParams(
   } else {
     fovTarget = 60 + effort * 25; // 60° → 85°
   }
+  fovTarget = 60 + (fovTarget - 60) * speedGain;
 
   // Props: emissive intensity increases with effort
   const propEmissiveIntensity = 0.5 + effort * 1.5; // 0.5 → 2.0
   const propPulseSpeed = 1 + cadenceFactor * 2;
 
   // Speed lines: speed and count increase with cadence
-  const speedLineSpeed = 0.5 + cadenceFactor * 2; // 0.5 → 2.5
+  const speedLineSpeed = (0.5 + cadenceFactor * 2) * speedGain; // 0.5 → 2.5
   const speedLineColor = lerpColor(themeStyles.lineColor, phase.speedLine, phaseInfluence);
   const speedLineOpacity = 0.3 + effort * 0.5; // 0.3 → 0.8
 

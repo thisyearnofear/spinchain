@@ -14,7 +14,7 @@ import {
 } from "three";
 import { SKIRT_STEPS, skirtSurfacePoint } from "./route-skirt";
 
-export type PropType = "building" | "tree" | "rock" | "blossom" | "crystal" | "tuft";
+export type PropType = "building" | "tree" | "rock" | "blossom" | "crystal" | "tuft" | "cloud";
 export type PropShape = "box" | "cylinder" | "cone" | "sphere" | "dodecahedron" | "octahedron";
 
 export interface PropConfig {
@@ -84,6 +84,20 @@ export const SILHOUETTES: Record<PropType, readonly SilhouettePart[]> = {
     { shape: "cone", args: [0.075, 0.85, 4], position: [0, 0.42, 0], rotation: R0, scale: S, shade: 1, emissive: 0.05, roughness: 0.92, metalness: 0, breathes: false },
     { shape: "cone", args: [0.06, 0.6, 4], position: [0.16, 0.28, 0.09], rotation: [0, 0, 0.3], scale: S, shade: 0.82, emissive: 0.04, roughness: 0.92, metalness: 0, breathes: false },
     { shape: "cone", args: [0.05, 0.5, 4], position: [-0.14, 0.24, -0.07], rotation: [0, 0, -0.36], scale: S, shade: 0.7, emissive: 0.03, roughness: 0.92, metalness: 0, breathes: false },
+  ],
+  /**
+   * Cloud puff — the Cloud world's silhouette. Three overlapping spheres
+   * read as one soft blob from any angle, and the crown sphere is the part
+   * that breathes (it bobs), which is what makes a field of them feel alive
+   * rather than like a row of boulders.
+   *
+   * Sphere segments are deliberately low (8×6 ≈ 48 tris a piece): the puffs
+   * are large on screen, so this world is fill-rate bound, not triangle bound.
+   */
+  cloud: [
+    { shape: "sphere", args: [1.1, 8, 6], position: [0, 0.82, 0], rotation: R0, scale: [1, 0.88, 1], shade: 1, emissive: 0.14, roughness: 1, metalness: 0, breathes: false },
+    { shape: "sphere", args: [0.74, 8, 6], position: [-0.78, 0.56, 0.16], rotation: R0, scale: [1, 0.92, 1], shade: 0.97, emissive: 0.11, roughness: 1, metalness: 0, breathes: false },
+    { shape: "sphere", args: [0.48, 8, 6], position: [0.1, 1.42, -0.08], rotation: R0, scale: S, shade: 1, emissive: 0.2, roughness: 1, metalness: 0, breathes: true },
   ],
 };
 

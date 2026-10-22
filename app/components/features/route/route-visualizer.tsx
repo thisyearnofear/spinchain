@@ -52,6 +52,7 @@ import {
 } from "@react-three/drei";
 import { LocalEnvironment } from "./local-environment";
 import { getTheme, loadRemoteThemes, subscribeThemes, getThemeVersion } from "@/app/lib/themes/registry";
+import { resolveModeForTheme } from "@/app/lib/themes/worlds";
 import type { VisualizerTheme } from "./visualizer-theme";
 import { computeReactiveParams, type ReactiveParams } from "./world-reactivity";
 import { useCoachingStore, selectPrBeaten } from "@/app/stores/coaching-store";
@@ -469,8 +470,12 @@ function RouteSkirt({ curve, theme }: { curve: CatmullRomCurve3; theme: Visualiz
   const styles = getTheme(theme);
   const { halfWidth } = roadProfile(theme);
   // Alpine and neon keep a shallow rim so the fade is a surface you can see.
-  // The other themes keep the steeper drop.
-  const edgeDrop = theme === "alpine" ? 0.6 : theme === "neon" ? NEON_SKIRT_EDGE_DROP : SKIRT_EDGE_DROP;
+  // The other themes keep the steeper drop — unless the theme says otherwise
+  // (`skirtEdgeDrop`), which is how the Cloud world gets a continuous deck
+  // instead of a plateau with a void beside it.
+  const edgeDrop =
+    styles.skirtEdgeDrop ??
+    (theme === "alpine" ? 0.6 : theme === "neon" ? NEON_SKIRT_EDGE_DROP : SKIRT_EDGE_DROP);
   const geometry = useMemo(
     () => buildRouteSkirtGeometry(curve, halfWidth, SKIRT_STEPS, edgeDrop),
     [curve, halfWidth, edgeDrop],
@@ -525,17 +530,20 @@ function BreathingMaterial({
   materialRef: React.RefObject<THREE.MeshStandardMaterial | null>;
 }) {
   const reduced = usePrefersReducedMotion();
+  // "Does this world breathe, and how brightly" is theme DATA, not a
+  // `theme === "…"` branch — see `docs/WORLD-SYSTEM.md`.
+  const breatheEmissive = getTheme(theme).breatheEmissive ?? 0.8;
 
   useFrame((state) => {
     const mat = materialRef.current;
     if (!mat) return;
     // Reduced motion: hold a static intensity instead of pulsing every frame.
     if (reduced) {
-      mat.emissiveIntensity = theme === "neon" ? 0.5 : 0.8;
+      mat.emissiveIntensity = breatheEmissive;
       return;
     }
     const pulseBase = 1 + Math.sin(state.clock.elapsedTime * (stats.cadence / 15)) * 0.05;
-    let baseIntensity = theme === "neon" ? 0.5 : 0.8;
+    let baseIntensity = breatheEmissive;
     if (reactive) {
       baseIntensity = reactive.propEmissiveIntensity;
       const beat = (state.clock.elapsedTime * 1000) % reactive.pulseMs;
@@ -569,7 +577,7 @@ function PropInstances({
     applyInstanceMatrices(mesh, part.matrices, part.count);
   }, [part]);
 
-  const breathe = part.breathes && (theme === "neon" || theme === "rainbow");
+  const breathe = part.breathes && getTheme(theme).breathes === true;
 
   // The material is built imperatively so the wind patch lands *before* the
   // renderer ever sees it. Patching a JSX-created material afterwards races
@@ -581,7 +589,7 @@ function PropInstances({
     const m = new THREE.MeshStandardMaterial({
       color: new THREE.Color(part.color),
       emissive: new THREE.Color(part.color),
-      emissiveIntensity: breathe ? (theme === "neon" ? 0.5 : 0.8) : part.emissive,
+      emissiveIntensity: breathe ? (getTheme(theme).breatheEmissive ?? 0.8) : part.emissive,
       roughness: part.roughness,
       metalness: part.metalness,
     });
@@ -672,7 +680,7 @@ function GroundCoverField({
 }) {
   const styles = getTheme(theme);
   const groundCover = styles.groundCover as
-    | { color: string; count: number; scale: readonly [number, number, number] }
+    | { type?: "tuft" | "cloud"; color: string; count: number; scale: readonly [number, number, number] }
     | undefined;
   const { halfWidth } = roadProfile(theme);
   const tierScale = tier === "high" ? 1 : tier === "medium" ? 0.55 : 0.3;
@@ -683,7 +691,9 @@ function GroundCoverField({
         ? buildGroundCoverField(
             curve,
             {
-              type: "tuft",
+              // The band's silhouette is the world's choice — grass tufts for
+              // every legacy world, little puffs for the Cloud world.
+              type: groundCover.type ?? "tuft",
               color: groundCover.color,
               count: Math.max(24, Math.floor(groundCover.count * tierScale)),
               scale: groundCover.scale,
@@ -761,7 +771,7 @@ function ShaderWarmUp() {
   return null;
 }
 
-function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive = null, mode = "ride" }: { theme: VisualizerTheme; stats: RiderStats; performanceTier?: "high" | "medium" | "low"; reactive?: ReactiveParams | null; mode?: VisualizerMode }) {
+function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive = null, mode = "ride", worldMode }: { theme: VisualizerTheme; stats: RiderStats; performanceTier?: "high" | "medium" | "low"; reactive?: ReactiveParams | null; mode?: VisualizerMode; worldMode?: string }) {
   // Live values go through refs and are written onto the effect instances
   // in useFrame. @react-three/postprocessing recreates an effect whenever
   // its props change (args memoized on JSON.stringify(props)), and the
@@ -788,6 +798,13 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
   const intensityMultiplier = performanceTier === "low" ? 0 : performanceTier === "medium" ? 0.5 : 1;
   const noiseOpacity = theme === 'neon' ? 0.03 * intensityMultiplier : 0;
 
+  /**
+   * The mode's post weights — how this *mood* of the world is presented.
+   * Undefined means "leave the world's own value alone", so a mode that does
+   * not care about the post stack changes nothing.
+   */
+  const modePost = resolveModeForTheme(theme, worldMode)?.post ?? {};
+
   useFrame((_, delta) => {
     const composer = composerRef.current;
     if (!composer) return;
@@ -810,9 +827,11 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
     const powerFactor = Math.min(1, s.power / 600);
     // Caps: the phase theme's sprint values (bloom 3.5, chroma 0.008) blew
     // the frame out to white and hid the rider from the chase camera.
-    const bloomTarget = Math.min(2.2, r ? r.bloomIntensity : 0.5 + powerFactor * 2.0) * intensityMultiplier;
+    const bloomTarget = Math.min(2.2, r ? r.bloomIntensity : 0.5 + powerFactor * 2.0) * intensityMultiplier * (modePost.bloom ?? 1);
     const chromaTarget =
-      Math.min(0.0035, r ? r.chromaticOffset : s.power > 300 ? powerFactor * 0.005 : 0) * intensityMultiplier;
+      Math.min(0.0035, r ? r.chromaticOffset : s.power > 300 ? powerFactor * 0.005 : 0) *
+      intensityMultiplier *
+      (modePost.chromaticAberration ?? 1);
     // Ease toward targets so 2–10Hz telemetry steps don't flicker the glow.
     const k = dampFactor(4, delta);
     if (cache.bloom) {
@@ -830,7 +849,7 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
       o.set(next, next);
     }
     if (cache.vignette && r) {
-      cache.vignette.darkness += (r.vignetteDarkness - cache.vignette.darkness) * k;
+      cache.vignette.darkness += (r.vignetteDarkness * (modePost.vignette ?? 1) - cache.vignette.darkness) * k;
     }
     if (cache.radialBlur) {
       // Peripheral blur is the speed cue. It only runs during a ride — the
@@ -1677,6 +1696,7 @@ function Scene({
   flowTier = 0,
   contextPalette,
   panoUrl,
+  worldMode,
 }: {
   elevationProfile: number[];
   theme?: VisualizerTheme;
@@ -1688,6 +1708,8 @@ function Scene({
   avatar?: AvatarAsset;
   equipment?: EquipmentAsset;
   panoUrl?: string;
+  /** Which mode of the world presents it. Undefined = the world's default. */
+  worldMode?: string;
   quality?: {
     pixelRatio: number;
     shadows: boolean;
@@ -1751,6 +1773,7 @@ function Scene({
     progress,
     mode,
     flowTier,
+    worldMode,
   });
 
   // --- Progress tracking via refs (no React state updates inside useFrame) ---
@@ -2072,7 +2095,7 @@ function Scene({
       <LocalEnvironment key={theme} sky={context ? context.skyTop : styles.skyTop} horizon={context ? context.horizonGlow : styles.horizonGlow} ground={styles.terrainColor} />
 
       {/* Dynamic atmospheric effects - disabled on low tier for performance */}
-      <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} reactive={reactive} mode={mode} />
+      <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} reactive={reactive} mode={mode} worldMode={worldMode} />
 
       {/* Conditionally render expensive effects */}
       {particleCount > 100 && <FloatingParticles theme={theme} stats={stats} reactive={reactive} />}
@@ -2239,6 +2262,7 @@ export default function RouteVisualizer({
   paused = false,
   active = true,
   onWebglUnavailable,
+  worldMode,
 }: {
   elevationProfile?: number[];
   theme?: VisualizerTheme;
@@ -2262,6 +2286,12 @@ export default function RouteVisualizer({
   active?: boolean;
   /** WebGL failed to start, or the context was lost and never restored. */
   onWebglUnavailable?: (reason: WebglUnavailableReason) => void;
+  /**
+   * Which *mode* of the world presents it — a mood inside a place, not the
+   * renderer's preview/ride/finished state (that is `mode`). Undefined uses
+   * the world's default mode for this theme.
+   */
+  worldMode?: string;
 }) {
   const adaptiveQuality = useAdaptiveQuality();
 
@@ -2429,6 +2459,7 @@ export default function RouteVisualizer({
             flowTier={flowTier}
             contextPalette={contextPalette}
             panoUrl={world?.panoUrl}
+            worldMode={worldMode}
           />
         </Canvas>
       </Suspense>

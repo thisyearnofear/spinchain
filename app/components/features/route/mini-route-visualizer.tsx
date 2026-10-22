@@ -3,15 +3,16 @@
 import { m } from "framer-motion";
 
 interface MiniRouteVisualizerProps {
-  theme?: "neon" | "alpine" | "mars" | "ocean";
+  theme?: "neon" | "alpine" | "mars" | "ocean" | "cloud";
   className?: string;
 }
 
 const themeColors = {
   neon: "#6d7cff",
-  alpine: "#6ef3c6", 
+  alpine: "#6ef3c6",
   mars: "#ff6b6b",
-  ocean: "#4ecdc4"
+  ocean: "#4ecdc4",
+  cloud: "#ff9fd2",
 };
 
 // Simpler 2D version for cards

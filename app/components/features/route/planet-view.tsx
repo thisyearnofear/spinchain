@@ -36,7 +36,11 @@ export function PlanetAtmosphere({
     name: profile.name,
     horizonName: profile.horizonName,
     animated: true,
-    buildHorizonGeometry: (c) => buildPlanetHorizonGeometry(c, profile),
+    // `buildHorizonGeometry` returning null means "this world has no horizon
+    // ring" — the kit interface allows a null geometry, and ThemeAtmosphere
+    // skips the mesh.
+    buildHorizonGeometry: (c) =>
+      profile.ridge === false ? null : buildPlanetHorizonGeometry(c, profile),
     createHorizonMaterial: createPlanetHorizonMaterial,
     createSkyGeometry: createPlanetSkyGeometry,
     createSkyMaterial: (_z, _h) => createPlanetSkyMaterial(profile, zenith, horizon),

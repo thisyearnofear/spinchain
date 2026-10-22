@@ -65,6 +65,32 @@ export interface PlanetProfile {
   ridgeHeight: number;
   ridgeJagged: number;
   ridgeSegments: number;
+  /**
+   * How far the horizon ring's base falls below the route. The ring is a
+   * cylinder, so this is its height: 26 reads as a land wall, a small number
+   * reads as a low bank sitting on the horizon (the Cloud world wants the
+   * latter — it is a bank of cumulus, not a cliff).
+   */
+  ridgeDepth?: number;
+  /**
+   * The height of the ring's crest above the route's LOWEST point.
+   *
+   * By default the crest clears the route's *highest* point, which on a
+   * hilly course is tens of units up — the ring then reads as a wall around
+   * the whole ride. A world whose horizon is a soft bank (clouds, sea mist)
+   * sets this instead, so the bank sits low and the road flies above it.
+   */
+  ridgeCrestHeight?: number;
+  /**
+   * Whether the world gets the horizon ring at all.
+   *
+   * The ring is a cylinder around the route's ORIGIN, not around the route —
+   * on a long course the ride eventually drives through it and it looms as a
+   * wall on one side. Worlds whose horizon should be the sky itself (the
+   * Cloud world floats above a cloud sea, so there is nothing to ring) turn
+   * it off.
+   */
+  ridge?: boolean;
 
   /** Star density for night skies (0 for daylight). */
   stars: number;
@@ -180,10 +206,63 @@ export const RAINBOW_PROFILE: PlanetProfile = {
   fogFar: 230,
 };
 
+/**
+ * Cloud Kingdom — the soft one.
+ *
+ * `SKY_STYLE.sun` is the pastel daylight style, and its shader already draws
+ * cotton cloud bands, so the sky needs no new code: only a palette. The
+ * horizon ring is the interesting part — the "ridge" geometry is a smooth
+ * rounded band (`ridgeJagged` near zero) in white, which reads as a distant
+ * bank of cumulus rather than as land.
+ */
+export const CLOUD_PROFILE: PlanetProfile = {
+  name: "cloud",
+  horizonName: "cloud-bank",
+  style: SKY_STYLE.sun,
+  zenith: "#8fc9ff",
+  horizon: "#ffd9ee",
+  haze: "#ffd0e8",
+  ridgeBase: "#ffd0e8",
+  ridgeCrest: "#ffeaf7",
+  accent: "#ff9fd2",
+  accentAlt: "#9ad9ff",
+  sunDir: dir(0.22, 0.5, -0.84),
+  sunColor: "#fff4d6",
+  sunStrength: 0.75,
+  // The ridge is a distant bank of cumulus, not a hill. Any height and it
+  // reads as a wall beside the road — it has to sit almost flat.
+  ridgeHeight: 0.06,
+  ridgeJagged: 0.05,
+  ridgeSegments: 60,
+  // A bank of cumulus sitting on the horizon, not a cliff around the route.
+  ridgeDepth: 3.5,
+  // No horizon ring at all: the ride floats above a cloud sea, so the horizon
+  // is the sky meeting the ground, not a bank of land.
+  ridge: false,
+  // The bank stays low whatever the route does. The default would clear the
+  // course's highest point, which on a hilly route is tens of units up — and
+  // a "distant cloud bank" that high reads as a wall beside the road.
+  ridgeCrestHeight: 14,
+  stars: 0,
+  bands: 0.85,
+  // A white world over a white world blows out fast: the ambient and key
+  // gains are deliberately below 1 so the road keeps its edges.
+  ambientColor: "#fff8fd",
+  ambientGain: 0.85,
+  keyColor: "#fff0dc",
+  keyIntensity: 0.85,
+  hemiSky: "#e6f6ff",
+  hemiGround: "#ffdcf0",
+  hemiIntensity: 0.7,
+  pointColor: "#ffc6e9",
+  fogFar: 280,
+};
+
 export const PLANET_PROFILES: Record<string, PlanetProfile> = {
   mars: MARS_PROFILE,
   anime: ANIME_PROFILE,
   rainbow: RAINBOW_PROFILE,
+  cloud: CLOUD_PROFILE,
 };
 
 // ─── Horizon geometry ─────────────────────────────────────────────────
@@ -214,9 +293,12 @@ export function buildPlanetHorizonGeometry(
     if (point.y > maxY) maxY = point.y;
   }
 
-  const baseY = minY - 26;
+  const baseY = minY - (profile.ridgeDepth ?? 26);
   const rise = Math.max(30, (maxY - minY) * 0.6 + 26) * profile.ridgeHeight;
-  const peakY = maxY + rise * 0.55;
+  const peakY =
+    profile.ridgeCrestHeight !== undefined
+      ? minY + profile.ridgeCrestHeight
+      : maxY + rise * 0.55;
 
   // Outer reach of the skirt this curve produces.
   const skirtGeometry = buildRouteSkirtGeometry(curve, 2.5);

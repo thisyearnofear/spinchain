@@ -17,7 +17,11 @@ export interface AtmosphereKit {
    * aurora ribbons) use it; static skies leave it off.
    */
   animated?: boolean;
-  buildHorizonGeometry: (curve: CatmullRomCurve3) => BufferGeometry;
+  /**
+   * The horizon band. Returning null means this world has no horizon
+   * geometry — the sky dome alone carries the horizon.
+   */
+  buildHorizonGeometry: (curve: CatmullRomCurve3) => BufferGeometry | null;
   createHorizonMaterial: () => Material;
   createSkyGeometry: () => BufferGeometry;
   createSkyMaterial: (zenith: string, horizon: string) => ShaderMaterial;
@@ -52,7 +56,7 @@ export function ThemeAtmosphere({
   }, [skyMaterial, horizon, zenith]);
 
   useEffect(() => () => {
-    horizonGeometry.dispose();
+    horizonGeometry?.dispose();
     skyGeometry.dispose();
     skyMaterial.dispose();
     horizonMaterial.dispose();
@@ -70,12 +74,14 @@ export function ThemeAtmosphere({
         frustumCulled={false}
         renderOrder={-1}
       />
-      <mesh
-        name={`${kit.name}-${kit.horizonName}`}
-        geometry={horizonGeometry}
-        material={horizonMaterial}
-        frustumCulled={false}
-      />
+      {horizonGeometry ? (
+        <mesh
+          name={`${kit.name}-${kit.horizonName}`}
+          geometry={horizonGeometry}
+          material={horizonMaterial}
+          frustumCulled={false}
+        />
+      ) : null}
     </group>
   );
 }

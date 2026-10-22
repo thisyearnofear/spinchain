@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { computeReactiveParams } from "@/app/components/features/route/world-reactivity";
+import { resolveModeForTheme } from "@/app/lib/themes/worlds";
 import type { VisualizerTheme } from "@/app/components/features/route/visualizer-theme";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
 import type { FlowStateTier } from "@/app/lib/flow-state";
@@ -14,6 +15,8 @@ interface ReactiveWorldParams {
   progress: number;
   mode: "preview" | "ride" | "finished";
   flowTier: FlowStateTier;
+  /** Which mode of the world presents it — scales how it reacts to effort. */
+  worldMode?: string;
 }
 
 /**
@@ -29,6 +32,7 @@ export function useReactiveWorld({
   progress,
   mode,
   flowTier,
+  worldMode,
 }: ReactiveWorldParams) {
   const FLOW_SCALING = [1, 1.2, 1.5, 1.8, 2.2];
   const flowScale = FLOW_SCALING[flowTier] ?? 1;
@@ -41,7 +45,8 @@ const flowColor = (FLOW_COLORS[flowTier] as string) || null;
 
   const reactive = useMemo(() => {
     if (mode !== "ride") return null;
-    const base = computeReactiveParams(theme, stats, intervalPhase, progress);
+    const modeReactivity = resolveModeForTheme(theme, worldMode)?.reactivity;
+    const base = computeReactiveParams(theme, stats, intervalPhase, progress, modeReactivity);
     return {
       ...base,
       bloomIntensity: base.bloomIntensity * flowScale,
@@ -55,7 +60,7 @@ const flowColor = (FLOW_COLORS[flowTier] as string) || null;
       riderAuraScale: base.riderAuraScale * (1 + flowTier * 0.15),
       riderLightIntensity: base.riderLightIntensity * flowScale,
     };
-  }, [theme, stats, intervalPhase, progress, mode, flowTier, flowScale]);
+  }, [theme, stats, intervalPhase, progress, mode, flowTier, flowScale, worldMode]);
 
   return { reactive, flowScale, flowColor, showFlowEffects };
 }

@@ -46,17 +46,36 @@ export interface ThemeDefinition {
   patternOpacity: number;
   routeDashOpacity: number;
   props: {
-    type: "building" | "tree" | "rock" | "blossom" | "crystal";
+    type: "building" | "tree" | "rock" | "blossom" | "crystal" | "cloud";
     color: string;
     count: number;
     scale: [number, number, number];
   };
   /** Roadmap #6 — the roadside tuft band. Optional: worlds without one keep bare skirt. */
   groundCover?: {
+    /**
+     * Which silhouette the roadside band is built from. Defaults to "tuft"
+     * (the grass tufts every legacy world uses); a world may pick another —
+     * the Cloud world fills the verge with little puffs.
+     */
+    type?: "tuft" | "cloud";
     color: string;
     count: number;
     scale: [number, number, number];
   };
+  /**
+   * Whether this world's props breathe (the one animated part of a
+   * silhouette). Data, not a `theme === "…"` branch — see `docs/WORLD-SYSTEM.md`.
+   */
+  breathes?: boolean;
+  /** The emissive intensity a breathing part sits at. Defaults to 0.8. */
+  breatheEmissive?: number;
+  /**
+   * How far the ground ribbon's outer edge falls below the road. A shallow
+   * rim reads as a continuous surface you can see across; a steep drop
+   * reads as a plateau with a void beside it. Undefined = the default.
+   */
+  skirtEdgeDrop?: number;
 }
 
 const BUILTIN = VISUALIZER_THEMES as unknown as Record<string, ThemeDefinition>;
@@ -66,7 +85,10 @@ const themes = new Map<string, ThemeDefinition>(Object.entries(BUILTIN));
 
 // ─── Validation ─────────────────────────────────────────────────────
 
-const PROP_TYPES = new Set(["building", "tree", "rock", "blossom", "crystal"]);
+const PROP_TYPES = new Set(["building", "tree", "rock", "blossom", "crystal", "cloud"]);
+
+/** Silhouettes the roadside band may be built from. */
+const GROUND_COVER_TYPES = new Set(["tuft", "cloud"]);
 
 // drei v10 <Environment> presets — anything else throws during render.
 const ENV_PRESETS = new Set([
@@ -112,6 +134,22 @@ export function parseThemeDefinition(raw: unknown): ThemeDefinition | null {
   if (typeof props.count !== "number" || props.count < 0 || props.count > 500) return null;
   const scale = props.scale;
   if (!Array.isArray(scale) || scale.length !== 3 || !scale.every((n) => typeof n === "number" && Number.isFinite(n))) return null;
+
+  // Optional: the roadside band. Its silhouette is "tuft" unless the row says
+  // otherwise, and its count is capped like the props count.
+  const groundCover = d.groundCover as Record<string, unknown> | undefined;
+  if (groundCover !== undefined) {
+    if (typeof groundCover !== "object" || groundCover === null) return null;
+    if (groundCover.type !== undefined && !GROUND_COVER_TYPES.has(groundCover.type as string)) return null;
+    if (!isHexColor(groundCover.color)) return null;
+    if (typeof groundCover.count !== "number" || groundCover.count < 0 || groundCover.count > 500) return null;
+    const gcScale = groundCover.scale;
+    if (!Array.isArray(gcScale) || gcScale.length !== 3 || !gcScale.every((n) => typeof n === "number" && Number.isFinite(n))) return null;
+  }
+
+  // Optional: does this world breathe, and how brightly.
+  if (d.breathes !== undefined && typeof d.breathes !== "boolean") return null;
+  if (d.breatheEmissive !== undefined && (typeof d.breatheEmissive !== "number" || !Number.isFinite(d.breatheEmissive))) return null;
 
   return d as unknown as ThemeDefinition;
 }

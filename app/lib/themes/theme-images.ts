@@ -26,6 +26,7 @@ export const WORLD_IMAGES: Record<VisualizerTheme, WorldImage> = {
   mars: { src: "/images/worlds/mars.jpg", label: VISUALIZER_THEMES.mars.worldLabel },
   anime: { src: "/images/worlds/anime.jpg", label: VISUALIZER_THEMES.anime.worldLabel },
   rainbow: { src: "/images/worlds/rainbow.jpg", label: VISUALIZER_THEMES.rainbow.worldLabel },
+  cloud: { src: "/images/worlds/cloud.jpg", label: VISUALIZER_THEMES.cloud.worldLabel },
 };
 
 /**
@@ -40,6 +41,7 @@ export const ROUTE_THEME_TO_VISUALIZER: Record<string, VisualizerTheme> = {
   mars: "mars", // identity
   anime: "anime", // identity
   rainbow: "rainbow", // identity
+  cloud: "cloud", // identity
   coastal: "alpine", // bright outdoor ride; closest calm world (no coastal world exists)
   forest: "alpine", // forested outdoor terrain; alpine is the only natural world
   group: "neon", // studio/social rides; closest energetic world

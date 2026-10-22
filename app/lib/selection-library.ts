@@ -28,7 +28,7 @@ export interface EquipmentAsset {
 export interface WorldAsset {
   id: string;
   name: string;
-  theme: "neon" | "alpine" | "mars" | "anime" | "rainbow";
+  theme: "neon" | "alpine" | "mars" | "anime" | "rainbow" | "cloud";
   skyboxUrl?: string;
   /** Equirectangular panorama (World Labs pipeline) rendered as the scene
    *  background — the mobile-safe generated-world tier. */

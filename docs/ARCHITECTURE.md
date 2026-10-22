@@ -40,13 +40,23 @@ world; if it is only palette / post / camera / reactivity it is a mode.
 
 Schema in `app/lib/themes/world-definition.ts`; registry in `app/lib/themes/worlds/`; resolution
 (`world → mode's palette → renderer default`) in `app/lib/themes/worlds/resolved.ts`. The five
-legacy looks are modelled as **modes of one Tron world**, so the world slot is free for places
-that are genuinely not vector-neon (underworld, cloud realm, concrete jungle, rainforest).
+legacy looks are **modes of one Tron world**, so the world slot is free for places that are
+genuinely not vector-neon.
 
-Nothing renders differently yet — this landed as schema only. The real blocker is that the
-renderer branches on the theme **name** in 54 places; each of those must become a field the
-world owns before a new world is a data insert rather than a code change across four files.
-Full plan and the migration order: [WORLD-SYSTEM.md](./WORLD-SYSTEM.md).
+**The Cloud Kingdom is the first such world** — its own sky (the planet shader's pastel
+daylight style), its own ground (a cloud sea), its own silhouette (soft bobbing puffs), its own
+roadside band, and two modes (Cotton Candy / Sugar Rush). It shipped on 2026-10-22 with the
+five legacy worlds pixel-identical (visual regression 10/10).
+
+A new world is now **mostly data**: whether a world breathes (`breathes`,
+`breatheEmissive`), what its roadside band is made of (`groundCover.type`), how far the
+ground's edge drops (`skirtEdgeDrop`), and how a mode presents and responds to effort
+(`post`, `reactivity`) are theme/world fields, not `theme === "…"` branches. The Cloud world
+cost **two** theme-name branches (the garage icon and the demo route's terrain tags).
+
+The rest of the 53 branches are still there, and they are the next platform-sized piece of
+work: each one is a decision that should be a field the world owns. Full plan, the migration
+order and the scars: [WORLD-SYSTEM.md](./WORLD-SYSTEM.md).
 
 A **world** is also where generated content enters (`hero` slot): a Mint world / World Labs
 mesh / PINOC environment is a *backdrop*, never the reactive world — a splat cannot take wind,

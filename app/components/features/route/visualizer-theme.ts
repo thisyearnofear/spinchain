@@ -24,6 +24,8 @@ export const VISUALIZER_THEMES = {
     terrainFrontScale: 0.62,
     patternOpacity: 0.24,
     routeDashOpacity: 0.8,
+    breathes: true,
+    breatheEmissive: 0.5,
     props: {
       type: "building" as const,
       color: "#6d7cff",
@@ -164,6 +166,8 @@ export const VISUALIZER_THEMES = {
     terrainFrontScale: 0.58,
     patternOpacity: 0.18,
     routeDashOpacity: 0.88,
+    breathes: true,
+    breatheEmissive: 0.8,
     props: {
       type: "crystal" as const,
       color: "#00ffff",
@@ -174,6 +178,54 @@ export const VISUALIZER_THEMES = {
       color: "#a855f7",
       count: 200,
       scale: [1, 1.1, 1] as [number, number, number],
+    },
+  },
+  /**
+   * Cloud Kingdom — the soft one. Cotton sky (the planet shader's pastel
+   * daylight style already draws the cloud bands), white puff props that bob,
+   * and a pastel road that glows pink. This is the first *world* built on the
+   * world/mode schema rather than a recolour of Tron: it has its own sky
+   * profile, its own silhouette and its own ground kind.
+   */
+  cloud: {
+    fog: "#ffe3f2",
+    roadColor: "#c9b8e8",
+    roadEmissive: "#ff9fd2",
+    roadEmissiveIntensity: 0.1,
+    lineColor: "#8ad7ff",
+    riderColor: "#ffffff",
+    grid: false,
+    stars: false,
+    envPreset: "dawn" as const,
+    particleColor: "#ffd6f2",
+    skyTop: "#9ed4ff",
+    skyBottom: "#ffe6f5",
+    horizonGlow: "#ffb3e0",
+    terrainColor: "#ffd9ef",
+    terrainAccent: "#c9b6ff",
+    panelColor: "rgba(88, 60, 130, 0.62)",
+    worldLabel: "Cloud Kingdom",
+    atmosphere: "sun" as const,
+    terrainBackScale: 0.34,
+    terrainFrontScale: 0.58,
+    patternOpacity: 0.05,
+    routeDashOpacity: 0.28,
+    breathes: true,
+    breatheEmissive: 0.4,
+    // A shallow rim: the cloud sea has to read as a surface you can see
+    // across, not a plateau with a drop beside the road.
+    skirtEdgeDrop: 0.6,
+    props: {
+      type: "cloud" as const,
+      color: "#ffffff",
+      count: 60,
+      scale: [1.9, 1.5, 1.9] as [number, number, number],
+    },
+    groundCover: {
+      type: "cloud" as const,
+      color: "#d6ecff",
+      count: 180,
+      scale: [1.0, 0.7, 1.0] as [number, number, number],
     },
   },
 } as const;

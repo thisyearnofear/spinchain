@@ -19,6 +19,7 @@ const WORLD_MOODS: Record<VisualizerTheme, string> = {
   mars: "Dust on the horizon",
   anime: "Sunlit, soft-edged roads",
   rainbow: "Every watt splits light",
+  cloud: "Cuddle up to the cumulus",
 };
 
 const WORLD_KEYS = Object.keys(VISUALIZER_THEMES) as VisualizerTheme[];
@@ -32,7 +33,7 @@ export function WorldsSection() {
       <section aria-label="Ride worlds">
         <div className="mb-6 md:mb-8">
           <h2 className="text-2xl font-bold text-[color:var(--foreground)] md:text-3xl">
-            Five worlds. One road.
+            {WORLD_KEYS.length} worlds. One road.
           </h2>
           <p className="mt-2 max-w-xl text-sm text-[color:var(--muted)] md:text-base">
             Pick the backdrop. The road underneath reads your effort the same

@@ -1,7 +1,8 @@
 # The World System
 
-> **Status**: ACTIVE — schema landed 2026-10-21. The renderer still draws exactly what it
-> drew before; this document describes the shape that lets the product stop having one world.
+> **Status**: ACTIVE — schema landed 2026-10-21; **the Cloud Kingdom shipped the same day**
+> as the first world that is not Tron. The renderer still draws the same five worlds
+> pixel-for-pixel (visual regression 10/10 green).
 > **Created**: 2026-10-21
 > **See also**: [ARCHITECTURE.md](./ARCHITECTURE.md) (current renderer facts),
 > [THEME-PIPELINE.md](./THEME-PIPELINE.md) (the palette pipeline this builds on),
@@ -84,26 +85,71 @@ renderer already understands. Precedence is always **world → mode's palette �
 default**, so a world that owns a slot overrides it for every mode in it — which is what
 makes "one place, several looks" actually one place.
 
-Nothing renders differently yet. The point of landing the schema first is that the world slot
-can be filled in **one field at a time**, without a flag day and without a visual-regression
-baseline churn.
+Nothing renders differently for the five legacy worlds. The point of landing the schema
+first is that the world slot can be filled in **one field at a time**, without a flag day
+and without a visual-regression baseline churn.
+
+## 3a. The Cloud Kingdom — the first world that is not Tron
+
+Shipped 2026-10-22. It is the proof that the split works, so it is worth writing down
+what it actually took.
+
+**It is a place, not a mood.** It owns:
+
+| Slot | Value | What it cost |
+|---|---|---|
+| Sky | the planet shader's pastel daylight style (its shader already draws cotton cloud bands) | a palette — no new shader |
+| Ground | a cloud sea the road floats over | a new `ground.kind` |
+| Props | a "cloud" silhouette: three overlapping spheres, the crown one breathing | a new silhouette |
+| Roadside | little puffs instead of grass tufts | `groundCover.type` — data |
+| Modes | Cotton Candy / Sugar Rush — same place, different weather | two entries |
+
+**It cost two theme-name branches.** The whole world — sky, ground, silhouette, roadside
+band, breathing, edge treatment, bloom — is data. The only two places that still ask
+"is this theme *cloud*?" are the garage's icon and the demo route's terrain tags. That
+is the number that matters: the first world cost 54 branches' worth of knowledge spread
+across the renderer; this one cost 2.
+
+**What the renderer learned on the way (the scars):**
+
+- **A white world blows out.** A white road under a white sky under the shared bloom
+  curve is a frame of pure white. The Cloud world's modes pull the post stack down
+  (`bloom: 0.42`), the ambient and key gains sit below 1, and the road keeps a lilac
+  base so the phase tint reads as a glow on a surface rather than repainting it.
+- **The planet horizon ring is a cylinder around the route's *origin*.** On a long course
+  the ride eventually drives through it and it looms as a wall. The Cloud world sets
+  `ridge: false` — there is nothing to ring, the horizon is sky meeting cloud sea.
+- **The ground ribbon rises as the route descends**, which every world shows (the alpine
+  world's hillside is the same object). It is the route's own geometry, not a world bug,
+  and it is the strongest remaining limit on "a place" — see §6.
+- **The roadside band was hardcoded to grass tufts.** It is now `groundCover.type`, so a
+  world can fill the verge with its own thing.
+- **Whether a world breathes was `theme === "neon" || theme === "rainbow"`.** It is now
+  `breathes` + `breatheEmissive` in the theme data, and the five legacy worlds keep their
+  exact values (the baselines are unchanged).
+
+**Its art is generated, not drawn.** `scripts/worlds/generate-cloud-image.mjs` renders the
+world card (sky, rainbow, cloud sea, road to the vanishing point) so the look can be
+re-tuned without an illustrator. The other five world images are hand-drawn.
+
 
 ## 4. The real tax on adding a world
 
 The schema is not the hard part. The hard part is that the renderer branches on the theme
-**name** in 54 places:
+**name** in 53 places:
 
 | File | `theme === "…"` branches |
 |---|---|
-| `route-visualizer.tsx` | 24 |
+| `route-visualizer.tsx` | 21 |
 | `focus-route-visualizer.tsx` | 9 |
+| `selection-garage.tsx` | 6 |
 | `world-reactivity.ts` | 5 |
-| `selection-garage.tsx` | 5 |
 | `route-skirt.ts` | 1 |
 | `use-class-data.ts` | 1 |
 | `api/ai/generate-route/route.ts` | 1 |
+| `registry.ts` | 1 |
 | `route-world.test.ts` | 1 |
-| **total** | **54** |
+| **total** | **53** |
 
 Every one of those is a decision that should be *data* in a world definition. `theme === "neon"`
 deciding the skirt edge drop, the skirt light colour, whether a prop breathes, whether the
@@ -115,6 +161,20 @@ new world multiplies the branch count.
 adding `theme === "underworld"` to 54 sites. The schema's job is to give those 54 sites
 something to read instead.
 
+**The Cloud Kingdom is the counter-example, and it is the proof.** It shipped with **two**
+theme-name branches (the garage icon and the demo route's terrain tags) because everything
+else about it — its sky kit, its ground, its silhouette, its roadside band, whether it
+breathes, how far the ground's edge drops, its bloom, its reactivity — is data now.
+The branches that were converted on the way:
+
+| Was | Now |
+|---|---|
+| `theme === "neon" \|\| theme === "rainbow"` (does this world breathe?) | `breathes` in the theme data |
+| `theme === "neon" ? 0.5 : 0.8` (how brightly?) ×3 | `breatheEmissive` in the theme data |
+| `type: "tuft"` hardcoded on the roadside band | `groundCover.type` in the theme data |
+| `theme === "alpine" ? 0.6 : …` (how far the ground's edge drops) | `skirtEdgeDrop` in the theme data, theme branch kept as the default |
+| the post stack's bloom / chroma / vignette | scaled by the mode's `post` weights |
+
 ### The migration, in order
 
 1. **Land the schema** ✅ 2026-10-21 — `world-definition.ts`, `worlds/tron-world.ts`,
@@ -123,13 +183,17 @@ something to read instead.
 2. **Move the branches into the world definition.** Each `theme === "x"` becomes a field the
    world owns: `ground.edgeDrop`, `ground.kind`, `props[].breathes`, `skyKit`, `grid`. The
    branch count goes to zero and the theme name stops being a control-flow input.
+   *Started:* the five rows above are already data. The remaining 53 are the work.
 3. **Split the palette from the place.** `ThemeDefinition` keeps the colours; the prop
-   silhouette and the sky kit move up to the world. This is what flips `complete` to `true`.
+   silhouette and the sky kit move up to the world. This is what flips `complete` to `true`
+   — the Cloud world is already there, because it was built as a world.
 4. **Then add worlds.** Each new world is one registry entry plus whatever new asset classes it
    needs (a silhouette, a ground treatment, a sky kit).
 
 Step 2 is the unglamorous one and it is the one that makes step 4 cheap. It is also mechanical,
-which makes it safe to do in small, reviewable pieces.
+which makes it safe to do in small, reviewable pieces — the Cloud world landed with the
+visual-regression baselines unchanged, which is the proof that a conversion can be a no-op.
+
 
 ## 5. What a world may contain
 
@@ -168,14 +232,29 @@ sound off and the HUD covered**. If it is only a palette, it is a mode.
 That is the test the five legacy looks currently fail, and it is the test the new worlds have
 to pass.
 
+**The remaining limit.** Every world shares ONE route: the same curve, the same road ribbon,
+the same skirt, the same camera. The Cloud Kingdom changes the sky, the ground, the things
+that stand in it and how it feels to push — but the road it rides is the road every world
+rides. The ground ribbon rising as the route descends is the same object in every world (the
+alpine world's hillside is the Cloud world's cloud bank). Making a world feel like a *place*
+rather than a *mood* eventually means giving it its own geometry — a different curve, or a
+terrain that is not a ribbon around a spline. That is the next platform-sized piece of work,
+after the branch migration.
+
 ## 7. Verification
 
 The schema is covered by `app/lib/themes/__tests__/world-definition.test.ts` (mode/legacy-theme
-bijection, resolution fallbacks, world-over-mode precedence).
+bijection, resolution fallbacks, world-over-mode precedence, and a test that the Cloud world's
+declared props match the theme's, so the mirror between them cannot drift).
 
-When step 2 starts, the **visual-regression baselines are the guard**: a world change must
-regenerate only the states it legitimately affects, and the `ride`/`finished` baselines must
-stay byte-identical unless the change is a deliberate look change. The gotcha is recorded in
-[RENDERING-ROADMAP.md](./RENDERING-ROADMAP.md) — `--update-snapshots` only rewrites baselines
-that fail or are missing, so a subtle change can "pass" against a stale PNG. Delete the
-affected PNGs first and let the update run re-capture them.
+The Cloud world also has to keep the legacy five untouched, which is the **visual-regression
+baselines**' job: a world change must regenerate only the states it legitimately affects, and
+the `ride`/`finished` baselines must stay byte-identical unless the change is a deliberate
+look change. The gotcha is recorded in [RENDERING-ROADMAP.md](./RENDERING-ROADMAP.md) —
+`--update-snapshots` only rewrites baselines that fail or are missing, so a subtle change can
+"pass" against a stale PNG. Delete the affected PNGs first and let the update run re-capture
+them.
+
+**Shipped 2026-10-22:** the Cloud Kingdom landed with all 10 visual-regression tests green and
+the five legacy baselines byte-identical — the proof that the conversions in §4 can be no-ops.
+

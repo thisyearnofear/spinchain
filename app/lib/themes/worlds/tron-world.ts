@@ -27,47 +27,19 @@ import type { WorldDefinition, WorldMode } from "@/app/lib/themes/world-definiti
  * The five legacy looks. `themeName` is the palette reference; the legacy
  * `ThemeDefinition` still carries the atmosphere kit and the prop silhouette,
  * and `resolved.ts` reads them from there until the split lands.
+ *
+ * The modes carry NO post, camera or reactivity weights. That is deliberate:
+ * those weights are applied to the render, so any value here would change how
+ * an existing world looks — and the visual-regression baselines are the
+ * contract on those looks. A Tron mode is a name today; the Cloud world's
+ * modes are the proof that a mode can be more.
  */
 const TRON_MODES: WorldMode[] = [
-  {
-    id: "neon",
-    label: "Neon City",
-    themeName: "neon",
-    summary: "Grid-floor vector city. The default.",
-    post: { bloom: 1, chromaticAberration: 1 },
-  },
-  {
-    id: "alpine",
-    label: "Summit Pass",
-    themeName: "alpine",
-    summary: "Cold mist and pines. Quiet, high-contrast.",
-    post: { bloom: 0.8, vignette: 1.2 },
-    camera: { fovGain: 0.95 },
-  },
-  {
-    id: "mars",
-    label: "Red Expanse",
-    themeName: "mars",
-    summary: "Dust and low sun. Heavy, warm, fast.",
-    post: { bloom: 1.1, noise: 1.2, chromaticAberration: 1.15 },
-    reactivity: { fogGain: 1.15, glowGain: 1.1 },
-  },
-  {
-    id: "anime",
-    label: "Toon Valley",
-    themeName: "anime",
-    summary: "Soft blossom valley. Bright, forgiving.",
-    post: { bloom: 0.7, chromaticAberration: 0.7, vignette: 0.7 },
-    reactivity: { speedGain: 0.9 },
-  },
-  {
-    id: "rainbow",
-    label: "Spectrum Run",
-    themeName: "rainbow",
-    summary: "Prism crystal. Maximum saturation.",
-    post: { bloom: 1.3, chromaticAberration: 1.35, radialBlur: 1.2 },
-    reactivity: { glowGain: 1.2, speedGain: 1.15 },
-  },
+  { id: "neon", label: "Neon City", themeName: "neon", summary: "Grid-floor vector city. The default." },
+  { id: "alpine", label: "Summit Pass", themeName: "alpine", summary: "Cold mist and pines. Quiet, high-contrast." },
+  { id: "mars", label: "Red Expanse", themeName: "mars", summary: "Dust and low sun. Heavy, warm, fast." },
+  { id: "anime", label: "Toon Valley", themeName: "anime", summary: "Soft blossom valley. Bright, forgiving." },
+  { id: "rainbow", label: "Spectrum Run", themeName: "rainbow", summary: "Prism crystal. Maximum saturation." },
 ];
 
 export const TRON_WORLD: WorldDefinition = {

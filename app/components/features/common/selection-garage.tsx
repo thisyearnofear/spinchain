@@ -243,6 +243,7 @@ function AssetIcon({ asset, size = "md" }: { asset: AvatarAsset | EquipmentAsset
                "theme" in asset && asset.theme === "rainbow" ? Rainbow :
                "theme" in asset && asset.theme === "mars" ? Sparkles :
                "theme" in asset && asset.theme === "alpine" ? Mountain :
+               "theme" in asset && asset.theme === "cloud" ? Cloud :
                asset.id === "space-cat" ? Cat :
                asset.id === "ghost-rider" ? Ghost :
                asset.id === "floating-cloud" ? Cloud :

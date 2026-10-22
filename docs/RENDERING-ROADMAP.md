@@ -395,6 +395,11 @@ remained byte-identical (verified: `git status` listed exactly the active-play f
 
 **Remaining-work ordering** (the P0 and P1 programs above are complete):
 
+> **Cross-reference:** the *world* track is separate from this one and lives in
+> [WORLD-SYSTEM.md](./WORLD-SYSTEM.md). The Cloud Kingdom (2026-10-22) is the first world
+> that is not Tron, and it landed without touching this roadmap's effects. Work here is
+> about how the world *feels*; work there is about how many places there are to feel.
+
 1. **#15 texture pipeline (S)** — next up. The only S-sized item left; no product decisions
    involved. The 5 world-art JPGs (~300–400 KB each) become KTX2/ETC1S GPU-compressed textures;
    DRACO/Meshopt waits until any procedural geometry is ever replaced by baked geometry. Win:

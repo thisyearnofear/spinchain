@@ -339,15 +339,16 @@ export default function RiderPage() {
               {!isLoading && !error && filteredClasses.length > 0 && (
                 <div className="grid gap-6 md:grid-cols-2">
                   {filteredClasses.map((classData, index) => {
-                    const themes: ("neon" | "alpine" | "mars" | "anime" | "rainbow")[] = [
+                    const themes: ("neon" | "alpine" | "mars" | "anime" | "rainbow" | "cloud")[] = [
                       "neon",
                       "alpine",
                       "mars",
                       "anime",
                       "rainbow",
+                      "cloud",
                     ];
                     const metadataTheme = classData.metadata?.route?.theme;
-                    const theme = metadataTheme === "neon" || metadataTheme === "alpine" || metadataTheme === "mars" || metadataTheme === "anime" || metadataTheme === "rainbow"
+                    const theme = metadataTheme === "neon" || metadataTheme === "alpine" || metadataTheme === "mars" || metadataTheme === "anime" || metadataTheme === "rainbow" || metadataTheme === "cloud"
                       ? metadataTheme
                       : themes[index % themes.length];
 

@@ -127,7 +127,7 @@ export function RoutePreviewCard({
         {showVisualization ? (
           <RouteVisualizer
             elevationProfile={elevationProfile}
-            theme={routeData.theme as 'neon' | 'alpine' | 'mars'}
+            theme={routeData.theme as 'neon' | 'alpine' | 'mars' | 'cloud'}
             className="h-full"
           />
         ) : (

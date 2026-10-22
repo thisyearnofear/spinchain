@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { getWorld, getWorlds, getWorldMode, getWorldModes } from "../worlds";
+import {
+  getWorld,
+  getWorlds,
+  getWorldMode,
+  getWorldModes,
+  getDefaultModeForTheme,
+  resolveModeForTheme,
+} from "../worlds";
 import { resolveWorld } from "../worlds/resolved";
 import { THEME_NAME_TO_MODE } from "../worlds/tron-world";
 import { VISUALIZER_THEMES } from "@/app/components/features/route/visualizer-theme";
@@ -8,6 +15,12 @@ describe("world registry", () => {
   it("registers the Tron world", () => {
     const worlds = getWorlds();
     expect(worlds.map((w) => w.id)).toContain("tron");
+  });
+
+  it("registers the Cloud world — the first world that is not Tron", () => {
+    const worlds = getWorlds();
+    expect(worlds.map((w) => w.id)).toContain("cloud");
+    expect(getWorld("cloud").complete).toBe(true);
   });
 
   it("falls back to Tron for an unknown world rather than throwing", () => {
@@ -21,20 +34,58 @@ describe("world registry", () => {
 
   it("exposes every mode of every world", () => {
     const all = getWorldModes();
-    expect(all.length).toBe(getWorld("tron").modes.length);
-    expect(all.every((p) => p.world.id === "tron")).toBe(true);
+    const expected = getWorlds().reduce((n, w) => n + w.modes.length, 0);
+    expect(all.length).toBe(expected);
+  });
+});
+
+describe("theme → mode mapping", () => {
+  it("gives every built-in theme exactly one world and mode", () => {
+    for (const themeName of Object.keys(VISUALIZER_THEMES)) {
+      const found = getDefaultModeForTheme(themeName);
+      expect(found, `no mode claims ${themeName}`).not.toBeNull();
+      expect(found!.mode.themeName).toBe(themeName);
+    }
+  });
+
+  it("routes the five legacy looks to Tron", () => {
+    for (const themeName of ["neon", "alpine", "mars", "anime", "rainbow"]) {
+      expect(getDefaultModeForTheme(themeName)!.world.id).toBe("tron");
+    }
+  });
+
+  it("routes the cloud theme to the Cloud world", () => {
+    const found = getDefaultModeForTheme("cloud")!;
+    expect(found.world.id).toBe("cloud");
+    expect(found.mode.id).toBe("cotton");
+  });
+
+  it("resolves an explicit mode of the Cloud world", () => {
+    expect(resolveModeForTheme("cloud", "sugar")!.id).toBe("sugar");
+  });
+
+  it("falls back to the default mode for an unknown mode id", () => {
+    expect(resolveModeForTheme("cloud", "nope")!.id).toBe("cotton");
+  });
+
+  it("keeps the Tron modes free of post weights, so no existing world changes", () => {
+    for (const mode of getWorld("tron").modes) {
+      expect(mode.post).toBeUndefined();
+      expect(mode.reactivity).toBeUndefined();
+    }
   });
 });
 
 describe("tron world modes", () => {
-  it("models every legacy theme as a mode, one for one", () => {
-    const legacy = Object.keys(VISUALIZER_THEMES).sort();
+  it("models the five legacy looks one for one", () => {
+    const legacy = Object.keys(VISUALIZER_THEMES).filter((t) => t !== "cloud").sort();
     const modes = getWorld("tron").modes.map((m) => m.themeName).sort();
     expect(modes).toEqual(legacy);
   });
 
   it("maps each legacy theme name back to its world and mode", () => {
     for (const themeName of Object.keys(VISUALIZER_THEMES)) {
+      if (themeName === "cloud") continue;
       expect(THEME_NAME_TO_MODE[themeName]?.worldId).toBe("tron");
       expect(THEME_NAME_TO_MODE[themeName]?.modeId).toBeTruthy();
     }
@@ -45,6 +96,28 @@ describe("tron world modes", () => {
       const theme = VISUALIZER_THEMES[mode.themeName as keyof typeof VISUALIZER_THEMES];
       expect(mode.label).toBe(theme.worldLabel);
     }
+  });
+});
+
+describe("cloud world", () => {
+  it("mirrors the cloud theme's props, so the world and the theme cannot drift", () => {
+    const theme = VISUALIZER_THEMES.cloud;
+    const world = getWorld("cloud");
+    expect(world.props![0].type).toBe(theme.props.type);
+    expect(world.props![0].count).toBe(theme.props.count);
+    expect(world.props![0].color).toBe(theme.props.color);
+    expect(world.atmosphereKit).toBe(theme.atmosphere);
+  });
+
+  it("gives the cloud theme its own ground", () => {
+    expect(getWorld("cloud").ground!.kind).toBe("cloud");
+  });
+
+  it("has two modes that share one palette but differ in post", () => {
+    const modes = getWorld("cloud").modes;
+    expect(modes.map((m) => m.id)).toEqual(["cotton", "sugar"]);
+    expect(modes.every((m) => m.themeName === "cloud")).toBe(true);
+    expect(modes[0].post!.bloom).not.toBe(modes[1].post!.bloom);
   });
 });
 
@@ -78,6 +151,9 @@ describe("resolveWorld", () => {
   });
 
   it("keeps mode post settings attached to the resolved mode", () => {
-    expect(resolveWorld("tron", "rainbow").post.radialBlur).toBeGreaterThan(1);
+    // Sugar Rush is the hotter mood: more bloom than Cotton Candy.
+    expect(resolveWorld("cloud", "sugar").post.bloom!).toBeGreaterThan(
+      resolveWorld("cloud", "cotton").post.bloom!,
+    );
   });
 });

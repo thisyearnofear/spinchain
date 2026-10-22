@@ -7,6 +7,15 @@ import { generateRouteData, createPracticeClassMetadata } from "@/app/hooks/evm/
 import type { VisualizerTheme } from "@/app/components/features/route/visualizer-theme";
 
 /**
+ * The harness is driven entirely by query parameters, so it can never be a
+ * static page: `useSearchParams()` returns null while a route is prerendered,
+ * and the page reads it during the first render. Without this the route
+ * prerendered as a 404 — the harness rendered nothing and every visual
+ * regression state failed on a missing canvas.
+ */
+export const dynamic = "force-dynamic";
+
+/**
  * Dedicated visual harness route — no wallet, no coordinator, deterministic.
  *
  * Used by Playwright visual regression to get stable screenshots without
