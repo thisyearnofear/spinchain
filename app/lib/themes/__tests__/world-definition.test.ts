@@ -5,7 +5,11 @@ import {
   getWorldMode,
   getWorldModes,
   getDefaultModeForTheme,
+  getDefaultThemeName,
+  getDefaultWorld,
   resolveModeForTheme,
+  DEFAULT_WORLD_ID,
+  DEFAULT_WORLD_MODE_ID,
 } from "../worlds";
 import { resolveWorld } from "../worlds/resolved";
 import { THEME_NAME_TO_MODE } from "../worlds/tron-world";
@@ -39,6 +43,28 @@ describe("world registry", () => {
   });
 });
 
+describe("the default world", () => {
+  it("is the Cloud Kingdom", () => {
+    // A ride with no world lands here: the practice ride, a demo link, a
+    // route with an unknown theme name.
+    expect(DEFAULT_WORLD_ID).toBe("cloud");
+    expect(getDefaultWorld().id).toBe("cloud");
+    expect(getDefaultThemeName()).toBe("cloud");
+  });
+
+  it("presents in Sugar Rush — the exciting mood, not the gentle one", () => {
+    expect(DEFAULT_WORLD_MODE_ID).toBe("sugar");
+    expect(getDefaultWorld().defaultModeId).toBe("sugar");
+    expect(resolveModeForTheme(getDefaultThemeName())!.id).toBe("sugar");
+  });
+
+  it("is unlocked for every rider (no rank gate on the default world)", () => {
+    // The world's completeness is not its unlock state; the ladder decides
+    // that, and the default world is not on the ladder.
+    expect(getDefaultWorld().complete).toBe(true);
+  });
+});
+
 describe("theme → mode mapping", () => {
   it("gives every built-in theme exactly one world and mode", () => {
     for (const themeName of Object.keys(VISUALIZER_THEMES)) {
@@ -57,7 +83,9 @@ describe("theme → mode mapping", () => {
   it("routes the cloud theme to the Cloud world", () => {
     const found = getDefaultModeForTheme("cloud")!;
     expect(found.world.id).toBe("cloud");
-    expect(found.mode.id).toBe("cotton");
+    // The Cloud world declares Sugar Rush as its default mood — a first ride
+    // should land on the exciting one.
+    expect(found.mode.id).toBe("sugar");
   });
 
   it("resolves an explicit mode of the Cloud world", () => {
@@ -65,7 +93,7 @@ describe("theme → mode mapping", () => {
   });
 
   it("falls back to the default mode for an unknown mode id", () => {
-    expect(resolveModeForTheme("cloud", "nope")!.id).toBe("cotton");
+    expect(resolveModeForTheme("cloud", "nope")!.id).toBe("sugar");
   });
 
   it("keeps the Tron modes free of post weights, so no existing world changes", () => {

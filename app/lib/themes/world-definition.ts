@@ -186,6 +186,11 @@ export interface WorldDefinition {
   /** Presentation variants inside this world. */
   modes: WorldMode[];
   /**
+   * Which mode a ride gets when nothing else chooses one. Undefined = the
+   * world's first mode.
+   */
+  defaultModeId?: string;
+  /**
    * True once the world renders every place-level slot itself. A world that is
    * not complete is borrowing its shape from its modes — that is legal (the
    * Tron world is the only complete one today) but it must not masquerade as

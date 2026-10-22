@@ -753,8 +753,14 @@ export interface EnhancedClassMetadata {
     elevationGain: number; // meters
     // Theme registry name (app/lib/themes/registry.ts). Built-ins are
     // "neon" | "alpine" | "mars"; data-driven remote themes added via
-    // Supabase are equally valid — unknown names fall back to "neon".
+    // Supabase are equally valid — unknown names fall back to the default
+    // world.
     theme: string;
+    /**
+     * The world's mood — a mode id inside that world (e.g. "sugar"). Undefined
+     * means the world's own default mode.
+     */
+    worldMode?: string;
     checksum: string;
     storyBeatsCount: number;
     terrainTags?: string[];

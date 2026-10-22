@@ -242,8 +242,12 @@ describe("RideTransitionOverlay activation countdown", () => {
     expect(routeThumbnailForTheme("neon")).toBe(
       "/images/worlds/neon.jpg",
     );
+    expect(routeThumbnailForTheme("cloud")).toBe(
+      "/images/worlds/cloud.jpg",
+    );
+    // A route with no theme lands in the product's DEFAULT world.
     expect(routeThumbnailForTheme(undefined)).toBe(
-      "/images/worlds/neon.jpg",
+      "/images/worlds/cloud.jpg",
     );
   });
 });

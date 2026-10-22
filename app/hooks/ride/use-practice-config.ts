@@ -12,10 +12,22 @@ import {
   VISUALIZER_THEMES,
   type VisualizerTheme,
 } from "@/app/components/features/route/visualizer-theme";
+import { getDefaultThemeName, getDefaultWorld } from "@/app/lib/themes/worlds";
 
-/** Unknown theme params fall back to the neon default instead of reaching the engine. */
+/** Unknown theme params fall back to the default world instead of reaching the engine. */
 function parseThemeParam(raw: string | null): VisualizerTheme | undefined {
   return raw && raw in VISUALIZER_THEMES ? (raw as VisualizerTheme) : undefined;
+}
+
+/**
+ * The world's mood — a mode id like "sugar". Unknown ids fall back to the
+ * world's own default mode, so a bad parameter can never leave a ride
+ * without a look.
+ */
+function parseWorldModeParam(raw: string | null): string | undefined {
+  if (!raw) return undefined;
+  const world = getDefaultWorld();
+  return world.modes.some((m) => m.id === raw) ? raw : undefined;
 }
 
 export interface PracticeClassConfig {
@@ -35,6 +47,8 @@ export interface PracticeClassConfig {
   routeElevation: number;
   /** Theme registry name for the environment; unknown names render as neon. */
   theme?: string;
+  /** The world's mood — a mode id inside that world. */
+  worldMode?: string;
   instructor: string;
 }
 
@@ -75,6 +89,7 @@ export function usePracticeConfig(classId: string) {
         routeElevation:
           Number(searchParams.get("routeElevation")) || GUEST_DEMO_CLASS.elevationGain,
         theme: parseThemeParam(searchParams.get("theme")),
+        worldMode: parseWorldModeParam(searchParams.get("worldMode")),
         instructor: instructor || GUEST_DEMO_CLASS.instructor,
       };
     }
@@ -102,6 +117,7 @@ export function usePracticeConfig(classId: string) {
       routeDuration: Number(searchParams.get("routeDuration")) || 45,
       routeElevation: Number(searchParams.get("routeElevation")) || 300,
       theme: parseThemeParam(searchParams.get("theme")),
+      worldMode: parseWorldModeParam(searchParams.get("worldMode")),
       instructor,
     };
   }, [isPracticeMode, isGuestDemo, searchParams]);
@@ -128,7 +144,9 @@ export function usePracticeConfig(classId: string) {
         distance: practiceConfig.routeDistance,
         duration: practiceConfig.routeDuration,
         elevationGain: practiceConfig.routeElevation,
-        theme: practiceConfig.theme ?? "neon",
+        // No theme means the product's default world, in its default mood.
+        theme: practiceConfig.theme ?? getDefaultThemeName(),
+        worldMode: practiceConfig.worldMode,
         storyBeatsCount: 4,
       },
       practiceConfig.instructor,

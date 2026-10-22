@@ -13,6 +13,7 @@ import { parseClassMetadata, type EnhancedClassMetadata } from "@/app/lib/contra
 import { retrieveRouteFromWalrus, getCachedRoute, cacheRouteLocally, type WalrusRouteData } from "@/app/lib/route-storage";
 import { DEMO_MODE } from "@/app/config";
 import { VISUALIZER_THEMES, type VisualizerTheme } from "@/app/components/features/route/visualizer-theme";
+import { getDefaultThemeName } from "@/app/lib/themes/worlds";
 import type { StoryBeat, StoryBeatType } from "@/app/routes/builder/gpx-uploader";
 import type { PublicClient } from "viem";
 
@@ -68,7 +69,7 @@ type CuratedClass = (typeof CURATED_CLASSES)[number];
  */
 export const GUEST_DEMO_CLASS = {
   address: "0xGUEST0000000000000000000000000000000000" as `0x${string}`,
-  name: "Alpine Challenge (Demo)",
+  name: "Cloud Kingdom (Demo)",
   instructor: "Coach Demo",
   startTime: Math.floor(Date.now() / 1000) + 1800, // 30 min from now
   ticketsSold: Math.floor(Math.random() * 5) + 3, // Real-time variability
@@ -79,7 +80,8 @@ export const GUEST_DEMO_CLASS = {
   difficulty: "moderate",
   duration: 30,
   elevationGain: 450,
-  theme: "alpine" as const,
+  /** The product's default world: a practice ride starts in the clouds. */
+  theme: getDefaultThemeName() as VisualizerTheme,
 };
 
 /**
@@ -93,6 +95,8 @@ export interface DemoRideOptions {
   coachPersonality?: "zen" | "drill-sergeant" | "data";
   /** Visualizer world for the demo ride. Invalid keys are ignored. */
   theme?: VisualizerTheme;
+  /** The world's mood — a mode id inside that world. Invalid ids are ignored. */
+  worldMode?: string;
 }
 
 function isVisualizerTheme(value: unknown): value is VisualizerTheme {
@@ -104,13 +108,15 @@ export function getDemoRideUrl(opts?: DemoRideOptions): string {
   // practice route — usePracticeConfig falls back to GUEST_DEMO_CLASS defaults
   // when the query params are absent.
   const theme = isVisualizerTheme(opts?.theme) ? opts.theme : undefined;
+  const worldMode = opts?.worldMode;
   const isStandardDemo =
     !opts ||
     (opts.name === undefined &&
       opts.duration === undefined &&
       opts.difficulty === undefined &&
       opts.coachPersonality === undefined &&
-      theme === undefined);
+      theme === undefined &&
+      worldMode === undefined);
   if (isStandardDemo) {
     return "/rider/ride/demo";
   }
@@ -138,6 +144,7 @@ export function getDemoRideUrl(opts?: DemoRideOptions): string {
     routeElevation: GUEST_DEMO_CLASS.elevationGain.toString(),
   });
   if (theme) params.set("theme", theme);
+  if (worldMode) params.set("worldMode", worldMode);
   return `/rider/ride/demo?${params.toString()}`;
 }
 
@@ -186,7 +193,7 @@ function inferBeatType(label: string): StoryBeatType {
 
 function createFallbackMetadataFromDemo(demoClass: CuratedClass): EnhancedClassMetadata {
   const seed = demoClass.address;
-  const themeOptions: EnhancedClassMetadata["route"]["theme"][] = ["neon", "alpine", "mars"];
+  const themeOptions: EnhancedClassMetadata["route"]["theme"][] = ["cloud", "neon", "alpine", "mars"];
   const personalityOptions: EnhancedClassMetadata["ai"]["personality"][] = ["zen", "drill-sergeant", "data"];
   const theme = themeOptions[Math.floor(getDeterministicNumber(seed + "theme", 0, themeOptions.length)) % themeOptions.length];
   const personality = personalityOptions[Math.floor(getDeterministicNumber(seed + "personality", 0, personalityOptions.length)) % personalityOptions.length];
@@ -622,8 +629,11 @@ export interface PracticeClassOptions {
     distance: number;
     duration: number;
     elevationGain: number;
-    // Theme registry name; unknown names fall back to "neon" at render.
+    // Theme registry name; unknown names fall back to the default world at
+    // render.
     theme: string;
+    /** The world's mood — a mode id inside that world. */
+    worldMode?: string;
     storyBeatsCount: number;
   };
   instructorAddress: string;
@@ -649,6 +659,7 @@ export function createPracticeClassMetadata(
       duration: routeData.duration,
       elevationGain: routeData.elevationGain,
       theme: routeData.theme,
+      worldMode: routeData.worldMode,
       checksum: `practice-checksum-${Date.now()}`,
       storyBeatsCount: routeData.storyBeatsCount,
     },

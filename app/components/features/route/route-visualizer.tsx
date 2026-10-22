@@ -53,6 +53,7 @@ import {
 import { LocalEnvironment } from "./local-environment";
 import { getTheme, loadRemoteThemes, subscribeThemes, getThemeVersion } from "@/app/lib/themes/registry";
 import { resolveModeForTheme } from "@/app/lib/themes/worlds";
+import { getDefaultThemeName } from "@/app/lib/themes/worlds";
 import type { VisualizerTheme } from "./visualizer-theme";
 import { computeReactiveParams, type ReactiveParams } from "./world-reactivity";
 import { useCoachingStore, selectPrBeaten } from "@/app/stores/coaching-store";
@@ -2244,7 +2245,8 @@ export default function RouteVisualizer({
   elevationProfile = [
     120, 180, 140, 210, 260, 220, 280, 240, 300, 260, 320, 280,
   ],
-  theme = "neon",
+  // No theme given means the product's default world.
+  theme = getDefaultThemeName() as VisualizerTheme,
   progress = 0, // 0 to 1
   mode = "preview",
   stats = { hr: 145, power: 210, cadence: 90, intensity: 1.05 },

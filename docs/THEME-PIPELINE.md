@@ -21,8 +21,14 @@ Three layers:
 > a palette has no field for "the ground here is lava" or "there are three kinds of plant
 > here". Places live one level up, in the world system
 > ([WORLD-SYSTEM.md](./WORLD-SYSTEM.md), `app/lib/themes/world-definition.ts`), where the five
-> built-in looks are modelled as **modes of one Tron world**. Modes reference a theme by name,
-> so everything below keeps working unchanged.
+> built-in looks are modelled as **modes of one Tron world** and the Cloud Kingdom is the
+> product's **default world** (since 2026-10-22). Modes reference a theme by name, so
+> everything below keeps working unchanged.
+>
+> **The fallback changed with it:** an unknown or missing theme name now resolves to the
+> default world rather than to neon, so a route with a bad theme looks like every other
+> default ride instead of like a different product. The fallback lives in one place —
+> `getDefaultThemeName()` — and the registry and the world art both read it.
 
 ## Rule: One Color Vocabulary
 

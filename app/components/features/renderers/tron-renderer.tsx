@@ -23,6 +23,8 @@ export interface TronRendererProps {
   currentRouteCoordinate: { lat: number; lng: number; ele?: number } | null;
   telemetry: { heartRate: number; power: number; cadence: number; intensity: number };
   routeTheme: VisualizerTheme;
+  /** Which mode of the world presents it — a mood inside a place. */
+  worldMode?: string;
   storyBeats: StoryBeat[];
   avatarId?: string;
   equipmentId?: string;
@@ -64,6 +66,7 @@ export const TronRenderer = memo(function TronRenderer(props: TronRendererProps)
       <RouteVisualizer
         elevationProfile={props.routeElevationProfile}
         theme={props.routeTheme}
+        worldMode={props.worldMode}
         progress={props.progress}
         mode={props.mode}
         stats={{

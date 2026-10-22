@@ -61,6 +61,11 @@ export const CLOUD_WORLD: WorldDefinition = {
   },
   modes: CLOUD_MODES,
   /**
+   * Sugar Rush is the default mood: the Cloud Kingdom is the product's
+   * default world, and a first ride should feel like the exciting one.
+   */
+  defaultModeId: "sugar",
+  /**
    * Complete: the world owns its sky kit, its ground and its props. The
    * values are mirrored by the `cloud` theme in `visualizer-theme.ts` — the
    * renderer reads the theme today — and a unit test asserts the two agree,

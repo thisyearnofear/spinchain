@@ -48,6 +48,12 @@ daylight style), its own ground (a cloud sea), its own silhouette (soft bobbing 
 roadside band, and two modes (Cotton Candy / Sugar Rush). It shipped on 2026-10-22 with the
 five legacy worlds pixel-identical (visual regression 10/10).
 
+**The default world is the Cloud Kingdom, in Sugar Rush** (2026-10-22). One constant
+(`DEFAULT_WORLD_ID` / `DEFAULT_WORLD_MODE_ID` in `app/lib/themes/worlds/index.ts`) decides what
+a practice ride, a route with no theme, the guest demo class and the visualizer's own default
+prop all resolve to. The world's *mood* is a first-class part of the route now: it travels in
+the route metadata (`route.worldMode`) and through the renderer as `worldMode`.
+
 A new world is now **mostly data**: whether a world breathes (`breathes`,
 `breatheEmissive`), what its roadside band is made of (`groundCover.type`), how far the
 ground's edge drops (`skirtEdgeDrop`), and how a mode presents and responds to effort

@@ -55,7 +55,10 @@ async function diff(a: Buffer, b: Buffer) {
   };
 }
 
-for (const theme of ["neon", "alpine"]) {
+// The wedge is checked on the two Tron moods AND on the Cloud Kingdom — the
+// product's default world. A world that does not react to effort is a broken
+// world, and the default one is the one riders will judge the product by.
+for (const theme of ["neon", "alpine", "cloud"]) {
   test(`effort visibly transforms the ${theme} world`, async ({ page }) => {
     test.setTimeout(150_000);
     const rest = await frameAt(page, theme, 0);

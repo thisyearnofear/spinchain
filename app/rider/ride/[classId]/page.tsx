@@ -58,6 +58,7 @@ import { RideAiTelemetryBridge } from "@/app/components/features/ride/ride-ai-te
 import { AiVoiceConsentPrompt } from "@/app/components/features/ride/ai-voice-consent-prompt";
 import { useRiderName } from "@/app/hooks/common/use-profile";
 import { getTheme } from "@/app/lib/themes/registry";
+import { getDefaultThemeName } from "@/app/lib/themes/worlds";
 import { useWorldAccess } from "@/app/lib/progression";
 import type { VisualizerTheme } from "@/app/components/features/route/visualizer-theme";
 
@@ -326,8 +327,11 @@ export default function LiveRidePage() {
   // didn't keep, and quietly bypassed the rank gates on worlds. The phase
   // still shapes the ride — fog, road glow, props and speed lines all run
   // through the reactive layer — it just no longer replaces the place.
-  const worldTheme = (classData?.metadata?.route.theme as VisualizerTheme) || "neon";
+  const worldTheme = (classData?.metadata?.route.theme as VisualizerTheme) || getDefaultThemeName();
   const routeTheme = worldTheme;
+  // The world's mood — a mode inside that world. Undefined means the world's
+  // own default mode.
+  const worldMode = classData?.metadata?.route.worldMode as string | undefined;
   const worldLabel = getTheme(worldTheme).worldLabel;
   // Worlds gate on rank. A locked world still renders behind the card — the
   // rider sees what they are working toward — but the ride itself waits
@@ -767,6 +771,7 @@ export default function LiveRidePage() {
           currentRouteCoordinate={currentRouteCoordinate}
           classData={classData}
           routeTheme={routeTheme}
+          worldMode={worldMode}
           searchParams={searchParams}
           panelState={panelState.state}
           panelPositions={panelState.positions}

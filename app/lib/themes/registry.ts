@@ -20,6 +20,7 @@ import {
   type VisualizerTheme,
 } from "@/app/components/features/route/visualizer-theme";
 import { getBrowserClient, isSupabaseConfigured } from "@/app/lib/supabase/client";
+import { getDefaultThemeName } from "@/app/lib/themes/worlds";
 
 /** Shape of one theme entry. Mirrors the values of VISUALIZER_THEMES. */
 export interface ThemeDefinition {
@@ -79,7 +80,14 @@ export interface ThemeDefinition {
 }
 
 const BUILTIN = VISUALIZER_THEMES as unknown as Record<string, ThemeDefinition>;
-const FALLBACK_THEME = "neon";
+/**
+ * Where a ride lands when its world is unknown or invalid.
+ *
+ * This is the product's DEFAULT WORLD, not a "safe" theme: a route with a bad
+ * theme name should look like every other default ride, not like a different
+ * product. One constant, so the answer is in one place.
+ */
+const FALLBACK_THEME = getDefaultThemeName();
 
 const themes = new Map<string, ThemeDefinition>(Object.entries(BUILTIN));
 

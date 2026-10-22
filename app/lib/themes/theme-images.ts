@@ -14,6 +14,7 @@ import {
   VISUALIZER_THEMES,
   type VisualizerTheme,
 } from "@/app/components/features/route/visualizer-theme";
+import { getDefaultThemeName } from "@/app/lib/themes/worlds";
 
 export interface WorldImage {
   src: string;
@@ -47,8 +48,8 @@ export const ROUTE_THEME_TO_VISUALIZER: Record<string, VisualizerTheme> = {
   group: "neon", // studio/social rides; closest energetic world
 };
 
-/** Mirrors FALLBACK_THEME in ./registry.ts — lookups never fail. */
-const FALLBACK_THEME: VisualizerTheme = "neon";
+/** Mirrors the registry's fallback — lookups never fail. */
+const FALLBACK_THEME: VisualizerTheme = getDefaultThemeName() as VisualizerTheme;
 
 /**
  * Resolve any route.theme string to its world image. Unknown/missing

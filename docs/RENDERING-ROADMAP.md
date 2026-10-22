@@ -309,6 +309,16 @@ experiences; **P1** are compounding; **P2** are the bigger projects.
   `gl.compileAsync(scene, camera)` fire-and-forget in a mount effect, with `compile` as the sync
   fallback for older three. The ride's opening frame no longer pays for compiling the wind, fog,
   road and post-stack programs. Nothing renders differently → all baselines untouched.
+  - **Scar (found 2026-10-22, fixed):** `compileAsync` keeps the materials it compiled in a set
+    and polls them; if a material in that set is **disposed** before the poll runs, three.js
+    trips over it (`Cannot read properties of undefined (reading 'isReady')`) and the render
+    loop dies. The planet worlds hit this on mobile because `PlanetAtmosphere` rebuilt its
+    atmosphere kit on every render, which rebuilt (and disposed) the sky material every
+    render. The kit is now memoised on the profile — the colours are uniforms — so the sky
+    material is created once. Alpine and Neon were never affected: they hoist their kits to
+    module constants. **Lesson for the next world: a material that is disposed while a
+    warm-up is in flight is a crash waiting for a phone.**
+
 
 - **Swirling transition (`swirl-reveal.tsx`).**
   Sleepers' threshold-texture reveal applied to the activation → ride handoff: a canvas-2D veil

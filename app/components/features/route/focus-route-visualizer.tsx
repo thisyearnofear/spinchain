@@ -15,6 +15,7 @@ import type { PanelState, PanelKey, PanelPositions, DesktopPanelKey } from "@/ap
 import { Z_LAYERS } from "@/app/lib/ui/z-layers";
 import { ProgressInterpolator } from "@/app/lib/progress-interpolator";
 import { visualEffort } from "@/app/lib/ride-effort";
+import { getDefaultThemeName } from "@/app/lib/themes/worlds";
 
 const RiveRider = dynamic(
   () => import("@/app/components/features/ride/rive-rider").then((m) => m.RiveRider),
@@ -183,7 +184,7 @@ export default function FocusRouteVisualizer({
   currentPower = 0,
   recentPower,
   ftp = 200,
-  theme = "neon",
+  theme = getDefaultThemeName() as VisualizerTheme,
   stats = { hr: 0, power: 0, cadence: 0, intensity: 0 },
   avatarId,
   equipmentId,

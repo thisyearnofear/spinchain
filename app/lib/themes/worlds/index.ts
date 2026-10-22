@@ -17,11 +17,36 @@ import { CLOUD_WORLD } from "@/app/lib/themes/worlds/cloud-world";
 
 const WORLDS: WorldDefinition[] = [TRON_WORLD, CLOUD_WORLD];
 
+/**
+ * The world a ride gets when nothing says otherwise.
+ *
+ * This is the product's default world — the one a practice ride, a demo link
+ * or a route with no theme lands in. It is deliberately ONE constant, so
+ * "what does a ride default to" has a single answer that can be changed in
+ * one place.
+ */
+export const DEFAULT_WORLD_ID = "cloud";
+
+/** The mode the default world presents itself in. */
+export const DEFAULT_WORLD_MODE_ID = "sugar";
+
 const byId = new Map<string, WorldDefinition>(WORLDS.map((w) => [w.id, w]));
 
 /** Every registered world, in picker order. */
 export function getWorlds(): WorldDefinition[] {
   return [...WORLDS];
+}
+
+/** The default world — the one a ride lands in when nothing says otherwise. */
+export function getDefaultWorld(): WorldDefinition {
+  return byId.get(DEFAULT_WORLD_ID) ?? TRON_WORLD;
+}
+
+/** The theme name the default world uses — the palette a default ride paints. */
+export function getDefaultThemeName(): string {
+  const mode = getDefaultWorld().modes.find((m) => m.id === DEFAULT_WORLD_MODE_ID)
+    ?? getDefaultWorld().modes[0];
+  return mode.themeName;
 }
 
 /** One world by id. Unknown ids return the Tron world rather than throwing. */
@@ -62,16 +87,19 @@ export function resolveModeForTheme(themeName: string, modeId?: string): WorldMo
  * The mode a theme resolves to when nothing else chooses one.
  *
  * A theme may back several modes (the Cloud world's two moods share one
- * palette), so this is the *first* mode that claims the theme. Worlds are
- * searched in registry order, which is why the Cloud theme lands in the Cloud
- * world and not in Tron.
+ * palette), so this is the mode the theme's world declares as its default
+ * (or its first mode). Worlds are searched in registry order, which is why
+ * the Cloud theme lands in the Cloud world and not in Tron.
  */
 export function getDefaultModeForTheme(
   themeName: string,
 ): { world: WorldDefinition; mode: WorldMode } | null {
   for (const world of WORLDS) {
-    const mode = world.modes.find((m) => m.themeName === themeName);
-    if (mode) return { world, mode };
+    const declared = world.defaultModeId
+      ? world.modes.find((m) => m.id === world.defaultModeId)
+      : undefined;
+    const mode = declared ?? world.modes.find((m) => m.themeName === themeName);
+    if (mode && mode.themeName === themeName) return { world, mode };
   }
   return null;
 }

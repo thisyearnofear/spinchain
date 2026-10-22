@@ -32,6 +32,22 @@ be a recolouring of Tron.
 
 ## 2. The distinction
 
+> **The default world** (since 2026-10-22) is the **Cloud Kingdom**, in its **Sugar Rush**
+> mood. It is declared in ONE place — `DEFAULT_WORLD_ID` / `DEFAULT_WORLD_MODE_ID` in
+> `app/lib/themes/worlds/index.ts` — and everything that needs to know "what does a ride
+> default to?" reads it from there:
+>
+> | Where | What it now does |
+> |---|---|
+> | A practice ride (`/rider/ride/demo`, no params) | Cloud Kingdom, Sugar Rush |
+> | A route with no theme, or an unknown theme name | Cloud Kingdom (the theme registry and the world art both fall back to it) |
+> | The guest demo class | "Cloud Kingdom (Demo)" |
+> | The home world's gallery | each card still opens ITS world; the default one opens in Sugar Rush |
+> | The visualizer's own default prop | Cloud Kingdom |
+>
+> The point of one constant: "what a rider sees first" is a product decision, so it lives in
+> one file, not in five fallbacks that each say "neon".
+
 > **A WORLD is a place. A MODE is a presentation variant inside a place.**
 
 The rule for deciding which one a change belongs to:
@@ -127,6 +143,17 @@ across the renderer; this one cost 2.
 - **Whether a world breathes was `theme === "neon" || theme === "rainbow"`.** It is now
   `breathes` + `breatheEmissive` in the theme data, and the five legacy worlds keep their
   exact values (the baselines are unchanged).
+- **The planet sky was rebuilt on every render.** `PlanetAtmosphere` built its atmosphere kit
+  inline, and `ThemeAtmosphere` keys its sky geometry and sky material on the kit — so Mars,
+  Toon Valley, Spectrum Run and the Cloud Kingdom all recreated (and disposed) their sky
+  material on every render, recompiling the shader each time. Worse, three.js's
+  `compileAsync` kept the disposed material in its warm-up set and tripped over it
+  ("Cannot read properties of undefined (reading 'isReady')"), which **stopped the render
+  loop on mobile** for every world built on the planet sky. Alpine and Neon were fine
+  because they hoist their kits to module constants. The kit is now memoised on the profile
+  (the colours are uniforms, written in place) — which fixed the crash for all four worlds
+  at once. It was pre-existing, not something the Cloud Kingdom introduced; the Cloud Kingdom
+  only made it the default, which is why it had to be fixed before shipping.
 
 **Its art is generated, not drawn.** `scripts/worlds/generate-cloud-image.mjs` renders the
 world card (sky, rainbow, cloud sea, road to the vanishing point) so the look can be

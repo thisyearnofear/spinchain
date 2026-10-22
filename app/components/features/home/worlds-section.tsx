@@ -8,6 +8,7 @@ import {
   type VisualizerTheme,
 } from "@/app/components/features/route/visualizer-theme";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
+import { DEFAULT_WORLD_ID, DEFAULT_WORLD_MODE_ID } from "@/app/lib/themes/worlds";
 import { useWorldAccess } from "@/app/lib/progression";
 import { formatXp } from "@/app/lib/progression";
 
@@ -54,7 +55,14 @@ export function WorldsSection() {
             return (
               <Link
                 key={key}
-                href={getDemoRideUrl({ theme: key, name: theme.worldLabel })}
+                href={getDemoRideUrl({
+                  theme: key,
+                  name: theme.worldLabel,
+                  // The default world opens in its default mood; the others
+                  // have one mood each, so they need no mode.
+                  worldMode:
+                    key === DEFAULT_WORLD_ID ? DEFAULT_WORLD_MODE_ID : undefined,
+                })}
                 className="group relative block h-44 w-40 shrink-0 snap-start overflow-hidden rounded-2xl border border-[color:var(--border)] transition-transform duration-150 hover:-translate-y-1 md:h-52 md:w-auto"
                 style={{
                   background: `linear-gradient(to bottom, ${theme.skyTop}, ${theme.skyBottom})`,

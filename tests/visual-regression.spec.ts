@@ -44,6 +44,10 @@ const STATES = [
   { name: "preview", url: "/test-harness/route-visualizer?testState=preview&seed=123&paused=1", fullPage: true },
   { name: "active-play", url: "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1", fullPage: true },
   { name: "finished", url: "/test-harness/route-visualizer?testState=finished&seed=123&paused=1", fullPage: true },
+  // The Cloud Kingdom is the product's DEFAULT world, so it needs a baseline
+  // of its own — a change to the default world's look must fail here, not
+  // pass against a stale Tron frame.
+  { name: "cloud-active-play", url: "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1&theme=cloud", fullPage: true },
 ] as const;
 
 async function gotoWithHarness(page: import("@playwright/test").Page, url: string) {

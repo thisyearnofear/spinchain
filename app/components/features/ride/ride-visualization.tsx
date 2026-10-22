@@ -39,6 +39,8 @@ interface RideVisualizationProps {
     } | null;
   };
   routeTheme: VisualizerTheme;
+  /** Which mode of the world presents it — a mood inside a place. */
+  worldMode?: string;
   searchParams: URLSearchParams;
   panelState: PanelState;
   panelPositions: PanelPositions;
@@ -58,6 +60,7 @@ export function RideVisualization({
   currentRouteCoordinate,
   classData,
   routeTheme,
+  worldMode,
   searchParams,
   panelState,
   panelPositions,
@@ -206,6 +209,7 @@ export function RideVisualization({
             currentRouteCoordinate={currentRouteCoordinate}
             telemetry={telemetryForTron}
             routeTheme={routeTheme}
+            worldMode={worldMode}
             storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
             avatarId={searchParams.get("avatarId") || undefined}
             equipmentId={searchParams.get("equipmentId") || undefined}
