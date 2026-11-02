@@ -53,6 +53,8 @@ import {
 import { LocalEnvironment } from "./local-environment";
 import { getTheme, loadRemoteThemes, subscribeThemes, getThemeVersion } from "@/app/lib/themes/registry";
 import { getDefaultModeForTheme, getDefaultThemeName, resolveModeForTheme } from "@/app/lib/themes/worlds";
+import { resolveWorldForTheme } from "@/app/lib/themes/worlds/resolved";
+import type { WorldPropSet } from "@/app/lib/themes/world-definition";
 import type { VisualizerTheme } from "./visualizer-theme";
 import { computeReactiveParams, type ReactiveParams } from "./world-reactivity";
 import { useCoachingStore, selectPrBeaten } from "@/app/stores/coaching-store";
@@ -205,8 +207,9 @@ function Road({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (material.emissive as any).set(emissiveColor);
 
-    // Dynamic color shift if on rainbow theme
-    if (theme === 'rainbow') {
+    // The spectrum road's signature: its emissive hue-cycles — palette data
+    // (`roadHueCycle`), not a theme-name branch.
+    if (styles.roadHueCycle === true) {
       const hue = (state.clock.elapsedTime / 10) % 1;
       material.emissive.setHSL(hue, 1, 0.5);
     }
@@ -602,33 +605,37 @@ function PropField({
   curve,
   stats,
   reactive = null,
+  propSets,
 }: {
   theme?: VisualizerTheme;
   curve: CatmullRomCurve3;
   stats: RiderStats;
   reactive?: ReactiveParams | null;
+  /** The silhouette sets the resolved world declares — world/mode data, not a palette read. */
+  propSets: WorldPropSet[];
 }) {
-  const propConfig = getTheme(theme).props;
   const { halfWidth } = roadProfile(theme);
-  const field = useMemo(
-    () => (propConfig ? buildPropField(curve, propConfig, halfWidth) : null),
-    [curve, propConfig, halfWidth],
+  const fields = useMemo(
+    () => propSets.map((set) => buildPropField(curve, set, halfWidth)),
+    [curve, propSets, halfWidth],
   );
 
-  if (!field) return null;
+  if (fields.length === 0) return null;
 
   return (
     <group>
-      {field.parts.map((part) => (
-        <PropInstances
-          key={part.id}
-          part={part}
-          theme={theme}
-          stats={stats}
-          reactive={reactive}
-          propType={field.type}
-        />
-      ))}
+      {fields.map((field, fi) =>
+        field.parts.map((part) => (
+          <PropInstances
+            key={`${fi}-${part.id}`}
+            part={part}
+            theme={theme}
+            stats={stats}
+            reactive={reactive}
+            propType={field.type}
+          />
+        )),
+      )}
     </group>
   );
 }
@@ -770,7 +777,7 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
   }>({ composer: null, bloom: null, chromatic: null, vignette: null, radialBlur: null });
 
   const intensityMultiplier = performanceTier === "low" ? 0 : performanceTier === "medium" ? 0.5 : 1;
-  const noiseOpacity = theme === 'neon' ? 0.03 * intensityMultiplier : 0;
+  const noiseOpacity = (getTheme(theme).noiseOpacity ?? 0) * intensityMultiplier;
 
   /**
    * The mode's post weights — how this *mood* of the world is presented.
@@ -1382,7 +1389,7 @@ function FloatingParticles({ theme = "neon", stats, reactive = null }: { theme?:
       depth={50}
       count={4000}
       factor={6}
-      saturation={theme === 'rainbow' ? 1 : 0}
+      saturation={styles.starSaturation ?? 0}
       fade
       speed={reduced ? 0 : reactive ? reactive.sparkleSpeed : 1}
     />
@@ -1781,8 +1788,14 @@ function Scene({
   const curve = useRouteCurve(elevationProfile);
   const curveLength = useMemo(() => curve.getLength(), [curve]);
   const styles = getTheme(theme);
+  // The place this palette renders as: the owning world + mode resolved to
+  // the concrete kit and silhouettes — the palette is only the last-resort
+  // fallback (remote rows with no world above them).
+  const themeVersion = useSyncExternalStore(subscribeThemes, getThemeVersion, getThemeVersion);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- themeVersion re-resolves after remote themes load
+  const resolved = useMemo(() => resolveWorldForTheme(theme, worldMode), [theme, worldMode, themeVersion]);
   // See the matching check in RiderMarker — world-level, not a name branch.
-  const isCloudWorld = getDefaultModeForTheme(theme)?.world.id === "cloud";
+  const isCloudWorld = resolved.world.id === "cloud";
   // The authored cloud chase camera: "play" is the approved framing, "cinema"
   // the wide study view. Unknown/absent values stay on play.
   const cloudView: CloudView = worldView === "cinema" ? "cinema" : "play";
@@ -2226,10 +2239,10 @@ function Scene({
 
       <group position={[0, -10, 0]}>
         {/* Adaptive road geometry resolution: high=600, medium=250, low=100 */}
-        {styles.atmosphere === "mist" && (
+        {resolved.atmosphereKit === "mist" && (
           <AlpineAtmosphere curve={curve} horizon={context ? context.fogColor : styles.fog} zenith={context ? context.skyTop : styles.skyTop} />
         )}
-        {styles.atmosphere === "grid" && (
+        {resolved.atmosphereKit === "grid" && (
           <NeonAtmosphere curve={curve} horizon={context ? context.fogColor : styles.fog} zenith={context ? context.skyTop : styles.skyTop} />
         )}
         {planetProfile && (
@@ -2261,7 +2274,7 @@ function Scene({
               steps={performanceTier === "high" ? 600 : performanceTier === "medium" ? 250 : 100}
               reactive={reactive}
             />
-            <PropField theme={theme} curve={curve} stats={stats} reactive={reactive} />
+            <PropField theme={theme} curve={curve} stats={stats} reactive={reactive} propSets={resolved.props} />
             {/* Ground cover — the looped roadside band (roadmap P1 #6). */}
             <GroundCoverField theme={theme} curve={curve} tier={performanceTier} />
           </>

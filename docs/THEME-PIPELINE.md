@@ -29,6 +29,13 @@ Three layers:
 > default world rather than to neon, so a route with a bad theme looks like every other
 > default ride instead of like a different product. The fallback lives in one place —
 > `getDefaultThemeName()` — and the registry and the world art both read it.
+>
+> **What a remote row carries, since the palette/place split (2026-11-02):** `props` and
+> `atmosphere` are still declared on the row, because a remote theme *is* a one-mode
+> palette world — `resolveWorldForTheme` resolves it as one (`complete: false`) and its
+> declared silhouette and sky style are the last-resort fallback in the chain. Built-in
+> palettes no longer carry `props` at all: silhouettes live on the worlds' modes, and for
+> the built-ins `atmosphere` only styles the 2D focus view.
 
 ## Rule: One Color Vocabulary
 

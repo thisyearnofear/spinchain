@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Euler, Matrix4, Quaternion, Vector3 } from "three";
 import { VISUALIZER_THEMES } from "../visualizer-theme";
+import { getWorldMode } from "@/app/lib/themes/worlds";
+import { resolveWorldForTheme } from "@/app/lib/themes/worlds/resolved";
 import { buildReadout } from "../bike-computer";
 import { FLOW_COLORS } from "@/app/lib/flow-state";
 import { buildRouteCurve } from "../route-curve";
@@ -257,20 +259,21 @@ describe("route silhouettes", () => {
   };
 
   it("builds one instanced silhouette per theme, planted on the skirt", () => {
-    expect(VISUALIZER_THEMES.alpine.props.count).toBe(120);
-    expect(VISUALIZER_THEMES.neon.props.count).toBe(40);
-    expect(VISUALIZER_THEMES.mars.props.count).toBe(80);
-    expect(VISUALIZER_THEMES.anime.props.count).toBe(200);
-    expect(VISUALIZER_THEMES.rainbow.props.count).toBe(60);
-    // The Cloud Kingdom owns no silhouette: its dressing is the authored
-    // metaball layout, not a shared prop set.
-    expect("props" in VISUALIZER_THEMES.cloud).toBe(false);
+    // Since the palette/place split the silhouette is world data — each Tron
+    // mood declares its own set, values moved verbatim off the palette.
+    expect(getWorldMode("tron", "alpine").props![0].count).toBe(120);
+    expect(getWorldMode("tron", "neon").props![0].count).toBe(40);
+    expect(getWorldMode("tron", "mars").props![0].count).toBe(80);
+    expect(getWorldMode("tron", "anime").props![0].count).toBe(200);
+    expect(getWorldMode("tron", "rainbow").props![0].count).toBe(60);
+    // No built-in palette carries a silhouette any more — the Cloud Kingdom
+    // never did (its dressing is the authored metaball layout).
+    for (const name of Object.keys(VISUALIZER_THEMES)) {
+      expect("props" in VISUALIZER_THEMES[name as keyof typeof VISUALIZER_THEMES]).toBe(false);
+    }
 
     for (const name of Object.keys(VISUALIZER_THEMES) as Array<keyof typeof VISUALIZER_THEMES>) {
-      const theme = VISUALIZER_THEMES[name] as (typeof VISUALIZER_THEMES)["neon"] & {
-        props?: { type: PropType; color: string; count: number; scale: readonly [number, number, number] };
-      };
-      const config = theme.props;
+      const config = resolveWorldForTheme(name).props[0];
       if (!config) {
         expect(name).toBe("cloud");
         continue;

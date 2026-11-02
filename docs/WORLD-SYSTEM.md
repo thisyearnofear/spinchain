@@ -81,7 +81,8 @@ WorldDefinition
   modes[]           ─┐  presentation-level: what makes it worth returning to
     id, label, themeName (palette reference)
     post?, camera?, reactivity?
-  complete          ──  true once the world renders every place-level slot itself
+    atmosphereKit?, props[]?   ─  fills for place slots the world leaves open
+  complete          ──  true once every place-level slot is world data
 ```
 
 Two decisions worth recording:
@@ -89,17 +90,20 @@ Two decisions worth recording:
 - **`themeName` is a reference, not a copy.** A mode points at a `ThemeDefinition` by name, so
   the Supabase remote-theme pipeline keeps working untouched and a mode can be re-skinned
   without touching the world.
-- **`complete: false` is honest.** The Tron world does not yet own its sky kit or its prop
-  silhouette — those still come from the palette of whichever mode is active. Until that
-  split happens, Tron borrows its shape from its modes, and the flag says so rather than
-  letting the picker claim five distinct places.
+- **`complete` means self-contained, not uniform.** The flag went `true` for Tron when the
+  palette/place split landed (§4 step 3): the five moods declare their own skies and
+  silhouettes as mode-level *fills* for slots the world leaves open, so no place-level
+  value is read off the palette any more. The modes still differ in dressing — that is
+  the honest remainder: five dressings of one place, not five places.
 
 ### Resolution
 
 `app/lib/themes/worlds/resolved.ts` resolves a `(world, mode)` pair into the values the
-renderer already understands. Precedence is always **world → mode's palette → renderer
+renderer already understands. Precedence is always **world → mode → palette → renderer
 default**, so a world that owns a slot overrides it for every mode in it — which is what
-makes "one place, several looks" actually one place.
+makes "one place, several looks" actually one place. The renderer's entry point is
+`resolveWorldForTheme(theme, modeId?)`, which resolves through the theme's owning world —
+or, for a remote row no world claims, as an honest palette-only world.
 
 Nothing renders differently for the five legacy worlds. The point of landing the schema
 first is that the world slot can be filled in **one field at a time**, without a flag day
@@ -176,7 +180,7 @@ The schema is not the hard part. The hard part is that the renderer branches on 
 | `api/ai/generate-route/route.ts` | 1 (false positive — `typeof req.theme`) |
 | `registry.ts` | 1 (comment only) |
 | `route-world.test.ts` | 1 (the guard test — updated) |
-| **total** | **53 → 0** (migrated 2026-11-02) |
+| **total** | **53 → 0** (migrated 2026-11-02; +3 single-quoted stragglers caught in step 3) |
 
 **The second batch of conversions (2026-11-02).** The five rows below were step 2's
 remaining work; they are all theme data now, living on `ThemeDefinition` and validated in
@@ -234,6 +238,18 @@ The branches that were converted on the way:
 3. **Split the palette from the place.** `ThemeDefinition` keeps the colours; the prop
    silhouette and the sky kit move up to the world. This is what flips `complete` to `true`
    — the Cloud world is already there, because it was built as a world.
+   **Done 2026-11-02** — `WorldMode` gained `atmosphereKit` + `props` as fills for slots
+   the world leaves open (a world-declared slot still wins for every mode — that is what
+   keeps "one place, several looks" one place). The five Tron moods declare their kits and
+   silhouettes, values moved verbatim off the palettes; `TRON_WORLD` declares its skirt
+   ground and flipped `complete: true`. The renderer resolves both through
+   `resolveWorldForTheme` (world → mode → palette); a remote row no world claims resolves
+   as an honest `complete: false` palette world and keeps its declared dressing, so the
+   remote pipeline is untouched. `theme.atmosphere` stays on the palette, re-scoped to the
+   2D focus view's sky style — a mirror test pins it to each Tron mode's kit. The sweep
+   also found three single-quoted `theme ===` stragglers the first pass missed
+   (`'rainbow'` hue-cycle, `'rainbow'` star saturation, `'neon'` noise opacity) — now
+   `roadHueCycle`, `starSaturation` and `noiseOpacity` on the palette.
 4. **Then add worlds.** Each new world is one registry entry plus whatever new asset classes it
    needs (a silhouette, a ground treatment, a sky kit).
 

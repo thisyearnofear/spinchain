@@ -94,6 +94,22 @@ export interface WorldMode {
   post?: WorldModePost;
   camera?: WorldModeCamera;
   reactivity?: WorldModeReactivity;
+  /**
+   * The sky kit this mode hangs — place data, but only ever a *fill*: it is
+   * consulted only when the world leaves the `atmosphereKit` slot open. A
+   * world that declares the slot wins for every mode in it, which is what
+   * keeps "one place, several looks" one place. The five Tron modes use it
+   * because the Tron world deliberately owns no sky — each mood hangs a
+   * different one, and that dressing is declared here rather than borrowed
+   * from the palette.
+   */
+  atmosphereKit?: AtmosphereKitId;
+  /**
+   * The silhouette sets this mode dresses the world with — same fill rule as
+   * `atmosphereKit`: consulted only when the world declares no `props` of
+   * its own.
+   */
+  props?: WorldPropSet[];
 }
 
 /** The ground a world stands on. `skirt` is the current flat road-side plane. */
@@ -192,10 +208,10 @@ export interface WorldDefinition {
    */
   defaultModeId?: string;
   /**
-   * True once the world renders every place-level slot itself. A world that is
-   * not complete is borrowing its shape from its modes — that is legal (the
-   * Tron world is the only complete one today) but it must not masquerade as
-   * a distinct place in the picker.
+   * True once every place-level slot is *declared by the world definition* —
+   * at world level, or on a mode filling a slot the world leaves open —
+   * rather than borrowed from the palette. A world that is not complete must
+   * not masquerade as a distinct place in the picker.
    */
   complete: boolean;
 }

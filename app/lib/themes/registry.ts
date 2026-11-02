@@ -41,16 +41,25 @@ export interface ThemeDefinition {
   terrainAccent: string;
   panelColor: string;
   worldLabel: string;
+  /**
+   * The palette's sky style. Two consumers read it: the 2D focus view picks
+   * its sky treatment off it (which is why the Cloud palette says "sun"
+   * while the world's kit is "cumulus"), and a palette-only theme — a remote
+   * row with no world above it — falls back to it as its atmosphere kit.
+   * Built-in worlds declare their real kit on the mode (`atmosphereKit`);
+   * for them this value only styles the 2D view and must mirror the kit.
+   */
   atmosphere: string;
   terrainBackScale: number;
   terrainFrontScale: number;
   patternOpacity: number;
   routeDashOpacity: number;
   /**
-   * The world's silhouette prop set. Optional since the authored Cloud
-   * Kingdom ships its own dressing (metaball cumulus) instead of a shared
-   * silhouette. Remote themes still must declare one — they render the
-   * shared kit.
+   * The shared-kit silhouette a palette-only theme renders. Since the
+   * palette/place split, no built-in theme declares one — silhouettes are
+   * world data (`WorldMode.props`), and the renderer resolves them through
+   * the world schema. Remote rows still must declare one: a remote row is a
+   * one-mode palette world, and this is its dressing on the shared kit.
    */
   props?: {
     type: "building" | "tree" | "rock" | "blossom" | "crystal";
@@ -109,6 +118,15 @@ export interface ThemeDefinition {
   reactivePointColor?: string;
   /** Colour of the grid floor lines. Undefined = #2a1d5a. */
   gridColor?: string;
+  /**
+   * Whether the road's emissive hue-cycles continuously (Spectrum Run's
+   * signature). Undefined = false.
+   */
+  roadHueCycle?: boolean;
+  /** Overlay noise opacity, pre-tier scaling. Undefined = 0. */
+  noiseOpacity?: number;
+  /** Starfield saturation. Undefined = 0 (white points). */
+  starSaturation?: number;
   /** Half-width of the road edge lines in route units. Undefined = 2.3. */
   edgeLineWidth?: number;
   /** Half-width of the road's extrude profile. Undefined = 2.5. */
@@ -244,7 +262,9 @@ export function parseThemeDefinition(raw: unknown): ThemeDefinition | null {
   if (d.skirtEdgeDrop !== undefined && !optNum(d.skirtEdgeDrop)) return null;
   if (!optHex(d.reactivePointColor) || !optHex(d.gridColor)) return null;
   if (!optNum(d.edgeLineWidth) || !optNum(d.roadHalfWidth) || !optNum(d.heightFogStrength)) return null;
+  if (!optNum(d.noiseOpacity) || !optNum(d.starSaturation)) return null;
   if (d.reactiveFog !== undefined && typeof d.reactiveFog !== "boolean") return null;
+  if (d.roadHueCycle !== undefined && typeof d.roadHueCycle !== "boolean") return null;
 
   const lighting = d.lighting as Record<string, unknown> | undefined;
   if (lighting !== undefined) {

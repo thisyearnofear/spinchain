@@ -11,7 +11,7 @@ import {
   DEFAULT_WORLD_ID,
   DEFAULT_WORLD_MODE_ID,
 } from "../worlds";
-import { resolveWorld } from "../worlds/resolved";
+import { resolveWorld, resolveWorldForTheme } from "../worlds/resolved";
 import { THEME_NAME_TO_MODE } from "../worlds/tron-world";
 import { VISUALIZER_THEMES } from "@/app/components/features/route/visualizer-theme";
 
@@ -104,6 +104,42 @@ describe("theme → mode mapping", () => {
   });
 });
 
+describe("the palette/place split (§4 step 3)", () => {
+  it("marks Tron complete — every place-level slot is world data now", () => {
+    const tron = getWorld("tron");
+    expect(tron.complete).toBe(true);
+    expect(tron.ground!.kind).toBe("skirt");
+  });
+
+  it("lets each Tron mood fill the sky and silhouette the world leaves open", () => {
+    // The dressings that used to sit on the palette, verbatim: each mode
+    // declares its own sky kit and silhouette set because the Tron world
+    // deliberately owns neither.
+    const kits = Object.fromEntries(getWorld("tron").modes.map((m) => [m.id, m.atmosphereKit]));
+    expect(kits).toEqual({ neon: "grid", alpine: "mist", mars: "dust", anime: "sun", rainbow: "prism" });
+    const props = Object.fromEntries(getWorld("tron").modes.map((m) => [m.id, m.props![0].type]));
+    expect(props).toEqual({ neon: "building", alpine: "tree", mars: "rock", anime: "blossom", rainbow: "crystal" });
+  });
+
+  it("keeps the mode's 3D kit and the palette's 2D sky style in agreement", () => {
+    // `theme.atmosphere` now styles only the 2D focus view (the Cloud palette
+    // legitimately diverges — "sun" 2D glow under a "cumulus" kit). For the
+    // shared-kit Tron moods the two must agree or the ride and the focus
+    // view would disagree about the sky.
+    for (const mode of getWorld("tron").modes) {
+      const theme = VISUALIZER_THEMES[mode.themeName as keyof typeof VISUALIZER_THEMES];
+      expect(mode.atmosphereKit).toBe(theme.atmosphere);
+    }
+  });
+
+  it("carries no silhouette on any built-in palette — they all moved to modes", () => {
+    for (const name of Object.keys(VISUALIZER_THEMES)) {
+      const theme = VISUALIZER_THEMES[name as keyof typeof VISUALIZER_THEMES];
+      expect("props" in theme, `${name} still carries a palette silhouette`).toBe(false);
+    }
+  });
+});
+
 describe("tron world modes", () => {
   it("models the five legacy looks one for one", () => {
     const legacy = Object.keys(VISUALIZER_THEMES).filter((t) => t !== "cloud").sort();
@@ -166,16 +202,38 @@ describe("resolveWorld", () => {
     expect(resolved.theme).toBeTruthy();
   });
 
-  it("derives the sky kit from the palette when the world does not own one", () => {
+  it("fills the sky kit from the mode when the world leaves the slot open", () => {
     expect(resolveWorld("tron", "alpine").atmosphereKit).toBe("mist");
     expect(resolveWorld("tron", "neon").atmosphereKit).toBe("grid");
+    // A world that owns its kit wins for every mode in it — the fill rule.
+    expect(resolveWorld("cloud", "sugar").atmosphereKit).toBe("cumulus");
   });
 
-  it("borrows one prop set from the palette when the world owns none", () => {
+  it("fills the prop sets from the mode when the world owns none", () => {
     const resolved = resolveWorld("tron", "alpine");
     expect(resolved.props).toHaveLength(1);
     expect(resolved.props[0].type).toBe("tree");
+    expect(resolved.props[0].count).toBe(120);
     expect(resolved.props[0].role).toBe("scenery");
+    expect(resolved.props[0].band).toEqual({ inner: 8, outer: 23 });
+  });
+
+  it("resolves a theme-keyed pair — the renderer's entry point", () => {
+    expect(resolveWorldForTheme("alpine").atmosphereKit).toBe("mist");
+    expect(resolveWorldForTheme("alpine").props[0].type).toBe("tree");
+    // An explicit mode of the theme's world is honoured, like
+    // `resolveModeForTheme` — Sugar Rush rather than the default lookup.
+    expect(resolveWorldForTheme("cloud", "cotton").mode.id).toBe("cotton");
+  });
+
+  it("resolves a palette-only theme as an honest incomplete world", () => {
+    // A theme no world claims — a remote row today — still resolves: it
+    // keeps its palette-declared kit and silhouette as the last-resort
+    // fallback and reports itself as borrowing its place from the palette.
+    const resolved = resolveWorldForTheme("no-such-remote-theme");
+    expect(resolved.world.id).toBe("palette");
+    expect(resolved.world.complete).toBe(false);
+    expect(resolved.ground.kind).toBe("skirt");
   });
 
   it("falls back to a flat skirt ground", () => {

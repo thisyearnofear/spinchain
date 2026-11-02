@@ -2,16 +2,14 @@
  * Resolution — turning a (world, mode) pair into the concrete values the
  * renderer already understands.
  *
- * The point of this file is that the schema can be filled in without a flag
- * day. Today a world mostly *borrows* its shape from its mode's palette: the
- * sky kit and the prop silhouette live on `ThemeDefinition` today, and the
- * renderer reads them from there. As each world starts to own them, this
- * resolver starts preferring the world-level value — and the call sites do not
- * change.
- *
- * The precedence is always: world-level field → mode's palette → renderer
- * default. A world that owns a slot overrides the palette for every mode in
- * it, which is what makes "one place, several looks" actually one place.
+ * The precedence is always: **world → mode → palette → renderer default**.
+ * A world that owns a slot overrides it for every mode in it — which is what
+ * makes "one place, several looks" actually one place. A mode's place-level
+ * fields (`atmosphereKit`, `props`) are only ever a *fill*: they apply when
+ * the world leaves the slot open, which is how the five Tron moods hang
+ * different skies over one place. The palette is the last resort — it is
+ * only ever reached by palette-only themes (remote rows), which are
+ * one-mode worlds that have not been promoted into the world registry yet.
  */
 
 import type { ThemeDefinition } from "@/app/lib/themes/registry";
@@ -27,7 +25,7 @@ import type {
   WorldModeReactivity,
   WorldPropSet,
 } from "@/app/lib/themes/world-definition";
-import { getWorld } from "@/app/lib/themes/worlds";
+import { getDefaultModeForTheme, getWorld } from "@/app/lib/themes/worlds";
 
 /** The renderer scatters props between these distances from the road edge. */
 const DEFAULT_PROP_BAND = { inner: 8, outer: 23 } as const;
@@ -60,19 +58,22 @@ function atmosphereFromTheme(theme: ThemeDefinition): AtmosphereKitId {
     : "grid";
 }
 
+/** Schema fields with renderer defaults filled in — band and role. */
+function withPropDefaults(set: WorldPropSet): WorldPropSet {
+  return { role: "scenery", band: { ...DEFAULT_PROP_BAND }, ...set };
+}
+
 function propsFromTheme(theme: ThemeDefinition): WorldPropSet[] {
-  // A theme may own no silhouette at all (the authored Cloud Kingdom's
+  // A palette may own no silhouette at all (the authored Cloud Kingdom's
   // dressing is its metaball layout, not a shared prop set).
   if (!theme.props) return [];
   return [
-    {
+    withPropDefaults({
       type: theme.props.type,
       color: theme.props.color,
       count: theme.props.count,
       scale: [theme.props.scale[0], theme.props.scale[1], theme.props.scale[2]],
-      role: "scenery",
-      band: { ...DEFAULT_PROP_BAND },
-    },
+    }),
   ];
 }
 
@@ -92,12 +93,58 @@ export function resolveWorld(worldId: string, modeId: string): ResolvedWorld {
     world,
     mode,
     theme,
-    atmosphereKit: world.atmosphereKit ?? atmosphereFromTheme(theme),
-    ground: world.ground ?? { kind: "skirt", color: theme.terrainColor },
-    props: world.props ?? propsFromTheme(theme),
+    atmosphereKit: world.atmosphereKit ?? mode.atmosphereKit ?? atmosphereFromTheme(theme),
+    // A declared ground colour wins; the palette's terrain colour fills it
+    // when the ground says only what kind of surface it is.
+    ground: { color: theme.terrainColor, ...(world.ground ?? { kind: "skirt" as const }) },
+    props: (world.props ?? mode.props ?? propsFromTheme(theme)).map(withPropDefaults),
     ambient: world.ambient ?? null,
     post: mode.post ?? {},
     camera: mode.camera ?? {},
     reactivity: mode.reactivity ?? {},
   };
+}
+
+/**
+ * Resolve the world a *theme* renders as.
+ *
+ * The renderer still keys on theme names — a route's `theme` field picks a
+ * palette, and the palette's owning world supplies the place. `modeId`
+ * selects a specific mode of that world when the route asks for one; an
+ * unknown mode id falls back to the theme's default mode rather than
+ * throwing.
+ *
+ * A theme no world claims — a remote row today — resolves as a palette-only
+ * world: it keeps its palette-declared kit and silhouette (the last-resort
+ * fallbacks above) and reports `complete: false`, because its place is
+ * borrowed from the palette rather than declared by a world definition.
+ */
+export function resolveWorldForTheme(themeName: string, modeId?: string): ResolvedWorld {
+  const found = getDefaultModeForTheme(themeName);
+  if (!found) {
+    const theme = getTheme(themeName);
+    const world: WorldDefinition = {
+      id: "palette",
+      label: theme.worldLabel,
+      summary: "A palette-only world (remote theme) on the shared kit.",
+      modes: [{ id: "palette", label: theme.worldLabel, themeName }],
+      complete: false,
+    };
+    return {
+      world,
+      mode: world.modes[0],
+      theme,
+      atmosphereKit: atmosphereFromTheme(theme),
+      ground: { kind: "skirt", color: theme.terrainColor },
+      props: propsFromTheme(theme),
+      ambient: null,
+      post: {},
+      camera: {},
+      reactivity: {},
+    };
+  }
+  const mode = modeId
+    ? found.world.modes.find((m) => m.id === modeId) ?? found.mode
+    : found.mode;
+  return resolveWorld(found.world.id, mode.id);
 }

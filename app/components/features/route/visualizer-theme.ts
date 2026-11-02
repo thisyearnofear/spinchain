@@ -28,6 +28,7 @@ export const VISUALIZER_THEMES = {
     breatheEmissive: 0.5,
     skirtEdgeDrop: 1.15,
     heightFogStrength: 0.9,
+    noiseOpacity: 0.03,
     reactiveFog: false,
     reactivePointColor: "#6ef3c6",
     beatBadge: "diamond" as const,
@@ -50,12 +51,6 @@ export const VISUALIZER_THEMES = {
       sunDirection: [0.22, 0.38, 0.9] as [number, number, number],
       fogStart: 0.3,
       fogEnd: 0.8,
-    },
-    props: {
-      type: "building" as const,
-      color: "#6d7cff",
-      count: 40,
-      scale: [2, 8, 2] as [number, number, number],
     },
     groundCover: {
       color: "#4fd1c5",
@@ -110,12 +105,6 @@ export const VISUALIZER_THEMES = {
       fogStart: 0.16,
       fogEnd: 0.72,
     },
-    props: {
-      type: "tree" as const,
-      color: "#22543d",
-      count: 120,
-      scale: [0.5, 2, 0.5] as [number, number, number],
-    },
     groundCover: {
       color: "#56803b",
       count: 340,
@@ -147,12 +136,6 @@ export const VISUALIZER_THEMES = {
     routeDashOpacity: 0.52,
     reactivePointColor: "#ef4444",
     beatBadge: "orbit" as const,
-    props: {
-      type: "rock" as const,
-      color: "#92400e",
-      count: 80,
-      scale: [1, 1, 1] as [number, number, number],
-    },
     groundCover: {
       color: "#b45309",
       count: 160,
@@ -190,12 +173,6 @@ export const VISUALIZER_THEMES = {
       routeBaseSolid: true,
       float: true,
     },
-    props: {
-      type: "blossom" as const,
-      color: "#fbcfe8",
-      count: 200,
-      scale: [0.3, 0.3, 0.3] as [number, number, number],
-    },
     groundCover: {
       color: "#fda4af",
       count: 300,
@@ -227,17 +204,13 @@ export const VISUALIZER_THEMES = {
     routeDashOpacity: 0.88,
     breathes: true,
     breatheEmissive: 0.8,
+    roadHueCycle: true,
+    starSaturation: 1,
     gridColor: "#ff00ff",
     edgeLineWidth: 3.8,
     roadHalfWidth: 4,
     reactivePointColor: "#ff00ff",
     focus: { float: true },
-    props: {
-      type: "crystal" as const,
-      color: "#00ffff",
-      count: 60,
-      scale: [0.5, 3, 0.5] as [number, number, number],
-    },
     groundCover: {
       color: "#a855f7",
       count: 200,
@@ -251,8 +224,9 @@ export const VISUALIZER_THEMES = {
    * shader — none of the shared road/skirt/silhouette kit. The palette below
    * is therefore decoration and furniture only: page gradient, the 2D focus
    * view (which still draws its sun glow off `atmosphere: "sun"`), the finish
-   * arch, welcome sign and readout accents. It has no `props`/`groundCover`:
-   * the world's dressing is the metaball layout, not silhouette parts.
+   * arch, welcome sign and readout accents. Like every built-in it declares
+   * no `props` (silhouettes live on the worlds' modes now); it also skips
+   * `groundCover` — its dressing is the metaball layout, not the tuft band.
    */
   cloud: {
     fog: "#d4d7ed",
