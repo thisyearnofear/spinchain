@@ -67,9 +67,9 @@ export const CONTRACT_ADDRESSES = {
   ULTRA_VERIFIER: (process.env.NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS ??
     "0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B") as `0x${string}`,
 
-  /** EffortThresholdVerifier — wraps UltraVerifier with replay protection — verified Fuji: https://testnet.snowtrace.io/address/0x783C36f6502052EC31971e75E20D0012910dbA91 */
+  /** EffortThresholdVerifier — wraps the HonkVerifier with replay protection — corrected redeploy 2026-11-02, Fuji: https://testnet.snowtrace.io/address/0x821e1792116865db3c0f96DEd0368a6bb675CaFb */
   EFFORT_VERIFIER: (process.env.NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS ??
-    "0xBbc32cc3b8AF9BaeD8D77E3bf4fC69141b0c9dA4") as `0x${string}`,
+    "0x821e1792116865db3c0f96DEd0368a6bb675CaFb") as `0x${string}`,
 
   /** Revenue splitter for instructor/platform split — verified Fuji: https://testnet.snowtrace.io/address/0xDd787C22A28aA709021860485AC1b95620B5AcE3 */
   TREASURY_SPLITTER: (process.env.NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS ??

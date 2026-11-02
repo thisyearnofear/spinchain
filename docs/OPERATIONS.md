@@ -52,7 +52,7 @@ Open [http://localhost:3210](http://localhost:3210) (dev server is pinned to por
 
 - Testnet/pre-launch. Live at https://spinchain.vercel.app/ (application release `a3c7e37` live 2026-10-04). **Direction approved 2026-10-04: receipt-first** — progression is independent of any chain; optional settlement is a future phase. See `plans/wedge-contract-research.md`.
 - Demo content gated behind `NEXT_PUBLIC_ENABLE_DEMO_CLASS_CATALOG` — off by default.
-- Production verifier state (read-only `eth_call` preflight 2026-10-04): deployed `EffortThresholdVerifier` `0xBbc32cc3…c9dA4` **rejects real proofs** (revert `0xfa066593` — wrong public-input slice); underlying `HonkVerifier` `0xF2a33f6e…641B` accepts the committed fixture proof. Corrected wrapper exists locally, **not deployed**; no adapter/redeploy is the next step — `AchievementRedeemerV2` design (phase 4) comes first. Engine/wrapper owner: deployer `0x29FA…F1Cd` (~1.98 AVAX Fuji).
+- Production verifier state (read-only `eth_call` preflight 2026-10-04): the previously deployed `EffortThresholdVerifier` `0xBbc32cc3…c9dA4` **rejects real proofs** (revert `0xfa066593` — wrong public-input slice); underlying `HonkVerifier` `0xF2a33f6e…641B` accepts the committed fixture proof. **Fixed 2026-11-02**: the corrected wrapper redeployed at `0x821e1792…CaFb` (deploy tx `0x4b7950d2…5391`), `IncentiveEngine.setVerifier` repointed (`0xee130faf…1768`), engine authorized as caller (`0xb8772c35…a296`), and `verifyProof` confirmed `true` on-chain for the committed fixture. The broken `0xBbc32cc3` deployment remains on-chain, unwired — see the tripwire test. Engine/wrapper owner: deployer `0x29FA…F1Cd`.
 - Supabase `spinchain` (`avcihfixqlofvkpvwmiq`, us-east-2) ACTIVE_HEALTHY; **`ride_summaries.summary` column APPLIED 2026-10-04 — additive `jsonb` nullable migration (`app/lib/supabase/migrations/20261004_ride_summary.sql`), verified on the same project.** **`rider_consents` table migration (`app/lib/supabase/migrations/20261007_rider_consents.sql`) APPLIED 2026-10-07 via the Supabase CLI (`db query --linked`), columns verified — consent PUTs and consent-gated cloud sync are live.**
 - Phase-0 auth/ownership/CTA/Noir/receipt fixes and phase-1 public-write boundary + `RideReceiptV1` are live on prod (`a3c7e37`, deployed 2026-10-04) — 506 unit / 53 files + Foundry real-verifier tests green locally.
 - Phase 2 merged to main 2026-10-07: granular rider consent (four scopes, `consent-v1`, client + server enforcement) and a durable cloud-history outbox. Phase 4 `AchievementRedeemerV2` + `ClaimRegistry` design and Foundry tests also merged 2026-10-07 (design doc + tests only, no deploy — see `docs/ACHIEVEMENT-REDEEMER-V2.md`).
@@ -105,7 +105,7 @@ NEXT_PUBLIC_SPIN_TOKEN_ADDRESS=0x4c0E965B809452F2C914a74d1D0e9C3375543392
 NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=0x69800d3ABda003b7aA6038831715a4aCb736403d
 NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=0x035026f85CCbC273160669FBe9Ba5Dc147D0Bd9b
 NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B
-NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0xBbc32cc3b8AF9BaeD8D77E3bf4fC69141b0c9dA4
+NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x821e1792116865db3c0f96DEd0368a6bb675CaFb
 NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=0x00a1e5688AF26c724155BfEe100fF23d387850AB
 NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=0x038fca8A26F9065f12F831C0600f30d8C90AFCFD
 ```
@@ -198,11 +198,11 @@ forge script src/deploy.s.sol:DeployScript --rpc-url https://api.avax-test.netwo
 | `IncentiveEngine` | `0x69800d3ABda003b7aA6038831715a4aCb736403d` | legacy experiment |
 | `ClassFactory` | `0x035026f85CCbC273160669FBe9Ba5Dc147D0Bd9b` | legacy experiment |
 | `HonkVerifier` (real ZK) | `0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B` | verifies committed fixture proofs (confirmed 2026-10-04) |
-| `EffortThresholdVerifier` | `0xBbc32cc3b8AF9BaeD8D77E3bf4fC69141b0c9dA4` | **broken** — wrong public-input slice, reverts on real proofs (checked by `contracts/evm/test/EffortThresholdVerifierFujiTripwire.t.sol`; `FUJI_RPC_URL=… pnpm test:contracts` also re-reads the chain) |
+| `EffortThresholdVerifier` | `0x821e1792116865db3c0f96DEd0368a6bb675CaFb` | corrected redeploy 2026-11-02 — verified `true` on-chain for the committed fixture; engine repointed. Supersedes broken `0xBbc32cc3…c9dA4` (kept on-chain, unwired; pinned by `contracts/evm/test/EffortThresholdVerifierFujiTripwire.t.sol`) |
 | `TreasurySplitter` | `0x00a1e5688AF26c724155BfEe100fF23d387850AB` | legacy experiment |
 | `BiometricOracle` | `0x038fca8A26F9065f12F831C0600f30d8C90AFCFD` | placeholder forwarder; CRE not adopted |
 
-> These are testnet experiment contracts from the pre-redesign architecture. They are not a launch surface: the corrected wrapper is not deployed, and settlement redesign (`AchievementRedeemerV2`, phase 4) supersedes repairing them. Do not treat these addresses as the live claim path.
+> These are testnet experiment contracts from the pre-redesign architecture. They are not a launch surface: settlement redesign (`AchievementRedeemerV2`, phase 4) supersedes the legacy claim path even though the verifier itself is now correct on-chain. Do not treat these addresses as the live claim path.
 
 #### Verify on Snowtrace
 ```bash
@@ -298,7 +298,7 @@ NEXT_PUBLIC_SPIN_TOKEN_ADDRESS=0x4c0E965B809452F2C914a74d1D0e9C3375543392
 NEXT_PUBLIC_INCENTIVE_ENGINE_ADDRESS=0x69800d3ABda003b7aA6038831715a4aCb736403d
 NEXT_PUBLIC_CLASS_FACTORY_ADDRESS=0x035026f85CCbC273160669FBe9Ba5Dc147D0Bd9b
 NEXT_PUBLIC_ULTRA_VERIFIER_ADDRESS=0xF2a33f6e9a5e935Db5d682E226A7e1a0249A641B
-NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0xBbc32cc3b8AF9BaeD8D77E3bf4fC69141b0c9dA4
+NEXT_PUBLIC_EFFORT_VERIFIER_ADDRESS=0x821e1792116865db3c0f96DEd0368a6bb675CaFb
 NEXT_PUBLIC_TREASURY_SPLITTER_ADDRESS=0x00a1e5688AF26c724155BfEe100fF23d387850AB
 NEXT_PUBLIC_BIOMETRIC_ORACLE_ADDRESS=0x038fca8A26F9065f12F831C0600f30d8C90AFCFD
 NEXT_PUBLIC_REWARD_VERIFICATION_MODE=zk
