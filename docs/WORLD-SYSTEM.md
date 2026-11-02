@@ -285,3 +285,59 @@ them.
 **Shipped 2026-10-22:** the Cloud Kingdom landed with all 10 visual-regression tests green and
 the five legacy baselines byte-identical — the proof that the conversions in §4 can be no-ops.
 
+## 8. World ideas (unscheduled)
+
+> **Status**: ideas only. Nothing here is built, designed in detail, or prioritised, and none
+> of it is a commitment. Added 2026-11-01.
+
+**Source.** These came from browsing the city-themed entries in the SandBase Lab video-skill
+gallery (<https://www.sandbase.ai/lab/skills/output/videos>): *Pixel city drive*, *Your block as
+a pixel city*, *Storybook 3D miniature city*, *Manhattan Miniature*, *3D architecture, night to
+day*, *Every building, year by year*, and *Your landmark, built and dismantled*. Only the
+gallery titles and one-line blurbs were read. The skills themselves were not opened or run.
+
+Those skills render fixed video files, so they cannot be the ride (the ride is real-time and
+effort-driven). What is borrowed is the **look and the transformation idea**, which are the
+parts that fit the wedge. No code, assets or prompts are taken from them. Check each skill's
+licence before reusing anything beyond the idea.
+
+Each idea below is held to the rule in §6: a rider can tell it from the other worlds with the
+sound off and the HUD covered. Each also names its **effort hook**, because a world that does
+not change with effort is wallpaper (see [WEDGE.md](./WEDGE.md)).
+
+| Idea | The place | What would make it a world, not a mode | Effort hook |
+|---|---|---|---|
+| **Pixel Drive** | A low-res, quantised voxel city; chunky pixel buildings, hard-edged shadows, a limited palette | New prop silhouettes (blocky towers), a pixel-grid ground, a pixelating post pass | Pixel density resolves upward with flow: coarse at low effort, crisp at peak |
+| **Miniature Block** | A tilt-shift toy city: small buildings, shallow depth of field, warm model-railway lighting | A depth-of-field camera mode, a "table" ground edge, small instanced buildings | Tilt-shift softens and the scale grows as effort rises, so the model becomes the full-size city |
+| **Storybook Skyline** | A hand-built, paper-and-clay 3D city with a painted sky | A storybook sky kit (`atmosphereKit`), clay-textured props, a soft painted palette | Lit windows and chimney smoke accumulate with sustained effort |
+| **City Grows** | The same street, built up over the length of the ride | Props that spawn progressively along the route rather than being placed at load | The skyline builds as you pedal and stalls when you ease off, so the ride's work is the visible city |
+| **Night to Day** | A skyline lit from dusk to dawn | A time-of-day sky kit driven by a single 0–1 value | Dawn is the flow-state payoff: sustained effort moves the sun up |
+
+### How they would sit in the schema
+
+- **Pixel Drive**, **Miniature Block** and **Storybook Skyline** are three distinct *places*
+  (new `props[]`, `ground` and `atmosphereKit` slots). They could also be one "city" world
+  with three modes, **only if** they share a skyline and differ in presentation. If the
+  silhouettes and ground differ, they are separate worlds.
+- **City Grows** and **Night to Day** are *mechanics*, not places. They fit as `reactivity`
+  curves on a mode (or on any city world), not as worlds of their own. Night to Day is the
+  cheaper of the two: it needs a sun/sky parameter and no new geometry.
+- Together they are a good candidate for the "concrete jungle" slot named in §1.
+
+### Constraints to keep in mind
+
+- **The shared route (§6).** All of these would still ride the same road ribbon. A city that
+  is a grid of streets, not a ribbon through scenery, is the clearest case for the
+  own-geometry work §6 calls the next platform-sized piece. Until that lands, a city world
+  reads as "a city along a road".
+- **The branch tax (§4).** Do the branch migration before adding more than one of these, or
+  each world will add `theme === "…"` sites again. The Cloud Kingdom's 2-branch result is the
+  bar.
+- **Mobile tier.** Progressive prop spawning (City Grows) and a depth-of-field pass (Miniature
+  Block) both cost frame time. Check them against the adaptive pixel-ratio work in
+  [RENDERING-ROADMAP.md](./RENDERING-ROADMAP.md) before committing.
+- **White-out risk.** Night to Day passes through a bright dawn. The Cloud Kingdom's bloom
+  lesson (§3a) applies: pull the post stack down for bright states.
+- **Rank gates.** Where a new world sits on the ladder is a [PROGRESSION.md](./PROGRESSION.md)
+  decision, not a rendering one.
+
