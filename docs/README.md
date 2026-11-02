@@ -12,7 +12,7 @@ Index for the SpinChain documentation. Each doc has one job; none competes with 
 | 4 | [THEME-PIPELINE.md](./THEME-PIPELINE.md) | How interval phases map to visual themes and the reactive renderer layer. |
 | 5 | [SKILLS-PLAN.md](./SKILLS-PLAN.md) | The coach skill loop: play→call→replay→coach→train→match. |
 | 6 | [OPERATIONS.md](./OPERATIONS.md) | Local dev, scripts, env, deployment, observability. |
-| 7 | [WORLD-SYSTEM.md](./WORLD-SYSTEM.md) | The world/mode system, 53-branch migration, asset slots, resolution. |
+| 7 | [WORLD-SYSTEM.md](./WORLD-SYSTEM.md) | The world/mode system, the (done) branch migration, asset slots, resolution. |
 
 ## Background / infrastructure docs (active set)
 

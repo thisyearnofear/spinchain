@@ -39,9 +39,9 @@ needs a new asset class (prop silhouette, ground treatment, sky kit, its own sou
 world; if it is only palette / post / camera / reactivity it is a mode.
 
 Schema in `app/lib/themes/world-definition.ts`; registry in `app/lib/themes/worlds/`; resolution
-(`world → mode's palette → renderer default`) in `app/lib/themes/worlds/resolved.ts`. The five
-legacy looks are **modes of one Tron world**, so the world slot is free for places that are
-genuinely not vector-neon.
+(`world → mode → palette → renderer default`, entry point `resolveWorldForTheme`) in
+`app/lib/themes/worlds/resolved.ts`. The five legacy looks are **modes of one Tron world**,
+so the world slot is free for places that are genuinely not vector-neon.
 
 **The Cloud Kingdom is the first such world** — its own sky (the planet shader's pastel
 daylight style), its own ground (a cloud sea), its own silhouette (soft bobbing puffs), its own
@@ -54,15 +54,16 @@ a practice ride, a route with no theme, the guest demo class and the visualizer'
 prop all resolve to. The world's *mood* is a first-class part of the route now: it travels in
 the route metadata (`route.worldMode`) and through the renderer as `worldMode`.
 
-A new world is now **mostly data**: whether a world breathes (`breathes`,
-`breatheEmissive`), what its roadside band is made of (`groundCover.type`), how far the
-ground's edge drops (`skirtEdgeDrop`), and how a mode presents and responds to effort
-(`post`, `reactivity`) are theme/world fields, not `theme === "…"` branches. The Cloud world
-cost **two** theme-name branches (the garage icon and the demo route's terrain tags).
+A new world is **data**: whether a world breathes (`breathes`, `breatheEmissive`), what its
+roadside band is made of (`groundCover.type`), how far the ground's edge drops
+(`skirtEdgeDrop`), its sky kit and silhouette (`atmosphereKit`, `props` — world-level, or
+mode-level fills when the world leaves the slot open), and how a mode presents and
+responds to effort (`post`, `reactivity`) are all theme/world fields, not
+`theme === "…"` branches. Every one of the 53 branch sites is migrated — the theme name is
+no longer a control-flow input anywhere.
 
-The rest of the 53 branches are still there, and they are the next platform-sized piece of
-work: each one is a decision that should be a field the world owns. Full plan, the migration
-order and the scars: [WORLD-SYSTEM.md](./WORLD-SYSTEM.md).
+A new world today is **one registry entry plus its new asset classes**. Full plan, the
+migration record and the scars: [WORLD-SYSTEM.md](./WORLD-SYSTEM.md).
 
 A **world** is also where generated content enters (`hero` slot): a Mint world / World Labs
 mesh / PINOC environment is a *backdrop*, never the reactive world — a splat cannot take wind,

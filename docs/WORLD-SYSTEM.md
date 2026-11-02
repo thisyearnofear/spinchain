@@ -3,6 +3,9 @@
 > **Status**: ACTIVE — schema landed 2026-10-21; the Cloud Kingdom shipped the same day,
 > and later adopted the authored cloud-ride kit as its production look (the shared
 > extrude road, skirt, silhouette puffs and spore sparkles no longer render there).
+> The §4 migration finished 2026-11-02: all `theme === "…"` branches are data, and the
+> palette/place split put the silhouette and the sky kit on the world schema — both
+> registered worlds are `complete`. Step 4 (add worlds) is unlocked.
 > **Created**: 2026-10-21
 > **See also**: [ARCHITECTURE.md](./ARCHITECTURE.md) (current renderer facts),
 > [THEME-PIPELINE.md](./THEME-PIPELINE.md) (the palette pipeline this builds on),
@@ -124,11 +127,12 @@ what it actually took.
 | Rider | toon Mint on a chunky mint bike with a coral scarf | `CloudRiderRig` on the shared banked frame |
 | Modes | Cotton Candy / Sugar Rush — same place, different weather | two entries |
 
-**It cost two theme-name branches.** The whole world — sky, ground, silhouette, roadside
-band, breathing, edge treatment, bloom — is data. The only two places that still ask
-"is this theme *cloud*?" are the garage's icon and the demo route's terrain tags. That
-is the number that matters: the first world cost 54 branches' worth of knowledge spread
-across the renderer; this one cost 2.
+**It cost two theme-name branches — later, zero.** The whole world — sky, ground,
+silhouette, roadside band, breathing, edge treatment, bloom — is data. At ship time the
+only two places that still asked "is this theme *cloud*?" were the garage's icon and the
+demo route's terrain tags, and the step-2 migration moved those into `THEME_ICONS` /
+`DEMO_TERRAIN_TAGS` maps. That is the number that matters: the first world cost 54
+branches' worth of knowledge spread across the renderer; this one cost 0.
 
 **What the renderer learned on the way (the scars):**
 
@@ -166,8 +170,8 @@ re-tuned without an illustrator. The other five world images are hand-drawn.
 
 ## 4. The real tax on adding a world
 
-The schema is not the hard part. The hard part is that the renderer branches on the theme
-**name** in 53 places:
+The schema is not the hard part. The hard part was that the renderer branched on the
+theme **name** in 53 places — all migrated to theme/world data:
 
 | File | `theme === "…"` branches |
 |---|---|
@@ -200,20 +204,22 @@ remaining work; they are all theme data now, living on `ThemeDefinition` and val
 | badge shape chain, anime strokes/ticks/float | `beatBadge`, `focus{}` |
 | garage icon chain, demo terrain tags | `THEME_ICONS`, `DEMO_TERRAIN_TAGS` maps |
 
-Every one of those is a decision that should be *data* in a world definition. `theme === "neon"`
+Every one of those was a decision that should be *data* in a world definition. `theme === "neon"`
 deciding the skirt edge drop, the skirt light colour, whether a prop breathes, whether the
-grid draws — none of that is about Tron; it is about a world having a ground, a prop set and a
-sky. As long as those branches exist, a new world is a code change across four files, and every
-new world multiplies the branch count.
+grid draws — none of that was about Tron; it was about a world having a ground, a prop set and a
+sky. While those branches existed, a new world was a code change across four files, and every
+new world multiplied the branch count.
 
-**That is the real blocker, and it is a bigger one than the schema.** A new world today means
-adding `theme === "underworld"` to 54 sites. The schema's job is to give those 54 sites
-something to read instead.
+**That was the real blocker, and it was a bigger one than the schema.** A new world meant
+adding `theme === "underworld"` to 54 sites. The schema's job was to give those 54 sites
+something to read instead — done: a new world today is one registry entry plus whatever
+new asset classes it needs, per step 4 below.
 
 **The Cloud Kingdom is the counter-example, and it is the proof.** It shipped with **two**
-theme-name branches (the garage icon and the demo route's terrain tags) because everything
-else about it — its sky kit, its ground, its silhouette, its roadside band, whether it
-breathes, how far the ground's edge drops, its bloom, its reactivity — is data now.
+theme-name branches (the garage icon and the demo route's terrain tags — both since moved
+to data maps) because everything else about it — its sky kit, its ground, its silhouette,
+its roadside band, whether it breathes, how far the ground's edge drops, its bloom, its
+reactivity — is data.
 The branches that were converted on the way:
 
 | Was | Now |
@@ -302,7 +308,7 @@ rides. The ground ribbon rising as the route descends is the same object in ever
 alpine world's hillside is the Cloud world's cloud bank). Making a world feel like a *place*
 rather than a *mood* eventually means giving it its own geometry — a different curve, or a
 terrain that is not a ribbon around a spline. That is the next platform-sized piece of work,
-after the branch migration.
+now that the branch migration is done.
 
 ## 7. Verification
 
@@ -366,9 +372,9 @@ not change with effort is wallpaper (see [WEDGE.md](./WEDGE.md)).
   is a grid of streets, not a ribbon through scenery, is the clearest case for the
   own-geometry work §6 calls the next platform-sized piece. Until that lands, a city world
   reads as "a city along a road".
-- **The branch tax (§4).** Do the branch migration before adding more than one of these, or
-  each world will add `theme === "…"` sites again. The Cloud Kingdom's 2-branch result is the
-  bar.
+- **The branch tax (§4).** Paid — the migration is done. The bar for any of these is the
+  Cloud Kingdom's 0-branch result: a new world must be one registry entry plus its new
+  asset classes, and must not add a `theme === "…"` site.
 - **Mobile tier.** Progressive prop spawning (City Grows) and a depth-of-field pass (Miniature
   Block) both cost frame time. Check them against the adaptive pixel-ratio work in
   [RENDERING-ROADMAP.md](./RENDERING-ROADMAP.md) before committing.
