@@ -141,7 +141,7 @@ exists on each rank — it is declared and never rendered. Rendering it is a clo
 | **Draw-call budget ~100/frame on mobile** | 100 tips | We are well under (≈3 instanced draw calls per world + rider + road + sky). Not our bottleneck. |
 | **Instancing** | 100 tips, Bruno | Already used for props. Extend to ground cover. |
 | **Looped bands instead of full coverage** | Bruno | Grass/water/rain loop to fill the camera's view rather than covering the world. |
-| **DRACO / KTX2 / ETC1S / Meshopt** | Bruno, 100 tips | Our geometry is procedural; our textures are 5 JPGs. **Low priority** — but the world art JPGs are ~300–400 KB each and uncompressed as GPU textures. |
+| **DRACO / KTX2 / ETC1S / Meshopt** | Bruno, 100 tips | Our geometry is procedural; the 6 world images are DOM art, now WebP (shipped 2026-11-02, item 15). KTX2/DRACO apply only if real GPU textures or baked geometry ever arrive. |
 | **Adaptive pixel ratio** | 100 tips, R3F `PerformanceMonitor` | **High value.** Converts "marginal phone → 2D fallback" into "marginal phone → 3D at 0.75× DPR". More riders see the world. |
 | **`frameloop="demand"`** for static scenes | 100 tips | We already use `frameloop="never"` for the hidden 2D layer. |
 | **Never create objects in `useFrame`** | 100 tips | Already true in our hot path. |

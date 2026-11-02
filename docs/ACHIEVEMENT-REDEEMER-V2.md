@@ -1,4 +1,9 @@
-# AchievementRedeemerV2 — phase-4 design (implemented + tested, not deployed)
+# AchievementRedeemerV2 — phase-4 design
+
+> **Deployment note (2026-10-07):** since this design was written, the contracts
+> *were* deployed on Fuji and dogfooded end-to-end — addresses, budgets and
+> evidence live in [PHASE-5-PILOT.md](./PHASE-5-PILOT.md). This doc remains the
+> design reference; the rest of this section describes the pre-deploy state.
 
 Status: contract and Foundry tests only. **No deployment, no app wiring, no
 economics.** Amounts, budgets, caps, assets and the ABI used by any real
