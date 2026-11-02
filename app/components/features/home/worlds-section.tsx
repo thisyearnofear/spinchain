@@ -87,7 +87,7 @@ export function WorldsSection() {
                     the gradient tile is the honest fallback. */}
                 {/* eslint-disable-next-line @next/next/no-img-element -- deliberate: raw img with onError fallback to the gradient tile */}
                 <img
-                  src={`/images/worlds/${key}.jpg`}
+                  src={`/images/worlds/${key}.webp`}
                   alt=""
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover"

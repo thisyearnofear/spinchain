@@ -4,7 +4,8 @@
  * Every surface that renders a route/class image (landing showcase, ride
  * transition overlay, …) resolves through `worldImageFor` so a theme can
  * never show another world's art. World art lives at
- * /images/worlds/<key>.jpg, keyed by the real VisualizerTheme keys.
+ * /images/worlds/<key>.webp (sharp-encoded from the .jpg masters,
+ * scripts/optimize-worlds.mjs), keyed by the real VisualizerTheme keys.
  *
  * Lookup always succeeds: unknown or missing route themes resolve to
  * "neon", mirroring the registry's own FALLBACK_THEME.
@@ -22,12 +23,12 @@ export interface WorldImage {
 }
 
 export const WORLD_IMAGES: Record<VisualizerTheme, WorldImage> = {
-  neon: { src: "/images/worlds/neon.jpg", label: VISUALIZER_THEMES.neon.worldLabel },
-  alpine: { src: "/images/worlds/alpine.jpg", label: VISUALIZER_THEMES.alpine.worldLabel },
-  mars: { src: "/images/worlds/mars.jpg", label: VISUALIZER_THEMES.mars.worldLabel },
-  anime: { src: "/images/worlds/anime.jpg", label: VISUALIZER_THEMES.anime.worldLabel },
-  rainbow: { src: "/images/worlds/rainbow.jpg", label: VISUALIZER_THEMES.rainbow.worldLabel },
-  cloud: { src: "/images/worlds/cloud.jpg", label: VISUALIZER_THEMES.cloud.worldLabel },
+  neon: { src: "/images/worlds/neon.webp", label: VISUALIZER_THEMES.neon.worldLabel },
+  alpine: { src: "/images/worlds/alpine.webp", label: VISUALIZER_THEMES.alpine.worldLabel },
+  mars: { src: "/images/worlds/mars.webp", label: VISUALIZER_THEMES.mars.worldLabel },
+  anime: { src: "/images/worlds/anime.webp", label: VISUALIZER_THEMES.anime.worldLabel },
+  rainbow: { src: "/images/worlds/rainbow.webp", label: VISUALIZER_THEMES.rainbow.worldLabel },
+  cloud: { src: "/images/worlds/cloud.webp", label: VISUALIZER_THEMES.cloud.worldLabel },
 };
 
 /**

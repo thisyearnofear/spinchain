@@ -26,7 +26,8 @@
     "worldlabs:world": "node scripts/worldlabs/generate-world.mjs",
     "doctor": "npx react-doctor@latest",
     "characters:optimize": "node scripts/optimize-characters.mjs",
-    "test:contracts": "cd contracts/evm && mkdir depstmp && cd depstmp && npm init -y >/dev/null && npm install @openzeppelin/contracts@5.0.2 --no-audit --no-fund && mkdir -p ../node_modules && cp -r node_modules/@openzeppelin ../node_modules/ && cd .. && rm -rf depstmp && forge install --no-git foundry-rs/forge-std@v1.15.0 && FOUNDRY_PROFILE=honk forge build --skip test --skip script && forge test --match-contract 'EffortThresholdVerifier.*|AchievementRedeemerV2.*|ClaimRegistry.*'"
+    "test:contracts": "cd contracts/evm && mkdir depstmp && cd depstmp && npm init -y >/dev/null && npm install @openzeppelin/contracts@5.0.2 --no-audit --no-fund && mkdir -p ../node_modules && cp -r node_modules/@openzeppelin ../node_modules/ && cd .. && rm -rf depstmp && forge install --no-git foundry-rs/forge-std@v1.15.0 && FOUNDRY_PROFILE=honk forge build --skip test --skip script && forge test --match-contract 'EffortThresholdVerifier.*|AchievementRedeemerV2.*|ClaimRegistry.*'",
+    "worlds:optimize": "node scripts/optimize-worlds.mjs"
   },
   "pnpm": {
     "overrides": {

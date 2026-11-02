@@ -401,7 +401,7 @@ remained byte-identical (verified: `git status` listed exactly the active-play f
 | 12 | **TSL port of the custom shaders.** | The only route to WebGPU, and to compute-shader particles. | **XL** |
 | 13 | **Procedural ground-cover system with compute** | Bruno's grass at scale, GPU-driven | L |
 | 14 | **Shared world conditions** (all riders in a class see the same weather/time) | Bruno's social proof mechanic | L (needs a server) |
-| 15 | **Texture pipeline: KTX2/ETC1S + DRACO for the world art** | The 5 world JPGs are the only textures in the app | S |
+| ~~15~~ | **~~Texture pipeline~~ — shipped 2026-11-02 as WebP, not KTX2** | The world JPGs turned out to be DOM `<img>` art (showcase/overlay/worlds-section), not GPU textures — worlds are procedural shaders — so KTX2/ETC1S was the wrong tool. `pnpm worlds:optimize` encodes the JPG masters to `.webp` (1.67MB → 466KB, ~72%). DRACO/Meshopt still pending any real baked geometry. | S (done) |
 
 **Remaining-work ordering** (the P0 and P1 programs above are complete):
 
@@ -410,10 +410,11 @@ remained byte-identical (verified: `git status` listed exactly the active-play f
 > that is not Tron, and it landed without touching this roadmap's effects. Work here is
 > about how the world *feels*; work there is about how many places there are to feel.
 
-1. **#15 texture pipeline (S)** — next up. The only S-sized item left; no product decisions
-   involved. The 5 world-art JPGs (~300–400 KB each) become KTX2/ETC1S GPU-compressed textures;
-   DRACO/Meshopt waits until any procedural geometry is ever replaced by baked geometry. Win:
-   lower upload/GPU-memory cost on mobile; the `low` tier keeps every existing gate.
+1. **~~#15 texture pipeline (S)~~ — shipped 2026-11-02.** Correction on the way in: the six
+   world images are DOM `<img>` art, not GPU textures, so the right format was WebP
+   (`scripts/optimize-worlds.mjs`, `pnpm worlds:optimize`) — 1.67MB → 466KB across the set.
+   KTX2/ETC1S stays parked until a real GPU texture exists; DRACO/Meshopt until baked
+   geometry does.
 2. **#13 compute-driven ground cover (L)** — scales the roadside tuft band toward Bruno's 78k-blade
    grass, looping to fill the camera view. GPU-driven rendering (and the compute option) is tied to
    the TSL/WebGPU story, so the GLSL-first version of this (more instances, cheaper per-instance)
