@@ -191,6 +191,13 @@ function inferBeatType(label: string): StoryBeatType {
   return "scenery";
 }
 
+/** Theme name → demo terrain tags. A demo world adds a row, not a branch. */
+const DEMO_TERRAIN_TAGS: Record<string, string[]> = {
+  alpine: ["climb", "mountain"],
+  mars: ["desert", "rolling"],
+  cloud: ["rolling", "float"],
+};
+
 function createFallbackMetadataFromDemo(demoClass: CuratedClass): EnhancedClassMetadata {
   const seed = demoClass.address;
   const themeOptions: EnhancedClassMetadata["route"]["theme"][] = ["cloud", "neon", "alpine", "mars"];
@@ -221,7 +228,7 @@ function createFallbackMetadataFromDemo(demoClass: CuratedClass): EnhancedClassM
       theme,
       checksum: `demo-checksum-${demoClass.address.slice(2, 8)}`,
       storyBeatsCount: storyBeatLabels.length,
-      terrainTags: theme === "alpine" ? ["climb", "mountain"] : theme === "mars" ? ["desert", "rolling"] : theme === "cloud" ? ["rolling", "float"] : ["urban", "tempo"],
+      terrainTags: DEMO_TERRAIN_TAGS[theme] ?? ["urban", "tempo"],
       storyBeatLabels,
     },
     ai: {

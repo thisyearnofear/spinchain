@@ -496,11 +496,13 @@ describe("neon atmosphere", () => {
     expect(atmosphere).not.toContain("children.forEach");
     expect(visualizer).toContain("NeonAtmosphere");
     expect(visualizer).toContain("AlpineAtmosphere");
-    expect(visualizer).toContain('theme === "alpine" || theme === "neon"');
-    // Fog far plane: alpine and neon keep their own, and the planetary
-    // worlds carry their own too — none of them fall through to the
-    // neutral 250.
-    expect(visualizer).toContain("NEON_FOG_FAR");
+    // The bespoke-haze worlds opt out of the effort-reactive fog tint via
+    // theme data (`reactiveFog: false`), not a theme-name branch.
+    expect(visualizer).toContain("styles.reactiveFog === false");
+    // Fog far plane: every world carries its own — alpine/neon through
+    // `lighting.fogFar` theme data, planetary worlds through their profile —
+    // none of them fall through to the neutral 250.
+    expect(visualizer).toContain("lighting?.fogFar ?? 250");
     expect(visualizer).toContain("planetProfile.fogFar");
     expect(visualizer).toContain("BreathingMaterial");
     // Skyline geometry is built in the view's useMemo, not from the visualizer

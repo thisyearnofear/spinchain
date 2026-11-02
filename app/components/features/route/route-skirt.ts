@@ -10,6 +10,7 @@ import {
   Vector3,
   type Curve,
 } from "three";
+import { getTheme } from "@/app/lib/themes/registry";
 
 /**
  * Road cross-section, matching Road's extrude profile.
@@ -22,7 +23,7 @@ export const ROAD_PROFILE_HEIGHT = 0.5;
 
 export function roadProfile(theme: string): { halfWidth: number; height: number } {
   return {
-    halfWidth: theme === "rainbow" ? 4 : 2.5,
+    halfWidth: getTheme(theme).roadHalfWidth ?? 2.5,
     height: ROAD_PROFILE_HEIGHT,
   };
 }

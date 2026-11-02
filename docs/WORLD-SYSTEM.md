@@ -167,16 +167,34 @@ The schema is not the hard part. The hard part is that the renderer branches on 
 
 | File | `theme === "…"` branches |
 |---|---|
-| `route-visualizer.tsx` | 21 |
-| `focus-route-visualizer.tsx` | 9 |
-| `selection-garage.tsx` | 6 |
-| `world-reactivity.ts` | 5 |
-| `route-skirt.ts` | 1 |
-| `use-class-data.ts` | 1 |
-| `api/ai/generate-route/route.ts` | 1 |
-| `registry.ts` | 1 |
-| `route-world.test.ts` | 1 |
-| **total** | **53** |
+| `route-visualizer.tsx` | 21 → **0** |
+| `focus-route-visualizer.tsx` | 9 → **0** |
+| `selection-garage.tsx` | 6 → **0** |
+| `world-reactivity.ts` | 5 → **0** |
+| `route-skirt.ts` | 1 → **0** |
+| `use-class-data.ts` | 1 → **0** |
+| `api/ai/generate-route/route.ts` | 1 (false positive — `typeof req.theme`) |
+| `registry.ts` | 1 (comment only) |
+| `route-world.test.ts` | 1 (the guard test — updated) |
+| **total** | **53 → 0** (migrated 2026-11-02) |
+
+**The second batch of conversions (2026-11-02).** The five rows below were step 2's
+remaining work; they are all theme data now, living on `ThemeDefinition` and validated in
+`parseThemeDefinition`:
+
+| Was | Now |
+|---|---|
+| light rig: `alpine`/`neon`/`planetProfile` hemi+dir+ambient+point+fogFar chains | `lighting` on the theme (planet worlds keep `PlanetProfile`, which is already data) |
+| skirt light: `alpine`/`neon` `SkirtLight` literals | `skirtLight` on the theme |
+| `theme === "neon" ? 0.9 : 0.85` height fog | `heightFogStrength` |
+| `alpine \|\| neon` fog ignores the reactive tint | `reactiveFog: false` |
+| `rainbow ? 3.8 : 2.3` edge line / `? 4 : 2.5` road half-width | `edgeLineWidth`, `roadHalfWidth` |
+| `rainbow ? "#ff00ff" : "#2a1d5a"` grid colour ×2 | `gridColor` |
+| `mars ? "#ef4444" : …` reactive point base | `reactivePointColor` |
+| `theme === "cloud"` pipeline selection ×2 | `getDefaultModeForTheme(theme)?.world.id` — world id, not theme name |
+| `alpine`/`neon` atmosphere components | `styles.atmosphere` kit id (`mist`/`grid`) — remote themes gain the kits too |
+| badge shape chain, anime strokes/ticks/float | `beatBadge`, `focus{}` |
+| garage icon chain, demo terrain tags | `THEME_ICONS`, `DEMO_TERRAIN_TAGS` maps |
 
 Every one of those is a decision that should be *data* in a world definition. `theme === "neon"`
 deciding the skirt edge drop, the skirt light colour, whether a prop breathes, whether the
@@ -210,7 +228,9 @@ The branches that were converted on the way:
 2. **Move the branches into the world definition.** Each `theme === "x"` becomes a field the
    world owns: `ground.edgeDrop`, `ground.kind`, `props[].breathes`, `skyKit`, `grid`. The
    branch count goes to zero and the theme name stops being a control-flow input.
-   *Started:* the five rows above are already data. The remaining 53 are the work.
+   **Done 2026-11-02** — all 53 sites read theme/world data now (table above);
+   remote themes can declare `lighting`, `skirtLight`, `beatBadge`, `focus`
+   and friends and get the real kits, not just the neon defaults.
 3. **Split the palette from the place.** `ThemeDefinition` keeps the colours; the prop
    silhouette and the sky kit move up to the world. This is what flips `complete` to `true`
    — the Cloud world is already there, because it was built as a world.

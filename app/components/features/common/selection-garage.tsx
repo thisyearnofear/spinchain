@@ -235,16 +235,21 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
   );
 }
 
+/** Theme name → the garage's Lucide stand-in. A world adds a row, not a branch. */
+const THEME_ICONS: Record<string, typeof Building2> = {
+  neon: Building2,
+  anime: Flower2,
+  rainbow: Rainbow,
+  mars: Sparkles,
+  alpine: Mountain,
+  cloud: Cloud,
+};
+
 function AssetIcon({ asset, size = "md" }: { asset: AvatarAsset | EquipmentAsset | WorldAsset; size?: "xs" | "md" }) {
   // Lucide stand-ins for the asset glyphs. Icons size in `em` so they keep
   // inheriting the surrounding text scale (text-7xl preview, text-2xl card).
-  const Icon = "theme" in asset && asset.theme === "neon" ? Building2 :
-               "theme" in asset && asset.theme === "anime" ? Flower2 :
-               "theme" in asset && asset.theme === "rainbow" ? Rainbow :
-               "theme" in asset && asset.theme === "mars" ? Sparkles :
-               "theme" in asset && asset.theme === "alpine" ? Mountain :
-               "theme" in asset && asset.theme === "cloud" ? Cloud :
-               asset.id === "space-cat" ? Cat :
+  const Icon = ("theme" in asset && THEME_ICONS[asset.theme]) ||
+               (asset.id === "space-cat" ? Cat :
                asset.id === "ghost-rider" ? Ghost :
                asset.id === "floating-cloud" ? Cloud :
                asset.id === "cyber-cycle" ? Bike :
@@ -252,7 +257,7 @@ function AssetIcon({ asset, size = "md" }: { asset: AvatarAsset | EquipmentAsset
                "type" in asset && asset.type === "robot" ? Bot :
                "type" in asset && asset.type === "creature" ? PawPrint :
                "type" in asset && asset.type === "bike" ? Bike :
-               "type" in asset && asset.type === "vehicle" ? Rocket : Turtle;
+               "type" in asset && asset.type === "vehicle" ? Rocket : Turtle);
 
   return (
     <span className={`inline-flex ${size === "xs" ? "text-sm" : ""}`}>

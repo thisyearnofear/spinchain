@@ -1,8 +1,6 @@
 import { getTheme } from "@/app/lib/themes/registry";
 import type { WorldModeReactivity } from "@/app/lib/themes/world-definition";
 import { visualEffort } from "@/app/lib/ride-effort";
-import { ALPINE_POINT_COLOR } from "./alpine-atmosphere";
-import { NEON_POINT_COLOR } from "./neon-atmosphere";
 
 /**
  * WorldReactivity — Makes the 3D ride world react to the rider's effort and phase.
@@ -193,7 +191,8 @@ export function computeReactiveParams(
     skyTop: getTheme(theme).skyTop,
     skyBottom: getTheme(theme).skyBottom,
     horizonGlow: getTheme(theme).horizonGlow,
-    gridColor: theme === "rainbow" ? "#ff00ff" : "#2a1d5a",
+    gridColor: getTheme(theme).gridColor ?? "#2a1d5a",
+    reactivePointColor: getTheme(theme).reactivePointColor,
   };
 
   // Blend phase color with base theme. Influence follows the phase theme's
@@ -211,16 +210,7 @@ export function computeReactiveParams(
   // Lighting
   const ambientIntensity = lerp(0.5, 0.3, effort); // dim ambient during high effort for more contrast
   const ambientColor = lerpColor("#9b7bff", phase.ambient, phaseInfluence * 0.5);
-  const pointLightBase =
-    theme === "mars"
-      ? "#ef4444"
-      : theme === "rainbow"
-        ? "#ff00ff"
-        : theme === "alpine"
-          ? ALPINE_POINT_COLOR
-          : theme === "neon"
-            ? NEON_POINT_COLOR
-            : "#9b7bff";
+  const pointLightBase = themeStyles.reactivePointColor ?? "#9b7bff";
   const pointLightColor = lerpColor(pointLightBase, phase.pointLight, phaseInfluence * 0.6);
   const pointLightIntensity = lerp(1, 2.5, effort);
 

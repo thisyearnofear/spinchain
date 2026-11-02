@@ -52,8 +52,7 @@ import {
 } from "@react-three/drei";
 import { LocalEnvironment } from "./local-environment";
 import { getTheme, loadRemoteThemes, subscribeThemes, getThemeVersion } from "@/app/lib/themes/registry";
-import { resolveModeForTheme } from "@/app/lib/themes/worlds";
-import { getDefaultThemeName } from "@/app/lib/themes/worlds";
+import { getDefaultModeForTheme, getDefaultThemeName, resolveModeForTheme } from "@/app/lib/themes/worlds";
 import type { VisualizerTheme } from "./visualizer-theme";
 import { computeReactiveParams, type ReactiveParams } from "./world-reactivity";
 import { useCoachingStore, selectPrBeaten } from "@/app/stores/coaching-store";
@@ -75,35 +74,7 @@ import { WorldSkybox } from "./world-skybox";
 import { buildRouteCurve } from "./route-curve";
 import { SKIRT_EDGE_DROP, SKIRT_STEPS, buildRouteSkirtGeometry, createSkirtMaterial, roadProfile, type SkirtLight } from "./route-skirt";
 import { buildPropField, getPartGeometry, type PropPartField } from "./route-silhouettes";
-import {
-  ALPINE_AMBIENT_COLOR,
-  ALPINE_AMBIENT_GAIN,
-  ALPINE_FOG_FAR,
-  ALPINE_POINT_COLOR,
-  ALPINE_SKIRT_ALBEDO_GAIN,
-  ALPINE_SKIRT_EDGE_SHADE,
-  ALPINE_SKIRT_FOG_END,
-  ALPINE_SKIRT_FOG_START,
-  ALPINE_SKIRT_SUN_GAIN,
-  ALPINE_SUN_COLOR,
-  ALPINE_SUN_DIR,
-  ALPINE_SUN_INTENSITY,
-} from "./alpine-atmosphere";
 import { AlpineAtmosphere } from "./alpine-view";
-import {
-  NEON_AMBIENT_COLOR,
-  NEON_AMBIENT_GAIN,
-  NEON_FOG_FAR,
-  NEON_HEMI_GROUND,
-  NEON_HEMI_INTENSITY,
-  NEON_HEMI_SKY,
-  NEON_KEY_COLOR,
-  NEON_KEY_DIR,
-  NEON_KEY_INTENSITY,
-  NEON_POINT_COLOR,
-  NEON_SKIRT_EDGE_DROP,
-  neonSkirtLight,
-} from "./neon-atmosphere";
 import { NeonAtmosphere } from "./neon-view";
 import { PlanetAtmosphere } from "./planet-view";
 import { PLANET_PROFILES, type PlanetProfile } from "./planetary-atmosphere";
@@ -320,7 +291,7 @@ function RoadMarkings({
 
     // Edge lines
     const edgeShape = new Shape();
-    const width = theme === "rainbow" ? 3.8 : 2.3;
+    const width = styles.edgeLineWidth ?? 2.3;
 
     // Left edge
     edgeShape.moveTo(-width, 0.51);
@@ -344,7 +315,7 @@ function RoadMarkings({
     sanitizeGeometry(edgeGeo);
 
     return { dashGeometry: dashGeo, edgeGeometry: edgeGeo };
-  }, [curve, theme, steps]);
+  }, [curve, theme, steps, styles.edgeLineWidth]);
 
   const dashRef = useRef<THREE.Mesh>(null);
   const edgeRef = useRef<THREE.Mesh>(null);
@@ -478,27 +449,25 @@ function RouteSkirt({ curve, theme }: { curve: CatmullRomCurve3; theme: Visualiz
   // The other themes keep the steeper drop — unless the theme says otherwise
   // (`skirtEdgeDrop`), which is how the Cloud world gets a continuous deck
   // instead of a plateau with a void beside it.
-  const edgeDrop =
-    styles.skirtEdgeDrop ??
-    (theme === "alpine" ? 0.6 : theme === "neon" ? NEON_SKIRT_EDGE_DROP : SKIRT_EDGE_DROP);
+  const edgeDrop = styles.skirtEdgeDrop ?? SKIRT_EDGE_DROP;
   const geometry = useMemo(
     () => buildRouteSkirtGeometry(curve, halfWidth, SKIRT_STEPS, edgeDrop),
     [curve, halfWidth, edgeDrop],
   );
+  // Skirt light params are theme DATA — worlds whose skirt holds its own
+  // sun/haze declare them; the rest take the neutral light.
   const light = useMemo<SkirtLight | undefined>(() => {
-    if (theme === "alpine") {
-      return {
-        albedoGain: ALPINE_SKIRT_ALBEDO_GAIN,
-        edgeShade: ALPINE_SKIRT_EDGE_SHADE,
-        sunGain: ALPINE_SKIRT_SUN_GAIN,
-        sunDir: ALPINE_SUN_DIR,
-        fogStart: ALPINE_SKIRT_FOG_START,
-        fogEnd: ALPINE_SKIRT_FOG_END,
-      };
-    }
-    if (theme === "neon") return neonSkirtLight();
-    return undefined;
-  }, [theme]);
+    const s = styles.skirtLight;
+    if (!s) return undefined;
+    return {
+      albedoGain: s.albedoGain,
+      edgeShade: s.edgeShade,
+      sunGain: s.sunGain,
+      sunDir: new Vector3(...s.sunDirection).normalize(),
+      fogStart: s.fogStart,
+      fogEnd: s.fogEnd,
+    };
+  }, [styles]);
   const material = useMemo(
     () => createSkirtMaterial(styles.terrainColor, styles.terrainAccent, light),
     [styles.terrainColor, styles.terrainAccent, light],
@@ -741,7 +710,7 @@ function HeightFogTuner({ theme }: { theme: VisualizerTheme }) {
     const lift = planetProfile ? 4 : 0;
     HEIGHT_FOG_UNIFORMS.uHFogYNear.value = 0.5 + lift * 0.4;
     HEIGHT_FOG_UNIFORMS.uHFogYFar.value = 22 + lift;
-    HEIGHT_FOG_UNIFORMS.uHFogStrength.value = theme === "neon" ? 0.9 : 0.85;
+    HEIGHT_FOG_UNIFORMS.uHFogStrength.value = styles.heightFogStrength ?? 0.85;
   }, [theme]);
   return null;
 }
@@ -980,7 +949,9 @@ function RiderMarker({
   const groupRef = useRef<Group>(null);
   const rigRef = useRef<Group>(null);
   const bodyRef = useRef<Group>(null);
-  const isCloudWorld = theme === "cloud";
+  // Pipeline selection is a world-level fact, not a theme-name branch: any
+  // theme that backs the Cloud world rides the authored kit.
+  const isCloudWorld = getDefaultModeForTheme(theme)?.world.id === "cloud";
   const reducedMotion = usePrefersReducedMotion();
   const styles = getTheme(theme);
 
@@ -1810,7 +1781,8 @@ function Scene({
   const curve = useRouteCurve(elevationProfile);
   const curveLength = useMemo(() => curve.getLength(), [curve]);
   const styles = getTheme(theme);
-  const isCloudWorld = theme === "cloud";
+  // See the matching check in RiderMarker — world-level, not a name branch.
+  const isCloudWorld = getDefaultModeForTheme(theme)?.world.id === "cloud";
   // The authored cloud chase camera: "play" is the approved framing, "cinema"
   // the wide study view. Unknown/absent values stay on play.
   const cloudView: CloudView = worldView === "cinema" ? "cinema" : "play";
@@ -1819,6 +1791,42 @@ function Scene({
   // for the Cloud Kingdom, which renders the authored cloud-ride kit instead
   // of the planet sky kit.
   const planetProfile = isCloudWorld ? undefined : (PLANET_PROFILES[theme] as PlanetProfile | undefined);
+  // The scene's light rig is theme DATA: a non-planet world declares
+  // `lighting` in its theme definition; a planet world supplies the same
+  // shape through its PlanetProfile. Undefined keeps the neutral default —
+  // no hemi/key pair, white ambient, #9b7bff point, fog far 250.
+  const lighting = useMemo(() => {
+    const l = styles.lighting;
+    if (l) {
+      return {
+        ambientColor: l.ambientColor,
+        ambientGain: l.ambientGain,
+        hemiSky: l.hemiSky,
+        hemiGround: l.hemiGround,
+        hemiIntensity: l.hemiIntensity,
+        keyColor: l.keyColor,
+        keyIntensity: l.keyIntensity,
+        keyDir: new Vector3(...l.keyDirection).normalize(),
+        pointColor: l.pointColor,
+        fogFar: l.fogFar ?? 250,
+      };
+    }
+    if (planetProfile) {
+      return {
+        ambientColor: planetProfile.ambientColor,
+        ambientGain: planetProfile.ambientGain,
+        hemiSky: planetProfile.hemiSky,
+        hemiGround: planetProfile.hemiGround,
+        hemiIntensity: planetProfile.hemiIntensity,
+        keyColor: planetProfile.keyColor,
+        keyIntensity: planetProfile.keyIntensity,
+        keyDir: planetProfile.sunDir,
+        pointColor: planetProfile.pointColor,
+        fogFar: planetProfile.fogFar,
+      };
+    }
+    return undefined;
+  }, [styles, planetProfile]);
   const reducedMotion = usePrefersReducedMotion();
   const smoothedLookTargetRef = useRef(new Vector3());
   const smoothedShakeRef = useRef(new Vector3());
@@ -1839,13 +1847,13 @@ function Scene({
       fogDensity: contextPalette.fogDensity,
       ambientMul: Math.min(1.25, Math.max(0.7, 0.7 + 0.55 * contextPalette.ambientIntensity)),
       pointColor: mixHex(
-        theme === "alpine" ? ALPINE_POINT_COLOR : theme === "neon" ? NEON_POINT_COLOR : planetProfile ? planetProfile.pointColor : "#9b7bff",
+        styles.lighting?.pointColor ?? planetProfile?.pointColor ?? "#9b7bff",
         contextPalette.pointLightColor,
         0.4,
       ),
       pointMul: contextPalette.pointLightIntensity,
     };
-  }, [contextPalette, mode, theme, styles]);
+  }, [contextPalette, mode, theme, styles, planetProfile?.pointColor]);
   const currentFlowEffect = useFlowCelebration(flowTier);
 
   // Mouse parallax — subtle camera offset based on pointer position
@@ -2099,61 +2107,19 @@ function Scene({
         intensity={
           (reactive ? reactive.ambientIntensity : 0.5) *
           (context ? context.ambientMul : 1) *
-          (theme === "alpine"
-            ? ALPINE_AMBIENT_GAIN
-            : theme === "neon"
-              ? NEON_AMBIENT_GAIN
-              : planetProfile
-                ? planetProfile.ambientGain
-                : 1)
+          (lighting?.ambientGain ?? 1)
         }
-        color={
-          theme === "alpine"
-            ? ALPINE_AMBIENT_COLOR
-            : theme === "neon"
-              ? NEON_AMBIENT_COLOR
-              : planetProfile
-                ? planetProfile.ambientColor
-                : "#ffffff"
-        }
+        color={lighting?.ambientColor ?? "#ffffff"}
       />
-      {theme === "alpine" && (
-        <>
-          <hemisphereLight args={["#e7f2ff", "#7d9a78", 0.45]} />
-          <directionalLight
-            position={[ALPINE_SUN_DIR.x * 80, ALPINE_SUN_DIR.y * 80, ALPINE_SUN_DIR.z * 80]}
-            intensity={ALPINE_SUN_INTENSITY}
-            color={ALPINE_SUN_COLOR}
-          />
-        </>
-      )}
-      {theme === "neon" && (
-        <>
-          <hemisphereLight args={[NEON_HEMI_SKY, NEON_HEMI_GROUND, NEON_HEMI_INTENSITY]} />
-          <directionalLight
-            position={[NEON_KEY_DIR.x * 80, NEON_KEY_DIR.y * 80, NEON_KEY_DIR.z * 80]}
-            intensity={NEON_KEY_INTENSITY}
-            color={NEON_KEY_COLOR}
-          />
-        </>
-      )}
-      {planetProfile && (
+      {lighting && (
         <>
           <hemisphereLight
-            args={[
-              planetProfile.hemiSky,
-              planetProfile.hemiGround,
-              planetProfile.hemiIntensity,
-            ]}
+            args={[lighting.hemiSky, lighting.hemiGround, lighting.hemiIntensity]}
           />
           <directionalLight
-            position={[
-              planetProfile.sunDir.x * 80,
-              planetProfile.sunDir.y * 80,
-              planetProfile.sunDir.z * 80,
-            ]}
-            intensity={planetProfile.keyIntensity}
-            color={planetProfile.keyColor}
+            position={[lighting.keyDir.x * 80, lighting.keyDir.y * 80, lighting.keyDir.z * 80]}
+            intensity={lighting.keyIntensity}
+            color={lighting.keyColor}
           />
         </>
       )}
@@ -2168,13 +2134,7 @@ function Scene({
             ? reactive.pointLightColor
             : context
               ? context.pointColor
-              : theme === "alpine"
-                ? ALPINE_POINT_COLOR
-                : theme === "neon"
-                  ? NEON_POINT_COLOR
-                  : planetProfile
-                    ? planetProfile.pointColor
-                    : "#9b7bff"
+              : lighting?.pointColor ?? "#9b7bff"
         }
         castShadow={quality?.shadows}
       />
@@ -2185,9 +2145,10 @@ function Scene({
       <fog
         attach="fog"
         args={[
-          // Alpine and neon keep their own haze base; the context palette
-          // bends it (not replaces it) toward the rider's conditions.
-          theme === "alpine" || theme === "neon"
+          // Worlds whose kit owns its haze (`reactiveFog: false`) keep their
+          // base; the context palette bends it (not replaces it) toward the
+          // rider's conditions.
+          styles.reactiveFog === false
             ? context
               ? context.fogColor
               : styles.fog
@@ -2197,13 +2158,7 @@ function Scene({
                 ? context.fogColor
                 : styles.fog,
           reactive ? reactive.fogDensity : (context ? context.fogDensity : 40),
-          theme === "alpine"
-            ? ALPINE_FOG_FAR
-            : theme === "neon"
-              ? NEON_FOG_FAR
-              : planetProfile
-                ? planetProfile.fogFar
-                : 250,
+          lighting?.fogFar ?? 250,
         ]}
       />
       )}
@@ -2271,10 +2226,10 @@ function Scene({
 
       <group position={[0, -10, 0]}>
         {/* Adaptive road geometry resolution: high=600, medium=250, low=100 */}
-        {theme === "alpine" && (
+        {styles.atmosphere === "mist" && (
           <AlpineAtmosphere curve={curve} horizon={context ? context.fogColor : styles.fog} zenith={context ? context.skyTop : styles.skyTop} />
         )}
-        {theme === "neon" && (
+        {styles.atmosphere === "grid" && (
           <NeonAtmosphere curve={curve} horizon={context ? context.fogColor : styles.fog} zenith={context ? context.skyTop : styles.skyTop} />
         )}
         {planetProfile && (
@@ -2351,7 +2306,7 @@ function Scene({
             args={[
               300,
               30,
-              reactive ? reactive.gridColor : (theme === "rainbow" ? "#ff00ff" : "#2a1d5a"),
+              reactive ? reactive.gridColor : (styles.gridColor ?? "#2a1d5a"),
               "#121a2d",
             ]}
             position={[0, -2, 0]}

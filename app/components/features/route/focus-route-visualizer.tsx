@@ -129,7 +129,11 @@ function BeatGlyph({
       <path d="M -4 0 L 0 -4 L 4 0 L 0 4 Z" fill="white" fillOpacity="0.92" />
     );
 
-  if (theme === "neon") {
+  // The badge shape is theme DATA (`beatBadge`) — a world picks its frame
+  // rather than the renderer branching on the theme name.
+  const badge = getTheme(theme).beatBadge ?? "double-diamond";
+
+  if (badge === "diamond") {
     return (
       <g>
         <rect x="-9" y="-9" width="18" height="18" rx="4" transform="rotate(45)" fill={`${color}30`} stroke={color} strokeWidth={strokeWidth} />
@@ -138,7 +142,7 @@ function BeatGlyph({
     );
   }
 
-  if (theme === "alpine") {
+  if (badge === "triangle") {
     return (
       <g>
         <path d="M 0 -11 L 10 8 L -10 8 Z" fill={`${color}35`} stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" />
@@ -147,7 +151,7 @@ function BeatGlyph({
     );
   }
 
-  if (theme === "mars") {
+  if (badge === "orbit") {
     return (
       <g>
         <circle cx="0" cy="0" r="9" fill={`${color}20`} stroke={color} strokeWidth={strokeWidth} />
@@ -157,7 +161,7 @@ function BeatGlyph({
     );
   }
 
-  if (theme === "anime") {
+  if (badge === "star") {
     return (
       <g>
         <circle cx="0" cy="0" r="9" fill={`${color}28`} stroke={color} strokeWidth={strokeWidth} />
@@ -446,8 +450,8 @@ export default function FocusRouteVisualizer({
   const isDustTheme = styles.atmosphere === "dust";
   const isSunTheme = styles.atmosphere === "sun";
   const isPrismTheme = styles.atmosphere === "prism";
-  const roadDashStroke = theme === "anime" ? "rgba(255,255,255,0.82)" : "rgba(255,255,255,0.14)";
-  const routeBaseStroke = theme === "anime" ? `${styles.roadColor}f5` : `url(#${gradientId}-route-base)`;
+  const roadDashStroke = styles.focus?.dashStroke ?? "rgba(255,255,255,0.14)";
+  const routeBaseStroke = styles.focus?.routeBaseSolid ? `${styles.roadColor}f5` : `url(#${gradientId}-route-base)`;
   const beatPulseDuration = clamp(60 / Math.max(stats.cadence || 72, 48), 0.42, 1.1);
   const routeSyncStyle = {
     ["--focus-route-duration" as string]: `${beatPulseDuration}s`,
@@ -597,7 +601,7 @@ export default function FocusRouteVisualizer({
         <path d={terrainBack} fill={`url(#${gradientId}-terrain-back)`} />
         <path d={terrainFront} fill={`url(#${gradientId}-terrain-front)`} />
 
-        {Array.from({ length: theme === "anime" ? 4 : 6 }).map((_, index) => {
+        {Array.from({ length: styles.focus?.tickCount ?? 6 }).map((_, index) => {
           const y = horizonY + index * ((height - horizonY) / 7);
           return (
             <line
@@ -606,7 +610,7 @@ export default function FocusRouteVisualizer({
               y1={y}
               x2={width}
               y2={y}
-              stroke={theme === "anime" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.06)"}
+              stroke={styles.focus?.tickStroke ?? "rgba(255,255,255,0.06)"}
               strokeDasharray={`${Math.max(24, width * 0.02)} ${Math.max(14, width * 0.012)}`}
             />
           );
@@ -656,7 +660,7 @@ export default function FocusRouteVisualizer({
           const isApproaching = beat.progress >= clampedProgress && beatDistance <= 0.12;
           const syncScale = clamp(1.22 - beatDistance * 3.4, 0.94, 1.24);
           const syncOpacity = clamp(1 - beatDistance * 4.6, 0.26, 0.94);
-          const syncClass = beat.isActive || isApproaching ? "focus-beat-sync" : theme === "anime" || theme === "rainbow" ? "focus-float" : undefined;
+          const syncClass = beat.isActive || isApproaching ? "focus-beat-sync" : styles.focus?.float ? "focus-float" : undefined;
 
           return (
           <g

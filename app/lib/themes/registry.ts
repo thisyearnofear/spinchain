@@ -80,6 +80,78 @@ export interface ThemeDefinition {
    * reads as a plateau with a void beside it. Undefined = the default.
    */
   skirtEdgeDrop?: number;
+  /**
+   * Scene lighting for this world — the hemi/key/ambient/point rig the
+   * route scene renders. Planet themes supply the same values through
+   * `PlanetProfile` instead; this field is how a non-planet world (or a
+   * remote theme) gets a real light rig. Undefined = neutral defaults,
+   * no hemi/key pair.
+   */
+  lighting?: {
+    ambientColor: string;
+    ambientGain: number;
+    hemiSky: string;
+    hemiGround: string;
+    hemiIntensity: number;
+    keyColor: string;
+    keyIntensity: number;
+    /** Unnormalized [x,y,z] toward the key light; normalized at render. */
+    keyDirection: [number, number, number];
+    pointColor: string;
+    /** Fog far plane. Undefined inside `lighting` = 250. */
+    fogFar?: number;
+  };
+  /**
+   * Base colour the effort-reactive point light lerps from. Independent of
+   * `lighting.pointColor` on purpose: the reactive base is a phase accent,
+   * not necessarily the scene's point colour. Undefined = #9b7bff.
+   */
+  reactivePointColor?: string;
+  /** Colour of the grid floor lines. Undefined = #2a1d5a. */
+  gridColor?: string;
+  /** Half-width of the road edge lines in route units. Undefined = 2.3. */
+  edgeLineWidth?: number;
+  /** Half-width of the road's extrude profile. Undefined = 2.5. */
+  roadHalfWidth?: number;
+  /** Height-fog band strength. Undefined = 0.85. */
+  heightFogStrength?: number;
+  /**
+   * Whether the scene fog colour follows the effort-reactive palette. The
+   * two worlds with bespoke atmosphere kits (alpine, neon) keep their own
+   * haze and ignore the reactive tint. Undefined = true.
+   */
+  reactiveFog?: boolean;
+  /**
+   * Skirt material light params (see `SkirtLight` in route-skirt.ts).
+   * Undefined = the neutral light — worlds whose skirt should hold its
+   * own sun/haze declare one here.
+   */
+  skirtLight?: {
+    albedoGain: number;
+    edgeShade: number;
+    sunGain: number;
+    /** Unnormalized [x,y,z]; normalized at render. */
+    sunDirection: [number, number, number];
+    fogStart: number;
+    fogEnd: number;
+  };
+  /**
+   * Which badge shape the 2D focus view draws around a story beat.
+   * Data, not a theme-name branch. Undefined = "double-diamond".
+   */
+  beatBadge?: "diamond" | "triangle" | "orbit" | "star" | "double-diamond";
+  /** 2D focus-view presentation tweaks. All fields optional. */
+  focus?: {
+    /** Number of tick marks on the progress arc. Default 6. */
+    tickCount?: number;
+    tickStroke?: string;
+    /** Stroke for the dashed route overlay. Default rgba(255,255,255,0.14). */
+    dashStroke?: string;
+    /** Solid route base stroke instead of the gradient. Default false. */
+    routeBaseSolid?: boolean;
+    /** Idle float animation on beat markers. Default false. */
+    float?: boolean;
+  };
 }
 
 const BUILTIN = VISUALIZER_THEMES as unknown as Record<string, ThemeDefinition>;
@@ -161,6 +233,48 @@ export function parseThemeDefinition(raw: unknown): ThemeDefinition | null {
   // Optional: does this world breathe, and how brightly.
   if (d.breathes !== undefined && typeof d.breathes !== "boolean") return null;
   if (d.breatheEmissive !== undefined && (typeof d.breatheEmissive !== "number" || !Number.isFinite(d.breatheEmissive))) return null;
+
+  // Optional presentation fields — shape-checked, palette-lenient.
+  const optHex = (v: unknown) => v === undefined || isHexColor(v);
+  const optNum = (v: unknown) => v === undefined || (typeof v === "number" && Number.isFinite(v));
+  const optVec3 = (v: unknown) =>
+    v === undefined ||
+    (Array.isArray(v) && v.length === 3 && v.every((n) => typeof n === "number" && Number.isFinite(n)));
+
+  if (d.skirtEdgeDrop !== undefined && !optNum(d.skirtEdgeDrop)) return null;
+  if (!optHex(d.reactivePointColor) || !optHex(d.gridColor)) return null;
+  if (!optNum(d.edgeLineWidth) || !optNum(d.roadHalfWidth) || !optNum(d.heightFogStrength)) return null;
+  if (d.reactiveFog !== undefined && typeof d.reactiveFog !== "boolean") return null;
+
+  const lighting = d.lighting as Record<string, unknown> | undefined;
+  if (lighting !== undefined) {
+    if (typeof lighting !== "object" || lighting === null) return null;
+    if (!isHexColor(lighting.ambientColor) || !optNum(lighting.ambientGain)) return null;
+    if (!isHexColor(lighting.hemiSky) || !isHexColor(lighting.hemiGround) || !optNum(lighting.hemiIntensity)) return null;
+    if (!isHexColor(lighting.keyColor) || !optNum(lighting.keyIntensity) || !optVec3(lighting.keyDirection)) return null;
+    if (!isHexColor(lighting.pointColor)) return null;
+    if (lighting.fogFar !== undefined && !optNum(lighting.fogFar)) return null;
+  }
+
+  const skirtLight = d.skirtLight as Record<string, unknown> | undefined;
+  if (skirtLight !== undefined) {
+    if (typeof skirtLight !== "object" || skirtLight === null) return null;
+    if (!optNum(skirtLight.albedoGain) || !optNum(skirtLight.edgeShade) || !optNum(skirtLight.sunGain)) return null;
+    if (!optVec3(skirtLight.sunDirection)) return null;
+    if (!optNum(skirtLight.fogStart) || !optNum(skirtLight.fogEnd)) return null;
+  }
+
+  if (d.beatBadge !== undefined && !["diamond", "triangle", "orbit", "star", "double-diamond"].includes(d.beatBadge as string)) return null;
+
+  const focus = d.focus as Record<string, unknown> | undefined;
+  if (focus !== undefined) {
+    if (typeof focus !== "object" || focus === null) return null;
+    if (!optNum(focus.tickCount)) return null;
+    if (focus.tickStroke !== undefined && typeof focus.tickStroke !== "string") return null;
+    if (focus.dashStroke !== undefined && typeof focus.dashStroke !== "string") return null;
+    if (focus.routeBaseSolid !== undefined && typeof focus.routeBaseSolid !== "boolean") return null;
+    if (focus.float !== undefined && typeof focus.float !== "boolean") return null;
+  }
 
   return d as unknown as ThemeDefinition;
 }
