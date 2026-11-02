@@ -21,7 +21,7 @@ export function RideHudControls({
   onShowKeyboardHints,
 }: RideHudControlsProps) {
   return (
-    <div className="fixed top-4 right-4 z-[70] flex flex-col gap-2 pointer-events-auto">
+    <div className="fixed top-4 right-4 z-[70] hidden sm:flex flex-col gap-2 pointer-events-auto">
       <button
         onClick={onToggleHud}
         className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 backdrop-blur-xl px-3 py-1.5 text-[10px] font-bold text-white/60 hover:text-white transition-colors"

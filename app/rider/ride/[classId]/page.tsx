@@ -44,6 +44,7 @@ import { resolveRideWorkoutPlan } from "@/app/lib/agent/resolve-ride-plan";
 import { loadClassPlanRemote } from "@/app/lib/classes/class-store";
 import { SectionErrorBoundary } from "../../../components/layout/error-boundary";
 import { useRideKeyboard } from "@/app/hooks/ride/use-ride-keyboard";
+import { shiftGear } from "@/app/lib/gear-shift";
 import { useRideAnalytics } from "@/app/hooks/ride/use-ride-analytics";
 import { useBleData } from "@/app/hooks/ble/use-ble-data";
 import type { FitnessMetrics } from "@/app/lib/ble/types";
@@ -368,6 +369,12 @@ export default function LiveRidePage() {
       coordinatorRef.current?.ingestSimulatorMetrics({ ...m, distance: 0, timestamp: Date.now() }),
     [],
   );
+  // Gear shifter in the PedalSimulator. Same store+engine path the keyboard
+  // arrows use, so a touch rider's gear reaches the telemetry engine.
+  const handleShiftGear = useCallback((delta: number) => {
+    shiftGear(delta, (gear) => coordinatorRef.current?.setCurrentGear(gear));
+    playSound(delta > 0 ? "resistanceUp" : "resistanceDown");
+  }, [playSound]);
 
   // ─── Extracted Hooks ───────────────────────────────────────────
   const rewardsHook = useRideRewards({
@@ -972,6 +979,7 @@ export default function LiveRidePage() {
         showRideMetrics={useSimulator}
         onSimulatorMetrics={handleSimulatorMetrics}
         onEndRide={() => lifecycle.exitRide()}
+        onShiftGear={handleShiftGear}
 
         // Callbacks
         onExitConfirm={() => {

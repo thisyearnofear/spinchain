@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { Bike, Footprints } from 'lucide-react';
+import { Bike, Footprints, Minus, Plus } from 'lucide-react';
 import { useDeviceType } from '../../../lib/responsive';
 import { ANALYTICS_EVENTS, trackEvent } from '@/app/lib/analytics/events';
-import { useTelemetryStore, selectPower, selectHeartRate } from '@/app/stores/telemetry-store';
+import { useTelemetryStore, selectPower, selectHeartRate, selectCurrentGear } from '@/app/stores/telemetry-store';
+import { TOTAL_GEARS } from '@/app/lib/gear-shift';
 import { useCoachingStore } from '@/app/stores/coaching-store';
 import { useRideStore } from '@/app/stores/ride-store';
 import { computePhaseTheme, phaseAccent, phaseLabel, cadenceToIntensity, type IntervalPhase } from '@/app/lib/phase-theme';
@@ -43,6 +44,9 @@ interface PedalSimulatorProps {
     className?: string;
     /** Optional callback to end the ride (shows a small "End" button). */
     onEndRide?: () => void;
+    /** Shifts gear by ±1. Phones and tablets have no arrow keys, so without
+     *  this the on-screen shifter can't reach the ride engine. */
+    onShiftGear?: (delta: number) => void;
 }
 
 type Leg = 'left' | 'right' | null;
@@ -55,7 +59,7 @@ function haptic(ms: number) {
     } catch { /* not supported */ }
 }
 
-export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = false, showRideMetrics = false, className = '', onEndRide }: PedalSimulatorProps) {
+export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = false, showRideMetrics = false, className = '', onEndRide, onShiftGear }: PedalSimulatorProps) {
     const deviceType = useDeviceType();
     const [activeLeg, setActiveLeg] = useState<Leg>(null);
     const [showInstructions, setShowInstructions] = useState(true);
@@ -65,6 +69,7 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
     // visuallyHidden early return to keep hook order stable.
     const ridePower = useTelemetryStore(selectPower);
     const rideHeartRate = useTelemetryStore(selectHeartRate);
+    const currentGear = useTelemetryStore(selectCurrentGear);
     const ridePhase = useCoachingStore((s) => s.currentInterval?.phase ?? null);
     const rideElapsed = useRideStore((s) => s.elapsedTime);
     const rideProgressPct = useRideStore((s) => s.rideProgress);
@@ -238,6 +243,14 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
         setTimeout(() => setActiveLeg(null), 150);
         if (showInstructions) setShowInstructions(false);
     }, [showInstructions, calculateMetrics]);
+
+    // Gear shifter — the touch equivalent of the ↑/↓ keyboard shift, so a
+    // rider with no arrow keys can still change resistance.
+    const handleShiftGear = useCallback((delta: number) => {
+        if (!onShiftGear) return;
+        haptic(12);
+        onShiftGear(delta);
+    }, [onShiftGear]);
 
     // Keyboard controls - enable on desktop and tablet, disable on pure touch mobile
     useEffect(() => {
@@ -418,6 +431,35 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
                         </p>
                     )}
 
+                    {/* Gear shifter — phones have no arrow keys. */}
+                    {onShiftGear && (
+                        <div className="flex items-center gap-2 mb-2">
+                            <button
+                                type="button"
+                                onClick={() => handleShiftGear(-1)}
+                                disabled={currentGear <= 1}
+                                aria-label="Shift to an easier gear"
+                                className="flex h-11 w-12 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/70 transition-colors active:scale-95 active:bg-white/15 disabled:opacity-30 touch-manipulation select-none"
+                            >
+                                <Minus className="h-4 w-4" aria-hidden="true" />
+                            </button>
+                            <div className="flex-1 rounded-xl border border-white/12 bg-white/5 py-2 text-center">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Gear </span>
+                                <span className="text-sm font-black tabular-nums text-white/80">{currentGear}</span>
+                                <span className="text-[10px] font-bold text-white/25">/{TOTAL_GEARS}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => handleShiftGear(1)}
+                                disabled={currentGear >= TOTAL_GEARS}
+                                aria-label="Shift to a harder gear"
+                                className="flex h-11 w-12 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/70 transition-colors active:scale-95 active:bg-white/15 disabled:opacity-30 touch-manipulation select-none"
+                            >
+                                <Plus className="h-4 w-4" aria-hidden="true" />
+                            </button>
+                        </div>
+                    )}
+
                     {/* Pedal buttons */}
                     <div className="grid grid-cols-2 gap-3">
                         <button
@@ -567,6 +609,36 @@ export function PedalSimulator({ isActive, onMetricsUpdate, visuallyHidden = fal
 
                         {/* Live SPIN accrual — reward loop visible in practice mode */}
                         <SpinDripChip />
+                    </>
+                )}
+
+                {onShiftGear && (
+                    <>
+                        <div className="w-px h-9 bg-white/12" />
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => handleShiftGear(-1)}
+                                disabled={currentGear <= 1}
+                                aria-label="Shift to an easier gear"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white/60 transition-colors hover:bg-white/15 hover:text-white active:scale-95 disabled:opacity-30"
+                            >
+                                <Minus className="h-3.5 w-3.5" aria-hidden="true" />
+                            </button>
+                            <div className="text-center min-w-[44px]">
+                                <p className="text-base font-black tabular-nums leading-none text-white/80">{currentGear}</p>
+                                <p className="text-[10px] uppercase tracking-widest text-white/30 mt-0.5">Gear</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => handleShiftGear(1)}
+                                disabled={currentGear >= TOTAL_GEARS}
+                                aria-label="Shift to a harder gear"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white/60 transition-colors hover:bg-white/15 hover:text-white active:scale-95 disabled:opacity-30"
+                            >
+                                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                            </button>
+                        </div>
                     </>
                 )}
 

@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 import { useUIStore } from "@/app/stores/ui-store";
-import { useTelemetryStore } from "@/app/stores/telemetry-store";
-import { DEFAULT_ROAD_GEARS } from "@/app/lib/analytics/physiological-models";
+import { shiftGear } from "@/app/lib/gear-shift";
 import type { usePanelState } from "@/app/hooks/ui/use-panel-state";
 import type { useRideCoordinator } from "@/app/engines/use-ride-coordinator";
 
@@ -44,20 +43,17 @@ export function useRideKeyboard({
 
   useEffect(() => {
     if (typeof window === "undefined" || !isRiding) return;
-    const totalGears = DEFAULT_ROAD_GEARS.front.length * DEFAULT_ROAD_GEARS.rear.length;
     const handleKeyDown = (e: KeyboardEvent) => {
       // When the on-screen pedal simulator is driving input, ↑/↓ mean "pedal",
       // not "shift gear" — don't also fire a gear change + resistance sound on
       // every pedal stroke.
       if (useUIStore.getState().useSimulator) return;
       if (e.key === "ArrowUp") {
-        useTelemetryStore.setState((s) => ({ currentGear: Math.min(totalGears, s.currentGear + 1) }));
+        shiftGear(1, coordinator.setCurrentGear);
         playSound?.("resistanceUp");
-        coordinator.setCurrentGear(useTelemetryStore.getState().currentGear);
       } else if (e.key === "ArrowDown") {
-        useTelemetryStore.setState((s) => ({ currentGear: Math.max(1, s.currentGear - 1) }));
+        shiftGear(-1, coordinator.setCurrentGear);
         playSound?.("resistanceDown");
-        coordinator.setCurrentGear(useTelemetryStore.getState().currentGear);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
