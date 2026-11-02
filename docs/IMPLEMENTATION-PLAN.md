@@ -166,7 +166,7 @@ The phases below shipped before the receipt-first re-plan and are kept for conte
 - **Scale flag**: coach-built classes hand off via localStorage (same pattern as the instructor draft). Durable storage needs a Supabase `classes`/`class_plans` table — provisioning follow-up, not built here.
 
 ### 2.4 Add Milestone Pop-Up On First Achievement ✅
-- **Commit**: `pending` — `app/rider/ride/[classId]/page.tsx`
+- **Commit**: `391d2dc` — `app/rider/ride/[classId]/page.tsx` (later refined: milestones now surface via the coach channel, not a blocking overlay — `d1082eb`)
 - **What**: Real-time milestone detection during ride. When the rider hits their first milestone (e.g., "1 minute in flow"), show a celebratory pop-up with the milestone badge.
 - **Why**: Dopamine hit. This is the moment the rider realizes "I'm actually doing something." Strava's segment badges, Duolingo's streak fire, Fortnite's first kill — all are momentary celebrations.
 - **Design**: 2-second pop-up with emoji badge, respects reduced-motion.
@@ -185,17 +185,17 @@ The phases below shipped before the receipt-first re-plan and are kept for conte
 **All tasks done.** Infrastructure language removed from rider-facing UX.
 
 ### 3.1 Rewrite Coach Cards ✅
-- **Commit**: `pending` — `app/rider/page.tsx`
+- **Commit**: `b9b88eb` — `app/rider/page.tsx`
 - Renamed `agenticPowers` → `specialties` (values were already good cycling terms)
 - Removed "AI-Powered" badge from coach cards
 
 ### 3.2 Remove "Preview" Badges ✅
-- **Commit**: `pending` — `app/rider/ride/[classId]/page.tsx`
+- **Commit**: `b9b88eb` — `app/rider/ride/[classId]/page.tsx`
 - Removed `RidePreviewBadge` from ride page
 - `NetworkStatusBanner` already removed from rider landing in Phase 1
 
 ### 3.3 Simplify Completion Screen Language ✅
-- **Commit**: `pending` — `app/components/features/ride/ride-completion-v2.tsx`
+- **Commit**: `b9b88eb` — `app/components/features/ride/ride-completion-v2.tsx`
 - "Anchored on Walrus + Sui" → "Your ride data saved ✓"
 - Removed "View on Walrus" / "View on SuiScan" links
 - "Anchored to Walrus + Sui" → "Ride data saved"
@@ -210,7 +210,7 @@ The phases below shipped before the receipt-first re-plan and are kept for conte
 **All tasks done.** Riders experience the product before being asked for information.
 
 ### 4.1 Move Quiz Post-Ride ✅
-- **Commit**: `pending` — `app/page.tsx` + `app/rider/ride/[classId]/page.tsx` + `app/lib/analytics/ride-history.ts`
+- **Commit**: `4fb9a25` — `app/page.tsx` + `app/rider/ride/[classId]/page.tsx` + `app/lib/analytics/ride-history.ts`
 - Removed 3-second auto-fire timer from landing page
 - Added `STORAGE_KEYS.quizPostRide` flag set when first ride completes
 - Quiz now shows on next landing visit only after first ride is done
