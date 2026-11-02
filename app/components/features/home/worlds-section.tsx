@@ -20,6 +20,7 @@ const WORLD_MOODS: Record<VisualizerTheme, string> = {
   mars: "Dust on the horizon",
   anime: "Sunlit, soft-edged roads",
   rainbow: "Every watt splits light",
+  daybreak: "Ride the sun up",
   cloud: "Cuddle up to the cumulus",
 };
 

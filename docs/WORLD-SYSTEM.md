@@ -353,7 +353,7 @@ not change with effort is wallpaper (see [WEDGE.md](./WEDGE.md)).
 | **Miniature Block** | A tilt-shift toy city: small buildings, shallow depth of field, warm model-railway lighting | A depth-of-field camera mode, a "table" ground edge, small instanced buildings | Tilt-shift softens and the scale grows as effort rises, so the model becomes the full-size city |
 | **Storybook Skyline** | A hand-built, paper-and-clay 3D city with a painted sky | A storybook sky kit (`atmosphereKit`), clay-textured props, a soft painted palette | Lit windows and chimney smoke accumulate with sustained effort |
 | **City Grows** | The same street, built up over the length of the ride | Props that spawn progressively along the route rather than being placed at load | The skyline builds as you pedal and stalls when you ease off, so the ride's work is the visible city |
-| **Night to Day** | A skyline lit from dusk to dawn | A time-of-day sky kit driven by a single 0–1 value | Dawn is the flow-state payoff: sustained effort moves the sun up |
+| **Night to Day** ✅ shipped 2026-11-02 | A skyline lit from dusk to dawn | The `daycycle` sky kit (`uDayProgress` 0–1) on the `daybreak` Tron mode — one registry entry plus one new kit, the step-4 shape | Dawn is the flow-state payoff: `uDayProgress` accumulates with sustained effort |
 
 ### How they would sit in the schema
 

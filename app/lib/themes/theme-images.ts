@@ -28,6 +28,7 @@ export const WORLD_IMAGES: Record<VisualizerTheme, WorldImage> = {
   mars: { src: "/images/worlds/mars.webp", label: VISUALIZER_THEMES.mars.worldLabel },
   anime: { src: "/images/worlds/anime.webp", label: VISUALIZER_THEMES.anime.worldLabel },
   rainbow: { src: "/images/worlds/rainbow.webp", label: VISUALIZER_THEMES.rainbow.worldLabel },
+  daybreak: { src: "/images/worlds/daybreak.webp", label: VISUALIZER_THEMES.daybreak.worldLabel },
   cloud: { src: "/images/worlds/cloud.webp", label: VISUALIZER_THEMES.cloud.worldLabel },
 };
 
@@ -43,6 +44,9 @@ export const ROUTE_THEME_TO_VISUALIZER: Record<string, VisualizerTheme> = {
   mars: "mars", // identity
   anime: "anime", // identity
   rainbow: "rainbow", // identity
+  daybreak: "daybreak", // identity
+  dawn: "daybreak", // dawn rides are the night-to-day world
+  night: "daybreak", // night rides start at dusk there
   cloud: "cloud", // identity
   coastal: "alpine", // bright outdoor ride; closest calm world (no coastal world exists)
   forest: "alpine", // forested outdoor terrain; alpine is the only natural world

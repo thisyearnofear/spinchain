@@ -116,9 +116,9 @@ describe("the palette/place split (§4 step 3)", () => {
     // declares its own sky kit and silhouette set because the Tron world
     // deliberately owns neither.
     const kits = Object.fromEntries(getWorld("tron").modes.map((m) => [m.id, m.atmosphereKit]));
-    expect(kits).toEqual({ neon: "grid", alpine: "mist", mars: "dust", anime: "sun", rainbow: "prism" });
+    expect(kits).toEqual({ neon: "grid", alpine: "mist", mars: "dust", anime: "sun", rainbow: "prism", daybreak: "daycycle" });
     const props = Object.fromEntries(getWorld("tron").modes.map((m) => [m.id, m.props![0].type]));
-    expect(props).toEqual({ neon: "building", alpine: "tree", mars: "rock", anime: "blossom", rainbow: "crystal" });
+    expect(props).toEqual({ neon: "building", alpine: "tree", mars: "rock", anime: "blossom", rainbow: "crystal", daybreak: "building" });
   });
 
   it("keeps the mode's 3D kit and the palette's 2D sky style in agreement", () => {

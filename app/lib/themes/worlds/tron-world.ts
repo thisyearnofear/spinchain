@@ -76,6 +76,17 @@ const TRON_MODES: WorldMode[] = [
     atmosphereKit: "prism",
     props: [{ type: "crystal", color: "#00ffff", count: 60, scale: [0.5, 3, 0.5] }],
   },
+  {
+    // §8 "Night to Day" — a mechanic, not a place: the same skyline under a
+    // time-of-day sky. The kit drives one 0–1 value; the daycycle atmosphere
+    // advances it with sustained effort, so dawn is the flow-state payoff.
+    id: "daybreak",
+    label: "Night to Day",
+    themeName: "daybreak",
+    summary: "A skyline lit from dusk to dawn. Sustained effort is the sunrise.",
+    atmosphereKit: "daycycle",
+    props: [{ type: "building", color: "#3b3566", count: 80, scale: [1.6, 6, 1.6] }],
+  },
 ];
 
 export const TRON_WORLD: WorldDefinition = {

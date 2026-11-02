@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AVATARS, EQUIPMENT, WORLDS, RIDE_TEMPLATES, type AvatarAsset, type EquipmentAsset, type WorldAsset, type RideTemplate } from "@/app/lib/selection-library";
 import { GlassCard, SectionHeader, Tag } from "@/app/components/ui/ui";
 import { m, AnimatePresence } from "framer-motion";
-import { Bike, Bot, Building2, Cat, Cloud, Flower2, Ghost, Globe, Mountain, PawPrint, Rainbow, Rocket, Sparkles, Turtle, User } from "lucide-react";
+import { Bike, Bot, Building2, Cat, Cloud, Flower2, Ghost, Globe, Mountain, PawPrint, Rainbow, Rocket, Sparkles, Sunrise, Turtle, User } from "lucide-react";
 
 interface SelectionGarageProps {
   onSelectionChange: (selection: {
@@ -243,6 +243,7 @@ const THEME_ICONS: Record<string, typeof Building2> = {
   mars: Sparkles,
   alpine: Mountain,
   cloud: Cloud,
+  daybreak: Sunrise,
 };
 
 function AssetIcon({ asset, size = "md" }: { asset: AvatarAsset | EquipmentAsset | WorldAsset; size?: "xs" | "md" }) {

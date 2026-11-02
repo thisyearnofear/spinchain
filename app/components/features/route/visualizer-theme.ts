@@ -218,6 +218,56 @@ export const VISUALIZER_THEMES = {
     },
   },
   /**
+   * Night to Day — a dusk palette for the daycycle kit. `skyTop`/`fog` are
+   * written to the kit's uZenith/uHorizon uniforms and read as the DAWN end
+   * of the cycle (the night end is a mechanical darken inside the shader),
+   * so they are authored warm and bright. `atmosphere: "daycycle"` keeps the
+   * mode↔palette mirror: the 2D focus view gets the default night treatment
+   * for now — a dusk 2D style is its own pass.
+   */
+  daybreak: {
+    fog: "#241d3f",
+    roadColor: "#2a2450",
+    roadEmissive: "#ffb27a",
+    roadEmissiveIntensity: 0.35,
+    lineColor: "#ffd9a0",
+    riderColor: "#ffffff",
+    grid: false,
+    stars: true,
+    envPreset: "sunset" as const,
+    particleColor: "#ffc9a3",
+    skyTop: "#7a9ce8",
+    skyBottom: "#ffe0b8",
+    horizonGlow: "#ff9a5c",
+    terrainColor: "#23204a",
+    terrainAccent: "#ff8f4d",
+    panelColor: "rgba(24, 18, 48, 0.7)",
+    worldLabel: "Night to Day",
+    atmosphere: "daycycle" as const,
+    terrainBackScale: 0.32,
+    terrainFrontScale: 0.6,
+    patternOpacity: 0.15,
+    routeDashOpacity: 0.7,
+    beatBadge: "orbit" as const,
+    lighting: {
+      ambientColor: "#8a90c8",
+      ambientGain: 0.85,
+      hemiSky: "#3a3f7d",
+      hemiGround: "#241733",
+      hemiIntensity: 0.55,
+      keyColor: "#ffb27a",
+      keyIntensity: 1.1,
+      keyDirection: [0.75, 0.25, 0.6] as [number, number, number],
+      pointColor: "#ff9a5c",
+      fogFar: 220,
+    },
+    groundCover: {
+      color: "#4a3f78",
+      count: 200,
+      scale: [1.2, 1.3, 1.2] as [number, number, number],
+    },
+  },
+  /**
    * Cloud Kingdom — the authored world. Since the harmonization it renders
    * the cloud-ride kit: a banked lilac ribbon with mint pulse piping, an
    * instanced metaball cumulus sea/cathedral, and the camera-following sky

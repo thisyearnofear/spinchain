@@ -196,6 +196,7 @@ const DEMO_TERRAIN_TAGS: Record<string, string[]> = {
   alpine: ["climb", "mountain"],
   mars: ["desert", "rolling"],
   cloud: ["rolling", "float"],
+  daybreak: ["urban", "climb"],
 };
 
 function createFallbackMetadataFromDemo(demoClass: CuratedClass): EnhancedClassMetadata {
