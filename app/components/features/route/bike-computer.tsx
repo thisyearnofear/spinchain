@@ -25,6 +25,7 @@
 
 import { Html } from "@react-three/drei";
 import { FLOW_LABELS, FLOW_COLORS, type FlowStateTier } from "@/app/lib/flow-state";
+import { RIG } from "./procedural-cyclist";
 
 /** What the coaching store stores: a [min, max] watt range (the workout-plan
  *  type), or a bare number (the test harness casts one straight in). */
@@ -70,7 +71,7 @@ export function BikeComputer({ targetPower, flowTier, fallbackColor, projected }
   const { headline, tierLabel, accent } = buildReadout(targetPower, flowTier, fallbackColor);
 
   return (
-    <group position={[0, 1.44, 0.52]} rotation={[-0.5, 0, 0]}>
+    <group position={RIG.computerMount} rotation={[-0.5, 0, 0]}>
       {/* Stem-top computer body + face, one tilted assembly: rig space
           +Z is forward, and the chase camera reads the device from behind,
           above — so the assembly's top tips back. The face sits on the -Z

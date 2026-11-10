@@ -60,6 +60,12 @@ export interface AnimatedModelProps {
    * ride lab so a paused frame always shows the identical pose.
    */
   timeRef?: MutableRefObject<number>;
+  /**
+   * Optional playback-rate ref (multiplied into mixer delta each frame).
+   * Read every frame, so cadence-driven speed changes never re-render
+   * React — e.g. syncing a pedaling clip to live cadence.
+   */
+  rateRef?: MutableRefObject<number>;
 }
 
 function hasSkinnedMesh(root: Object3D): boolean {
@@ -80,6 +86,7 @@ export function AnimatedModel({
   position = [0, 0, 0],
   onAfterUpdate,
   timeRef,
+  rateRef,
 }: AnimatedModelProps) {
   // No dedupe: useGLTF caches by URL, and keeping the array parallel to
   // [base, ...clips] lets clipMap below index by position.
@@ -153,7 +160,7 @@ export function AnimatedModel({
 
   useFrame((_, delta) => {
     if (timeRef) mixer?.setTime(timeRef.current);
-    else mixer?.update(delta * timeScaleRef.current);
+    else mixer?.update(delta * timeScaleRef.current * (rateRef?.current ?? 1));
     if (renderObject && afterUpdateRef.current) afterUpdateRef.current(renderObject);
   });
 

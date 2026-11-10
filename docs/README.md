@@ -23,6 +23,7 @@ Index for the SpinChain documentation. Each doc has one job; none competes with 
 | [ACHIEVEMENT-REDEEMER-V2.md](./ACHIEVEMENT-REDEEMER-V2.md) | `AchievementRedeemerV2` / `ClaimRegistry` contracts + redeem flow. |
 | [cloud-ride.md](./cloud-ride.md) | Cloud ride / private sync / consent design. |
 | [ride-lab.md](./ride-lab.md) | Ride telemetry, ride lab, instructor tooling. |
+| [SERV_HACKATHON_EDITION_02.md](./SERV_HACKATHON_EDITION_02.md) | SERV Hackathon Ed. 02 entry plan (Kite track) — coach agents as budgeted spenders; due Nov 15, 2026. |
 | [CHARACTER-SYSTEM.md](./CHARACTER-SYSTEM.md) | Characters (Atlas + books), assistant, coach voice, guild lore. |
 | [DEMO.md](./DEMO.md) | 3-minute "holy shit" demo script. |
 | [THEME-PIPELINE.md](./THEME-PIPELINE.md) | Theme production pipeline. |

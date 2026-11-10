@@ -23,6 +23,12 @@ export interface EquipmentAsset {
   modelUrl: string;
   thumbnail: string;
   speedMultiplier: number;
+  /** Uniform scale override (default: 2 for vehicles, 1.2 otherwise). */
+  scale?: number;
+  /** Vertical offset applied to the model inside the rig group. Needed for
+   *  GLBs authored in real-world rig units (wheel bottoms at y=0) since the
+   *  legacy equipment path floats the group ~1.5 above the deck. */
+  yOffset?: number;
 }
 
 export interface WorldAsset {
@@ -125,6 +131,19 @@ export const EQUIPMENT: EquipmentAsset[] = [
     modelUrl: "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/cloud/model.glb",
     thumbnail: "/images/equipment/cloud.png",
     speedMultiplier: 0.9,
+  },
+  {
+    // Meshy image-to-3D road bike (scripts/meshy/generate-bike-image.mjs),
+    // normalized into rig space by scripts/meshy/normalize-bike.mjs — wheel
+    // bottoms sit at y≈0, wheelbase matches the procedural rig.
+    id: "mesh-cycle",
+    name: "Vector SLS",
+    type: "bike",
+    modelUrl: "/characters/bike-meshy-rig.glb",
+    thumbnail: "/images/equipment/cycle.png",
+    speedMultiplier: 1.0,
+    scale: 0.75,
+    yOffset: -1.45,
   }
 ];
 

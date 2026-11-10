@@ -134,3 +134,6 @@ contracts/evm/broadcast/
 .env*
 !.env.example
 !.env*.template
+
+# Meshy pipeline task-resume state (scripts/meshy/*.mjs --yes runs)
+scripts/meshy/.*-state.json

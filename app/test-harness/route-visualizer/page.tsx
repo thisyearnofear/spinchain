@@ -31,6 +31,10 @@ export default function TestHarnessRouteVisualizerPage() {
   const seed = Number(searchParams.get("seed") || "123");
   const theme = (searchParams.get("theme") as VisualizerTheme) || (getDefaultThemeName() as VisualizerTheme);
   const worldMode = searchParams.get("worldMode") || undefined;
+  // ?avatar=<id> selects a registered avatar (app/lib/generated-avatars.json)
+  // so generated riders can be visually verified without the garage flow.
+  const avatarId = searchParams.get("avatar") || undefined;
+  const equipmentId = searchParams.get("equipment") || undefined;
   // Cloud Kingdom only: authored chase framing (play | cinema).
   const worldView = searchParams.get("view") === "cinema" ? ("cinema" as const) : undefined;
   const quality =
@@ -113,6 +117,8 @@ export default function TestHarnessRouteVisualizerPage() {
         theme={theme}
         worldMode={worldMode}
         worldView={worldView}
+        avatarId={avatarId}
+        equipmentId={equipmentId}
         progress={progress}
         mode={mode}
         stats={stats}

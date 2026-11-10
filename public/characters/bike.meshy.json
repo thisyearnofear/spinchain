@@ -1,0 +1,9 @@
+{
+  "provider": "meshy",
+  "kind": "image-to-3d",
+  "referenceImage": "scripts/meshy/reference/bike-side.png",
+  "taskId": "01a1c1ba-c94c-7201-9a0f-d703086fe680",
+  "model": "meshy-t2 + meshy-6-lite",
+  "file": "bike-meshy-i2d.glb",
+  "generatedAt": "2026-11-09T19:13:47.661Z"
+}

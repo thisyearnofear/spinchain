@@ -21,7 +21,7 @@ Three "characters," each with one job. Keep the roles distinct.
 
 | Character | Role | Rendered by |
 |-----------|------|-------------|
-| **The avatar** (first: "Nova") | The rider's *body* in the world. Mirrors state: effort, fatigue, celebration. It is you. | 3D GLB in the route world (Mint pipeline), Rive rig in the HUD |
+| **The avatar** (first: "Nova") | The rider's *body* in the world. Mirrors state: effort, fatigue, celebration. It is you. | 3D GLB in the route world (Mint + Meshy pipelines), Rive rig in the HUD |
 | **The coach** (Atlas / Dr. Spin / Zen Master) | The *voice* of the relationship. Guidance, accountability, memory. | RiveCoachOrb, debrief text, TTS |
 | **The world** | The *mood*. Sprint heat, recovery calm, flow glow. | three.js scene (World Labs pipeline for environments) + world-reactivity |
 
@@ -37,11 +37,11 @@ The character must behave consistently everywhere. There is **one vocabulary of 
 |-------|---------|---------------|----------|----------------|
 | `idle` | Resting, between efforts | seated idle ✓ | relaxed stance | calm portrait |
 | `ready` | Primed for today's session | — | eager bounce ✓ (`isReady`) | greeting presence ✓ |
-| `riding` | Steady work | seated idle ✓ *(until a pedaling clip exists — Mint's catalog has none yet)* | pedaling ✓ (cadence-tiered) | — |
+| `riding` | Steady work | pedal clip ✓ (Meshy text-to-motion, cadence-rate playback; seated idle fallback for clip-less avatars) | pedaling ✓ (cadence-tiered) | — |
 | `flow` | Deep zone (flow-state tiers) | modifier: aura/intensity ↑ | flow glow | — |
 | `recovery` | Recovery interval / rest day done right | catching breath ✓ | easy spin | "recovering well" |
 | `celebrate` | PR, milestone, streak | fist pump ✓ | big burst on `prPulse`; small burst on `finishPulse` / `rewardPulse` ✓ | confetti moment |
-| `fatigued` | Accumulated training load | *(reserved — 3D clip needs honest demand first)* | heavy sag ✓ (`isFatigued`) | recovery-first coach line ✓ |
+| `fatigued` | Accumulated training load | pedal clip mapped (0.8× rate bias); between-ride fatigued doesn't reach the 3D world today | heavy sag ✓ (`isFatigued`) | recovery-first coach line ✓ |
 
 **Celebration tiers**: every finished ride gets the small burst (`finishPulse`); a beaten PR gets the big one (`prPulse`). Reward ticks share the small burst — big celebrations must stay rare to stay meaningful.
 
@@ -49,7 +49,7 @@ The character must behave consistently everywhere. There is **one vocabulary of 
 
 **Single source of truth**: `app/lib/character-state.ts` (`CharacterState` + `resolveCharacterState`). Surfaces derive the state from the same stores (ride, telemetry, coaching) — never invent per-surface state logic. `flow` is a *modifier* layered on `riding` (aura, glow, FOV), not a separate clip, until the asset library grows.
 
-**Asset pipeline note**: Mint's curated animation catalog has no cycling/pedaling clip (verified 2026-09-15 via `/v1/animation-options`). The 3D avatar rides in a neutral seated pose; the pedaling story is carried by the 2D Rive HUD rider (cadence-tiered pedal loops). If Mint ships a cycling clip, adding it is a registry-only change in `app/lib/generated-avatars.json`.
+**Asset pipeline note**: Mint's curated animation catalog has no cycling/pedaling clip (verified 2026-09-15 via `/v1/animation-options`). Pedaling now ships via the **Meshy pipeline** — `scripts/meshy/rig-character.mjs` re-rigs an avatar onto the Mixamo-name skeleton the IK pass expects, `scripts/meshy/generate-clip.mjs` generates a text-to-motion clip and registers it in `app/lib/generated-avatars.json`. Avatars with a `pedal` clip play it (playback rate tracks live cadence, ~75rpm authored); avatars without one fall back to the neutral seated idle inside `AnimatedModel`. Either way the anthropometric fit in `procedural-cyclist.tsx` solves saddle height / reach from the avatar's own bone lengths — verify visually in `/test-harness/rig-studio`, never just numerically.
 
 ---
 
@@ -67,7 +67,7 @@ Done. 3D avatar in the route world (`RiderMarker` → `AnimatedModel`, state-cro
 The highest-emotion 90 seconds in the product. The character is present in the celebration phase beside the coach's debrief — fist-pumping the PR, or calmly present after a disciplined easy ride. Celebration first, stats second, infrastructure last (existing design principle — the character anchors Phase 1).
 
 ### Act 4 — Between rides (`/rider/journey`)
-Progression made flesh. Instead of XP bars alone, the character *is* the progression artifact: earned kits, new animation clips, aura tiers. The Mint pipeline (`scripts/mint/generate-rider.mjs`) is the content factory for this — unlockable clips and models are the reward inventory.
+Progression made flesh. Instead of XP bars alone, the character *is* the progression artifact: earned kits, new animation clips, aura tiers. The Mint + Meshy pipelines (`scripts/mint/generate-rider.mjs`, `scripts/meshy/rig-character.mjs` + `generate-clip.mjs`) are the content factory for this — unlockable clips and models are the reward inventory.
 
 **Partly implemented (2026-10-20)** — the rank ladder ([PROGRESSION.md](./PROGRESSION.md)) is the
 progression artifact now: ten named ranks, each granting an **aura tier** and unlocking a world.
@@ -97,6 +97,7 @@ The character is how outcomes become emotional. These rules keep that honest:
 Foreground (ships with Phase 2 delight):
 - [x] Rive HUD rider v2 (articulated, cadence/effort/phase/PR reactive)
 - [x] Mint 3D avatar with state-driven clips (idle / recovery / celebrate)
+- [x] Pedaling clip for the 3D avatar via the Meshy pipeline (idle / pedal / recovery / celebrate on `meshy-rider` + `mint-volt`; cadence-rate playback)
 - [x] Post-ride character presence in the completion moment
 - [x] Shared `CharacterState` vocabulary (`app/lib/character-state.ts`)
 - [x] Celebration tiers: `finishPulse` every finish, `prPulse` for PRs only
@@ -110,7 +111,6 @@ Foreground (shipped 2026-10-20, the progression layer):
 Parked until 10-rider validation (do not build):
 - [ ] Journey-page character *costumes* (earned kits/clips; Volt as first unlock candidate) — the ladder is the delivery mechanism, the assets are not ready
 - [ ] World Labs environments (needs `WLT_API_KEY`; mobile-benchmark first)
-- [ ] Pedaling clip for the 3D avatar (blocked on Mint catalog)
 - [ ] Between-ride coach arc expansion beyond current `CoachArcCard`
 
 Kept (already shipped, no expansion):

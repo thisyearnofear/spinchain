@@ -13,9 +13,10 @@
  * - `fatigued` is now driven by the honest training-load model
  *   (getWeeklyLoad: 3+ hard rides in 7 days) via resolveBetweenRideState,
  *   the between-ride extension below (see docs/CHARACTER-SYSTEM.md).
- * - The 3D avatar has no pedaling clip (Mint's catalog lacks one — see
- *   public/characters/rider.mint.json), so riding states map to the
- *   neutral seated idle; the Rive HUD rider carries the pedaling story.
+ * - Pedaling clips arrive via the Meshy pipeline
+ *   (scripts/meshy/generate-clip.mjs): avatars that register a "pedal"
+ *   clip get it on riding states; avatars without one (Mint Nova) fall
+ *   back to the neutral seated idle inside AnimatedModel.
  */
 
 import type { IntervalPhase } from "@/app/lib/phase-theme";
@@ -59,17 +60,19 @@ export function resolveCharacterState({
 
 /**
  * Which registered avatar clip plays for a state. Clip names must match
- * the `clips[].name` entries in app/lib/generated-avatars.json. States
- * without a dedicated clip fall back to the neutral seated idle.
+ * the `clips[].name` entries in app/lib/generated-avatars.json. Riding
+ * states prefer a dedicated "pedal" clip (Meshy text-to-motion pipeline);
+ * avatars without one fall back to the first registered clip — the
+ * neutral seated idle — inside AnimatedModel.
  */
 export const AVATAR_CLIP_BY_STATE: Record<CharacterState, string> = {
   idle: "idle",
   ready: "idle",
-  riding: "idle", // no pedaling clip exists yet — see module docstring
-  flow: "idle",
+  riding: "pedal",
+  flow: "pedal",
   recovery: "recovery",
   celebrate: "celebrate",
-  fatigued: "idle",
+  fatigued: "pedal",
 };
 
 // ─── Between-Ride Resolution ───────────────────────────────────────

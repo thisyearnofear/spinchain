@@ -69,7 +69,7 @@ export type { VisualizerTheme } from "./visualizer-theme";
 // Import Selection types
 import { EQUIPMENT, WORLDS, resolveAvatar, type AvatarAsset, type EquipmentAsset } from "../../../lib/selection-library";
 import { AnimatedModel } from "./animated-model";
-import { ProceduralBike, useCyclistPose, BIKE_DECK_OFFSET, RIG } from "./procedural-cyclist";
+import { ProceduralBike, useCyclistPose, BIKE_DECK_OFFSET, RIG, type RiderFit } from "./procedural-cyclist";
 import { BikeComputer } from "./bike-computer";
 import { ProgressInterpolator, dampFactor } from "@/app/lib/progress-interpolator";
 import { WorldSkybox } from "./world-skybox";
@@ -1004,10 +1004,17 @@ function RiderMarker({
   });
   const activeClip = AVATAR_CLIP_BY_STATE[characterState];
 
-  // A skinned (Mint) avatar with no user-picked equipment rides the
+  // A skinned (Mint/Meshy) avatar with no user-picked equipment rides the
   // procedural bike with IK-driven legs. Picked equipment / static avatars
   // keep the legacy presentation.
   const rideProceduralBike = !equipment && !!avatar?.clips?.length;
+  // Avatars with a baked pedaling clip (Meshy text-to-motion pipeline)
+  // own their torso — the pose pass drops to limb IK only, and the clip's
+  // playback rate tracks live cadence below.
+  const hasPedalClip = !!avatar?.clips?.some((c) => c.name === "pedal");
+  /** Anthropometric fit solved by the pose pass; the bike's saddle follows it. */
+  const fitRef = useRef<RiderFit | null>(null);
+  const poseOptions = useMemo(() => ({ fitRef }), []);
 
   // Crank phase + wheel angle, advanced from live cadence each frame.
   const pedalPhaseRef = useRef(0);
@@ -1018,7 +1025,16 @@ function RiderMarker({
   // scarf flutter and the body rock.
   const cloudTimeRef = useRef(0);
   const cloudEffortRef = useRef(0);
-  const poseCyclist = useCyclistPose(rigRef, pedalPhaseRef, leanRef);
+  /** Pedal-clip playback rate — eased toward cadence/75 each frame. */
+  const avatarRateRef = useRef(1);
+  const poseCyclist = useCyclistPose(
+    rigRef,
+    pedalPhaseRef,
+    leanRef,
+    false,
+    hasPedalClip ? "clip" : "full",
+    poseOptions,
+  );
 
   // Road deck height along the curve. Road is an ExtrudeGeometry whose
   // profile Y (0 → 0.5) runs along the curve's Frenet binormal, so the
@@ -1093,6 +1109,17 @@ function RiderMarker({
     // Effort tucks the rider a little lower over the bars.
     const effortLean = Math.min(0.18, Math.max(0, (s.power - 150) / 1500));
     leanRef.current += (effortLean - leanRef.current) * dampFactor(2, delta);
+
+    // Pedal-clip playback tracks cadence: the authored clip assumes ~75rpm,
+    // so harder efforts visibly spin the legs faster. Idle states sit at 1.
+    // A fatigued rider spins noticeably under cadence (today "fatigued" only
+    // comes from the between-ride model, but keep the bias if it ever does).
+    const rateBias = characterState === "fatigued" ? 0.8 : 1;
+    const targetRate =
+      hasPedalClip && isRiding
+        ? Math.min(1.75, Math.max(0.5, cadenceRef.current / 75)) * rateBias
+        : 1;
+    avatarRateRef.current += (targetRate - avatarRateRef.current) * dampFactor(3, delta);
 
     if (isCloudWorld) {
       // Scarf clock + effort (the same eased 0–1 the cloud world reads) and
@@ -1175,6 +1202,7 @@ function RiderMarker({
             wheelAngleRef={wheelAngleRef}
             frameColor={styles.lineColor}
             accentColor={styles.riderColor}
+            fitRef={fitRef}
           />
           {/* Diegetic bike readout (roadmap #10) — stem-top computer carrying
               the interval target + flow tier. Ride mode only (the authored
@@ -1194,6 +1222,7 @@ function RiderMarker({
             scale={RIG.characterScale}
             position={RIG.characterOffset}
             onAfterUpdate={poseCyclist}
+            rateRef={avatarRateRef}
           />
         </group>
       ) : (
@@ -1208,7 +1237,12 @@ function RiderMarker({
             </group>
           )}
           {equipment ? (
-            <Model url={equipment.modelUrl} scale={equipment.type === "vehicle" ? 2 : 1.2} />
+            <group position={[0, equipment.yOffset ?? 0, 0]}>
+              <Model
+                url={equipment.modelUrl}
+                scale={equipment.scale ?? (equipment.type === "vehicle" ? 2 : 1.2)}
+              />
+            </group>
           ) : avatar ? null : (
             /* Last-resort marker when no avatar GLB resolved — Nova is the
                default, so this only fires if the character library is empty. */

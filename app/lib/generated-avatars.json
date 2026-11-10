@@ -29,7 +29,52 @@
       "type": "robot",
       "modelUrl": "/characters/volt.glb",
       "thumbnail": "/characters/volt.webp",
-      "description": "Mint-generated robot rider — matte graphite with luminous teal energy accents. First earned-unlock archetype.",
+      "description": "Mint-generated robot rider \u2014 matte graphite with luminous teal energy accents. First earned-unlock archetype.",
+      "generated": true,
+      "clips": [
+        {
+          "name": "idle",
+          "url": "/characters/volt-meshy-idle.glb"
+        },
+        {
+          "name": "pedal",
+          "url": "/characters/volt-meshy-pedal.glb"
+        },
+        {
+          "name": "recovery",
+          "url": "/characters/volt-meshy-recovery.glb"
+        },
+        {
+          "name": "celebrate",
+          "url": "/characters/volt-meshy-celebrate.glb"
+        }
+      ]
+    },
+    {
+      "id": "meshy-rider",
+      "name": "Meshy Nova",
+      "type": "humanoid",
+      "modelUrl": "/characters/rider-meshy.glb",
+      "clips": [
+        {
+          "name": "idle",
+          "url": "/characters/rider-meshy-idle.glb"
+        },
+        {
+          "name": "pedal",
+          "url": "/characters/rider-meshy-pedal.glb"
+        },
+        {
+          "name": "recovery",
+          "url": "/characters/rider-meshy-recovery.glb"
+        },
+        {
+          "name": "celebrate",
+          "url": "/characters/rider-meshy-celebrate.glb"
+        }
+      ],
+      "thumbnail": "/characters/rider.webp",
+      "description": "Experiment: Mint rider.glb re-rigged via Meshy rigging API + Text-to-Motion cycling clip. Mixamo skeleton (same bone names the IK pass expects).",
       "generated": true
     }
   ]
