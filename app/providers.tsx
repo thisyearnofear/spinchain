@@ -109,7 +109,10 @@ function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
 function InnerProviders({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [queryClient] = useState(() => getQueryClient());
-  const [wagmiConfig] = useState<Config | null>(() => createBrowserWagmiConfig());
+  const [wagmiConfig] = useState<Config | null>(() =>
+    // WalletConnect touches indexedDB at construction — never build on the server
+    typeof window === 'undefined' ? null : createBrowserWagmiConfig()
+  );
 
   useEffect(() => {
     setMounted(true);
