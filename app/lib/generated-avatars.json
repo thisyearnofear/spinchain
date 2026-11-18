@@ -83,7 +83,7 @@
       "type": "humanoid",
       "modelUrl": "/characters/rider-ember.glb",
       "thumbnail": "/characters/rider-ember.webp",
-      "description": "Fuser-generated crimson-kit rider archetype — Tripo image-to-3D, rigged via Meshy Rigging. EXPERIMENTAL: arm skin weights are broken (chest bound to arm joints; see assets/fuser/STATUS.md). Procedural IK drives legs/pedaling.",
+      "description": "Fuser-generated crimson-kit rider archetype — Tripo image-to-3D, rigged via Meshy Rigging. EXPERIMENTAL: the mesh has no arm volume (a flat fan, not tubes — see assets/fuser/STATUS.md); needs a regenerated mesh. Procedural IK drives legs/pedaling.",
       "generated": true,
       "experimental": true
     }

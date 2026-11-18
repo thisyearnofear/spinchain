@@ -6,53 +6,45 @@ Update or delete this file once the remaining work lands.
 ## Ember rider (`rider-ember`)
 
 **Registered** in `app/lib/generated-avatars.json` as `ember`, pointing at
-`public/characters/rider-ember.glb` (+ `rider-ember.webp` thumbnail). That GLB
-is the original Fuser **Meshy Rigging** output (Tripo image-to-3D from
-`assets/fuser/rider-ember-ref.png`, then auto-rigged). It renders correctly in
-bind pose, and the procedural IK fit solves (hip on saddle, torso ~71°) —
-**but the arm weights are broken**, so the avatar is not shippable yet:
+`public/characters/rider-ember.glb` (+ `rider-ember.webp` thumbnail), and
+flagged `experimental` — hidden from the garage and the in-ride skin
+switcher (`SELECTABLE_AVATARS`) but still resolvable by id for rig-studio
+work. **Not shippable, and not repairable by re-weighting.**
 
-- Left arm verts are almost all bound to `LeftArm`; right arm verts to
-  `RightHand`. Shoulder/forearm verts are scattered across unrelated joints,
-  including ~30k chest/back verts.
-- When the IK rotates the arm joints toward the bars, chest geometry is
-  dragged with them → black blob over the bars (visible in
-  `/test-harness/rig-studio?avatar=ember&view=bars&markers=1`).
-- Both Meshy Rigging and the repo's own Meshy-API script produced the same
-  defect; a second Tripo regeneration (`ember2.glb`) came back armless, so
-  ember1's mesh is the one to keep.
+**Diagnosis (verified 18 Nov, `scripts/meshy/analyze-ember*.mjs`):** the
+Tripo mesh has **no arm geometry at all**. There is a literal vertex gap
+between torso and "arm": on the left, zero verts between x≈0.10 and
+x≈0.60, then a flat fan at y≈0.51 (one vertex thick) spanning z 0→0.96 —
+what reads as an arm in the thumbnail is that fan's edge silhouette. The
+earlier note's "arms bent forward at the elbow (wrists z≈0.43)" was the
+same sheet misread as a tube. Rig-studio confirms it visually: the IK
+fit solves (hip on saddle, torso 6.4°) and legs pedal, but in `view=head`
+an "arm" points skyward, `view=side` shows the hand overshooting the
+bars horizontally, and the sheet renders as a black fin off the back —
+`/test-harness/rig-studio?avatar=ember&view=head|bars&markers=1&debug=1`.
 
-**Rig facts learned** (needed by any repair):
+**Coordinate spaces of the shipped GLB** (it is a recentered re-export —
+60k verts, POSITION ±0.96 — not the 98k/1.7 m source described below):
 
-- Mesh space is metres (POSITION ±0.8, rider ~1.7 m); joint world space is
-  cm — `J_world = 100 × bind_pos`, `J·IBM = uniform 100×` for every joint.
-- Joint bind positions live at `inv(IBM)` translations; current arm joints
-  sit inside the torso (LeftArm bind x≈0.04 m).
-- The arms are **bent forward at the elbow** (wrists ≈ (±0.65, 1.31, ~0.43)),
-  not straight ±X — the Tripo mesh isn't a pure T-pose. There is also a
-  horizontal sheet at y≈1.55 spanning the full z range (wing/cape-like
-  geometry) that contaminates any naive "arm verts" selection.
+- `inv(IBM)` translations live in raw mesh space; scene space is cm via
+  `chainMat = 88.9·(meshPos + (0, 0.957, 0))` — derive this transform,
+  don't hardcode the old `ARMATURE_SCALE=100`.
+- `scripts/meshy/probe-rig-space.mjs` prints inv(IBM)/chain/POSITION for
+  any rigged GLB; use it before trusting numbers from the other variant.
 
-**Repair attempt so far:** `scripts/meshy/fix-rig-arms.mjs` rewrites arm
-weights by parametrizing verts along distance-to-hand (S=deltoid shell,
-elbow/wrist = shell centroids), re-homes chest verts to the nearest torso
-joint, and rebuilds IBMs via `inv(J_new)·J_old·IBM_old`. Latest output is
-preserved at `assets/fuser/ember-rig-fixed-experimental.glb`. Legs pedal
-correctly and the fit solves, but joint targets still collapse on the bent
-arm (shell centroids average the fold) — **not production-ready**.
+**Why the repair can't land:** `scripts/meshy/fix-rig-arms.mjs` rewrites
+weights and rebuilds IBMs, but there is no arm volume to bind — folding
+the fan onto Arm/ForeArm/Hand joints only folds a plane. Output preserved
+at `assets/fuser/ember-rig-fixed-experimental.glb` for forensics.
 
-**What's left:**
+**Path forward (pick one, all need a new mesh — weights can't help):**
 
-1. Finish `fix-rig-arms.mjs` — place the elbow at the point of max deviation
-   from the S→H chord rather than a distance-shell centroid, and account for
-   the wing sheet at y≈1.55.
-2. Copy the result to `public/characters/rider-ember.glb`, rerun
-   `measure-rig.mjs`, then verify **side/front/bars/head/pedal** views in
-   rig-studio (numeric measures alone proved misleading here — the fit
-   solves even with the torso blob).
-3. If repair stalls: alternatives are a fresh image→3D pass with a different
-   source pose, or a Blender/Mixamo re-rig outside Fuser.
-4. Update the `ember` registry description once the rig is verified.
+1. Fresh image→3D with a different source pose or generator (costs
+   credits — confirm before spending).
+2. Re-rig in Blender/Mixamo is pointless for the same reason: the
+   geometry is missing, not just the binding.
+3. Alternatively drop Ember entirely and keep only `fuser-cycle`
+   (verified below) + the trophy from this batch.
 
 ## Fuser bike (`bike-fuser-rig.glb`)
 
@@ -63,10 +55,10 @@ source wheelbase ≈0.571. Output `public/characters/bike-fuser-rig.glb`
 ("Ember SL", thumbnail `/images/equipment/fuser-bike.webp`, scale 0.75,
 y −1.45 — the `mesh-cycle` fit values).
 
-**What's left:**
-
-1. Verify wheel placement/orientation in the route or model-viewer
-   (`/test-harness/model-viewer?url=/characters/bike-fuser-rig.glb`).
+**Verified 18 Nov** in `/test-harness/model-viewer?url=/characters/bike-fuser-rig.glb&view=side&spin=0`
+(note `spin=0` — the viewer turntables non-procedural models): clean side
+profile, front wheel at +Z matching `bike-meshy-rig.glb`, wheel bottoms at
+y≈−0.001 (deck contract). Shippable as `fuser-cycle` "Ember SL".
 
 ## Also done
 
