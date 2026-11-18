@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AVATARS, EQUIPMENT, WORLDS, RIDE_TEMPLATES, type AvatarAsset, type EquipmentAsset, type WorldAsset, type RideTemplate } from "@/app/lib/selection-library";
+import { AVATARS, SELECTABLE_AVATARS, EQUIPMENT, WORLDS, RIDE_TEMPLATES, type AvatarAsset, type EquipmentAsset, type WorldAsset, type RideTemplate } from "@/app/lib/selection-library";
 import { GlassCard, SectionHeader, Tag } from "@/app/components/ui/ui";
 import { m, AnimatePresence } from "framer-motion";
 import { Bike, Bot, Building2, Cat, Cloud, Flower2, Ghost, Globe, Mountain, PawPrint, Rainbow, Rocket, Sparkles, Sunrise, Turtle, User } from "lucide-react";
@@ -126,7 +126,7 @@ export function SelectionGarage({ onSelectionChange, initialSelection }: Selecti
                 exit={{ opacity: 0, x: 20 }}
                 className="grid grid-cols-2 gap-3"
               >
-                {AVATARS.map((avatar) => (
+                {SELECTABLE_AVATARS.map((avatar) => (
                   <AssetCard
                     key={avatar.id}
                     asset={avatar}

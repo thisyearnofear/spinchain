@@ -76,6 +76,16 @@
       "thumbnail": "/characters/rider.webp",
       "description": "Experiment: Mint rider.glb re-rigged via Meshy rigging API + Text-to-Motion cycling clip. Mixamo skeleton (same bone names the IK pass expects).",
       "generated": true
+    },
+    {
+      "id": "ember",
+      "name": "Ember",
+      "type": "humanoid",
+      "modelUrl": "/characters/rider-ember.glb",
+      "thumbnail": "/characters/rider-ember.webp",
+      "description": "Fuser-generated crimson-kit rider archetype — Tripo image-to-3D, rigged via Meshy Rigging. EXPERIMENTAL: arm skin weights are broken (chest bound to arm joints; see assets/fuser/STATUS.md). Procedural IK drives legs/pedaling.",
+      "generated": true,
+      "experimental": true
     }
   ]
 }

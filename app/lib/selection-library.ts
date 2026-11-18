@@ -14,6 +14,9 @@ export interface AvatarAsset {
   clips?: { name: string; url: string }[];
   /** True for pipeline-generated local assets (Mint), false for CDN stock. */
   generated?: boolean;
+  /** Not yet shippable — resolvable by id (rig-studio, direct URL) but
+   *  hidden from the garage and in-ride switcher. */
+  experimental?: boolean;
 }
 
 export interface EquipmentAsset {
@@ -91,6 +94,10 @@ export const AVATARS: AvatarAsset[] = [
   ...(generatedAvatars.avatars as AvatarAsset[]),
 ];
 
+/** What pickers offer. `AVATARS` is the full registry — experimental rigs
+ *  stay resolvable by id so the studio harness can still load them. */
+export const SELECTABLE_AVATARS: AvatarAsset[] = AVATARS.filter((a) => !a.experimental);
+
 export function resolveAvatar(avatarId?: string | null): AvatarAsset | undefined {
   if (avatarId) {
     const match = AVATARS.find((a) => a.id === avatarId);
@@ -142,6 +149,20 @@ export const EQUIPMENT: EquipmentAsset[] = [
     modelUrl: "/characters/bike-meshy-rig.glb",
     thumbnail: "/images/equipment/cycle.png",
     speedMultiplier: 1.0,
+    scale: 0.75,
+    yOffset: -1.45,
+  },
+  {
+    // Fuser Tripo image-to-3D road bike, normalized into rig space by
+    // scripts/meshy/normalize-bike-fuser.mjs (wheelbase ≈1.52, wheel
+    // bottoms at y≈0 — same contract as bike-meshy-rig.glb, so it shares
+    // the mesh-cycle fit values).
+    id: "fuser-cycle",
+    name: "Ember SL",
+    type: "bike",
+    modelUrl: "/characters/bike-fuser-rig.glb",
+    thumbnail: "/images/equipment/fuser-bike.webp",
+    speedMultiplier: 1.05,
     scale: 0.75,
     yOffset: -1.45,
   }
