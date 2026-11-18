@@ -19,7 +19,6 @@ import {
   MathUtils,
   PerspectiveCamera as ThreePerspectiveCamera,
   Points,
-  BackSide,
 } from "three";
 import * as THREE from "three";
 import type { WebglUnavailableReason } from "@/app/lib/gpu-probe";
@@ -206,7 +205,7 @@ function Road({
     emissiveIntensity += glowKick.current * 1.2;
 
     material.emissiveIntensity = emissiveIntensity;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     (material.emissive as any).set(emissiveColor);
 
     // The spectrum road's signature: its emissive hue-cycles — palette data
@@ -241,7 +240,7 @@ function Road({
   // before the renderer compiles the material on the first frame (same
   // discipline as the prop materials; patching after first compile is lost
   // to the program cache).
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- once per mount; the JSX material instance survives theme changes
+   
   useLayoutEffect(() => {
     const mat = meshRef.current?.material as THREE.MeshStandardMaterial | undefined;
     if (mat) applyHeightFog(mat);
@@ -320,7 +319,7 @@ function RoadMarkings({
     sanitizeGeometry(edgeGeo);
 
     return { dashGeometry: dashGeo, edgeGeometry: edgeGeo };
-  }, [curve, theme, steps, styles.edgeLineWidth]);
+  }, [curve, steps, styles.edgeLineWidth]);
 
   const dashRef = useRef<THREE.Mesh>(null);
   const edgeRef = useRef<THREE.Mesh>(null);
@@ -1719,7 +1718,7 @@ function FlowCelebration({ effect }: FlowCelebrationProps) {
 
     // Fade out celebration particles over 3 seconds
     const progress = elapsed / 3;
-    groupRef.current.children.forEach((child, i) => {
+    groupRef.current.children.forEach((child) => {
       const mesh = child as Mesh;
       const mat = mesh.material as THREE.MeshBasicMaterial;
       mat.opacity = Math.max(0, 0.8 * (1 - progress));
@@ -1902,7 +1901,7 @@ function Scene({
       ),
       pointMul: contextPalette.pointLightIntensity,
     };
-  }, [contextPalette, mode, theme, styles, planetProfile?.pointColor]);
+  }, [contextPalette, mode, styles, planetProfile?.pointColor]);
   const currentFlowEffect = useFlowCelebration(flowTier);
 
   // Mouse parallax — subtle camera offset based on pointer position
@@ -1916,7 +1915,7 @@ function Scene({
   // Get performance tier for adaptive quality - use quality.fps as proxy if available
   const performanceTier = quality?.fps === 30 ? "low" : quality?.fps === 45 ? "medium" : "high";
 
-  const { reactive, flowScale, flowColor, showFlowEffects } = useReactiveWorld({
+  const { reactive, flowColor, showFlowEffects } = useReactiveWorld({
     theme,
     stats,
     intervalPhase,
