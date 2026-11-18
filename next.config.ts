@@ -49,6 +49,8 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    // Recorded by the 16.4.3→16.4.6 security upgrade (Next agent-upgrade flow).
+    agentUpgrade: "security",
   },
   turbopack: {},
   webpack: (config, { isServer }) => {
