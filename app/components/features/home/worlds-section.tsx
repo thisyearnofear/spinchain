@@ -8,12 +8,16 @@ import {
   type VisualizerTheme,
 } from "@/app/components/features/route/visualizer-theme";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
-import { DEFAULT_WORLD_ID, DEFAULT_WORLD_MODE_ID } from "@/app/lib/themes/worlds";
+import {
+  DEFAULT_WORLD_ID,
+  DEFAULT_WORLD_MODE_ID,
+  getWorldModes,
+} from "@/app/lib/themes/worlds";
 import { useWorldAccess } from "@/app/lib/progression";
 import { formatXp } from "@/app/lib/progression";
 
 // Mood lines written from each world's real atmosphere token
-// (grid / mist / dust / sun / prism in visualizer-theme.ts).
+// (grid / mist / dust / sun / prism / daycycle / sunset in visualizer-theme.ts).
 const WORLD_MOODS: Record<VisualizerTheme, string> = {
   neon: "The grid never sleeps",
   alpine: "Climb into the mist",
@@ -21,10 +25,22 @@ const WORLD_MOODS: Record<VisualizerTheme, string> = {
   anime: "Sunlit, soft-edged roads",
   rainbow: "Every watt splits light",
   daybreak: "Ride the sun up",
+  sunset: "Chase the golden hour",
   cloud: "Cuddle up to the cumulus",
 };
 
-const WORLD_KEYS = Object.keys(VISUALIZER_THEMES) as VisualizerTheme[];
+/**
+ * Picker order is the world registry's order: every registered (world, mode)
+ * pair, deduped by palette so a world with two moods shows one card. Reading
+ * the registry here (not the theme list) is the contract that the picker and
+ * the world system agree on what "a world" is — a new mode or world appears
+ * here by registering it, never by editing this file.
+ */
+const WORLD_CARDS = Array.from(
+  new Map(
+    getWorldModes().map(({ world, mode }) => [mode.themeName, { world, mode }]),
+  ).values(),
+);
 
 export function WorldsSection() {
   const { isUnlocked, unlockFor, xpRemainingFor, rank, hasRidden } =
@@ -35,7 +51,7 @@ export function WorldsSection() {
       <section aria-label="Ride worlds">
         <div className="mb-6 md:mb-8">
           <h2 className="text-2xl font-bold text-[color:var(--foreground)] md:text-3xl">
-            {WORLD_KEYS.length} worlds. One road.
+            {WORLD_CARDS.length} worlds. One road.
           </h2>
           <p className="mt-2 max-w-xl text-sm text-[color:var(--muted)] md:text-base">
             Pick the backdrop. The road underneath reads your effort the same
@@ -47,7 +63,8 @@ export function WorldsSection() {
           className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-5 md:gap-4 md:overflow-visible md:pb-0"
           staggerDelay={0.08}
         >
-          {WORLD_KEYS.map((key) => {
+          {WORLD_CARDS.map(({ world, mode }) => {
+            const key = mode.themeName as VisualizerTheme;
             const theme = VISUALIZER_THEMES[key];
             const unlocked = isUnlocked(key);
             const unlock = unlockFor(key);
@@ -62,7 +79,7 @@ export function WorldsSection() {
                   // The default world opens in its default mood; the others
                   // have one mood each, so they need no mode.
                   worldMode:
-                    key === DEFAULT_WORLD_ID ? DEFAULT_WORLD_MODE_ID : undefined,
+                    world.id === DEFAULT_WORLD_ID ? DEFAULT_WORLD_MODE_ID : undefined,
                 })}
                 className="group relative block h-44 w-40 shrink-0 snap-start overflow-hidden rounded-2xl border border-[color:var(--border)] transition-transform duration-150 hover:-translate-y-1 md:h-52 md:w-auto"
                 style={{

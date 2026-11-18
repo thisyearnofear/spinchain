@@ -29,6 +29,7 @@ export const WORLD_IMAGES: Record<VisualizerTheme, WorldImage> = {
   anime: { src: "/images/worlds/anime.webp", label: VISUALIZER_THEMES.anime.worldLabel },
   rainbow: { src: "/images/worlds/rainbow.webp", label: VISUALIZER_THEMES.rainbow.worldLabel },
   daybreak: { src: "/images/worlds/daybreak.webp", label: VISUALIZER_THEMES.daybreak.worldLabel },
+  sunset: { src: "/images/worlds/sunset.webp", label: VISUALIZER_THEMES.sunset.worldLabel },
   cloud: { src: "/images/worlds/cloud.webp", label: VISUALIZER_THEMES.cloud.worldLabel },
 };
 

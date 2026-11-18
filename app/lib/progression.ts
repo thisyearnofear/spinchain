@@ -243,6 +243,14 @@ export const UNLOCKS: UnlockDefinition[] = [
     detail: "Pastel hills and blossom in the wind.",
   },
   {
+    id: "world:sunset",
+    kind: "world",
+    rankIndex: 4,
+    xpRequired: 2000,
+    label: "Sunset Ride",
+    detail: "Golden hour, low sun. Ride into the light.",
+  },
+  {
     id: "aura:surge",
     kind: "aura",
     rankIndex: 3,

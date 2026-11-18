@@ -87,6 +87,17 @@ const TRON_MODES: WorldMode[] = [
     atmosphereKit: "daycycle",
     props: [{ type: "building", color: "#3b3566", count: 80, scale: [1.6, 6, 1.6] }],
   },
+  {
+    // Sunset Ride — golden hour. A low fixed sun the rider rides into; the
+    // sky kit drifts warm cloud bands on the clock. A mood of the shared
+    // place, like daybreak: palette + kit + silhouette, no mechanic yet.
+    id: "sunset",
+    label: "Sunset Ride",
+    themeName: "sunset",
+    summary: "Golden hour, low sun, warm haze. Ride into the light.",
+    atmosphereKit: "sunset",
+    props: [{ type: "tree", color: "#5c3a5c", count: 90, scale: [0.6, 1.8, 0.6] }],
+  },
 ];
 
 export const TRON_WORLD: WorldDefinition = {

@@ -78,6 +78,7 @@ import { SKIRT_EDGE_DROP, SKIRT_STEPS, buildRouteSkirtGeometry, createSkirtMater
 import { buildPropField, getPartGeometry, type PropPartField } from "./route-silhouettes";
 import { AlpineAtmosphere } from "./alpine-view";
 import { DaycycleAtmosphere } from "./daycycle-view";
+import { SunsetAtmosphere } from "./sunset-view";
 import { NeonAtmosphere } from "./neon-view";
 import { PlanetAtmosphere } from "./planet-view";
 import { PLANET_PROFILES, type PlanetProfile } from "./planetary-atmosphere";
@@ -2282,6 +2283,9 @@ function Scene({
         )}
         {resolved.atmosphereKit === "daycycle" && (
           <DaycycleAtmosphere curve={curve} horizon={context ? context.fogColor : styles.fog} zenith={context ? context.skyTop : styles.skyTop} stats={stats} />
+        )}
+        {resolved.atmosphereKit === "sunset" && (
+          <SunsetAtmosphere curve={curve} horizon={context ? context.fogColor : styles.fog} zenith={context ? context.skyTop : styles.skyTop} />
         )}
         {planetProfile && (
           <PlanetAtmosphere

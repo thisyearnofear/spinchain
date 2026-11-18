@@ -268,6 +268,62 @@ export const VISUALIZER_THEMES = {
     },
   },
   /**
+   * Sunset Ride — golden hour. The sun sits low and fixed; the rider rides
+   * into it. Palette is warm amber haze into deep dusk blue; the skyline
+   * band reads as a silhouette against the glow. `atmosphere: "sunset"`
+   * routes to the sunset kit (sunset-atmosphere.ts).
+   */
+  sunset: {
+    fog: "#3d2a4f",
+    roadColor: "#4a3a5c",
+    roadEmissive: "#ff9a5c",
+    roadEmissiveIntensity: 0.3,
+    lineColor: "#ffd9a0",
+    riderColor: "#ffffff",
+    grid: false,
+    stars: false,
+    envPreset: "sunset" as const,
+    particleColor: "#ffc9a3",
+    skyTop: "#2c2454",
+    skyBottom: "#ffb36b",
+    horizonGlow: "#ff8f4d",
+    terrainColor: "#3a2a4a",
+    terrainAccent: "#ff7a45",
+    panelColor: "rgba(46, 28, 52, 0.7)",
+    worldLabel: "Sunset Ride",
+    atmosphere: "sunset" as const,
+    terrainBackScale: 0.34,
+    terrainFrontScale: 0.6,
+    patternOpacity: 0.12,
+    routeDashOpacity: 0.55,
+    beatBadge: "sun" as const,
+    lighting: {
+      ambientColor: "#c8a0b8",
+      ambientGain: 0.9,
+      hemiSky: "#6b4a7a",
+      hemiGround: "#3a1f2e",
+      hemiIntensity: 0.5,
+      keyColor: "#ffb27a",
+      keyIntensity: 1.25,
+      keyDirection: [0.62, 0.18, 0.76] as [number, number, number],
+      pointColor: "#ff9a5c",
+      fogFar: 220,
+    },
+    skirtLight: {
+      albedoGain: 3.6,
+      edgeShade: 0.62,
+      sunGain: 0.7,
+      sunDirection: [0.62, 0.18, 0.76] as [number, number, number],
+      fogStart: 0.2,
+      fogEnd: 0.75,
+    },
+    groundCover: {
+      color: "#5c3a5c",
+      count: 220,
+      scale: [1.2, 1.1, 1.2] as [number, number, number],
+    },
+  },
+  /**
    * Cloud Kingdom — the authored world. Since the harmonization it renders
    * the cloud-ride kit: a banked lilac ribbon with mint pulse piping, an
    * instanced metaball cumulus sea/cathedral, and the camera-following sky

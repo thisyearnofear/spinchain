@@ -62,6 +62,7 @@ import { getTheme } from "@/app/lib/themes/registry";
 import { getDefaultThemeName } from "@/app/lib/themes/worlds";
 import { useWorldAccess } from "@/app/lib/progression";
 import type { VisualizerTheme } from "@/app/components/features/route/visualizer-theme";
+import { SkinSwitcher, readLastSkin, type SkinSwapState } from "@/app/components/features/ride/skin-switcher";
 
 const noopSubscribe = () => () => {};
 
@@ -334,6 +335,33 @@ export default function LiveRidePage() {
   // own default mode.
   const worldMode = classData?.metadata?.route.worldMode as string | undefined;
   const worldLabel = getTheme(worldTheme).worldLabel;
+  // ─── In-ride skin swaps ────────────────────────────────────────
+  // The URL seeds the ride; the swap state is the live truth. The rider can
+  // change world, mode, avatar and equipment mid-ride without navigating —
+  // the renderers already react to prop changes, so a swap is a state write,
+  // not a page load. Seeding is lazy so a mid-ride reload still honours the
+  // URL, and the last choice persists for the next ride (SkinSwitcher).
+  const [swapState, setSwapState] = useState<SkinSwapState>(() => {
+    const last = readLastSkin();
+    return {
+      // URL wins; the last skin fills only what the URL leaves open.
+      routeTheme: worldTheme,
+      worldMode,
+      avatarId: searchParams.get("avatarId") || last?.avatarId || undefined,
+      equipmentId: searchParams.get("equipmentId") || last?.equipmentId || undefined,
+    };
+  });
+  // A different route/class (URL change) re-seeds the swap state.
+  const seedKey = `${classData?.metadata?.route.theme ?? ""}|${worldMode ?? ""}|${searchParams.get("avatarId") ?? ""}|${searchParams.get("equipmentId") ?? ""}`;
+  useEffect(() => {
+    setSwapState({
+      routeTheme: worldTheme,
+      worldMode,
+      avatarId: searchParams.get("avatarId") || undefined,
+      equipmentId: searchParams.get("equipmentId") || undefined,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seed only when the URL's skin inputs change
+  }, [seedKey]);
   // Worlds gate on rank. A locked world still renders behind the card — the
   // rider sees what they are working toward — but the ride itself waits
   // until the ladder opens the door.
@@ -777,10 +805,12 @@ export default function LiveRidePage() {
           routeCoordinates={routeCoordinates}
           currentRouteCoordinate={currentRouteCoordinate}
           classData={classData}
-          routeTheme={routeTheme}
-          worldMode={worldMode}
+          routeTheme={swapState.routeTheme}
+          worldMode={swapState.worldMode}
           worldView={searchParams.get("view") === "cinema" ? "cinema" : undefined}
           searchParams={searchParams}
+          avatarId={swapState.avatarId}
+          equipmentId={swapState.equipmentId}
           panelState={panelState.state}
           panelPositions={panelState.positions}
           onTogglePanel={handleTogglePanel}
@@ -793,6 +823,13 @@ export default function LiveRidePage() {
         />
         {/* Wedge delight: sprint beam + flow unlock, DOM-only, no WebGL cost */}
         <EffortDelightOverlay flowTier={flow.flowTier} />
+        {/* In-ride skin switcher — world, mode, avatar, equipment. Writes the
+            swap state; never navigates. */}
+        <SkinSwitcher
+          value={swapState}
+          onChange={setSwapState}
+          onHaptic={haptic.trigger}
+        />
       </SectionErrorBoundary>
 
       {/* ─── Coach channel (replaces full-screen overlay) ─────────── */}

@@ -41,6 +41,9 @@ interface RideVisualizationProps {
   routeTheme: VisualizerTheme;
   /** Which mode of the world presents it — a mood inside a place. */
   worldMode?: string;
+  /** Live avatar/equipment selection (in-ride swaps). Falls back to URL params. */
+  avatarId?: string;
+  equipmentId?: string;
   /** Cloud Kingdom only: "play" (default) or "cinema" chase framing. */
   worldView?: "play" | "cinema";
   searchParams: URLSearchParams;
@@ -63,6 +66,8 @@ export function RideVisualization({
   classData,
   routeTheme,
   worldMode,
+  avatarId,
+  equipmentId,
   worldView,
   searchParams,
   panelState,
@@ -185,8 +190,8 @@ export function RideVisualization({
             powerThresholdW={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
             theme={routeTheme}
             stats={rendererStats}
-            avatarId={searchParams.get("avatarId") || undefined}
-            equipmentId={searchParams.get("equipmentId") || undefined}
+            avatarId={avatarId ?? (searchParams.get("avatarId") || undefined)}
+            equipmentId={equipmentId ?? (searchParams.get("equipmentId") || undefined)}
             routeName={classData.metadata?.route?.name || classData.name}
             routeStartCoordinate={routeCoordinates[0] ?? null}
             currentCoordinate={currentRouteCoordinate}
@@ -215,8 +220,8 @@ export function RideVisualization({
             worldMode={worldMode}
             worldView={worldView}
             storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
-            avatarId={searchParams.get("avatarId") || undefined}
-            equipmentId={searchParams.get("equipmentId") || undefined}
+            avatarId={avatarId ?? (searchParams.get("avatarId") || undefined)}
+            equipmentId={equipmentId ?? (searchParams.get("equipmentId") || undefined)}
             worldId={searchParams.get("worldId") || undefined}
             quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
             className="h-full w-full"
@@ -256,8 +261,8 @@ export function RideVisualization({
           powerThresholdW={Math.max(classData?.metadata?.rewards?.threshold ?? 200, 200)}
           theme={routeTheme}
           stats={rendererStats}
-          avatarId={searchParams.get("avatarId") || undefined}
-          equipmentId={searchParams.get("equipmentId") || undefined}
+          avatarId={avatarId ?? (searchParams.get("avatarId") || undefined)}
+          equipmentId={equipmentId ?? (searchParams.get("equipmentId") || undefined)}
           routeName={classData.metadata?.route?.name || classData.name}
           routeStartCoordinate={routeCoordinates[0] ?? null}
           currentCoordinate={currentRouteCoordinate}
@@ -301,8 +306,8 @@ export function RideVisualization({
           worldMode={worldMode}
           worldView={worldView}
           storyBeats={classData.route?.route?.storyBeats ?? emptyStoryBeats}
-          avatarId={searchParams.get("avatarId") || undefined}
-          equipmentId={searchParams.get("equipmentId") || undefined}
+          avatarId={avatarId ?? (searchParams.get("avatarId") || undefined)}
+          equipmentId={equipmentId ?? (searchParams.get("equipmentId") || undefined)}
           worldId={searchParams.get("worldId") || undefined}
           quality={renderConfig?.gpu.isLowEnd ? "low" : deviceType === "mobile" ? "low" : "high"}
           className="h-full w-full"

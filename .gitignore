@@ -86,6 +86,7 @@ circuits/*/target/
 .blackboxcli/
 .letta/
 .commandcode/
+.perch/
 .agents/
 skills-lock.json
 # react-doctor agent skills (project-level mirrors for many agents — keep global install only)

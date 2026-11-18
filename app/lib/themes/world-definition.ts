@@ -39,6 +39,7 @@ export type AtmosphereKitId =
   | "sun"       // planetary-atmosphere
   | "prism"     // planetary-atmosphere
   | "daycycle"  // daycycle-atmosphere — dusk→dawn sky driven by uDayProgress
+  | "sunset"    // sunset-atmosphere — golden-hour sky, low fixed sun, drifting clouds
   | "cumulus";  // cloud-ride — authored sky shader + metaball sea, not ThemeAtmosphere
 
 /**
