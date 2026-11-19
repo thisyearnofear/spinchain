@@ -14,6 +14,7 @@ import { useWorldAccess } from "@/app/lib/progression";
 import { SELECTABLE_AVATARS, EQUIPMENT } from "@/app/lib/selection-library";
 import { getLocalStorage, setLocalStorage } from "@/app/lib/utils";
 import { safeParse } from "@/app/lib/utils";
+import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 
 /**
  * In-ride skin switcher — the live truth for what the ride renders.
@@ -108,6 +109,7 @@ export function SkinSwitcher({
 
   const onOpen = useCallback(() => {
     setOpen(true);
+    trackEvent(ANALYTICS_EVENTS.SKIN_SWITCHER_OPENED);
     onHaptic?.("light");
     // Warm everything the switcher can offer — the lists are small.
     preload(allAvatarUrls);
@@ -130,6 +132,7 @@ export function SkinSwitcher({
         onHaptic?.("error");
         return;
       }
+      trackEvent(ANALYTICS_EVENTS.SKIN_SWAPPED, { kind: "world", id: theme });
       const mode = modeId ? { id: modeId } : undefined;
       onChange({
         ...value,
@@ -150,6 +153,7 @@ export function SkinSwitcher({
 
   const selectAvatar = useCallback(
     (id: string) => {
+      trackEvent(ANALYTICS_EVENTS.SKIN_SWAPPED, { kind: "avatar", id });
       onChange({ ...value, avatarId: id });
       onHaptic?.("light");
     },
@@ -158,6 +162,7 @@ export function SkinSwitcher({
 
   const selectEquipment = useCallback(
     (id: string) => {
+      trackEvent(ANALYTICS_EVENTS.SKIN_SWAPPED, { kind: "equipment", id });
       onChange({ ...value, equipmentId: id });
       onHaptic?.("light");
     },

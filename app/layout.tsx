@@ -5,6 +5,8 @@ import "@rainbow-me/rainbowkit/styles.css";
 import { Providers } from "./providers";
 import { SmoothScrollProvider } from "@/app/components/ui/smooth-scroll";
 import { ErrorBoundary } from "@/app/components/layout/error-boundary";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -82,6 +84,8 @@ export default function RootLayout({
             <SmoothScrollProvider>{children}</SmoothScrollProvider>
           </Providers>
         </ErrorBoundary>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

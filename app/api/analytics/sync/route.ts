@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiError } from "@/app/lib/api/response";
+import { getServerClient } from "@/app/lib/supabase/client";
 import { appendFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
@@ -46,7 +47,10 @@ function persistEvent(event: typeof analyticsEvents[0]) {
 }
 
 function isServerAnalyticsEnabled() {
-  return process.env.ENABLE_SERVER_ANALYTICS === "true";
+  // Supabase is the durable store — when configured the endpoint is on.
+  // ENABLE_SERVER_ANALYTICS only gates the ephemeral in-memory/JSONL
+  // fallback, which is a development convenience.
+  return !!getServerClient() || process.env.ENABLE_SERVER_ANALYTICS === "true";
 }
 
 function hasAdminAccess(req: NextRequest) {
@@ -84,6 +88,30 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "100"), 500);
   const eventName = req.nextUrl.searchParams.get("event");
   const since = req.nextUrl.searchParams.get("since");
+
+  const supabase = getServerClient();
+  if (supabase) {
+    let query = supabase
+      .from("analytics_events")
+      .select("name, path, payload, session_id, occurred_at")
+      .order("occurred_at", { ascending: false })
+      .limit(limit);
+    if (eventName) query = query.eq("name", eventName);
+    if (since) {
+      const sinceTs = parseInt(since);
+      query = query.gte("occurred_at", new Date(sinceTs).toISOString());
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      return apiError("Failed to fetch events", "INTERNAL_ERROR", 500, error.message);
+    }
+
+    return NextResponse.json({
+      events: data ?? [],
+      summary: { recentEvents: data?.length ?? 0, source: "supabase" },
+    });
+  }
 
   let filtered = [...analyticsEvents];
 
@@ -150,6 +178,14 @@ export async function POST(req: NextRequest) {
 
     const validEvents: string[] = [];
     const invalidEvents: string[] = [];
+    const supabase = getServerClient();
+    const rows: Array<{
+      name: string;
+      path?: string;
+      payload: Record<string, unknown>;
+      session_id: string;
+      occurred_at: string;
+    }> = [];
 
     for (const event of events) {
       if (
@@ -170,14 +206,32 @@ export async function POST(req: NextRequest) {
         sessionId,
       };
 
-      analyticsEvents.push(analyticsEvent);
       validEvents.push(event.name);
 
-      // Persist to file for backup
-      try {
-        persistEvent(analyticsEvent);
-      } catch {
-        // Best-effort persistence
+      if (supabase) {
+        rows.push({
+          name: analyticsEvent.name,
+          path: analyticsEvent.path,
+          payload: analyticsEvent.payload,
+          session_id: analyticsEvent.sessionId,
+          occurred_at: new Date(analyticsEvent.timestamp).toISOString(),
+        });
+      } else {
+        analyticsEvents.push(analyticsEvent);
+
+        // Persist to file for backup
+        try {
+          persistEvent(analyticsEvent);
+        } catch {
+          // Best-effort persistence
+        }
+      }
+    }
+
+    if (supabase && rows.length > 0) {
+      const { error } = await supabase.from("analytics_events").insert(rows);
+      if (error) {
+        return apiError("Failed to store events", "INTERNAL_ERROR", 500, error.message);
       }
     }
 

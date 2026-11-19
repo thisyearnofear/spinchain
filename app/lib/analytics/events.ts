@@ -27,6 +27,9 @@ export const ANALYTICS_EVENTS = {
   SIMULATOR_INPUT_SKIPPED_TOUCH_ONLY: 'simulator_input_skipped_touch_only',
   SIMULATOR_INPUT_LATENCY: 'simulator_input_latency_ms',
   RIDE_SYNC_SUCCESS: 'ride_sync_success',
+  WORLD_CARD_CLICKED: 'world_card_clicked',
+  SKIN_SWITCHER_OPENED: 'skin_switcher_opened',
+  SKIN_SWAPPED: 'skin_swapped',
 } as const;
 
 type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];

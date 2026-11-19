@@ -8,6 +8,7 @@ import {
   type VisualizerTheme,
 } from "@/app/components/features/route/visualizer-theme";
 import { getDemoRideUrl } from "@/app/hooks/evm/use-class-data";
+import { ANALYTICS_EVENTS, trackEvent } from "@/app/lib/analytics/events";
 import {
   DEFAULT_WORLD_ID,
   DEFAULT_WORLD_MODE_ID,
@@ -81,6 +82,13 @@ export function WorldsSection() {
                   worldMode:
                     world.id === DEFAULT_WORLD_ID ? DEFAULT_WORLD_MODE_ID : undefined,
                 })}
+                onClick={() =>
+                  trackEvent(ANALYTICS_EVENTS.WORLD_CARD_CLICKED, {
+                    theme: key,
+                    worldId: world.id,
+                    unlocked,
+                  })
+                }
                 className="group relative block h-44 w-40 shrink-0 snap-start overflow-hidden rounded-2xl border border-[color:var(--border)] transition-transform duration-150 hover:-translate-y-1 md:h-52 md:w-auto"
                 style={{
                   background: `linear-gradient(to bottom, ${theme.skyTop}, ${theme.skyBottom})`,
