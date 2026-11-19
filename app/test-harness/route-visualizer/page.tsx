@@ -86,6 +86,21 @@ export default function TestHarnessRouteVisualizerPage() {
   };
   const progress = parseParam(searchParams.get("progress")) ?? progressMap[state] ?? 0;
 
+  // ?peloton=N renders N named rivals straddling the rider's progress —
+  // verifies the peloton layer without a live coordinator.
+  const pelotonCount = parseParam(searchParams.get("peloton")) ?? 0;
+  const peloton = useMemo(() => {
+    const names = ["Your Best", "Peloton Avg", "Gold Standard", "KOM Hunter"];
+    const tones = ["pb", "peloton", "pacer", "peloton"] as const;
+    return Array.from({ length: Math.min(pelotonCount, 10) }, (_, i) => ({
+      progress: progress + [-0.003, 0.004, -0.007, 0.008][i % 4],
+      name: names[i % names.length],
+      // Sign convention matches telemetry: <0 = ahead of the rider.
+      leadLagTime: [4, -7, 11, -3][i % 4],
+      tone: tones[i % tones.length],
+    }));
+  }, [pelotonCount, progress]);
+
   const modeMap: Record<string, "preview" | "ride" | "finished"> = {
     preview: "preview",
     "active-play": "ride",
@@ -128,6 +143,7 @@ export default function TestHarnessRouteVisualizerPage() {
         flowTier={state.startsWith("active-play") ? 2 : 0}
         intervalPhase={state.startsWith("active-play") ? "interval" : null}
         paused={paused}
+        ghosts={peloton}
       />
       {/* Harness label — hidden for screenshots via data-hide-debug-ui */}
       <div className="absolute top-2 left-2 rounded bg-black/60 px-2 py-1 text-[10px] font-mono text-white/60 pointer-events-none">

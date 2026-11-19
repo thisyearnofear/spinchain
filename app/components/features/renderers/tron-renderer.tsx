@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { memo, Suspense } from "react";
 import type { VisualizerTheme } from "@/app/components/features/route/route-visualizer";
-import type { StoryBeat } from "@/app/components/features/route/route-visualizer";
+import type { StoryBeat, PelotonGhost } from "@/app/components/features/route/route-visualizer";
 import type { IntervalPhase } from "@/app/lib/phase-theme";
 import type { FlowStateTier } from "@/app/lib/flow-state";
 import type { WebglUnavailableReason } from "@/app/lib/gpu-probe";
@@ -42,6 +42,8 @@ export interface TronRendererProps {
   active?: boolean;
   /** 3D can't run here — the parent should switch to 2D Focus. */
   onWebglUnavailable?: (reason: WebglUnavailableReason) => void;
+  /** Rivals rendered on the route — names, lead/lag, peloton tones. */
+  peloton?: PelotonGhost[];
 }
 
 /**
@@ -90,6 +92,7 @@ export const TronRenderer = memo(function TronRenderer(props: TronRendererProps)
         contextPalette={props.contextPalette}
         active={props.active ?? true}
         onWebglUnavailable={props.onWebglUnavailable}
+        ghosts={props.peloton}
       />
     </Suspense>
   );

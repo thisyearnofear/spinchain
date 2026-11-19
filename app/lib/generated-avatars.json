@@ -89,6 +89,18 @@
         {
           "name": "pedal",
           "url": "/characters/ember-mk2-pedal.glb"
+        },
+        {
+          "name": "idle",
+          "url": "/characters/ember-mk2-idle.glb"
+        },
+        {
+          "name": "recovery",
+          "url": "/characters/ember-mk2-recovery.glb"
+        },
+        {
+          "name": "celebrate",
+          "url": "/characters/ember-mk2-celebrate.glb"
         }
       ]
     }

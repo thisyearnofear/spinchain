@@ -1495,47 +1495,129 @@ const _ghostPoint = new THREE.Vector3();
 const _ghostTangent = new THREE.Vector3();
 const _ghostLookAt = new THREE.Vector3();
 
+/** A rival rendered on the route — a rider silhouette + name chip, not a
+ *  bare marker. `progress` is route progress (0..1), mapped through
+ *  mapToCurveProgress like the rider's own. */
+export interface PelotonGhost {
+  progress: number;
+  name?: string;
+  /** Seconds the ghost is behind (>0) or ahead (<0) at the rider's point. */
+  leadLagTime?: number;
+  tone?: "pb" | "peloton" | "pacer";
+}
+
+const PELOTON_TONES: Record<NonNullable<PelotonGhost["tone"]>, { body: string; accent: string }> = {
+  pb: { body: "#34d399", accent: "#a7f3d0" },
+  peloton: { body: "#7dd3fc", accent: "#e0f2fe" },
+  pacer: { body: "#fbbf24", accent: "#fde68a" },
+};
+
 function GhostRider({
   curve,
-  progress,
-  index,
+  ghost,
   theme = "neon",
 }: {
   curve: CatmullRomCurve3;
-  progress: number;
-  index: number;
+  ghost: PelotonGhost;
   theme?: VisualizerTheme;
 }) {
   const groupRef = useRef<Group>(null);
+  const crankRef = useRef<Group>(null);
   const styles = getTheme(theme);
+  const tone = ghost.tone
+    ? PELOTON_TONES[ghost.tone]
+    : { body: styles.riderColor, accent: "#e0f2fe" };
+  const progress = ghost.progress;
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (!groupRef.current) return;
-    const point = curve.getPointAt(progress, _ghostPoint);
+    const t = mapToCurveProgress(progress);
+    const point = curve.getPointAt(t, _ghostPoint);
     // Guard: degenerate curve positions produce NaN; skip the frame rather than
     // propagating garbage coordinates to child geometries.
     if (!Number.isFinite(point.x) || !Number.isFinite(point.y) || !Number.isFinite(point.z)) return;
-    const tangent = curve.getTangentAt(progress, _ghostTangent);
+    const tangent = curve.getTangentAt(t, _ghostTangent);
     groupRef.current.position.copy(point);
-    groupRef.current.position.y += 1.2;
     _ghostLookAt.copy(point).add(tangent);
     groupRef.current.lookAt(_ghostLookAt);
+    if (crankRef.current) crankRef.current.rotation.x += delta * 9;
   });
+
+  const ghostProps = { transparent: true, opacity: 0.55 } as const;
 
   return (
     <group ref={groupRef}>
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.5, 1.2, 8]} />
-        <meshStandardMaterial
-          color={styles.riderColor}
-          transparent
-          opacity={0.3}
-          metalness={1}
-        />
+      {/* wheels */}
+      <mesh position={[0, 0.34, -0.48]} rotation={[0, Math.PI / 2, 0]}>
+        <torusGeometry args={[0.34, 0.035, 8, 20]} />
+        <meshStandardMaterial color={tone.body} {...ghostProps} />
       </mesh>
-      <Html position={[0, 2, 0]} center transform sprite distanceFactor={10} zIndexRange={[5, 0]}>
-        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded px-1.5 py-0.5 text-[8px] font-mono text-white/60">
-          #{index + 2}
+      <mesh position={[0, 0.34, 0.48]} rotation={[0, Math.PI / 2, 0]}>
+        <torusGeometry args={[0.34, 0.035, 8, 20]} />
+        <meshStandardMaterial color={tone.body} {...ghostProps} />
+      </mesh>
+      {/* frame: seat stays + top tube + down tube (stylized) */}
+      <mesh position={[0, 0.62, -0.05]} rotation={[Math.PI / 2 - 0.12, 0, 0]}>
+        <boxGeometry args={[0.05, 0.85, 0.05]} />
+        <meshStandardMaterial color={tone.body} {...ghostProps} />
+      </mesh>
+      <mesh position={[0, 0.55, 0.28]} rotation={[Math.PI / 2 - 0.7, 0, 0]}>
+        <boxGeometry args={[0.045, 0.62, 0.045]} />
+        <meshStandardMaterial color={tone.body} {...ghostProps} />
+      </mesh>
+      {/* spinning crank — sells pedaling at a glance */}
+      <group ref={crankRef} position={[0, 0.42, 0.02]}>
+        <mesh rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.09, 0.09, 0.05, 12]} />
+          <meshStandardMaterial color={tone.accent} {...ghostProps} />
+        </mesh>
+        <mesh position={[0, 0.22, 0]}>
+          <boxGeometry args={[0.16, 0.04, 0.1]} />
+          <meshStandardMaterial color={tone.accent} {...ghostProps} />
+        </mesh>
+        <mesh position={[0, -0.22, 0]}>
+          <boxGeometry args={[0.16, 0.04, 0.1]} />
+          <meshStandardMaterial color={tone.accent} {...ghostProps} />
+        </mesh>
+      </group>
+      {/* rider: hips → leaning torso → head + helmet, arms to the bars */}
+      <mesh position={[0, 0.92, -0.18]}>
+        <sphereGeometry args={[0.15, 10, 10]} />
+        <meshStandardMaterial color={tone.body} {...ghostProps} />
+      </mesh>
+      <mesh position={[0, 1.14, 0.08]} rotation={[0.9, 0, 0]}>
+        <capsuleGeometry args={[0.15, 0.42, 4, 10]} />
+        <meshStandardMaterial color={tone.body} {...ghostProps} />
+      </mesh>
+      <mesh position={[0, 1.42, 0.3]}>
+        <sphereGeometry args={[0.12, 10, 10]} />
+        <meshStandardMaterial color={tone.accent} {...ghostProps} />
+      </mesh>
+      <mesh position={[0, 1.5, 0.27]} scale={[1, 0.7, 1.15]}>
+        <sphereGeometry args={[0.13, 10, 10]} />
+        <meshStandardMaterial color={tone.body} {...ghostProps} />
+      </mesh>
+      {/* arms to bars + legs to crank */}
+      <mesh position={[0, 1.12, 0.38]} rotation={[1.15, 0, 0]}>
+        <capsuleGeometry args={[0.05, 0.42, 4, 8]} />
+        <meshStandardMaterial color={tone.body} {...ghostProps} />
+      </mesh>
+      <mesh position={[0.1, 0.68, -0.02]} rotation={[0.35, 0, 0]}>
+        <capsuleGeometry args={[0.06, 0.5, 4, 8]} />
+        <meshStandardMaterial color={tone.body} {...ghostProps} />
+      </mesh>
+      <mesh position={[-0.1, 0.68, -0.02]} rotation={[-0.35, 0, 0]}>
+        <capsuleGeometry args={[0.06, 0.5, 4, 8]} />
+        <meshStandardMaterial color={tone.body} {...ghostProps} />
+      </mesh>
+      <Html position={[0, 2.1, 0]} center transform sprite distanceFactor={10} zIndexRange={[5, 0]}>
+        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded px-1.5 py-0.5 text-[8px] font-mono text-white/70 whitespace-nowrap">
+          {ghost.name ?? `Rival`}
+          {ghost.leadLagTime != null && (
+            <span className={ghost.leadLagTime < 0 ? "text-emerald-300" : "text-rose-300"}>
+              {" "}{ghost.leadLagTime < 0 ? "+" : "-"}{Math.abs(ghost.leadLagTime).toFixed(0)}s
+            </span>
+          )}
         </div>
       </Html>
     </group>
@@ -1799,7 +1881,7 @@ function Scene({
   progress?: number;
   mode?: VisualizerMode;
   storyBeats?: StoryBeat[];
-  ghosts?: number[];
+  ghosts?: (number | PelotonGhost)[];
   stats?: RiderStats;
   avatar?: AvatarAsset;
   equipment?: EquipmentAsset;
@@ -2347,9 +2429,12 @@ function Scene({
         />
 
         {/* Limit ghosts on low-end devices */}
-        {ghosts.slice(0, quality?.particleCount && quality.particleCount < 200 ? 3 : 10).map((g, i) => (
-          <GhostRider key={`ghost-${g.toFixed(4)}`} index={i} curve={curve} progress={mapToCurveProgress(g)} theme={theme} />
-        ))}
+        {ghosts.slice(0, quality?.particleCount && quality.particleCount < 200 ? 3 : 10).map((raw, i) => {
+          const ghost: PelotonGhost = typeof raw === "number" ? { progress: raw } : raw;
+          return (
+            <GhostRider key={`ghost-${ghost.name ?? i}`} curve={curve} ghost={ghost} theme={theme} />
+          );
+        })}
 
         {storyBeats.map((beat) => (
           <BeatMarker key={`${beat.type}-${beat.progress.toFixed(3)}-${beat.label}`} beat={beat} curve={curve} riderProgress={displayProgress} />
@@ -2418,7 +2503,7 @@ export default function RouteVisualizer({
   mode?: VisualizerMode;
   stats?: RiderStats;
   storyBeats?: StoryBeat[];
-  ghosts?: number[];
+  ghosts?: (number | PelotonGhost)[];
   className?: string;
   avatarId?: string;
   equipmentId?: string;

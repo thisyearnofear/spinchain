@@ -22,7 +22,7 @@ import { EASE_SMOOTH } from "@/app/lib/motion";
 import { useContextAware } from "@/app/lib/context-palette";
 import { probeGpu, getQualitySettings } from "@/app/lib/gpu-probe";
 import { useRideStore } from "@/app/stores/ride-store";
-import { useTelemetryStore } from "@/app/stores/telemetry-store";
+import { useTelemetryStore, selectMultiGhostState } from "@/app/stores/telemetry-store";
 import { useCoachingStore } from "@/app/stores/coaching-store";
 import { useUIStore } from "@/app/stores/ui-store";
 
@@ -34,7 +34,7 @@ interface RideVisualizationProps {
     name: string;
     route?: { route?: { storyBeats?: StoryBeat[] } } | null;
     metadata?: {
-      route: { name?: string };
+      route: { name?: string; distance?: number };
       rewards?: { threshold?: number };
     } | null;
   };
@@ -169,6 +169,27 @@ export function RideVisualization({
     viewMode === "focus" || webglUnavailable ? "focus-2d" : "tron-3d";
 
   const routeProgress = isRiding || rideProgress > 0 ? rideProgress / 100 : 0;
+
+  // Live peloton — the engine already tracks named rivals (personal best /
+  // leaderboard / instructor pacer) as lead-lag + distance gaps; this is the
+  // projection onto the route curve. distanceGap is rider-minus-ghost meters,
+  // so ahead ⇒ negative gap ⇒ progress ahead of the rider.
+  const multiGhostState = useTelemetryStore(selectMultiGhostState);
+  const routeDistanceM = (classData?.metadata?.route?.distance || 15) * 1000;
+  const peloton = useMemo(
+    () =>
+      multiGhostState.map((g) => ({
+        progress: routeProgress - g.distanceGap / routeDistanceM,
+        name: g.name,
+        leadLagTime: g.leadLagTime,
+        tone: (g.id.includes("personal_best")
+          ? "pb"
+          : g.id.includes("instructor")
+            ? "pacer"
+            : "peloton") as "pb" | "peloton" | "pacer",
+      })),
+    [multiGhostState, routeProgress, routeDistanceM],
+  );
   const visualizerMode: "preview" | "ride" | "finished" =
     rideProgress >= 100 ? "finished" : isRiding || rideProgress > 0 ? "ride" : "preview";
 
@@ -230,6 +251,7 @@ export function RideVisualization({
             flowTier={flowTier}
             contextPalette={contextPalette}
             onWebglUnavailable={markWebglUnavailable}
+            peloton={peloton}
           />
         )}
       </div>
@@ -317,6 +339,7 @@ export function RideVisualization({
           contextPalette={contextPalette}
           active={!isFocus}
           onWebglUnavailable={markWebglUnavailable}
+            peloton={peloton}
         />
       </m.div>
       )}
