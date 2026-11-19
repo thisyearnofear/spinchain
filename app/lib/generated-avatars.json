@@ -81,11 +81,10 @@
       "id": "ember",
       "name": "Ember",
       "type": "humanoid",
-      "modelUrl": "/characters/rider-ember.glb",
+      "modelUrl": "/characters/ember-mk2-meshy.glb",
       "thumbnail": "/characters/rider-ember.webp",
-      "description": "Fuser-generated crimson-kit rider archetype — Tripo image-to-3D, rigged via Meshy Rigging. EXPERIMENTAL: the mesh has no arm volume (a flat fan, not tubes — see assets/fuser/STATUS.md); needs a regenerated mesh. Procedural IK drives legs/pedaling.",
-      "generated": true,
-      "experimental": true
+      "description": "Fuser-conceived crimson-kit rider, regenerated via avatar-factory (Meshy i2d t2.5 smart topology + n1 texture + Mixamo rig). Geometry-gated and rig-studio verified; procedural IK drives legs/pedaling.",
+      "generated": true
     }
   ]
 }

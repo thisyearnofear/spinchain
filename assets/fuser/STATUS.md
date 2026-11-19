@@ -3,48 +3,46 @@
 Snapshot of where the Fuser-generated asset integration stands and what's left.
 Update or delete this file once the remaining work lands.
 
-## Ember rider (`rider-ember`)
+## Ember rider — REGENERATED, VERIFIED, SHIPPED (19 Nov)
 
-**Registered** in `app/lib/generated-avatars.json` as `ember`, pointing at
-`public/characters/rider-ember.glb` (+ `rider-ember.webp` thumbnail), and
-flagged `experimental` — hidden from the garage and the in-ride skin
-switcher (`SELECTABLE_AVATARS`) but still resolvable by id for rig-studio
-work. **Not shippable, and not repairable by re-weighting.**
+`ember` now points at `public/characters/ember-mk2-meshy.glb`, produced by
+`scripts/meshy/avatar-factory.mjs` from the same `rider-ember-ref.png`
+T-pose still (the Tripo mesh was the failure, not the image):
 
-**Diagnosis (verified 18 Nov, `scripts/meshy/analyze-ember*.mjs`):** the
-Tripo mesh has **no arm geometry at all**. There is a literal vertex gap
-between torso and "arm": on the left, zero verts between x≈0.10 and
-x≈0.60, then a flat fan at y≈0.51 (one vertex thick) spanning z 0→0.96 —
-what reads as an arm in the thumbnail is that fan's edge silhouette. The
-earlier note's "arms bent forward at the elbow (wrists z≈0.43)" was the
-same sheet misread as a tube. Rig-studio confirms it visually: the IK
-fit solves (hip on saddle, torso 6.4°) and legs pedal, but in `view=head`
-an "arm" points skyward, `view=side` shows the hand overshooting the
-bars horizontally, and the sheet renders as a black fin off the back —
-`/test-harness/rig-studio?avatar=ember&view=head|bars&markers=1&debug=1`.
+- image-to-3d `meshy-t2.5` smart-topology, t-pose, 30k target, `meshy-n1`
+  texture (task `01a1f142`, 15cr) → `ember-mk2.glb` — 21,462 verts, real
+  arm tubes both sides (factory geometry gate PASS)
+- Meshy rigging (task `01a1f143`, 5cr) → `ember-mk2-meshy.glb` + baked
+  walk/run clip GLBs. Mixamo bone names the IK pass expects.
+- Rig-studio visual pass on all five views: hands land on the drops,
+  aero tuck with helmet/visor, feet on pedals, no fin/overshoot.
+  `experimental` flag removed — selectable everywhere.
 
-**Coordinate spaces of the shipped GLB** (it is a recentered re-export —
-60k verts, POSITION ±0.96 — not the 98k/1.7 m source described below):
+The dead originals remain in `public/characters/` as `rider-ember*.glb`
+(~32 MB, unreferenced) — safe to delete when convenient;
+`assets/fuser/rider-ember.glb` and `ember-rig-fixed-experimental.glb`
+stay for forensics.
+
+### Diagnosis of the original (kept for the record)
+
+The Tripo mesh had **no arm geometry at all**: a literal vertex gap
+between torso and "arm" (left: zero verts x≈0.10→0.60), then a flat fan
+at y≈0.51 spanning z 0→0.96 — the thumbnail "arm" was that fan's edge
+silhouette. No weight fix could help; the geometry didn't exist. The
+avatar-factory geometry gate (`gateHumanoid` in
+`scripts/meshy/avatar-factory.mjs`) now codifies this check — contiguous
+arm coverage + minimum cross-section — and runs for free between
+generation and the paid rig step, so a malformed mesh stops at the i2d
+charge instead of shipping.
+
+**Coordinate spaces of the old shipped GLB** (recentered re-export —
+60k verts, POSITION ±0.96 — not the 98k/1.7 m source):
 
 - `inv(IBM)` translations live in raw mesh space; scene space is cm via
   `chainMat = 88.9·(meshPos + (0, 0.957, 0))` — derive this transform,
   don't hardcode the old `ARMATURE_SCALE=100`.
 - `scripts/meshy/probe-rig-space.mjs` prints inv(IBM)/chain/POSITION for
   any rigged GLB; use it before trusting numbers from the other variant.
-
-**Why the repair can't land:** `scripts/meshy/fix-rig-arms.mjs` rewrites
-weights and rebuilds IBMs, but there is no arm volume to bind — folding
-the fan onto Arm/ForeArm/Hand joints only folds a plane. Output preserved
-at `assets/fuser/ember-rig-fixed-experimental.glb` for forensics.
-
-**Path forward (pick one, all need a new mesh — weights can't help):**
-
-1. Fresh image→3D with a different source pose or generator (costs
-   credits — confirm before spending).
-2. Re-rig in Blender/Mixamo is pointless for the same reason: the
-   geometry is missing, not just the binding.
-3. Alternatively drop Ember entirely and keep only `fuser-cycle`
-   (verified below) + the trophy from this batch.
 
 ## Fuser bike (`bike-fuser-rig.glb`)
 
