@@ -12,7 +12,8 @@ const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-geist-sans",
   display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
+  // 300 (light) has zero usages in markup or CSS — don't ship the file.
+  weight: ["400", "500", "600", "700"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -72,10 +73,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Rive wasm is ~1.9 MB and was fetched only when a ride mounted;
-            preloading it here means the runtime is parsed by the time the
-            activation ceremony starts. */}
-        <link rel="preload" href="/rive/rive.wasm" as="fetch" crossOrigin="anonymous" />
+        {/* Rive wasm is ~1.9 MB and was fetched only when a ride mounted.
+            Prefetch (not preload): it lands in cache at idle priority so a
+            ride start is still warm, without competing with the landing
+            page's critical resources on every first visit. */}
+        <link rel="prefetch" href="/rive/rive.wasm" as="fetch" crossOrigin="anonymous" />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${outfit.variable} ${jetbrainsMono.variable} antialiased`}>
