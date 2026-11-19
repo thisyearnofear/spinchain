@@ -17,11 +17,14 @@ T-pose still (the Tripo mesh was the failure, not the image):
 - Rig-studio visual pass on all five views: hands land on the drops,
   aero tuck with helmet/visor, feet on pedals, no fin/overshoot.
   `experimental` flag removed — selectable everywhere.
+- State-driven `pedal` clip added via `generate-clip.mjs` (swift, 6cr,
+  motion `01a1f152` → `ember-mk2-pedal.glb`, 72 channels / 24 joints).
 
-The dead originals remain in `public/characters/` as `rider-ember*.glb`
-(~32 MB, unreferenced) — safe to delete when convenient;
-`assets/fuser/rider-ember.glb` and `ember-rig-fixed-experimental.glb`
-stay for forensics.
+The dead originals were deleted 19 Nov (`public/characters/rider-ember*.glb`,
+`rider-ember.meshy.json`, `assets/fuser/rider-ember.glb`,
+`ember-rig-fixed-experimental.glb`, ~32 MB total). The diagnosis below
+preserves the record; `rider-ember.webp` stays as the live thumbnail and
+`rider-ember-ref.png` as the factory source still.
 
 ### Diagnosis of the original (kept for the record)
 

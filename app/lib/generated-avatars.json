@@ -29,7 +29,7 @@
       "type": "robot",
       "modelUrl": "/characters/volt.glb",
       "thumbnail": "/characters/volt.webp",
-      "description": "Mint-generated robot rider \u2014 matte graphite with luminous teal energy accents. First earned-unlock archetype.",
+      "description": "Mint-generated robot rider — matte graphite with luminous teal energy accents. First earned-unlock archetype.",
       "generated": true,
       "clips": [
         {
@@ -84,7 +84,13 @@
       "modelUrl": "/characters/ember-mk2-meshy.glb",
       "thumbnail": "/characters/rider-ember.webp",
       "description": "Fuser-conceived crimson-kit rider, regenerated via avatar-factory (Meshy i2d t2.5 smart topology + n1 texture + Mixamo rig). Geometry-gated and rig-studio verified; procedural IK drives legs/pedaling.",
-      "generated": true
+      "generated": true,
+      "clips": [
+        {
+          "name": "pedal",
+          "url": "/characters/ember-mk2-pedal.glb"
+        }
+      ]
     }
   ]
 }
