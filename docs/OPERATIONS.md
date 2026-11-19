@@ -562,6 +562,8 @@ or contract operation was performed.
 
 **Operator action — completed 2026-10-07:** `app/lib/supabase/migrations/20261007_rider_consents.sql` applied to production Supabase (`avcihfixqlofvkpvwmiq`) via `supabase db query --linked`; columns verified (`address`, `scope`, `granted`, `policy_version`, `updated_at`). Consent PUTs and consent-gated cloud sync are live.
 
+**Operator action — completed 2026-11-19:** `app/lib/supabase/migrations/20261119_analytics_events.sql` applied to production Supabase (`avcihfixqlofvkpvwmiq`) via `supabase db query --linked` under the `sneldao` account (project was free-tier paused; restored first). Table verified: `id, name, path, payload, session_id, occurred_at, received_at`, RLS enabled with no policies. End-to-end write path verified: POST `/api/analytics/sync` → row landed in `analytics_events`. Note: the project owner is `sneldao`, not `thisyearnofear` — CLI operations must run under that login.
+
 **Verification:** every PR merged on full green CI (CI, react-doctor, EVM verifier, Rive goldens, iOS xcodebuild where relevant); 506 unit tests / 53 files locally. The E2E gate is now build-once + shard: a standalone artifact is built once, then 6 Playwright shards plus 3 dedicated `workers: 1` visual-regression shards serve it (~6.5 min wall vs ~20–29 min serial).
 
 #### 2026-10-04 — Phase 1 deployed (22:27 UTC)

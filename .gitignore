@@ -88,6 +88,7 @@ circuits/*/target/
 .commandcode/
 .perch/
 .agents/
+supabase/.temp/
 skills-lock.json
 # react-doctor agent skills (project-level mirrors for many agents — keep global install only)
 .claude/
