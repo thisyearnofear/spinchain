@@ -1,9 +1,12 @@
-import { inflateSync } from "node:zlib";
 import { test, expect } from "@playwright/test";
+import { pixelStats } from "./support/pixel-stats";
 
-// SwiftShader compiles every shader on the first frame, and the fixed
-// harness clock then draws 30 more before it settles.
-test.setTimeout(150_000);
+// SwiftShader compiles every shader on the first frame, and the fixed harness
+// clock then draws 30 more before it settles. The mobile project renders that
+// same 30-frame budget into a ~4x larger buffer, which on CI's software GL took
+// longer than the old 150s — so the budget gets the time it needs instead of
+// the run being reported as "the harness never drew".
+test.setTimeout(300_000);
 
 // Particles and a few decorations place themselves with Math.random() at
 // mount. Seed it (mulberry32) so the scene is the same scene every run.
@@ -40,13 +43,24 @@ test.beforeEach(async ({ page }) => {
 // paused=1 hands the R3F loop to FixedHarnessClock (route-visualizer.tsx):
 // a fixed number of fixed-step frames, then the last one is held. Every run
 // renders the same real 3D frame, so the baselines diff the scene itself.
+// Each state pins its world. They were authored when a ride defaulted to the
+// neon world; the product default is now Cloud, so an unpinned state quietly
+// photographed a different world than its baseline. A visual state must name
+// the place it is a baseline of.
 const STATES = [
-  { name: "preview", url: "/test-harness/route-visualizer?testState=preview&seed=123&paused=1", fullPage: true },
-  { name: "active-play", url: "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1", fullPage: true },
-  { name: "finished", url: "/test-harness/route-visualizer?testState=finished&seed=123&paused=1", fullPage: true },
+  { name: "preview", url: "/test-harness/route-visualizer?testState=preview&seed=123&paused=1&theme=neon", fullPage: true },
+  { name: "active-play", url: "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1&theme=neon", fullPage: true },
+  { name: "finished", url: "/test-harness/route-visualizer?testState=finished&seed=123&paused=1&theme=neon", fullPage: true },
   // The Cloud Kingdom is the product's DEFAULT world, so it needs a baseline
   // of its own — a change to the default world's look must fail here, not
   // pass against a stale Tron frame.
+  //
+  // Be warned: this baseline is currently a BLACK FRAME (dated 22 Oct), and the
+  // low colour bar below lets it pass. The authored cloud kit draws nothing
+  // under software WebGL — the same blackness shows in the harness at every
+  // progress and in the live /rider/ride/demo?theme=cloud — so this test
+  // currently guards "the next frame is also black", not "the world renders".
+  // See the blocked case in effort-world.spec.ts for the evidence.
   { name: "cloud-active-play", url: "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1&theme=cloud", fullPage: true },
 ] as const;
 
@@ -61,7 +75,7 @@ async function gotoWithHarness(page: import("@playwright/test").Page, url: strin
   await page.waitForFunction(() => typeof (window as unknown as { __THREE_GAME_TEST_HOOKS__?: unknown }).__THREE_GAME_TEST_HOOKS__ !== "undefined", { timeout: 10_000 }).catch(() => {});
   await page.locator("canvas").first().waitFor({ state: "attached", timeout: 30_000 });
   if (url.includes("paused=1")) {
-    await page.waitForSelector('html[data-harness-clock="settled"]', { state: "attached", timeout: 120_000 });
+    await page.waitForSelector('html[data-harness-clock="settled"]', { state: "attached", timeout: 240_000 });
   } else {
     await page.waitForTimeout(1500);
   }
@@ -80,10 +94,29 @@ async function gotoWithHarness(page: import("@playwright/test").Page, url: strin
  * The Cloud Kingdom is the exception: its authored look is matte pastel —
  * cumulus + lilac deck quantize to far fewer 5-bit colours — so its states
  * pass a lower bar. The contrast check still catches a blank/black frame.
+ *
+ * Polled, not sampled once. The harness now settles only on a frame it can see
+ * in the drawing buffer (see FixedHarnessClock), and this poll is the outer
+ * guarantee on top of that: a single screenshot taken the instant a clock
+ * reports "settled" could still catch the compositor mid-paint, which failed
+ * one run in five on `finished` — always with the same ~120 colours, always
+ * passing on retry. The bar is unchanged; the sample became a deadline.
  */
 async function expectDrawnScene(page: import("@playwright/test").Page, minColors = 200) {
-  const stats = pixelStats(await page.screenshot());
-  expect(stats.distinctColors, `harness frame is not a drawn scene: ${JSON.stringify(stats)}`).toBeGreaterThan(minColors);
+  let stats = { width: 0, height: 0, distinctColors: 0, lumaRange: 0 };
+  await expect
+    .poll(
+      async () => {
+        stats = pixelStats(await page.screenshot());
+        return stats.distinctColors;
+      },
+      {
+        message: `harness never drew a scene (>${minColors} distinct colours)`,
+        timeout: 30_000,
+        intervals: [200, 300, 500, 800, 1200],
+      },
+    )
+    .toBeGreaterThan(minColors);
   expect(stats.lumaRange, `harness frame has no contrast: ${JSON.stringify(stats)}`).toBeGreaterThan(40);
 }
 
@@ -101,68 +134,10 @@ test("visual — active-play @ mobile", async ({ page }) => {
   // This test only runs in the mobile project (Pixel 5 viewport via playwright.config.ts)
   // When run on desktop project, it will still pass but use desktop viewport — the
   // config's second project ensures true mobile coverage.
-  await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1");
+  await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1&theme=neon");
   await expectDrawnScene(page);
   await expect(page).toHaveScreenshot(`active-play-mobile.png`, { fullPage: false });
 });
-
-/**
- * Decode an 8-bit RGB/RGBA PNG (what Playwright screenshots are) with node's
- * zlib and summarise it: distinct colours at 5 bits/channel and luma range.
- */
-function pixelStats(png: Buffer) {
-  const width = png.readUInt32BE(16);
-  const height = png.readUInt32BE(20);
-  const bitDepth = png[24];
-  const colorType = png[25];
-  if (bitDepth !== 8 || (colorType !== 2 && colorType !== 6)) {
-    throw new Error(`unsupported PNG: depth ${bitDepth}, colour type ${colorType}`);
-  }
-  const bpp = colorType === 6 ? 4 : 3;
-  const idat: Buffer[] = [];
-  for (let off = 8; off < png.length; ) {
-    const len = png.readUInt32BE(off);
-    const type = png.toString("ascii", off + 4, off + 8);
-    if (type === "IDAT") idat.push(png.subarray(off + 8, off + 8 + len));
-    off += 12 + len;
-  }
-  const raw = inflateSync(Buffer.concat(idat));
-  const stride = width * bpp;
-  const prev = Buffer.alloc(stride);
-  const row = Buffer.alloc(stride);
-  const colors = new Set<number>();
-  let min = 255;
-  let max = 0;
-  for (let y = 0; y < height; y++) {
-    const base = y * (stride + 1);
-    const filter = raw[base];
-    for (let x = 0; x < stride; x++) {
-      const v = raw[base + 1 + x];
-      const a = x >= bpp ? row[x - bpp] : 0;
-      const b = prev[x];
-      const c = x >= bpp ? prev[x - bpp] : 0;
-      let pred = 0;
-      if (filter === 1) pred = a;
-      else if (filter === 2) pred = b;
-      else if (filter === 3) pred = (a + b) >> 1;
-      else if (filter === 4) {
-        const p = a + b - c;
-        const pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
-        pred = pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
-      }
-      row[x] = (v + pred) & 0xff;
-    }
-    for (let x = 0; x < stride; x += bpp * 7) {
-      const r = row[x], g = row[x + 1], bl = row[x + 2];
-      colors.add(((r >> 3) << 10) | ((g >> 3) << 5) | (bl >> 3));
-      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * bl;
-      if (lum < min) min = lum;
-      if (lum > max) max = lum;
-    }
-    row.copy(prev);
-  }
-  return { width, height, distinctColors: colors.size, lumaRange: max - min };
-}
 
 test("canvas is non-blank smoke", async ({ page }) => {
   // SwiftShader under parallel workers can take a while to parse the HDR and
@@ -170,7 +145,10 @@ test("canvas is non-blank smoke", async ({ page }) => {
   test.setTimeout(120_000);
   // Live loop, not paused=1: the baselines above prove the fixed-clock path
   // draws; this proves the production demand loop does too.
-  await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123");
+  // World pinned for the same reason as the states above: the bar below ("sky,
+  // terrain, route, glow and fog") describes a lit scene, and an unpinned theme
+  // now resolves to the Cloud world, whose mid-ride frame is a near-black deck.
+  await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123&theme=neon");
   const canvas = page.locator("canvas").first();
   await expect(canvas).toBeVisible();
   // An undrawn canvas shows only the CSS gradient behind it (~40–110 colours

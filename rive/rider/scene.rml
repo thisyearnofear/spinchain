@@ -688,9 +688,15 @@
         <LinearAnimation duration="48" loopValue="loop" name="Ready" id="0:94">
             <KeyedObject objectId="0:20">
                 <KeyedProperty propertyKey="14">
-                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"/>
-                    <KeyFrameDouble value="-3" frame="24" interpolationType="cubic"/>
-                    <KeyFrameDouble value="0" frame="48" interpolationType="cubic"/>
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="-3" frame="24" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="48" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
                 </KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:36">
@@ -711,9 +717,15 @@
         <LinearAnimation duration="120" loopValue="loop" name="Fatigued" id="0:95">
             <KeyedObject objectId="0:20">
                 <KeyedProperty propertyKey="14">
-                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"/>
-                    <KeyFrameDouble value="2" frame="60" interpolationType="cubic"/>
-                    <KeyFrameDouble value="0" frame="120" interpolationType="cubic"/>
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="2" frame="60" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="120" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
                 </KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="0:36">

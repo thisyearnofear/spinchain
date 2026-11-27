@@ -41,6 +41,11 @@ export default function TestHarnessRouteVisualizerPage() {
     (searchParams.get("quality") as "low" | "medium" | "high" | null) || "high";
   // paused=1 hands the R3F loop to FixedHarnessClock: fixed-step frames, last one held
   const paused = searchParams.get("paused") === "1" || searchParams.get("paused") === "true";
+  // lens=<0..1> holds the ride lens at a fixed width — the ease needs real frame
+  // deltas, which the held harness frame does not provide.
+  const lensParam = searchParams.get("lens");
+  const forcedLensWidth =
+    lensParam === null || !Number.isFinite(Number(lensParam)) ? undefined : Number(lensParam);
 
   // Deterministic route — same for all harness states so diffs are only visual state, not route
   const { route, elevationProfile } = useMemo(() => {
@@ -140,6 +145,7 @@ export default function TestHarnessRouteVisualizerPage() {
         storyBeats={route.route.storyBeats ?? []}
         className="h-full w-full"
         quality={quality}
+        forcedLensWidth={forcedLensWidth}
         flowTier={state.startsWith("active-play") ? 2 : 0}
         intervalPhase={state.startsWith("active-play") ? "interval" : null}
         paused={paused}

@@ -14,8 +14,9 @@
 import type { WorldDefinition, WorldMode } from "@/app/lib/themes/world-definition";
 import { TRON_WORLD } from "@/app/lib/themes/worlds/tron-world";
 import { CLOUD_WORLD } from "@/app/lib/themes/worlds/cloud-world";
+import { WOODLAND_WORLD } from "@/app/lib/themes/worlds/woodland-world";
 
-const WORLDS: WorldDefinition[] = [TRON_WORLD, CLOUD_WORLD];
+const WORLDS: WorldDefinition[] = [TRON_WORLD, CLOUD_WORLD, WOODLAND_WORLD];
 
 /**
  * The world a ride gets when nothing says otherwise.

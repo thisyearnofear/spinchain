@@ -111,6 +111,68 @@ export const VISUALIZER_THEMES = {
       scale: [1.3, 1.6, 1.3] as [number, number, number],
     },
   },
+  woodland: {
+    // Green-tinted rather than the generic pale grey: distant crowns have to
+    // separate from near trunks, and a neutral wash flattens both into one
+    // silhouette. Kept light — this is haze under a canopy, not fog on a moor.
+    fog: "#c6d1b6",
+    roadColor: "#5b5344",
+    roadEmissive: "#000000",
+    roadEmissiveIntensity: 0,
+    lineColor: "#3f3a2f",
+    riderColor: "#e9b949",
+    grid: false,
+    stars: false,
+    envPreset: "forest" as const,
+    particleColor: "#f4e3b2",
+    skyTop: "#7fa8c9",
+    skyBottom: "#e8eed8",
+    horizonGlow: "#f3dfa8",
+    terrainColor: "#2f3d28",
+    terrainAccent: "#8a9a3f",
+    panelColor: "rgba(18, 24, 16, 0.7)",
+    worldLabel: "Greenwood",
+    atmosphere: "mist" as const,
+    terrainBackScale: 0.42,
+    terrainFrontScale: 0.82,
+    patternOpacity: 0.05,
+    routeDashOpacity: 0.3,
+    skirtEdgeDrop: 0.5,
+    reactiveFog: false,
+    reactivePointColor: "#ffe9b8",
+    beatBadge: "triangle" as const,
+    lighting: {
+      ambientColor: "#dfe9d6",
+      ambientGain: 1.2,
+      hemiSky: "#cfe3c2",
+      hemiGround: "#3f4a2f",
+      hemiIntensity: 0.55,
+      keyColor: "#ffeec4",
+      keyIntensity: 1.5,
+      keyDirection: [0.38, 0.78, 0.5] as [number, number, number],
+      pointColor: "#ffe9b8",
+      fogFar: 190,
+    },
+    skirtLight: {
+      // Lower than the other worlds: at 4.0 a forest floor lifts to the same
+      // value as the crowns and the treeline stops separating. The canopy
+      // gives this place its shade — the ground has to be in it.
+      albedoGain: 2.5,
+      edgeShade: 0.7,
+      sunGain: 0.9,
+      sunDirection: [0.38, 0.78, 0.5] as [number, number, number],
+      // Haze starts further out than the other worlds. Under a canopy the
+      // near floor is in shade and reads dark; fogging it from 18% outward
+      // lifted the whole ribbon to the value of the sky and flattened the view.
+      fogStart: 0.32,
+      fogEnd: 0.92,
+    },
+    groundCover: {
+      color: "#5c7d3c",
+      count: 260,
+      scale: [1.1, 1.5, 1.1] as [number, number, number],
+    },
+  },
   mars: {
     fog: "#451a1a",
     roadColor: "#7f1d1d",

@@ -166,6 +166,21 @@ export interface WorldAmbient {
     count: number;
     color: string;
   };
+  /**
+   * Sun shafts through a canopy. Declared by the place, drawn by the renderer
+   * along the route, and leaned along the world's own key light — a beam that
+   * disagrees with the sun the road is lit by reads as decoration.
+   */
+  shafts?: {
+    count: number;
+    color: string;
+    /** Beam length in world units, canopy to floor. */
+    height: number;
+    /** Half-width where a beam lands. */
+    width: number;
+    /** 0..1 how hard the shafts read. */
+    intensity: number;
+  };
 }
 
 /**

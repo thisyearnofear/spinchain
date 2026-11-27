@@ -141,17 +141,28 @@ describe("the palette/place split (§4 step 3)", () => {
 });
 
 describe("tron world modes", () => {
-  it("models the five legacy looks one for one", () => {
-    const legacy = Object.keys(VISUALIZER_THEMES).filter((t) => t !== "cloud").sort();
+  it("models the legacy looks one for one", () => {
+    // Was "every theme except cloud". Now that other worlds own palettes of
+    // their own, the honest statement is: Tron's modes are exactly the themes
+    // its own map claims — no more, no fewer.
+    const tronOwned = Object.keys(VISUALIZER_THEMES).filter((t) => THEME_NAME_TO_MODE[t]).sort();
     const modes = getWorld("tron").modes.map((m) => m.themeName).sort();
-    expect(modes).toEqual(legacy);
+    expect(modes).toEqual(tronOwned);
   });
 
-  it("maps each legacy theme name back to its world and mode", () => {
+  it("resolves every theme to exactly one world and mode", () => {
+    // Stronger than the old "every theme but cloud is Tron": with several
+    // worlds, the invariant that matters is that *no palette is homeless*.
+    // A theme nothing resolves to is a palette that can never be mounted.
     for (const themeName of Object.keys(VISUALIZER_THEMES)) {
-      if (themeName === "cloud") continue;
-      expect(THEME_NAME_TO_MODE[themeName]?.worldId).toBe("tron");
-      expect(THEME_NAME_TO_MODE[themeName]?.modeId).toBeTruthy();
+      const resolved = getDefaultModeForTheme(themeName);
+      expect(resolved, `${themeName} belongs to no world`).not.toBeNull();
+      expect(resolved?.mode.themeName).toBe(themeName);
+      // The legacy map still has to agree wherever it covers a theme.
+      if (THEME_NAME_TO_MODE[themeName]) {
+        expect(THEME_NAME_TO_MODE[themeName].worldId).toBe("tron");
+        expect(THEME_NAME_TO_MODE[themeName].modeId).toBeTruthy();
+      }
     }
   });
 

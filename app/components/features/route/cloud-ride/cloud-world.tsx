@@ -19,6 +19,7 @@ import {
   DirectionalLight,
   InstancedMesh,
   Matrix4,
+  Group,
   Mesh,
   MeshLambertMaterial,
   ShaderMaterial,
@@ -31,6 +32,7 @@ import { labAnchorAt } from "../ride-lab/config";
 import { seeded } from "./sequence";
 import { createCloudSkyGeometry, createCloudSkyMaterial, createPulseMaterial } from "./cloud-materials";
 import { buildCloudPiping, buildCloudRoadGeometry, cloudDashPlacements } from "./cloud-geometry";
+import { vistaOffset } from "./vista-loop";
 
 const FOG_NEAR = new Color("#d4d7ed");
 const FOG_REVEAL = new Color("#f2dfd9");
@@ -217,6 +219,12 @@ export interface CloudSceneInputs {
   /** 0..1 sky/light/fog warmth (the harness's reveal; the ride's effort). */
   warmthRef: MutableRefObject<number>;
   reducedMotion: boolean;
+  /**
+   * 0..1 scale on the closed vista drift. The atmosphere score drives this:
+   * a still horizon in the opening chapter, a breathing one once the ride
+   * opens out. Undefined keeps the drift at full.
+   */
+  vistaScaleRef?: MutableRefObject<number>;
 }
 
 export function CloudWorldScene({
@@ -226,6 +234,7 @@ export function CloudWorldScene({
   effortRef,
   warmthRef,
   reducedMotion,
+  vistaScaleRef,
 }: { curve: CatmullRomCurve3 } & CloudSceneInputs) {
   const camera = useThree((s) => s.camera);
   const layout = useMemo(() => buildCloudLayout(curve), [curve]);
@@ -243,6 +252,7 @@ export function CloudWorldScene({
   const towersRef = useRef<InstancedMesh>(null);
   const skyMeshRef = useRef<Mesh>(null);
   const keyRef = useRef<DirectionalLight>(null);
+  const vistaRef = useRef<Group>(null);
 
   // Fog attaches to the SCENE — <fog> sits at fragment level, so its parent
   // is the scene, never a group.
@@ -279,6 +289,15 @@ export function CloudWorldScene({
       });
       node.instanceMatrix.needsUpdate = true;
     }
+    // Horizon drift: a closed loop, so it passes through its own start with
+    // matched velocity and never ticks.
+    const vista = vistaRef.current;
+    if (vista) {
+      // Scaled by the chapter: a still horizon early, a breathing one later.
+      const scale = vistaScaleRef ? Math.max(0, Math.min(1, vistaScaleRef.current)) : 1;
+      const offset = vistaOffset(seconds);
+      vista.position.set(offset.x * scale, 0, offset.z * scale);
+    }
     // Sky dome rides the camera; warmth lifts sky/light/fog.
     const warmth = warmthRef.current;
     const skyMesh = skyMeshRef.current;
@@ -308,9 +327,17 @@ export function CloudWorldScene({
       <mesh ref={skyMeshRef} geometry={sky.g} material={sky.m} frustumCulled={false} position={camera.position} />
       <hemisphereLight args={["#e9f5ff", "#ada0cd", 1.6]} />
       <directionalLight ref={keyRef} position={[80, 130, 220]} intensity={2.2} color="#fff3d3" />
-      <instancedMesh args={[undefined, undefined, layout.sea.length]} geometry={seaGeo} ref={(n) => fillInstances(layout.sea, n)}>
-        <meshLambertMaterial color="#e9e6f6" />
-      </instancedMesh>
+      {/* The far banks orbit on a closed loop (see vista-loop.ts): the horizon
+          drifts instead of sitting still, and it never runs out. The offset is
+          applied to a parent group, so the instances' bounding sphere travels
+          with their world matrix — culling stays honest without a per-frame
+          query. These banks cast no shadow, so there is no shadow camera to
+          move with them. */}
+      <group ref={vistaRef}>
+        <instancedMesh args={[undefined, undefined, layout.sea.length]} geometry={seaGeo} ref={(n) => fillInstances(layout.sea, n)}>
+          <meshLambertMaterial color="#e9e6f6" />
+        </instancedMesh>
+      </group>
       <instancedMesh args={[undefined, undefined, layout.islands.length]} geometry={islandGeo} ref={(n) => fillInstances(layout.islands, n)}>
         <meshLambertMaterial color="#f2eef9" />
       </instancedMesh>

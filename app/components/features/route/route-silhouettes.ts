@@ -14,7 +14,14 @@ import {
 } from "three";
 import { SKIRT_STEPS, skirtSurfacePoint } from "./route-skirt";
 
-export type PropType = "building" | "tree" | "rock" | "blossom" | "crystal" | "tuft";
+export type PropType =
+  | "building"
+  | "tree"
+  | "broadleaf"
+  | "rock"
+  | "blossom"
+  | "crystal"
+  | "tuft";
 export type PropShape = "box" | "cylinder" | "cone" | "sphere" | "dodecahedron" | "octahedron";
 
 export interface PropConfig {
@@ -29,6 +36,7 @@ export interface PropConfig {
  * so instance scale grows them off the skirt instead of through it.
  *
  * - tree: cylinder trunk + two stacked cones (pine, not a single cone)
+ * - broadleaf: tapered trunk + three overlapping lobes (a crown, not a spire)
  * - building: wide podium + narrower tower + thin lit cap
  * - rock: three grounded stones, largest in the middle, radii decreasing
  * - blossom: stem + crown bloom + smaller side bloom
@@ -59,6 +67,15 @@ export const SILHOUETTES: Record<PropType, readonly SilhouettePart[]> = {
     { shape: "cylinder", args: [0.14, 0.24, 1.05, 6], position: [0, 0.525, 0], rotation: R0, scale: S, shade: 0.42, emissive: 0.02, roughness: 0.9, metalness: 0, breathes: false },
     { shape: "cone", args: [1.05, 2.15, 7], position: [0, 1.9, 0], rotation: R0, scale: S, shade: 1, emissive: 0.06, roughness: 0.78, metalness: 0, breathes: false },
     { shape: "cone", args: [0.62, 1.55, 7], position: [0, 2.9, 0], rotation: R0, scale: S, shade: 1, emissive: 0.08, roughness: 0.74, metalness: 0, breathes: false },
+  ],
+  broadleaf: [
+    { shape: "cylinder", args: [0.17, 0.3, 1.45, 8], position: [0, 0.725, 0], rotation: R0, scale: S, shade: 0.44, emissive: 0.01, roughness: 0.92, metalness: 0, breathes: false },
+    // Lobes, not a cone: three spheres at mixed heights read as a crown from
+    // every angle, and the two lower ones break the silhouette so a treeline
+    // never looks stamped from one shape.
+    { shape: "sphere", args: [1.16, 12, 9], position: [0, 2.18, 0], rotation: R0, scale: [1, 0.86, 1], shade: 1, emissive: 0.04, roughness: 0.82, metalness: 0, breathes: false },
+    { shape: "sphere", args: [0.8, 12, 9], position: [-0.6, 1.74, 0.16], rotation: R0, scale: [1, 0.9, 1], shade: 0.76, emissive: 0.03, roughness: 0.84, metalness: 0, breathes: false },
+    { shape: "sphere", args: [0.68, 12, 9], position: [0.54, 1.68, -0.18], rotation: R0, scale: [1, 0.92, 1], shade: 0.86, emissive: 0.03, roughness: 0.84, metalness: 0, breathes: false },
   ],
   building: [
     { shape: "box", args: [1.3, 0.18, 1.3], position: [0, 0.09, 0], rotation: R0, scale: S, shade: 0.5, emissive: 0.08, roughness: 0.45, metalness: 0.35, breathes: false },
