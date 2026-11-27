@@ -35,7 +35,7 @@ async function frameAt(page: import("@playwright/test").Page, theme: string, int
   // this file exists to defend.
   await page.waitForSelector('html[data-harness-clock="settled"]', {
     state: "attached",
-    timeout: 90_000,
+    timeout: 240_000,
   });
   await page.waitForTimeout(300);
   const buffer = await page.screenshot();
@@ -98,7 +98,7 @@ const WORLDS: Array<{ theme: string; blocked?: string }> = [
 
 for (const { theme, blocked } of WORLDS) {
   test(`effort visibly transforms the ${theme} world`, async ({ page }) => {
-    test.setTimeout(150_000);
+    test.setTimeout(300_000);
     test.fixme(Boolean(blocked), blocked);
     const rest = await frameAt(page, theme, 0);
     const sprint = await frameAt(page, theme, 1.4);

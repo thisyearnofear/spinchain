@@ -1,9 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { pixelStats } from "./support/pixel-stats";
 
-// SwiftShader compiles every shader on the first frame, and the fixed
-// harness clock then draws 30 more before it settles.
-test.setTimeout(150_000);
+// SwiftShader compiles every shader on the first frame, and the fixed harness
+// clock then draws 30 more before it settles. The mobile project renders that
+// same 30-frame budget into a ~4x larger buffer, which on CI's software GL took
+// longer than the old 150s — so the budget gets the time it needs instead of
+// the run being reported as "the harness never drew".
+test.setTimeout(300_000);
 
 // Particles and a few decorations place themselves with Math.random() at
 // mount. Seed it (mulberry32) so the scene is the same scene every run.
@@ -72,7 +75,7 @@ async function gotoWithHarness(page: import("@playwright/test").Page, url: strin
   await page.waitForFunction(() => typeof (window as unknown as { __THREE_GAME_TEST_HOOKS__?: unknown }).__THREE_GAME_TEST_HOOKS__ !== "undefined", { timeout: 10_000 }).catch(() => {});
   await page.locator("canvas").first().waitFor({ state: "attached", timeout: 30_000 });
   if (url.includes("paused=1")) {
-    await page.waitForSelector('html[data-harness-clock="settled"]', { state: "attached", timeout: 120_000 });
+    await page.waitForSelector('html[data-harness-clock="settled"]', { state: "attached", timeout: 240_000 });
   } else {
     await page.waitForTimeout(1500);
   }
