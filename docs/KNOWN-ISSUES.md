@@ -8,11 +8,12 @@
 > it exists. Deleting an entry because the symptom stopped reproducing is how it comes back.
 
 Work the list top down. Each entry says what "fixed" looks like, because "the frame looks
-better now" is not a fix and cannot be reviewed.
+better now" is not a fix and cannot be reviewed. Each heading carries the issue that tracks it —
+this file is the evidence, the issue is the work.
 
 ---
 
-## 1. The Cloud Kingdom draws no geometry — P0, product's default world
+## 1. The Cloud Kingdom draws no geometry — P0, product's default world · [#135](https://github.com/thisyearnofear/spinchain/issues/135)
 
 **Symptom.** The 3D view is black. The DOM overlay keeps working (HUD, coach card, `FINISH`
 sign, rider markers), so the canvas is live and the camera is fine — the authored cloud kit
@@ -63,7 +64,7 @@ frames were being read as "effort changed nothing".
 
 ---
 
-## 2. `pod install + xcodebuild (simulator)` — stale iOS pods lock
+## 2. `pod install + xcodebuild (simulator)` — stale iOS pods lock · [#136](https://github.com/thisyearnofear/spinchain/issues/136)
 
 **Symptom.** CI fails with `ios/App/Podfile.lock is stale. Run pnpm exec cap sync ios on macOS
 and commit it.` The job runs `pnpm exec cap sync ios` and then fails if that changes the lock.
@@ -80,7 +81,7 @@ project files, something else is wrong.
 
 ---
 
-## 3. Visual regression can still come back with a blank canvas in CI
+## 3. Visual regression can still come back with a blank canvas in CI · [#137](https://github.com/thisyearnofear/spinchain/issues/137)
 
 **Symptom.** A whole shard fails with `harness never drew a scene (115 distinct colours)` —
 every state in that job, not one. Other shards of the same commit pass. Roughly one run in
@@ -106,7 +107,7 @@ colour count.
 
 ---
 
-## 4. The rider's `.riv` predates the fix to its own source — small, real
+## 4. The rider's `.riv` predates the fix to its own source — small, real · [#138](https://github.com/thisyearnofear/spinchain/issues/138)
 
 `rive/rider/scene.rml` no longer compiles six `interpolationType="cubic"` keyframes without the
 `<CubicEaseInterpolator>` they need (fixed in `c7cc32f`; `Rive verify + goldens` is green). But
@@ -119,7 +120,7 @@ the rider still cycles and the tap panel still works on a ride.
 
 ---
 
-## 5. Greenwood ships unlocked — a product decision, not a bug
+## 5. Greenwood ships unlocked — a product decision, not a bug · [#139](https://github.com/thisyearnofear/spinchain/issues/139)
 
 `UNLOCKS` in `app/lib/progression.ts` has no `world:woodland` entry, and a world with no
 unlock is open to everyone (`isWorldUnlocked` returns true). So Greenwood appears next to Neon
