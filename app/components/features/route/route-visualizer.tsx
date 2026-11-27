@@ -89,6 +89,16 @@ import { CloudRiderRig } from "./cloud-ride/cloud-rider";
 import { cloudFrameAt, type CloudFrame } from "./cloud-ride/cloud-geometry";
 import { CLOUD_VIEWS, type CloudView } from "./cloud-ride/sequence";
 import { RadialBlurEffect } from "./radial-blur-effect";
+import { FisheyeDollyZoomEffect } from "./fisheye-dolly-zoom-effect";
+import {
+  LENS_EPSILON,
+  lensCurve,
+  lensDollyFactor,
+  lensFov,
+  lensMaxRadiusSq,
+  type RideLensFrame,
+} from "./ride-lens";
+import { useRideLens } from "./use-ride-lens";
 import { RankAura } from "./rank-aura";
 import { useProgression } from "@/app/lib/progression";
 import { applyHeightFog, HEIGHT_FOG_UNIFORMS } from "./atmosphere-fog";
@@ -753,7 +763,7 @@ function ShaderWarmUp() {
   return null;
 }
 
-function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive = null, mode = "ride", worldMode }: { theme: VisualizerTheme; stats: RiderStats; performanceTier?: "high" | "medium" | "low"; reactive?: ReactiveParams | null; mode?: VisualizerMode; worldMode?: string }) {
+function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive = null, mode = "ride", worldMode, lensRef }: { theme: VisualizerTheme; stats: RiderStats; performanceTier?: "high" | "medium" | "low"; reactive?: ReactiveParams | null; mode?: VisualizerMode; worldMode?: string; lensRef?: MutableRefObject<RideLensFrame> }) {
   // Live values go through refs and are written onto the effect instances
   // in useFrame. @react-three/postprocessing recreates an effect whenever
   // its props change (args memoized on JSON.stringify(props)), and the
@@ -775,7 +785,8 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
     chromatic: ChromaticAberrationEffect | null;
     vignette: VignetteEffect | null;
     radialBlur: RadialBlurEffect | null;
-  }>({ composer: null, bloom: null, chromatic: null, vignette: null, radialBlur: null });
+    fisheye: FisheyeDollyZoomEffect | null;
+  }>({ composer: null, bloom: null, chromatic: null, vignette: null, radialBlur: null, fisheye: null });
 
   const intensityMultiplier = performanceTier === "low" ? 0 : performanceTier === "medium" ? 0.5 : 1;
   const noiseOpacity = (getTheme(theme).noiseOpacity ?? 0) * intensityMultiplier;
@@ -787,13 +798,13 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
    */
   const modePost = resolveModeForTheme(theme, worldMode)?.post ?? {};
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const composer = composerRef.current;
     if (!composer) return;
     const cache = effectsCacheRef.current;
     if (cache.composer !== composer || (!cache.bloom && !cache.chromatic)) {
       cache.composer = composer;
-      cache.bloom = cache.chromatic = cache.vignette = cache.radialBlur = null;
+      cache.bloom = cache.chromatic = cache.vignette = cache.radialBlur = cache.fisheye = null;
       for (const pass of composer.passes) {
         const passEffects = (pass as unknown as { effects?: unknown[] }).effects ?? [];
         for (const fx of passEffects) {
@@ -801,6 +812,7 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
           else if (fx instanceof ChromaticAberrationEffect) cache.chromatic = fx;
           else if (fx instanceof VignetteEffect) cache.vignette = fx;
           else if (fx instanceof RadialBlurEffect) cache.radialBlur = fx;
+          else if (fx instanceof FisheyeDollyZoomEffect) cache.fisheye = fx;
         }
       }
     }
@@ -842,11 +854,35 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
           : Math.min(0.055, Math.max(0, s.power - 120) / 9000);
       cache.radialBlur.strength += (speedTarget - cache.radialBlur.strength) * k;
     }
+    if (cache.fisheye) {
+      // The lens is driven by the rider's hand, not by effort, so it is read
+      // straight off the frame (already eased in the camera loop) — easing it
+      // twice would lag the dolly it has to stay in step with.
+      const lens = lensRef?.current;
+      const width = lens ? lens.width : 0;
+      cache.fisheye.curve = lensCurve(width);
+      if (lens && width > LENS_EPSILON) {
+        const aspect = state.size.height > 0 ? state.size.width / state.size.height : 1;
+        cache.fisheye.setAnchor(
+          lens.anchorX,
+          lens.anchorY,
+          aspect,
+          lensMaxRadiusSq(lens.anchorX, lens.anchorY, aspect),
+        );
+      }
+    }
   });
 
   // Built once; only its uniform changes (driven from the frame loop below).
   const radialBlurEffect = useMemo(
     () => new RadialBlurEffect({ strength: 0 }),
+    [],
+  );
+
+  // The ride lens' warp half. Built once for the same reason as the blur: a
+  // new Effect instance tears the composer's passes down and recompiles them.
+  const fisheyeEffect = useMemo(
+    () => new FisheyeDollyZoomEffect({ curve: 0 }),
     [],
   );
 
@@ -879,12 +915,17 @@ function PostEffects({ theme = "neon", stats, performanceTier = "high", reactive
       // visual suite, low-tier phones) cannot afford it. The tier is
       // fps-adaptive, so hardware that sustains 60fps still earns the effect.
       ...(performanceTier === "high" ? [<primitive key="radial-blur" object={radialBlurEffect} />] : []),
+      // The ride lens' fisheye warp. Placed here, before the vignette, so the
+      // vignette darkens the finished frame edge rather than a bent one — and
+      // after the blur, so the blur samples unwarped pixels. One texture fetch
+      // per pixel, so unlike the blur it earns a place on the medium tier too.
+      <primitive key="fisheye" object={fisheyeEffect} />,
     ];
     if (performanceTier !== "medium") {
       e.push(<Vignette key="vignette" eskil={false} offset={0.15} darkness={0.8} />);
     }
     return e;
-  }, [intensityMultiplier, noiseOpacity, performanceTier, radialBlurEffect]);
+  }, [intensityMultiplier, noiseOpacity, performanceTier, radialBlurEffect, fisheyeEffect]);
 
   if (performanceTier === "low" || effects.length === 0) return null;
 
@@ -926,6 +967,9 @@ const _riderCloudFrame: CloudFrame = {
 };
 const _riderNeg = new Vector3();
 const _riderBasis = new THREE.Matrix4();
+// Ride lens: the rider's world position, recomputed for the dolly and then
+// projected for the warp's anchor (no per-frame allocation).
+const _lensSubject = new Vector3();
 
 function RiderMarker({
   curve,
@@ -1875,6 +1919,8 @@ function Scene({
   panoUrl,
   worldMode,
   worldView,
+  active = true,
+  forcedLensWidth,
 }: {
   elevationProfile: number[];
   theme?: VisualizerTheme;
@@ -1901,6 +1947,10 @@ function Scene({
   intervalPhase?: IntervalPhase;
   flowTier?: FlowStateTier;
   contextPalette?: ContextPalette;
+  /** False while the canvas is hidden behind the 2D view (its loop is stopped). */
+  active?: boolean;
+  /** Visual harness: hold the lens at this width instead of easing from input. */
+  forcedLensWidth?: number;
 }) {
   const curve = useRouteCurve(elevationProfile);
   const curveLength = useMemo(() => curve.getLength(), [curve]);
@@ -1994,6 +2044,27 @@ function Scene({
   // from the sky.
   const cameraPlacedRef = useRef(false);
 
+  // --- Ride lens (rider-locked fisheye dolly zoom) ---
+  // The wheel and the keyboard only move a *target*; the ease lives in the
+  // frame loop so nothing here re-renders. Off outside a ride, off for reduced
+  // motion (this is a lens change, and it is the first thing a motion-sensitive
+  // rider should not have to opt out of twice), and off while the 3D view is
+  // hidden behind 2D — the canvas stays mounted there, so an un-gated listener
+  // would swallow the wheel with nothing on screen to show for it.
+  const lens = useRideLens(mode === "ride" && active && !reducedMotion);
+  const lensFrameRef = useRef<RideLensFrame>({ width: 0, anchorX: 0.5, anchorY: 0.5 });
+  // The chase maths eases the *normal* lens, so the widened fov the lens
+  // writes has to be undone before the next ease — see the camera loop.
+  const lensBaseFovRef = useRef(60);
+  const lensWidenedRef = useRef(false);
+  // Harness-only (same contract as `paused`): hold a width so a visual state is
+  // reproducible without waiting on the ease, which needs real frame deltas.
+  const setLensWidth = lens.setWidth;
+  useEffect(() => {
+    if (forcedLensWidth === undefined) return;
+    setLensWidth(forcedLensWidth);
+  }, [forcedLensWidth, setLensWidth]);
+
   // Get performance tier for adaptive quality - use quality.fps as proxy if available
   const performanceTier = quality?.fps === 30 ? "low" : quality?.fps === 45 ? "medium" : "high";
 
@@ -2031,8 +2102,7 @@ function Scene({
     return () => mq.removeEventListener("change", onChange);
   }, []);
   // Scratch vectors for the chase camera — no per-frame allocations.
-  const camScratch = useRef({
-    up: new Vector3(),
+  const camScratch = useRef({    up: new Vector3(),
     side: new Vector3(),
     look: new Vector3(),
     target: new Vector3(),
@@ -2094,6 +2164,16 @@ function Scene({
     // slower, wider, more cinematic offset.
     {
       const isPreview = mode === "preview";
+      // The ride lens widens the projection for one frame at a time, but the
+      // chase maths below eases the *normal* lens — so undo the previous
+      // frame's widening first. Left in place, the fov ease would feed on its
+      // own output (base → widened → base) and the lens would run away.
+      const cam = state.camera as ThreePerspectiveCamera;
+      if (lensWidenedRef.current) {
+        cam.fov = lensBaseFovRef.current;
+        cam.updateProjectionMatrix();
+        lensWidenedRef.current = false;
+      }
       const safeCurveP = Number.isFinite(curveProgress)
         ? Math.max(0, Math.min(curveProgress, 1))
         : START_OFFSET;
@@ -2167,7 +2247,6 @@ function Scene({
       }
       state.camera.lookAt(smoothedLookTargetRef.current);
 
-      const cam = state.camera as ThreePerspectiveCamera;
       if (cam.fov !== undefined) {
         let targetFov: number;
         if (isPreview) {
@@ -2190,6 +2269,29 @@ function Scene({
         }
       }
 
+      // --- 4b. Ride lens: rider-locked fisheye dolly zoom ---
+      // Two halves that must stay in step (see ride-lens.ts): the camera
+      // dollies toward the rider by `spread` while the lens opens by the same
+      // factor, so the rider keeps its screen size and only the world's
+      // parallax grows. The warp pass finishes the job on the rider's measured
+      // screen position, below.
+      const lensWidth = lens.advance(delta);
+      const lensFrame = lensFrameRef.current;
+      lensFrame.width = lensWidth;
+      if (lensWidth > LENS_EPSILON) {
+        // `riderPos` was consumed as the camera target above, so re-derive the
+        // rider: getPointAt is already on this frame's path.
+        curve.getPointAt(safeCurveP, _lensSubject);
+        _lensSubject.y -= 10; // match group offset [0, -10, 0]
+        // Dolly along the camera→rider axis only. The rider sits on the same
+        // ray, so its position on the frame is unchanged by the move.
+        cam.position.lerpVectors(cam.position, _lensSubject, 1 - lensDollyFactor(lensWidth));
+        lensBaseFovRef.current = cam.fov;
+        cam.fov = lensFov(cam.fov, lensWidth);
+        cam.updateProjectionMatrix();
+        lensWidenedRef.current = true;
+      }
+
       if (stats.power > 350) {
         const shake = Math.min(1, (stats.power - 350) / 450);
         const rawShake = (Math.random() - 0.5) * shake * 0.08;
@@ -2210,6 +2312,17 @@ function Scene({
       mouseParallaxRef.current.y += (mouseParallaxRef.current.targetY - mouseParallaxRef.current.y) * parallax;
       state.camera.position.x += mouseParallaxRef.current.x;
       state.camera.position.y += mouseParallaxRef.current.y;
+
+      // The warp's anchor is measured, never assumed: project the rider once
+      // the pose and every offset above are final, so the magnification is
+      // centred on the person even when the look target and the shake have
+      // nudged them off the middle of the frame.
+      if (lensFrame.width > LENS_EPSILON) {
+        cam.updateMatrixWorld();
+        _lensSubject.project(cam);
+        lensFrame.anchorX = (_lensSubject.x + 1) / 2;
+        lensFrame.anchorY = (_lensSubject.y + 1) / 2;
+      }
     }
 
     // --- 5. Gentle drift for preview mode (sine-wave camera offset) ---
@@ -2300,7 +2413,7 @@ function Scene({
       <LocalEnvironment key={theme} sky={context ? context.skyTop : styles.skyTop} horizon={context ? context.horizonGlow : styles.horizonGlow} ground={styles.terrainColor} />
 
       {/* Dynamic atmospheric effects - disabled on low tier for performance */}
-      <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} reactive={reactive} mode={mode} worldMode={worldMode} />
+      <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} reactive={reactive} mode={mode} worldMode={worldMode} lensRef={lensFrameRef} />
 
       {/* Conditionally render expensive effects */}
       {particleCount > 100 && <FloatingParticles theme={theme} stats={stats} reactive={reactive} />}
@@ -2386,6 +2499,7 @@ function Scene({
             stats={stats}
             progressRef={renderProgressRef}
             reducedMotion={reducedMotion}
+            tier={performanceTier}
           />
         ) : (
           <>
@@ -2493,6 +2607,7 @@ export default function RouteVisualizer({
   contextPalette,
   paused = false,
   active = true,
+  forcedLensWidth,
   onWebglUnavailable,
   worldMode,
   worldView,
@@ -2517,6 +2632,8 @@ export default function RouteVisualizer({
   paused?: boolean;
   /** False while this layer is hidden (2D view on top) — no frames rendered. */
   active?: boolean;
+  /** Visual harness: hold the ride lens at a fixed width (0..1) so a state can be photographed without the ease. */
+  forcedLensWidth?: number;
   /** WebGL failed to start, or the context was lost and never restored. */
   onWebglUnavailable?: (reason: WebglUnavailableReason) => void;
   /**
@@ -2700,6 +2817,8 @@ export default function RouteVisualizer({
             panoUrl={world?.panoUrl}
             worldMode={worldMode}
             worldView={worldView}
+            active={active}
+            forcedLensWidth={forcedLensWidth}
           />
         </Canvas>
       </Suspense>

@@ -75,6 +75,8 @@ function KeyboardShortcutOverlayInternal({ show, onDismiss }: KeyboardShortcutOv
         { key: "H", label: "Hide / show HUD" },
         { key: "C", label: "Collapse / expand panels" },
         { key: "V", label: "Toggle 2D / 3D view" },
+        { key: "] [", label: "Widen / narrow the lens" },
+        { key: "\\", label: "Reset the lens" },
       ],
     },
   ];
