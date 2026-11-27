@@ -1,7 +1,13 @@
 # SpinChain Rive assets (CLI-built)
 
 Sources live in `rive/<name>/scene.rml`; shipped files here are built with
-`pnpm rive:build` (verify: `pnpm rive:verify`). All state machines are driven
+`pnpm rive:build` (verify: `pnpm rive:verify`).
+
+`rive:build` needs a signed-in CLI (`rive login`): the current CLI writes a
+`.riv` only through `--publish`, which signs through the Rive API, and the old
+`--once` flag it used is gone. `--verify` needs no session, so CI proves the
+sources compile without an account — it just cannot produce the shipped file.
+That means a source change lands here only when someone with a session rebuilds. All state machines are driven
 by **view-model properties** (legacy `StateMachine*` inputs are deprecated and
 not used — one deliberate exception: the rider's right-click `celebrateClick`
 input trigger, see "Pointer listeners"). Wrappers use `autoBind: true` + the
