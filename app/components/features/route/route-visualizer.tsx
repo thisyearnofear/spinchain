@@ -18,7 +18,6 @@ import {
   PointLight,
   MathUtils,
   PerspectiveCamera as ThreePerspectiveCamera,
-  Points,
 } from "three";
 import * as THREE from "three";
 import type { WebglUnavailableReason } from "@/app/lib/gpu-probe";
@@ -39,7 +38,6 @@ import {
 import { useMemo, useRef, useState, useEffect, useLayoutEffect, useSyncExternalStore, Suspense, type MutableRefObject } from "react";
 import {
   OrbitControls,
-  Stars,
   Html,
   PerspectiveCamera,
   Sparkles,
@@ -85,6 +83,7 @@ import { buildGroundCoverField } from "./route-silhouettes";
 import { applyWind, windFactorFor } from "./wind-material";
 import { WindDriver } from "./wind-driver";
 import { CloudLiveWorld } from "./cloud-ride/cloud-live";
+import { RideAirfield } from "./cloud-ride/ride-airfield";
 import { CloudRiderRig } from "./cloud-ride/cloud-rider";
 import { cloudFrameAt, type CloudFrame } from "./cloud-ride/cloud-geometry";
 import { CLOUD_VIEWS, type CloudView } from "./cloud-ride/sequence";
@@ -1443,38 +1442,6 @@ function LineInstance({ line, color, reactive = null, stats = { power: 0, cadenc
   );
 }
 
-function FloatingParticles({ theme = "neon", stats, reactive = null }: { theme?: VisualizerTheme; stats: RiderStats; reactive?: ReactiveParams | null }) {
-  const styles = getTheme(theme);
-  const starsRef = useRef<Points>(null);
-  const reduced = usePrefersReducedMotion();
-
-  useFrame(() => {
-    if (!starsRef.current || reduced) return;
-    let speed = 0.5 + (stats.power / 200);
-    // World reactivity: stars rotate faster during sprints
-    if (reactive) {
-      speed = reactive.starsRotationSpeed;
-    }
-    starsRef.current.rotation.y += 0.0001 * speed;
-    starsRef.current.rotation.z += 0.0002 * speed;
-  });
-
-  if (!styles.stars) return null;
-
-  return (
-    <Stars
-      ref={starsRef}
-      radius={120}
-      depth={50}
-      count={4000}
-      factor={6}
-      saturation={styles.starSaturation ?? 0}
-      fade
-      speed={reduced ? 0 : reactive ? reactive.sparkleSpeed : 1}
-    />
-  );
-}
-
 function BeatMarker({
   beat,
   curve,
@@ -2415,8 +2382,23 @@ function Scene({
       {/* Dynamic atmospheric effects - disabled on low tier for performance */}
       <PostEffects theme={theme} stats={stats} performanceTier={performanceTier} reactive={reactive} mode={mode} worldMode={worldMode} lensRef={lensFrameRef} />
 
-      {/* Conditionally render expensive effects */}
-      {particleCount > 100 && <FloatingParticles theme={theme} stats={stats} reactive={reactive} />}
+      {/* Ride air — every non-cloud world. The cloud world mounts its own
+          field (with the authored warmth) inside CloudLiveWorld, so this is
+          gated by world, not by theme name. Replaces the old decorative star
+          dome: grain stationed on the route is air the rider travels through,
+          which is what reads as speed; a sphere of stars around the camera is
+          scenery that cannot. */}
+      {!isCloudWorld && (
+        <RideAirfield
+          curve={curve}
+          curveLength={curveLength}
+          progressRef={renderProgressRef}
+          tier={performanceTier}
+          reducedMotion={reducedMotion}
+          coolHex={styles.particleColor}
+          warmHex={styles.horizonGlow}
+        />
+      )}
 
       {/* Speed lines / spore sparkles are Tron-kit dressing — the authored
           cloud world carries its own wisps and pulse instead. */}

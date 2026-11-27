@@ -119,15 +119,20 @@ export function RideAirfield({
   warmthRef,
   tier,
   reducedMotion,
+  coolHex,
+  warmHex,
 }: {
   curve: CatmullRomCurve3;
   curveLength: number;
   /** Rider's route fraction — the same ref the rider, camera and road read. */
   progressRef: MutableRefObject<number>;
   /** 0..1 sky/light warmth, shared with the cloud scattering. */
-  warmthRef: MutableRefObject<number>;
+  warmthRef?: MutableRefObject<number>;
   tier: "high" | "medium" | "low";
   reducedMotion: boolean;
+  /** Grain tint at the cold and warm ends — themed by the caller's world. */
+  coolHex?: string;
+  warmHex?: string;
 }) {
   const count = airGrainCount(tier);
   // Buffers are allocated for the tier's full pool; instanceCount picks how
@@ -170,8 +175,8 @@ export function RideAirfield({
         uDepthFullOut: { value: AIR_DEPTH_FULL_OUT },
         uDepthOut: { value: AIR_DEPTH_OUT },
         uOpacity: { value: 0 },
-        uCool: { value: new Color("#eaf1ff") },
-        uWarm: { value: new Color("#ffe7c9") },
+        uCool: { value: new Color(coolHex ?? "#eaf1ff") },
+        uWarm: { value: new Color(warmHex ?? "#ffe7c9") },
         uWarmth: { value: 0.3 },
       },
     });
@@ -186,7 +191,7 @@ export function RideAirfield({
       fades: geo.getAttribute("aFade") as InstancedBufferAttribute,
       seeds: geo.getAttribute("aSeed") as InstancedBufferAttribute,
     };
-  }, [capacity, count]);
+  }, [capacity, count, coolHex, warmHex]);
 
   const resourcesRef = useRef(resources);
   useEffect(() => {
@@ -281,7 +286,8 @@ export function RideAirfield({
     const uniforms = resources.material.uniforms;
     opacityRef.current += (1 - opacityRef.current) * Math.min(1, delta * 3);
     uniforms.uOpacity.value = opacityRef.current;
-    uniforms.uWarmth.value += (warmthRef.current - uniforms.uWarmth.value) * Math.min(1, delta * 3);
+    const warmth = warmthRef ? warmthRef.current : 0.45;
+    uniforms.uWarmth.value += (warmth - uniforms.uWarmth.value) * Math.min(1, delta * 3);
   });
 
   if (count === 0) return null;
