@@ -43,6 +43,19 @@ describe("woodland world", () => {
     expect(image.label).toBe(VISUALIZER_THEMES.woodland.worldLabel);
   });
 
+  it("declares its light as shafts, sized to its own canopy", () => {
+    const shafted = getWorlds().filter((w) => w.ambient?.shafts);
+    expect(shafted.map((w) => w.id)).toEqual(["woodland"]);
+    const shafts = WOODLAND_WORLD.ambient!.shafts!;
+    expect(shafts.count).toBeGreaterThan(0);
+    expect(shafts.color).toMatch(/^#[0-9a-f]{6}$/i);
+    // Light reads, it does not blind: intensity is a share, not a multiplier.
+    expect(shafts.intensity).toBeGreaterThan(0);
+    expect(shafts.intensity).toBeLessThanOrEqual(1);
+    // A beam has to be longer than it is wide or it is a puddle of light.
+    expect(shafts.height).toBeGreaterThan(shafts.width * 2);
+  });
+
   it("is the only world that puts leaves in the air", () => {
     const leafWorlds = getWorlds().filter((w) => w.ambient?.particles?.kind === "leaf");
     expect(leafWorlds.map((w) => w.id)).toEqual(["woodland"]);

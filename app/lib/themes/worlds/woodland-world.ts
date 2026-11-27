@@ -76,6 +76,16 @@ export const WOODLAND_WORLD: WorldDefinition = {
       count: 260,
       color: "#d9b56a",
     },
+    // What makes this a forest rather than a green field with trees on it:
+    // light arrives in shafts, not evenly. Leaned along the palette's own key
+    // light, and sized to the 8m understorey the broadleaf kit stands up.
+    shafts: {
+      count: 48,
+      color: "#ffeec4",
+      height: 9.5,
+      width: 4.2,
+      intensity: 0.62,
+    },
   },
   complete: true,
   defaultModeId: "greenwood",

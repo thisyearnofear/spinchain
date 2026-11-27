@@ -84,6 +84,7 @@ import { applyWind, windFactorFor } from "./wind-material";
 import { WindDriver } from "./wind-driver";
 import { CloudLiveWorld } from "./cloud-ride/cloud-live";
 import { RideAirfield } from "./cloud-ride/ride-airfield";
+import { CanopyShafts } from "./canopy-shafts-view";
 import { CloudRiderRig } from "./cloud-ride/cloud-rider";
 import { cloudFrameAt, type CloudFrame } from "./cloud-ride/cloud-geometry";
 import { CLOUD_VIEWS, type CloudView } from "./cloud-ride/sequence";
@@ -1930,6 +1931,13 @@ function Scene({
   const resolved = useMemo(() => resolveWorldForTheme(theme, worldMode), [theme, worldMode, themeVersion]);
   // See the matching check in RiderMarker — world-level, not a name branch.
   const isCloudWorld = resolved.world.id === "cloud";
+  // A shaft leans along the world's own key light. Handed over as a plain tuple
+  // so the beam material is built once, not per render.
+  const shaftLightDirection = useMemo<readonly [number, number, number] | undefined>(() => {
+    const key = styles.lighting?.keyDirection;
+    return key ? ([key[0], key[1], key[2]] as const) : undefined;
+  }, [styles.lighting?.keyDirection]);
+  const shaftRoadHalfWidth = useMemo(() => roadProfile(theme).halfWidth, [theme]);
   // The authored cloud chase camera: "play" is the approved framing, "cinema"
   // the wide study view. Unknown/absent values stay on play.
   const cloudView: CloudView = worldView === "cinema" ? "cinema" : "play";
@@ -2400,6 +2408,22 @@ function Scene({
           declaredCount={resolved.world.ambient?.particles?.count}
           coolHex={resolved.world.ambient?.particles?.color ?? styles.particleColor}
           warmHex={styles.horizonGlow}
+        />
+      )}
+
+      {/* Sun shafts — worlds that declare `ambient.shafts` get light in beams
+          instead of evenly. Mounted here, outside the [0,-10,0] rider group,
+          so beam positions are world positions and the layout needs no
+          correction for the group offset. */}
+      {resolved.world.ambient?.shafts && (
+        <CanopyShafts
+          curve={curve}
+          declaration={resolved.world.ambient.shafts}
+          keyDirection={shaftLightDirection}
+          roadHalfWidth={shaftRoadHalfWidth}
+          edgeDrop={styles.skirtEdgeDrop ?? SKIRT_EDGE_DROP}
+          tier={performanceTier}
+          reducedMotion={reducedMotion}
         />
       )}
 
