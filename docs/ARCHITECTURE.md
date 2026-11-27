@@ -48,6 +48,13 @@ daylight style), its own ground (a cloud sea), its own silhouette (soft bobbing 
 roadside band, and two modes (Cotton Candy / Sugar Rush). It shipped on 2026-10-22 with the
 five legacy worlds pixel-identical (visual regression 10/10).
 
+**Greenwood** (`woodland`, 2026-11-27) is the third world and the first built entirely on the
+world's *ambient* slots rather than new geometry branches: it declares the air it puts in motion
+(`ambient.particles`, the same slot every world now fills — the decorative star dome is gone) and
+the light it lets through (`ambient.shafts`, drawn as volumes so they hold up as the camera moves
+through them). See [KNOWN-ISSUES.md](./KNOWN-ISSUES.md) §1 for the Cloud Kingdom's open rendering
+defect before trusting a cloud screenshot.
+
 **The default world is the Cloud Kingdom, in Sugar Rush** (2026-10-22). One constant
 (`DEFAULT_WORLD_ID` / `DEFAULT_WORLD_MODE_ID` in `app/lib/themes/worlds/index.ts`) decides what
 a practice ride, a route with no theme, the guest demo class and the visualizer's own default
