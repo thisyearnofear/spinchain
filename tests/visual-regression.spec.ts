@@ -84,10 +84,29 @@ async function gotoWithHarness(page: import("@playwright/test").Page, url: strin
  * The Cloud Kingdom is the exception: its authored look is matte pastel —
  * cumulus + lilac deck quantize to far fewer 5-bit colours — so its states
  * pass a lower bar. The contrast check still catches a blank/black frame.
+ *
+ * Polled, not sampled once. The harness now settles only on a frame it can see
+ * in the drawing buffer (see FixedHarnessClock), and this poll is the outer
+ * guarantee on top of that: a single screenshot taken the instant a clock
+ * reports "settled" could still catch the compositor mid-paint, which failed
+ * one run in five on `finished` — always with the same ~120 colours, always
+ * passing on retry. The bar is unchanged; the sample became a deadline.
  */
 async function expectDrawnScene(page: import("@playwright/test").Page, minColors = 200) {
-  const stats = pixelStats(await page.screenshot());
-  expect(stats.distinctColors, `harness frame is not a drawn scene: ${JSON.stringify(stats)}`).toBeGreaterThan(minColors);
+  let stats = { width: 0, height: 0, distinctColors: 0, lumaRange: 0 };
+  await expect
+    .poll(
+      async () => {
+        stats = pixelStats(await page.screenshot());
+        return stats.distinctColors;
+      },
+      {
+        message: `harness never drew a scene (>${minColors} distinct colours)`,
+        timeout: 30_000,
+        intervals: [200, 300, 500, 800, 1200],
+      },
+    )
+    .toBeGreaterThan(minColors);
   expect(stats.lumaRange, `harness frame has no contrast: ${JSON.stringify(stats)}`).toBeGreaterThan(40);
 }
 

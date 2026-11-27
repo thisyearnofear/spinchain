@@ -1740,6 +1740,33 @@ function CanvasContextLossHandler({ onLostForGood }: { onLostForGood?: () => voi
 const HARNESS_FRAMES = 30;
 const HARNESS_STEP_S = 0.1;
 const HARNESS_SETTLED_AT_S = HARNESS_FRAMES * HARNESS_STEP_S;
+/** A drawn frame carries hundreds of colours here; an undrawn one, tens. */
+const HARNESS_MIN_COLOURS = 200;
+/** Extra frames to wait for the first drawn picture before settling anyway. */
+const HARNESS_DRAW_RETRIES = 60;
+
+/**
+ * How many colours the drawing buffer actually holds.
+ *
+ * `gl.info.render.calls` is not evidence: three issues draw calls while a
+ * program is still compiling, so a frame can be counted and still come out
+ * black. Reading the buffer is. With `preserveDrawingBuffer` on (the harness
+ * sets it) this is also safe after a composite.
+ */
+function harnessFrameColours(gl: THREE.WebGLRenderer): number {
+  const ctx = gl.getContext();
+  const width = ctx.drawingBufferWidth;
+  const height = ctx.drawingBufferHeight;
+  if (width === 0 || height === 0) return 0;
+  const pixels = new Uint8Array(width * height * 4);
+  ctx.readPixels(0, 0, width, height, ctx.RGBA, ctx.UNSIGNED_BYTE, pixels);
+  const seen = new Set<number>();
+  // Coarse stride: colour variety, not a full histogram.
+  for (let i = 0; i < pixels.length; i += 4 * 37) {
+    seen.add(((pixels[i] >> 3) << 10) | ((pixels[i + 1] >> 3) << 5) | (pixels[i + 2] >> 3));
+  }
+  return seen.size;
+}
 
 function FixedHarnessClock() {
   const advance = useThree((s) => s.advance);
@@ -1747,15 +1774,36 @@ function FixedHarnessClock() {
   const size = useThree((s) => s.size);
   const dpr = useThree((s) => s.viewport.dpr);
   const settledRef = useRef(false);
+  const sizeRef = useRef(size);
+  useEffect(() => {
+    sizeRef.current = size;
+  }, [size]);
 
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.harnessClock = "stepping";
     let frame = 0;
+    let retries = 0;
     let rafId = requestAnimationFrame(function step() {
-      frame += 1;
-      advance(frame * HARNESS_STEP_S);
+      // A frame drawn into a surface with no size draws nothing, and the step is
+      // not wasted on a scene — it is lost. Wait for layout instead of burning
+      // the budget into a zero-sized canvas.
+      if (sizeRef.current.width > 0 && sizeRef.current.height > 0) {
+        frame += 1;
+        advance(frame * HARNESS_STEP_S);
+      }
       if (frame < HARNESS_FRAMES) {
+        rafId = requestAnimationFrame(step);
+        return;
+      }
+      // Settle on a frame that *has a picture*, not on one that elapsed. Under
+      // load the last steps can land while shaders are still compiling: the
+      // draw calls happen, the pixels do not, and the suite then photographs
+      // the CSS backdrop and blames the scene for it.
+      if (harnessFrameColours(gl) < HARNESS_MIN_COLOURS && retries < HARNESS_DRAW_RETRIES) {
+        retries += 1;
+        frame += 1;
+        advance(frame * HARNESS_STEP_S);
         rafId = requestAnimationFrame(step);
         return;
       }
@@ -1767,7 +1815,7 @@ function FixedHarnessClock() {
       settledRef.current = false;
       delete root.dataset.harnessClock;
     };
-  }, [advance]);
+  }, [advance, gl]);
 
   useEffect(() => {
     if (settledRef.current) advance(HARNESS_SETTLED_AT_S);
@@ -2757,6 +2805,13 @@ export default function RouteVisualizer({
                 // no composer, so it keeps native AA.
                 antialias: effectiveQuality.fps === 30,
                 powerPreference: "high-performance",
+                // The visual harness photographs the drawing buffer. Without
+                // this the browser is free to discard the buffer once it has
+                // composited a frame, and with `frameloop="never"` nothing
+                // paints it back — so a screenshot taken a moment later caught
+                // the CSS backdrop and the suite failed on a scene that had
+                // drawn perfectly. Only when the fixed clock owns the loop.
+                preserveDrawingBuffer: paused,
               });
             } catch (err) {
               // The probe passed but this context didn't (blocklisted GPU,
