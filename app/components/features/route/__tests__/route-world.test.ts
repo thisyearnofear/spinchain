@@ -251,6 +251,7 @@ describe("alpine atmosphere", () => {
 describe("route silhouettes", () => {
   const shapes: Record<PropType, string[]> = {
     tree: ["cylinder", "cone", "cone"],
+    broadleaf: ["cylinder", "sphere", "sphere", "sphere"],
     building: ["box", "box", "box"],
     rock: ["dodecahedron", "dodecahedron", "dodecahedron"],
     blossom: ["cylinder", "sphere", "sphere"],

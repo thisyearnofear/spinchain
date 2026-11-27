@@ -28,11 +28,14 @@ export const WOODLAND_WORLD: WorldDefinition = {
   },
   props: [
     {
-      // The place's signature: trunks close enough to the road to pass the lens.
-      type: "tree",
-      color: "#3c4a2c",
+      // The place's signature: crowns close enough to the road to pass the lens.
+      type: "broadleaf",
+      // Lit from above by a low sun through the canopy, so the crowns are much
+      // lighter than a pine's needles would be. Anything near #3c4a2c reads as a
+      // black cutout against the mist sky — the whole treeline disappears.
+      color: "#6f8f4a",
       count: 260,
-      scale: [1.1, 3.4, 1.1],
+      scale: [1.0, 2.6, 1.0],
       band: { inner: 7, outer: 26, bias: 0.65 },
       role: "scenery",
     },
@@ -46,18 +49,20 @@ export const WOODLAND_WORLD: WorldDefinition = {
     },
     {
       type: "tuft",
-      color: "#5d7a3a",
+      // Grass, not debris: at #5d7a3a these tufts read as black darts scattered
+      // over the litter instead of the litter standing up.
+      color: "#82994f",
       count: 320,
       scale: [1.2, 1.5, 1.2],
       band: { inner: 5, outer: 14, bias: 0.8 },
       role: "scenery",
     },
     {
-      // The occasional hero: one ancient trunk every few hundred metres.
-      type: "tree",
-      color: "#2f3a24",
+      // The occasional hero: one ancient broadleaf every few hundred metres.
+      type: "broadleaf",
+      color: "#54703a",
       count: 8,
-      scale: [2.6, 5.2, 2.6],
+      scale: [2.2, 4.2, 2.2],
       band: { inner: 12, outer: 30 },
       role: "landmark",
       spacing: 320,

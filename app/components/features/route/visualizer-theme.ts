@@ -112,7 +112,10 @@ export const VISUALIZER_THEMES = {
     },
   },
   woodland: {
-    fog: "#cfd8c2",
+    // Green-tinted rather than the generic pale grey: distant crowns have to
+    // separate from near trunks, and a neutral wash flattens both into one
+    // silhouette. Kept light — this is haze under a canopy, not fog on a moor.
+    fog: "#c6d1b6",
     roadColor: "#5b5344",
     roadEmissive: "#000000",
     roadEmissiveIntensity: 0,
@@ -151,17 +154,23 @@ export const VISUALIZER_THEMES = {
       fogFar: 190,
     },
     skirtLight: {
-      albedoGain: 4.0,
+      // Lower than the other worlds: at 4.0 a forest floor lifts to the same
+      // value as the crowns and the treeline stops separating. The canopy
+      // gives this place its shade — the ground has to be in it.
+      albedoGain: 2.5,
       edgeShade: 0.7,
       sunGain: 0.9,
       sunDirection: [0.38, 0.78, 0.5] as [number, number, number],
-      fogStart: 0.18,
-      fogEnd: 0.7,
+      // Haze starts further out than the other worlds. Under a canopy the
+      // near floor is in shade and reads dark; fogging it from 18% outward
+      // lifted the whole ribbon to the value of the sky and flattened the view.
+      fogStart: 0.32,
+      fogEnd: 0.92,
     },
     groundCover: {
-      color: "#4d6b33",
-      count: 420,
-      scale: [1.4, 1.8, 1.4] as [number, number, number],
+      color: "#5c7d3c",
+      count: 260,
+      scale: [1.1, 1.5, 1.1] as [number, number, number],
     },
   },
   mars: {

@@ -35,6 +35,8 @@ export const WIND_UNIFORMS = {
  */
 export const WIND_FACTORS: Record<string, number> = {
   tree: 1,
+  // A crown on a stiff trunk catches more of a gust than a pine spire does.
+  broadleaf: 1.2,
   blossom: 1.15,
   crystal: 0.22,
   rock: 0,
