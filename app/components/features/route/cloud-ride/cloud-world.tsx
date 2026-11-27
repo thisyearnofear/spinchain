@@ -219,6 +219,12 @@ export interface CloudSceneInputs {
   /** 0..1 sky/light/fog warmth (the harness's reveal; the ride's effort). */
   warmthRef: MutableRefObject<number>;
   reducedMotion: boolean;
+  /**
+   * 0..1 scale on the closed vista drift. The atmosphere score drives this:
+   * a still horizon in the opening chapter, a breathing one once the ride
+   * opens out. Undefined keeps the drift at full.
+   */
+  vistaScaleRef?: MutableRefObject<number>;
 }
 
 export function CloudWorldScene({
@@ -228,6 +234,7 @@ export function CloudWorldScene({
   effortRef,
   warmthRef,
   reducedMotion,
+  vistaScaleRef,
 }: { curve: CatmullRomCurve3 } & CloudSceneInputs) {
   const camera = useThree((s) => s.camera);
   const layout = useMemo(() => buildCloudLayout(curve), [curve]);
@@ -286,8 +293,10 @@ export function CloudWorldScene({
     // matched velocity and never ticks.
     const vista = vistaRef.current;
     if (vista) {
+      // Scaled by the chapter: a still horizon early, a breathing one later.
+      const scale = vistaScaleRef ? Math.max(0, Math.min(1, vistaScaleRef.current)) : 1;
       const offset = vistaOffset(seconds);
-      vista.position.set(offset.x, 0, offset.z);
+      vista.position.set(offset.x * scale, 0, offset.z * scale);
     }
     // Sky dome rides the camera; warmth lifts sky/light/fog.
     const warmth = warmthRef.current;

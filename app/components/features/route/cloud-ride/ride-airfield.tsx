@@ -121,6 +121,7 @@ export function RideAirfield({
   reducedMotion,
   coolHex,
   warmHex,
+  densityRef,
 }: {
   curve: CatmullRomCurve3;
   curveLength: number;
@@ -133,6 +134,12 @@ export function RideAirfield({
   /** Grain tint at the cold and warm ends — themed by the caller's world. */
   coolHex?: string;
   warmHex?: string;
+  /**
+   * 0..1 share of the field that is in the air. A world that starts clear and
+   * fills as the ride opens out drives this from its own atmosphere rather than
+   * mounting and unmounting the pool (a count that changes pops grain in).
+   */
+  densityRef?: MutableRefObject<number>;
 }) {
   const count = airGrainCount(tier);
   // Buffers are allocated for the tier's full pool; instanceCount picks how
@@ -208,12 +215,16 @@ export function RideAirfield({
 
   const meshRef = useRef<Mesh>(null);
   const scratch = useRef(new Vector3());
-  const opacityRef = useRef(0);
 
   useFrame((_, delta) => {
     const mesh = meshRef.current;
     if (!mesh || count === 0) return;
     const resources = resourcesRef.current;
+
+    // Density is read before any geometry work: a clear sky costs nothing.
+    const density = densityRef ? Math.min(1, Math.max(0, densityRef.current)) : 1;
+    resources.material.uniforms.uOpacity.value = density;
+    if (density < 0.002) return;
 
     const progress = Math.min(1, Math.max(0, progressRef.current));
     const travel = positiveMod(progress * curveLength, AIR_SPAN);
@@ -284,8 +295,7 @@ export function RideAirfield({
     // 3. Warmth and the ride's own fade-in, damped so a telemetry step cannot
     //    strobe the field.
     const uniforms = resources.material.uniforms;
-    opacityRef.current += (1 - opacityRef.current) * Math.min(1, delta * 3);
-    uniforms.uOpacity.value = opacityRef.current;
+    // Density already set above; only the tint eases here.
     const warmth = warmthRef ? warmthRef.current : 0.45;
     uniforms.uWarmth.value += (warmth - uniforms.uWarmth.value) * Math.min(1, delta * 3);
   });
