@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import { Vector3 } from "three";
 import { buildRouteCurve } from "../route-curve";
 import {
+  SHAFT_VERTICES_PER_BOX,
   SHAFT_BAND,
   SHAFT_COUNTS,
   SHAFT_DEFAULT_KEY_DIRECTION,
   SHAFT_Y_OFFSET,
   buildShaftLayout,
+  buildShaftVolume,
   shaftAxis,
   shaftCount,
 } from "../canopy-shafts";
@@ -150,5 +152,82 @@ describe("shaft layout", () => {
     const empty = buildShaftLayout({ curve, count: 0, halfWidth, height: 13, width: 3.4 });
     expect(empty.count).toBe(0);
     expect(empty.bases).toHaveLength(0);
+  });
+});
+
+describe("shaft volume", () => {
+  const axis = shaftAxis([0.38, 0.78, 0.5]);
+  const volume = () => buildShaftVolume(layout(), axis);
+
+  it("gives every beam a closed box of its own", () => {
+    const { count, vertexCount, positions } = volume();
+    expect(count).toBe(24);
+    expect(vertexCount).toBe(24 * SHAFT_VERTICES_PER_BOX);
+    expect(positions).toHaveLength(vertexCount * 3);
+    for (const value of positions) expect(Number.isFinite(value)).toBe(true);
+  });
+
+  it("winds every face outward, because BackSide draws exactly one side", () => {
+    // A box wound inward loses its far faces and the beam gets holes; one wound
+    // from both sides counts the same light twice.
+    const { count, positions, bases, axes, heights } = volume();
+    const axisVector = new Vector3(axes[0], axes[1], axes[2]);
+    const centre = new Vector3();
+
+    for (let beam = 0; beam < count; beam++) {
+      const offset = beam * SHAFT_VERTICES_PER_BOX;
+      centre
+        .set(bases[offset * 3], bases[offset * 3 + 1], bases[offset * 3 + 2])
+        .addScaledVector(axisVector, heights[offset] * 0.5);
+
+      for (let tri = 0; tri < SHAFT_VERTICES_PER_BOX / 3; tri++) {
+        const p0 = new Vector3().fromArray(positions, (offset + tri * 3) * 3);
+        const p1 = new Vector3().fromArray(positions, (offset + tri * 3 + 1) * 3);
+        const p2 = new Vector3().fromArray(positions, (offset + tri * 3 + 2) * 3);
+        const normal = new Vector3().crossVectors(
+          new Vector3().subVectors(p1, p0),
+          new Vector3().subVectors(p2, p0),
+        );
+        // Degenerate triangles are the box's own edges after projection; a real
+        // face has a normal that points away from the box centre.
+        if (normal.length() < 1e-8) continue;
+        const centroid = new Vector3().add(p0).add(p1).add(p2).divideScalar(3);
+        expect(normal.dot(centroid.clone().sub(centre))).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("covers the whole column: boxes span the beam's radius and its length", () => {
+    // The proxy has to contain every pixel the volume can shade, or the beam is
+    // clipped by its own bounds.
+    const { count, positions, bases, axes, heights, widths } = volume();
+    const axisVector = new Vector3(axes[0], axes[1], axes[2]).normalize();
+
+    for (let beam = 0; beam < count; beam++) {
+      const offset = beam * SHAFT_VERTICES_PER_BOX;
+      const base = new Vector3().fromArray(bases, offset * 3);
+      const height = heights[offset];
+      const width = widths[offset];
+      const rel = new Vector3();
+
+      for (let v = 0; v < SHAFT_VERTICES_PER_BOX; v++) {
+        rel.fromArray(positions, (offset + v) * 3).sub(base);
+        const along = rel.dot(axisVector);
+        expect(along).toBeGreaterThanOrEqual(-1e-4);
+        expect(along).toBeLessThanOrEqual(height + 1e-4);
+        // Corners sit at the box's diagonal: sqrt(2) * width from the axis.
+        const radial = Math.sqrt(Math.max(0, rel.lengthSq() - along * along));
+        expect(radial).toBeLessThanOrEqual(Math.SQRT2 * width + 1e-3);
+      }
+    }
+  });
+
+  it("builds no geometry when there is nothing to draw", () => {
+    const empty = buildShaftVolume(
+      buildShaftLayout({ curve, count: 0, halfWidth, height: 13, width: 3.4 }),
+      axis,
+    );
+    expect(empty.vertexCount).toBe(0);
+    expect(empty.positions).toHaveLength(0);
   });
 });

@@ -151,6 +151,165 @@ export function buildShaftLayout(opts: {
   return layout;
 }
 
+
+/** Vertices in one beam's bounding box (6 faces, 2 triangles each). */
+export const SHAFT_VERTICES_PER_BOX = 36;
+
+/**
+ * Bounding geometry for the raymarch.
+ *
+ * The beams are drawn as volumes, not as quads: every pixel between the near
+ * and far face of a beam's box integrates the beam's own density along the
+ * view ray. That is what makes them camera-independent — looking *down* a beam
+ * (the near-overhead case that turned billboard quads into slivers) now
+ * brightens it, because the ray travels inside it for longer.
+ *
+ * The box is a proxy only. The density comes from the ray/cylinder maths in the
+ * shader; this just has to cover every pixel the beam can touch. Winding is
+ * forced outward from the box centre so `side: BackSide` yields exactly one
+ * fragment per pixel per beam — a box wound inconsistently leaves holes, and a
+ * box drawn from both sides counts the same light twice.
+ */
+export interface ShaftVolume {
+  count: number;
+  vertexCount: number;
+  /** Bounding-box vertex positions, world space. */
+  positions: Float32Array;
+  /** Per-vertex copies of the beam they belong to. */
+  bases: Float32Array;
+  axes: Float32Array;
+  heights: Float32Array;
+  widths: Float32Array;
+  alphas: Float32Array;
+  seeds: Float32Array;
+}
+
+/** Corner parameter triples for the six faces: (i, j, s) along right/binormal/axis. */
+const BOX_FACES: ReadonlyArray<ReadonlyArray<readonly [number, number, number]>> = [
+  [
+    [-1, -1, 0],
+    [1, -1, 0],
+    [1, 1, 0],
+    [-1, 1, 0],
+  ],
+  [
+    [-1, -1, 1],
+    [1, -1, 1],
+    [1, 1, 1],
+    [-1, 1, 1],
+  ],
+  [
+    [-1, -1, 0],
+    [-1, 1, 0],
+    [-1, 1, 1],
+    [-1, -1, 1],
+  ],
+  [
+    [1, -1, 0],
+    [1, 1, 0],
+    [1, 1, 1],
+    [1, -1, 1],
+  ],
+  [
+    [-1, -1, 0],
+    [1, -1, 0],
+    [1, -1, 1],
+    [-1, -1, 1],
+  ],
+  [
+    [-1, 1, 0],
+    [1, 1, 0],
+    [1, 1, 1],
+    [-1, 1, 1],
+  ],
+];
+
+export function buildShaftVolume(layout: ShaftLayout, axisInput: readonly [number, number, number]): ShaftVolume {
+  const count = layout.count;
+  const vertexCount = count * SHAFT_VERTICES_PER_BOX;
+  const volume: ShaftVolume = {
+    count,
+    vertexCount,
+    positions: new Float32Array(vertexCount * 3),
+    bases: new Float32Array(vertexCount * 3),
+    axes: new Float32Array(vertexCount * 3),
+    heights: new Float32Array(vertexCount),
+    widths: new Float32Array(vertexCount),
+    alphas: new Float32Array(vertexCount),
+    seeds: new Float32Array(vertexCount),
+  };
+  if (count === 0) return volume;
+
+  const axis = new Vector3(axisInput[0], axisInput[1], axisInput[2]).normalize();
+  // Any pair of perpendiculars will do; the box is a proxy, not a shape.
+  const reference = Math.abs(axis.y) > 0.9 ? new Vector3(1, 0, 0) : new Vector3(0, 1, 0);
+  const right = new Vector3().crossVectors(axis, reference).normalize();
+  const binormal = new Vector3().crossVectors(axis, right).normalize();
+  const base = new Vector3();
+
+  let v = 0;
+  const push = (x: number, y: number, z: number, i: number) => {
+    volume.positions[v * 3] = x;
+    volume.positions[v * 3 + 1] = y;
+    volume.positions[v * 3 + 2] = z;
+    volume.bases[v * 3] = base.x;
+    volume.bases[v * 3 + 1] = base.y;
+    volume.bases[v * 3 + 2] = base.z;
+    volume.axes[v * 3] = axis.x;
+    volume.axes[v * 3 + 1] = axis.y;
+    volume.axes[v * 3 + 2] = axis.z;
+    volume.heights[v] = layout.heights[i];
+    volume.widths[v] = layout.widths[i];
+    volume.alphas[v] = layout.alphas[i];
+    volume.seeds[v] = layout.seeds[i];
+    v++;
+  };
+
+  const corner = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
+  const centre = new Vector3();
+  const normal = new Vector3();
+  const e1 = new Vector3();
+  const e2 = new Vector3();
+
+  for (let i = 0; i < count; i++) {
+    base.set(layout.bases[i * 3], layout.bases[i * 3 + 1], layout.bases[i * 3 + 2]);
+    const height = layout.heights[i];
+    const width = layout.widths[i];
+    centre.copy(base).addScaledVector(axis, height * 0.5);
+
+    for (const face of BOX_FACES) {
+      face.forEach(([u, w, s], index) => {
+        corner[index]
+          .copy(base)
+          .addScaledVector(right, width * u)
+          .addScaledVector(binormal, width * w)
+          .addScaledVector(axis, height * s);
+      });
+      // Orient the quad outward from the box centre. Each triangle is reversed
+      // on its own — permuting the corners instead turns the quad into a bowtie
+      // and one triangle of every flipped face ends up pointing inward.
+      e1.subVectors(corner[1], corner[0]);
+      e2.subVectors(corner[2], corner[0]);
+      normal.crossVectors(e1, e2);
+      const outward =
+        normal.x * (corner[0].x - centre.x) +
+        normal.y * (corner[0].y - centre.y) +
+        normal.z * (corner[0].z - centre.z);
+      const triangles = outward < 0
+        ? [[0, 2, 1], [0, 3, 2]]
+        : [[0, 1, 2], [0, 2, 3]];
+      for (const triangle of triangles) {
+        for (const index of triangle) {
+          const point = corner[index];
+          push(point.x, point.y, point.z, i);
+        }
+      }
+    }
+  }
+
+  return volume;
+}
+
 /** Depth window a beam is visible in — close fade stops a full-screen wash. */
 export const SHAFT_NEAR_IN = 4;
 export const SHAFT_NEAR_OUT = 18;
