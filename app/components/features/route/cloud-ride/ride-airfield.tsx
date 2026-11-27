@@ -34,6 +34,9 @@ import {
   Vector3,
 } from "three";
 import {
+  airKindCount,
+  airKindProfile,
+  airKindSize,
   AIR_DEPTH_FULL_IN,
   AIR_DEPTH_FULL_OUT,
   AIR_DEPTH_IN,
@@ -42,7 +45,6 @@ import {
   AIR_SPAN,
   airFieldFade,
   airGrainCount,
-  airGrainSize,
   airLateral,
   airStation,
   airWrapCount,
@@ -68,8 +70,11 @@ uniform float uOpacity;
 uniform vec3 uCool;
 uniform vec3 uWarm;
 uniform float uWarmth;
+uniform float uStretchY;
+uniform float uTumble;
+uniform float uSpin;
 
-varying vec2 vUv;
+varying vec2 vQuad;
 varying float vAlpha;
 varying vec3 vTint;
 
@@ -80,16 +85,26 @@ float smoothStep(float a, float b, float x) {
 
 void main() {
   vec4 view = modelViewMatrix * vec4(aPos, 1.0);
-  // Billboard in view space: the quad always faces the lens, so a grain never
-  // thins out to a line as the rider enters a banked turn.
-  view.xy += position.xy * aSize;
+  // Spin first, in view space, so a leaf turns as it passes the lens: the angle
+  // advances with travel, and every instance starts at its own phase.
+  float ang = aSeed * 6.2831853 + uSpin * uTumble;
+  float c = cos(ang);
+  float s = sin(ang);
+  vec2 corner = vec2(position.x * c - position.y * s, position.x * s + position.y * c);
+  vQuad = corner;
+  // Stretch after the rotation, and only in Y: rain becomes a streak, a leaf
+  // stays broad. The decal is sampled in un-stretched space, so a stretched
+  // quad reads as a long soft falling line rather than a fat blob.
+  corner.y *= uStretchY;
+  // Billboard: the quad always faces the lens, so it never thins to a line as
+  // the rider enters a banked turn.
+  view.xy += corner * aSize;
   gl_Position = projectionMatrix * view;
 
   float depth = -view.z;
   float visible = smoothStep(uDepthIn, uDepthFullIn, depth) *
                   (1.0 - smoothStep(uDepthFullOut, uDepthOut, depth));
 
-  vUv = position.xy + 0.5;
   vAlpha = aFade * visible * uOpacity;
   // Seeds pick up the same sun the clouds are lit by: warm at the reveal, pale
   // blue when the sky is cold.
@@ -98,15 +113,25 @@ void main() {
 `;
 
 const fragmentShader = /* glsl */ `
-varying vec2 vUv;
+varying vec2 vQuad;
 varying float vAlpha;
 varying vec3 vTint;
+uniform float uLeaf;
 
 void main() {
-  float r = length(vUv - 0.5) * 2.0;
-  // Falloff written as two edge-ordered ramps: smoothstep(1.0, 0.12, r) is
-  // undefined behaviour in GLSL (edge0 > edge1) and some drivers invert it.
-  float alpha = vAlpha * (1.0 - smoothstep(0.12, 1.0, r));
+  float alpha;
+  if (uLeaf > 0.5) {
+    // A leaf, not a blob: broad at the base, tapering toward the tip.
+    vec2 p = vQuad * 2.0;
+    float taper = 1.0 - max(0.0, p.y) * 0.5;
+    float d = length(vec2(p.x / max(taper, 0.25), p.y));
+    alpha = vAlpha * (1.0 - smoothstep(0.55, 1.0, d));
+  } else {
+    float r = length(vQuad) * 2.0;
+    // Falloff as two edge-ordered ramps: smoothstep(1.0, 0.12, r) is undefined
+    // behaviour in GLSL (edge0 > edge1) and some drivers invert it.
+    alpha = vAlpha * (1.0 - smoothstep(0.12, 1.0, r));
+  }
   if (alpha < 0.004) discard;
   gl_FragColor = vec4(vTint, alpha);
 }
@@ -122,6 +147,8 @@ export function RideAirfield({
   coolHex,
   warmHex,
   densityRef,
+  kind,
+  declaredCount,
 }: {
   curve: CatmullRomCurve3;
   curveLength: number;
@@ -140,8 +167,13 @@ export function RideAirfield({
    * mounting and unmounting the pool (a count that changes pops grain in).
    */
   densityRef?: MutableRefObject<number>;
+  /** What this world puts in its air (`WorldAmbient.particles.kind`). */
+  kind?: string;
+  /** The count the world declares; the tier caps it. */
+  declaredCount?: number;
 }) {
-  const count = airGrainCount(tier);
+  const profile = airKindProfile(kind);
+  const count = airKindCount(kind, tier, declaredCount);
   // Buffers are allocated for the tier's full pool; instanceCount picks how
   // much of it draws, so a tier change never reallocates mid-ride.
   const capacity = Math.max(1, airGrainCount("high"));
@@ -184,6 +216,10 @@ export function RideAirfield({
         uOpacity: { value: 0 },
         uCool: { value: new Color(coolHex ?? "#eaf1ff") },
         uWarm: { value: new Color(warmHex ?? "#ffe7c9") },
+        uStretchY: { value: profile.stretchY },
+        uTumble: { value: profile.tumble },
+        uLeaf: { value: profile.leafShape ? 1 : 0 },
+        uSpin: { value: 0 },
         uWarmth: { value: 0.3 },
       },
     });
@@ -198,7 +234,7 @@ export function RideAirfield({
       fades: geo.getAttribute("aFade") as InstancedBufferAttribute,
       seeds: geo.getAttribute("aSeed") as InstancedBufferAttribute,
     };
-  }, [capacity, count, coolHex, warmHex]);
+  }, [capacity, count, coolHex, warmHex, profile.stretchY, profile.tumble, profile.leafShape]);
 
   const resourcesRef = useRef(resources);
   useEffect(() => {
@@ -258,7 +294,7 @@ export function RideAirfield({
       // field drifts rather than marching.
       const flutter = reducedMotion
         ? 0
-        : Math.sin(seed * 61.7 + travel * 0.4) * 0.55;
+        : Math.sin(seed * 61.7 + travel * 0.4) * profile.sway * 0.35;
       const station = airStation(seed, travel, flutter);
 
       // Corridor lookup: linear between the two samples either side.
@@ -281,13 +317,18 @@ export function RideAirfield({
       // side = normalize(cross(tangent, up))
       const sx = -tz / len;
       const sz = tx / len;
-      const altitude = 0.4 + positiveMod(seed * 41.3 + 0.11, 1) * 2.8;
+      // Bounded vertical drift: with the station wrap this reads as a leaf
+      // settling or a spark lifting, and neither leaves the corridor.
+      const altitude =
+        0.4 +
+        positiveMod(seed * 41.3 + 0.11, 1) * 2.8 +
+        profile.rise * positiveMod(seed * 13.7 + travel * 0.15, 1);
 
       posArray[i * 3] = x + sx * lateral * spread;
       posArray[i * 3 + 1] = y + altitude;
       posArray[i * 3 + 2] = z + sz * lateral * spread;
 
-      sizeArray[i] = airGrainSize(seed);
+      sizeArray[i] = airKindSize(profile, seed);
       fadeArray[i] = airFieldFade(station);
       seedArray[i] = positiveMod(seed * 7.7, 1);
     }
@@ -296,6 +337,9 @@ export function RideAirfield({
     //    strobe the field.
     const uniforms = resources.material.uniforms;
     // Density already set above; only the tint eases here.
+    // Spin clock for the shader: travel, not wall time, so a seek or a pause
+    // holds a leaf exactly where it was.
+    uniforms.uSpin.value = travel;
     const warmth = warmthRef ? warmthRef.current : 0.45;
     uniforms.uWarmth.value += (warmth - uniforms.uWarmth.value) * Math.min(1, delta * 3);
   });

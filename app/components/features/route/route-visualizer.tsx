@@ -2395,7 +2395,10 @@ function Scene({
           progressRef={renderProgressRef}
           tier={performanceTier}
           reducedMotion={reducedMotion}
-          coolHex={styles.particleColor}
+          // The world declares what drifts through it; the tier caps the count.
+          kind={resolved.world.ambient?.particles?.kind}
+          declaredCount={resolved.world.ambient?.particles?.count}
+          coolHex={resolved.world.ambient?.particles?.color ?? styles.particleColor}
           warmHex={styles.horizonGlow}
         />
       )}

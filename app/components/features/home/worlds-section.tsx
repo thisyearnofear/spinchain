@@ -28,6 +28,7 @@ const WORLD_MOODS: Record<VisualizerTheme, string> = {
   daybreak: "Ride the sun up",
   sunset: "Chase the golden hour",
   cloud: "Cuddle up to the cumulus",
+  woodland: "Leaves in the spokes",
 };
 
 /**

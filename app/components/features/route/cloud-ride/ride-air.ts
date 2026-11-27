@@ -136,12 +136,79 @@ export function airScreenSize(worldSize: number, depth: number, fovTan: number, 
   return (worldSize * viewportHeight) / (2 * depth * fovTan);
 }
 
+/** World size for a kind at a seed — within the kind's authored range. */
+export function airKindSize(profile: AirKindProfile, seed: number): number {
+  const [min, max] = profile.size;
+  const r = positiveMod(seed * 7.31 + 0.17, 1);
+  // Mostly towards the small end, with a few larger ones, as grain should be.
+  return min + (max - min) * r * r;
+}
+
 /** World size for a grain: mostly tiny, a few recognizable seeds. */
 export function airGrainSize(seed: number): number {
   const r = positiveMod(seed * 7.31 + 0.17, 1);
   // Sized for our chase distance (~12 units from the rider): the reference's
   // 0.03–0.10 would land at two pixels, which reads as sensor dust, not pollen.
   return r < 0.86 ? 0.045 + r * 0.075 : 0.17 + (r - 0.86) * 0.75;
+}
+
+/**
+ * What a world puts in its air. A world *declares* one of these
+ * (`WorldAmbient.particles.kind`) and the field draws it — leaves tumbling in a
+ * woodland, rain streaking past in a storm, embers drifting up off a fire.
+ * Same pool, same one draw call, same fades; only the character changes.
+ */
+export type AirKind = "dust" | "leaf" | "rain" | "snow" | "ember" | "spore";
+
+export interface AirKindProfile {
+  /** World size range, tiny to seed. */
+  size: [number, number];
+  /** Vertical stretch of the billboard — rain is a streak, snow is a flake. */
+  stretchY: number;
+  /** Radians of spin per unit of travel. Leaves tumble; rain does not. */
+  tumble: number;
+  /** Lateral sway, world units — the wind's personality. */
+  sway: number;
+  /**
+   * Bounded vertical drift, world units. Not a fall simulation: the altitude
+   * wraps with the station, so a leaf hovers down and a spark rises without
+   * either leaving the corridor.
+   */
+  rise: number;
+  /** 0..1 — how much of the frame this kind fills. Scales the pool. */
+  density: number;
+  /** Render as a leaf silhouette rather than a soft round grain. */
+  leafShape: boolean;
+}
+
+/**
+ * The characters. Values are authored per kind rather than derived, because
+ * this is the one place the field is allowed to be art rather than physics.
+ */
+export const AIR_KINDS: Record<AirKind, AirKindProfile> = {
+  dust: { size: [0.045, 0.12], stretchY: 1, tumble: 0, sway: 0.25, rise: 0.4, density: 1, leafShape: false },
+  // Leaves: fewer than dust, larger, slower, and they turn as they pass.
+  leaf: { size: [0.16, 0.34], stretchY: 0.72, tumble: 0.9, sway: 1.6, rise: -0.5, density: 0.62, leafShape: true },
+  // Rain: long thin streaks that barely sway, because rain falls straight.
+  rain: { size: [0.05, 0.1], stretchY: 6, tumble: 0, sway: 0.1, rise: -3, density: 1, leafShape: false },
+  snow: { size: [0.09, 0.2], stretchY: 1, tumble: 0.25, sway: 1.1, rise: -0.8, density: 0.85, leafShape: false },
+  // Embers rise, which is the one direction that reads as heat.
+  ember: { size: [0.05, 0.13], stretchY: 1.2, tumble: 0.4, sway: 0.6, rise: 1.6, density: 0.55, leafShape: false },
+  spore: { size: [0.04, 0.11], stretchY: 1, tumble: 0.15, sway: 1.9, rise: 0.2, density: 0.5, leafShape: false },
+};
+
+/** Kind profile by name, falling back to dust rather than throwing. */
+export function airKindProfile(kind: string | undefined): AirKindProfile {
+  return AIR_KINDS[(kind ?? "dust") as AirKind] ?? AIR_KINDS.dust;
+}
+
+/** Pool size for a kind at a tier — a declared world count clamped to the tier. */
+export function airKindCount(kind: string | undefined, tier: "high" | "medium" | "low", declared?: number): number {
+  const cap = airGrainCount(tier);
+  if (cap === 0) return 0;
+  const profile = airKindProfile(kind);
+  const base = declared && declared > 0 ? declared : cap;
+  return Math.max(0, Math.round(Math.min(cap * 1.6, base) * profile.density));
 }
 
 /**

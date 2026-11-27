@@ -40,10 +40,14 @@ test.beforeEach(async ({ page }) => {
 // paused=1 hands the R3F loop to FixedHarnessClock (route-visualizer.tsx):
 // a fixed number of fixed-step frames, then the last one is held. Every run
 // renders the same real 3D frame, so the baselines diff the scene itself.
+// Each state pins its world. They were authored when a ride defaulted to the
+// neon world; the product default is now Cloud, so an unpinned state quietly
+// photographed a different world than its baseline. A visual state must name
+// the place it is a baseline of.
 const STATES = [
-  { name: "preview", url: "/test-harness/route-visualizer?testState=preview&seed=123&paused=1", fullPage: true },
-  { name: "active-play", url: "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1", fullPage: true },
-  { name: "finished", url: "/test-harness/route-visualizer?testState=finished&seed=123&paused=1", fullPage: true },
+  { name: "preview", url: "/test-harness/route-visualizer?testState=preview&seed=123&paused=1&theme=neon", fullPage: true },
+  { name: "active-play", url: "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1&theme=neon", fullPage: true },
+  { name: "finished", url: "/test-harness/route-visualizer?testState=finished&seed=123&paused=1&theme=neon", fullPage: true },
   // The Cloud Kingdom is the product's DEFAULT world, so it needs a baseline
   // of its own — a change to the default world's look must fail here, not
   // pass against a stale Tron frame.
@@ -101,7 +105,7 @@ test("visual — active-play @ mobile", async ({ page }) => {
   // This test only runs in the mobile project (Pixel 5 viewport via playwright.config.ts)
   // When run on desktop project, it will still pass but use desktop viewport — the
   // config's second project ensures true mobile coverage.
-  await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1");
+  await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123&paused=1&theme=neon");
   await expectDrawnScene(page);
   await expect(page).toHaveScreenshot(`active-play-mobile.png`, { fullPage: false });
 });
@@ -170,7 +174,10 @@ test("canvas is non-blank smoke", async ({ page }) => {
   test.setTimeout(120_000);
   // Live loop, not paused=1: the baselines above prove the fixed-clock path
   // draws; this proves the production demand loop does too.
-  await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123");
+  // World pinned for the same reason as the states above: the bar below ("sky,
+  // terrain, route, glow and fog") describes a lit scene, and an unpinned theme
+  // now resolves to the Cloud world, whose mid-ride frame is a near-black deck.
+  await gotoWithHarness(page, "/test-harness/route-visualizer?testState=active-play&seed=123&theme=neon");
   const canvas = page.locator("canvas").first();
   await expect(canvas).toBeVisible();
   // An undrawn canvas shows only the CSS gradient behind it (~40–110 colours

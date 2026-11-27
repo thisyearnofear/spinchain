@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  AIR_KINDS,
+  airKindCount,
+  airKindProfile,
+  airKindSize,
   AIR_AHEAD,
   AIR_DEPTH_IN,
   AIR_DEPTH_OUT,
@@ -157,5 +161,63 @@ describe("grain", () => {
     expect(smoothStep(0, 1, 0.5)).toBeCloseTo(0.5, 12);
     expect(smoothStep(0, 1, 1)).toBe(1);
     expect(smoothStep(0, 1, 2)).toBe(1);
+  });
+});
+
+describe("world air kinds", () => {
+  it("falls back to dust for anything unknown or missing", () => {
+    expect(airKindProfile(undefined)).toBe(AIR_KINDS.dust);
+    expect(airKindProfile("hail")).toBe(AIR_KINDS.dust);
+    expect(airKindProfile("leaf")).toBe(AIR_KINDS.leaf);
+  });
+
+  it("gives every kind a character of its own", () => {
+    const kinds = Object.entries(AIR_KINDS);
+    // Each one must differ from dust on at least one axis, or declaring it in a
+    // world would be a lie.
+    for (const [name, profile] of kinds) {
+      if (name === "dust") continue;
+      const differs =
+        profile.stretchY !== AIR_KINDS.dust.stretchY ||
+        profile.tumble !== AIR_KINDS.dust.tumble ||
+        profile.sway !== AIR_KINDS.dust.sway ||
+        profile.rise !== AIR_KINDS.dust.rise ||
+        profile.leafShape !== AIR_KINDS.dust.leafShape ||
+        profile.density !== AIR_KINDS.dust.density;
+      expect(differs, `${name} is indistinguishable from dust`).toBe(true);
+    }
+  });
+
+  it("makes rain a streak and leaves a shape, and nothing else", () => {
+    expect(AIR_KINDS.rain.stretchY).toBeGreaterThan(AIR_KINDS.snow.stretchY);
+    expect(AIR_KINDS.leaf.leafShape).toBe(true);
+    expect(AIR_KINDS.rain.leafShape).toBe(false);
+    // Leaves turn; rain does not.
+    expect(AIR_KINDS.leaf.tumble).toBeGreaterThan(AIR_KINDS.rain.tumble);
+    // Embers go up; leaves and rain come down.
+    expect(AIR_KINDS.ember.rise).toBeGreaterThan(0);
+    expect(AIR_KINDS.leaf.rise).toBeLessThan(0);
+    expect(AIR_KINDS.rain.rise).toBeLessThan(AIR_KINDS.snow.rise);
+  });
+
+  it("caps a declared world count by the tier, and dies on the low tier", () => {
+    // A world asking for 5000 gets the high-tier cap plus headroom, not 5000.
+    const capped = airKindCount("dust", "high", 5000);
+    expect(capped).toBeLessThanOrEqual(Math.round(airGrainCount("high") * 1.6));
+    // The tier's own pool when the world declares nothing.
+    expect(airKindCount("dust", "high")).toBe(airGrainCount("high"));
+    // A denser kind puts fewer in the air than a sparse one.
+    expect(airKindCount("leaf", "high", 400)).toBeLessThan(airKindCount("dust", "high", 400));
+    expect(airKindCount("leaf", "low", 400)).toBe(0);
+  });
+
+  it("sizes a kind inside its own authored range", () => {
+    for (const profile of Object.values(AIR_KINDS)) {
+      for (const seed of [0, 0.13, 0.5, 0.77, 0.99]) {
+        const size = airKindSize(profile, seed);
+        expect(size).toBeGreaterThanOrEqual(profile.size[0]);
+        expect(size).toBeLessThanOrEqual(profile.size[1]);
+      }
+    }
   });
 });
