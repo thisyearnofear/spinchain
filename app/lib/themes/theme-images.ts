@@ -31,8 +31,8 @@ export const WORLD_IMAGES: Record<VisualizerTheme, WorldImage> = {
   daybreak: { src: "/images/worlds/daybreak.webp", label: VISUALIZER_THEMES.daybreak.worldLabel },
   sunset: { src: "/images/worlds/sunset.webp", label: VISUALIZER_THEMES.sunset.worldLabel },
   cloud: { src: "/images/worlds/cloud.webp", label: VISUALIZER_THEMES.cloud.worldLabel },
-  // Placeholder: a swatch built from this palette, not a photograph. Swap it for
-  // a mastered .jpg via `pnpm worlds:optimize` before this world ships to riders.
+  // Generated art, like the Cloud and Daybreak cards: re-run
+  // `node scripts/worlds/generate-woodland-image.mjs` to rebuild it.
   woodland: { src: "/images/worlds/woodland.webp", label: VISUALIZER_THEMES.woodland.worldLabel },
 };
 
