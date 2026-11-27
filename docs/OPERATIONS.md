@@ -531,6 +531,38 @@ The former multi-chain mainnet migration checklist is retired. Do not publish pe
 
 ### Session Log
 
+#### 2026-11-27 — Ride lens, world-declared air, and a third world (PR #133)
+
+**Merged:** `5813f05` (PR #133, `feat/ride-lens-and-air`). Three things landed together:
+
+1. **The lens is the rider's.** A rider-locked fisheye whose strength and near plane are driven by
+   ride station, so the road opens out as the ride does rather than at a fixed camera angle. The
+   vista is a closed loop — no seam at the far end.
+2. **Air is world data.** `ambient.particles` on the world schema replaced the decorative star dome;
+   each world declares the air it puts in motion, and the renderer draws it from that declaration.
+   The Cloud Kingdom's sky became *versions* of itself as the ride opens out, instead of one static
+   sky swapped at a phase boundary.
+3. **A third world: Greenwood** (`woodland`) — broadleaf kit, a shade pass, card art drawn from its
+   own palette, and sun shafts through the canopy declared as `ambient.shafts`. The shafts are real
+   volumes, not billboard quads, so they survive a camera that moves through them.
+
+**Verification:** `tsc --noEmit` clean; ESLint 0 errors on the changed files; 688 vitest tests pass
+(684 before this branch); the shafts photographed on the road at two ride positions in the harness.
+The visual suite reported 5 passed + 1 retry — the finished-state frame flakes on its own
+"is this a drawn scene?" guard (119 distinct colours against a 200 threshold) with these changes
+stashed, so that flake is pre-existing and recorded in `docs/KNOWN-ISSUES.md` §3.
+
+**Known at merge, not fixed here** — all in [KNOWN-ISSUES.md](./KNOWN-ISSUES.md):
+
+- §1 **the Cloud Kingdom draws no geometry** (P0, and it is the default world). Its committed visual
+  baseline has been a black frame since 2026-10-22, i.e. the baseline recorded the defect.
+- §4 `public/rive/rider.riv` predates the RML easing fix merged here; it needs `rive login` +
+  `pnpm rive:build` on a machine with publish credentials.
+- §2 the iOS build is red on a stale `ios/App/Podfile.lock`; needs one `pnpm exec cap sync ios` with
+  CocoaPods installed.
+
+**Not deployed:** merged to `main`, no Vercel deploy or contract operation in this entry.
+
 #### 2026-10-20 — Rank ladder + world art direction
 
 **Shipped:** the rider-facing rank ladder (ten ranks, XP derived from ride telemetry, append-only

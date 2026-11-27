@@ -4,8 +4,16 @@
 > and later adopted the authored cloud-ride kit as its production look (the shared
 > extrude road, skirt, silhouette puffs and spore sparkles no longer render there).
 > The §4 migration finished 2026-11-02: all `theme === "…"` branches are data, and the
-> palette/place split put the silhouette and the sky kit on the world schema — both
-> registered worlds are `complete`. Step 4 (add worlds) is unlocked.
+> palette/place split put the silhouette and the sky kit on the world schema.
+> **2026-11-27**: a third world, **Greenwood** (`woodland`), landed in the registry, and
+> the renderer gained two world-declared slots it already had schema for —
+> `ambient.particles` (the air a place puts in motion) and `ambient.shafts` (sun shafts
+> through a canopy). All three registered worlds are `complete`. Step 4 (add worlds) is
+> unlocked and has now been used twice.
+>
+> **Read [KNOWN-ISSUES.md](./KNOWN-ISSUES.md) §1 before trusting any cloud screenshot**:
+> the Cloud Kingdom currently draws no geometry, and its committed visual baseline is a
+> black frame.
 > **Created**: 2026-10-21
 > **See also**: [ARCHITECTURE.md](./ARCHITECTURE.md) (current renderer facts),
 > [THEME-PIPELINE.md](./THEME-PIPELINE.md) (the palette pipeline this builds on),
@@ -16,8 +24,22 @@
 
 ## 1. Why
 
-The product has five "worlds": Neon City, Summit Pass, Red Expanse, Toon Valley, Spectrum Run.
-They are five **moods of one place**.
+The product started with five "worlds": Neon City, Summit Pass, Red Expanse, Toon Valley,
+Spectrum Run. They are five **moods of one place** — one road recoloured five times, which is
+the limit this document exists to remove.
+
+Where it stands now (2026-11-27), as the registry actually resolves:
+
+| World (`id`) | Label | Modes → theme | Picker cards |
+|---|---|---|---|
+| `tron` | Tron City | 7 modes → `neon`, `alpine`, `mars`, `anime`, `rainbow`, `daybreak`, `sunset` | 7 |
+| `cloud` | Cloud Kingdom | `cotton` (Cotton Candy), `sugar` (Sugar Rush) → both `cloud` | 1 — **the default** (Sugar Rush) |
+| `woodland` | Greenwood | 1 mode → `woodland` | 1 |
+
+Three world definitions, ten modes, nine picker cards. Greenwood is the first world added
+under the ambient-particle contract: it declares the air it puts in motion (`leaf`) and the
+light it lets through (`shafts`), and the renderer draws both from that declaration rather
+than from a branch on the theme name.
 
 Every one of them renders the same road on the same flat skirt, with the same camera, the same
 rider, the same prop-placement algorithm, and the same reactive layer. What differs is a
